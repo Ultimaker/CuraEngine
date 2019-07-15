@@ -13,6 +13,7 @@
 #include "utils/polygon.h"
 #include "utils/PolygonsSegmentIndex.h"
 #include "utils/ExtrusionSegment.h"
+#include "utils/ExtrusionJunction.h"
 #include "VoronoiQuadrangulationEdge.h"
 #include "VoronoiQuadrangulationJoint.h"
 #include "BeadingStrategy.h"
@@ -188,34 +189,25 @@ protected:
 
     void generateEndOfMarkingBeadings(edge_t* continuation_edge, coord_t traveled_dist, coord_t transition_length, Beading& local_beading, Beading& propagated_beading, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy);
 
-    struct Junction
-    {
-        Point p;
-        coord_t w;
-        coord_t perimeter_index;
-        Junction(Point p, coord_t w, coord_t perimeter_index)
-        : p(p), w(w), perimeter_index(perimeter_index) {}
-    };
-
     /*!
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
      */
-    void generateJunctions(std::unordered_map<node_t*, Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<Junction>>& edge_to_junctions, const BeadingStrategy& beading_strategy);
+    void generateJunctions(std::unordered_map<node_t*, Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, const BeadingStrategy& beading_strategy);
 
     /*!
      * connect junctions in each quad
      * \param edge_to_junctions junctions ordered high R to low R
      * \param[out] segments the generated segments
      */
-    void connectJunctions(std::unordered_map<edge_t*, std::vector<Junction>> edge_to_junctions, std::vector<ExtrusionSegment>& segments);
+    void connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions, std::vector<ExtrusionSegment>& segments);
 
     /*!
      * \p edge is assumed to point upward to higher R; otherwise take its twin
      * 
      * \param include_odd_start_junction Whether to leave out the first junction if it coincides with \p edge.from->p
      */
-    const std::vector<Junction>& getJunctions(edge_t* edge, std::unordered_map<edge_t*, std::vector<Junction>>& edge_to_junctions);
+    const std::vector<ExtrusionJunction>& getJunctions(edge_t* edge, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions);
     
     // ^ toolpath generation | v helpers
 

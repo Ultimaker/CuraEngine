@@ -1455,7 +1455,7 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
     printf("got %zu cells\n", quad_starts.size());
     
     std::unordered_map<node_t*, Beading> node_to_beading;
-    std::unordered_map<edge_t*, std::vector<Junction>> edge_to_junctions; // junctions ordered high R to low R
+    std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions; // junctions ordered high R to low R
     { // store beading
         for (node_t& node : graph.nodes)
         {
@@ -1641,7 +1641,7 @@ void VoronoiQuadrangulation::generateEndOfMarkingBeadings(edge_t* continuation_e
     }
 }
 
-void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<Junction>>& edge_to_junctions, const BeadingStrategy& beading_strategy)
+void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, const BeadingStrategy& beading_strategy)
 {
     for (edge_t& edge_ : graph.edges)
     {
@@ -1652,7 +1652,7 @@ void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beadi
         }
 
         Beading* beading = &getBeading(edge->to, node_to_beading, beading_strategy);
-        std::vector<VoronoiQuadrangulation::Junction>& ret = edge_to_junctions[edge]; // emplace a new vector
+        std::vector<ExtrusionJunction>& ret = edge_to_junctions[edge]; // emplace a new vector
         if (edge->to->data.bead_count == 0 && edge->from->data.bead_count == 0)
         {
             continue;
@@ -1705,7 +1705,7 @@ void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beadi
     }
 }
 
-const std::vector<VoronoiQuadrangulation::Junction>& VoronoiQuadrangulation::getJunctions(edge_t* edge, std::unordered_map<edge_t*, std::vector<Junction>>& edge_to_junctions)
+const std::vector<ExtrusionJunction>& VoronoiQuadrangulation::getJunctions(edge_t* edge, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions)
 {
     assert(edge->to->data.distance_to_boundary >= edge->from->data.distance_to_boundary);
     auto ret_it = edge_to_junctions.find(edge);
@@ -1746,7 +1746,7 @@ VoronoiQuadrangulation::Beading& VoronoiQuadrangulation::getBeading(node_t* node
 }
 
 
-void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::vector<Junction>> edge_to_junctions, std::vector<ExtrusionSegment>& segments)
+void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions, std::vector<ExtrusionSegment>& segments)
 {
     // TODO: walk along cells in order of the input polygons, so that we can easily greedily optimize the order afterwards
     for (edge_t& edge : graph.edges)
@@ -1761,11 +1761,11 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
         
         
         
-        std::vector<Junction> from_junctions = getJunctions(edge_to_peak, edge_to_junctions);
-        std::vector<Junction> to_junctions = getJunctions(edge_from_peak->twin, edge_to_junctions);
+        std::vector<ExtrusionJunction> from_junctions = getJunctions(edge_to_peak, edge_to_junctions);
+        std::vector<ExtrusionJunction> to_junctions = getJunctions(edge_from_peak->twin, edge_to_junctions);
         if (edge_to_peak->prev)
         {
-            std::vector<Junction> from_prev_junctions = getJunctions(edge_to_peak->prev, edge_to_junctions);
+            std::vector<ExtrusionJunction> from_prev_junctions = getJunctions(edge_to_peak->prev, edge_to_junctions);
             if (!from_junctions.empty() && !from_prev_junctions.empty() && from_junctions.back().perimeter_index == from_prev_junctions.front().perimeter_index)
             {
                 from_junctions.pop_back();
@@ -1776,7 +1776,7 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
         }
         if (edge_from_peak->next)
         {
-            std::vector<Junction> to_next_junctions = getJunctions(edge_from_peak->next->twin, edge_to_junctions);
+            std::vector<ExtrusionJunction> to_next_junctions = getJunctions(edge_from_peak->next->twin, edge_to_junctions);
             if (!to_junctions.empty() && !to_next_junctions.empty() && to_junctions.back().perimeter_index == to_next_junctions.front().perimeter_index)
             {
                 to_junctions.pop_back();
@@ -1799,8 +1799,8 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
         size_t segment_count = std::min(from_junctions.size(), to_junctions.size());
         for (size_t junction_rev_idx = 0; junction_rev_idx < segment_count; junction_rev_idx++)
         {
-            Junction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
-            Junction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
+            ExtrusionJunction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
+            ExtrusionJunction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
             assert(from.perimeter_index == to.perimeter_index);
             bool is_odd_segment = edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
                 && edge_to_peak->to->data.transition_ratio == 0 && edge_to_peak->from->data.transition_ratio == 0 && edge_from_peak->to->data.transition_ratio == 0 // we're not in a transition
