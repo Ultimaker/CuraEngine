@@ -10,104 +10,15 @@
 namespace arachne
 {
 
-
 void BeadingOrderOptimizer::optimize(const std::vector<ExtrusionSegment>& segments, std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polylines_per_index)
 {
-    struct Polyline
-    {
-        coord_t inset_idx;
-        std::list<ExtrusionJunction> junctions;
-        Polyline(coord_t inset_idx)
-        : inset_idx(inset_idx)
-        {}
-    };
-    
-    struct PolylineEndRef
-    {
-        coord_t inset_idx;
-        std::list<Polyline>::iterator polyline;
-        bool front;
-        PolylineEndRef(coord_t inset_idx, std::list<Polyline>::iterator polyline, bool front)
-        : inset_idx(inset_idx)
-        , polyline(polyline)
-        , front(front)
-        {}
-    };
+    BeadingOrderOptimizer optimizer(segments);
+    optimizer.connect(result_polygons_per_index);
+    optimizer.transferUnconnectedPolylines(result_polygons_per_index, result_polylines_per_index);
+}
 
-    std::list<Polyline> even_polylines;
-    std::list<Polyline> odd_polylines; // keep odd single bead segments separate so that polygon segments can combine together into polygons
-    std::unordered_map<Point, PolylineEndRef> even_polyline_end_points(segments.size());
-    std::unordered_map<Point, PolylineEndRef> odd_polyline_end_points(segments.size());
-
-    auto debugCheck = [&even_polylines, &odd_polylines, &even_polyline_end_points, &odd_polyline_end_points, &segments]()
-        {
-#ifdef DEBUG
-            for (auto polylines : { even_polylines, odd_polylines })
-            {
-                for (Polyline& polyline : polylines)
-                {
-                    for (ExtrusionJunction& junction : polyline.junctions)
-                    {
-                        assert(junction.perimeter_index == polyline.inset_idx);
-                        assert(junction.p.X < 100000 && junction.p.Y < 100000);
-                        assert(junction.p.X > -100000 && junction.p.Y > -100000);
-                    }
-                }
-            }
-            for (auto polyline_end_points : { even_polyline_end_points, odd_polyline_end_points })
-            {
-                for (auto pair : polyline_end_points)
-                {
-                    PolylineEndRef ref = pair.second;
-                    Point p = pair.first;
-                    assert(p == ((ref.front)? ref.polyline->junctions.front().p : ref.polyline->junctions.back().p));
-                    auto find_it = even_polylines.begin();
-                    for (; find_it != even_polylines.end(); ++find_it)
-                    {
-                        if (find_it == ref.polyline) break;
-                    }
-                    if (find_it == even_polylines.end())
-                    {
-                        for (find_it = odd_polylines.begin(); find_it != odd_polylines.end(); ++find_it)
-                        {
-                            if (find_it == ref.polyline) break;
-                        }
-                    }
-                    assert(find_it != odd_polylines.end());
-                }
-            }
-            for (auto polylines : { even_polylines, odd_polylines })
-            {
-                for (Polyline& polyline : polylines)
-                {
-                    auto prev_it = polyline.junctions.begin();
-                    for (auto junction_it = prev_it; junction_it != polyline.junctions.end();)
-                    {
-                        ++junction_it;
-                        if (junction_it == polyline.junctions.end()) break;
-                        
-                        ExtrusionJunction& prev = *prev_it;
-                        ExtrusionJunction& next = *junction_it;
-                        
-                        bool found = false;
-                        for (const ExtrusionSegment& segment : segments)
-                        {
-                            if ((segment.from == prev && segment.to == next)
-                                || (segment.to == prev && segment.from == next))
-                            {
-                                found = true;
-                                break;
-                            }
-                        }
-                        assert(found);
-                        prev_it = junction_it;
-                    }
-                }
-            }
-#endif
-        };
-
-
+void BeadingOrderOptimizer::connect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index)
+{
     debugCheck();
     for (const ExtrusionSegment& segment : segments)
     {
@@ -205,9 +116,13 @@ void BeadingOrderOptimizer::optimize(const std::vector<ExtrusionSegment>& segmen
     }
     debugCheck();
 
+    
+}
+
+void BeadingOrderOptimizer::transferUnconnectedPolylines(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polylines_per_index)
+{
     // copy unfinished polylines to result
     result_polylines_per_index.resize(std::max(result_polylines_per_index.size(), even_polylines.size() + odd_polylines.size()));
-    
     for (auto polylines : { even_polylines, odd_polylines })
     {
         for (Polyline& polyline : polylines)
@@ -216,5 +131,75 @@ void BeadingOrderOptimizer::optimize(const std::vector<ExtrusionSegment>& segmen
         }
     }
 }
+
+
+void BeadingOrderOptimizer::debugCheck()
+{
+#ifdef DEBUG
+    for (auto polylines : { even_polylines, odd_polylines })
+    {
+        for (Polyline& polyline : polylines)
+        {
+            for (ExtrusionJunction& junction : polyline.junctions)
+            {
+                assert(junction.perimeter_index == polyline.inset_idx);
+                assert(junction.p.X < 100000 && junction.p.Y < 100000);
+                assert(junction.p.X > -100000 && junction.p.Y > -100000);
+            }
+        }
+    }
+    for (auto polyline_end_points : { even_polyline_end_points, odd_polyline_end_points })
+    {
+        for (auto pair : polyline_end_points)
+        {
+            PolylineEndRef ref = pair.second;
+            Point p = pair.first;
+            assert(p == ((ref.front)? ref.polyline->junctions.front().p : ref.polyline->junctions.back().p));
+            auto find_it = even_polylines.begin();
+            for (; find_it != even_polylines.end(); ++find_it)
+            {
+                if (find_it == ref.polyline) break;
+            }
+            if (find_it == even_polylines.end())
+            {
+                for (find_it = odd_polylines.begin(); find_it != odd_polylines.end(); ++find_it)
+                {
+                    if (find_it == ref.polyline) break;
+                }
+            }
+            assert(find_it != odd_polylines.end());
+        }
+    }
+    for (auto polylines : { even_polylines, odd_polylines })
+    {
+        for (Polyline& polyline : polylines)
+        {
+            auto prev_it = polyline.junctions.begin();
+            for (auto junction_it = prev_it; junction_it != polyline.junctions.end();)
+            {
+                ++junction_it;
+                if (junction_it == polyline.junctions.end()) break;
+                
+                ExtrusionJunction& prev = *prev_it;
+                ExtrusionJunction& next = *junction_it;
+                
+                bool found = false;
+                for (const ExtrusionSegment& segment : segments)
+                {
+                    if ((segment.from == prev && segment.to == next)
+                        || (segment.to == prev && segment.from == next))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                assert(found);
+                prev_it = junction_it;
+            }
+        }
+    }
+#endif
+};
+
 
 } // namespace arachne
