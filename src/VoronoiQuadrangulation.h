@@ -157,6 +157,7 @@ protected:
 
     bool isLocalMaximum(const node_t& node) const;
 
+    bool isMarked(const node_t* node) const;
 
     // ^ transitioning | v toolpath generation
 

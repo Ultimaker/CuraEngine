@@ -1416,6 +1416,21 @@ bool VoronoiQuadrangulation::isLocalMaximum(const node_t& node) const
     return true;
 }
 
+bool VoronoiQuadrangulation::isMarked(const node_t* node) const
+{
+    bool first = true;
+    for (edge_t* edge = node->some_edge; first || edge != node->some_edge; edge = edge->twin->next)
+    {
+        if (edge->data.is_marked == 1)
+        {
+            return true;
+        }
+        first = false;
+        assert(edge->twin); if (!edge->twin) return false;
+    }
+    return false;
+}
+
 //
 // ^^^^^^^^^^^^^^^^^^^^^
 //    TRANSTISIONING
