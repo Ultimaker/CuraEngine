@@ -416,11 +416,6 @@ void test()
 //         vq.debugOutput(svg, false, false, false);
         svg.writePolygons(result_polygons, SVG::Color::BLACK);
         svg.writePolylines(result_polylines, SVG::Color::ORANGE);
-        for (PolygonRef line : result_polylines)
-        {
-            svg.writePoint(line.front());
-            svg.writePoint(line.back());
-        }
     }
     
     {

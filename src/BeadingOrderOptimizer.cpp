@@ -34,57 +34,74 @@ void BeadingOrderOptimizer::optimize(const std::vector<ExtrusionSegment>& segmen
         {}
     };
 
-    std::list<Polyline> polylines;
-    std::unordered_map<Point, PolylineEndRef> polyline_end_points(segments.size());
+    std::list<Polyline> even_polylines;
+    std::list<Polyline> odd_polylines; // keep odd single bead segments separate so that polygon segments can combine together into polygons
+    std::unordered_map<Point, PolylineEndRef> even_polyline_end_points(segments.size());
+    std::unordered_map<Point, PolylineEndRef> odd_polyline_end_points(segments.size());
 
-    auto debugCheck = [&polylines, &polyline_end_points, &segments]()
+    auto debugCheck = [&even_polylines, &odd_polylines, &even_polyline_end_points, &odd_polyline_end_points, &segments]()
         {
 #ifdef DEBUG
-            for (Polyline& polyline : polylines)
+            for (auto polylines : { even_polylines, odd_polylines })
             {
-                for (ExtrusionJunction& junction : polyline.junctions)
+                for (Polyline& polyline : polylines)
                 {
-                    assert(junction.perimeter_index == polyline.inset_idx);
-                    assert(junction.p.X < 100000 && junction.p.Y < 100000);
-                    assert(junction.p.X > -100000 && junction.p.Y > -100000);
-                }
-            }
-            for (auto pair : polyline_end_points)
-            {
-                PolylineEndRef ref = pair.second;
-                Point p = pair.first;
-                assert(ref.inset_idx < polylines.size());
-                assert(p == ((ref.front)? ref.polyline->junctions.front().p : ref.polyline->junctions.back().p));
-                auto find_it = polylines.begin();
-                for (; find_it != polylines.end(); ++find_it)
-                {
-                    if (find_it == ref.polyline) break;
-                }
-                assert(find_it != polylines.end());
-            }
-            for (Polyline& polyline : polylines)
-            {
-                auto prev_it = polyline.junctions.begin();
-                for (auto junction_it = prev_it; junction_it != polyline.junctions.end();)
-                {
-                    ++junction_it;
-                    if (junction_it == polyline.junctions.end()) break;
-                    
-                    ExtrusionJunction& prev = *prev_it;
-                    ExtrusionJunction& next = *junction_it;
-                    
-                    bool found = false;
-                    for (const ExtrusionSegment& segment : segments)
+                    for (ExtrusionJunction& junction : polyline.junctions)
                     {
-                        if ((segment.from == prev && segment.to == next)
-                            || (segment.to == prev && segment.from == next))
+                        assert(junction.perimeter_index == polyline.inset_idx);
+                        assert(junction.p.X < 100000 && junction.p.Y < 100000);
+                        assert(junction.p.X > -100000 && junction.p.Y > -100000);
+                    }
+                }
+            }
+            for (auto polyline_end_points : { even_polyline_end_points, odd_polyline_end_points })
+            {
+                for (auto pair : polyline_end_points)
+                {
+                    PolylineEndRef ref = pair.second;
+                    Point p = pair.first;
+                    assert(p == ((ref.front)? ref.polyline->junctions.front().p : ref.polyline->junctions.back().p));
+                    auto find_it = even_polylines.begin();
+                    for (; find_it != even_polylines.end(); ++find_it)
+                    {
+                        if (find_it == ref.polyline) break;
+                    }
+                    if (find_it == even_polylines.end())
+                    {
+                        for (find_it = odd_polylines.begin(); find_it != odd_polylines.end(); ++find_it)
                         {
-                            found = true;
-                            break;
+                            if (find_it == ref.polyline) break;
                         }
                     }
-                    assert(found);
-                    prev_it = junction_it;
+                    assert(find_it != odd_polylines.end());
+                }
+            }
+            for (auto polylines : { even_polylines, odd_polylines })
+            {
+                for (Polyline& polyline : polylines)
+                {
+                    auto prev_it = polyline.junctions.begin();
+                    for (auto junction_it = prev_it; junction_it != polyline.junctions.end();)
+                    {
+                        ++junction_it;
+                        if (junction_it == polyline.junctions.end()) break;
+                        
+                        ExtrusionJunction& prev = *prev_it;
+                        ExtrusionJunction& next = *junction_it;
+                        
+                        bool found = false;
+                        for (const ExtrusionSegment& segment : segments)
+                        {
+                            if ((segment.from == prev && segment.to == next)
+                                || (segment.to == prev && segment.from == next))
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+                        assert(found);
+                        prev_it = junction_it;
+                    }
                 }
             }
 #endif
@@ -102,6 +119,8 @@ void BeadingOrderOptimizer::optimize(const std::vector<ExtrusionSegment>& segmen
 
         assert(segment.from.perimeter_index == segment.to.perimeter_index);
         coord_t inset_idx = segment.from.perimeter_index;
+        std::list<Polyline>& polylines = segment.is_odd? odd_polylines : even_polylines;
+        std::unordered_map<Point, PolylineEndRef>& polyline_end_points = segment.is_odd? odd_polyline_end_points : even_polyline_end_points;
 
         auto start_it = polyline_end_points.find(segment.from.p);
         auto end_it = polyline_end_points.find(segment.to.p);
@@ -187,10 +206,14 @@ void BeadingOrderOptimizer::optimize(const std::vector<ExtrusionSegment>& segmen
     debugCheck();
 
     // copy unfinished polylines to result
-    result_polylines_per_index.resize(std::max(result_polylines_per_index.size(), polylines.size()));
-    for (Polyline& polyline : polylines)
+    result_polylines_per_index.resize(std::max(result_polylines_per_index.size(), even_polylines.size() + odd_polylines.size()));
+    
+    for (auto polylines : { even_polylines, odd_polylines })
     {
-        result_polylines_per_index[polyline.inset_idx].emplace_back(polyline.junctions.begin(), polyline.junctions.end());
+        for (Polyline& polyline : polylines)
+        {
+            result_polylines_per_index[polyline.inset_idx].emplace_back(polyline.junctions.begin(), polyline.junctions.end());
+        }
     }
 }
 
