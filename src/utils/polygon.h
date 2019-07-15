@@ -109,6 +109,11 @@ public:
         return path->back();
     }
 
+    ClipperLib::Path::const_reference front() const
+    {
+        return path->front();
+    }
+
     const void* data() const
     {
         return path->data();
