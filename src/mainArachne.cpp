@@ -479,12 +479,13 @@ void test()
     {
         SVG svg("output/normal.svg", AABB(polys));
         svg.writePolygons(polys, SVG::Color::RED, 2);
-        for (PolygonRef poly : insets)
+        for (coord_t inset_idx = 0; inset_idx < insets.size(); inset_idx++)
         {
+            PolygonRef poly = insets[inset_idx];
             Point prev = poly.back();
             for (Point p : poly)
             {
-                ExtrusionSegment segment(prev, 400, p, 400);
+                ExtrusionSegment segment(prev, 400, p, 400, inset_idx, false);
                 svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY);;
                 prev = p;
             }

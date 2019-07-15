@@ -26,11 +26,16 @@ public:
     Point to;
     coord_t to_width;
 
-    ExtrusionSegment(Point from, coord_t from_width, Point to, coord_t to_width)
+    coord_t index; //!< perimeter number; outer perimeter is zero
+    bool is_odd; //!< Whether this is a polyline segment rather than a polygonal segment
+
+    ExtrusionSegment(Point from, coord_t from_width, Point to, coord_t to_width, coord_t index, bool is_odd)
     : from(from)
     , from_width(from_width)
     , to(to)
     , to_width(to_width)
+    , index(index)
+    , is_odd(is_odd)
     {}
 
     Polygons toPolygons()

@@ -1778,17 +1778,18 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
         {
             Junction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
             Junction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
-            if (edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
+            assert(from.perimeter_index == to.perimeter_index);
+            bool is_odd_segment = edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
                 && edge_to_peak->to->data.transition_ratio == 0 && edge_to_peak->from->data.transition_ratio == 0 && edge_from_peak->to->data.transition_ratio == 0 // we're not in a transition
                 && junction_rev_idx == segment_count - 1 // is single bead segment
-                && shorterThen(from.p - quad_start->to->p, 5) && shorterThen(to.p - quad_end->from->p, 5)
+                && shorterThen(from.p - quad_start->to->p, 5) && shorterThen(to.p - quad_end->from->p, 5);
+            if (is_odd_segment
                 && (from.p.X < to.p.X || (from.p.X == to.p.X && from.p.Y < to.p.Y)) // choose one
                 )
             {
                 continue; // prevent duplication of single bead segments
             }
-            
-            segments.emplace_back(from.p, from.w, to.p, to.w);
+            segments.emplace_back(from.p, from.w, to.p, to.w, from.perimeter_index, is_odd_segment);
         }
     }
 }
