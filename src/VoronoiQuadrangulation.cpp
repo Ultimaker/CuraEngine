@@ -1545,10 +1545,8 @@ void VoronoiQuadrangulation::generateEndOfMarkingBeadings(node_t* node, Beading&
 {
     bool first = true;
     edge_t* start_of_marking = nullptr;
-    std::cerr << "from : " << node->p << "\n";
     for (edge_t* outgoing = node->some_edge; outgoing && (first || outgoing != node->some_edge); outgoing = outgoing->twin->next)
     {
-        std::cerr << outgoing->to->p << "\n";
         if (outgoing->data.is_marked == 1)
         {
             assert(!start_of_marking && "There should only be a single marked edge connected to a node to which a different beading is porpagated downward.");
