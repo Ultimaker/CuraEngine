@@ -1681,6 +1681,16 @@ void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beadi
             }
         }
 
+        // rebustness against odd segments which might lie just slightly outside of the range due to rounding errors
+        // not sure if this is really needed (TODO)
+        if (junction_idx + 1 < beading->toolpath_locations.size()
+            && beading->toolpath_locations[junction_idx + 1] <= start_R + 5
+            && beading->total_thickness < start_R + 5
+        )
+        {
+            junction_idx++;
+        }
+
         for (; junction_idx >= 0 && junction_idx < coord_t(beading->toolpath_locations.size()); junction_idx--)
         {
             coord_t bead_R = beading->toolpath_locations[junction_idx];
