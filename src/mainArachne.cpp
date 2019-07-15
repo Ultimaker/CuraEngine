@@ -378,8 +378,8 @@ void test()
     for (ExtrusionSegment& segment : segments)
     {
         PolygonRef poly = paths.newPoly();
-        poly.emplace_back(segment.from);
-        poly.emplace_back(segment.to);
+        poly.emplace_back(segment.from.p);
+        poly.emplace_back(segment.to.p);
     }
 
     {
@@ -393,7 +393,7 @@ void test()
         std::ofstream csv("output/segments.csv", std::ofstream::out | std::ofstream::trunc);
         csv << "from_x; from_y; from_width; to_x; to_y; to_width\n";
         for (const ExtrusionSegment& segment : segments)
-            csv << segment.from.X << "; " << segment.from.Y << "; " << segment.from_width << "; " << segment.to.X << "; " << segment.to.Y << "; " << segment.to_width << '\n';
+            csv << segment.from.p.X << "; " << segment.from.p.Y << "; " << segment.from.w << "; " << segment.to.p.X << "; " << segment.to.p.Y << "; " << segment.to.w << '\n';
         csv.close();
     }
     {
@@ -409,7 +409,7 @@ void test()
     std::unordered_set<Point> points_visited;
     for (ExtrusionSegment& segment : segments)
     {
-        if (segment.from == segment.to)
+        if (segment.from.p == segment.to.p)
         {
             continue;
         }
@@ -418,18 +418,18 @@ void test()
         area_covered = area_covered.unionPolygons(segment.toPolygons());
         Polygons extruded = segment.toPolygons();
         Polygons reduction;
-        if (points_visited.count(segment.from) > 0)
+        if (points_visited.count(segment.from.p) > 0)
         {
-            PolygonUtils::makeCircle(segment.from, segment.from_width / 2, reduction);
+            PolygonUtils::makeCircle(segment.from.p, segment.from.w / 2, reduction);
         }
-        if (points_visited.count(segment.to) > 0)
+        if (points_visited.count(segment.to.p) > 0)
         {
-            PolygonUtils::makeCircle(segment.to, segment.to_width / 2, reduction);
+            PolygonUtils::makeCircle(segment.to.p, segment.to.w / 2, reduction);
         }
         extruded = extruded.difference(reduction);
         overlaps.add(extruded);
-        points_visited.emplace(segment.from);
-        points_visited.emplace(segment.to);
+        points_visited.emplace(segment.from.p);
+        points_visited.emplace(segment.to.p);
     }
     {
         SVG svg("output/toolpaths.svg", AABB(polys));
@@ -468,7 +468,7 @@ void test()
             Point prev = poly.back();
             for (Point p : poly)
             {
-                ExtrusionSegment segment(prev, 400, p, 400, inset_idx, false);
+                ExtrusionSegment segment(ExtrusionJunction(prev, 400, inset_idx), ExtrusionJunction(p, 400, inset_idx), false);
                 svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY);;
                 prev = p;
             }

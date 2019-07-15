@@ -1812,7 +1812,7 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
             {
                 continue; // prevent duplication of single bead segments
             }
-            segments.emplace_back(from.p, from.w, to.p, to.w, from.perimeter_index, is_odd_segment);
+            segments.emplace_back(from, to, is_odd_segment);
         }
     }
 }
