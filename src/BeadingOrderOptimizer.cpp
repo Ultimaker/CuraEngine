@@ -147,6 +147,23 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, direct
         }
         if (intersecting_junction) break;
     }
+    if (!intersecting_junction)
+    {
+        for (Polyline& other_polyline : odd_polylines)
+        {
+            if (other_polyline.inset_idx != polyline.inset_idx) continue;
+
+            for (auto junction_it = ++other_polyline.junctions.begin(); junction_it != --other_polyline.junctions.end() && junction_it != other_polyline.junctions.end(); junction_it++)
+            { // skip end points, because they would have been connected to this point!
+                if (junction_it->p == start_junction.p)
+                {
+                    intersecting_junction = &*junction_it;
+                    break;
+                }
+            }
+            if (intersecting_junction) break;
+        }
+    }
     if (!intersecting_junction) return;
 
     reduceIntersectionOverlap(polyline, polyline_start_it, 0, intersecting_junction->w / 2 * (1.0 - intersection_overlap));
