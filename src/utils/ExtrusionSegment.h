@@ -33,22 +33,8 @@ public:
     , is_odd(is_odd)
     {}
 
-    Polygons toPolygons()
-    {
-        Polygons ret;
-        PolygonUtils::makeCircle(from.p, from.w / 2, ret, a_step);
-        PolygonUtils::makeCircle(to.p, to.w / 2, ret, a_step);
-        Polygons rect;
-        PolygonRef r = rect.newPoly();
-        Point n = normal(turn90CCW(to.p - from.p), from.w / 2);
-        r.add(from.p + n);
-        r.add(from.p - n);
-        n = normal(turn90CCW(to.p - from.p), to.w / 2);
-        r.add(to.p - n);
-        r.add(to.p + n);
-        ret = ret.unionPolygons(rect);
-        return ret;
-    }
+    Polygons toPolygons();
+    Polygons toReducedPolygons(); // reduces extrusion at end
 };
 
 
