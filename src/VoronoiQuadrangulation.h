@@ -203,6 +203,12 @@ protected:
     void connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions, std::vector<ExtrusionSegment>& segments);
 
     /*!
+     * Genrate small segments for local maxima where the beading would only result in a single bead
+     * \param[out] segments the generated segments
+     */
+    void generateLocalMaximaSingleBeads(std::unordered_map<node_t*, Beading>& node_to_beading, std::vector<ExtrusionSegment>& segments);
+
+    /*!
      * \p edge is assumed to point upward to higher R; otherwise take its twin
      * 
      * \param include_odd_start_junction Whether to leave out the first junction if it coincides with \p edge.from->p

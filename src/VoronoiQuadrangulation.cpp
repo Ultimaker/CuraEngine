@@ -1484,6 +1484,7 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
     
     connectJunctions(edge_to_junctions, segments);
     
+    generateLocalMaximaSingleBeads(node_to_beading, segments);
 }
 
 coord_t VoronoiQuadrangulation::getQuadMaxR(edge_t* quad_start_edge)
@@ -1817,6 +1818,25 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
                 continue; // prevent duplication of single bead segments
             }
             segments.emplace_back(from, to, is_odd_segment);
+        }
+    }
+}
+
+void VoronoiQuadrangulation::generateLocalMaximaSingleBeads(std::unordered_map<node_t*, Beading>& node_to_beading, std::vector<ExtrusionSegment>& segments)
+{
+    for (auto pair : node_to_beading)
+    {
+        node_t* node = pair.first;
+        Beading& beading = pair.second;
+        if (beading.bead_widths.size() % 2 == 1
+            && isLocalMaximum(*node)
+            && !isMarked(node)
+        )
+        {
+            coord_t inset_index = beading.bead_widths.size() / 2;
+            ExtrusionJunction from(node->p, beading.bead_widths[inset_index], inset_index);
+            ExtrusionJunction to(node->p + Point(10, 0), beading.bead_widths[inset_index], inset_index);
+            segments.emplace_back(from, to, true);
         }
     }
 }
