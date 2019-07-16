@@ -13,9 +13,9 @@
 find_package(PkgConfig QUIET)
 pkg_check_modules(PC_Stb QUIET Stb)
 
-find_path(Stb_INCLUDE_DIRS stb_image_resize.h #Search for something that is a little less prone to false positives than just stb.h.
+find_path(Stb_INCLUDE_DIRS stb/stb_image_resize.h #Search for something that is a little less prone to false positives than just stb.h.
     HINTS ${PC_Stb_INCLUDEDIR} ${PC_Stb_INCLUDE_DIRS}
-    PATHS "$ENV{PROGRAMFILES}/stb" "$ENV{PROGRAMW6432}/stb"
+    PATHS "$ENV{PROGRAMFILES}/stb" "$ENV{PROGRAMW6432}/stb" "/usr/include"
     PATH_SUFFIXES include/stb stb include
 )
 
