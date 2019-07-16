@@ -367,6 +367,29 @@ void test()
     BeadingOrderOptimizer::optimize(segments, result_polygons_per_index, result_polylines_per_index);
     logError("Processing took %fs\n", tk.restart());
 
+    segments.clear();
+    for (std::vector<std::vector<ExtrusionJunction>>& polygons : result_polygons_per_index)
+        for (std::vector<ExtrusionJunction>& polygon : polygons)
+        {
+            ExtrusionJunction last = polygon.back();
+            for (ExtrusionJunction& junction : polygon)
+            {
+                segments.emplace_back(last, junction, false);
+                last = junction;
+            }
+        }
+    for (std::vector<std::vector<ExtrusionJunction>>& polylines : result_polylines_per_index)
+        for (std::vector<ExtrusionJunction>& polyline : polylines)
+        {
+            ExtrusionJunction last = polyline.front();
+            for (coord_t junction_idx = 0; junction_idx < polyline.size(); junction_idx++)
+            {
+                ExtrusionJunction& junction = polyline[junction_idx];
+                segments.emplace_back(last, junction, false);
+                last = junction;
+            }
+        }
+
     Polygons result_polygons;
     Polygons result_polylines;
     for (std::vector<std::vector<ExtrusionJunction>>& polygons : result_polygons_per_index)
