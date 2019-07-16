@@ -1530,7 +1530,9 @@ void VoronoiQuadrangulation::propagateBeadings(std::vector<edge_t*>& quad_starts
             { // only override if there is no beading associatied with the node already
                 node_to_beading[quad_start->to] = beading;
             }
-            else if (quad_start->to->data.distance_to_boundary == edge_to_peak->to->data.distance_to_boundary)
+            else if (quad_start->to->data.distance_to_boundary == edge_to_peak->to->data.distance_to_boundary
+                || it->second.bead_widths.size() == 1 // dont transition to zero
+            )
             {
                 // dont override beading info
             }
@@ -1543,7 +1545,9 @@ void VoronoiQuadrangulation::propagateBeadings(std::vector<edge_t*>& quad_starts
             { // only override if there is no beading associatied with the node already
                 node_to_beading[quad_start->next->to] = beading;
             }
-            else if (quad_start->next->to->data.distance_to_boundary == edge_to_peak->to->data.distance_to_boundary)
+            else if (quad_start->next->to->data.distance_to_boundary == edge_to_peak->to->data.distance_to_boundary
+                || it2->second.bead_widths.size() == 1 // don't transition to zero
+            )
             {
                 // dont override beading info
             }
