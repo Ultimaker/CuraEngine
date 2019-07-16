@@ -47,7 +47,7 @@ private:
         {}
     };
     
-    float intersection_overlap = .0;
+    float intersection_overlap = .1;
 
     const std::vector<ExtrusionSegment>& segments;
 
