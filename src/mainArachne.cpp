@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <string.h>
 #include <strings.h>
+#include <sstream>
 #include <stdio.h> // for file output
 #include <fstream>
 #include <iostream>
@@ -456,61 +457,118 @@ void test()
             for (Point p : poly)
                 svg.writePoint(p, true, 1);
     }
+
+    
+    
     Polygons area_covered;
     Polygons overlaps;
-    std::unordered_set<Point> points_visited;
-    for (ExtrusionSegment& segment : segments)
+    
+    SVG svg("output/segments/outline.svg", AABB(polys), 0.01);
+    svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::NONE);
     {
-        if (segment.from.p == segment.to.p)
+
+        struct Segment
         {
-            continue;
-        }
-//         segment.from_width = segment.from_width * 4 / 5;
-//         segment.to_width = segment.to_width * 4 / 5;
-        area_covered = area_covered.unionPolygons(segment.toPolygons());
-        Polygons extruded = segment.toPolygons();
-        Polygons reduction;
-        if (points_visited.count(segment.from.p) > 0)
+            ExtrusionSegment s;
+            bool is_full;
+            Segment(ExtrusionSegment s, bool is_full)
+            : s(s)
+            , is_full(is_full)
+            {}
+            Polygons toPolygons()
+            {
+                if (is_full)
+                    return s.toPolygons();
+                else
+                    return s.toReducedPolygons();
+            }
+        };
+        std::vector<Segment> all_segments;
+        for (std::vector<std::vector<ExtrusionJunction>>& polygons : result_polygons_per_index)
+            for (std::vector<ExtrusionJunction>& polygon : polygons)
+            {
+                ExtrusionJunction last = polygon.back();
+                for (coord_t junction_idx = 0; junction_idx < polygon.size(); junction_idx++)
+                {
+                    ExtrusionJunction& junction = polygon[junction_idx];
+                    ExtrusionSegment segment(last, junction, false);
+                    all_segments.emplace_back(segment, false);
+                    last = junction;
+                }
+            }
+        for (std::vector<std::vector<ExtrusionJunction>>& polylines : result_polylines_per_index)
+            for (std::vector<ExtrusionJunction>& polyline : polylines)
+            {
+                ExtrusionJunction last = polyline.front();
+                for (coord_t junction_idx = 0; junction_idx < polyline.size(); junction_idx++)
+                {
+                    ExtrusionJunction& junction = polyline[junction_idx];
+                    ExtrusionSegment segment(last, junction, false);
+                    all_segments.emplace_back(segment, junction_idx == polyline.size() - 1);
+                    last = junction;
+                }
+            }
+        
+        coord_t i = 0;
+        for (Segment s : all_segments)
         {
-            PolygonUtils::makeCircle(segment.from.p, segment.from.w / 2, reduction);
+            Polygons extruded = s.toPolygons();
+
+            std::ostringstream ss;
+            ss << "output/segments/segment_" << ++i << ".svg";
+            SVG svg(ss.str(), AABB(polys), 0.01);
+            svg.writeAreas(extruded, SVG::Color::GRAY, SVG::Color::NONE);
+            
+            area_covered = area_covered.unionPolygons(s.s.toPolygons());
+            overlaps.add(extruded);
         }
-        if (points_visited.count(segment.to.p) > 0)
-        {
-            PolygonUtils::makeCircle(segment.to.p, segment.to.w / 2, reduction);
-        }
-        extruded = extruded.difference(reduction);
-        overlaps.add(extruded);
-        points_visited.emplace(segment.from.p);
-        points_visited.emplace(segment.to.p);
-    }
-    {
-        SVG svg("output/toolpaths.svg", AABB(polys));
-        for (PolygonRef poly : overlaps)
-        {
-            svg.writeAreas(poly, SVG::Color::GRAY);
-        }
-        svg.writePolygons(polys, SVG::Color::RED, 2);
-        svg.writePolygons(paths, SVG::Color::BLUE, 2);
-    }
-    {
-        SVG svg("output/overlaps.svg", AABB(polys));
-        svg.writeAreas(overlaps.xorPolygons(area_covered), SVG::Color::GRAY);
-        svg.writePolygons(polys, SVG::Color::RED, 2);
-        svg.writePolygons(paths, SVG::Color::BLUE, 2);
-    }
-    {
-        SVG svg("output/overlaps2.svg", AABB(polys));
-        svg.writeAreas(overlaps.unionPolygons(), SVG::Color::GRAY);
-        svg.writePolygons(polys, SVG::Color::RED, 2);
-        svg.writePolygons(paths, SVG::Color::BLUE, 2);
-    }
-    {
-        SVG svg("output/total_area.svg", AABB(polys));
-        svg.writeAreas(area_covered, SVG::Color::GRAY);
-        svg.writePolygons(polys, SVG::Color::RED, 2);
-        svg.writePolygons(paths, SVG::Color::BLUE, 2);
+
     }
     
+    {
+        SVG svg("output/toolpaths.svg", AABB(polys));
+        bool alternate = true;
+        for (PolygonRef poly : overlaps)
+        {
+            svg.writeAreas(poly, alternate? SVG::Color::BLUE : SVG::Color::MAGENTA, SVG::Color::NONE);
+            alternate = !alternate;
+        }
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        svg.writePolygons(paths, SVG::Color::BLACK, 2);
+    }
+    {
+        SVG svg("output/overfills.svg", AABB(polys));
+        Polygons overfills = overlaps.xorPolygons(area_covered);
+        overfills = overfills.offset(-5);
+        overfills = overfills.offset(10);
+        overfills = overfills.offset(-5);
+        svg.writeAreas(overfills, SVG::Color::GRAY, SVG::Color::NONE);
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        svg.writePolygons(paths, SVG::Color::BLUE, 2);
+        double total_area = INT2MM2(overfills.area());
+        logAlways("Total overfill area: %f mm²\n", total_area);
+
+        std::vector<PolygonsPart> overfill_areas = overfills.splitIntoParts();
+        logAlways("Average area: %f mm² over %d parts\n", total_area / overfill_areas.size(), overfill_areas.size());
+    }
+    {
+        SVG svg("output/underfills.svg", AABB(polys));
+        Polygons underfills = polys.difference(area_covered);
+        underfills = underfills.offset(5);
+        underfills = underfills.offset(-10);
+        underfills = underfills.offset(5);
+        svg.writeAreas(underfills, SVG::Color::GRAY, SVG::Color::NONE);
+        svg.writePolygons(polys, SVG::Color::RED, 2);
+        svg.writePolygons(paths, SVG::Color::BLUE, 2);
+        double total_area = INT2MM2(underfills.area());
+        logAlways("Total underfill area: %f mm²\n", total_area);
+
+        std::vector<PolygonsPart> overfill_areas = underfills.splitIntoParts();
+        logAlways("Average area: %f mm² over %d parts\n", total_area / overfill_areas.size(), overfill_areas.size());
+    }
+
+    logAlways("Total target area: %f mm²\n", INT2MM2(polys.area()));
+
     {
         SVG svg("output/normal.svg", AABB(polys));
         svg.writePolygons(polys, SVG::Color::RED, 2);
@@ -521,7 +579,7 @@ void test()
             for (Point p : poly)
             {
                 ExtrusionSegment segment(ExtrusionJunction(prev, 400, inset_idx), ExtrusionJunction(p, 400, inset_idx), false);
-                svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY);;
+                svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY, SVG::Color::NONE);
                 prev = p;
             }
         }
