@@ -460,80 +460,69 @@ void test()
 
     
     
+    
+
+    struct Segment
+    {
+        ExtrusionSegment s;
+        bool is_full;
+        Segment(ExtrusionSegment s, bool is_full)
+        : s(s)
+        , is_full(is_full)
+        {}
+        Polygons toPolygons()
+        {
+            if (is_full)
+                return s.toPolygons();
+            else
+                return s.toReducedPolygons();
+        }
+    };
+    std::vector<Segment> all_segments;
+    for (std::vector<std::vector<ExtrusionJunction>>& polygons : result_polygons_per_index)
+        for (std::vector<ExtrusionJunction>& polygon : polygons)
+        {
+            ExtrusionJunction last = polygon.back();
+            for (coord_t junction_idx = 0; junction_idx < polygon.size(); junction_idx++)
+            {
+                ExtrusionJunction& junction = polygon[junction_idx];
+                ExtrusionSegment segment(last, junction, false);
+                all_segments.emplace_back(segment, false);
+                last = junction;
+            }
+        }
+    for (std::vector<std::vector<ExtrusionJunction>>& polylines : result_polylines_per_index)
+        for (std::vector<ExtrusionJunction>& polyline : polylines)
+        {
+            ExtrusionJunction last = polyline.front();
+            for (coord_t junction_idx = 0; junction_idx < polyline.size(); junction_idx++)
+            {
+                ExtrusionJunction& junction = polyline[junction_idx];
+                ExtrusionSegment segment(last, junction, false);
+                all_segments.emplace_back(segment, junction_idx == polyline.size() - 1);
+                last = junction;
+            }
+        }
+    
+
     Polygons area_covered;
     Polygons overlaps;
-    
-    SVG svg("output/segments/outline.svg", AABB(polys), 0.01);
-    svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::NONE);
+    for (Segment s : all_segments)
     {
-
-        struct Segment
-        {
-            ExtrusionSegment s;
-            bool is_full;
-            Segment(ExtrusionSegment s, bool is_full)
-            : s(s)
-            , is_full(is_full)
-            {}
-            Polygons toPolygons()
-            {
-                if (is_full)
-                    return s.toPolygons();
-                else
-                    return s.toReducedPolygons();
-            }
-        };
-        std::vector<Segment> all_segments;
-        for (std::vector<std::vector<ExtrusionJunction>>& polygons : result_polygons_per_index)
-            for (std::vector<ExtrusionJunction>& polygon : polygons)
-            {
-                ExtrusionJunction last = polygon.back();
-                for (coord_t junction_idx = 0; junction_idx < polygon.size(); junction_idx++)
-                {
-                    ExtrusionJunction& junction = polygon[junction_idx];
-                    ExtrusionSegment segment(last, junction, false);
-                    all_segments.emplace_back(segment, false);
-                    last = junction;
-                }
-            }
-        for (std::vector<std::vector<ExtrusionJunction>>& polylines : result_polylines_per_index)
-            for (std::vector<ExtrusionJunction>& polyline : polylines)
-            {
-                ExtrusionJunction last = polyline.front();
-                for (coord_t junction_idx = 0; junction_idx < polyline.size(); junction_idx++)
-                {
-                    ExtrusionJunction& junction = polyline[junction_idx];
-                    ExtrusionSegment segment(last, junction, false);
-                    all_segments.emplace_back(segment, junction_idx == polyline.size() - 1);
-                    last = junction;
-                }
-            }
-        
-        coord_t i = 0;
-        for (Segment s : all_segments)
-        {
-            Polygons extruded = s.toPolygons();
-
-            std::ostringstream ss;
-            ss << "output/segments/segment_" << ++i << ".svg";
-            SVG svg(ss.str(), AABB(polys), 0.01);
-            svg.writeAreas(extruded, SVG::Color::GRAY, SVG::Color::NONE);
-            
-            area_covered = area_covered.unionPolygons(s.s.toPolygons());
-            overlaps.add(extruded);
-        }
-
+        Polygons extruded = s.toPolygons();
+        area_covered = area_covered.unionPolygons(s.s.toPolygons());
+        overlaps.add(extruded);
     }
     
     {
         SVG svg("output/toolpaths.svg", AABB(polys));
+        svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::RED, 2);
         bool alternate = true;
         for (PolygonRef poly : overlaps)
         {
             svg.writeAreas(poly, alternate? SVG::Color::BLUE : SVG::Color::MAGENTA, SVG::Color::NONE);
             alternate = !alternate;
         }
-        svg.writePolygons(polys, SVG::Color::RED, 2);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
     }
     {
