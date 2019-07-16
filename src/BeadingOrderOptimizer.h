@@ -46,6 +46,8 @@ private:
         , front(front)
         {}
     };
+    
+    float intersection_overlap = .0;
 
     const std::vector<ExtrusionSegment>& segments;
 
@@ -56,7 +58,22 @@ private:
 
     void connect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index);
     
-    
+    void reduceIntersectionOverlap(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index);
+
+    template<typename directional_iterator>
+    void reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_iterator, coord_t inset_idx, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index);
+
+    template<typename directional_iterator>
+    void reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_it, coord_t traveled_dist, coord_t reduction_length);
+
+    template<typename directional_iterator>
+    static std::list<ExtrusionJunction>::iterator getInsertPosIt(directional_iterator it);
+
+    template<typename directional_iterator>
+    static std::list<ExtrusionJunction>::iterator getSelfPosIt(directional_iterator it);
+
+    template<typename directional_iterator>
+    bool isEnd(directional_iterator it, Polyline& polyline);
     
     void transferUnconnectedPolylines(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polylines_per_index);
     
