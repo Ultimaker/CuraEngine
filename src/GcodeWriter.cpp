@@ -6,12 +6,13 @@
 
 namespace arachne
 {
-GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness, float print_speed, float travel_speed)
+GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness, float print_speed, float travel_speed, float extrusion_multiplier)
 : file(filename.c_str())
 , type(type)
 , layer_thickness(layer_thickness)
 , print_speed(print_speed)
 , travel_speed(travel_speed)
+, extrusion_multiplier(extrusion_multiplier)
 {
     assert(file.good());
 
@@ -175,7 +176,7 @@ float GcodeWriter::getExtrusionFilamentMmPerMmMove(coord_t width)
     float volume_per_mm_filament = M_PI * filament_radius * filament_radius;
     float volume_per_mm_move = INT2MM(width) * INT2MM(layer_thickness);
     // v / m / (v / f) = f / m
-    return volume_per_mm_move / volume_per_mm_filament;
+    return volume_per_mm_move / volume_per_mm_filament * extrusion_multiplier;
 }
 
 } // namespace arachne
