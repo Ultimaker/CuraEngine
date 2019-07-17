@@ -56,7 +56,7 @@ GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness
     file << "M205 X25 Y25\n";
     file << "\n";
     file << "M214 K0.4 ; bueno linear advance\n";
-    file << "M83 ;relative extrusion mode\n";
+//     file << "M83 ;relative extrusion mode\n";
     file << "\n";
 }
 
@@ -159,7 +159,9 @@ void GcodeWriter::printSingleExtrusionMove(ExtrusionJunction& from, ExtrusionJun
             break;
         case type_UM3:
         default:
-            last_E += getExtrusionFilamentMmPerMmMove((from.w + to.w) / 2) * vSize(to.p - from.p);
+            coord_t w = (from.w + to.w) / 2;
+            float speed = print_speed * nozzle_size / w;
+            last_E += getExtrusionFilamentMmPerMmMove(w) * vSize(to.p - from.p);
             file << "G1 F" << print_speed << " X" << INT2MM(to.p.X) << " Y" << INT2MM(to.p.Y)
                 << " E" << last_E << "\n";
             break;

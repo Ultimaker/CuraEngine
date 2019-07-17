@@ -33,6 +33,7 @@ private:
     Point build_plate_middle = Point(MM2INT(100), MM2INT(150));
     float filament_diameter = 2.85;
     coord_t discretization_size = MM2INT(0.2);
+    coord_t nozzle_size = MM2INT(0.4);
 
     coord_t layer_thickness;
     float print_speed;
