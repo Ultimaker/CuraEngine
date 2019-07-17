@@ -212,8 +212,9 @@ Polygons generatePika()
     pika.emplace_back(pika.back() + Point(100 * -0.08296, 100 * 1.91823  ));
     pika.emplace_back(pika.back() + Point(100 * -1.140304, 100 * 0.19548 ));
 
-    Point3Matrix rot = Point3Matrix(PointMatrix(170.0));
-    pika.applyMatrix(rot);
+    Point3Matrix rot = PointMatrix(170.0);
+    Point3Matrix scale = PointMatrix::scale(4.0);
+    pika.applyMatrix(Point3Matrix(rot.compose(scale)));
 
     return pikachu;
 }

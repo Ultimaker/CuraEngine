@@ -105,6 +105,7 @@ void GcodeWriter::print(std::vector<std::vector<std::vector<ExtrusionJunction>>>
 
 void GcodeWriter::move(Point p)
 {
+    file << "\n";
     p -= reduction;
     switch(type)
     {
