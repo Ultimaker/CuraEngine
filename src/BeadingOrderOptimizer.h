@@ -45,9 +45,20 @@ private:
         , polyline(polyline)
         , front(front)
         {}
+        Point p() const
+        {
+            return front? polyline->junctions.front().p : polyline->junctions.back().p;
+        }
+        bool operator==(const PolylineEndRef& other)
+        {
+            return inset_idx == other.inset_idx
+            && polyline == other.polyline
+            && front == other.front;
+        }
     };
     
-    float intersection_overlap = .1;
+    static constexpr float intersection_overlap = .1;
+    static constexpr coord_t snap_dist = 50;
 
     const std::vector<ExtrusionSegment>& segments;
 
@@ -57,6 +68,11 @@ private:
     std::unordered_map<Point, PolylineEndRef> odd_polyline_end_points;
 
     void connect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index);
+
+    /*!
+     * Connecting polylines together, but allowing for rounding erros in the end points
+     */
+    void fuzzyConnect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, coord_t snap_dist);
     
     void reduceIntersectionOverlap(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index);
 

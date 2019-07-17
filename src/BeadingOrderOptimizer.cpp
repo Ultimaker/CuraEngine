@@ -8,6 +8,8 @@
 #include <vector>
 #include <list>
 
+#include "utils/SparsePointGridInclusive.h"
+
 namespace arachne
 {
 
@@ -15,6 +17,7 @@ void BeadingOrderOptimizer::optimize(const std::vector<ExtrusionSegment>& segmen
 {
     BeadingOrderOptimizer optimizer(segments);
     optimizer.connect(result_polygons_per_index);
+    optimizer.fuzzyConnect(result_polygons_per_index, snap_dist);
     optimizer.reduceIntersectionOverlap(result_polygons_per_index);
     optimizer.transferUnconnectedPolylines(result_polygons_per_index, result_polylines_per_index);
 }
@@ -117,6 +120,98 @@ void BeadingOrderOptimizer::connect(std::vector<std::vector<std::vector<Extrusio
         }
     }
     debugCheck();
+}
+
+void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, coord_t snap_dist)
+{
+    struct Locator
+    {
+        Point operator()(const PolylineEndRef& it)
+        {
+            return it.p();
+        }
+    };
+    SparsePointGridInclusive<PolylineEndRef> grid(snap_dist);
+    for (std::list<Polyline>* polys : { &odd_polylines, &even_polylines })
+    {
+        for (auto poly_it = polys->begin(); poly_it != polys->end(); ++poly_it)
+        {
+            for (bool front : { true, false })
+            {
+                PolylineEndRef ref(poly_it->inset_idx, poly_it, front);
+                grid.insert(ref.p(), ref);
+            }
+        }
+    }
+
+    for (std::list<Polyline>* polys : { &odd_polylines, &even_polylines })
+    {
+        for (auto poly_it = polys->begin(); poly_it != polys->end(); ++poly_it)
+        {
+            for (bool front : { true, false })
+            {
+                PolylineEndRef end_point(poly_it->inset_idx, poly_it, front);
+                Point p = end_point.p();
+
+                std::vector<PolylineEndRef> nearby_end_points = grid.getNearbyVals(p, snap_dist);
+                for (PolylineEndRef& other_end : nearby_end_points)
+                {
+                    if (end_point == other_end
+                        || other_end.polyline->junctions.empty()
+                        || end_point.polyline->junctions.empty()
+                        || !shorterThen(p - other_end.p(), snap_dist)
+                    )
+                    {
+                        continue;
+                    }
+                    if (&*end_point.polyline == &*other_end.polyline)
+                    { // we can close this polyline into a polygon
+                        if (other_end.polyline->junctions.size() <= 2)
+                        { // don't print single line segments double
+                            continue;
+                        }
+                        result_polygons_per_index.resize(std::max(result_polygons_per_index.size(), static_cast<size_t>(end_point.inset_idx + 1)));
+                        result_polygons_per_index[end_point.inset_idx].emplace_back(poly_it->junctions.begin(), poly_it->junctions.end());
+                        end_point.polyline->junctions.clear();
+                    }
+                    else if (!end_point.front && other_end.front)
+                    {
+                        end_point.polyline->junctions.splice(end_point.polyline->junctions.end(), other_end.polyline->junctions);
+                    }
+                    else if (end_point.front && !other_end.front)
+                    {
+                        end_point.polyline->junctions.splice(end_point.polyline->junctions.begin(), other_end.polyline->junctions);
+                    }
+                    else if (end_point.front && other_end.front)
+                    {
+                        end_point.polyline->junctions.insert(end_point.polyline->junctions.begin(), other_end.polyline->junctions.rbegin(), other_end.polyline->junctions.rend());
+                        other_end.polyline->junctions.clear();
+                    }
+                    else // if (!end_point.front && !other_end.front)
+                    {
+                        end_point.polyline->junctions.insert(end_point.polyline->junctions.end(), other_end.polyline->junctions.rbegin(), other_end.polyline->junctions.rend());
+                        other_end.polyline->junctions.clear();
+                    }
+                }
+            }
+        }
+    }
+
+    // remove empties lists
+    for (std::list<Polyline>* polys : { &odd_polylines, &even_polylines })
+    {
+        for (auto poly_it = polys->begin(); poly_it != polys->end();)
+        {
+            if (poly_it->junctions.empty())
+            {
+                poly_it = polys->erase(poly_it);
+            }
+            else
+            {
+                poly_it++;
+            }
+        }
+    }
 }
 
 void BeadingOrderOptimizer::reduceIntersectionOverlap(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index)
@@ -256,9 +351,9 @@ void BeadingOrderOptimizer::transferUnconnectedPolylines(std::vector<std::vector
 {
     // copy unfinished polylines to result
     result_polylines_per_index.resize(std::max(result_polylines_per_index.size(), even_polylines.size() + odd_polylines.size()));
-    for (auto polylines : { even_polylines, odd_polylines })
+    for (auto* polylines : { &even_polylines, &odd_polylines })
     {
-        for (Polyline& polyline : polylines)
+        for (Polyline& polyline : *polylines)
         {
             result_polylines_per_index[polyline.inset_idx].emplace_back(polyline.junctions.begin(), polyline.junctions.end());
         }
