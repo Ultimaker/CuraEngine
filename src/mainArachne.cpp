@@ -428,7 +428,6 @@ void test()
     }
     logError("Naive processing took %fs\n", tk.restart());
 
-#ifdef DEBUG
     logAlways("Generating SVGs...\n");
     Polygons paths;
     for (ExtrusionSegment& segment : segments)
@@ -483,10 +482,7 @@ void test()
         {}
         Polygons toPolygons()
         {
-            if (is_full)
-                return s.toPolygons();
-            else
-                return s.toReducedPolygons();
+            return s.toPolygons(!is_full);
         }
     };
     std::vector<Segment> all_segments;
@@ -518,10 +514,12 @@ void test()
 
     Polygons area_covered;
     Polygons overlaps;
-    for (Segment s : all_segments)
+    for (coord_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
     {
+        Segment s = all_segments[segment_idx];
+        Polygons covered = s.s.toPolygons(false);
+        area_covered = area_covered.unionPolygons(covered);
         Polygons extruded = s.toPolygons();
-        area_covered = area_covered.unionPolygons(s.s.toPolygons());
         overlaps.add(extruded);
     }
     
@@ -579,7 +577,7 @@ void test()
             for (Point p : poly)
             {
                 ExtrusionSegment segment(ExtrusionJunction(prev, 400, inset_idx), ExtrusionJunction(p, 400, inset_idx), false);
-                svg.writeAreas(segment.toPolygons(), SVG::Color::GRAY, SVG::Color::NONE);
+                svg.writeAreas(segment.toPolygons(false), SVG::Color::GRAY, SVG::Color::NONE);
                 prev = p;
             }
         }
@@ -587,7 +585,6 @@ void test()
     }
 
     logError("Writing output files took %fs\n", tk.restart());
-#endif // DEBUG
 }
 
 

@@ -33,8 +33,10 @@ public:
     , is_odd(is_odd)
     {}
 
-    Polygons toPolygons();
-    Polygons toReducedPolygons(); // reduces extrusion at end
+    /*!
+     * \param reduced Whether to remove the circle from the to-location because it will be included in the next extrusion move
+     */
+    Polygons toPolygons(bool reduced);
 };
 
 
