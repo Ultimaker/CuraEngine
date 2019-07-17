@@ -416,6 +416,17 @@ void test()
             }
         }
     
+    
+        {
+            GcodeWriter gcode("output/naive_P3.gcode", GcodeWriter::type_P3);
+            gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
+        }
+
+        {
+            GcodeWriter gcode("output/naive_UM3.gcode", GcodeWriter::type_UM3);
+            gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
+        }
+        
         logAlways("Analysing...\n");
 
         Statistics stats("naive");
@@ -425,6 +436,7 @@ void test()
 
         logAlways("Visualization took %fs\n", tk.restart());
     
+        
     }
 }
 
