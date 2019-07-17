@@ -110,7 +110,7 @@ void Statistics::visualize()
         std::ostringstream ss;
         ss << "output/" << filename_base << "_toolpaths.svg";
         SVG svg(ss.str(), aabb);
-        svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::RED, 2);
+        svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::BLACK, 2);
         bool alternate = true;
         for (PolygonRef poly : overlaps)
         {

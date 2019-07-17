@@ -421,7 +421,6 @@ void test()
         Statistics stats("naive");
         stats.analyse(polys, result_polygons_per_index, result_polylines_per_index);
         logAlways("Analysis took %fs\n", tk.restart());
-        logAlways("Visualizing...\n");
         stats.visualize();
 
         logAlways("Visualization took %fs\n", tk.restart());
