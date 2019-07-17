@@ -26,6 +26,7 @@
 #include "ConstantBeadingStrategy.h"
 #include "BeadingOrderOptimizer.h"
 #include "GcodeWriter.h"
+#include "Statistics.h"
 
 #include "TestGeometry/Pika.h"
 #include "TestGeometry/Jin.h"
@@ -346,13 +347,6 @@ void test()
 
     polys = polys.unionPolygons();
 
-#ifdef DEBUG
-    {
-        SVG svg("output/outline.svg", AABB(Point(0,0), Point(10000, 10000)));
-        svg.writePolygons(polys);
-    }
-#endif
-
     TimeKeeper tk;
 
     VoronoiQuadrangulation vq(polys);
@@ -367,7 +361,7 @@ void test()
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
     BeadingOrderOptimizer::optimize(segments, result_polygons_per_index, result_polylines_per_index);
-    logError("Processing took %fs\n", tk.restart());
+    logAlways("Processing took %fs\n", tk.restart());
 
     {
         GcodeWriter gcode("output/arachne_P3.gcode", GcodeWriter::type_P3);
@@ -379,202 +373,60 @@ void test()
         gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
     }
 
-    segments.clear();
-    for (std::vector<std::vector<ExtrusionJunction>>& polygons : result_polygons_per_index)
-        for (std::vector<ExtrusionJunction>& polygon : polygons)
+    logAlways("Writing gcode took %fs\n", tk.restart());
+
+
+    logAlways("Analysing...\n");
+
+    Statistics stats("distributed");
+    stats.analyse(polys, result_polygons_per_index, result_polylines_per_index, &vq);
+    logAlways("Analysis took %fs\n", tk.restart());
+    logAlways("Visualizing...\n");
+    stats.visualize();
+    logAlways("Visualization took %fs\n", tk.restart());
+
+
+    {
+        logAlways("Simulating naive method...\n");
+
+        coord_t nozzle_size = 400;
+        
+        std::vector<Polygons> insets;
+        Polygons last_inset = polys.offset(-nozzle_size / 2);
+        while (!last_inset.empty())
         {
-            ExtrusionJunction last = polygon.back();
-            for (ExtrusionJunction& junction : polygon)
-            {
-                segments.emplace_back(last, junction, false);
-                last = junction;
-            }
+            insets.emplace_back(last_inset);
+            last_inset = last_inset.offset(-nozzle_size, ClipperLib::jtRound);
         }
-    for (std::vector<std::vector<ExtrusionJunction>>& polylines : result_polylines_per_index)
-        for (std::vector<ExtrusionJunction>& polyline : polylines)
-        {
-            ExtrusionJunction last = polyline.front();
-            for (coord_t junction_idx = 0; junction_idx < polyline.size(); junction_idx++)
-            {
-                ExtrusionJunction& junction = polyline[junction_idx];
-                segments.emplace_back(last, junction, false);
-                last = junction;
-            }
-        }
+        logAlways("Naive processing took %fs\n", tk.restart());
 
-    Polygons result_polygons;
-    Polygons result_polylines;
-    for (std::vector<std::vector<ExtrusionJunction>>& polygons : result_polygons_per_index)
-        for (std::vector<ExtrusionJunction>& polygon : polygons)
-        {
-            PolygonRef poly = result_polygons.newPoly();
-            for (ExtrusionJunction& junction : polygon)
-                poly.add(junction.p);
-        }
-    for (std::vector<std::vector<ExtrusionJunction>>& polylines : result_polylines_per_index)
-        for (std::vector<ExtrusionJunction>& polyline : polylines)
-        {
-            PolygonRef poly = result_polylines.newPoly();
-            for (ExtrusionJunction& junction : polyline)
-                poly.add(junction.p);
-        }
-
-    Polygons insets;
-    Polygons last_inset = polys.offset(-200);
-    while (!last_inset.empty())
-    {
-        insets.add(last_inset);
-        last_inset = last_inset.offset(-400, ClipperLib::jtRound);
-    }
-    logError("Naive processing took %fs\n", tk.restart());
-
-    logAlways("Generating SVGs...\n");
-    Polygons paths;
-    for (ExtrusionSegment& segment : segments)
-    {
-        PolygonRef poly = paths.newPoly();
-        poly.emplace_back(segment.from.p);
-        poly.emplace_back(segment.to.p);
-    }
-
-    {
-        SVG svg("output/after.svg", AABB(polys));
-        svg.writePolygons(polys, SVG::Color::GRAY, 2);
-        vq.debugOutput(svg, false, false, true);
-        svg.writePolygons(paths, SVG::Color::BLACK, 2);
-    }
-
-    {
-        SVG svg("output/optimized.svg", AABB(polys));
-        svg.writePolygons(polys, SVG::Color::GRAY, 2);
-//         vq.debugOutput(svg, false, false, false);
-        svg.writePolygons(result_polygons, SVG::Color::BLACK);
-        svg.writePolylines(result_polylines, SVG::Color::ORANGE);
-    }
-    
-    {
-        std::ofstream csv("output/segments.csv", std::ofstream::out | std::ofstream::trunc);
-        csv << "from_x; from_y; from_width; to_x; to_y; to_width\n";
-        for (const ExtrusionSegment& segment : segments)
-            csv << segment.from.p.X << "; " << segment.from.p.Y << "; " << segment.from.w << "; " << segment.to.p.X << "; " << segment.to.p.Y << "; " << segment.to.w << '\n';
-        csv.close();
-    }
-
-    
-    
-    
-
-    struct Segment
-    {
-        ExtrusionSegment s;
-        bool is_full;
-        Segment(ExtrusionSegment s, bool is_full)
-        : s(s)
-        , is_full(is_full)
-        {}
-        Polygons toPolygons()
-        {
-            return s.toPolygons(!is_full);
-        }
-    };
-    std::vector<Segment> all_segments;
-    for (std::vector<std::vector<ExtrusionJunction>>& polygons : result_polygons_per_index)
-        for (std::vector<ExtrusionJunction>& polygon : polygons)
-        {
-            ExtrusionJunction last = polygon.back();
-            for (coord_t junction_idx = 0; junction_idx < polygon.size(); junction_idx++)
-            {
-                ExtrusionJunction& junction = polygon[junction_idx];
-                ExtrusionSegment segment(last, junction, false);
-                all_segments.emplace_back(segment, false);
-                last = junction;
-            }
-        }
-    for (std::vector<std::vector<ExtrusionJunction>>& polylines : result_polylines_per_index)
-        for (std::vector<ExtrusionJunction>& polyline : polylines)
-        {
-            ExtrusionJunction last = polyline.front();
-            for (coord_t junction_idx = 0; junction_idx < polyline.size(); junction_idx++)
-            {
-                ExtrusionJunction& junction = polyline[junction_idx];
-                ExtrusionSegment segment(last, junction, false);
-                all_segments.emplace_back(segment, junction_idx == polyline.size() - 1);
-                last = junction;
-            }
-        }
-    
-
-    Polygons area_covered;
-    Polygons overlaps;
-    for (coord_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
-    {
-        Segment s = all_segments[segment_idx];
-        Polygons covered = s.s.toPolygons(false);
-        area_covered = area_covered.unionPolygons(covered);
-        Polygons extruded = s.toPolygons();
-        overlaps.add(extruded);
-    }
-    
-    Polygons overfills = overlaps.xorPolygons(area_covered);
-    overfills = overfills.offset(-5);
-    overfills = overfills.offset(10);
-    overfills = overfills.offset(-5);
-
-    double total_overfill_area = INT2MM2(overfills.area());
-    logAlways("Total overfill area: %f mm²\n", total_overfill_area);
-    std::vector<PolygonsPart> overfill_areas = overfills.splitIntoParts();
-    logAlways("Average area: %f mm² over %d parts\n", total_overfill_area / overfill_areas.size(), overfill_areas.size());
-
-    Polygons underfills = polys.difference(area_covered);
-    underfills = underfills.offset(5);
-    underfills = underfills.offset(-10);
-    underfills = underfills.offset(5);
-
-    double total_underfill_area = INT2MM2(underfills.area());
-    logAlways("Total underfill area: %f mm²\n", total_underfill_area);
-    std::vector<PolygonsPart> underfill_areas = underfills.splitIntoParts();
-    logAlways("Average area: %f mm² over %d parts\n", total_underfill_area / underfill_areas.size(), underfill_areas.size());
-
-    logAlways("Total target area: %f mm²\n", INT2MM2(polys.area()));
-
-    {
-        SVG svg("output/toolpaths.svg", AABB(polys));
-        svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::RED, 2);
-        bool alternate = true;
-        for (PolygonRef poly : overlaps)
-        {
-            svg.writeAreas(poly, alternate? SVG::Color::BLUE : SVG::Color::MAGENTA, SVG::Color::NONE);
-            alternate = !alternate;
-        }
-        svg.writePolygons(paths, SVG::Color::BLACK, 2);
-    }
-    {
-        SVG svg("output/accuracy.svg", AABB(polys));
-        svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::BLACK, 3);
-        svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
-        svg.writeAreas(underfills, SVG::Color::BLUE, SVG::Color::NONE);
-        svg.writePolygons(paths, SVG::Color::BLACK, 1);
-    }
-
-
-    {
-        SVG svg("output/normal.svg", AABB(polys));
-        svg.writePolygons(polys, SVG::Color::RED, 2);
+        std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
+        std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
+        result_polygons_per_index.resize(insets.size());
         for (coord_t inset_idx = 0; inset_idx < insets.size(); inset_idx++)
         {
-            PolygonRef poly = insets[inset_idx];
-            Point prev = poly.back();
-            for (Point p : poly)
+            for (PolygonRef poly : insets[inset_idx])
             {
-                ExtrusionSegment segment(ExtrusionJunction(prev, 400, inset_idx), ExtrusionJunction(p, 400, inset_idx), false);
-                svg.writeAreas(segment.toPolygons(false), SVG::Color::GRAY, SVG::Color::NONE);
-                prev = p;
+                result_polygons_per_index[inset_idx].emplace_back();
+                std::vector<ExtrusionJunction>& junction_poly = result_polygons_per_index[inset_idx].back();
+                for (Point p : poly)
+                {
+                    junction_poly.emplace_back(p, nozzle_size, inset_idx);
+                }
             }
         }
-        svg.writePolygons(insets, SVG::Color::BLUE, 2);
-    }
+    
+        logAlways("Analysing...\n");
 
-    logError("Writing output files took %fs\n", tk.restart());
+        Statistics stats("naive");
+        stats.analyse(polys, result_polygons_per_index, result_polylines_per_index);
+        logAlways("Analysis took %fs\n", tk.restart());
+        logAlways("Visualizing...\n");
+        stats.visualize();
+
+        logAlways("Visualization took %fs\n", tk.restart());
+    
+    }
 }
 
 
