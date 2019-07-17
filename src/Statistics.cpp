@@ -118,7 +118,9 @@ void Statistics::visualize()
                     prev = j.p;
                 }
             }
+        }
         for (auto polylines : *polylines_per_index)
+        {
             for (std::vector<ExtrusionJunction>& polyline : polylines)
             {
                 svg.writePoint(polyline.front().p, true, 5, SVG::Color::GREEN);
