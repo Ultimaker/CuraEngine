@@ -459,14 +459,6 @@ void test()
             csv << segment.from.p.X << "; " << segment.from.p.Y << "; " << segment.from.w << "; " << segment.to.p.X << "; " << segment.to.p.Y << "; " << segment.to.w << '\n';
         csv.close();
     }
-    {
-        SVG svg("output/toolpath_locations.svg", AABB(polys));
-        svg.writePolygons(polys, SVG::Color::RED, 2);
-        svg.writePolygons(paths, SVG::Color::BLACK, 2);
-        for (auto poly : paths)
-            for (Point p : poly)
-                svg.writePoint(p, true, 1);
-    }
 
     
     
@@ -523,6 +515,28 @@ void test()
         overlaps.add(extruded);
     }
     
+    Polygons overfills = overlaps.xorPolygons(area_covered);
+    overfills = overfills.offset(-5);
+    overfills = overfills.offset(10);
+    overfills = overfills.offset(-5);
+
+    double total_overfill_area = INT2MM2(overfills.area());
+    logAlways("Total overfill area: %f mm²\n", total_overfill_area);
+    std::vector<PolygonsPart> overfill_areas = overfills.splitIntoParts();
+    logAlways("Average area: %f mm² over %d parts\n", total_overfill_area / overfill_areas.size(), overfill_areas.size());
+
+    Polygons underfills = polys.difference(area_covered);
+    underfills = underfills.offset(5);
+    underfills = underfills.offset(-10);
+    underfills = underfills.offset(5);
+
+    double total_underfill_area = INT2MM2(underfills.area());
+    logAlways("Total underfill area: %f mm²\n", total_underfill_area);
+    std::vector<PolygonsPart> underfill_areas = underfills.splitIntoParts();
+    logAlways("Average area: %f mm² over %d parts\n", total_underfill_area / underfill_areas.size(), underfill_areas.size());
+
+    logAlways("Total target area: %f mm²\n", INT2MM2(polys.area()));
+
     {
         SVG svg("output/toolpaths.svg", AABB(polys));
         svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::RED, 2);
@@ -535,37 +549,13 @@ void test()
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
     }
     {
-        SVG svg("output/overfills.svg", AABB(polys));
-        Polygons overfills = overlaps.xorPolygons(area_covered);
-        overfills = overfills.offset(-5);
-        overfills = overfills.offset(10);
-        overfills = overfills.offset(-5);
-        svg.writeAreas(overfills, SVG::Color::GRAY, SVG::Color::NONE);
-        svg.writePolygons(polys, SVG::Color::RED, 2);
-        svg.writePolygons(paths, SVG::Color::BLUE, 2);
-        double total_area = INT2MM2(overfills.area());
-        logAlways("Total overfill area: %f mm²\n", total_area);
-
-        std::vector<PolygonsPart> overfill_areas = overfills.splitIntoParts();
-        logAlways("Average area: %f mm² over %d parts\n", total_area / overfill_areas.size(), overfill_areas.size());
-    }
-    {
-        SVG svg("output/underfills.svg", AABB(polys));
-        Polygons underfills = polys.difference(area_covered);
-        underfills = underfills.offset(5);
-        underfills = underfills.offset(-10);
-        underfills = underfills.offset(5);
-        svg.writeAreas(underfills, SVG::Color::GRAY, SVG::Color::NONE);
-        svg.writePolygons(polys, SVG::Color::RED, 2);
-        svg.writePolygons(paths, SVG::Color::BLUE, 2);
-        double total_area = INT2MM2(underfills.area());
-        logAlways("Total underfill area: %f mm²\n", total_area);
-
-        std::vector<PolygonsPart> overfill_areas = underfills.splitIntoParts();
-        logAlways("Average area: %f mm² over %d parts\n", total_area / overfill_areas.size(), overfill_areas.size());
+        SVG svg("output/accuracy.svg", AABB(polys));
+        svg.writeAreas(polys, SVG::Color::GRAY, SVG::Color::BLACK, 3);
+        svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
+        svg.writeAreas(underfills, SVG::Color::BLUE, SVG::Color::NONE);
+        svg.writePolygons(paths, SVG::Color::BLACK, 1);
     }
 
-    logAlways("Total target area: %f mm²\n", INT2MM2(polys.area()));
 
     {
         SVG svg("output/normal.svg", AABB(polys));
