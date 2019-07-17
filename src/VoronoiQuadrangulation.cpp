@@ -1893,15 +1893,26 @@ void VoronoiQuadrangulation::debugCheckEndpointUniqueness()
 void VoronoiQuadrangulation::debugCheckGraphExistance()
 {
 #ifdef DEBUG
-    auto edge_exists = [this](edge_t* edge)
+    std::unordered_set<edge_t*> all_edges;
+    std::unordered_set<node_t*> all_nodes;
+    for (node_t& node : graph.nodes)
+    {
+        all_nodes.emplace(&node);
+    }
+    for (edge_t& edge : graph.edges)
+    {
+        all_edges.emplace(&edge);
+    }
+    
+    auto edge_exists = [&all_edges](edge_t* edge)
         {
             assert(edge == nullptr ||
-                std::find(graph.edges.begin(), graph.edges.end(), *edge) != graph.edges.end());
+                all_edges.find(edge) != all_edges.end());
         };
-    auto node_exists = [this](node_t* node)
+    auto node_exists = [&all_nodes](node_t* node)
         {
             assert(node == nullptr ||
-                std::find(graph.nodes.begin(), graph.nodes.end(), *node) != graph.nodes.end());
+                all_nodes.find(node) != all_nodes.end());
         };
     for (node_t& node : graph.nodes)
     {
