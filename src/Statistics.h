@@ -43,6 +43,8 @@ private:
     Polygons* input;
     VoronoiQuadrangulation* vq;
 
+    std::vector<std::vector<std::vector<ExtrusionJunction>>>* polygons_per_index;
+    std::vector<std::vector<std::vector<ExtrusionJunction>>>* polylines_per_index;
     std::vector<Segment> all_segments;
     Polygons area_covered;
     Polygons overlaps;

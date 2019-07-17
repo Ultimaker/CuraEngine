@@ -15,6 +15,8 @@ void Statistics::analyse(Polygons& input, std::vector<std::vector<std::vector<Ex
 {
     this->input = &input;
     this->vq = vq;
+    this->polygons_per_index = &polygons_per_index;
+    this->polylines_per_index = &polylines_per_index;
 
     generateAllSegments(polygons_per_index, polylines_per_index);
 
@@ -104,6 +106,25 @@ void Statistics::visualize()
         svg.writePolygons(*input, SVG::Color::GRAY, 2);
         vq->debugOutput(svg, false, false, true);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
+        
+        for (auto polys : *polylines_per_index)
+        {
+            for (auto poly : polys)
+            {
+                Point prev = poly.front().p;
+                for (ExtrusionJunction& j : poly)
+                {
+                    svg.writeLine(prev, j.p, SVG::Color::RED, 2);
+                    prev = j.p;
+                }
+            }
+        for (auto polylines : *polylines_per_index)
+            for (std::vector<ExtrusionJunction>& polyline : polylines)
+            {
+                svg.writePoint(polyline.front().p, true, 5, SVG::Color::GREEN);
+                svg.writePoint(polyline.back().p, true, 5, SVG::Color::BLUE);
+            }
+        }
     }
 
     {
