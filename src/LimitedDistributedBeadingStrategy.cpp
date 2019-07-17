@@ -8,7 +8,7 @@ namespace arachne
 
 LimitedDistributedBeadingStrategy::Beading LimitedDistributedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
-    if (thickness < DistributedBeadingStrategy::optimal_thickness(max_bead_count))
+    if (thickness < DistributedBeadingStrategy::transition_thickness(max_bead_count))
     {
         return DistributedBeadingStrategy::compute(thickness, bead_count);
     }
