@@ -25,6 +25,7 @@
 #include "CenterDeviationBeadingStrategy.h"
 #include "ConstantBeadingStrategy.h"
 #include "BeadingOrderOptimizer.h"
+#include "GcodeWriter.h"
 
 #include "TestGeometry/Pika.h"
 #include "TestGeometry/Jin.h"
@@ -367,6 +368,11 @@ void test()
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
     BeadingOrderOptimizer::optimize(segments, result_polygons_per_index, result_polylines_per_index);
     logError("Processing took %fs\n", tk.restart());
+
+    {
+        GcodeWriter gcode("output/arachne.gcode", GcodeWriter::type_UM3);
+        gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
+    }
 
     segments.clear();
     for (std::vector<std::vector<ExtrusionJunction>>& polygons : result_polygons_per_index)
