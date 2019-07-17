@@ -370,7 +370,12 @@ void test()
     logError("Processing took %fs\n", tk.restart());
 
     {
-        GcodeWriter gcode("output/arachne.gcode", GcodeWriter::type_UM3);
+        GcodeWriter gcode("output/arachne_P3.gcode", GcodeWriter::type_P3);
+        gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
+    }
+
+    {
+        GcodeWriter gcode("output/arachne_UM3.gcode", GcodeWriter::type_UM3);
         gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
     }
 
