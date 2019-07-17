@@ -32,7 +32,9 @@ class VoronoiQuadrangulation
 
     coord_t snap_dist = 20; // generic arithmatic inaccuracy
     coord_t discretization_step_size = 200;
-    coord_t filter_dist = 1000; // filter distance
+    coord_t transition_filter_dist = 1000; // filter transitions closer together than this
+    coord_t marking_filter_dist = 400; // filter marking areas smaller than this
+
 public:
     using Segment = PolygonsSegmentIndex;
     VoronoiQuadrangulation(const Polygons& polys);

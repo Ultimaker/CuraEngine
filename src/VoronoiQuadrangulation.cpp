@@ -697,7 +697,7 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
 {
     setMarking(beading_strategy);
 
-    filterMarking(filter_dist);
+    filterMarking(marking_filter_dist);
 
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
@@ -943,7 +943,7 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
         Point b = edge->to->p;
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
-        bool should_dissolve_back = dissolveNearbyTransitions(edge, transitions.back(), ab_size - transitions.back().pos, filter_dist, true, edge_to_transitions, beading_strategy);
+        bool should_dissolve_back = dissolveNearbyTransitions(edge, transitions.back(), ab_size - transitions.back().pos, transition_filter_dist, true, edge_to_transitions, beading_strategy);
         should_dissolve_back |= filterEndOfMarkingTransition(edge, ab_size - transitions.back().pos, beading_strategy.getTransitioningLength(transitions.back().lower_bead_count), transitions.back().lower_bead_count, beading_strategy);
         if (should_dissolve_back)
         {
@@ -953,7 +953,7 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
         { // filterEndOfMarkingTransition gives inconsistent new bead count when executing for the same transition in two directions.
             continue;
         }
-        bool should_dissolve_front = dissolveNearbyTransitions(edge->twin, transitions.front(), transitions.front().pos, filter_dist, false, edge_to_transitions, beading_strategy);
+        bool should_dissolve_front = dissolveNearbyTransitions(edge->twin, transitions.front(), transitions.front().pos, transition_filter_dist, false, edge_to_transitions, beading_strategy);
         should_dissolve_front |= filterEndOfMarkingTransition(edge->twin, transitions.front().pos, beading_strategy.getTransitioningLength(transitions.front().lower_bead_count), transitions.front().lower_bead_count + 1, beading_strategy);
         if (should_dissolve_front)
         {
