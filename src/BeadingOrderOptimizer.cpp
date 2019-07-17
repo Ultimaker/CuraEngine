@@ -134,18 +134,21 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, direct
 {
     ExtrusionJunction& start_junction = *polyline_start_it;
     ExtrusionJunction* intersecting_junction = nullptr;
-    for (std::vector<ExtrusionJunction>& polygon : polygons_per_index[inset_idx])
+    if (inset_idx < polygons_per_index.size())
     {
-        for (ExtrusionJunction& junction : polygon)
+        for (std::vector<ExtrusionJunction>& polygon : polygons_per_index[inset_idx])
         {
-            if (junction.p == start_junction.p)
+            for (ExtrusionJunction& junction : polygon)
             {
-                assert(junction.w == start_junction.w);
-                intersecting_junction = &junction;
-                break;
+                if (junction.p == start_junction.p)
+                {
+                    assert(junction.w == start_junction.w);
+                    intersecting_junction = &junction;
+                    break;
+                }
             }
+            if (intersecting_junction) break;
         }
-        if (intersecting_junction) break;
     }
     if (!intersecting_junction)
     {
