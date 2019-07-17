@@ -176,12 +176,12 @@ template<typename directional_iterator>
 void BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_it, coord_t traveled_dist, coord_t reduction_length)
 {
     ExtrusionJunction& start_junction = *polyline_it;
-    polyline_it++;
-    if (isEnd(polyline_it, polyline))
+    directional_iterator next_junction_it = polyline_it; next_junction_it++;
+    if (isEnd(next_junction_it, polyline))
     {
         return;
     }
-    ExtrusionJunction& next_junction = *polyline_it;
+    ExtrusionJunction& next_junction = *next_junction_it;
     Point a = start_junction.p;
     Point b = next_junction.p;
     Point ab = b - a;
@@ -193,7 +193,7 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, direct
     {
         Point mid1 = a + ab * std::max(static_cast<coord_t>(0), std::min(length, (total_reduction_length - traveled_dist) / length));
 //         Point mid2 = mid1; // a + ab * std::min(reduction_length + 10, length) / length;
-        std::list<ExtrusionJunction>::iterator forward_it = getInsertPosIt( polyline_it );
+        std::list<ExtrusionJunction>::iterator forward_it = getInsertPosIt(next_junction_it);
         coord_t mid_w = start_junction.w + (next_junction.w - start_junction.w) * reduction_length / length;
         polyline.junctions.insert(forward_it, ExtrusionJunction(mid1, mid_w, start_junction.perimeter_index));
 //         polyline.junctions.insert(forward_it, ExtrusionJunction(mid1, 0, start_junction.perimeter_index));
@@ -201,12 +201,12 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, direct
     else
     {
         // NOTE: polyline_start_it was already increased
-        reduceIntersectionOverlap(polyline, polyline_it, traveled_dist + length, reduction_length);
+        reduceIntersectionOverlap(polyline, next_junction_it, traveled_dist + length, reduction_length);
     }
 
     if (polyline.junctions.size() > 1)
     {
-        polyline.junctions.erase(getSelfPosIt(--polyline_it));
+        polyline.junctions.erase(getSelfPosIt(polyline_it));
     }
     if (polyline.junctions.size() == 1)
     {
