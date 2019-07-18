@@ -782,18 +782,6 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
                 }
             }
             coord_t bead_count = beading_strategy.optimal_bead_count(node.data.distance_to_boundary * 2);
-            if (bead_count % 2 == 1)
-            {
-                // TODO: think about this better!
-                if (std::abs(beading_strategy.optimal_thickness(bead_count - 1) - node.data.distance_to_boundary * 2) < std::abs(beading_strategy.optimal_thickness(bead_count) - node.data.distance_to_boundary * 2))
-                {
-                    bead_count--;
-                }
-                else
-                {
-                    bead_count++;
-                }
-            }
             node.data.bead_count = bead_count;
         }
     }
