@@ -342,6 +342,11 @@ void test()
     polys = polys.unionPolygons();
     polys.simplify();
 
+    {
+        SVG svg("output/outline.svg", AABB(polys));
+        svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK);
+    }
+
     TimeKeeper tk;
 
     float transitioning_angle = M_PI / 4;
