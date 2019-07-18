@@ -31,6 +31,8 @@
 #include "TestGeometry/Pika.h"
 #include "TestGeometry/Jin.h"
 #include "TestGeometry/Moessen.h"
+#include "TestGeometry/Prescribed.h"
+#include "TestGeometry/Spiky.h"
 
 using arachne::Point;
 
@@ -64,7 +66,6 @@ Polygons generateTestPoly(int size, Point border)
 
 static Polygons test_poly_1;
 static Polygons squares;
-static Polygons parabola_dip;
 static Polygons circle;
 static Polygons circle_flawed;
 static Polygons cross_shape;
@@ -102,16 +103,6 @@ void generateTestPolys()
     square_1.emplace_back(10000, 10000);
     square_1.emplace_back(10000, 0);
     
-    PolygonRef parabola_dip_1 = parabola_dip.newPoly();
-    parabola_dip_1.emplace_back(0, 10000);
-    parabola_dip_1.emplace_back(0, 0);
-    parabola_dip_1.emplace_back(10000, 0);
-    parabola_dip_1.emplace_back(10000, 10000);
-    parabola_dip_1.emplace_back(5500, 10000);
-    parabola_dip_1.emplace_back(5000, 5000);
-    parabola_dip_1.emplace_back(4500, 10000);
-    Point3Matrix rot = Point3Matrix(PointMatrix(90.0)).compose(PointMatrix::scale(.7));
-    parabola_dip_1.applyMatrix(rot);
     
     PolygonRef circle_1 = circle.newPoly();
     coord_t r = 10000;
@@ -327,7 +318,6 @@ void test()
     generateTestPolys();
 //     Polygons polys = generateTestPoly(20, Point(10000, 10000));
 //     Polygons polys = test_poly_1;
-//     Polygons polys = parabola_dip;
 //     Polygons polys = squares;
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
@@ -342,8 +332,12 @@ void test()
 //     Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
-    Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 8);
+//     Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 32);
 //     Polygons polys = MoessenTests::generateTriangles(Point(6, 3), 100, 400, 500);
+//     Polygons polys = Prescribed::fromDistances({Point(0,800), Point(400,300), Point(610,610), Point(1400, 200)});
+//     Polygons polys = Spiky::oneSpike(200);
+    Polygons polys = Spiky::twoSpikes();
+//     Polygons polys = Spiky::fourSpikes();
 
     polys = polys.unionPolygons();
 
