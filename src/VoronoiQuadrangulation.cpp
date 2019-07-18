@@ -812,13 +812,13 @@ void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
     for (edge_t& edge : graph.edges)
     {
         assert(edge.twin);
-        if (edge.twin->data.is_marked != -1)
+        if (edge.twin->data.markingIsSet())
         {
-            edge.data.is_marked = edge.twin->data.is_marked;
+            edge.data.setMarked(edge.twin->data.isMarked());
         }
         else if (edge.data.type == VoronoiQuadrangulationEdge::EXTRA_VD)
         {
-            edge.data.is_marked = 0;
+            edge.data.setMarked(false);
         }
         else
         {
@@ -827,7 +827,7 @@ void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
             Point ab = b - a;
             coord_t dR = std::abs(edge.to->data.distance_to_boundary - edge.from->data.distance_to_boundary);
             coord_t dD = vSize(ab);
-            edge.data.is_marked = dD > cap * dR;
+            edge.data.setMarked(dD > cap * dR);
         }
     }
 }
@@ -854,15 +854,15 @@ bool VoronoiQuadrangulation::filterMarking(edge_t* starting_edge, coord_t travel
     bool should_dissolve = true;
     for (edge_t* next_edge = starting_edge->next; next_edge && next_edge != starting_edge->twin; next_edge = next_edge->twin->next)
     {
-        if (next_edge->data.is_marked == 1)
+        if (next_edge->data.isMarked())
         {
             should_dissolve &= filterMarking(next_edge, traveled_dist + length, max_length);
         }
     }
     if (should_dissolve)
     {
-        starting_edge->data.is_marked = 0;
-        starting_edge->twin->data.is_marked = 0;
+        starting_edge->data.setMarked(false);
+        starting_edge->twin->data.setMarked(false);
     }
     return should_dissolve;
 }
@@ -871,7 +871,7 @@ void VoronoiQuadrangulation::setBeadCount(const BeadingStrategy& beading_strateg
 {
     for (edge_t& edge : graph.edges)
     {
-        if (edge.data.is_marked)
+        if (edge.data.isMarked())
         {
             edge.to->data.bead_count = beading_strategy.optimal_bead_count(edge.to->data.distance_to_boundary * 2);
         }
@@ -924,8 +924,8 @@ void VoronoiQuadrangulation::generateTransitionMids(const BeadingStrategy& beadi
 {
     for (edge_t& edge : graph.edges)
     {
-        assert(edge.data.is_marked != -1);
-        if (!edge.data.is_marked)
+        assert(edge.data.markingIsSet());
+        if (!edge.data.isMarked())
         { // only marked regions introduce transitions
             continue;
         }
@@ -1017,7 +1017,7 @@ bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, Tr
     bool should_dissolve = false;
     for (edge_t* edge = edge_to_start->next; edge && edge != edge_to_start->twin; edge = edge->twin->next)
     {
-        if (edge->data.is_marked != 1)
+        if (!edge->data.isMarked())
         {
             continue;
         }
@@ -1052,7 +1052,7 @@ bool VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, Tr
             }
         }
         should_dissolve = should_dissolve || dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions, beading_strategy);
-        if (should_dissolve && edge->data.is_marked == 1)
+        if (should_dissolve && edge->data.isMarked())
         {
             edge->from->data.bead_count = going_up? origin_transition.lower_bead_count : origin_transition.lower_bead_count + 1;
         }
@@ -1071,7 +1071,7 @@ bool VoronoiQuadrangulation::filterEndOfMarkingTransition(edge_t* edge_to_start,
     bool should_dissolve = false;
     for (edge_t* next_edge = edge_to_start->next; next_edge && next_edge != edge_to_start->twin; next_edge = next_edge->twin->next)
     {
-        if (next_edge->data.is_marked == 1)
+        if (next_edge->data.isMarked())
         {
             coord_t length = vSize(next_edge->to->p - next_edge->from->p);
             should_dissolve |= filterEndOfMarkingTransition(next_edge, traveled_dist + length, max_dist, replacing_bead_count, beading_strategy);
@@ -1181,7 +1181,7 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
         {
             edge_t* next = outgoing->twin->next; // before we change the outgoing edge itself
             assert(i < 10);
-            if (!outgoing->data.is_marked)
+            if (outgoing->data.isMarked())
             {
                 outgoing = next;
                 continue; // don't put transition ends in non-marked regions
@@ -1199,7 +1199,7 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
     }
     else // end_pos < ab_size
     { // add transition end point here
-        assert(edge.data.is_marked);
+        assert(edge.data.isMarked());
         
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
         std::list<TransitionEnd>* transitions = nullptr;
@@ -1392,10 +1392,10 @@ std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> Voro
     source_node->some_edge = inward_edge;
     if (edge_after) node_after->some_edge = edge_after;
 
-    first->data.is_marked = true;
-    outward_edge->data.is_marked = false; // TODO verify this is always the case.
-    inward_edge->data.is_marked = false;
-    second->data.is_marked = true;
+    first->data.setMarked(true);
+    outward_edge->data.setMarked(false); // TODO verify this is always the case.
+    inward_edge->data.setMarked(false);
+    second->data.setMarked(true);
 
     outward_edge->twin = inward_edge;
     inward_edge->twin = outward_edge;
@@ -1420,7 +1420,7 @@ std::pair<Point, Point> VoronoiQuadrangulation::getSource(const edge_t& edge)
 
 bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to) const
 {
-    if (!edge_to.data.is_marked)
+    if (!edge_to.data.isMarked())
     {
         return false;
     }
@@ -1430,7 +1430,7 @@ bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to) const
     }
     for (const edge_t* edge = edge_to.next; edge && edge != edge_to.twin; edge = edge->twin->next)
     {
-        if (edge->data.is_marked)
+        if (edge->data.isMarked())
         {
             return false;
         }
@@ -1467,7 +1467,7 @@ bool VoronoiQuadrangulation::isMarked(const node_t* node) const
     bool first = true;
     for (edge_t* edge = node->some_edge; first || edge != node->some_edge; edge = edge->twin->next)
     {
-        if (edge->data.is_marked == 1)
+        if (edge->data.isMarked())
         {
             return true;
         }
@@ -1568,7 +1568,7 @@ void VoronoiQuadrangulation::propagateBeadings(std::vector<edge_t*>& quad_starts
     {
         edge_t* edge_to_peak = getQuadMaxRedgeTo(quad_start);
         // transfer beading information to lower nodes
-        if (quad_start->next->next && !quad_start->next->data.is_marked)
+        if (quad_start->next->next && !quad_start->next->data.isMarked())
         {
             Beading& beading = getBeading(edge_to_peak->to, node_to_beading, beading_strategy);
             beading.is_finished = true;
@@ -1613,7 +1613,7 @@ void VoronoiQuadrangulation::generateEndOfMarkingBeadings(node_t* node, Beading&
     edge_t* start_of_marking = nullptr;
     for (edge_t* outgoing = node->some_edge; outgoing && (first || outgoing != node->some_edge); outgoing = outgoing->twin->next)
     {
-        if (outgoing->data.is_marked == 1)
+        if (outgoing->data.isMarked())
         {
             assert(!start_of_marking && "There should only be a single marked edge connected to a node to which a different beading is porpagated downward.");
             start_of_marking = outgoing;
@@ -1682,7 +1682,7 @@ void VoronoiQuadrangulation::generateEndOfMarkingBeadings(edge_t* continuation_e
         bool has_recursed = false;
         for (edge_t* next_edge = continuation_edge->next; next_edge && next_edge != continuation_edge->twin; next_edge = next_edge->twin->next)
         {
-            if (next_edge->data.is_marked == 1)
+            if (next_edge->data.isMarked())
             {
                 generateEndOfMarkingBeadings(next_edge, traveled_dist + length, transition_length, beading_here, propagated_beading, node_to_beading, beading_strategy);
                 has_recursed = true;
@@ -1777,7 +1777,7 @@ VoronoiQuadrangulation::Beading& VoronoiQuadrangulation::getBeading(node_t* node
             coord_t dist = std::numeric_limits<coord_t>::max();
             for (edge_t* edge = node->some_edge; edge && (first || edge != node->some_edge); edge = edge->twin->next)
             {
-                if (edge->data.is_marked)
+                if (edge->data.isMarked())
                 {
                     has_marked_edge = true;
                 }
@@ -1839,7 +1839,7 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
         assert(std::abs(int(from_junctions.size()) - int(to_junctions.size())) <= 1); // at transitions one end has more beads
         
         // deal with transition to single bead
-//         if (quad_start->next->next && quad_start->next->data.is_marked && quad_start->to->data.bead_count % 2 + quad_start->next->to->data.bead_count % 2 == 1)
+//         if (quad_start->next->next && quad_start->next->data.isMarked() && quad_start->to->data.bead_count % 2 + quad_start->next->to->data.bead_count % 2 == 1)
 //         {
 //             assert(quad_start->next->data.type == VoronoiQuadrangulationEdge::TRANSITION_MID);
 //             if (quad_start->to->data.bead_count % 2 == 0)
@@ -2133,14 +2133,14 @@ void VoronoiQuadrangulation::debugCheckDecorationConsistency(bool transitioned)
             {
                 assert(edge.from->data.distance_to_boundary == 0 || edge.to->data.distance_to_boundary == 0);
             }
-            assert(edge.data.is_marked != 1);
+            assert(!edge.data.isMarked());
         }
-        assert(edge.data.is_marked == edge.twin->data.is_marked);
-        if (edge.data.is_marked)
+        assert(edge.data.isMarked() == edge.twin->data.isMarked());
+        if (edge.data.isMarked())
         {
             if (transitioned && edge.from->data.bead_count != -1 && edge.to->data.bead_count != -1)
             {
-                assert(edge.data.is_marked != 1 || std::abs(edge.from->data.bead_count - edge.to->data.bead_count) <= 1);
+                assert(!edge.data.isMarked() || std::abs(edge.from->data.bead_count - edge.to->data.bead_count) <= 1);
             }
         }
     }
@@ -2197,7 +2197,7 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
         Point b = edge.to->p;
         SVG::Color clr = getColor(edge);
         float stroke_width = 1;
-        if (edge.data.is_marked == 1 && edge.data.type != VoronoiQuadrangulationEdge::TRANSITION_MID)
+        if (edge.data.markingIsSet() && edge.data.isMarked() && edge.data.type != VoronoiQuadrangulationEdge::TRANSITION_MID)
         {
             clr = SVG::Color::BLUE;
             stroke_width = 2;
