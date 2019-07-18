@@ -228,20 +228,73 @@ std::vector<Point> VoronoiQuadrangulation::discretize(const vd_t::edge_type& vd_
         }
         Point p = VoronoiUtils::getSourcePoint(*point_cell, points, segments);
         const Segment& s = VoronoiUtils::getSourceSegment(*segment_cell, points, segments);
-        return VoronoiUtils::discretizeParabola(p, s, start, end, discretization_step_size);
+        return VoronoiUtils::discretizeParabola(p, s, start, end, discretization_step_size, transitioning_angle);
     }
     else
     {
+        Point left_point = VoronoiUtils::getSourcePoint(*left_cell, points, segments);
+        Point right_point = VoronoiUtils::getSourcePoint(*right_cell, points, segments);
+        coord_t d = vSize(right_point - left_point);
+        Point middle = (left_point + right_point) / 2;
+        Point x_axis_dir = turn90CCW(right_point - left_point);
+        coord_t x_axis_length = vSize(x_axis_dir);
+
+        const auto projected_x = [x_axis_dir, x_axis_length, middle](Point from)
+        {
+            Point vec = from - middle;
+            coord_t x = dot(vec, x_axis_dir) / x_axis_length;
+            return x;
+        };
+        coord_t start_x = projected_x(start);
+        coord_t end_x = projected_x(end);
+
+        float bound = 0.5 / tan((M_PI - transitioning_angle) * 0.5);
+        coord_t marking_start_x = - d * bound;
+        coord_t marking_end_x = d * bound;
+        Point marking_start = middle + x_axis_dir * marking_start_x / x_axis_length;
+        Point marking_end = middle + x_axis_dir * marking_end_x / x_axis_length;
+        coord_t dir = 1;
+        if (start_x > end_x)
+        {
+            dir = -1;
+            std::swap(marking_start, marking_end);
+            std::swap(marking_start_x, marking_end_x);
+        }
+
         Point a = start;
         Point b = end;
         std::vector<Point> ret;
         ret.emplace_back(a);
+        
+        bool add_marking_start = marking_start_x * dir > start_x * dir;
+        bool add_marking_end = marking_end_x * dir > start_x * dir;
+        
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
         coord_t step_count = (ab_size + discretization_step_size / 2) / discretization_step_size;
+        if (step_count % 2 == 1)
+        {
+            step_count++; // enforce a discretization point being added in the middle
+        }
         for (coord_t step = 1; step < step_count; step++)
         {
-            ret.emplace_back(a + ab * step / step_count);
+            Point here = a + ab * step / step_count;
+            coord_t x_here = projected_x(here);
+            if (add_marking_start && marking_start_x * dir < x_here * dir)
+            {
+                ret.emplace_back(marking_start);
+                add_marking_start = false;
+            }
+            if (add_marking_end && marking_end_x * dir < x_here * dir)
+            {
+                ret.emplace_back(marking_end);
+                add_marking_end = false;
+            }
+            ret.emplace_back(here);
+        }
+        if (add_marking_end && marking_end_x * dir < end_x * dir)
+        {
+            ret.emplace_back(marking_end);
         }
         ret.emplace_back(b);
         return ret;
@@ -333,8 +386,9 @@ void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
     end_source_point = source_segment.from();
 }
 
-VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys)
+VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys, float transitioning_angle)
 : polys(polys)
+, transitioning_angle(transitioning_angle)
 {
     init();
 }

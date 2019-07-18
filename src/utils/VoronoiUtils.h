@@ -42,7 +42,7 @@ public:
      * Discretize a parabola based on (approximate) step size.
      * The \p approximate_step_size is measured parallel to the \p source_segment, not along the parabola.
      */
-    static std::vector<Point> discretizeParabola(const Point& source_point, const Segment& source_segment, Point start, Point end, coord_t approximate_step_size);
+    static std::vector<Point> discretizeParabola(const Point& source_point, const Segment& source_segment, Point start, Point end, coord_t approximate_step_size, float transitioning_angle);
 
 protected:
     /*!

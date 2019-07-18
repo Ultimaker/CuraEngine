@@ -343,10 +343,11 @@ void test()
 
     TimeKeeper tk;
 
-    VoronoiQuadrangulation vq(polys);
+    float transitioning_angle = M_PI / 4;
+    VoronoiQuadrangulation vq(polys, transitioning_angle);
 
-    DistributedBeadingStrategy beading_strategy(300, 400, 600, M_PI / 4);
-//     LimitedDistributedBeadingStrategy beading_strategy(300, 400, 600, 6, M_PI / 6);
+    DistributedBeadingStrategy beading_strategy(300, 400, 600, transitioning_angle);
+//     LimitedDistributedBeadingStrategy beading_strategy(300, 400, 600, 6, transitioning_angle);
 //     NaiveBeadingStrategy beading_strategy(400);
 //     ConstantBeadingStrategy beading_strategy(400, 4);
 //     CenterDeviationBeadingStrategy beading_strategy(400, .5, 1.7);

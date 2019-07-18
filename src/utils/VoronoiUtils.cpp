@@ -224,7 +224,7 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
 }
 
 
-std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segment& segment, Point s, Point e, coord_t approximate_step_size)
+std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segment& segment, Point s, Point e, coord_t approximate_step_size, float transitioning_angle)
 {
     std::vector<Point> discretized;
     // x is distance of point projected on the segment ab
@@ -248,15 +248,51 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
     PointMatrix rot = PointMatrix(turn90CCW(ppxx));
     
     
-    coord_t step_count = static_cast<coord_t>(static_cast<float>(std::abs(ex - sx)) / approximate_step_size + 0.5);
+    float marking_bound = atan(transitioning_angle * 0.5);
+    coord_t msx = - marking_bound * d; // projected marking_start
+    coord_t mex = marking_bound * d; // projected marking_end
+    coord_t marking_start_end_h = msx * msx / (2 * d) + d / 2;
+    Point marking_start = rot.unapply(Point(msx, marking_start_end_h)) + pxx;
+    Point marking_end = rot.unapply(Point(mex, marking_start_end_h)) + pxx;
+    coord_t dir = 1;
+    if (sx > ex)
+    {
+        dir = -1;
+        std::swap(marking_start, marking_end);
+        std::swap(msx, mex);
+    }
     
+    bool add_marking_start = msx * dir > (sx - px) * dir;
+    bool add_marking_end = mex * dir > (sx - px) * dir;
+    
+    coord_t step_count = static_cast<coord_t>(static_cast<float>(std::abs(ex - sx)) / approximate_step_size + 0.5);
+    if (step_count % 2 == 1)
+    {
+        step_count++; // enforce a discretization point being added in the middle
+    }
+
     discretized.emplace_back(s);
     for (coord_t step = 1; step < step_count; step++)
     {
         coord_t x = sx + sxex * step / step_count - px;
         coord_t y = x * x / (2 * d) + d / 2;
+        
+        if (add_marking_start && msx * dir < x * dir)
+        {
+            discretized.emplace_back(marking_start);
+            add_marking_start = false;
+        }
+        if (add_marking_end && mex * dir < x * dir)
+        {
+            discretized.emplace_back(marking_end);
+            add_marking_end = false;
+        }
         Point result = rot.unapply(Point(x, y)) + pxx;
         discretized.emplace_back(result);
+    }
+    if (add_marking_end && mex * dir < (ex - px) * dir)
+    {
+        discretized.emplace_back(marking_end);
     }
     discretized.emplace_back(e);
     return discretized;

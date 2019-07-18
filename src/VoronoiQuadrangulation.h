@@ -37,11 +37,13 @@ class VoronoiQuadrangulation
 
 public:
     using Segment = PolygonsSegmentIndex;
-    VoronoiQuadrangulation(const Polygons& polys);
+    VoronoiQuadrangulation(const Polygons& polys, float transitioning_angle);
     HalfEdgeGraph<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge> graph;
     std::vector<ExtrusionSegment> generateToolpaths(const BeadingStrategy& beading_strategy);
-    const Polygons& polys;
+
 protected:
+    const Polygons& polys;
+    float transitioning_angle;
 
     void init();
 
