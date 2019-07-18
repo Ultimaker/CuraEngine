@@ -388,7 +388,7 @@ void test()
         coord_t nozzle_size = 400;
         
         std::vector<Polygons> insets;
-        Polygons last_inset = polys.offset(-nozzle_size / 2);
+        Polygons last_inset = polys.offset(-nozzle_size / 2, ClipperLib::jtRound);
         while (!last_inset.empty())
         {
             insets.emplace_back(last_inset);
