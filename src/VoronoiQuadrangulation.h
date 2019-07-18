@@ -86,6 +86,11 @@ protected:
      */
     bool filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length);
 
+    /*!
+     * set bead count in marked regions
+     */
+    void setBeadCount(const BeadingStrategy& beading_strategy); //! set the bead count in marked regions
+
     struct TransitionMiddle
     {
         coord_t pos; //! position along edge as measure from edge.from.p
