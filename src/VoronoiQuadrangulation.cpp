@@ -751,16 +751,21 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
 {
     setMarking(beading_strategy);
 
-    filterMarking(marking_filter_dist);
+//     filterMarking(marking_filter_dist);
 
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
 
     setBeadCount(beading_strategy);
 
+    
+
     debugCheckDecorationConsistency(false);
 
     generateTransitioningRibs(beading_strategy);
+    
+    
+    markConstantBeadCountRegions();
 
 #ifdef DEBUG
     {
@@ -897,6 +902,69 @@ void VoronoiQuadrangulation::setBeadCount(const BeadingStrategy& beading_strateg
             node.data.bead_count = bead_count;
         }
     }
+}
+
+void VoronoiQuadrangulation::markConstantBeadCountRegions()
+{
+    for (edge_t& edge : graph.edges)
+    {
+        if (!isEndOfMarking(edge))
+        {
+            continue;
+        }
+        if (edge.to->data.bead_count < 0 && edge.to->data.distance_to_boundary > 0)
+            isEndOfMarking(edge);
+        assert(edge.to->data.bead_count >= 0 || edge.to->data.distance_to_boundary == 0);
+        markConstantBeadCountRegions(&edge, edge.to->data.bead_count);
+    }
+}
+
+bool VoronoiQuadrangulation::markConstantBeadCountRegions(edge_t* to_edge, coord_t bead_count)
+{
+    coord_t r = to_edge->to->data.distance_to_boundary;
+    bool dissolve = false;
+    for (edge_t* next_edge = to_edge->next; next_edge && next_edge != to_edge->twin; next_edge = next_edge->twin->next)
+    {
+        if (next_edge->to->data.distance_to_boundary < r && !shorterThen(next_edge->to->p - next_edge->from->p, 10))
+        { // only walk upward
+            continue;
+        }
+        if (next_edge->to->data.bead_count == bead_count)
+        {
+            dissolve = true;
+        }
+        else if (next_edge->to->data.bead_count < 0)
+        {
+            dissolve = markConstantBeadCountRegions(next_edge, bead_count);
+            if (!dissolve) return false;
+        }
+        else // upward bead count is different
+        {
+            return false;
+        }
+        if (dissolve)
+        {
+            next_edge->data.setMarked(true);
+            next_edge->twin->data.setMarked(true);
+            next_edge->to->data.bead_count = bead_count;
+            next_edge->to->data.transition_ratio = 0;
+            
+            if (vSize(next_edge->to->p - Point(1024,926)) < 200 && bead_count == 1)
+                logError("Sdggds\n");
+            break;
+        }
+    }
+    if (dissolve)
+    {
+        to_edge->data.setMarked(true);
+        to_edge->twin->data.setMarked(true);
+        to_edge->to->data.bead_count = bead_count;
+        to_edge->to->data.transition_ratio = 0;
+        
+        if (vSize(to_edge->to->p - Point(1024,926)) < 200 && bead_count == 1)
+            logError("Sdggds\n");
+    }
+    return dissolve;
 }
 
 void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& beading_strategy)
