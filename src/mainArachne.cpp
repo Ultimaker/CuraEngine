@@ -340,6 +340,7 @@ void test()
 //     Polygons polys = Spiky::fourSpikes();
 
     polys = polys.unionPolygons();
+    polys.simplify();
 
     TimeKeeper tk;
 
