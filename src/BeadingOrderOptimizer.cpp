@@ -355,6 +355,7 @@ void BeadingOrderOptimizer::transferUnconnectedPolylines(std::vector<std::vector
     {
         for (Polyline& polyline : *polylines)
         {
+            result_polylines_per_index.resize(std::max(result_polylines_per_index.size(), static_cast<size_t>(polyline.inset_idx + 1)));
             result_polylines_per_index[polyline.inset_idx].emplace_back(polyline.junctions.begin(), polyline.junctions.end());
         }
     }
