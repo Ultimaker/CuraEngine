@@ -1444,7 +1444,7 @@ bool VoronoiQuadrangulation::isLocalMaximum(const node_t& node) const
     bool first = true;
     for (edge_t* edge = node.some_edge; first || edge != node.some_edge; edge = edge->twin->next)
     {
-        if (edge->to->data.distance_to_boundary > node.data.distance_to_boundary)
+        if (edge->to->data.distance_to_boundary >= node.data.distance_to_boundary)
         {
             return false;
         }
