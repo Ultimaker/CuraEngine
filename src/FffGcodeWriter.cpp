@@ -2678,10 +2678,6 @@ void FffGcodeWriter::finalize()
     {
         gcode.writeJerk(mesh_group_settings.get<Velocity>("machine_max_jerk_xy"));
     }
-    if (gcode.getCurrentMaxZFeedrate() > 0)
-    {
-        gcode.writeMaxZFeedrate(mesh_group_settings.get<Velocity>("machine_max_feedrate_z"));
-    }
 
     const std::string end_gcode = mesh_group_settings.get<std::string>("machine_end_gcode");
 

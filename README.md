@@ -107,6 +107,7 @@ While usually the whole GCode generation process is called 'slicing', the Slicer
 These polygons are generated in a 2 step process. First all triangles are cut into lines per layer, for each layer a "line segment" is added to that layer.
 Next all these line-segments are connected to each other to make Polygons. The vertex<->face relations of the OptimizedModel help to make this process fast, as there is a huge chance that 2 connecting faces also make 2 connecting line-segments.
 This code also patches up small holes in the 3D model, so your model doesn't need to be a perfect Manifold. It also deals with incorrect normals, so it can flip around line-segments to fit end-to-end.
+The slicing code is found in [slicer.cpp](src/slicer.cpp)
 
 After the Slicer we have closed Polygons which can be used in Clipper.
 
@@ -115,25 +116,27 @@ LayerParts
 An important concept to grasp is the idea of LayerParts. LayerParts are seperate parts inside a single layer. For example, in a solid cube each layer has a single LayerPart. However, in a table the layers which cover the legs have a LayerPart per leg, and thus there will be 4 LayerParts.
 A LayerPart is a seperated area inside a single layer which does not touch any other LayerParts. Most operations run on LayerParts as it reduces the amount of data to be processed. During GCode generation handling each LayerPart as a separate step makes sure you never travel between LayerParts which reduces the amount of external travel.
 LayerParts are generated after the Slicer step.
+The code for generating LayerParts is found in [layerParts.cpp](src/layerPart.cpp)
 
 In order to generate the LayerParts, Clipper is used. A Clipper union with extended results gives a list of Polygons with holes in them. Each polygon is a LayerPart, and the holes are added to this LayerPart.
-
 
 Insets
 ======
 Insets are also called "Perimeters" or "Loops" sometimes. Generating the insets is only a small bit of code, as Clipper does most of the heavy lifting.
+The code for generating insets is found in [WallsComputation.cpp](src/WallsComputation.cpp).
 
 Up/Down skin
 ============
 The skin code generates the fully filled areas, it does this with some heavy boolean Clipper action. The skin step uses data from different layers to get the job done. Check the code for details.
 The sparse infill area code is almost the same as the skin code. With the difference that it keeps the other areas and uses different offsets.
+The code for generating skin areas is found in [skin.cpp](src/skin.cpp).
 
 Note that these steps generate the areas, not the actual infill lines. The infill line paths are generated later on. So the result of this step are lists of Polygons which are the areas that need to be filled.
 
 GCode generation
 ================
 The GCode generation is quite a large bit of code. As a lot is going on here. Important bits here are:
-* PathOrderOptimizer: This piece of code needs to solve a TravelingSalesmanProblem. Given a list of polygons/lines it tries to find the best order in which to print them. It currently does this by finding the closest next polygon to print.
-* Infill: This code generates a group of lines from an area. This is the code that generates the actual infill pattern. There is also a concentric infill function, which is currently not used.
-* Comb: The combing code is the code that tries to avoid holes when moving the head around without printing. This code also detects when it fails. The final GCode generator uses the combing code while generating the final GCode. So they interact closely.
-* GCodeExport: The GCode export is a 2 step process. First it collects all the paths for a layer that it needs to print, this includes all moves, prints, extrusion widths. And then it generates the final GCode. This is the only piece of code that has knowledge about GCode keywords and syntax to generate a different flavor of GCode it will be the only piece that needs adjustment. All volumatric calculations also happen here.
+* PathOrderOptimizer: This piece of code needs to solve a TravelingSalesmanProblem. Given a list of polygons/lines it tries to find the best order in which to print them. It currently does this by finding the closest next polygon to print. The code for this is found in [pathOrderOptimizer.cpp](src/pathOrderOptimizer.cpp).
+* Infill: This code generates a group of lines from an area. This is the code that generates the actual infill pattern. There is also a concentric infill function, which is currently not used. The code for this is found in [infill.cpp](src/infill.cpp) and the [infill subfolder](src/infill/).
+* Comb: The combing code is the code that tries to avoid holes when moving the head around without printing. This code also detects when it fails. The final GCode generator uses the combing code while generating the final GCode. So they interact closely. The combing code is found in [pathPlanning/Comb.cpp](src/pathPlanning/Comb.cpp)
+* GCodeExport: The GCode export is a 2 step process. First it collects all the paths for a layer that it needs to print, this includes all moves, prints, extrusion widths. And then it generates the final GCode. This is the only piece of code that has knowledge about GCode keywords and syntax to generate a different flavor of GCode it will be the only piece that needs adjustment. All volumatric calculations also happen here. The code for the GCode export is found at [FffGcodeWriter.cpp   ](src/FffGcodeWriter.cpp)

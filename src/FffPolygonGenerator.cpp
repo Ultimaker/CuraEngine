@@ -989,7 +989,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     {
         constexpr bool around_support = true;
         constexpr bool around_prime_tower = false;
-        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower).offset(ooze_shield_dist, ClipperLib::jtRound));
+        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower).offset(ooze_shield_dist, ClipperLib::jtRound).getOutsidePolygons());
     }
 
     const AngleDegrees angle = mesh_group_settings.get<AngleDegrees>("ooze_shield_angle");

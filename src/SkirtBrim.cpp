@@ -106,7 +106,7 @@ int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_
 
         skirt_brim_primary_extruder.add(outer_skirt_brim_line);
 
-        int length = skirt_brim_primary_extruder.polygonLength();
+        const coord_t length = skirt_brim_primary_extruder.polygonLength();
         if (skirt_brim_number + 1 >= primary_line_count && length > 0 && length < primary_extruder_minimal_length) //Make brim or skirt have more lines when total length is too small.
         {
             primary_line_count++;
@@ -117,8 +117,12 @@ int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_
 
 void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, int start_distance, unsigned int primary_line_count, bool allow_helpers /*= true*/)
 {
-    const bool is_skirt = start_distance > 0;
+    if (first_layer_outline.polygonLength() <= 0) //Empty first layer (or the adhesion type is set to None).
+    {
+        return;
+    }
 
+    const bool is_skirt = start_distance > 0;
     Scene& scene = Application::getInstance().current_slice->scene;
     const size_t adhesion_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
     const Settings& adhesion_settings = scene.extruders[adhesion_extruder_nr].settings;
