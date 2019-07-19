@@ -29,7 +29,7 @@ void BeadingOrderOptimizer::connect(std::vector<std::vector<std::vector<Extrusio
     {
         if (segment.from.p == segment.to.p)
         {
-            assert(segment.from.w == segment.to.w);
+            assert(std::abs(segment.from.w - segment.to.w) < 5);
             continue;
         }
 
