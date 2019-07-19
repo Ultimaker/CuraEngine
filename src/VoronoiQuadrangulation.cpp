@@ -4,6 +4,7 @@
 #include <stack>
 #include <functional>
 #include <unordered_set>
+#include <sstream>
 
 #include "utils/VoronoiUtils.h"
 
@@ -526,19 +527,16 @@ void VoronoiQuadrangulation::init()
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
         debugOutput(svg, false, true); 
-        svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
     {
         AABB aabb(polys);
         SVG svg("output/graph2.svg", aabb);
         debugOutput(svg, false, false, true);
-        svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
     {
         AABB aabb(polys);
         SVG svg("output/graph3.svg", aabb);
         debugOutput(svg, false, false, false, true);
-        svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
@@ -772,19 +770,16 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
         AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
         debugOutput(svg, false, true);
-        svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
     {
         AABB aabb(polys);
         SVG svg("output/graph2.svg", aabb);
         debugOutput(svg, false, false, true);
-        svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
     {
         AABB aabb(polys);
         SVG svg("output/graph3.svg", aabb);
         debugOutput(svg, false, false, false, true);
-        svg.writePolygons(polys, SVG::Color::BLACK, 2);
     }
 #endif // DEBUG
 
@@ -978,6 +973,29 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
         debugCheckGraphConsistency();
 
     filterTransitionMids(edge_to_transitions, beading_strategy);
+
+#ifdef DEBUG
+    {
+        SVG svg("output/transition_mids.svg", AABB(polys));
+        debugOutput(svg, false, false, true, false);
+        for (auto pair : edge_to_transitions)
+        {
+            edge_t* edge = pair.first;
+            Point a = edge->from->p;
+            Point b = edge->to->p;
+            Point ab = b - a;
+            coord_t ab_length = vSize(ab);
+            for (TransitionMiddle& transition : pair.second)
+            {
+                Point p = a + ab * transition.pos / ab_length;
+                svg.writePoint(p, false, 3, SVG::Color::MAGENTA);
+                std::ostringstream ss;
+                ss << transition.lower_bead_count;
+                svg.writeText(p, ss.str(), SVG::Color::MAGENTA, 5);
+            }
+        }
+    }
+#endif
 
     debugCheckTransitionMids(edge_to_transitions);
 
@@ -2364,6 +2382,7 @@ SVG::Color VoronoiQuadrangulation::getColor(edge_t& edge)
 
 void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts, bool draw_locations)
 {
+    svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::GRAY, 3);
     for (edge_t& edge : graph.edges)
     {
         Point a = edge.from->p;

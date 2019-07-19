@@ -103,10 +103,10 @@ void Statistics::visualize()
         std::ostringstream ss;
         ss << "output/" << filename_base << "_after.svg";
         SVG svg(ss.str(), aabb);
-        svg.writePolygons(*input, SVG::Color::GRAY, 2);
         vq->debugOutput(svg, false, false, true);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
         
+        if (false)
         for (auto polys : *polylines_per_index)
         {
             for (auto poly : polys)
@@ -123,8 +123,8 @@ void Statistics::visualize()
         {
             for (std::vector<ExtrusionJunction>& polyline : polylines)
             {
-                svg.writePoint(polyline.front().p, true, 5, SVG::Color::GREEN);
-                svg.writePoint(polyline.back().p, true, 5, SVG::Color::BLUE);
+                svg.writePoint(polyline.front().p, false, 2, SVG::Color::GREEN);
+                svg.writePoint(polyline.back().p, false, 2, SVG::Color::BLUE);
             }
         }
     }
@@ -133,7 +133,7 @@ void Statistics::visualize()
         std::ostringstream ss;
         ss << "output/" << filename_base << "_toolpaths.svg";
         SVG svg(ss.str(), aabb);
-        svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::BLACK, 2);
+        svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
         bool alternate = true;
         for (PolygonRef poly : overlaps)
         {
@@ -147,7 +147,7 @@ void Statistics::visualize()
         std::ostringstream ss;
         ss << "output/" << filename_base << "_accuracy.svg";
         SVG svg(ss.str(), aabb);
-        svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::BLACK, 3);
+        svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 3);
         svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
         svg.writeAreas(underfills, SVG::Color::BLUE, SVG::Color::NONE);
         svg.writePolygons(paths, SVG::Color::BLACK, 1);
