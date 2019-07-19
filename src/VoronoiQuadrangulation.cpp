@@ -958,6 +958,13 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
     std::unordered_map<edge_t*, std::list<TransitionMiddle>> edge_to_transitions; // maps the upward edge to the transitions. WE only map the halfedge for which the distance_to_boundary is higher at the end than at the beginning
     generateTransitionMids(beading_strategy, edge_to_transitions);
 
+    for (edge_t& edge : graph.edges)
+    { // check if there is a transition in between nodes with different bead counts
+        if (edge.data.isMarked() && edge.from->data.bead_count != edge.to->data.bead_count)
+            assert(edge_to_transitions.find(&edge) != edge_to_transitions.end()
+                || edge_to_transitions.find(edge.twin) != edge_to_transitions.end() );
+    }
+    
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
 
@@ -1013,7 +1020,7 @@ void VoronoiQuadrangulation::generateTransitionMids(const BeadingStrategy& beadi
 
         if (start_R == end_R)
         { // no transitions occur when both end points have the same distance_to_boundary
-            // TODO: but what if star_R == transition_thickness?
+            assert(edge.from->data.bead_count == edge.to->data.bead_count);// TODO: what to do in this case?
             continue;
         }
         else if (start_R > end_R)
