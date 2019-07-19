@@ -757,7 +757,7 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
     setBeadCount(beading_strategy);
 
     
-    filterUnmarkedRegions();
+    filterUnmarkedRegions(beading_strategy);
 
     debugCheckDecorationConsistency(false);
 
@@ -899,7 +899,7 @@ void VoronoiQuadrangulation::setBeadCount(const BeadingStrategy& beading_strateg
     }
 }
 
-void VoronoiQuadrangulation::filterUnmarkedRegions()
+void VoronoiQuadrangulation:: filterUnmarkedRegions(const BeadingStrategy& beading_strategy)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -910,16 +910,18 @@ void VoronoiQuadrangulation::filterUnmarkedRegions()
         if (edge.to->data.bead_count < 0 && edge.to->data.distance_to_boundary > 0)
             isEndOfMarking(edge);
         assert(edge.to->data.bead_count >= 0 || edge.to->data.distance_to_boundary == 0);
-        filterUnmarkedRegions(&edge, edge.to->data.bead_count);
+        coord_t max_dist = 400; // beading_strategy.getTransitioningLength(edge.to->data.bead_count)
+        filterUnmarkedRegions(&edge, edge.to->data.bead_count, 0, max_dist, beading_strategy);
     }
 }
 
-bool VoronoiQuadrangulation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count)
+bool VoronoiQuadrangulation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist, const BeadingStrategy& beading_strategy)
 {
     coord_t r = to_edge->to->data.distance_to_boundary;
     bool dissolve = false;
     for (edge_t* next_edge = to_edge->next; next_edge && next_edge != to_edge->twin; next_edge = next_edge->twin->next)
     {
+        coord_t length = vSize(next_edge->to->p - next_edge->from->p);
         if (next_edge->to->data.distance_to_boundary < r && !shorterThen(next_edge->to->p - next_edge->from->p, 10))
         { // only walk upward
             continue;
@@ -930,34 +932,21 @@ bool VoronoiQuadrangulation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead
         }
         else if (next_edge->to->data.bead_count < 0)
         {
-            dissolve = filterUnmarkedRegions(next_edge, bead_count);
-            if (!dissolve) return false;
+            dissolve = filterUnmarkedRegions(next_edge, bead_count, traveled_dist + length, max_dist, beading_strategy);
         }
         else // upward bead count is different
         {
-            return false;
+            // dissolve if two marked regions with different bead count are closer together than the max_dist (= transition distance)
+            dissolve = (traveled_dist + length < max_dist);
         }
         if (dissolve)
         {
             next_edge->data.setMarked(true);
             next_edge->twin->data.setMarked(true);
-            next_edge->to->data.bead_count = bead_count;
+            next_edge->to->data.bead_count = beading_strategy.optimal_bead_count(next_edge->to->data.distance_to_boundary * 2);
             next_edge->to->data.transition_ratio = 0;
-            
-            if (vSize(next_edge->to->p - Point(1024,926)) < 200 && bead_count == 1)
-                logError("Sdggds\n");
-            break;
         }
-    }
-    if (dissolve)
-    {
-        to_edge->data.setMarked(true);
-        to_edge->twin->data.setMarked(true);
-        to_edge->to->data.bead_count = bead_count;
-        to_edge->to->data.transition_ratio = 0;
-        
-        if (vSize(to_edge->to->p - Point(1024,926)) < 200 && bead_count == 1)
-            logError("Sdggds\n");
+        return dissolve; // dissolving only depend on the one edge going upward. There cannot be multiple edges going upward.
     }
     return dissolve;
 }
