@@ -1404,6 +1404,12 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
 
     assert(start_pos <= ab_size);
 
+    assert(edge.data.isMarked());
+    if (!edge.data.isMarked())
+    { // This function shouldn't generate ends in or beyond unmarked regions
+        return;
+    }
+
     /*
     if (shorterThen(end_pos - ab_size, snap_dist))
     {
@@ -1423,12 +1429,10 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
         assert(rest >= std::min(end_rest, start_rest));
         edge.to->data.transition_ratio = rest;
         edge.to->data.bead_count = lower_bead_count;
-        int i = 0;
-        for (edge_t* outgoing = edge.next; outgoing != edge.twin;)
+        for (edge_t* outgoing = edge.next; outgoing && outgoing != edge.twin;)
         {
             edge_t* next = outgoing->twin->next; // before we change the outgoing edge itself
-            assert(i < 10);
-            if (outgoing->data.isMarked())
+            if (!outgoing->data.isMarked())
             {
                 outgoing = next;
                 continue; // don't put transition ends in non-marked regions
@@ -1447,10 +1451,6 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
     else // end_pos < ab_size
     { // add transition end point here
 //         assert(edge.data.isMarked() && "we should only be adding transition ends in marked regions");
-        if (!edge.data.isMarked())
-        {
-            return;
-        }
         
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
         std::list<TransitionEnd>* transitions = nullptr;
