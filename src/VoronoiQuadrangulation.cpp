@@ -1379,7 +1379,11 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
     }
     else // end_pos < ab_size
     { // add transition end point here
-        assert(edge.data.isMarked());
+//         assert(edge.data.isMarked() && "we should only be adding transition ends in marked regions");
+        if (!edge.data.isMarked())
+        {
+            return;
+        }
         
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
         std::list<TransitionEnd>* transitions = nullptr;
