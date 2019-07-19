@@ -1432,6 +1432,8 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
     for (std::pair<edge_t* const, std::list<TransitionEnd>>& pair : edge_to_transition_ends)
     {
         edge_t* edge = pair.first;
+        assert(edge->data.isMarked());
+
         std::list<TransitionEnd>& transitions = pair.second;
 
         transitions.sort([](const TransitionEnd& a, const TransitionEnd& b) { return a.pos < b.pos; } );
@@ -1466,8 +1468,13 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
             debugCheckGraphCompleteness();
             debugCheckGraphConsistency();
 
-            last_edge_replacing_input = insertNode(last_edge_replacing_input, mid, transition_end.is_lower_end? transition_end.lower_bead_count : transition_end.lower_bead_count + 1);
+            debugCheckDecorationConsistency(false);
 
+            assert(last_edge_replacing_input->data.isMarked());
+            assert(last_edge_replacing_input->data.type != VoronoiQuadrangulationEdge::EXTRA_VD);
+            last_edge_replacing_input = insertNode(last_edge_replacing_input, mid, transition_end.is_lower_end? transition_end.lower_bead_count : transition_end.lower_bead_count + 1);
+            assert(last_edge_replacing_input->data.type != VoronoiQuadrangulationEdge::EXTRA_VD);
+            assert(last_edge_replacing_input->data.isMarked());
             /*
             if (transition_end.is_lower_end)
             {
@@ -2310,6 +2317,7 @@ void VoronoiQuadrangulation::debugCheckDecorationConsistency(bool transitioned)
 #ifdef DEBUG
     for (const edge_t& edge : graph.edges)
     {
+        const edge_t* edge_p = &edge;
         assert(edge.data.type >= VoronoiQuadrangulationEdge::NORMAL && edge.data.type <= VoronoiQuadrangulationEdge::TRANSITION_MID);
         if (edge.data.type != VoronoiQuadrangulationEdge::NORMAL && edge.data.type != VoronoiQuadrangulationEdge::TRANSITION_MID)
         {
