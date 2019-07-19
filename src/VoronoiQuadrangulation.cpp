@@ -1028,6 +1028,11 @@ void VoronoiQuadrangulation::generateTransitionMids(const BeadingStrategy& beadi
             continue;
         }
 
+        if (edge.from->data.bead_count == edge.to->data.bead_count)
+        { // no transitions should accur according to the enforced bead counts
+            continue;
+        }
+
         if (start_bead_count > beading_strategy.optimal_bead_count(start_R * 2)
             || end_bead_count > beading_strategy.optimal_bead_count(end_R * 2))
         { // wasn't the case earlier in this function because of already introduced transitions
