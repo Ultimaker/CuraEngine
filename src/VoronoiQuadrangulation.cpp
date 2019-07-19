@@ -759,13 +759,13 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
     setBeadCount(beading_strategy);
 
     
+    filterUnmarkedRegions();
 
     debugCheckDecorationConsistency(false);
 
     generateTransitioningRibs(beading_strategy);
     
     
-    markConstantBeadCountRegions();
 
 #ifdef DEBUG
     {
@@ -904,7 +904,7 @@ void VoronoiQuadrangulation::setBeadCount(const BeadingStrategy& beading_strateg
     }
 }
 
-void VoronoiQuadrangulation::markConstantBeadCountRegions()
+void VoronoiQuadrangulation::filterUnmarkedRegions()
 {
     for (edge_t& edge : graph.edges)
     {
@@ -915,11 +915,11 @@ void VoronoiQuadrangulation::markConstantBeadCountRegions()
         if (edge.to->data.bead_count < 0 && edge.to->data.distance_to_boundary > 0)
             isEndOfMarking(edge);
         assert(edge.to->data.bead_count >= 0 || edge.to->data.distance_to_boundary == 0);
-        markConstantBeadCountRegions(&edge, edge.to->data.bead_count);
+        filterUnmarkedRegions(&edge, edge.to->data.bead_count);
     }
 }
 
-bool VoronoiQuadrangulation::markConstantBeadCountRegions(edge_t* to_edge, coord_t bead_count)
+bool VoronoiQuadrangulation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count)
 {
     coord_t r = to_edge->to->data.distance_to_boundary;
     bool dissolve = false;
@@ -935,7 +935,7 @@ bool VoronoiQuadrangulation::markConstantBeadCountRegions(edge_t* to_edge, coord
         }
         else if (next_edge->to->data.bead_count < 0)
         {
-            dissolve = markConstantBeadCountRegions(next_edge, bead_count);
+            dissolve = filterUnmarkedRegions(next_edge, bead_count);
             if (!dissolve) return false;
         }
         else // upward bead count is different

@@ -95,13 +95,13 @@ protected:
      * Add marked regions and set bead counts
      * where there is an end of marking and when traveling upward we get to another region with the same bead count
      */
-    void markConstantBeadCountRegions();
+    void filterUnmarkedRegions();
 
     /*!
      * 
      * \return Whether to set the bead count on the way back
      */
-    bool markConstantBeadCountRegions(edge_t* to_edge, coord_t bead_count);
+    bool filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count);
 
     struct TransitionMiddle
     {
