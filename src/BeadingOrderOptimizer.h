@@ -57,7 +57,7 @@ private:
         }
     };
     
-    static constexpr float intersection_overlap = .1;
+    static constexpr float intersection_overlap = .5;
     static constexpr coord_t snap_dist = 50;
 
     const std::vector<ExtrusionSegment>& segments;
