@@ -256,10 +256,6 @@ protected:
 
     BeadingPropagation& getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
-    void generateEndOfMarkingBeadings(node_t* node, BeadingPropagation& local_beading, BeadingPropagation& propagated_beading, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
-
-    void generateEndOfMarkingBeadings(edge_t* continuation_edge, coord_t traveled_dist, coord_t transition_length, BeadingPropagation& local_beading, BeadingPropagation& propagated_beading, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
-
     /*!
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
