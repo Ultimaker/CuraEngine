@@ -2157,8 +2157,7 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
                 && junction_rev_idx == segment_count - 1 // is single bead segment
                 && shorterThen(from.p - quad_start->to->p, 5) && shorterThen(to.p - quad_end->from->p, 5);
             if (is_odd_segment
-                && (from.p.X < to.p.X || (from.p.X == to.p.X && from.p.Y < to.p.Y)) // choose one
-                )
+                && from.p < to.p) // choose one
             {
                 continue; // prevent duplication of single bead segments
             }
@@ -2509,8 +2508,7 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
         }
         else
         {
-            if (edge.to->p.X > edge.from->p.X
-                || (edge.to->p.X == edge.from->p.X && edge.to->p.Y > edge.from->p.Y))
+            if (edge.to->p < edge.from->p)
             {
                 svg.writeLine(a, b, clr, stroke_width);
             }

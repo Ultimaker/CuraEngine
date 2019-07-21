@@ -64,6 +64,8 @@ INLINE Point operator/(const Point& p0, const Point& p1) { return Point(p0.X/p1.
 INLINE Point& operator += (Point& p0, const Point& p1) { p0.X += p1.X; p0.Y += p1.Y; return p0; }
 INLINE Point& operator -= (Point& p0, const Point& p1) { p0.X -= p1.X; p0.Y -= p1.Y; return p0; }
 
+INLINE bool operator < (const Point& p0, const Point& p1) { return p0.X < p1.X || (p0.X == p1.X && p0.Y < p1.Y); }
+
 /* ***** NOTE *****
    TL;DR: DO NOT implement operators *= and /= because of the default values in ClipperLib::IntPoint's constructor.
 
