@@ -1421,14 +1421,14 @@ void VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, c
     { // upper bead count transition end
         coord_t start_pos = mid_pos;
         coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
-        coord_t end_pos = mid_pos +  transition_half_length;
-        if (lower_bead_count == 0)
+        if (false && lower_bead_count == 0)
         {
             // there won't be a physical transition, so it doesn't require a distance.
             // put the 1 bead end at the middle of the transition
             // the 0 bead end position doesn't really matter
-            end_pos = start_pos;
+            transition_half_length = 10;
         }
+        coord_t end_pos = mid_pos +  transition_half_length;
         generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_to_transition_ends);
     }
 
@@ -1583,13 +1583,16 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
         edge_t* last_edge_replacing_input = edge;
         for (TransitionEnd& transition_end : transitions)
         {
+            coord_t new_node_bead_count = transition_end.is_lower_end? transition_end.lower_bead_count : transition_end.lower_bead_count + 1;
             coord_t end_pos = transition_end.pos;
-            if (end_pos < snap_dist || end_pos > ab_size - snap_dist)
+            node_t* close_node = (end_pos < ab_size / 2)? from : to;
+            if ((end_pos < snap_dist || end_pos > ab_size - snap_dist)
+                && close_node->data.bead_count == new_node_bead_count
+            )
             {
                 assert(end_pos <= ab_size);
-                node_t* mid_node = (end_pos < ab_size / 2)? from : to;
-                mid_node->data.bead_count = transition_end.is_lower_end? transition_end.lower_bead_count : transition_end.lower_bead_count + 1;
-                mid_node->data.transition_ratio = 0;
+//                 close_node->data.bead_count = new_node_bead_count;
+                close_node->data.transition_ratio = 0;
                 if (!transition_end.is_lower_end)
                 {
                     RUN_ONCE(logError("Transition_Mid labeling incorrect!\n"));
@@ -1607,7 +1610,7 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
 
             assert(last_edge_replacing_input->data.isMarked());
             assert(last_edge_replacing_input->data.type != VoronoiQuadrangulationEdge::EXTRA_VD);
-            last_edge_replacing_input = insertNode(last_edge_replacing_input, mid, transition_end.is_lower_end? transition_end.lower_bead_count : transition_end.lower_bead_count + 1);
+            last_edge_replacing_input = insertNode(last_edge_replacing_input, mid, new_node_bead_count);
             assert(last_edge_replacing_input->data.type != VoronoiQuadrangulationEdge::EXTRA_VD);
             assert(last_edge_replacing_input->data.isMarked());
             /*
