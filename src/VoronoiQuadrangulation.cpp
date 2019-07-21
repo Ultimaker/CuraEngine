@@ -1849,11 +1849,11 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
             }
             else
             {
-                coord_t upper_bead_count = node.data.bead_count + 1;
-                Beading alternative_high_count_beading = beading_strategy.compute(node.data.distance_to_boundary * 2, upper_bead_count);
-                coord_t inner_bead_width = alternative_high_count_beading.bead_widths[node.data.bead_count / 2];
-                coord_t transition_rest = node.data.transition_ratio * inner_bead_width;
-                node_to_beading.emplace(&node, beading_strategy.compute(node.data.distance_to_boundary * 2 - transition_rest, node.data.bead_count));
+                Beading low_count_beading = beading_strategy.compute(node.data.distance_to_boundary * 2, node.data.bead_count);
+                Beading high_count_beading = beading_strategy.compute(node.data.distance_to_boundary * 2, node.data.bead_count + 1);
+                Beading merged = interpolate(low_count_beading, 1.0 - node.data.transition_ratio, high_count_beading);
+                node_to_beading.emplace(&node, merged);
+
             }
         }
     }
