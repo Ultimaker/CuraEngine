@@ -1797,8 +1797,7 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
     std::sort(quad_starts.begin(), quad_starts.end(), [this](edge_t* a, edge_t* b) { return getQuadMaxR(a) > getQuadMaxR(b); });
     printf("got %zu cells\n", quad_starts.size());
     
-    std::unordered_map<node_t*, Beading> node_to_beading;
-    std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions; // junctions ordered high R to low R
+    std::unordered_map<node_t*, BeadingPropagation> node_to_beading;
     { // store beading
         for (node_t& node : graph.nodes)
         {
@@ -1814,7 +1813,7 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
             {
                 coord_t upper_bead_count = node.data.bead_count + 1;
                 Beading alternative_high_count_beading = beading_strategy.compute(node.data.distance_to_boundary * 2, upper_bead_count);
-                coord_t inner_bead_width = alternative_high_count_beading.bead_widths[node.data.bead_count / 2]; // TODO: get the actual bead width used at the upper end of the transition
+                coord_t inner_bead_width = alternative_high_count_beading.bead_widths[node.data.bead_count / 2];
                 coord_t transition_rest = node.data.transition_ratio * inner_bead_width;
                 node_to_beading.emplace(&node, beading_strategy.compute(node.data.distance_to_boundary * 2 - transition_rest, node.data.bead_count));
             }
@@ -1823,6 +1822,7 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
     
     propagateBeadings(quad_starts, node_to_beading, beading_strategy);
     
+    std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions; // junctions ordered high R to low R
     generateJunctions(node_to_beading, edge_to_junctions, beading_strategy);
     
     connectJunctions(edge_to_junctions, segments);
@@ -1859,7 +1859,7 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::getQuadMaxRedgeTo(edge_t
     return ret;
 }
 
-void VoronoiQuadrangulation::propagateBeadings(std::vector<edge_t*>& quad_starts, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy)
+void VoronoiQuadrangulation::propagateBeadings(std::vector<edge_t*>& quad_starts, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
 {
     for (edge_t* quad_start : quad_starts)
     {
@@ -1867,44 +1867,46 @@ void VoronoiQuadrangulation::propagateBeadings(std::vector<edge_t*>& quad_starts
         // transfer beading information to lower nodes
         if (quad_start->next->next && !quad_start->next->data.isMarked())
         {
-            Beading& beading = getBeading(edge_to_peak->to, node_to_beading, beading_strategy);
+            BeadingPropagation& beading = getBeading(edge_to_peak->to, node_to_beading, beading_strategy);
             beading.is_finished = true;
             auto it = node_to_beading.find(quad_start->to);
             if (it == node_to_beading.end())
             { // only override if there is no beading associatied with the node already
-                node_to_beading[quad_start->to] = beading;
+                node_to_beading.emplace(quad_start->to, beading);
             }
             else if (quad_start->to->data.distance_to_boundary == edge_to_peak->to->data.distance_to_boundary
-                || it->second.bead_widths.size() == 1 // dont transition to zero
+                || it->second.beading.bead_widths.size() == 1 // dont transition to zero
             )
             {
                 // dont override beading info
             }
             else if (!it->second.is_finished)
             {
-                generateEndOfMarkingBeadings(quad_start->to, it->second, beading, node_to_beading, beading_strategy);
+                // TODO
+//                 generateEndOfMarkingBeadings(quad_start->to, it->second, beading, node_to_beading, beading_strategy);
             }
             auto it2 = node_to_beading.find(quad_start->next->to);
             if (it2 == node_to_beading.end())
             { // only override if there is no beading associatied with the node already
-                node_to_beading[quad_start->next->to] = beading;
+                node_to_beading.emplace(quad_start->next->to, beading);
             }
             else if (quad_start->next->to->data.distance_to_boundary == edge_to_peak->to->data.distance_to_boundary
-                || it2->second.bead_widths.size() == 1 // don't transition to zero
+                || it2->second.beading.bead_widths.size() == 1 // don't transition to zero
             )
             {
                 // dont override beading info
             }
             else if (!it2->second.is_finished)
             {
-                generateEndOfMarkingBeadings(quad_start->next->to, it2->second, beading, node_to_beading, beading_strategy);
+                // TODO
+//                 generateEndOfMarkingBeadings(quad_start->next->to, it2->second, beading, node_to_beading, beading_strategy);
             }
         }
     }
 }
 
 
-void VoronoiQuadrangulation::generateEndOfMarkingBeadings(node_t* node, Beading& local_beading, Beading& propagated_beading, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy)
+void VoronoiQuadrangulation::generateEndOfMarkingBeadings(node_t* node, BeadingPropagation& local_beading, BeadingPropagation& propagated_beading, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
 {
     bool first = true;
     edge_t* start_of_marking = nullptr;
@@ -1927,9 +1929,9 @@ void VoronoiQuadrangulation::generateEndOfMarkingBeadings(node_t* node, Beading&
     if (false)
     {
         const coord_t R = node->data.distance_to_boundary;
-        for (coord_t bead_idx = 1; bead_idx < propagated_beading.toolpath_locations.size(); bead_idx++)
+        for (coord_t bead_idx = 1; bead_idx < propagated_beading.beading.toolpath_locations.size(); bead_idx++)
         {
-            if (node->data.distance_to_boundary < propagated_beading.toolpath_locations[bead_idx])
+            if (node->data.distance_to_boundary < propagated_beading.beading.toolpath_locations[bead_idx])
             {
                 const coord_t min_bead_count = (bead_idx - 1) * 2 - 1; // the local propagated bead count has to be at least this high, but might be as high as 1.999 higher
                 const coord_t boundary_R = beading_strategy.transition_thickness(min_bead_count) / 2;
@@ -1946,14 +1948,14 @@ void VoronoiQuadrangulation::generateEndOfMarkingBeadings(node_t* node, Beading&
     generateEndOfMarkingBeadings(start_of_marking, 0, transition_length, local_beading, propagated_beading, node_to_beading, beading_strategy);
 }
 
-void VoronoiQuadrangulation::generateEndOfMarkingBeadings(edge_t* continuation_edge, coord_t traveled_dist, coord_t transition_length, Beading& beading_here, Beading& propagated_beading, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy)
+void VoronoiQuadrangulation::generateEndOfMarkingBeadings(edge_t* continuation_edge, coord_t traveled_dist, coord_t transition_length, BeadingPropagation& beading_here, BeadingPropagation& propagated_beading, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
 {
     // merge beading at starting node
     float ratio = float(traveled_dist) / float(transition_length);
-    for (coord_t bead_idx = 0; bead_idx < std::min(beading_here.bead_widths.size(), propagated_beading.bead_widths.size()); bead_idx++)
+    for (coord_t bead_idx = 0; bead_idx < std::min(beading_here.beading.bead_widths.size(), propagated_beading.beading.bead_widths.size()); bead_idx++)
     {
-        beading_here.bead_widths[bead_idx] = ratio * beading_here.bead_widths[bead_idx] + (1.0 - ratio) * propagated_beading.bead_widths[bead_idx];
-        beading_here.toolpath_locations[bead_idx] = ratio * beading_here.toolpath_locations[bead_idx] + (1.0 - ratio) * propagated_beading.toolpath_locations[bead_idx];
+        beading_here.beading.bead_widths[bead_idx] = ratio * beading_here.beading.bead_widths[bead_idx] + (1.0 - ratio) * propagated_beading.beading.bead_widths[bead_idx];
+        beading_here.beading.toolpath_locations[bead_idx] = ratio * beading_here.beading.toolpath_locations[bead_idx] + (1.0 - ratio) * propagated_beading.beading.toolpath_locations[bead_idx];
     }
     beading_here.is_finished = true;
 
@@ -1989,7 +1991,7 @@ void VoronoiQuadrangulation::generateEndOfMarkingBeadings(edge_t* continuation_e
     }
 }
 
-void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, const BeadingStrategy& beading_strategy)
+void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, const BeadingStrategy& beading_strategy)
 {
     for (edge_t& edge_ : graph.edges)
     {
@@ -1999,7 +2001,7 @@ void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beadi
             continue;
         }
 
-        Beading* beading = &getBeading(edge->to, node_to_beading, beading_strategy);
+        Beading* beading = &getBeading(edge->to, node_to_beading, beading_strategy).beading;
         std::vector<ExtrusionJunction>& ret = edge_to_junctions[edge]; // emplace a new vector
         if (edge->to->data.bead_count == 0 && edge->from->data.bead_count == 0)
         {
@@ -2062,7 +2064,7 @@ const std::vector<ExtrusionJunction>& VoronoiQuadrangulation::getJunctions(edge_
 }
 
 
-VoronoiQuadrangulation::Beading& VoronoiQuadrangulation::getBeading(node_t* node, std::unordered_map<node_t*, BeadingStrategy::Beading>& node_to_beading, const BeadingStrategy& beading_strategy)
+VoronoiQuadrangulation::BeadingPropagation& VoronoiQuadrangulation::getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
 {
     auto beading_it = node_to_beading.find(node);
     if (beading_it == node_to_beading.end())
@@ -2165,12 +2167,12 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
     }
 }
 
-void VoronoiQuadrangulation::generateLocalMaximaSingleBeads(std::unordered_map<node_t*, Beading>& node_to_beading, std::vector<ExtrusionSegment>& segments)
+void VoronoiQuadrangulation::generateLocalMaximaSingleBeads(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::vector<ExtrusionSegment>& segments)
 {
     for (auto pair : node_to_beading)
     {
         node_t* node = pair.first;
-        Beading& beading = pair.second;
+        Beading& beading = pair.second.beading;
         if (beading.bead_widths.size() % 2 == 1
             && isLocalMaximum(*node)
             && !isMarked(node)

@@ -211,6 +211,21 @@ protected:
     coord_t getQuadMaxR(edge_t* quad_start_edge);
     edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
 
+    struct BeadingPropagation
+    {
+        coord_t dist_from_source_upward;
+        Beading beading;
+        bool is_finished;
+        BeadingPropagation(coord_t dist_from_source_upward, const Beading& beading)
+        : dist_from_source_upward(dist_from_source_upward)
+        , beading(beading)
+        , is_finished(false)
+        {}
+        BeadingPropagation(const Beading& beading)
+        : BeadingPropagation(0, beading)
+        {}
+    };
+    
     /*!
      * propagate beading info from higher R nodes to lower R nodes
      * 
@@ -220,19 +235,19 @@ protected:
      * 
      * \param quad_starts all quads (represented by their first edge) sorted on their highest [distance_to_boundary]. Higher quads first.
      */
-    void propagateBeadings(std::vector<edge_t*>& quad_starts, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy);
+    void propagateBeadings(std::vector<edge_t*>& quad_starts, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
-    Beading& getBeading(node_t* node, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy);
+    BeadingPropagation& getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
-    void generateEndOfMarkingBeadings(node_t* node, Beading& local_beading, Beading& propagated_beading, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy);
+    void generateEndOfMarkingBeadings(node_t* node, BeadingPropagation& local_beading, BeadingPropagation& propagated_beading, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
-    void generateEndOfMarkingBeadings(edge_t* continuation_edge, coord_t traveled_dist, coord_t transition_length, Beading& local_beading, Beading& propagated_beading, std::unordered_map<node_t*, Beading>& node_to_beading, const BeadingStrategy& beading_strategy);
+    void generateEndOfMarkingBeadings(edge_t* continuation_edge, coord_t traveled_dist, coord_t transition_length, BeadingPropagation& local_beading, BeadingPropagation& propagated_beading, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
     /*!
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
      */
-    void generateJunctions(std::unordered_map<node_t*, Beading>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, const BeadingStrategy& beading_strategy);
+    void generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, const BeadingStrategy& beading_strategy);
 
     /*!
      * connect junctions in each quad
@@ -245,7 +260,7 @@ protected:
      * Genrate small segments for local maxima where the beading would only result in a single bead
      * \param[out] segments the generated segments
      */
-    void generateLocalMaximaSingleBeads(std::unordered_map<node_t*, Beading>& node_to_beading, std::vector<ExtrusionSegment>& segments);
+    void generateLocalMaximaSingleBeads(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::vector<ExtrusionSegment>& segments);
 
     /*!
      * \p edge is assumed to point upward to higher R; otherwise take its twin
