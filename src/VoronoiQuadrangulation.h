@@ -208,7 +208,6 @@ protected:
      */
     void generateSegments(std::vector<ExtrusionSegment>& segments, const BeadingStrategy& beading_strategy);
 
-    coord_t getQuadMaxR(edge_t* quad_start_edge);
     edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
 
     struct BeadingPropagation
@@ -229,13 +228,16 @@ protected:
     /*!
      * propagate beading info from higher R nodes to lower R nodes
      * 
+     * merge with upward propagated beadings if they are encountered
+     * 
      * don't transfer to nodes which lie on the outline polygon
      * 
-     * walk over sorted quads is faster than walking over all sorted edges
+     * edges are sorted so that we can do a depth-first walk without employing a recursive algorithm
      * 
-     * \param quad_starts all quads (represented by their first edge) sorted on their highest [distance_to_boundary]. Higher quads first.
+     * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist first.
      */
-    void propagateBeadings(std::vector<edge_t*>& quad_starts, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
+    void propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
+    void propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
     BeadingPropagation& getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
