@@ -987,7 +987,7 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
                 svg.writePoint(p, false, 3, SVG::Color::MAGENTA);
                 std::ostringstream ss;
                 ss << transition.lower_bead_count;
-                svg.writeText(p, ss.str(), SVG::Color::MAGENTA, 5);
+                svg.writeText(p, ss.str(), SVG::Color::GRAY);
             }
         }
     }
@@ -997,6 +997,45 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
 
     std::unordered_map<edge_t*, std::list<TransitionEnd>> edge_to_transition_ends; // we only map the half edge in the upward direction. mapped items are not sorted
     generateTransitionEnds(beading_strategy, edge_to_transitions, edge_to_transition_ends);
+
+#ifdef DEBUG
+    {
+        SVG svg("output/transition_ends.svg", AABB(polys));
+        debugOutput(svg, false, false, true, false);
+        for (auto pair : edge_to_transition_ends)
+        {
+            edge_t* edge = pair.first;
+            Point a = edge->from->p;
+            Point b = edge->to->p;
+            Point ab = b - a;
+            coord_t ab_length = vSize(ab);
+            for (TransitionEnd& transition : pair.second)
+            {
+                Point p = a + ab * transition.pos / ab_length;
+                svg.writePoint(p, false, 3, transition.is_lower_end? SVG::Color::MAGENTA : SVG::Color::RED);
+                std::ostringstream ss;
+                ss << transition.lower_bead_count;
+                svg.writeText(p, ss.str(), SVG::Color::GRAY);
+            }
+        }
+        for (auto pair : edge_to_transitions)
+        {
+            edge_t* edge = pair.first;
+            Point a = edge->from->p;
+            Point b = edge->to->p;
+            Point ab = b - a;
+            coord_t ab_length = vSize(ab);
+            for (TransitionMiddle& transition : pair.second)
+            {
+                Point p = a + ab * transition.pos / ab_length;
+                svg.writePoint(p, false, 3, SVG::Color::GREEN);
+                std::ostringstream ss;
+                ss << transition.lower_bead_count;
+                svg.writeText(p, ss.str(), SVG::Color::GRAY);
+            }
+        }
+    }
+#endif
 
     generateEndOfMarkingTransitionEnds(beading_strategy, edge_to_transition_ends);
 
