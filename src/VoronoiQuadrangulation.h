@@ -186,7 +186,9 @@ protected:
      * \p end_pos_along_edge may be beyond this edge!
      * In this case we need to interpolate the rest value at the locations in between
      */
-    void generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, float start_rest, float end_rest, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
+    void generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
+
+    bool isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t transition_half_length, coord_t lower_bead_count) const;
 
     /*!
      * Return the first and last edge of the edges replacing \p edge pointing to the same node
