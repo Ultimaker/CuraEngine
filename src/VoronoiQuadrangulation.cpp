@@ -1899,6 +1899,10 @@ void VoronoiQuadrangulation::propagateBeadingsUpward(std::vector<edge_t*>& upwar
     for (auto upward_quad_mids_it = upward_quad_mids.rbegin(); upward_quad_mids_it != upward_quad_mids.rend(); ++upward_quad_mids_it)
     {
         edge_t* upward_edge = *upward_quad_mids_it;
+        if (upward_edge->to->data.bead_count >= 0)
+        { // don't override local beading
+            continue;
+        }
         auto lower_beading_it = node_to_beading.find(upward_edge->from);
         if (lower_beading_it == node_to_beading.end())
         { // only propagate if we have something to propagate
@@ -1912,8 +1916,8 @@ void VoronoiQuadrangulation::propagateBeadingsUpward(std::vector<edge_t*>& upwar
         assert(upward_edge->from->data.distance_to_boundary != upward_edge->to->data.distance_to_boundary && "zero difference R edges should always be marked");
         BeadingPropagation& lower_beading = lower_beading_it->second;
         coord_t length = vSize(upward_edge->to->p - upward_edge->from->p);
-        BeadingPropagation& upper_beading = lower_beading;
-        upper_beading.dist_from_source_upward += length;
+        BeadingPropagation upper_beading = lower_beading;
+        upper_beading.dist_to_bottom_source += length;
         node_to_beading.emplace(upward_edge->to, upper_beading);
     }
 }
@@ -1943,45 +1947,74 @@ void VoronoiQuadrangulation::propagateBeadingsDownward(std::vector<edge_t*>& upw
 void VoronoiQuadrangulation::propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
 {
     coord_t length = vSize(edge_to_peak->to->p - edge_to_peak->from->p);
-    BeadingPropagation& beading = getBeading(edge_to_peak->to, node_to_beading, beading_strategy);
-    beading.is_finished = true;
+    BeadingPropagation& top_beading = getBeading(edge_to_peak->to, node_to_beading, beading_strategy);
+    top_beading.is_finished = true;
+    
     auto it = node_to_beading.find(edge_to_peak->from);
     if (it == node_to_beading.end())
-    { // only override if there is no beading associatied with the node already
-        BeadingPropagation propagated_beading = beading;
-        propagated_beading.dist_from_source_downward += length;
-        node_to_beading.emplace(edge_to_peak->from, beading);
+    { // set new beading if there is no beading associatied with the node yet
+        BeadingPropagation propagated_beading = top_beading;
+        propagated_beading.dist_from_top_source += length;
+        auto pair = node_to_beading.emplace(edge_to_peak->from, propagated_beading);
+        assert(pair.second && "we emplaced something");
     }
-    else if (edge_to_peak->from->data.distance_to_boundary == edge_to_peak->to->data.distance_to_boundary
-        || it->second.beading.bead_widths.size() == 1 // dont transition to zero
-    )
+    else // if (!it->second.is_finished)
     {
-        // dont override beading info
-    }
-    else if (!it->second.is_finished)
-    {
-        BeadingPropagation& upward_beading = it->second;
-        coord_t total_dist = upward_beading.dist_from_source_upward + beading.dist_from_source_downward + length;
-        float ratio_of_upward = static_cast<float>(upward_beading.dist_from_source_upward) / std::min(total_dist, beading_propagation_transition_dist);
-        ratio_of_upward = std::min(1.0f, ratio_of_upward);
-        if (ratio_of_upward < 0.0)
+        BeadingPropagation& bottom_beading = it->second;
+        coord_t total_dist = top_beading.dist_from_top_source + length + bottom_beading.dist_to_bottom_source;
+        float ratio_of_top = static_cast<float>(bottom_beading.dist_to_bottom_source) / std::min(total_dist, beading_propagation_transition_dist);
+        ratio_of_top = std::max(0.0f, ratio_of_top);
+        if (ratio_of_top > 1.0)
         {
-            BeadingPropagation propagated_beading = beading;
-            propagated_beading.dist_from_source_downward += length;
-            node_to_beading.emplace(edge_to_peak->from, beading);
+            bottom_beading = top_beading;
+            bottom_beading.dist_from_top_source += length;
         }
         else
         {
-            Beading merged_beading = interpolate(upward_beading.beading, ratio_of_upward, beading.beading);
-            node_to_beading.emplace(edge_to_peak->from, merged_beading);
+            Beading merged_beading = interpolate(top_beading.beading, ratio_of_top, bottom_beading.beading, edge_to_peak->from->data.distance_to_boundary);
+            bottom_beading = BeadingPropagation(merged_beading);
         }
     }
 }
 
 
+VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right, coord_t switching_radius) const
+{
+    assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
+    Beading ret = interpolate(left, ratio_left_to_whole, right);
+
+    coord_t next_inset_idx;
+    for (next_inset_idx = left.toolpath_locations.size() - 1; next_inset_idx >= 0; next_inset_idx--)
+    {
+        if (switching_radius > left.toolpath_locations[next_inset_idx])
+        {
+            break;
+        }
+    }
+    assert(next_inset_idx < left.toolpath_locations.size());
+    assert(left.toolpath_locations[next_inset_idx] <= switching_radius);
+    assert(left.toolpath_locations[next_inset_idx + 1] >= switching_radius);
+    if (ret.toolpath_locations[next_inset_idx] > switching_radius)
+    { // one inset disappeared between left and the merged one
+        // solve for ratio f:
+        // f*l + (1-f)*r = s
+        // f*l + r - f*r = s
+        // f*(l-r) + r = s
+        // f*(l-r) = s - r
+        // f = (s-r) / (l-r)
+        float new_ratio = static_cast<float>(switching_radius - right.toolpath_locations[next_inset_idx]) / static_cast<float>(left.toolpath_locations[next_inset_idx] - right.toolpath_locations[next_inset_idx]);
+        new_ratio = std::min(1.0, new_ratio + 0.1);
+        return interpolate(left, new_ratio, right);
+    }
+    return ret;
+}
+
+
 VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right) const
 {
+    assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     float ratio_right_to_whole = 1.0 - ratio_left_to_whole;
+
     Beading ret = (left.bead_widths.size() > right.bead_widths.size())? left : right;
     for (int inset_idx = 0; inset_idx < std::min(left.bead_widths.size(), right.bead_widths.size()); inset_idx++)
     {

@@ -216,13 +216,13 @@ protected:
     struct BeadingPropagation
     {
         Beading beading;
-        coord_t dist_from_source_upward;
-        coord_t dist_from_source_downward;
+        coord_t dist_to_bottom_source;
+        coord_t dist_from_top_source;
         bool is_finished;
         BeadingPropagation(const Beading& beading)
         : beading(beading)
-        , dist_from_source_upward(0)
-        , dist_from_source_downward(0)
+        , dist_to_bottom_source(0)
+        , dist_from_top_source(0)
         , is_finished(false)
         {}
     };
@@ -254,6 +254,10 @@ protected:
     void propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
     void propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
+    /*!
+     * \param switching_radius The radius at which we switch from the left beading to the merged
+     */
+    Beading interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right, coord_t switching_radius) const;
     Beading interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right) const;
 
     BeadingPropagation& getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
