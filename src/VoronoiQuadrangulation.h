@@ -34,6 +34,7 @@ class VoronoiQuadrangulation
     coord_t discretization_step_size = 200;
     coord_t transition_filter_dist = 1000; // filter transitions closer together than this
     coord_t marking_filter_dist = 400; // filter marking areas smaller than this
+    coord_t beading_propagation_transition_dist = 400;
 
 public:
     using Segment = PolygonsSegmentIndex;
@@ -212,19 +213,31 @@ protected:
 
     struct BeadingPropagation
     {
-        coord_t dist_from_source_upward;
         Beading beading;
+        coord_t dist_from_source_upward;
+        coord_t dist_from_source_downward;
         bool is_finished;
-        BeadingPropagation(coord_t dist_from_source_upward, const Beading& beading)
-        : dist_from_source_upward(dist_from_source_upward)
-        , beading(beading)
+        BeadingPropagation(const Beading& beading)
+        : beading(beading)
+        , dist_from_source_upward(0)
+        , dist_from_source_downward(0)
         , is_finished(false)
         {}
-        BeadingPropagation(const Beading& beading)
-        : BeadingPropagation(0, beading)
-        {}
     };
-    
+
+    /*!
+     * propagate beading info from lower R nodes to higher R nodes
+     * 
+     * only propagate from nodes with beading info upward to nodes without beading info
+     * 
+     * edges are sorted so that we can do a depth-first walk without employing a recursive algorithm
+     * 
+     * In upward propagated beadings we store the distance traveled, so that we can merge these beadings with the downward propagated beadings in \ref propagateBeadingsDownward(.)
+     * 
+     * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist first.
+     */
+    void propagateBeadingsUpward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
+
     /*!
      * propagate beading info from higher R nodes to lower R nodes
      * 
@@ -238,6 +251,8 @@ protected:
      */
     void propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
     void propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
+
+    Beading interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right) const;
 
     BeadingPropagation& getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
