@@ -72,6 +72,22 @@ public:
         poly.emplace_back(0,size / 2 - hole);
         return ret;
     }
+    
+    static Polygons doubleOutSpike(coord_t hole = 600, coord_t recede_dist = 50, coord_t size = 3000)
+    {
+        Polygons ret;
+        PolygonRef poly = ret.newPoly();
+        poly.emplace_back(0,0);
+        poly.emplace_back(size,0);
+        poly.emplace_back(size,size);
+        poly.emplace_back(size / 2 + hole / 2,size);
+        poly.emplace_back(size / 2 + hole / 4, size * 2);
+        poly.emplace_back(size / 2, size + recede_dist);
+        poly.emplace_back(size / 2 - hole / 4, size * 2);
+        poly.emplace_back(size / 2 - hole / 2,size);
+        poly.emplace_back(0,size);
+        return ret;
+    }
 };
 
 } // namespace arachne

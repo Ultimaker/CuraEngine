@@ -332,12 +332,13 @@ void test()
 //     Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
-//     Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 32);
+//     Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 8);
 //     Polygons polys = MoessenTests::generateTriangles(Point(6, 3), 100, 400, 500);
 //     Polygons polys = Prescribed::fromDistances({Point(0,800), Point(400,300), Point(610,610), Point(1400, 200)});
 //     Polygons polys = Spiky::oneSpike(200);
-    Polygons polys = Spiky::twoSpikes();
+//     Polygons polys = Spiky::twoSpikes();
 //     Polygons polys = Spiky::fourSpikes();
+    Polygons polys = Spiky::doubleOutSpike(800, 380);
 
     polys = polys.unionPolygons();
     polys.simplify();
