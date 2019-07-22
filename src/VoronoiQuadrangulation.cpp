@@ -749,7 +749,7 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
 {
     setMarking(beading_strategy);
 
-//     filterMarking(marking_filter_dist);
+    filterMarking(marking_filter_dist);
 
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
@@ -854,7 +854,7 @@ void VoronoiQuadrangulation::filterMarking(coord_t max_length)
 {
     for (edge_t& edge : graph.edges)
     {
-        if (isEndOfMarking(edge))
+        if (isEndOfMarking(edge) && !isLocalMaximum(*edge.to) && !isLocalMaximum(*edge.to))
         {
             filterMarking(edge.twin, 0, max_length);
         }
@@ -876,6 +876,7 @@ bool VoronoiQuadrangulation::filterMarking(edge_t* starting_edge, coord_t travel
             should_dissolve &= filterMarking(next_edge, traveled_dist + length, max_length);
         }
     }
+    should_dissolve &= !isLocalMaximum(*starting_edge->to); // don't filter marked regions with a local maximum!
     if (should_dissolve)
     {
         starting_edge->data.setMarked(false);
