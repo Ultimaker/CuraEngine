@@ -216,16 +216,28 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
 
 void BeadingOrderOptimizer::reduceIntersectionOverlap(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index)
 {
-    for (Polyline& polyline : odd_polylines)
+    for (auto polyline_it = odd_polylines.begin(); polyline_it != odd_polylines.end();)
     {
-        reduceIntersectionOverlap(polyline, polyline.junctions.begin(), polyline.inset_idx, polygons_per_index);
-        reduceIntersectionOverlap(polyline, polyline.junctions.rbegin(), polyline.inset_idx, polygons_per_index);
+        Polyline& polyline = *polyline_it;
+        bool should_remove = reduceIntersectionOverlap(polyline, polyline.junctions.begin(), polyline.inset_idx, polygons_per_index);
+        if (should_remove)
+        {
+            polyline_it = odd_polylines.erase(polyline_it);
+            continue;
+        }
+        should_remove = reduceIntersectionOverlap(polyline, polyline.junctions.rbegin(), polyline.inset_idx, polygons_per_index);
+        if (should_remove)
+        {
+            polyline_it = odd_polylines.erase(polyline_it);
+            continue;
+        }
+        ++polyline_it;
     }
 }
 
 
 template<typename directional_iterator>
-void BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_it, coord_t inset_idx, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index)
+bool BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_it, coord_t inset_idx, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index)
 {
     ExtrusionJunction& start_junction = *polyline_start_it;
     ExtrusionJunction* intersecting_junction = nullptr;
@@ -262,19 +274,19 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, direct
             if (intersecting_junction) break;
         }
     }
-    if (!intersecting_junction) return;
+    if (!intersecting_junction) return false;
 
-    reduceIntersectionOverlap(polyline, polyline_start_it, 0, intersecting_junction->w / 2 * (1.0 - intersection_overlap));
+    return reduceIntersectionOverlap(polyline, polyline_start_it, 0, intersecting_junction->w / 2 * (1.0 - intersection_overlap));
 }
 
 template<typename directional_iterator>
-void BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_it, coord_t traveled_dist, coord_t reduction_length)
+bool BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_it, coord_t traveled_dist, coord_t reduction_length)
 {
     ExtrusionJunction& start_junction = *polyline_it;
     directional_iterator next_junction_it = polyline_it; next_junction_it++;
     if (isEnd(next_junction_it, polyline))
     {
-        return;
+        return true;
     }
     ExtrusionJunction& next_junction = *next_junction_it;
     Point a = start_junction.p;

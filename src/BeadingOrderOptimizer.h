@@ -73,14 +73,17 @@ private:
      * Connecting polylines together, but allowing for rounding erros in the end points
      */
     void fuzzyConnect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, coord_t snap_dist);
-    
+
     void reduceIntersectionOverlap(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index);
+    
+    /*!
+     * \return whether the whole polyline should be removed
+     */
+    template<typename directional_iterator>
+    bool reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_iterator, coord_t inset_idx, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index);
 
     template<typename directional_iterator>
-    void reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_iterator, coord_t inset_idx, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index);
-
-    template<typename directional_iterator>
-    void reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_it, coord_t traveled_dist, coord_t reduction_length);
+    bool reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_it, coord_t traveled_dist, coord_t reduction_length);
 
     template<typename directional_iterator>
     static std::list<ExtrusionJunction>::iterator getInsertPosIt(directional_iterator it);
