@@ -18,12 +18,26 @@ void BeadingOrderOptimizer::optimize(const std::vector<ExtrusionSegment>& segmen
     BeadingOrderOptimizer optimizer(segments);
     optimizer.connect(result_polygons_per_index);
     optimizer.fuzzyConnect(result_polygons_per_index, snap_dist);
-    optimizer.reduceIntersectionOverlap(result_polygons_per_index);
     optimizer.transferUnconnectedPolylines(result_polygons_per_index, result_polylines_per_index);
 }
 
 void BeadingOrderOptimizer::connect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index)
 {
+    struct count // wrapper which initializes to zero in default construction
+    { // NOTE: you cannot inherit from primitive types
+        coord_t n;
+        count() : n(0) { }
+    };
+    std::unordered_map<Point, count> connection_counts;
+    for (const ExtrusionSegment& segment : segments)
+    {
+        if (segment.from.p != segment.to.p)
+        {
+            connection_counts[segment.from.p].n++;
+            connection_counts[segment.to.p].n++;
+        }
+    }
+
     debugCheck();
     for (const ExtrusionSegment& segment : segments)
     {
@@ -43,6 +57,11 @@ void BeadingOrderOptimizer::connect(std::vector<std::vector<std::vector<Extrusio
 
         bool connect_start = start_it != polyline_end_points.end();
         bool connect_end = end_it != polyline_end_points.end();
+
+        // don't connect polylines at intersections in this initial connection function
+        connect_start &= !segment.is_odd || connection_counts[segment.from.p].n <= 2;
+        connect_end &= !segment.is_odd || connection_counts[segment.to.p].n <= 2;
+
         debugCheck();
         if (!connect_start && !connect_end)
         {
@@ -131,7 +150,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
             return it.p();
         }
     };
-    SparsePointGridInclusive<PolylineEndRef> grid(snap_dist);
+    SparsePointGridInclusive<PolylineEndRef> polyline_grid(snap_dist); // inclusive because iterators might get invalidated
     for (std::list<Polyline>* polys : { &odd_polylines, &even_polylines })
     {
         for (auto poly_it = polys->begin(); poly_it != polys->end(); ++poly_it)
@@ -139,10 +158,19 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
             for (bool front : { true, false })
             {
                 PolylineEndRef ref(poly_it->inset_idx, poly_it, front);
-                grid.insert(ref.p(), ref);
+                polyline_grid.insert(ref.p(), ref);
             }
         }
     }
+    struct PointLocator
+    {
+        Point operator()(const Point& p) { return p; }
+    };
+    SparsePointGrid<Point, PointLocator> polygon_grid(snap_dist); // inclusive because iterators might get invalidated
+    for (auto result_polygons : result_polygons_per_index)
+        for (auto result_polygon : result_polygons)
+            for (ExtrusionJunction& junction : result_polygon)
+                polygon_grid.insert(junction.p);
 
     for (std::list<Polyline>* polys : { &odd_polylines, &even_polylines })
     {
@@ -153,51 +181,98 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
                 PolylineEndRef end_point(poly_it->inset_idx, poly_it, front);
                 Point p = end_point.p();
 
-                std::vector<PolylineEndRef> nearby_end_points = grid.getNearbyVals(p, snap_dist);
-                for (PolylineEndRef& other_end : nearby_end_points)
+                bool has_connected = polygon_grid.getAnyNearby(p, snap_dist) != nullptr; // we check whether polygons were already connected together here
+                
+                if (has_connected)
                 {
+                    coord_t extrusion_width = end_point.front? end_point.polyline->junctions.front().w : end_point.polyline->junctions.back().w;
+                    if (end_point.front)
+                    {
+                        reduceIntersectionOverlap(*end_point.polyline, end_point.polyline->junctions.begin(), 0, extrusion_width / 2);
+                    }
+                    else
+                    {
+                        reduceIntersectionOverlap(*end_point.polyline, end_point.polyline->junctions.rbegin(), 0, extrusion_width / 2);
+                    }
+                }
+
+                std::vector<PolylineEndRef> nearby_end_points = polyline_grid.getNearbyVals(p, snap_dist);
+                for (size_t other_end_idx = 0; other_end_idx < nearby_end_points.size(); ++other_end_idx)
+                {
+                    PolylineEndRef& other_end = nearby_end_points[other_end_idx];
                     if (end_point == other_end
                         || other_end.polyline->junctions.empty()
                         || end_point.polyline->junctions.empty()
                         || !shorterThen(p - other_end.p(), snap_dist)
                     )
-                    {
+                    { // the other end is not really a nearby other end
                         continue;
                     }
-                    if (&*end_point.polyline == &*other_end.polyline)
-                    { // we can close this polyline into a polygon
-                        if (other_end.polyline->junctions.size() <= 2)
-                        { // don't print single line segments double
-                            continue;
+                    if (&*end_point.polyline == &*other_end.polyline
+                        && (other_end.polyline->junctions.size() <= 2 || other_end.polyline->computeLength() < snap_dist * 2)
+                    )
+                    { // the other end is of the same really short polyline
+                        continue;
+                    }
+                    if (!has_connected)
+                    {
+                        int_fast8_t changed_front = -1; // unset bool; whether we have changed what the front of the polyline of [end_point] is rather than the back (stays -1 if we don't need to reinsert any list change because it is now a closed polygon)
+                        if (&*end_point.polyline == &*other_end.polyline)
+                        { // we can close this polyline into a polygon
+                            result_polygons_per_index.resize(std::max(result_polygons_per_index.size(), static_cast<size_t>(end_point.inset_idx + 1)));
+                            result_polygons_per_index[end_point.inset_idx].emplace_back(poly_it->junctions.begin(), poly_it->junctions.end());
+                            for (ExtrusionJunction& junction : poly_it->junctions)
+                                polygon_grid.insert(junction.p);
+                            end_point.polyline->junctions.clear();
                         }
-                        result_polygons_per_index.resize(std::max(result_polygons_per_index.size(), static_cast<size_t>(end_point.inset_idx + 1)));
-                        result_polygons_per_index[end_point.inset_idx].emplace_back(poly_it->junctions.begin(), poly_it->junctions.end());
-                        end_point.polyline->junctions.clear();
+                        else if (!end_point.front && other_end.front)
+                        {
+                            end_point.polyline->junctions.splice(end_point.polyline->junctions.end(), other_end.polyline->junctions);
+                            changed_front = false;
+                        }
+                        else if (end_point.front && !other_end.front)
+                        {
+                            end_point.polyline->junctions.splice(end_point.polyline->junctions.begin(), other_end.polyline->junctions);
+                            changed_front = true;
+                        }
+                        else if (end_point.front && other_end.front)
+                        {
+                            end_point.polyline->junctions.insert(end_point.polyline->junctions.begin(), other_end.polyline->junctions.rbegin(), other_end.polyline->junctions.rend());
+                            other_end.polyline->junctions.clear();
+                            changed_front = true;
+                        }
+                        else // if (!end_point.front && !other_end.front)
+                        {
+                            end_point.polyline->junctions.insert(end_point.polyline->junctions.end(), other_end.polyline->junctions.rbegin(), other_end.polyline->junctions.rend());
+                            other_end.polyline->junctions.clear();
+                            changed_front = false;
+                        }
+                        if (changed_front != -1)
+                        {
+                            PolylineEndRef result_line_untouched_end(end_point.inset_idx, end_point.polyline, changed_front);
+                            polyline_grid.insert(result_line_untouched_end.p(), result_line_untouched_end);
+                        }
+                        has_connected = true;
                     }
-                    else if (!end_point.front && other_end.front)
+                    else
                     {
-                        end_point.polyline->junctions.splice(end_point.polyline->junctions.end(), other_end.polyline->junctions);
-                    }
-                    else if (end_point.front && !other_end.front)
-                    {
-                        end_point.polyline->junctions.splice(end_point.polyline->junctions.begin(), other_end.polyline->junctions);
-                    }
-                    else if (end_point.front && other_end.front)
-                    {
-                        end_point.polyline->junctions.insert(end_point.polyline->junctions.begin(), other_end.polyline->junctions.rbegin(), other_end.polyline->junctions.rend());
-                        other_end.polyline->junctions.clear();
-                    }
-                    else // if (!end_point.front && !other_end.front)
-                    {
-                        end_point.polyline->junctions.insert(end_point.polyline->junctions.end(), other_end.polyline->junctions.rbegin(), other_end.polyline->junctions.rend());
-                        other_end.polyline->junctions.clear();
+                        coord_t extrusion_width = end_point.front? end_point.polyline->junctions.front().w : end_point.polyline->junctions.back().w;
+                        if (other_end.front)
+                        {
+                            reduceIntersectionOverlap(*other_end.polyline, other_end.polyline->junctions.begin(), 0, extrusion_width / 2);
+                        }
+                        else
+                        {
+                            reduceIntersectionOverlap(*other_end.polyline, other_end.polyline->junctions.rbegin(), 0, extrusion_width / 2);
+                        }
                     }
                 }
             }
         }
     }
 
-    // remove empties lists
+    // remove emptied lists
+    // afterwards, because otherwise iterators would be invalid during the connecting algorithm
     for (std::list<Polyline>* polys : { &odd_polylines, &even_polylines })
     {
         for (auto poly_it = polys->begin(); poly_it != polys->end();)
@@ -214,79 +289,14 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
     }
 }
 
-void BeadingOrderOptimizer::reduceIntersectionOverlap(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index)
-{
-    for (auto polyline_it = odd_polylines.begin(); polyline_it != odd_polylines.end();)
-    {
-        Polyline& polyline = *polyline_it;
-        bool should_remove = reduceIntersectionOverlap(polyline, polyline.junctions.begin(), polyline.inset_idx, polygons_per_index);
-        if (should_remove)
-        {
-            polyline_it = odd_polylines.erase(polyline_it);
-            continue;
-        }
-        should_remove = reduceIntersectionOverlap(polyline, polyline.junctions.rbegin(), polyline.inset_idx, polygons_per_index);
-        if (should_remove)
-        {
-            polyline_it = odd_polylines.erase(polyline_it);
-            continue;
-        }
-        ++polyline_it;
-    }
-}
-
-
 template<typename directional_iterator>
-bool BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_it, coord_t inset_idx, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index)
-{
-    ExtrusionJunction& start_junction = *polyline_start_it;
-    ExtrusionJunction* intersecting_junction = nullptr;
-    if (inset_idx < polygons_per_index.size())
-    {
-        for (std::vector<ExtrusionJunction>& polygon : polygons_per_index[inset_idx])
-        {
-            for (ExtrusionJunction& junction : polygon)
-            {
-                if (junction.p == start_junction.p)
-                {
-                    assert(junction.w == start_junction.w);
-                    intersecting_junction = &junction;
-                    break;
-                }
-            }
-            if (intersecting_junction) break;
-        }
-    }
-    if (!intersecting_junction)
-    {
-        for (Polyline& other_polyline : odd_polylines)
-        {
-            if (other_polyline.inset_idx != polyline.inset_idx) continue;
-
-            for (auto junction_it = ++other_polyline.junctions.begin(); junction_it != --other_polyline.junctions.end() && junction_it != other_polyline.junctions.end(); junction_it++)
-            { // skip end points, because they would have been connected to this point!
-                if (junction_it->p == start_junction.p)
-                {
-                    intersecting_junction = &*junction_it;
-                    break;
-                }
-            }
-            if (intersecting_junction) break;
-        }
-    }
-    if (!intersecting_junction) return false;
-
-    return reduceIntersectionOverlap(polyline, polyline_start_it, 0, intersecting_junction->w / 2 * (1.0 - intersection_overlap));
-}
-
-template<typename directional_iterator>
-bool BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_it, coord_t traveled_dist, coord_t reduction_length)
+void BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_it, coord_t traveled_dist, coord_t reduction_length)
 {
     ExtrusionJunction& start_junction = *polyline_it;
     directional_iterator next_junction_it = polyline_it; next_junction_it++;
     if (isEnd(next_junction_it, polyline))
     {
-        return true;
+        return;
     }
     ExtrusionJunction& next_junction = *next_junction_it;
     Point a = start_junction.p;
@@ -295,8 +305,9 @@ bool BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, direct
     coord_t length = vSize(ab);
 
     coord_t total_reduction_length = reduction_length + start_junction.w / 2;
+    total_reduction_length *= (1.0 - intersection_overlap);
 
-    if (traveled_dist + length > total_reduction_length)
+    if (length > 0 && traveled_dist + length > total_reduction_length)
     {
         coord_t reduction_left = total_reduction_length - traveled_dist;
         Point mid = a + ab * std::max(static_cast<coord_t>(0), std::min(length, reduction_left)) / length;
@@ -316,8 +327,7 @@ bool BeadingOrderOptimizer::reduceIntersectionOverlap(Polyline& polyline, direct
     }
     if (polyline.junctions.size() == 1)
     {
-        polyline.junctions.emplace_back(polyline.junctions.front());
-        polyline.junctions.back().p += Point(1,1);
+        polyline.junctions.clear();
     }
 }
 

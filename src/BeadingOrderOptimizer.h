@@ -33,6 +33,18 @@ private:
         Polyline(coord_t inset_idx)
         : inset_idx(inset_idx)
         {}
+        coord_t computeLength()
+        {
+            if (junctions.size() <= 1) return 0;
+            coord_t len = 0;
+            ExtrusionJunction prev = junctions.front();
+            for (ExtrusionJunction& next : junctions)
+            {
+                len += vSize(next.p - prev.p);
+                prev = next;
+            }
+            return len;
+        }
     };
 
     struct PolylineEndRef
@@ -57,10 +69,11 @@ private:
         }
     };
     
-    static constexpr float intersection_overlap = .5;
+    static constexpr float intersection_overlap = .25;
     static constexpr coord_t snap_dist = 50;
 
     const std::vector<ExtrusionSegment>& segments;
+
 
     std::list<Polyline> even_polylines;
     std::list<Polyline> odd_polylines; // keep odd single bead segments separate so that polygon segments can combine together into polygons
@@ -71,19 +84,13 @@ private:
 
     /*!
      * Connecting polylines together, but allowing for rounding erros in the end points
+     * 
+     * Reduce unconnected polylines away from the intersection locations as well
      */
     void fuzzyConnect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, coord_t snap_dist);
 
-    void reduceIntersectionOverlap(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index);
-    
-    /*!
-     * \return whether the whole polyline should be removed
-     */
     template<typename directional_iterator>
-    bool reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_iterator, coord_t inset_idx, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index);
-
-    template<typename directional_iterator>
-    bool reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_it, coord_t traveled_dist, coord_t reduction_length);
+    void reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_it, coord_t traveled_dist, coord_t reduction_length);
 
     template<typename directional_iterator>
     static std::list<ExtrusionJunction>::iterator getInsertPosIt(directional_iterator it);
