@@ -1356,8 +1356,8 @@ void VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, c
         coord_t start_pos = mid_pos;
         coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
         coord_t end_pos = mid_pos +  transition_half_length;
-        bool is_going_down = generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_to_transition_ends);
-        assert(!is_going_down && "There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");
+        bool is_going_down_everywhere = generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_to_transition_ends);
+        assert(!is_going_down_everywhere && "There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");
     }
 
         debugCheckGraphCompleteness();
@@ -1483,6 +1483,10 @@ bool VoronoiQuadrangulation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
     bool has_recursed = false;
     for (edge_t* next = outgoing->next; next && next != outgoing->twin; next = next->twin->next)
     {
+        if (!next->data.isMarked())
+        {
+            continue;
+        }
         coord_t length = vSize(next->to->p - next->from->p);
         bool is_going_down = isGoingDown(next, traveled_dist + length, transition_filter_dist, lower_bead_count);
         is_only_going_down &= is_going_down;
