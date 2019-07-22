@@ -2566,7 +2566,10 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
         }
         if (draw_locations)
         {
-            svg.writePoint(node.p, true, 1);
+            svg.writePoint(node.p, false, 1);
+            std::ostringstream ss;
+            ss << node.p.X << "," << node.p.Y;
+            svg.writeText(node.p, ss.str(), SVG::Color::BLACK, 4);
         }
     }
 }
