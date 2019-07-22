@@ -1223,7 +1223,7 @@ std::list<VoronoiQuadrangulation::TransitionMidRef> VoronoiQuadrangulation::diss
         coord_t ab_size = vSize(ab);
         bool is_aligned = edge->from->data.distance_to_boundary < edge->to->data.distance_to_boundary;
         edge_t* aligned_edge = is_aligned? edge : edge->twin;
-        bool seen_transition_in_this_direction = false;
+        bool seen_transition_on_this_edge = false;
         auto edge_transitions_it = edge_to_transitions.find(aligned_edge);
         if (edge_transitions_it != edge_to_transitions.end())
         {
@@ -1240,11 +1240,11 @@ std::list<VoronoiQuadrangulation::TransitionMidRef> VoronoiQuadrangulation::diss
                         assert(going_up != is_aligned || transition_it->lower_bead_count == 0); // consecutive transitions both in/decreasing in bead count should never be closer together than the transition distance
                     }
                     to_be_dissolved.emplace_back(edge_transitions_it, transition_it);
-                    seen_transition_in_this_direction = true;
+                    seen_transition_on_this_edge = true;
                 }
             }
         }
-        if (!seen_transition_in_this_direction) // stop recursion once we have found the other transition to be dissolved
+        if (!seen_transition_on_this_edge)
         {
             std::list<VoronoiQuadrangulation::TransitionMidRef> to_be_dissolved_here = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions, beading_strategy);
             if (to_be_dissolved_here.empty())
@@ -1266,6 +1266,7 @@ std::list<VoronoiQuadrangulation::TransitionMidRef> VoronoiQuadrangulation::diss
 
 void VoronoiQuadrangulation::dissolveBeadCountRegion(edge_t* edge_to_start, coord_t from_bead_count, coord_t to_bead_count)
 {
+    assert(from_bead_count != to_bead_count);
     if (edge_to_start->to->data.bead_count != from_bead_count)
     {
         return;
@@ -1943,7 +1944,7 @@ VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beadin
     if (next_inset_idx < 0)
     { // there is no next inset, because there is only one
         assert(left.toolpath_locations.front() >= switching_radius);
-        assert(right.toolpath_locations.size() <= 2);
+        assert(std::min(left.toolpath_locations.size(), right.toolpath_locations.size()) <= 2);
         return ret;
     }
     assert(next_inset_idx < left.toolpath_locations.size());
