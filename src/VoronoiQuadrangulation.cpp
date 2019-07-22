@@ -1355,13 +1355,6 @@ void VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, c
     { // upper bead count transition end
         coord_t start_pos = mid_pos;
         coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
-        if (false && lower_bead_count == 0)
-        {
-            // there won't be a physical transition, so it doesn't require a distance.
-            // put the 1 bead end at the middle of the transition
-            // the 0 bead end position doesn't really matter
-            transition_half_length = 10;
-        }
         coord_t end_pos = mid_pos +  transition_half_length;
         bool is_going_down = generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_to_transition_ends);
         assert(!is_going_down && "There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");

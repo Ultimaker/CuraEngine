@@ -79,6 +79,10 @@ public:
      */
     virtual coord_t getTransitioningLength(coord_t lower_bead_count) const
     {
+        if (lower_bead_count == 0)
+        {
+            return 10;
+        }
         return optimal_width;
     }
 
