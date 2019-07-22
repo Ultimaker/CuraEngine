@@ -50,6 +50,7 @@ private:
     Polygons overlaps;
     Polygons underfills;
     Polygons overfills;
+    Polygons double_overfills;
     Polygons paths;
 
     void generateAllSegments(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index);

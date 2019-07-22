@@ -41,6 +41,15 @@ void Statistics::analyse(Polygons& input, std::vector<std::vector<std::vector<Ex
             new_poly.add(poly[point_idx]);
         }
     }
+    double_overfills = overfills;
+    for (PolygonRef poly : area_covered)
+    {
+        PolygonRef new_poly = double_overfills.newPoly();
+        for (coord_t point_idx = poly.size() - 1; point_idx >= 0; --point_idx)
+        {
+            new_poly.add(poly[point_idx]);
+        }
+    }
     overfills = overfills.execute(ClipperLib::pftPositive);
     overfills = overfills.unionPolygons(overlaps.xorPolygons(area_covered));
     overfills = overfills.intersection(area_covered);
@@ -48,7 +57,12 @@ void Statistics::analyse(Polygons& input, std::vector<std::vector<std::vector<Ex
     overfills = overfills.offset(10);
     overfills = overfills.offset(-5);
 
-    double total_overfill_area = INT2MM2(overfills.area());
+    double_overfills = double_overfills.execute(ClipperLib::pftPositive);
+    double_overfills = double_overfills.offset(-5);
+    double_overfills = double_overfills.offset(10);
+    double_overfills = double_overfills.offset(-5);
+
+    double total_overfill_area = INT2MM2(overfills.area() + double_overfills.area());
     logAlways("Total overfill area: %f mm²\n", total_overfill_area);
     std::vector<PolygonsPart> overfill_areas = overfills.splitIntoParts();
     logAlways("Average area: %f mm² over %d parts\n", total_overfill_area / overfill_areas.size(), overfill_areas.size());
@@ -161,7 +175,8 @@ void Statistics::visualize()
         ss << "output/" << filename_base << "_accuracy.svg";
         SVG svg(ss.str(), aabb);
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 3);
-        svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
+        svg.writeAreas(overfills, SVG::Color::ORANGE, SVG::Color::NONE);
+        svg.writeAreas(double_overfills, SVG::Color::RED, SVG::Color::NONE);
         svg.writeAreas(underfills, SVG::Color::BLUE, SVG::Color::NONE);
         svg.writePolygons(paths, SVG::Color::BLACK, 1);
     }
