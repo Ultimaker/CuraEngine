@@ -172,100 +172,120 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
             for (ExtrusionJunction& junction : result_polygon)
                 polygon_grid.insert(junction.p);
 
+    std::list<PolylineEndRef> end_points_to_check;
+
     for (std::list<Polyline>* polys : { &odd_polylines, &even_polylines })
     {
         for (auto poly_it = polys->begin(); poly_it != polys->end(); ++poly_it)
         {
+            assert(poly_it->junctions.size() > 1);
             for (bool front : { true, false })
             {
-                PolylineEndRef end_point(poly_it->inset_idx, poly_it, front);
-                Point p = end_point.p();
+                end_points_to_check.emplace_back(poly_it->inset_idx, poly_it, front);
+            }
+        }
+    }
+    for (auto it = end_points_to_check.begin(); it != end_points_to_check.end(); ++it)
+    {
+        PolylineEndRef& end_point = *it;
+        Point p = end_point.p();
 
-                bool has_connected = polygon_grid.getAnyNearby(p, snap_dist) != nullptr; // we check whether polygons were already connected together here
-                
-                if (has_connected)
-                {
-                    coord_t extrusion_width = end_point.front? end_point.polyline->junctions.front().w : end_point.polyline->junctions.back().w;
-                    if (end_point.front)
-                    {
-                        reduceIntersectionOverlap(*end_point.polyline, end_point.polyline->junctions.begin(), 0, extrusion_width / 2);
-                    }
-                    else
-                    {
-                        reduceIntersectionOverlap(*end_point.polyline, end_point.polyline->junctions.rbegin(), 0, extrusion_width / 2);
-                    }
+        bool has_connected = polygon_grid.getAnyNearby(p, snap_dist) != nullptr; // we check whether polygons were already connected together here
+
+        if (has_connected)
+        {
+            coord_t extrusion_width = end_point.front? end_point.polyline->junctions.front().w : end_point.polyline->junctions.back().w;
+            if (end_point.front)
+            {
+                reduceIntersectionOverlap(*end_point.polyline, end_point.polyline->junctions.begin(), 0, extrusion_width / 2);
+            }
+            else
+            {
+                reduceIntersectionOverlap(*end_point.polyline, end_point.polyline->junctions.rbegin(), 0, extrusion_width / 2);
+            }
+        }
+
+        std::vector<PolylineEndRef> nearby_end_points = polyline_grid.getNearbyVals(p, snap_dist);
+        for (size_t other_end_idx = 0; other_end_idx < nearby_end_points.size(); ++other_end_idx)
+        {
+            PolylineEndRef& other_end = nearby_end_points[other_end_idx];
+            assert(!end_point.polyline->junctions.empty() || has_connected);
+            if (other_end.polyline->junctions.empty())
+            {
+                continue;
+            }
+            if (end_point == other_end
+                && !has_connected // because that might have changed end_point
+            )
+            {
+                continue;
+            }
+            if (false
+                || !shorterThen(p - other_end.p(), snap_dist)
+            )
+            { // the other end is not really a nearby other end
+                continue;
+            }
+            if (&*end_point.polyline == &*other_end.polyline
+                && (other_end.polyline->junctions.size() <= 2 || other_end.polyline->computeLength() < snap_dist * 2)
+                && !has_connected // because that might have changed end_point
+            )
+            { // the other end is of the same really short polyline
+                continue;
+            }
+            
+            if (!has_connected)
+            {
+                int_fast8_t changed_side_is_front = -1; // unset bool; whether we have changed what the front of the polyline of [end_point] is rather than the back (stays -1 if we don't need to reinsert any list change because it is now a closed polygon)
+                if (&*end_point.polyline == &*other_end.polyline)
+                { // we can close this polyline into a polygon
+                    result_polygons_per_index.resize(std::max(result_polygons_per_index.size(), static_cast<size_t>(end_point.inset_idx + 1)));
+                    result_polygons_per_index[end_point.inset_idx].emplace_back(end_point.polyline->junctions.begin(), end_point.polyline->junctions.end());
+                    for (ExtrusionJunction& junction : end_point.polyline->junctions)
+                        polygon_grid.insert(junction.p);
+                    end_point.polyline->junctions.clear();
                 }
-
-                std::vector<PolylineEndRef> nearby_end_points = polyline_grid.getNearbyVals(p, snap_dist);
-                for (size_t other_end_idx = 0; other_end_idx < nearby_end_points.size(); ++other_end_idx)
+                else if (!end_point.front && other_end.front)
                 {
-                    PolylineEndRef& other_end = nearby_end_points[other_end_idx];
-                    if (end_point == other_end
-                        || other_end.polyline->junctions.empty()
-                        || end_point.polyline->junctions.empty()
-                        || !shorterThen(p - other_end.p(), snap_dist)
-                    )
-                    { // the other end is not really a nearby other end
-                        continue;
-                    }
-                    if (&*end_point.polyline == &*other_end.polyline
-                        && (other_end.polyline->junctions.size() <= 2 || other_end.polyline->computeLength() < snap_dist * 2)
-                    )
-                    { // the other end is of the same really short polyline
-                        continue;
-                    }
-                    if (!has_connected)
-                    {
-                        int_fast8_t changed_front = -1; // unset bool; whether we have changed what the front of the polyline of [end_point] is rather than the back (stays -1 if we don't need to reinsert any list change because it is now a closed polygon)
-                        if (&*end_point.polyline == &*other_end.polyline)
-                        { // we can close this polyline into a polygon
-                            result_polygons_per_index.resize(std::max(result_polygons_per_index.size(), static_cast<size_t>(end_point.inset_idx + 1)));
-                            result_polygons_per_index[end_point.inset_idx].emplace_back(poly_it->junctions.begin(), poly_it->junctions.end());
-                            for (ExtrusionJunction& junction : poly_it->junctions)
-                                polygon_grid.insert(junction.p);
-                            end_point.polyline->junctions.clear();
-                        }
-                        else if (!end_point.front && other_end.front)
-                        {
-                            end_point.polyline->junctions.splice(end_point.polyline->junctions.end(), other_end.polyline->junctions);
-                            changed_front = false;
-                        }
-                        else if (end_point.front && !other_end.front)
-                        {
-                            end_point.polyline->junctions.splice(end_point.polyline->junctions.begin(), other_end.polyline->junctions);
-                            changed_front = true;
-                        }
-                        else if (end_point.front && other_end.front)
-                        {
-                            end_point.polyline->junctions.insert(end_point.polyline->junctions.begin(), other_end.polyline->junctions.rbegin(), other_end.polyline->junctions.rend());
-                            other_end.polyline->junctions.clear();
-                            changed_front = true;
-                        }
-                        else // if (!end_point.front && !other_end.front)
-                        {
-                            end_point.polyline->junctions.insert(end_point.polyline->junctions.end(), other_end.polyline->junctions.rbegin(), other_end.polyline->junctions.rend());
-                            other_end.polyline->junctions.clear();
-                            changed_front = false;
-                        }
-                        if (changed_front != -1)
-                        {
-                            PolylineEndRef result_line_untouched_end(end_point.inset_idx, end_point.polyline, changed_front);
-                            polyline_grid.insert(result_line_untouched_end.p(), result_line_untouched_end);
-                        }
-                        has_connected = true;
-                    }
-                    else
-                    {
-                        coord_t extrusion_width = end_point.front? end_point.polyline->junctions.front().w : end_point.polyline->junctions.back().w;
-                        if (other_end.front)
-                        {
-                            reduceIntersectionOverlap(*other_end.polyline, other_end.polyline->junctions.begin(), 0, extrusion_width / 2);
-                        }
-                        else
-                        {
-                            reduceIntersectionOverlap(*other_end.polyline, other_end.polyline->junctions.rbegin(), 0, extrusion_width / 2);
-                        }
-                    }
+                    end_point.polyline->junctions.splice(end_point.polyline->junctions.end(), other_end.polyline->junctions);
+                    changed_side_is_front = 0;
+                }
+                else if (end_point.front && !other_end.front)
+                {
+                    end_point.polyline->junctions.splice(end_point.polyline->junctions.begin(), other_end.polyline->junctions);
+                    changed_side_is_front = 1;
+                }
+                else if (end_point.front && other_end.front)
+                {
+                    end_point.polyline->junctions.insert(end_point.polyline->junctions.begin(), other_end.polyline->junctions.rbegin(), other_end.polyline->junctions.rend());
+                    other_end.polyline->junctions.clear();
+                    changed_side_is_front = 1;
+                }
+                else // if (!end_point.front && !other_end.front)
+                {
+                    end_point.polyline->junctions.insert(end_point.polyline->junctions.end(), other_end.polyline->junctions.rbegin(), other_end.polyline->junctions.rend());
+                    other_end.polyline->junctions.clear();
+                    changed_side_is_front = 0;
+                }
+                if (changed_side_is_front != -1)
+                {
+                    PolylineEndRef result_line_untouched_end(end_point.inset_idx, end_point.polyline, changed_side_is_front);
+                    polyline_grid.insert(result_line_untouched_end.p(), result_line_untouched_end);
+                    end_points_to_check.emplace_back(result_line_untouched_end);
+                    nearby_end_points.emplace_back(result_line_untouched_end);
+                }
+                has_connected = true;
+            }
+            else
+            {
+                coord_t extrusion_width = other_end.front? other_end.polyline->junctions.front().w : other_end.polyline->junctions.back().w;
+                if (other_end.front)
+                {
+                    reduceIntersectionOverlap(*other_end.polyline, other_end.polyline->junctions.begin(), 0, extrusion_width / 2);
+                }
+                else
+                {
+                    reduceIntersectionOverlap(*other_end.polyline, other_end.polyline->junctions.rbegin(), 0, extrusion_width / 2);
                 }
             }
         }
