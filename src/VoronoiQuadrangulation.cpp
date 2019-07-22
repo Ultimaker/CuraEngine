@@ -1154,6 +1154,7 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
         Point b = edge->to->p;
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
+
         bool going_up = true;
         std::list<TransitionMidRef> to_be_dissolved_back = dissolveNearbyTransitions(edge, transitions.back(), ab_size - transitions.back().pos, transition_filter_dist, going_up, edge_to_transitions, beading_strategy);
         bool should_dissolve_back = !to_be_dissolved_back.empty();
@@ -1169,7 +1170,13 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
                 ref.pair_it->second.erase(ref.transition_it);
             }
         }
-        should_dissolve_back |= filterEndOfMarkingTransition(edge, ab_size - transitions.back().pos, beading_strategy.getTransitioningLength(transitions.back().lower_bead_count), transitions.back().lower_bead_count, beading_strategy);
+
+        if (transitions.back().lower_bead_count > 0)
+        {
+            coord_t trans_bead_count = transitions.back().lower_bead_count;
+            coord_t upper_transition_half_length = (1.0 - beading_strategy.getTransitionAnchorPos(trans_bead_count)) * beading_strategy.getTransitioningLength(trans_bead_count);
+            should_dissolve_back |= filterEndOfMarkingTransition(edge, ab_size - transitions.back().pos, upper_transition_half_length, trans_bead_count, beading_strategy);
+        }
         if (should_dissolve_back)
         {
             transitions.pop_back();
@@ -1179,6 +1186,7 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
             pair_it = edge_to_transitions.erase(pair_it);
             continue;
         }
+
         going_up = false;
         std::list<TransitionMidRef> to_be_dissolved_front = dissolveNearbyTransitions(edge->twin, transitions.front(), transitions.front().pos, transition_filter_dist, going_up, edge_to_transitions, beading_strategy);
         bool should_dissolve_front = !to_be_dissolved_front.empty();
@@ -1194,10 +1202,21 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
                 ref.pair_it->second.erase(ref.transition_it);
             }
         }
-        should_dissolve_front |= filterEndOfMarkingTransition(edge->twin, transitions.front().pos, beading_strategy.getTransitioningLength(transitions.front().lower_bead_count), transitions.front().lower_bead_count + 1, beading_strategy);
+
+        if (transitions.front().lower_bead_count > 0)
+        {
+            coord_t trans_bead_count = transitions.front().lower_bead_count;
+            coord_t lower_transition_half_length = beading_strategy.getTransitionAnchorPos(trans_bead_count) * beading_strategy.getTransitioningLength(trans_bead_count);
+            should_dissolve_front |= filterEndOfMarkingTransition(edge->twin, transitions.front().pos, lower_transition_half_length, trans_bead_count + 1, beading_strategy);
+        }
         if (should_dissolve_front)
         {
             transitions.pop_front();
+        }
+        if (transitions.empty())
+        { // filterEndOfMarkingTransition gives inconsistent new bead count when executing for the same transition in two directions.
+            pair_it = edge_to_transitions.erase(pair_it);
+            continue;
         }
         ++pair_it; // normal update of loop
     }
