@@ -1382,15 +1382,6 @@ bool VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
         return false;
     }
 
-    /*
-    if (shorterThen(end_pos - ab_size, snap_dist))
-    {
-        edge.to->data.transition_rest = 0; // the transition rest should be zero at both sides of the transition; the intermediate values should only occur in between
-        edge.data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
-        return last_edge_replacing_input;
-    }
-    else 
-    */
     if (end_pos > ab_size)
     { // recurse on all further edges
         coord_t R = edge.to->data.distance_to_boundary;
@@ -1541,12 +1532,6 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
                 assert(end_pos <= ab_size);
 //                 close_node->data.bead_count = new_node_bead_count;
                 close_node->data.transition_ratio = 0;
-                if (!transition_end.is_lower_end)
-                {
-                    RUN_ONCE(logError("Transition_Mid labeling incorrect!\n"));
-                    edge->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
-                    edge->twin->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
-                }
                 continue;
             }
             Point mid = a + normal(ab, end_pos);
@@ -1561,22 +1546,7 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
             last_edge_replacing_input = insertNode(last_edge_replacing_input, mid, new_node_bead_count);
             assert(last_edge_replacing_input->data.type != VoronoiQuadrangulationEdge::EXTRA_VD);
             assert(last_edge_replacing_input->data.isMarked());
-            /*
-            if (transition_end.is_lower_end)
-            {
-                last_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
-                first_edge_replacing_twin->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
-                first_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::NORMAL;
-                last_edge_replacing_twin->data.type = VoronoiQuadrangulationEdge::NORMAL;
-            }
-            else
-            {
-                last_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::NORMAL;
-                first_edge_replacing_twin->data.type = VoronoiQuadrangulationEdge::NORMAL;
-                first_edge_replacing_input->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
-                last_edge_replacing_twin->data.type = VoronoiQuadrangulationEdge::TRANSITION_MID;
-            }
-            */
+
 
             debugCheckGraphCompleteness();
             debugCheckGraphConsistency();
@@ -2126,14 +2096,6 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
         }
         assert(std::abs(int(from_junctions.size()) - int(to_junctions.size())) <= 1); // at transitions one end has more beads
         
-        // deal with transition to single bead
-//         if (quad_start->next->next && quad_start->next->data.isMarked() && quad_start->to->data.bead_count % 2 + quad_start->next->to->data.bead_count % 2 == 1)
-//         {
-//             assert(quad_start->next->data.type == VoronoiQuadrangulationEdge::TRANSITION_MID);
-//             if (quad_start->to->data.bead_count % 2 == 0)
-//             {
-                
-//         }
         
         size_t segment_count = std::min(from_junctions.size(), to_junctions.size());
         for (size_t junction_rev_idx = 0; junction_rev_idx < segment_count; junction_rev_idx++)
@@ -2414,8 +2376,8 @@ void VoronoiQuadrangulation::debugCheckDecorationConsistency(bool transitioned)
     for (const edge_t& edge : graph.edges)
     {
         const edge_t* edge_p = &edge;
-        assert(edge.data.type >= VoronoiQuadrangulationEdge::NORMAL && edge.data.type <= VoronoiQuadrangulationEdge::TRANSITION_MID);
-        if (edge.data.type != VoronoiQuadrangulationEdge::NORMAL && edge.data.type != VoronoiQuadrangulationEdge::TRANSITION_MID)
+        assert(edge.data.type >= VoronoiQuadrangulationEdge::NORMAL);
+        if (edge.data.type != VoronoiQuadrangulationEdge::NORMAL)
         {
             if (edge.from->data.distance_to_boundary != -1 && edge.to->data.distance_to_boundary != -1)
             {
@@ -2469,8 +2431,6 @@ SVG::Color VoronoiQuadrangulation::getColor(edge_t& edge)
             return SVG::Color::ORANGE;
         case VoronoiQuadrangulationEdge::TRANSITION_END:
             return SVG::Color::MAGENTA;
-        case VoronoiQuadrangulationEdge::TRANSITION_MID:
-            return SVG::Color::MAGENTA;
         case VoronoiQuadrangulationEdge::NORMAL:
         default:
             return SVG::Color::RED;
@@ -2486,7 +2446,7 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
         Point b = edge.to->p;
         SVG::Color clr = getColor(edge);
         float stroke_width = 1;
-        if (edge.data.markingIsSet() && edge.data.isMarked() && edge.data.type != VoronoiQuadrangulationEdge::TRANSITION_MID)
+        if (edge.data.markingIsSet() && edge.data.isMarked())
         {
             clr = SVG::Color::BLUE;
             stroke_width = 2;
