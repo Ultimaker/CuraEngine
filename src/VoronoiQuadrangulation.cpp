@@ -1408,6 +1408,14 @@ bool VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
         assert(rest >= 0);
         assert(rest <= std::max(end_rest, start_rest));
         assert(rest >= std::min(end_rest, start_rest));
+
+        coord_t marked_edge_count = 0;
+        for (edge_t* outgoing = edge.next; outgoing && outgoing != edge.twin; outgoing = outgoing->twin->next)
+        {
+            if (!outgoing->data.isMarked()) continue;
+            marked_edge_count++;
+        }
+
         bool is_only_going_down = true;
         bool has_recursed = false;
         for (edge_t* outgoing = edge.next; outgoing && outgoing != edge.twin;)
@@ -1418,11 +1426,11 @@ bool VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
                 outgoing = next;
                 continue; // don't put transition ends in non-marked regions
             }
-            if (going_up && isGoingDown(outgoing, 0, end_pos - ab_size, lower_bead_count))
+            if (marked_edge_count > 1 && going_up && isGoingDown(outgoing, 0, end_pos - ab_size, lower_bead_count))
             { // we're after a 3-way all marked junction node and going in the direction of lower bead count
                 // don't introduce a transition end along this marked direction, because this direction is the downward direction
                 outgoing = next;
-                continue; // don't put transition ends in non-marked regions
+                continue;
             }
             bool is_going_down = generateTransitionEnd(*outgoing, 0, end_pos - ab_size, transition_half_length, rest, end_rest, lower_bead_count, edge_to_transition_ends);
             is_only_going_down &= is_going_down;
