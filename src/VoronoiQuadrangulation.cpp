@@ -1407,7 +1407,7 @@ bool VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
                 outgoing = next;
                 continue; // don't put transition ends in non-marked regions
             }
-            if (going_up && isGoingDown(outgoing, 0, transition_half_length, lower_bead_count))
+            if (going_up && isGoingDown(outgoing, 0, end_pos - ab_size, lower_bead_count))
             { // we're after a 3-way all marked junction node and going in the direction of lower bead count
                 // don't introduce a transition end along this marked direction, because this direction is the downward direction
                 outgoing = next;
@@ -1418,7 +1418,7 @@ bool VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
             outgoing = next;
             has_recursed = true;
         }
-        if (has_recursed && !is_only_going_down)
+        if (!going_up || (has_recursed && !is_only_going_down))
         {
             edge.to->data.transition_ratio = rest;
             edge.to->data.bead_count = lower_bead_count;
@@ -1458,7 +1458,7 @@ bool VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
 }
 
 
-bool VoronoiQuadrangulation::isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t transition_half_length, coord_t lower_bead_count) const
+bool VoronoiQuadrangulation::isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t max_dist, coord_t lower_bead_count) const
 {
     // NOTE: the logic below is not fully thought through.
     // TODO: take transition mids into account
@@ -1466,7 +1466,8 @@ bool VoronoiQuadrangulation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
     {
         return true;
     }
-    if (traveled_dist > transition_half_length)
+    coord_t length = vSize(outgoing->to->p - outgoing->from->p);
+    if (traveled_dist + length > max_dist)
     {
         return false;
     }
@@ -1487,7 +1488,6 @@ bool VoronoiQuadrangulation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
         {
             continue;
         }
-        coord_t length = vSize(next->to->p - next->from->p);
         bool is_going_down = isGoingDown(next, traveled_dist + length, transition_filter_dist, lower_bead_count);
         is_only_going_down &= is_going_down;
         has_recursed = true;
