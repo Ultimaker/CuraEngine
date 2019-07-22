@@ -1933,6 +1933,8 @@ VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beadin
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     Beading ret = interpolate(left, ratio_left_to_whole, right);
 
+    // TODO: don't use toolpath locations past the middle!
+    // TODO: stretch bead widths and locations of the higher bead count beading to fit in the left over space
     coord_t next_inset_idx;
     for (next_inset_idx = left.toolpath_locations.size() - 1; next_inset_idx >= 0; next_inset_idx--)
     {
