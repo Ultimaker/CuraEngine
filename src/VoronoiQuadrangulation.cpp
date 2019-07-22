@@ -1215,7 +1215,13 @@ std::list<VoronoiQuadrangulation::TransitionMidRef> VoronoiQuadrangulation::diss
         }
         if (!seen_transition_in_this_direction) // stop recursion once we have found the other transition to be dissolved
         {
-            to_be_dissolved = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions, beading_strategy);
+            std::list<VoronoiQuadrangulation::TransitionMidRef> to_be_dissolved_here = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions, beading_strategy);
+            if (to_be_dissolved_here.empty())
+            { // the region is too long to be dissolved in this direction, so it cannot be dissolved in any direction.
+                to_be_dissolved.clear();
+                return to_be_dissolved;
+            }
+            to_be_dissolved.splice(to_be_dissolved.end(), to_be_dissolved_here); // transfer to_be_dissolved_here into to_be_dissolved
             should_dissolve = should_dissolve && !to_be_dissolved.empty();
         }
     }
