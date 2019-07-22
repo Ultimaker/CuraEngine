@@ -42,6 +42,8 @@ public:
      */
     void insert(const Elem &elem);
 
+    const ElemT* getAnyNearby(const Point& query_pt, coord_t radius);
+
 protected:
     using GridPoint = typename SparseGrid<ElemT>::GridPoint;
 
@@ -67,6 +69,24 @@ void SGI_THIS::insert(const Elem &elem)
     GridPoint grid_loc = SparseGrid<ElemT>::toGridPoint(loc);
 
     SparseGrid<ElemT>::m_grid.emplace(grid_loc,elem);
+}
+
+SGI_TEMPLATE
+const ElemT* SGI_THIS::getAnyNearby(const Point& query_pt, coord_t radius)
+{
+    const ElemT* ret = nullptr;
+    const std::function<bool (const ElemT&)>& process_func = [&ret, query_pt, radius, this](const ElemT& maybe_nearby)
+        {
+            if (shorterThen(m_locator(maybe_nearby) - query_pt, radius))
+            {
+                ret = &maybe_nearby;
+                return false;
+            }
+            return true;
+        };
+    SparseGrid<ElemT>::processNearby(query_pt, radius, process_func);
+
+    return ret;
 }
 
 
