@@ -25,12 +25,25 @@ void Statistics::analyse(Polygons& input, std::vector<std::vector<std::vector<Ex
     {
         Segment s = all_segments[segment_idx];
         Polygons covered = s.s.toPolygons(false);
-        area_covered = area_covered.unionPolygons(covered);
+        area_covered.add(covered);
         Polygons extruded = s.toPolygons();
         overlaps.add(extruded);
     }
     
-    overfills = overlaps.xorPolygons(area_covered);
+    area_covered = area_covered.execute(ClipperLib::pftNonZero);
+
+    overfills = overlaps;
+    for (PolygonRef poly : area_covered)
+    {
+        PolygonRef new_poly = overfills.newPoly();
+        for (coord_t point_idx = poly.size() - 1; point_idx >= 0; --point_idx)
+        {
+            new_poly.add(poly[point_idx]);
+        }
+    }
+    overfills = overfills.execute(ClipperLib::pftPositive);
+    overfills = overfills.unionPolygons(overlaps.xorPolygons(area_covered));
+    overfills = overfills.intersection(area_covered);
     overfills = overfills.offset(-5);
     overfills = overfills.offset(10);
     overfills = overfills.offset(-5);
