@@ -1991,6 +1991,12 @@ VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beadin
             break;
         }
     }
+    if (next_inset_idx < 0)
+    { // there is no next inset, because there is only one
+        assert(left.toolpath_locations.front() > switching_radius);
+        assert(left.toolpath_locations.size() <= 2);
+        return ret;
+    }
     assert(next_inset_idx < left.toolpath_locations.size());
     assert(left.toolpath_locations[next_inset_idx] <= switching_radius);
     assert(left.toolpath_locations[next_inset_idx + 1] >= switching_radius);
