@@ -1468,14 +1468,15 @@ void VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, c
             transition_half_length = 10;
         }
         coord_t end_pos = mid_pos +  transition_half_length;
-        generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_to_transition_ends);
+        bool is_going_down = generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_to_transition_ends);
+        assert(!is_going_down && "There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");
     }
 
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
 }
 
-void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
+bool VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -1489,7 +1490,7 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
     assert(edge.data.isMarked());
     if (!edge.data.isMarked())
     { // This function shouldn't generate ends in or beyond unmarked regions
-        return;
+        return false;
     }
 
     /*
@@ -1508,8 +1509,8 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
         assert(rest >= 0);
         assert(rest <= std::max(end_rest, start_rest));
         assert(rest >= std::min(end_rest, start_rest));
-        edge.to->data.transition_ratio = rest;
-        edge.to->data.bead_count = lower_bead_count;
+        bool is_only_going_down = true;
+        bool has_recursed = false;
         for (edge_t* outgoing = edge.next; outgoing && outgoing != edge.twin;)
         {
             edge_t* next = outgoing->twin->next; // before we change the outgoing edge itself
@@ -1524,9 +1525,17 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
                 outgoing = next;
                 continue; // don't put transition ends in non-marked regions
             }
-            generateTransitionEnd(*outgoing, 0, end_pos - ab_size, transition_half_length, rest, end_rest, lower_bead_count, edge_to_transition_ends);
+            bool is_going_down = generateTransitionEnd(*outgoing, 0, end_pos - ab_size, transition_half_length, rest, end_rest, lower_bead_count, edge_to_transition_ends);
+            is_only_going_down &= is_going_down;
             outgoing = next;
+            has_recursed = true;
         }
+        if (has_recursed && !is_only_going_down)
+        {
+            edge.to->data.transition_ratio = rest;
+            edge.to->data.bead_count = lower_bead_count;
+        }
+        return is_only_going_down;
     }
     else // end_pos < ab_size
     { // add transition end point here
@@ -1556,6 +1565,7 @@ void VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
         {
             transitions->emplace_back(pos, lower_bead_count, is_lower_end);
         }
+        return false;
     }
 }
 
@@ -1564,6 +1574,14 @@ bool VoronoiQuadrangulation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
 {
     // NOTE: the logic below is not fully thought through.
     // TODO: take transition mids into account
+    if (outgoing->to->data.distance_to_boundary == 0)
+    {
+        return true;
+    }
+    if (traveled_dist > transition_half_length)
+    {
+        return false;
+    }
     if (outgoing->to->data.bead_count <= lower_bead_count
         && !(outgoing->to->data.bead_count == lower_bead_count && outgoing->to->data.transition_ratio > 0.0))
     {
@@ -1573,18 +1591,16 @@ bool VoronoiQuadrangulation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
     {
         return false;
     }
-    if (traveled_dist > transition_half_length)
-    {
-        return false;
-    }
-    bool ret = true;
+    bool is_only_going_down = true;
+    bool has_recursed = false;
     for (edge_t* next = outgoing->next; next && next != outgoing->twin; next = next->twin->next)
     {
         coord_t length = vSize(next->to->p - next->from->p);
         bool is_going_down = isGoingDown(next, traveled_dist + length, transition_filter_dist, lower_bead_count);
-        ret &= is_going_down;
+        is_only_going_down &= is_going_down;
+        has_recursed = true;
     }
-    return ret;
+    return has_recursed && is_only_going_down;
 }
 
 void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
