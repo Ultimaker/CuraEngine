@@ -756,11 +756,21 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
 
     setBeadCount(beading_strategy);
 
+    {
+        SVG svg("output/unfiltered.svg", AABB(polys));
+        debugOutput(svg, false, false, true, false);
+    }
+    
     
     filterUnmarkedRegions(beading_strategy);
 
     debugCheckDecorationConsistency(false);
 
+    {
+        SVG svg("output/filtered.svg", AABB(polys));
+        debugOutput(svg, false, false, true, false);
+    }
+    
     generateTransitioningRibs(beading_strategy);
     
     
@@ -967,6 +977,29 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
     
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
+
+#ifdef DEBUG
+    {
+        SVG svg("output/transition_mids_unfiltered.svg", AABB(polys));
+        debugOutput(svg, false, false, true, false);
+        for (auto pair : edge_to_transitions)
+        {
+            edge_t* edge = pair.first;
+            Point a = edge->from->p;
+            Point b = edge->to->p;
+            Point ab = b - a;
+            coord_t ab_length = vSize(ab);
+            for (TransitionMiddle& transition : pair.second)
+            {
+                Point p = a + ab * transition.pos / ab_length;
+                svg.writePoint(p, false, 3, SVG::Color::MAGENTA);
+                std::ostringstream ss;
+                ss << transition.lower_bead_count;
+                svg.writeText(p, ss.str(), SVG::Color::GRAY);
+            }
+        }
+    }
+#endif
 
     filterTransitionMids(edge_to_transitions, beading_strategy);
 
