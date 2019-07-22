@@ -818,6 +818,9 @@ void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
     //        `^'-._                     dD = |AB|            .
     //              `^'-._                                    .
     //                             sin a = dR / dD            .
+
+    coord_t outer_edge_filter_length = beading_strategy.transition_thickness(0) / 2;
+
     float cap = 1.0 / sin(beading_strategy.transitioning_angle * 0.5);
     for (edge_t& edge : graph.edges)
     {
@@ -827,6 +830,10 @@ void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
             edge.data.setMarked(edge.twin->data.isMarked());
         }
         else if (edge.data.type == VoronoiQuadrangulationEdge::EXTRA_VD)
+        {
+            edge.data.setMarked(false);
+        }
+        else if (std::max(edge.from->data.distance_to_boundary, edge.to->data.distance_to_boundary) < outer_edge_filter_length)
         {
             edge.data.setMarked(false);
         }
