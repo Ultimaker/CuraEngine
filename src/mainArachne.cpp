@@ -375,6 +375,11 @@ void test()
         gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
     }
 
+    {
+        STLwriter stl("output/mat.stl");
+        vq.debugOutput(stl);
+    }
+
     logAlways("Writing gcode took %fs\n", tk.restart());
 
 

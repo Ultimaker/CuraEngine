@@ -2525,4 +2525,27 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
     }
 }
 
+
+void VoronoiQuadrangulation::debugOutput(STLwriter& stl)
+{
+    for (edge_t& edge : graph.edges)
+    {
+        if (edge.prev)
+        {
+            continue;
+        }
+        auto toPoint3 = [](node_t* node)
+            {
+                return Point3(node->p.X, node->p.Y, node->data.distance_to_boundary);
+            };
+        
+        assert(edge.next);
+        stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.to), toPoint3(edge.next->to));
+        if (edge.next->next)
+        {
+            stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.next->to), toPoint3(edge.next->next->to));
+        }
+    }
+}
+
 } // namespace arachne
