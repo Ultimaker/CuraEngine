@@ -271,7 +271,7 @@ protected:
      * \param edge_to_junctions junctions ordered high R to low R
      * \param[out] segments the generated segments
      */
-    void connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions, std::vector<ExtrusionSegment>& segments);
+    void connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<ExtrusionSegment>& segments);
 
     /*!
      * Genrate small segments for local maxima where the beading would only result in a single bead

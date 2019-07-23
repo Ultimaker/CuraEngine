@@ -2095,7 +2095,7 @@ VoronoiQuadrangulation::BeadingPropagation& VoronoiQuadrangulation::getBeading(n
 }
 
 
-void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions, std::vector<ExtrusionSegment>& segments)
+void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<ExtrusionSegment>& segments)
 {
     // TODO: walk along cells in order of the input polygons, so that we can easily greedily optimize the order afterwards
     for (edge_t& edge : graph.edges)
