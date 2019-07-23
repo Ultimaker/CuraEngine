@@ -1817,7 +1817,12 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
     
     std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions; // junctions ordered high R to low R
     generateJunctions(node_to_beading, edge_to_junctions, beading_strategy);
-    
+
+    {
+        STLwriter stl("output/vq.stl");
+        debugOutput(stl, edge_to_junctions, node_to_beading);
+    }
+
     connectJunctions(edge_to_junctions, segments);
     
     generateLocalMaximaSingleBeads(node_to_beading, segments);
@@ -2528,16 +2533,16 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
 
 void VoronoiQuadrangulation::debugOutput(STLwriter& stl)
 {
+    auto toPoint3 = [](node_t* node)
+        {
+            return Point3(node->p.X, node->p.Y, node->data.distance_to_boundary);
+        };
     for (edge_t& edge : graph.edges)
     {
         if (edge.prev)
         {
             continue;
         }
-        auto toPoint3 = [](node_t* node)
-            {
-                return Point3(node->p.X, node->p.Y, node->data.distance_to_boundary);
-            };
         
         assert(edge.next);
         stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.to), toPoint3(edge.next->to));
@@ -2545,6 +2550,108 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl)
         {
             stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.next->to), toPoint3(edge.next->next->to));
         }
+    }
+}
+
+void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
+{
+    auto toPoint3 = [](Point p, float h)
+    {
+        return Point3(p.X, p.Y, h * 200);
+    };
+    auto getHeight = [&node_to_beading](node_t* node)
+    {
+        auto found = node_to_beading.find(node);
+        if (found == node_to_beading.end())
+            return 0.0f;
+        BeadingPropagation& beading = found->second;
+        coord_t r = node->data.distance_to_boundary;
+        coord_t upper_inset_idx = 0;
+        while (upper_inset_idx < beading.beading.toolpath_locations.size() && beading.beading.toolpath_locations[upper_inset_idx] < r)
+            upper_inset_idx++;
+        if (upper_inset_idx >= beading.beading.toolpath_locations.size() || upper_inset_idx <= 0)
+            return static_cast<float>(beading.beading.toolpath_locations.size());
+        coord_t upper_inset_r = beading.beading.toolpath_locations[upper_inset_idx];
+        if (upper_inset_idx <= 0)
+        {
+            return static_cast<float>(r) / upper_inset_r ;
+        }
+        coord_t lower_inset_r = beading.beading.toolpath_locations[upper_inset_idx - 1];
+        return (upper_inset_idx - 1) * 2 + 1 + 2 * static_cast<float>(r - lower_inset_r) / (upper_inset_r - lower_inset_r);
+    };
+    auto getPoint = [](float h, std::vector<ExtrusionJunction>& junctions)
+    {
+        float inset_ifx_f = (h - 1) / 2;
+        coord_t lower_inset_idx = std::floor(inset_ifx_f);
+        float rest = inset_ifx_f - lower_inset_idx;
+        if (lower_inset_idx >= junctions.size()
+            || lower_inset_idx + 1 >= junctions.size())
+            return junctions.back().p;
+        Point lower = junctions[lower_inset_idx].p;
+        Point upper = junctions[lower_inset_idx + 1].p;
+        coord_t scaler = 1000;
+        return (lower * scaler * rest + upper * scaler * (1.0 - rest)) / scaler;
+    };
+    for (edge_t& edge : graph.edges)
+    {
+        if (edge.prev)
+        {
+            continue;
+        }
+        edge_t* quad_start = &edge;
+        edge_t* quad_end = quad_start; while (quad_end->next) quad_end = quad_end->next;
+        std::vector<ExtrusionJunction>* start_junctions = &edge_to_junctions[quad_start];
+        std::vector<ExtrusionJunction>* end_junctions = &edge_to_junctions[quad_end->twin];
+        coord_t start_junction_index = start_junctions->size() - 1;
+        coord_t end_junction_index = end_junctions->size() - 1;
+        
+        Point3 start_prev = toPoint3(quad_start->from->p, getHeight(quad_start->from));
+        Point3 end_prev = toPoint3(quad_end->to->p, getHeight(quad_end->to));
+        while (true)
+        {
+            std::vector<ExtrusionJunction>& ss = *start_junctions;
+            std::vector<ExtrusionJunction>& ee = *end_junctions;
+            if (end_junction_index < 0 && start_junction_index < 0)
+            {
+                break;
+            }
+            else if (end_junction_index < 0)
+            {
+                if (quad_end->prev == quad_start)
+                {
+                    break;
+                }
+                quad_end = quad_end->prev;
+                end_junctions = &edge_to_junctions[quad_end->twin];
+                if (end_junctions->empty()) break;
+                end_junction_index = end_junctions->size() - 1;
+            }
+            else if (start_junction_index < 0)
+            {
+                if (quad_end == quad_start->next)
+                {
+                    break;
+                }
+                quad_start = quad_start->next;
+                start_junctions = &edge_to_junctions[quad_start];
+                if (start_junctions->empty()) break;
+                start_junction_index = start_junctions->size() - 1;
+            }
+            Point3 start = toPoint3((*start_junctions)[start_junction_index].p, (*start_junctions)[start_junction_index].perimeter_index * 2 + 1);
+            Point3 end = toPoint3((*end_junctions)[end_junction_index].p, (*end_junctions)[end_junction_index].perimeter_index * 2 + 1);
+            
+            stl.writeTriangle(start_prev, end_prev, end);
+            stl.writeTriangle(start_prev, end, start);
+            start_prev = start;
+            end_prev = end;
+            start_junction_index--;
+            end_junction_index--;
+        }
+
+        Point3 start = toPoint3(quad_start->to->p, getHeight(quad_start->to));
+        Point3 end = toPoint3(quad_end->from->p, getHeight(quad_end->from));
+        stl.writeTriangle(start_prev, end_prev, end);
+        stl.writeTriangle(start_prev, end, start);
     }
 }
 
