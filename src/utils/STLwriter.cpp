@@ -23,6 +23,7 @@ STLwriter::~STLwriter()
 
 void STLwriter::writeTriangle(Point3 a, Point3 b, Point3 c)
 {
+    if (a == b || b == c || c == a) return;
     a *= scaler;
     b *= scaler;
     c *= scaler;
