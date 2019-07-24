@@ -172,6 +172,64 @@ void Statistics::visualize()
 
     {
         std::ostringstream ss;
+        ss << "output/" << filename_base << "_widths.svg";
+        SVG svg(ss.str(), aabb);
+//         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
+
+        coord_t max_dev = 100;
+
+        // add legend
+        auto to_string = [](float v)
+        {
+            std::ostringstream ss;
+            ss << v;
+            return ss.str();
+        };
+        std::vector<Segment> all_segments_plus = all_segments;
+        AABB aabb(*input);
+        ExtrusionJunction legend_btm(Point(aabb.max.X + 400 + max_dev, aabb.max.Y), 400 - max_dev, 0);
+        ExtrusionJunction legend_top(Point(aabb.max.X + 400 + max_dev, aabb.min.Y), 400 + max_dev, 0);
+        ExtrusionJunction legend_mid((legend_top.p + legend_btm.p) / 2, (legend_top.w + legend_btm.w) / 2, 0);
+        all_segments_plus.emplace_back(ExtrusionSegment(legend_btm, legend_top, true), true);
+        Point legend_text_offset(400, 0);
+        svg.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
+        svg.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
+        svg.writeText(legend_mid.p + legend_text_offset, to_string(INT2MM(legend_mid.w)));
+        svg.writeLine(legend_top.p, legend_top.p + legend_text_offset);
+        svg.writeLine(legend_btm.p, legend_btm.p + legend_text_offset);
+        svg.writeLine(legend_mid.p, legend_mid.p + legend_text_offset);
+
+
+        for (const Segment& ss : all_segments_plus)
+        {
+            for (Segment s : discretize(ss, MM2INT(0.1)))
+            {
+                coord_t avg_w = (s.s.from.w + s.s.to.w) / 2;
+                Point3 gray(64,128,64);
+                Point3 red(255,0,0);
+                Point3 blue(0,0,255);
+                Point3 clr;
+                float color_ratio = std::min(1.0, std::abs(avg_w - 400.0) / max_dev);
+                color_ratio = sqrt(color_ratio);
+                if (avg_w > 400)
+                {
+                    clr = red * color_ratio + gray * (1.0 - color_ratio );
+                }
+                else
+                {
+                    clr = blue * color_ratio + gray * (1.0 - color_ratio );
+                }
+                s.s.from.w = std::max(static_cast<double>(0), 0.75 * (s.s.from.w + (s.s.from.w - 400) * 2.0));
+                s.s.to.w = std::max(static_cast<double>(0), 0.75 * (s.s.to.w + (s.s.to.w - 400) * 2.0));
+                Polygons covered = s.toPolygons();
+                svg.writeAreas(covered, SVG::ColorObject(clr.x, clr.y, clr.z), SVG::Color::NONE);
+            }
+        }
+//         svg.writePolygons(paths, SVG::Color::BLACK, 1);
+    }
+
+    {
+        std::ostringstream ss;
         ss << "output/" << filename_base << "_accuracy.svg";
         SVG svg(ss.str(), aabb);
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 3);
@@ -191,6 +249,25 @@ void Statistics::visualize()
     }
 
 }
-    
+
+std::vector<Statistics::Segment> Statistics::discretize(const Segment& segment, coord_t step_size)
+{
+    ExtrusionSegment extrusion_segment = segment.s;
+    Point a = extrusion_segment.from.p;
+    Point b = extrusion_segment.to.p;
+    Point ab = b - a;
+    coord_t ab_length = vSize(ab);
+    coord_t step_count = std::max(static_cast<coord_t>(1), (ab_length + step_size / 2) / step_size);
+    std::vector<Segment> discretized;
+    ExtrusionJunction from = extrusion_segment.from;
+    for (coord_t step = 0; step < step_count; step++)
+    {
+        ExtrusionJunction mid(a + ab * (step + 1) / step_count, extrusion_segment.from.w + (extrusion_segment.to.w - extrusion_segment.from.w) * (step + 1) / step_count, extrusion_segment.from.perimeter_index);
+        discretized.emplace_back(ExtrusionSegment(from, mid, segment.s.is_odd), false);
+        from = mid;
+    }
+    discretized.back().is_full = segment.is_full;
+    return discretized;
+}
 
 } // namespace arachne

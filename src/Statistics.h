@@ -54,6 +54,8 @@ private:
     Polygons paths;
 
     void generateAllSegments(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index);
+
+    std::vector<Segment> discretize(const Segment& ss, coord_t step_size);
 };
 
 
