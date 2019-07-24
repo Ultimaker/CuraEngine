@@ -15,12 +15,8 @@ namespace arachne
 class DistributedBeadingStrategy : public BeadingStrategy
 {
 public:
-    const coord_t min_width;
-    const coord_t max_width;
-    DistributedBeadingStrategy(const coord_t min_width, const coord_t optimal_width, const coord_t max_width, float transitioning_angle)
+    DistributedBeadingStrategy(const coord_t optimal_width, float transitioning_angle)
     : BeadingStrategy(optimal_width, transitioning_angle)
-    , min_width(min_width)
-    , max_width(max_width)
     {
     }
     Beading compute(coord_t thickness, coord_t bead_count) const override;
