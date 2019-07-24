@@ -233,8 +233,8 @@ void Statistics::visualize()
         ss << "output/" << filename_base << "_accuracy.svg";
         SVG svg(ss.str(), aabb);
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 3);
-        svg.writeAreas(overfills, SVG::Color::ORANGE, SVG::Color::NONE);
-        svg.writeAreas(double_overfills, SVG::Color::RED, SVG::Color::NONE);
+        svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
+        svg.writeAreas(double_overfills, SVG::Color::ORANGE, SVG::Color::NONE);
         svg.writeAreas(underfills, SVG::Color::BLUE, SVG::Color::NONE);
         svg.writePolygons(paths, SVG::Color::BLACK, 1);
     }
