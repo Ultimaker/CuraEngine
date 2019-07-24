@@ -179,9 +179,12 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
         for (auto poly_it = polys->begin(); poly_it != polys->end(); ++poly_it)
         {
             assert(poly_it->junctions.size() > 1);
-            for (bool front : { true, false })
+            if (poly_it->computeLength() > 10)
             {
-                end_points_to_check.emplace_back(poly_it->inset_idx, poly_it, front);
+                for (bool front : { true, false })
+                {
+                    end_points_to_check.emplace_back(poly_it->inset_idx, poly_it, front);
+                }
             }
         }
     }
@@ -190,6 +193,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
         PolylineEndRef& end_point = *it;
         Point p = end_point.p();
 
+        bool end_point_has_changed = false; // Whether the end_point ref now points to a new end compared to where it was initially pointing to
         bool has_connected = polygon_grid.getAnyNearby(p, snap_dist) != nullptr; // we check whether polygons were already connected together here
 
         if (has_connected)
@@ -214,8 +218,8 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
             {
                 continue;
             }
-            if (end_point == other_end
-                && (!has_connected || p == end_point.p()) // only reduce overlap if the end point ref hasn't changed because of connecting
+            if (end_point == other_end)
+                if ((!has_connected || !end_point_has_changed) // only reduce overlap if the end point ref hasn't changed because of connecting
                 // NOTE: connecting might change the junctions in polyline and therefore the PolylineRef [end_point] might now refer to a new end point!
             )
             {
@@ -226,8 +230,9 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
             { // the other end is not really a nearby other end
                 continue;
             }
+            coord_t other_end_polyline_length = other_end.polyline->computeLength();
             if (&*end_point.polyline == &*other_end.polyline
-                && (other_end.polyline->junctions.size() <= 2 || other_end.polyline->computeLength() < snap_dist * 2)
+                && (other_end.polyline->junctions.size() <= 2 || other_end_polyline_length < snap_dist * 2)
             )
             { // the other end is of the same really short polyline
                 continue;
@@ -272,6 +277,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
                     polyline_grid.insert(result_line_untouched_end.p(), result_line_untouched_end);
                     end_points_to_check.emplace_back(result_line_untouched_end);
                     nearby_end_points.emplace_back(result_line_untouched_end);
+                    end_point_has_changed = end_point.front == changed_side_is_front && other_end_polyline_length > snap_dist * 2;
                 }
                 has_connected = true;
             }
