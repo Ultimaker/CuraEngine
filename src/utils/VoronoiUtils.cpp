@@ -247,6 +247,12 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
     coord_t d = vSize(ppxx);
     PointMatrix rot = PointMatrix(turn90CCW(ppxx));
     
+    if (d == 0)
+    {
+        discretized.emplace_back(s);
+        discretized.emplace_back(e);
+        return discretized;
+    }
     
     float marking_bound = atan(transitioning_angle * 0.5);
     coord_t msx = - marking_bound * d; // projected marking_start
