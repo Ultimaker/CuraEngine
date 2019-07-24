@@ -1957,6 +1957,10 @@ VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beadin
         assert(std::min(left.toolpath_locations.size(), right.toolpath_locations.size()) <= 2);
         return ret;
     }
+    if (next_inset_idx + 1 == left.toolpath_locations.size())
+    { // we cant adjust to fit the next edge because there is no previous one?!
+        return ret;
+    }
     assert(next_inset_idx < left.toolpath_locations.size());
     assert(left.toolpath_locations[next_inset_idx] <= switching_radius);
     assert(left.toolpath_locations[next_inset_idx + 1] >= switching_radius);
