@@ -34,6 +34,7 @@
 #include "TestGeometry/Moessen.h"
 #include "TestGeometry/Prescribed.h"
 #include "TestGeometry/Spiky.h"
+#include "TestGeometry/SVGloader.h"
 
 using arachne::Point;
 
@@ -317,7 +318,14 @@ void test()
     
     
     generateTestPolys();
-//     Polygons polys = generateTestPoly(20, Point(10000, 10000));
+//     Polygons polys = SVGloader::load("input/distributed_toolpaths.svg");
+//     {
+//         SVG svg("input/redone.svg", AABB(polys));
+//         svg.writePolygons(polys);
+//     }
+//     Polygons polys = generateTestPoly(40, Point(20000, 20000));
+//     r = 1563833579; srand(r); Polygons polys = generateTestPoly(40, Point(20000, 20000)); // some overlapping regions where there shouldn't be
+
 //     Polygons polys = test_poly_1;
 //     Polygons polys = squares;
 //     Polygons polys = circle;
