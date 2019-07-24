@@ -215,20 +215,19 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
                 continue;
             }
             if (end_point == other_end
-                && !has_connected // because that might have changed end_point
+                && (!has_connected || p == end_point.p()) // only reduce overlap if the end point ref hasn't changed because of connecting
+                // NOTE: connecting might change the junctions in polyline and therefore the PolylineRef [end_point] might now refer to a new end point!
             )
             {
                 continue;
             }
-            if (false
-                || !shorterThen(p - other_end.p(), snap_dist)
+            if (!shorterThen(p - other_end.p(), snap_dist)
             )
             { // the other end is not really a nearby other end
                 continue;
             }
             if (&*end_point.polyline == &*other_end.polyline
                 && (other_end.polyline->junctions.size() <= 2 || other_end.polyline->computeLength() < snap_dist * 2)
-                && !has_connected // because that might have changed end_point
             )
             { // the other end is of the same really short polyline
                 continue;
