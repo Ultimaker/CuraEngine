@@ -190,6 +190,8 @@ void Statistics::visualize()
         ExtrusionJunction legend_btm(Point(aabb.max.X + 400 + max_dev, aabb.max.Y), 400 - max_dev, 0);
         ExtrusionJunction legend_top(Point(aabb.max.X + 400 + max_dev, aabb.min.Y), 400 + max_dev, 0);
         ExtrusionJunction legend_mid((legend_top.p + legend_btm.p) / 2, (legend_top.w + legend_btm.w) / 2, 0);
+        legend_btm.p += (legend_mid.p - legend_btm.p) / 4;
+        legend_top.p += (legend_mid.p - legend_top.p) / 4;
         all_segments_plus.emplace_back(ExtrusionSegment(legend_btm, legend_top, true), true);
         Point legend_text_offset(400, 0);
         svg.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
