@@ -27,6 +27,8 @@ public:
             RUN_ONCE(logWarning("LimitedDistributedBeadingStrategy with odd bead count is odd indeed!\n"));
         }
     }
+    virtual ~LimitedDistributedBeadingStrategy() override
+    {}
     Beading compute(coord_t thickness, coord_t bead_count) const override;
     coord_t optimal_thickness(coord_t bead_count) const override;
     coord_t transition_thickness(coord_t lower_bead_count) const override;

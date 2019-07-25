@@ -20,6 +20,8 @@ public:
     : DistributedBeadingStrategy(optimal_width, transitioning_angle)
     {
     }
+    virtual ~InwardDistributedBeadingStrategy() override
+    {}
     Beading compute(coord_t thickness, coord_t bead_count) const override;
 };
 

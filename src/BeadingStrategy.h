@@ -50,6 +50,9 @@ public:
         }
     }
 
+    virtual ~BeadingStrategy()
+    {}
+
     /*!
      * Retrieve the bead widths with which to cover a given thickness.
      * 

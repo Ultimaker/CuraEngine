@@ -21,10 +21,12 @@ public:
     , bead_count(bead_count)
     {
     }
-    Beading compute(coord_t thickness, coord_t bead_count) const;
-    coord_t optimal_thickness(coord_t bead_count) const;
-    coord_t transition_thickness(coord_t lower_bead_count) const;
-    coord_t optimal_bead_count(coord_t thickness) const;
+    virtual ~ConstantBeadingStrategy() override
+    {}
+    Beading compute(coord_t thickness, coord_t bead_count) const override;
+    coord_t optimal_thickness(coord_t bead_count) const override;
+    coord_t transition_thickness(coord_t lower_bead_count) const override;
+    coord_t optimal_bead_count(coord_t thickness) const override;
 };
 
 
