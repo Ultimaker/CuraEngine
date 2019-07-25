@@ -1163,6 +1163,17 @@ public:
             }
         }
     }
+
+    void applyMatrix(const Point3Matrix& matrix)
+    {
+        for(unsigned int i=0; i<paths.size(); i++)
+        {
+            for(unsigned int j=0; j<paths[i].size(); j++)
+            {
+                paths[i][j] = matrix.apply(paths[i][j]);
+            }
+        }
+    }
 };
 
 /*!
