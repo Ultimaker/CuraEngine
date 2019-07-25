@@ -49,20 +49,7 @@ Polygons generateTestPoly(int size, Point border)
     {
         poly.emplace_back(rand() % border.X, rand() % border.Y);
     }
-    
-    polys = polys.unionPolygons(Polygons(), ClipperLib::pftPositive);
-//     polys = polys.offset(border.X*1.2, ClipperLib::jtRound);
-    
-//     polys = polys.offset(border.X*2, ClipperLib::jtRound);
-//     polys = polys.offset(-border.X*1.8, ClipperLib::jtRound);
-    
-//     polys = polys.offset(-10, ClipperLib::jtRound);
-//     polys = polys.offset(20, ClipperLib::jtRound);
-//     polys = polys.offset(-10, ClipperLib::jtRound);
-    polys = polys.offset(-border.X/200, ClipperLib::jtRound);
-    polys = polys.offset(border.X/100, ClipperLib::jtRound);
-    polys = polys.offset(-border.X/200, ClipperLib::jtRound);
-    polys = polys.unionPolygons();
+    polys = polys.execute(ClipperLib::pftPositive);
     return polys;
 }
 
