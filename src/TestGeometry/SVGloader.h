@@ -56,12 +56,12 @@ public:
         {
             if (std::regex_search(line, points_sm, points_regex))
             {
-                if (points_sm.size() < 1)
+                if (points_sm.size() < 2)
                 {
                     assert(false);
                     continue; // didn't contain points
                 }
-                std::string points_str = points_sm[1];
+                std::string points_str = points_sm[1].str();
                         
                 std::transform(points_str.begin(), points_str.end(), points_str.begin(),
                     [](unsigned char c){ return std::tolower(c); });
@@ -76,7 +76,8 @@ public:
                 while (std::regex_search (points_str, point_sm, point_regex))
                 {
                     float x, y;
-                    std::string point_str = point_sm[0];
+                    if (point_sm.size() <= 0) continue;
+                    std::string point_str = point_sm[0].str();
                     if (point_str.compare("") == 0) break;
                     if (std::sscanf(point_str.c_str(), "%f,%f", &x, &y) == 2)
                     {
