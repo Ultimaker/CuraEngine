@@ -200,27 +200,31 @@ void Statistics::visualize()
         svg.writeLine(legend_mid.p, legend_mid.p + legend_text_offset);
 
 
+        Point3 green(0,255,0);
+        Point3 red(255,0,0);
+        Point3 blue(0,0,255);
         for (const Segment& ss : all_segments_plus)
         {
             for (Segment s : discretize(ss, MM2INT(0.1)))
             {
                 coord_t avg_w = (s.s.from.w + s.s.to.w) / 2;
-                Point3 gray(64,128,64);
-                Point3 red(255,0,0);
-                Point3 blue(0,0,255);
                 Point3 clr;
                 float color_ratio = std::min(1.0, std::abs(avg_w - 400.0) / max_dev);
-                color_ratio = sqrt(color_ratio);
+//                 color_ratio = sqrt(color_ratio);
                 if (avg_w > 400)
                 {
-                    clr = red * color_ratio + gray * (1.0 - color_ratio );
+                    clr = red * color_ratio + green * (1.0 - color_ratio );
                 }
                 else
                 {
-                    clr = blue * color_ratio + gray * (1.0 - color_ratio );
+                    clr = blue * color_ratio + green * (1.0 - color_ratio );
                 }
-                s.s.from.w = std::max(static_cast<double>(0), 0.75 * (s.s.from.w + (s.s.from.w - 400) * 2.0));
-                s.s.to.w = std::max(static_cast<double>(0), 0.75 * (s.s.to.w + (s.s.to.w - 400) * 2.0));
+                coord_t clr_max = std::max(clr.x, std::max(clr.y, clr.z));
+                clr = clr * 255 / clr_max;
+
+                clr.y = clr.y * (255 - 92 * clr.dot(green) / green.vSize() / 255) / 255;
+                s.s.from.w = std::max(static_cast<double>(30), 0.75 * (s.s.from.w + (s.s.from.w - 400) * 2.0));
+                s.s.to.w = std::max(static_cast<double>(30), 0.75 * (s.s.to.w + (s.s.to.w - 400) * 2.0));
                 Polygons covered = s.toPolygons();
                 svg.writeAreas(covered, SVG::ColorObject(clr.x, clr.y, clr.z), SVG::Color::NONE);
             }
