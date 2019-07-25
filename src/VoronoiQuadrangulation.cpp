@@ -636,8 +636,8 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
             quad_mid->twin->next->prev = quad_mid->twin->prev;
             quad_mid->twin->prev->next = quad_mid->twin->next;
 
-            safelyRemoveEdge(quad_mid, edge_it, edge_it_is_updated);
             safelyRemoveEdge(quad_mid->twin, edge_it, edge_it_is_updated);
+            safelyRemoveEdge(quad_mid, edge_it, edge_it_is_updated);
             quad_mid_is_removed = true;
         }
 
