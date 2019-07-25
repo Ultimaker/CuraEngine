@@ -35,6 +35,7 @@
 #include "TestGeometry/Prescribed.h"
 #include "TestGeometry/Spiky.h"
 #include "TestGeometry/SVGloader.h"
+#include "TestGeometry/Microstructure.h"
 
 using arachne::Point;
 
@@ -471,7 +472,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
 //     Polygons polys = cross_shape;
-    Polygons polys = gMAT_example;
+//     Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
 //     Polygons polys = flawed_wedge;
 //     Polygons polys = flawed_wall;
@@ -481,6 +482,8 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
+    Microstructure m;
+    Polygons polys = m.squareGrid(Point(20,20), Point(2000,2000));
 //     Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 52);
 //     Polygons polys = MoessenTests::generateCircles(Point(2, 2), 100, 400, 500, 8);
 //     r = 1563874501; Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 1000, 8);
