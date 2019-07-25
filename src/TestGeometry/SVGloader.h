@@ -22,10 +22,22 @@ public:
                 
         Polygons ret;
         
-        std::ifstream file(filename);
+        std::ifstream file;
+        try
+        {
+            file.open(filename);
+        }
+        catch (const std::exception& e)
+        {
+            logError("Couldn't open file '%s' for reading svg.\n", filename.c_str());
+            std::cerr << std::flush;
+            std::exit(-1);
+            return ret;
+        }
         if (!file.is_open())
         {
             logError("Couldn't open file '%s' for reading svg.\n", filename.c_str());
+            std::exit(-1);
             return ret;
         }
         std::regex poly_regex("<(polygon)|(path) .*/>");
