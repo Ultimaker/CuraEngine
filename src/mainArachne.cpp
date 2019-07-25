@@ -473,8 +473,8 @@ int main(int argc, char *argv[])
     for (int i = 0; i < n; i++)
     {
         arachne::test(input_outline_filename, output_prefix);
-        if (++i % std::max(1l, n / 100) == 0)
-            std::cerr << (i / 100) << "%\n";
+//         if (++i % std::max(1l, n / 100) == 0)
+//             std::cerr << (i / 100) << "%\n";
     }
     return 0;
 }

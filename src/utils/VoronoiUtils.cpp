@@ -136,8 +136,6 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
     }
     
     
-    printf("%zu edges\n", vd.edges().size());
-    
     for (const vd_t::edge_type& edge : vd.edges())
     {
         const vd_t::vertex_type* from = edge.vertex0();

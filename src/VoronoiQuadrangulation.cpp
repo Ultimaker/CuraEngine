@@ -525,8 +525,13 @@ void VoronoiQuadrangulation::init()
 #ifdef DEBUG
     {
         AABB aabb(polys);
+        SVG svg("output/vq.svg", aabb);
+        debugOutput(svg, false, false);
+    }
+    {
+        AABB aabb(polys);
         SVG svg("output/graph.svg", aabb);
-        debugOutput(svg, false, true); 
+        debugOutput(svg, false, true);
     }
     {
         AABB aabb(polys);
@@ -756,21 +761,24 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
 
     setBeadCount(beading_strategy);
 
+#ifdef DEBUG
     {
         SVG svg("output/unfiltered.svg", AABB(polys));
         debugOutput(svg, false, false, true, false);
     }
-    
-    
+#endif
+
     filterUnmarkedRegions(beading_strategy);
 
     debugCheckDecorationConsistency(false);
 
+#ifdef DEBUG
     {
         SVG svg("output/filtered.svg", AABB(polys));
         debugOutput(svg, false, false, true, false);
     }
-    
+#endif
+
     generateTransitioningRibs(beading_strategy);
     
     
@@ -798,8 +806,6 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
     std::vector<ExtrusionSegment> segments;
     generateSegments(segments, beading_strategy);
     // junctions = generateJunctions
-
-    printf("got %zu toolpath segments\n", segments.size());
 
     return segments;
 }
@@ -1786,7 +1792,6 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
         {
             return a->to->data.distance_to_boundary > b->to->data.distance_to_boundary;
         });
-    printf("got %zu cells\n", upward_quad_mids.size());
     
     std::unordered_map<node_t*, BeadingPropagation> node_to_beading;
     { // store beading
@@ -1818,6 +1823,7 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
     std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions; // junctions ordered high R to low R
     generateJunctions(node_to_beading, edge_to_junctions, beading_strategy);
 
+    if (false)
     {
         STLwriter stl("output/vq.stl");
         debugOutput(stl, edge_to_junctions, node_to_beading);
@@ -2472,7 +2478,7 @@ SVG::Color VoronoiQuadrangulation::getColor(edge_t& edge)
     switch (edge.data.type)
     {
         case VoronoiQuadrangulationEdge::EXTRA_VD:
-            return SVG::Color::ORANGE;
+            return SVG::Color::GRAY;
         case VoronoiQuadrangulationEdge::TRANSITION_END:
             return SVG::Color::MAGENTA;
         case VoronoiQuadrangulationEdge::NORMAL:
