@@ -302,25 +302,179 @@ void generateTestPolys()
     }
 }
 
+
+enum class StrategyType
+{
+    Naive,
+    Constant,
+    Center,
+    Distributed,
+    InwardDistributed,
+    LimitedDistributed,
+    COUNT
+};
+
+std::string to_string(StrategyType type)
+{
+    switch (type)
+    {
+        case StrategyType::Naive: return "Naive";
+        case StrategyType::Constant: return "Constant";
+        case StrategyType::Center: return "Center";
+        case StrategyType::Distributed: return "Distributed";
+        case StrategyType::InwardDistributed: return "InwardDistributed";
+        case StrategyType::LimitedDistributed: return "LimitedDistributed";
+        default: return "unknown_strategy";
+    }
+}
+
+BeadingStrategy* makeStrategy(StrategyType type, float transitioning_angle = M_PI / 4)
+{
+    coord_t prefered_bead_width = MM2INT(0.4);
+    switch (type)
+    {
+        case StrategyType::Naive: return              new NaiveBeadingStrategy(prefered_bead_width);
+        case StrategyType::Constant: return           new ConstantBeadingStrategy(prefered_bead_width, 4);
+        case StrategyType::Center: return             new CenterDeviationBeadingStrategy(prefered_bead_width, .5, 1.7);
+        case StrategyType::Distributed: return        new DistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
+        case StrategyType::InwardDistributed: return  new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
+        case StrategyType::LimitedDistributed: return new LimitedDistributedBeadingStrategy(prefered_bead_width, 6, transitioning_angle);
+        default: return nullptr;
+    }
+}
+
+void test(Polygons& polys, std::string output_prefix, StrategyType type, bool generate_MAT_STL = false, bool generate_gcodes = false)
+{
+    float transitioning_angle = M_PI / 4;
+
+    BeadingStrategy* beading_strategy = makeStrategy(type, transitioning_angle);
+    if (!beading_strategy) return;
+
+
+    TimeKeeper tk;
+
+    VoronoiQuadrangulation vq(polys, transitioning_angle);
+
+    std::vector<ExtrusionSegment> segments = vq.generateToolpaths(*beading_strategy);
+
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
+    BeadingOrderOptimizer::optimize(segments, result_polygons_per_index, result_polylines_per_index);
+    logAlways("Processing took %fs\n", tk.restart());
+
+    if (generate_gcodes)
+    {
+        {
+            GcodeWriter gcode("output/arachne_P3.gcode", GcodeWriter::type_P3);
+            gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
+        }
+        {
+            GcodeWriter gcode("output/arachne_UM3.gcode", GcodeWriter::type_UM3);
+            gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
+            logAlways("Writing gcode took %fs\n", tk.restart());
+        }
+    }
+
+    if (generate_MAT_STL)
+    {
+        STLwriter stl("output/mat.stl");
+        vq.debugOutput(stl);
+        logAlways("Writing MAT STL took %fs\n", tk.restart());
+    }
+
+
+
+    logAlways("Analysing...\n");
+
+    Statistics stats(to_string(type), output_prefix);
+    stats.analyse(polys, result_polygons_per_index, result_polylines_per_index, &vq);
+    logAlways("Analysis took %fs\n", tk.restart());
+    logAlways("Visualizing...\n");
+    stats.visualize();
+    logAlways("Visualization took %fs\n", tk.restart());
+
+    delete beading_strategy;
+
+}
+
+void testNaive(Polygons& polys, std::string output_prefix, bool generate_gcodes = false)
+{
+    logAlways("Simulating naive method...\n");
+
+    coord_t nozzle_size = 400;
+
+    TimeKeeper tk;
+
+    std::vector<Polygons> insets;
+    Polygons last_inset = polys.offset(-nozzle_size / 2, ClipperLib::jtRound);
+    while (!last_inset.empty())
+    {
+        insets.emplace_back(last_inset);
+        last_inset = last_inset.offset(-nozzle_size, ClipperLib::jtRound);
+    }
+    logAlways("Naive processing took %fs\n", tk.restart());
+
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
+    result_polygons_per_index.resize(insets.size());
+    for (coord_t inset_idx = 0; inset_idx < insets.size(); inset_idx++)
+    {
+        for (PolygonRef poly : insets[inset_idx])
+        {
+            result_polygons_per_index[inset_idx].emplace_back();
+            std::vector<ExtrusionJunction>& junction_poly = result_polygons_per_index[inset_idx].back();
+            for (Point p : poly)
+            {
+                junction_poly.emplace_back(p, nozzle_size, inset_idx);
+            }
+        }
+    }
+
+    if (generate_gcodes)
+    {
+        {
+            GcodeWriter gcode("output/naive_P3.gcode", GcodeWriter::type_P3);
+            gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
+        }
+        {
+            GcodeWriter gcode("output/naive_UM3.gcode", GcodeWriter::type_UM3);
+            gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
+            logAlways("Writing gcodes took %fs\n", tk.restart());
+        }
+    }
+    
+    logAlways("Analysing...\n");
+
+    Statistics stats("naive", output_prefix);
+    stats.analyse(polys, result_polygons_per_index, result_polylines_per_index);
+    logAlways("Analysis took %fs\n", tk.restart());
+    stats.visualize();
+
+    logAlways("Visualization took %fs\n", tk.restart());
+
+    
+}
+
 void test(std::string input_outline_filename, std::string output_prefix)
 {
     
     // Preparing Input Geometries.
     int r;
     r = time(0);
-    r = 123;
-//     r = 1563034632; // problem with generateTestPoly(20, Point(10000, 10000));
+    r = 1563888830;
+//     r = 1563835071;
+//     r = 123;
     srand(r);
-    printf("r = %d;\n", r);
+    printf("srand(%d);\n", r);
     fflush(stdout);
     logDebug("boost version: %s\n", BOOST_LIB_VERSION);
     
     
     
     generateTestPolys();
-    Polygons polys = SVGloader::load(input_outline_filename);
-    AABB aabb(polys);
-    polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
+//     Polygons polys = SVGloader::load(input_outline_filename);
+//     AABB aabb(polys);
+//     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
 
 //     Polygons polys = generateTestPoly(40, Point(20000, 20000));
 //     r = 1563833579; srand(r); Polygons polys = generateTestPoly(40, Point(20000, 20000)); // some overlapping regions where there shouldn't be
@@ -330,7 +484,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
 //     Polygons polys = cross_shape;
-//     Polygons polys = gMAT_example;
+    Polygons polys = gMAT_example;
 //     Polygons polys = wedge;
 //     Polygons polys = flawed_wedge;
 //     Polygons polys = flawed_wall;
@@ -355,110 +509,20 @@ void test(std::string input_outline_filename, std::string output_prefix)
     polys = polys.unionPolygons();
     polys.simplify();
 
+    if (false)
     {
         SVG svg("output/outline.svg", AABB(polys));
         svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK);
     }
 
-    TimeKeeper tk;
-
-    float transitioning_angle = M_PI / 4;
-    VoronoiQuadrangulation vq(polys, transitioning_angle);
-
-//     DistributedBeadingStrategy beading_strategy(400, transitioning_angle);
-    InwardDistributedBeadingStrategy beading_strategy(400, transitioning_angle);
-//     LimitedDistributedBeadingStrategy beading_strategy(300, 400, 600, 6, transitioning_angle);
-//     NaiveBeadingStrategy beading_strategy(400);
-//     ConstantBeadingStrategy beading_strategy(400, 4);
-//     CenterDeviationBeadingStrategy beading_strategy(400, .5, 1.7);
-    std::vector<ExtrusionSegment> segments = vq.generateToolpaths(beading_strategy);
-
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
-    BeadingOrderOptimizer::optimize(segments, result_polygons_per_index, result_polylines_per_index);
-    logAlways("Processing took %fs\n", tk.restart());
-
+    for (int type_n = 0; type_n < static_cast<int>(StrategyType::COUNT); type_n++)
     {
-        GcodeWriter gcode("output/arachne_P3.gcode", GcodeWriter::type_P3);
-        gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
+        StrategyType type = static_cast<StrategyType>(type_n);
+        test(polys, output_prefix, type);
     }
-
-    {
-        GcodeWriter gcode("output/arachne_UM3.gcode", GcodeWriter::type_UM3);
-        gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
-    }
-
-    {
-        STLwriter stl("output/mat.stl");
-        vq.debugOutput(stl);
-    }
-
-    logAlways("Writing gcode took %fs\n", tk.restart());
-
-
-    logAlways("Analysing...\n");
-
-    Statistics stats("distributed", output_prefix);
-    stats.analyse(polys, result_polygons_per_index, result_polylines_per_index, &vq);
-    logAlways("Analysis took %fs\n", tk.restart());
-    logAlways("Visualizing...\n");
-    stats.visualize();
-    logAlways("Visualization took %fs\n", tk.restart());
-
-
-    {
-        logAlways("Simulating naive method...\n");
-
-        coord_t nozzle_size = 400;
-        
-        std::vector<Polygons> insets;
-        Polygons last_inset = polys.offset(-nozzle_size / 2, ClipperLib::jtRound);
-        while (!last_inset.empty())
-        {
-            insets.emplace_back(last_inset);
-            last_inset = last_inset.offset(-nozzle_size, ClipperLib::jtRound);
-        }
-        logAlways("Naive processing took %fs\n", tk.restart());
-
-        std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
-        std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
-        result_polygons_per_index.resize(insets.size());
-        for (coord_t inset_idx = 0; inset_idx < insets.size(); inset_idx++)
-        {
-            for (PolygonRef poly : insets[inset_idx])
-            {
-                result_polygons_per_index[inset_idx].emplace_back();
-                std::vector<ExtrusionJunction>& junction_poly = result_polygons_per_index[inset_idx].back();
-                for (Point p : poly)
-                {
-                    junction_poly.emplace_back(p, nozzle_size, inset_idx);
-                }
-            }
-        }
-    
-    
-        {
-            GcodeWriter gcode("output/naive_P3.gcode", GcodeWriter::type_P3);
-            gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
-        }
-
-        {
-            GcodeWriter gcode("output/naive_UM3.gcode", GcodeWriter::type_UM3);
-            gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
-        }
-        
-        logAlways("Analysing...\n");
-
-        Statistics stats("naive", output_prefix);
-        stats.analyse(polys, result_polygons_per_index, result_polylines_per_index);
-        logAlways("Analysis took %fs\n", tk.restart());
-        stats.visualize();
-
-        logAlways("Visualization took %fs\n", tk.restart());
-    
-        
-    }
+    testNaive(polys, output_prefix);
 }
+
 
 
 } // namespace arachne
