@@ -302,7 +302,7 @@ void generateTestPolys()
     }
 }
 
-void test()
+void test(std::string input_outline_filename, std::string output_prefix)
 {
     
     // Preparing Input Geometries.
@@ -318,11 +318,10 @@ void test()
     
     
     generateTestPolys();
-//     Polygons polys = SVGloader::load("input/distributed_toolpaths.svg");
-//     {
-//         SVG svg("input/redone.svg", AABB(polys));
-//         svg.writePolygons(polys);
-//     }
+    Polygons polys = SVGloader::load(input_outline_filename);
+    AABB aabb(polys);
+    polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
+
 //     Polygons polys = generateTestPoly(40, Point(20000, 20000));
 //     r = 1563833579; srand(r); Polygons polys = generateTestPoly(40, Point(20000, 20000)); // some overlapping regions where there shouldn't be
 
@@ -341,13 +340,17 @@ void test()
 //     Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
-//     Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 8);
-//     Polygons polys = MoessenTests::generateTriangles(Point(6, 3), 100, 400, 500);
+//     Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 52);
+//     Polygons polys = MoessenTests::generateCircles(Point(2, 2), 100, 400, 500, 8);
+//     r = 1563874501; Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 1000, 8);
+//     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 100, 600, 1000);
+//     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 300, 301, 1000);
+//     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 400, 401, 1000);
 //     Polygons polys = Prescribed::fromDistances({Point(0,800), Point(400,300), Point(610,610), Point(1400, 200)});
 //     Polygons polys = Spiky::oneSpike(200);
 //     Polygons polys = Spiky::twoSpikes();
 //     Polygons polys = Spiky::fourSpikes();
-    Polygons polys = Spiky::doubleOutSpike(800, 380);
+//     Polygons polys = Spiky::doubleOutSpike(800, 380);
 
     polys = polys.unionPolygons();
     polys.simplify();
@@ -395,7 +398,7 @@ void test()
 
     logAlways("Analysing...\n");
 
-    Statistics stats("distributed");
+    Statistics stats("distributed", output_prefix);
     stats.analyse(polys, result_polygons_per_index, result_polylines_per_index, &vq);
     logAlways("Analysis took %fs\n", tk.restart());
     logAlways("Visualizing...\n");
@@ -446,7 +449,7 @@ void test()
         
         logAlways("Analysing...\n");
 
-        Statistics stats("naive");
+        Statistics stats("naive", output_prefix);
         stats.analyse(polys, result_polygons_per_index, result_polylines_per_index);
         logAlways("Analysis took %fs\n", tk.restart());
         stats.visualize();
@@ -460,12 +463,16 @@ void test()
 
 } // namespace arachne
 
-
-int main() {
+int main(int argc, char *argv[])
+{
+    std::string input_outline_filename;
+    std::string output_prefix;
+    if (argc >= 2) input_outline_filename = argv[1];
+    if (argc >= 3) output_prefix = argv[2];
     long n = 1;
     for (int i = 0; i < n; i++)
     {
-        arachne::test();
+        arachne::test(input_outline_filename, output_prefix);
         if (++i % std::max(1l, n / 100) == 0)
             std::cerr << (i / 100) << "%\n";
     }

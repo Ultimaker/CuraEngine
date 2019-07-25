@@ -128,7 +128,7 @@ void Statistics::visualize()
     if (vq)
     {
         std::ostringstream ss;
-        ss << "output/" << filename_base << "_after.svg";
+        ss << "output/" << output_prefix << "_" << filename_base << "_after.svg";
         SVG svg(ss.str(), aabb);
         vq->debugOutput(svg, false, false, true);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
@@ -158,7 +158,7 @@ void Statistics::visualize()
 
     {
         std::ostringstream ss;
-        ss << "output/" << filename_base << "_toolpaths.svg";
+        ss << "output/" << output_prefix << "_" << filename_base << "_toolpaths.svg";
         SVG svg(ss.str(), aabb);
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
         bool alternate = true;
@@ -172,7 +172,7 @@ void Statistics::visualize()
 
     {
         std::ostringstream ss;
-        ss << "output/" << filename_base << "_widths.svg";
+        ss << "output/" << output_prefix << "_" << filename_base << "_widths.svg";
         SVG svg(ss.str(), aabb);
 //         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
 
@@ -230,7 +230,7 @@ void Statistics::visualize()
 
     {
         std::ostringstream ss;
-        ss << "output/" << filename_base << "_accuracy.svg";
+        ss << "output/" << output_prefix << "_" << filename_base << "_accuracy.svg";
         SVG svg(ss.str(), aabb);
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 3);
         svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
@@ -239,9 +239,10 @@ void Statistics::visualize()
         svg.writePolygons(paths, SVG::Color::BLACK, 1);
     }
 
-    if (false)
     {
-        std::ofstream csv("output/segments.csv", std::ofstream::out | std::ofstream::trunc);
+        std::ostringstream ss;
+        ss << "output/" << output_prefix << "_" << filename_base << "_segments.csv";
+        std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
         csv << "from_x; from_y; from_width; to_x; to_y; to_width\n";
         for (const Segment& segment : all_segments)
             csv << segment.s.from.p.X << "; " << segment.s.from.p.Y << "; " << segment.s.from.w << "; " << segment.s.to.p.X << "; " << segment.s.to.p.Y << "; " << segment.s.to.w << '\n';

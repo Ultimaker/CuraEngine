@@ -18,8 +18,9 @@ namespace arachne
 class Statistics
 {
 public:
-    Statistics(std::string filename_base)
+    Statistics(std::string filename_base, std::string output_prefix)
     : filename_base(filename_base)
+    , output_prefix(output_prefix)
     , input(nullptr)
     {
     }
@@ -40,6 +41,7 @@ private:
         }
     };
     std::string filename_base;
+    std::string output_prefix;
     Polygons* input;
     VoronoiQuadrangulation* vq;
 
