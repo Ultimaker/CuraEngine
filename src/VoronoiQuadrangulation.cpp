@@ -1983,7 +1983,6 @@ VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beadin
     if (next_inset_idx < 0)
     { // there is no next inset, because there is only one
         assert(left.toolpath_locations.empty() || left.toolpath_locations.front() >= switching_radius);
-        assert(std::min(left.toolpath_locations.size(), right.toolpath_locations.size()) <= 2);
         return ret;
     }
     if (next_inset_idx + 1 == left.toolpath_locations.size())
