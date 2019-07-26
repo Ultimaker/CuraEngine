@@ -51,7 +51,6 @@ void Statistics::analyse(Polygons& input, std::vector<std::vector<std::vector<Ex
         }
     }
     overfills = overfills.execute(ClipperLib::pftPositive);
-    overfills = overfills.unionPolygons(overlaps.xorPolygons(area_covered));
     overfills = overfills.intersection(area_covered);
     overfills = overfills.offset(-5);
     overfills = overfills.offset(10);
