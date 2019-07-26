@@ -2556,7 +2556,7 @@ SVG::Color VoronoiQuadrangulation::getColor(edge_t& edge)
 
 void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts, bool draw_locations)
 {
-    svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::GRAY, 3);
+    svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK, 3);
     for (edge_t& edge : graph.edges)
     {
         Point a = edge.from->p;
@@ -2582,7 +2582,7 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
     }
     for (node_t& node : graph.nodes)
     {
-        if (draw_dists)
+        if (draw_dists && node.data.distance_to_boundary > 0)
         {
             svg.writeText(node.p, std::to_string(node.data.distance_to_boundary));
         }
