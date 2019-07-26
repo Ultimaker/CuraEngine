@@ -44,9 +44,6 @@ public:
 
     const ElemT* getAnyNearby(const Point& query_pt, coord_t radius);
 
-
-    bool getNearest(const Point &query_pt, coord_t radius, Elem &elem_nearest,
-                    const std::function<bool(const Elem& elem)> precondition) const;
 protected:
     using GridPoint = typename SparseGrid<ElemT>::GridPoint;
 
@@ -90,34 +87,6 @@ const ElemT* SGI_THIS::getAnyNearby(const Point& query_pt, coord_t radius)
     SparseGrid<ElemT>::processNearby(query_pt, radius, process_func);
 
     return ret;
-}
-
-
-SGI_TEMPLATE
-bool SGI_THIS::getNearest(
-    const Point &query_pt, coord_t radius, Elem &elem_nearest,
-    const std::function<bool(const Elem& elem)> precondition) const
-{
-    bool found = false;
-    int64_t best_dist2 = static_cast<int64_t>(radius) * radius;
-    const std::function<bool (const Elem&)> process_func =
-        [this, &query_pt, &elem_nearest, &found, &best_dist2, &precondition](const Elem &elem)
-        {
-            if (!precondition(elem))
-            {
-                return true;
-            }
-            int64_t dist2 = vSize2(m_locator(elem) - query_pt);
-            if (dist2 < best_dist2)
-            {
-                found = true;
-                elem_nearest = elem;
-                best_dist2 = dist2;
-            }
-            return true;
-        };
-    SparseGrid<ElemT>::processNearby(query_pt, radius, process_func);
-    return found;
 }
 
 
