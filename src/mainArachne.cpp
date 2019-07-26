@@ -449,7 +449,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
     // Preparing Input Geometries.
     int r;
     r = time(0);
-    r = 1563888830;
+//     r = 1563888830;
 //     r = 1563835071;
 //     r = 123;
     srand(r);
@@ -458,14 +458,20 @@ void test(std::string input_outline_filename, std::string output_prefix)
     logDebug("boost version: %s\n", BOOST_LIB_VERSION);
     
     
+    // problem of 2 nearby 3-way intersections I wouldn't know the solution to
+    srand(1564134608);
+    Polygons polys = generateTestPoly(30, Point(20000, 20000));
+    AABB ab(Point(16436,6754) - Point(1000,1000), Point(16436,6754) + Point(1000,1000));
+    Polygons abs; abs.add(ab.toPolygon());
+    polys = polys.intersection(abs);
     
     generateTestPolys();
 //     Polygons polys = SVGloader::load(input_outline_filename);
 //     AABB aabb(polys);
 //     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
 
-//     Polygons polys = generateTestPoly(40, Point(20000, 20000));
-//     r = 1563833579; srand(r); Polygons polys = generateTestPoly(40, Point(20000, 20000)); // some overlapping regions where there shouldn't be
+//     Polygons polys = generateTestPoly(30, Point(20000, 20000));
+//     srand(1563833579); srand(r); Polygons polys = generateTestPoly(40, Point(20000, 20000)); // some overlapping regions where there shouldn't be
 
 //     Polygons polys = test_poly_1;
 //     Polygons polys = squares;
@@ -482,11 +488,10 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
-    Microstructure m;
-    Polygons polys = m.squareGrid(Point(20,20), Point(2000,2000));
+//     Microstructure m; Polygons polys = m.squareGrid(Point(2,2), Point(2000,2000));
 //     Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 52);
 //     Polygons polys = MoessenTests::generateCircles(Point(2, 2), 100, 400, 500, 8);
-//     r = 1563874501; Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 1000, 8);
+//     srand(1563874501); Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 1000, 8);
 //     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 100, 600, 1000);
 //     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 300, 301, 1000);
 //     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 400, 401, 1000);
