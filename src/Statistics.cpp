@@ -211,7 +211,7 @@ void Statistics::visualize()
                 coord_t avg_w = (s.s.from.w + s.s.to.w) / 2;
                 Point3 clr;
                 float color_ratio = std::min(1.0, std::abs(avg_w - 400.0) / max_dev);
-//                 color_ratio = sqrt(color_ratio);
+                color_ratio = color_ratio * .5 + .5 * sqrt(color_ratio);
                 if (avg_w > 400)
                 {
                     clr = red * color_ratio + green * (1.0 - color_ratio );
