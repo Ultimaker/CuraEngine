@@ -459,11 +459,13 @@ void test(std::string input_outline_filename, std::string output_prefix)
     
     
     // problem of 2 nearby 3-way intersections I wouldn't know the solution to
+    /*
     srand(1564134608);
     Polygons polys = generateTestPoly(30, Point(20000, 20000));
     AABB ab(Point(16436,6754) - Point(1000,1000), Point(16436,6754) + Point(1000,1000));
     Polygons abs; abs.add(ab.toPolygon());
     polys = polys.intersection(abs);
+    */
     
     generateTestPolys();
 //     Polygons polys = SVGloader::load(input_outline_filename);
@@ -498,6 +500,9 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = Prescribed::fromDistances({Point(0,800), Point(400,300), Point(610,610), Point(1400, 200)});
 //     Polygons polys = Spiky::oneSpike(200);
 //     Polygons polys = Spiky::twoSpikes();
+//     Polygons polys = Spiky::twoSpikesDiamond(MM2INT(0.8), MM2INT(4.0), MM2INT(.1));
+//     polys.applyMatrix(PointMatrix(45.0));
+    Polygons polys = Spiky::oneSpikeOneCorner(MM2INT(0.8), MM2INT(4.0), MM2INT(.1));
 //     Polygons polys = Spiky::fourSpikes();
 //     Polygons polys = Spiky::doubleOutSpike(800, 380);
 
