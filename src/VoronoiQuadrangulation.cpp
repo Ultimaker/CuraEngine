@@ -2101,23 +2101,48 @@ VoronoiQuadrangulation::BeadingPropagation& VoronoiQuadrangulation::getBeading(n
     {
         if (node->data.bead_count == -1)
         { // TODO: where does this bug come from?
-            bool has_marked_edge = false;
-            bool first = true;
-            coord_t dist = std::numeric_limits<coord_t>::max();
-            for (edge_t* edge = node->some_edge; edge && (first || edge != node->some_edge); edge = edge->twin->next)
+            struct Locator
             {
-                if (edge->data.isMarked())
-                {
-                    has_marked_edge = true;
-                }
-                assert(edge->to->data.distance_to_boundary >= 0);
-                dist = std::min(dist, edge->to->data.distance_to_boundary + vSize(edge->to->p - edge->from->p));
-                first = false;
+                Point operator()(const node_t* node) const { return node->p; }
+            };
+            coord_t radius = 20;
+            SparsePointGrid<node_t*, Locator> fuzzy_grid(radius); // TODO: store this grid for reuse in other beading problems
+            for (auto pair : node_to_beading)
+                fuzzy_grid.insert(pair.first);
+            node_t* nearby_beading_node;
+            bool found;
+            for (int r = radius; radius < 100; r *= 2)
+            {
+                found = fuzzy_grid.getNearest(node->p, radius, nearby_beading_node, SparseGrid<node_t*>::no_precondition);
+                if (found) break;
             }
-            RUN_ONCE(logError("Unknown beading for unmarked node!\n"));
-//             assert(false);
-            assert(dist != std::numeric_limits<coord_t>::max());
-            node->data.bead_count = beading_strategy.optimal_bead_count(dist);
+            if (found)
+            {
+                auto result_it = node_to_beading.find(nearby_beading_node);
+                assert(result_it != node_to_beading.end());
+                return result_it->second;
+            }
+            else
+            {
+                bool has_marked_edge = false;
+                bool first = true;
+                coord_t dist = std::numeric_limits<coord_t>::max();
+                for (edge_t* edge = node->some_edge; edge && (first || edge != node->some_edge); edge = edge->twin->next)
+                {
+                    if (edge->data.isMarked())
+                    {
+                        has_marked_edge = true;
+                    }
+                    assert(edge->to->data.distance_to_boundary >= 0);
+                    dist = std::min(dist, edge->to->data.distance_to_boundary + vSize(edge->to->p - edge->from->p));
+                    first = false;
+                }
+                std::cerr << node->p << '\n';
+                RUN_ONCE(logError("Unknown beading for unmarked node!\n"));
+    //             assert(false);
+                assert(dist != std::numeric_limits<coord_t>::max());
+                node->data.bead_count = beading_strategy.optimal_bead_count(dist);
+            }
         }
         assert(node->data.bead_count != -1);
         beading_it = node_to_beading.emplace(node, beading_strategy.compute(node->data.distance_to_boundary * 2, node->data.bead_count)).first;
