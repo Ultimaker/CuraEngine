@@ -499,11 +499,12 @@ void test(std::string input_outline_filename, std::string output_prefix)
     polys = polys.unionPolygons();
     polys.simplify();
 
-    if (false)
+#ifdef DEBUG
     {
         SVG svg("output/outline.svg", AABB(polys));
         svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK);
     }
+#endif
 
     for (int type_n = 0; type_n < static_cast<int>(StrategyType::COUNT); type_n++)
     {
