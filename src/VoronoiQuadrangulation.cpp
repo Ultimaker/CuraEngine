@@ -5,6 +5,8 @@
 #include <functional>
 #include <unordered_set>
 #include <sstream>
+#include <queue>
+#include <functional>
 
 #include "utils/VoronoiUtils.h"
 
@@ -2100,7 +2102,11 @@ VoronoiQuadrangulation::BeadingPropagation& VoronoiQuadrangulation::getBeading(n
     if (beading_it == node_to_beading.end())
     {
         if (node->data.bead_count == -1)
-        { // TODO: where does this bug come from?
+        { // This bug is due to too small marked edges
+            constexpr coord_t nearby_dist = 100; // TODO
+            BeadingPropagation* nearest_beading = getNearestBeading(node, nearby_dist, node_to_beading);
+            if (nearest_beading) return *nearest_beading;
+            // else make a new beading:
             bool has_marked_edge = false;
             bool first = true;
             coord_t dist = std::numeric_limits<coord_t>::max();
@@ -2125,6 +2131,47 @@ VoronoiQuadrangulation::BeadingPropagation& VoronoiQuadrangulation::getBeading(n
     return beading_it->second;
 }
 
+VoronoiQuadrangulation::BeadingPropagation* VoronoiQuadrangulation::getNearestBeading(node_t* node, coord_t max_dist, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
+{
+    struct DistEdge
+    {
+        edge_t* edge_to;
+        coord_t dist;
+        DistEdge(edge_t* edge_to, coord_t dist)
+        : edge_to(edge_to), dist(dist)
+        {}
+    };
+
+    auto compare = [](const DistEdge& l, const DistEdge& r) -> bool { return l.dist > r.dist; };
+    std::priority_queue<DistEdge, std::vector<DistEdge>, decltype(compare)> further_edges(compare);
+    bool first = true;
+    for (edge_t* outgoing = node->some_edge; outgoing && (first || outgoing != node->some_edge); outgoing = outgoing->twin->next)
+    {
+        further_edges.emplace(outgoing, vSize(outgoing->to->p - outgoing->from->p));
+        first = false;
+    }
+
+    for (coord_t counter = 0; counter < 1000; counter++)
+    { // prevent endless recursion
+        if (further_edges.empty()) return nullptr;
+        DistEdge here = further_edges.top();
+        further_edges.pop();
+        if (here.dist > max_dist) return nullptr;
+        auto it = node_to_beading.find(here.edge_to->to);
+        if (it != node_to_beading.end())
+        {
+            return &it->second;
+        }
+        else
+        { // recurse
+            for (edge_t* further_edge = here.edge_to->next; further_edge && further_edge != here.edge_to->twin; further_edge = further_edge->twin->next)
+            {
+                further_edges.emplace(further_edge, here.dist + vSize(further_edge->to->p - further_edge->from->p));
+            }
+        }
+    }
+    return nullptr;
+}
 
 void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<ExtrusionSegment>& segments)
 {

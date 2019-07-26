@@ -261,6 +261,11 @@ protected:
     BeadingPropagation& getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
     /*!
+     * In case we cannot find the beading of a node, get a beading from the nearest node
+     */
+    BeadingPropagation* getNearestBeading(node_t* node, coord_t max_dist, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
+
+    /*!
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
      */
