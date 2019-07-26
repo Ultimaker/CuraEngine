@@ -1900,7 +1900,7 @@ void VoronoiQuadrangulation::propagateBeadingsUpward(std::vector<edge_t*>& upwar
         { // only propagate to places where there is place
             continue;
         }
-        assert(upward_edge->from->data.distance_to_boundary != upward_edge->to->data.distance_to_boundary && "zero difference R edges should always be marked");
+        assert((upward_edge->from->data.distance_to_boundary != upward_edge->to->data.distance_to_boundary || shorterThen(upward_edge->to->p - upward_edge->from->p, marking_filter_dist)) && "zero difference R edges should always be marked");
         BeadingPropagation& lower_beading = lower_beading_it->second;
         coord_t length = vSize(upward_edge->to->p - upward_edge->from->p);
         BeadingPropagation upper_beading = lower_beading;
