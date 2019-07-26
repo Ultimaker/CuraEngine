@@ -418,8 +418,8 @@ void BeadingOrderOptimizer::debugCheck()
             for (ExtrusionJunction& junction : polyline.junctions)
             {
                 assert(junction.perimeter_index == polyline.inset_idx);
-                assert(junction.p.X < 100000 && junction.p.Y < 100000);
-                assert(junction.p.X > -100000 && junction.p.Y > -100000);
+                assert(junction.p.X < 1000000 && junction.p.Y < 1000000);
+                assert(junction.p.X > -1000000 && junction.p.Y > -1000000);
             }
         }
     }
