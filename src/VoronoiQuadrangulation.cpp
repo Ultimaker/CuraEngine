@@ -711,35 +711,10 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
             safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
             safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
         }
-        else
-        {
-            if (quad_start->from->p == quad_start->to->p)
-            {
-                if (quad_start->next)
-                {
-                    quad_start->next->prev = nullptr; assert(quad_start->prev == nullptr);
-                }
-                if (quad_start->twin && quad_start->twin->prev)
-                {
-                    quad_start->twin->prev->next = nullptr; assert(quad_start->twin->next == nullptr);
-                }
+        // if only one side had zero length then the cell on the other side of that edge has to collapse
+        // if we would collapse that one edge then that would change the quad_start and/or quad_end of neighboring cells
+        // this is to do with the constraint that !prev == !twin.next
 
-                safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
-                safelyRemoveEdge(quad_start->twin, edge_it, edge_it_is_updated);
-                graph.nodes.erase(node_locator[quad_start->from]);
-                quad_start->to->data.distance_to_boundary = 0; // might be slightly higher due to rounding errors
-            }
-            if (quad_end->from->p == quad_end->to->p)
-            {
-                quad_end->prev->next = nullptr; assert(quad_end->next == nullptr);
-                quad_end->twin->next->prev = nullptr; assert(quad_end->twin->prev == nullptr);
-
-                safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
-                safelyRemoveEdge(quad_end->twin, edge_it, edge_it_is_updated);
-                graph.nodes.erase(node_locator[quad_end->to]);
-                quad_end->from->data.distance_to_boundary = 0; // might be slightly higher due to rounding errors
-            }
-        }
         if (!edge_it_is_updated)
         {
             edge_it++;
