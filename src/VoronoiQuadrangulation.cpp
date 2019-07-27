@@ -337,6 +337,8 @@ bool VoronoiQuadrangulation::computePointCellRange(vd_t::cell_type& cell, Point&
             starting_vd_edge = vd_edge->next();
             ending_vd_edge = vd_edge;
         }
+        else
+            assert(VoronoiUtils::p(vd_edge->vertex0()) == source_point || !vd_edge->is_secondary() && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
         first = false;
     }
     assert(starting_vd_edge && ending_vd_edge);
@@ -453,6 +455,11 @@ void VoronoiQuadrangulation::init()
             computeSegmentCellRange(cell, start_source_point, end_source_point, starting_vd_edge, ending_vd_edge, points, segments);
         }
         
+        if (!starting_vd_edge || !ending_vd_edge)
+        {
+            assert(false && "each cell should start / end in a polygon vertex");
+            continue;
+        }
         
         // copy start to end edge to graph
         
