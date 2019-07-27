@@ -355,7 +355,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = (2A)^2 / b^2  [factor the divisor]
         //h^2 = 4A^2 / b^2    [remove brackets of (2A)^2]
         const coord_t height_2 = (4 * area_removed_so_far * area_removed_so_far) / base_length_2;
-        if (length2 < smallest_line_segment_squared && height_2 <= allowed_error_distance_squared) //Line is small and removing it doesn't introduce too much error.
+        if (height_2 <= allowed_error_distance_squared) // removing the vert doesn't introduce too much error. Both connected line segments are (nearly) collinear
         {
             continue; //Remove the vertex.
         }
