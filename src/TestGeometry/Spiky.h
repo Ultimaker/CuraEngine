@@ -36,27 +36,14 @@ public:
     {
         Polygons ret;
         PolygonRef poly = ret.newPoly();
-        poly.emplace_back(size / 2,size / 4);
+        poly.emplace_back(size / 2 - gap,size / 4);
         poly.emplace_back(size,size / 4);
         poly.emplace_back(size,size - hole);
         poly.emplace_back(size / 2 + gap * .5 * sqrt(2.0), size / 2 + gap * .5 * sqrt(2.0));
         poly.emplace_back(size,size);
         poly.emplace_back(0,size);
-//         poly.emplace_back(0,size / 2);
         poly.emplace_back(size / 2,size / 2);
         return ret;
-//         Polygons ret;
-//         PolygonRef poly = ret.newPoly();
-//         poly.emplace_back(size / 2,size / 4);
-//         poly.emplace_back(size,size / 4);
-//         poly.emplace_back(size,size);
-//         poly.emplace_back(size / 2 + hole,size);
-//         poly.emplace_back(size / 2, size / 2 + gap);
-//         poly.emplace_back(size / 2,size);
-//         poly.emplace_back(0,size);
-//         poly.emplace_back(0,size / 2);
-//         poly.emplace_back(size / 2,size / 2);
-//         return ret;
     }
     static Polygons twoSpikes(coord_t gap = 300, coord_t size = 3000, coord_t hole = 100)
     {
