@@ -348,9 +348,15 @@ bool VoronoiQuadrangulation::computePointCellRange(vd_t::cell_type& cell, Point&
 void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     const Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
+    Point from = source_segment.from();
+    Point to = source_segment.to();
+
     // find starting edge
     // find end edge
     bool first = true;
+    bool seen_possible_start = false;
+    bool after_start = false;
+    bool ending_edge_is_set_before_start = false;
     for (vd_t::edge_type* edge = cell.incident_edge(); edge != cell.incident_edge() || first; edge = edge->next())
     {
         if (edge->is_infinite())
@@ -359,21 +365,32 @@ void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
             continue;
         }
         bool check_secondary_edge = true;
-        if (VoronoiUtils::p(edge->vertex0()) == source_segment.to())
+        Point v0 = VoronoiUtils::p(edge->vertex0());
+        Point v1 = VoronoiUtils::p(edge->vertex1());
+        assert(!(v0 == to && v1 == from));
+        if (v0 == to
+            && !after_start // use the last edge which starts in source_segment.to
+        )
         {
             starting_vd_edge = edge;
+            seen_possible_start = true;
             check_secondary_edge = false;
         }
-        if (VoronoiUtils::p(edge->vertex1()) == source_segment.from())
+        else if (seen_possible_start)
+            after_start = true;
+        if (v1 == from
+            && (!ending_vd_edge || ending_edge_is_set_before_start)
+        )
         {
+            ending_edge_is_set_before_start = !after_start;
             ending_vd_edge = edge;
             check_secondary_edge = false;
         }
         if (false && check_secondary_edge && edge->is_secondary()
-            &&    LinearAlg2D::pointLiesOnTheRightOfLine(VoronoiUtils::p(edge->vertex0()), source_segment.from(), source_segment.to())
-               != LinearAlg2D::pointLiesOnTheRightOfLine(VoronoiUtils::p(edge->vertex1()), source_segment.from(), source_segment.to())
-            && (LinearAlg2D::getDist2FromLineSegment(VoronoiUtils::p(edge->vertex0()), source_segment.from(), VoronoiUtils::p(edge->vertex1())) <= 5 // TODO: magic value
-                || LinearAlg2D::getDist2FromLineSegment(VoronoiUtils::p(edge->vertex0()), source_segment.to(), VoronoiUtils::p(edge->vertex1())) <= 5)
+               != LinearAlg2D::pointLiesOnTheRightOfLine(v1, from, to)
+            &&    LinearAlg2D::pointLiesOnTheRightOfLine(v0, from, to)
+            && (LinearAlg2D::getDist2FromLineSegment(v0, from, v1) <= 5 // TODO: magic value
+                || LinearAlg2D::getDist2FromLineSegment(v0, to, v1) <= 5)
         )
         { // edge crosses source segment
             // TODO: handle the case where two consecutive line segments are collinear!
