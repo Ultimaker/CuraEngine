@@ -1200,7 +1200,6 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
             }
         }
 
-        if (transitions.back().lower_bead_count > 0)
         {
             coord_t trans_bead_count = transitions.back().lower_bead_count;
             coord_t upper_transition_half_length = (1.0 - beading_strategy.getTransitionAnchorPos(trans_bead_count)) * beading_strategy.getTransitioningLength(trans_bead_count);
@@ -1232,7 +1231,6 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
             }
         }
 
-        if (transitions.front().lower_bead_count > 0)
         {
             coord_t trans_bead_count = transitions.front().lower_bead_count;
             coord_t lower_transition_half_length = beading_strategy.getTransitionAnchorPos(trans_bead_count) * beading_strategy.getTransitioningLength(trans_bead_count);
