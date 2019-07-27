@@ -358,7 +358,23 @@ void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
             first = false;
             continue;
         }
-        if (false && edge->is_secondary())
+        bool check_secondary_edge = true;
+        if (VoronoiUtils::p(edge->vertex0()) == source_segment.to())
+        {
+            starting_vd_edge = edge;
+            check_secondary_edge = false;
+        }
+        if (VoronoiUtils::p(edge->vertex1()) == source_segment.from())
+        {
+            ending_vd_edge = edge;
+            check_secondary_edge = false;
+        }
+        if (false && check_secondary_edge && edge->is_secondary()
+            &&    LinearAlg2D::pointLiesOnTheRightOfLine(VoronoiUtils::p(edge->vertex0()), source_segment.from(), source_segment.to())
+               != LinearAlg2D::pointLiesOnTheRightOfLine(VoronoiUtils::p(edge->vertex1()), source_segment.from(), source_segment.to())
+            && (LinearAlg2D::getDist2FromLineSegment(VoronoiUtils::p(edge->vertex0()), source_segment.from(), VoronoiUtils::p(edge->vertex1())) <= 5 // TODO: magic value
+                || LinearAlg2D::getDist2FromLineSegment(VoronoiUtils::p(edge->vertex0()), source_segment.to(), VoronoiUtils::p(edge->vertex1())) <= 5)
+        )
         { // edge crosses source segment
             // TODO: handle the case where two consecutive line segments are collinear!
             // that's the only case where a voronoi segment doesn't end in a polygon vertex, but goes though it
@@ -372,14 +388,6 @@ void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
             }
             first = false;
             continue;
-        }
-        if (VoronoiUtils::p(edge->vertex0()) == source_segment.to())
-        {
-            starting_vd_edge = edge;
-        }
-        if (VoronoiUtils::p(edge->vertex1()) == source_segment.from())
-        {
-            ending_vd_edge = edge;
         }
         first = false;
     }
