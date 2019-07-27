@@ -326,7 +326,7 @@ bool VoronoiQuadrangulation::computePointCellRange(vd_t::cell_type& cell, Point&
         return false; // don't copy any part of this cell
     }
     bool first = true;
-    for (vd_t::edge_type* vd_edge = cell.incident_edge(); vd_edge != starting_vd_edge || first; vd_edge = vd_edge->next())
+    for (vd_t::edge_type* vd_edge = cell.incident_edge(); vd_edge != cell.incident_edge() || first; vd_edge = vd_edge->next())
     {
         assert(vd_edge->is_finite());
         Point p1 = VoronoiUtils::p(vd_edge->vertex1());
