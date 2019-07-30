@@ -1,10 +1,10 @@
 //Copyright (C) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef CURAENGINE_CALCULATEADAPTIVELAYERHEIGHTS_H
-#define CURAENGINE_CALCULATEADAPTIVELAYERHEIGHTS_H
+#ifndef ADAPTIVELAYERHEIGHTS_H
+#define ADAPTIVELAYERHEIGHTS_H
 
-#include "../MeshGroup.h"
+#include "../utils/Coord_t.h"
 
 namespace cura {
 
@@ -41,6 +41,11 @@ class AdaptiveLayerHeights
 {
 public:
     /**
+     * The base layer height.
+     */
+    int base_layer_height;
+
+    /**
      * The maximum deviation from the base layer height.
      */
     int max_variation;
@@ -54,11 +59,6 @@ public:
      * Threshold to compare the tan of the steepest slope to.
      */
     double threshold;
-
-    /**
-     * The base layer height.
-     */
-    int base_layer_height;
 
     /*!
      * Stores the found layer heights
@@ -121,4 +121,4 @@ private:
 
 }
 
-#endif //CURAENGINE_CALCULATEADAPTIVELAYERHEIGHTS_H
+#endif //ADAPTIVELAYERHEIGHTS_H

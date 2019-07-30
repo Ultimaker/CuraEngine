@@ -1,22 +1,21 @@
-/** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
+//Copyright (c) 2017 Tim Kuipers
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef INFILL_SIERPINSKI_FILL_H
 #define INFILL_SIERPINSKI_FILL_H
 
 #include <list>
 
-#include "../utils/polygon.h"
 #include "../utils/AABB.h"
-#include "../utils/AABB3D.h"
-
-#include "../utils/SVG.h"
-
-#include "DensityProvider.h"
-
 
 namespace cura
 {
-    
-class SierpinskiFillTest; 
+
+class DensityProvider;
+class SierpinskiFillTest;
+class SVG;
+
 /*!
  * A class for generating the Cross and Cross 3D infill patterns.
  * 

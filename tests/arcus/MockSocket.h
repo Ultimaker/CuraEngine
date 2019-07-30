@@ -14,7 +14,7 @@ namespace cura
  * \brief Mocks a socket connection from libArcus such that we can test with it
  * without creating an actual connection.
  */
-class MockSocket : public Arcus::Socket
+class ARCUS_EXPORT MockSocket : public Arcus::Socket
 {
 public:
     MockSocket();
@@ -27,7 +27,7 @@ public:
 
     //Catch these functions so that we can see whether they are called.
     void sendMessage(Arcus::MessagePtr message) override;
-    Arcus::MessagePtr takeNextMessage(bool blocking = false) override;
+    Arcus::MessagePtr takeNextMessage() override;
 
     //Helpers to store the sent and received messages.
     void pushMessageToReceivedQueue(Arcus::MessagePtr message);

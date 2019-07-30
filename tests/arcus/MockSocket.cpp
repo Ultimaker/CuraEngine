@@ -20,7 +20,7 @@ void MockSocket::sendMessage(Arcus::MessagePtr message)
     sent_messages.push_back(message);
 }
 
-Arcus::MessagePtr MockSocket::takeNextMessage(bool blocking)
+Arcus::MessagePtr MockSocket::takeNextMessage()
 {
     Arcus::MessagePtr result = received_messages.front();
     received_messages.pop_front();

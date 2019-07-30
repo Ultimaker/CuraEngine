@@ -12,18 +12,17 @@
 #include "Listener.h" //To listen to the Arcus socket.
 #include "SliceDataStruct.h" //To store sliced layer data.
 #include "../Application.h" //To get and set the current slice command.
+#include "../ExtruderTrain.h"
 #include "../FffProcessor.h" //To start a slice.
 #include "../PrintFeature.h"
 #include "../Slice.h" //To process slices.
 #include "../settings/types/LayerIndex.h" //To point to layers.
 #include "../settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "../utils/logoutput.h"
+#include "../utils/polygon.h"
 
 namespace cura
 {
-
-//Forward declarations for compilation speed.
-class MeshGroup;
 
 /*
  * \brief A computation class that formats layer view data in a way that the
@@ -440,6 +439,7 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     message->set_time_support_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInfill)]);
     message->set_time_support_interface(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInterface)]);
     message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
+    message->set_time_prime_tower(time_estimates[static_cast<unsigned char>(PrintFeatureType::PrimeTower)]);
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
     {
@@ -481,7 +481,7 @@ void ArcusCommunication::setExtruderForSend(const ExtruderTrain& extruder)
 
 void ArcusCommunication::sliceNext()
 {
-    const Arcus::MessagePtr message = private_data->socket->takeNextMessage(true);
+    const Arcus::MessagePtr message = private_data->socket->takeNextMessage();
 
     //Handle the main Slice message.
     const cura::proto::Slice* slice_message = dynamic_cast<cura::proto::Slice*>(message.get()); //See if the message is of the message type Slice. Returns nullptr otherwise.

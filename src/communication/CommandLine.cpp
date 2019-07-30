@@ -4,7 +4,6 @@
 #include <cstring> //For strtok and strcopy.
 #include <fstream> //To check if files exist.
 #include <errno.h> // error number when trying to read file
-#include <libgen.h> //To get the parent directory of a file path.
 #include <numeric> //For std::accumulate.
 #ifdef _OPENMP
     #include <omp.h> //To change the number of threads to slice with.
@@ -16,7 +15,12 @@
 
 #include "CommandLine.h"
 #include "../Application.h" //To get the extruders for material estimates.
+#include "../ExtruderTrain.h"
 #include "../FffProcessor.h" //To start a slice and get time estimates.
+#include "../Slice.h"
+#include "../utils/getpath.h"
+#include "../utils/floatpoint.h"
+#include "../utils/logoutput.h"
 
 namespace cura
 {
@@ -327,9 +331,7 @@ int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
     }
 
     std::unordered_set<std::string> search_directories = defaultSearchDirectories(); //For finding the inheriting JSON files.
-    char filename_copy[json_filename.size()];
-    std::strcpy(filename_copy, json_filename.c_str());
-    std::string directory = std::string(dirname(filename_copy));
+    std::string directory = getPathName(json_filename);
     search_directories.emplace(directory);
 
     return loadJSON(json_document, search_directories, settings);

@@ -1,14 +1,22 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
 
-#include "FffGcodeWriter.h"
+#include "pathOrderOptimizer.h"
+#include "sliceDataStorage.h" //For SliceMeshStorage, which is used here at implementation in the header.
 
-namespace cura 
+namespace cura
 {
 
-class InsetOrderOptimizer {
-public:
+class FffGcodeWriter;
+class LayerPlan;
+class WallOverlapComputation;
 
+class InsetOrderOptimizer
+{
+public:
     /*!
      * Constructor for inset ordering optimizer
      * \param gcode_writer The gcode_writer on whose behalf the inset order is being optimized

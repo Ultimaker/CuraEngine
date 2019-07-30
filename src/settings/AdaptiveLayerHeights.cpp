@@ -1,4 +1,4 @@
-//Copyright (C) 2018 Ultimaker B.V.
+//Copyright (C) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <iterator>
@@ -7,8 +7,11 @@
 #include <limits>
 
 #include "AdaptiveLayerHeights.h"
+#include "EnumSettings.h"
+#include "types/AngleRadians.h"
 #include "../Application.h"
-#include "../settings/types/AngleRadians.h"
+#include "../Slice.h"
+#include "../utils/floatpoint.h"
 
 namespace cura
 {
@@ -67,10 +70,10 @@ void AdaptiveLayerHeights::calculateLayers()
     const coord_t initial_layer_height = mesh_group_settings.get<coord_t>("layer_height_0");
     z_level += initial_layer_height;
 
-    AdaptiveLayer* adaptive_layer = new AdaptiveLayer(initial_layer_height);
-    adaptive_layer->z_position = z_level;
-    previous_layer_height = adaptive_layer->layer_height;
-    layers.push_back(*adaptive_layer);
+    AdaptiveLayer adaptive_layer(initial_layer_height);
+    adaptive_layer.z_position = z_level;
+    previous_layer_height = adaptive_layer.layer_height;
+    layers.push_back(adaptive_layer);
 
     // loop while triangles are found
     while (!triangles_of_interest.empty() || layers.size() < 2)
@@ -161,10 +164,10 @@ void AdaptiveLayerHeights::calculateLayers()
                 || has_exceeded_step_size)
             {
                 z_level += layer_height;
-                AdaptiveLayer* adaptive_layer = new AdaptiveLayer(layer_height);
-                adaptive_layer->z_position = z_level;
-                previous_layer_height = adaptive_layer->layer_height;
-                layers.push_back(*adaptive_layer);
+                AdaptiveLayer adaptive_layer(layer_height);
+                adaptive_layer.z_position = z_level;
+                previous_layer_height = adaptive_layer.layer_height;
+                layers.push_back(adaptive_layer);
                 has_added_layer = true;
                 break;
             }
@@ -180,10 +183,10 @@ void AdaptiveLayerHeights::calculateLayers()
         if (!has_added_layer)
         {
             z_level += layer_height_for_global_min_slope;
-            AdaptiveLayer* adaptive_layer = new AdaptiveLayer(layer_height_for_global_min_slope);
-            adaptive_layer->z_position = z_level;
-            previous_layer_height = adaptive_layer->layer_height;
-            layers.push_back(*adaptive_layer);
+            AdaptiveLayer adaptive_layer(layer_height_for_global_min_slope);
+            adaptive_layer.z_position = z_level;
+            previous_layer_height = adaptive_layer.layer_height;
+            layers.push_back(adaptive_layer);
         }
     }
 }

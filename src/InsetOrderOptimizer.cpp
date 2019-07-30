@@ -1,7 +1,12 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "ExtruderTrain.h"
+#include "FffGcodeWriter.h"
 #include "InsetOrderOptimizer.h"
+#include "LayerPlan.h"
+#include "wallOverlap.h"
+#include "utils/logoutput.h"
 
 namespace cura
 {

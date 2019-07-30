@@ -4,18 +4,17 @@
 #ifndef INFILL_H
 #define INFILL_H
 
-#include "utils/polygon.h"
-#include "settings/Settings.h"
-#include "settings/types/AngleDegrees.h"
 #include "infill/ZigzagConnectorProcessor.h"
-#include "infill/NoZigZagConnectorProcessor.h"
-#include "infill/SubDivCube.h"
-#include "infill/DensityProvider.h"
+#include "settings/EnumSettings.h" //For infill types.
+#include "settings/types/AngleDegrees.h"
 #include "utils/IntPoint.h"
-#include "utils/AABB.h"
 
 namespace cura
 {
+
+class AABB;
+class SierpinskiFillProvider;
+class SliceMeshStorage;
 
 class Infill 
 {
@@ -41,7 +40,6 @@ class Infill
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
     size_t zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     coord_t pocket_size; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
-    coord_t minimum_zag_line_length; //!< Throw away perimeters that are too small
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
@@ -73,7 +71,6 @@ public:
         , bool skip_some_zags = false
         , size_t zag_skip_count = 0
         , coord_t pocket_size = 0
-        , coord_t minimum_zag_line_length = DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD
     )
     : pattern(pattern)
     , zig_zaggify(zig_zaggify)
@@ -95,7 +92,6 @@ public:
     , skip_some_zags(skip_some_zags)
     , zag_skip_count(zag_skip_count)
     , pocket_size(pocket_size)
-    , minimum_zag_line_length(minimum_zag_line_length)
     {
     }
 

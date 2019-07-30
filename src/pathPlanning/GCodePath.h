@@ -5,12 +5,15 @@
 #define PATH_PLANNING_G_CODE_PATH_H
 
 #include "../SpaceFillType.h"
-#include "../GCodePathConfig.h"
+#include "../settings/types/Ratio.h"
+#include "../utils/IntPoint.h"
 
 #include "TimeMaterialEstimates.h"
 
 namespace cura 
 {
+
+class GCodePathConfig;
 
 /*!
  * A class for representing a planned path.
@@ -33,6 +36,7 @@ public:
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime; //!< Whether this path is preceded by a prime (blob)
+    bool skip_agressive_merge_hint; //!< Wheter this path needs to skip merging if any travel paths are in between the extrusions.
     std::vector<Point> points; //!< The points constituting this path.
     bool done; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 

@@ -4,23 +4,27 @@
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
-#include "gcodeExport.h" // CoastingConfig
-#include "mesh.h"
-#include "MeshGroup.h"
+#include <map>
 #include "PrimeTower.h"
+#include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
-#include "infill/SierpinskiFillProvider.h"
+#include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/AngleDegrees.h" //Infill angles.
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
+#include "utils/AABB3D.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 #include "utils/optional.h"
 #include "utils/polygon.h"
+#include "WipeScriptConfig.h"
 
 namespace cura 
 {
+
+class Mesh;
+class SierpinskiFillProvider;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
@@ -292,6 +296,8 @@ public:
     AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
     std::vector<SliceMeshStorage> meshes;
 
+    std::vector<WipeScriptConfig> wipe_config_per_extruder; //!< Wipe configs per extruder.
+
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
     std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
 
@@ -358,11 +364,25 @@ public:
      */
     bool getExtruderPrimeBlobEnabled(const size_t extruder_nr) const;
 
+    /*!
+     * Gets the border of the usable print area for this machine.
+     *
+     * \param adhesion_offset whether to offset the border by the adhesion width to account for brims, skirts and
+     * rafts, if present.
+     * \return a Polygon representing the usable area of the print bed.
+     */
+    Polygon getMachineBorder(bool adhesion_offset = false) const;
+
 private:
     /*!
      * Construct the retraction_config_per_extruder
      */
     std::vector<RetractionConfig> initializeRetractionConfigs();
+
+    /*!
+     * Construct the wipe_config_per_extruder
+     */
+    std::vector<WipeScriptConfig> initializeWipeConfigs();
 };
 
 }//namespace cura

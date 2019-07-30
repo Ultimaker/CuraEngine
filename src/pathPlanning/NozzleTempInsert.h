@@ -1,11 +1,13 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PATH_PLANNING_NOZZLE_TEMP_INSERT_H
 #define PATH_PLANNING_NOZZLE_TEMP_INSERT_H
 
-#include "../gcodeExport.h"
-
-namespace cura 
+namespace cura
 {
+
+class GCodeExport;
 
 /*!
  * A gcode command to insert before a specific path.

@@ -1,13 +1,13 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "../utils/polygon.h"
-#include "../utils/AABB.h"
-#include "../utils/linearAlg2D.h"
+#include "../utils/Coord_t.h"
 
 namespace cura
 {
-    
+
+class Polygons;
+
 class GyroidInfill
 {
 public:
