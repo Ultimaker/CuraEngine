@@ -304,6 +304,14 @@ private:
      * 
      */
     static void cleanup(SliceDataStorage& storage);
+
+    /*!
+     * If support_wall_count > 0, then the actual outermost contour of the printed support polygons
+     * will be the outer inset of support infill part, offset from the outline on a half of line width.
+     *
+     * Returns the actual offset value.
+     */
+    static coord_t getActualSupportOffset();
 };
 
 

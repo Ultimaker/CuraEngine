@@ -19,25 +19,6 @@
 #include "settings/types/AngleRadians.h" //To compute overhang distance from the angle.
 #include "utils/math.h"
 
-namespace
-{
-
-/*
- * If support_wall_count > 0, then the actual outermost contour of the printed support polygons will be the outer inset of support infill part, offset from the outline on a half of line width.
- * This function returns the actual offset value.
- */
-cura::coord_t getActualSupportOffset()
-{
-    const cura::Settings& mesh_group_settings = cura::Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    const cura::ExtruderTrain& infill_extruder = mesh_group_settings.get<cura::ExtruderTrain&>("support_infill_extruder_nr");
-    const cura::coord_t support_line_width = infill_extruder.settings.get<cura::coord_t>("support_line_width");
-    const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
-    const cura::coord_t support_offset = wall_line_count > 0 ? -support_line_width / 2 : 0;
-    return support_offset;
-}
-
-}
-
 namespace cura 
 {
 
@@ -485,6 +466,16 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
             }
         }
     }
+}
+
+coord_t AreaSupport::getActualSupportOffset()
+{
+    const Settings& mesh_group_settings = cura::Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const ExtruderTrain& infill_extruder = mesh_group_settings.get<cura::ExtruderTrain&>("support_infill_extruder_nr");
+    const coord_t support_line_width = infill_extruder.settings.get<cura::coord_t>("support_line_width");
+    const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
+    const coord_t support_offset = wall_line_count > 0 ? -support_line_width / 2 : 0;
+    return support_offset;
 }
 
 Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, const coord_t smoothing_distance)
