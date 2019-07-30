@@ -258,7 +258,6 @@ void generateTestPolys()
         as.add(a);
         um = um.difference(as);
     }
-    if (false)
     {
         coord_t min_r = 3000;
         coord_t max_r = 8000;
@@ -516,7 +515,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = marked_local_opt;
 //     Polygons polys = pikachu;
 //     Polygons polys = um;
-//     Polygons polys = spikes;
+    Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
 //     Microstructure m; Polygons polys = m.squareGrid(Point(2,2), Point(2000,2000));
@@ -531,7 +530,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = Spiky::twoSpikes();
 //     Polygons polys = Spiky::twoSpikesDiamond(MM2INT(0.8), MM2INT(4.0), MM2INT(.1));
 //     polys.applyMatrix(PointMatrix(45.0));
-    Polygons polys = Spiky::oneSpikeOneCorner(MM2INT(0.8), MM2INT(4.0), MM2INT(.1));
+//     Polygons polys = Spiky::oneSpikeOneCorner(MM2INT(0.8), MM2INT(4.0), MM2INT(.1));
 //     Polygons polys = Spiky::fourSpikes();
 //     Polygons polys = Spiky::doubleOutSpike(800, 380);
 
