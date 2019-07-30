@@ -2050,24 +2050,20 @@ void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beadi
             continue;
         }
 
+        coord_t start_R = edge->to->data.distance_to_boundary; // higher R
+        coord_t end_R = edge->from->data.distance_to_boundary; // lower R
+
         Beading* beading = &getBeading(edge->to, node_to_beading, beading_strategy).beading;
         std::vector<ExtrusionJunction>& ret = edge_to_junctions[edge]; // emplace a new vector
-        if (edge->to->data.bead_count == 0 && edge->from->data.bead_count == 0)
-        {
+        if ((edge->from->data.bead_count == edge->to->data.bead_count && edge->from->data.bead_count >= 0)
+            || end_R >= start_R)
+        { // no beads to generate
             continue;
         }
 
         Point a = edge->to->p;
         Point b = edge->from->p;
         Point ab = b - a;
-
-        coord_t start_R = edge->to->data.distance_to_boundary; // higher R
-        coord_t end_R = edge->from->data.distance_to_boundary; // lower R
-        if (end_R == start_R)
-        {
-            continue;
-        }
-        assert(end_R <= start_R);
 
         coord_t junction_idx;
         // compute starting junction_idx for this segment
@@ -2093,7 +2089,7 @@ void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beadi
         for (; junction_idx >= 0 && junction_idx < coord_t(beading->toolpath_locations.size()); junction_idx--)
         {
             coord_t bead_R = beading->toolpath_locations[junction_idx];
-            assert(bead_R > 0);
+            assert(bead_R >= 0);
             if (bead_R < end_R)
             { // junction coinciding with a node is handled by the next segment
                 break;
