@@ -320,4 +320,32 @@ TEST_F(PolygonTest, simplifyLimitedError)
     EXPECT_THAT(spiral.size(), AllOf(Ge(11 - 5), Le(11 - 4))) << "Should merge segments of length 1000 through 1400 and (optionally) first with last.";
 }
 
+TEST_F(PolygonTest, simplifyColinear)
+{
+    //Generate a line with several vertices halfway.
+    constexpr coord_t spacing = 100;
+    Polygons colinear_polygons;
+    PolygonRef colinear = colinear_polygons.newPoly();
+    for(size_t i = 0; i < 10; i++)
+    {
+        colinear.add(Point(i * spacing + i % 2 - 1, i * spacing + i % 2 - 1)); //Some jitter of 2 microns is allowed.
+    }
+    colinear.add(Point(spacing * 9, 0)); //Make it a triangle so that the area is not 0 or anything.
+
+    colinear_polygons.simplify(20, 20); //Regardless of parameters, it should always remove vertices with less than 5 micron deviation.
+    ASSERT_EQ(colinear_polygons[0].size(), 3) << "Only the first vertex of the colinear segments, the last vertex of the colinear segments, and the extra triangle vertex should remain.";
+    size_t start_point = 0;
+    for(; start_point < 3; start_point++) //Find where in the new polygon it starts with (-1, -1).
+    {
+        if(colinear_polygons[0][start_point] == Point(-1, -1))
+        {
+            break;
+        }
+    }
+    ASSERT_LT(start_point, 3) << "The starting point (-1, -1) must be in the resulting polygon somewhere. Doesn't matter where.";
+    EXPECT_EQ(colinear_polygons[0][start_point], Point(-1, -1));
+    EXPECT_EQ(colinear_polygons[0][(start_point + 1) % 3], Point(spacing * 9, spacing * 9));
+    EXPECT_EQ(colinear_polygons[0][(start_point + 2) % 3], Point(spacing * 9, 0));
+}
+
 }
