@@ -126,7 +126,7 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
     
     for (const Point& p : points)
     {
-        svg.writePoint(p, show_coords, 2);
+        svg.writePoint(p, show_coords, 0);
     }
     for (const Segment& s : segments)
     {
@@ -196,14 +196,6 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
             {
 //                 printf("Cannot draw edge\n");
             }
-            if (edge.vertex0())
-            {
-                if (draw_points) svg.writePoint(Point(edge.vertex0()->x(), edge.vertex0()->y()), false, 3, SVG::Color::RED);
-            }
-            if (edge.vertex1())
-            {
-                if (draw_points) svg.writePoint(Point(edge.vertex1()->x(), edge.vertex1()->y()), false, 3, SVG::Color::RED);
-            }
         }
     }
     
@@ -211,14 +203,9 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
     {
         for (const vd_t::vertex_type& vert : vd.vertices())
         {
-            svg.writePoint(Point(vert.x(), vert.y()), show_coords, 2, SVG::Color::RED);
+            svg.writePoint(Point(vert.x(), vert.y()), show_coords, 0, SVG::Color::RED);
         }
     }
-    
-//     for (const vd_t::cell_type& cell : vd.cells())
-//     {
-//         
-//     }
 }
 
 
