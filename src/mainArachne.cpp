@@ -21,6 +21,7 @@
 #include "DistributedBeadingStrategy.h"
 #include "InwardDistributedBeadingStrategy.h"
 #include "LimitedDistributedBeadingStrategy.h"
+#include "SingleBeadBeadingStrategy.h"
 #include "utils/VoronoiUtils.h"
 #include "NaiveBeadingStrategy.h"
 #include "CenterDeviationBeadingStrategy.h"
@@ -299,6 +300,7 @@ enum class StrategyType
     Distributed,
     InwardDistributed,
     LimitedDistributed,
+    SingleBead,
     COUNT
 };
 
@@ -312,6 +314,7 @@ std::string to_string(StrategyType type)
         case StrategyType::Distributed: return "Distributed";
         case StrategyType::InwardDistributed: return "InwardDistributed";
         case StrategyType::LimitedDistributed: return "LimitedDistributed";
+        case StrategyType::SingleBead: return "SingleBead";
         default: return "unknown_strategy";
     }
 }
@@ -327,6 +330,7 @@ BeadingStrategy* makeStrategy(StrategyType type, float transitioning_angle = M_P
         case StrategyType::Distributed: return        new DistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
         case StrategyType::InwardDistributed: return  new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
         case StrategyType::LimitedDistributed: return new LimitedDistributedBeadingStrategy(prefered_bead_width, 6, transitioning_angle);
+        case StrategyType::SingleBead: return         new SingleBeadBeadingStrategy(prefered_bead_width, transitioning_angle);
         default: return nullptr;
     }
 }
