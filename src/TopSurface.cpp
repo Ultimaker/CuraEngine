@@ -57,27 +57,6 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
 
     layer.mode_skip_agressive_merge = true;
 
-    if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
-    {
-        //Move to a corner of the area that is perpendicular to the ironing lines, to reduce the number of seams.
-        const AABB bounding_box(areas);
-        PointMatrix rotate(-direction + 90);
-        const Point center = bounding_box.getMiddle();
-        const Point far_away = rotate.apply(Point(0, vSize(bounding_box.max - center) * 100)); //Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
-        //Two options to start, both perpendicular to the ironing lines. Which is closer?
-        const Point front_side = PolygonUtils::findNearestVert(center + far_away, areas).p();
-        const Point back_side = PolygonUtils::findNearestVert(center - far_away, areas).p();
-        if (vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
-        {
-            layer.addTravel(front_side);
-        }
-        else
-        {
-            layer.addTravel(back_side);
-        }
-    }
-
-    //Add the lines as travel moves to the layer plan.
     bool added = false;
     if (!ironing_polygons.empty())
     {
@@ -86,8 +65,29 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         layer.addPolygonsByOptimizer(ironing_polygons, line_config, nullptr, ZSeamConfig());
         added = true;
     }
+
     if (!ironing_lines.empty())
     {
+        if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
+        {
+            //Move to a corner of the area that is perpendicular to the ironing lines, to reduce the number of seams.
+            const AABB bounding_box(areas);
+            PointMatrix rotate(-direction + 90);
+            const Point center = bounding_box.getMiddle();
+            const Point far_away = rotate.apply(Point(0, vSize(bounding_box.max - center) * 100)); //Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
+            //Two options to start, both perpendicular to the ironing lines. Which is closer?
+            const Point front_side = PolygonUtils::findNearestVert(center + far_away, areas).p();
+            const Point back_side = PolygonUtils::findNearestVert(center - far_away, areas).p();
+            if (vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
+            {
+                layer.addTravel(front_side);
+            }
+            else
+            {
+                layer.addTravel(back_side);
+            }
+        }
+        
         layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
         added = true;
     }
