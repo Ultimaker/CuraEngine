@@ -495,8 +495,13 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     AABB aabb(polys);
 //     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
 
-//     Polygons polys = generateTestPoly(30, Point(20000, 20000));
-//     srand(1563833579); srand(r); Polygons polys = generateTestPoly(40, Point(20000, 20000)); // some overlapping regions where there shouldn't be
+
+    /*
+    Polygons polys = generateTestPoly(40, Point(20000, 20000));
+    coord_t scale = 2000;
+    AABB ab(Point(6000,10000) - scale * Point(1,1), Point(6000,10000) + scale * Point(1,1));
+    Polygons abs; abs.add(ab.toPolygon());
+    polys = polys.intersection(abs);*/
 
 //     Polygons polys = test_poly_1;
 //     Polygons polys = squares;
