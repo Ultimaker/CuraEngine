@@ -1412,27 +1412,13 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
 
         if (layer_idx < support_layers.size() - 1)
         {
-            Polygons support_bottoms;
-            const coord_t actual_support_offset = getActualSupportOffset();
-            const std::vector<PolygonsPart> bottom_parts = bottoms.splitIntoParts();
-            for (const PolygonsPart& bottom_part : bottom_parts)
-            {
-                // check if:
-                // - any interface polygons are printed above;
-                // - any support polygons are printed above, because some support could be pushed away by large XY distance or support could be so tiny that it skipped by offset due to support walls.
-                const bool is_any_support_present = !bottom_part.intersection(support_layers[layer_idx + 1].support_bottom).empty()
-                        || !bottom_part.intersection(global_support_areas_per_layer[layer_idx + 1].offset(actual_support_offset).offset(-actual_support_offset)).empty();
-                if (is_any_support_present)
-                {
-                    support_bottoms.add(bottom_part);
-                }
-            }
-            support_layers[layer_idx].support_bottom.add(support_bottoms);
+            Polygons test_polygons;
+            const auto actual_support_offset = getActualSupportOffset();
+            test_polygons.add(support_layers[layer_idx + 1].support_bottom);
+            test_polygons.add(global_support_areas_per_layer[layer_idx + 1].offset(actual_support_offset).offset(-actual_support_offset));
+            removeDanglingInterface(bottoms, test_polygons);
         }
-        else
-        {
-            support_layers[layer_idx].support_bottom.add(bottoms);
-        }
+        support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
 
@@ -1468,27 +1454,13 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
 
         if (layer_idx > 0)
         {
-            Polygons support_roofs;
-            const coord_t actual_support_offset = getActualSupportOffset();
-            const std::vector<PolygonsPart> roof_parts = roofs.splitIntoParts();
-            for (const PolygonsPart& roof_part : roof_parts)
-            {
-                // check if:
-                // - any interface polygons are printed below;
-                // - any support polygons are printed below, because some support could be pushed away by large XY distance or support could be so tiny that it skipped by offset due to support walls.
-                const bool is_any_support_present = !roof_part.intersection(support_layers[layer_idx - 1].support_roof).empty()
-                        || !roof_part.intersection(global_support_areas_per_layer[layer_idx - 1].offset(actual_support_offset).offset(-actual_support_offset)).empty();
-                if (is_any_support_present)
-                {
-                    support_roofs.add(roof_part);
-                }
-            }
-            support_layers[layer_idx].support_roof.add(support_roofs);
+            Polygons test_polygons;
+            const auto actual_support_offset = getActualSupportOffset();
+            test_polygons.add(support_layers[layer_idx - 1].support_roof);
+            test_polygons.add(global_support_areas_per_layer[layer_idx - 1].offset(actual_support_offset).offset(-actual_support_offset));
+            removeDanglingInterface(roofs, test_polygons);
         }
-        else
-        {
-           support_layers[layer_idx].support_roof.add(roofs);
-        }
+        support_layers[layer_idx].support_roof.add(roofs);
     }
 }
 
@@ -1510,6 +1482,20 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const P
         interface_polygons.removeSmallAreas(minimum_interface_area);
     }
     support_areas = support_areas.difference(interface_polygons);
+}
+
+void AreaSupport::removeDanglingInterface(Polygons& interface_polygons, const Polygons& test_polygons)
+{
+    const auto interface_parts = interface_polygons.splitIntoParts();
+    interface_polygons.clear();
+    for (const PolygonsPart& interface_part : interface_parts)
+    {
+        const bool is_dangling_interface_part = interface_part.intersection(test_polygons).empty();
+        if (!is_dangling_interface_part)
+        {
+            interface_polygons.add(interface_part);
+        }
+    }
 }
 
 }//namespace cura
