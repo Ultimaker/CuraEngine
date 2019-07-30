@@ -882,10 +882,21 @@ public:
     Polygons smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
     
     /*!
-     * removes points connected to similarly oriented lines
-     * 
-     * \param smallest_line_segment maximal length of removed line segments
-     * \param allowed_error_distance The distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
+     * Removes vertices of the polygons to make sure that they are not too high
+     * resolution.
+     *
+     * This removes points which are connected to line segments that are shorter
+     * than the `smallest_line_segment`, unless that would introduce a deviation
+     * in the contour of more than `allowed_error_distance`.
+     *
+     * Vertices which introduce an error of less than 5 microns are removed
+     * anyway, even if the segments are longer than the smallest line segment.
+     * This makes sure that (practically) colinear line segments are joined into
+     * a single line segment.
+     * \param smallest_line_segment Maximal length of removed line segments.
+     * \param allowed_error_distance If removing a vertex introduces a deviation
+     * from the original path that is more than this distance, the vertex may
+     * not be removed.
      */
     void simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5) 
     {
