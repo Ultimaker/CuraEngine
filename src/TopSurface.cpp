@@ -87,7 +87,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
                 layer.addTravel(back_side);
             }
         }
-        
+
         layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
         added = true;
     }
