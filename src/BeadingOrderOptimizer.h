@@ -17,7 +17,7 @@ namespace arachne
 class BeadingOrderOptimizer
 {
 public:
-    static void optimize(const std::vector<ExtrusionSegment>& segments, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index);
+    static void optimize(const std::vector<ExtrusionSegment>& segments, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index, bool reduce_overlapping_segments = true);
 private:
     BeadingOrderOptimizer(const std::vector<ExtrusionSegment>& segments)
     : segments(segments)
@@ -87,7 +87,7 @@ private:
      * 
      * Reduce unconnected polylines away from the intersection locations as well
      */
-    void fuzzyConnect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, coord_t snap_dist);
+    void fuzzyConnect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments);
 
     template<typename directional_iterator>
     void reduceIntersectionOverlap(Polyline& polyline, directional_iterator polyline_start_it, coord_t traveled_dist, coord_t reduction_length);

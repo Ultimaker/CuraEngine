@@ -416,9 +416,16 @@ void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
     end_source_point = source_segment.from();
 }
 
-VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys, float transitioning_angle)
+VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys, float transitioning_angle
+, coord_t discretization_step_size
+, coord_t transition_filter_dist
+, coord_t beading_propagation_transition_dist
+)
 : polys(polys)
 , transitioning_angle(transitioning_angle)
+, discretization_step_size(discretization_step_size)
+, transition_filter_dist(transition_filter_dist)
+, beading_propagation_transition_dist(beading_propagation_transition_dist)
 {
     init();
 }

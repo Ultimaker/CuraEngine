@@ -13,11 +13,11 @@
 namespace arachne
 {
 
-void BeadingOrderOptimizer::optimize(const std::vector<ExtrusionSegment>& segments, std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polylines_per_index)
+void BeadingOrderOptimizer::optimize(const std::vector<ExtrusionSegment>& segments, std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polylines_per_index, bool reduce_overlapping_segments)
 {
     BeadingOrderOptimizer optimizer(segments);
     optimizer.connect(result_polygons_per_index);
-    optimizer.fuzzyConnect(result_polygons_per_index, snap_dist);
+    optimizer.fuzzyConnect(result_polygons_per_index, snap_dist, reduce_overlapping_segments);
     optimizer.transferUnconnectedPolylines(result_polygons_per_index, result_polylines_per_index);
 }
 
@@ -141,7 +141,7 @@ void BeadingOrderOptimizer::connect(std::vector<std::vector<std::vector<Extrusio
     debugCheck();
 }
 
-void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, coord_t snap_dist)
+void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<ExtrusionJunction>>>& result_polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments)
 {
     struct Locator
     {
@@ -196,6 +196,10 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
         bool end_point_has_changed = false; // Whether the end_point ref now points to a new end compared to where it was initially pointing to
         bool has_connected = polygon_grid.getAnyNearby(p, snap_dist) != nullptr; // we check whether polygons were already connected together here
 
+        if (has_connected && !reduce_overlapping_segments)
+        { // don't process nearby polyline endpoints
+            continue;
+        }
         if (has_connected)
         {
             coord_t extrusion_width = end_point.front? end_point.polyline->junctions.front().w : end_point.polyline->junctions.back().w;
@@ -237,7 +241,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
             { // the other end is of the same really short polyline
                 continue;
             }
-            
+
             if (!has_connected)
             {
                 int_fast8_t changed_side_is_front = -1; // unset bool; whether we have changed what the front of the polyline of [end_point] is rather than the back (stays -1 if we don't need to reinsert any list change because it is now a closed polygon)
@@ -280,6 +284,10 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::vector<std::vector<Ext
                     end_point_has_changed = end_point.front == changed_side_is_front && other_end_polyline_length > snap_dist * 2;
                 }
                 has_connected = true;
+                if (!reduce_overlapping_segments)
+                { // don't continue going over nearby polyline ends
+                    break;
+                }
             }
             else
             {

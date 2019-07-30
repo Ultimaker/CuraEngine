@@ -32,21 +32,25 @@ class VoronoiQuadrangulation
     using node_t = HalfEdgeNode<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
     using Beading = BeadingStrategy::Beading;
 
-    coord_t snap_dist = 20; // generic arithmatic inaccuracy
-    coord_t discretization_step_size = 200;
-    coord_t transition_filter_dist = 1000; // filter transitions closer together than this
+    float transitioning_angle;
+    coord_t discretization_step_size;
+    coord_t transition_filter_dist; // filter transitions closer together than this
+    coord_t beading_propagation_transition_dist;
     coord_t marking_filter_dist = 20; // filter marking areas smaller than this
-    coord_t beading_propagation_transition_dist = 400;
+    coord_t snap_dist = 20; // generic arithmatic inaccuracy
 
 public:
     using Segment = PolygonsSegmentIndex;
-    VoronoiQuadrangulation(const Polygons& polys, float transitioning_angle);
+    VoronoiQuadrangulation(const Polygons& polys, float transitioning_angle
+    , coord_t discretization_step_size = 200
+    , coord_t transition_filter_dist = 1000
+    , coord_t beading_propagation_transition_dist = 400
+    );
     HalfEdgeGraph<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge> graph;
     std::vector<ExtrusionSegment> generateToolpaths(const BeadingStrategy& beading_strategy);
 
 protected:
     const Polygons& polys;
-    float transitioning_angle;
 
     void init();
 

@@ -355,13 +355,22 @@ void test(Polygons& polys, std::string output_prefix, StrategyType type, bool ge
 
     TimeKeeper tk;
 
-    VoronoiQuadrangulation vq(polys, transitioning_angle);
+    coord_t discretization_step_size = 200;
+    coord_t transition_filter_dist = 1000;
+    coord_t beading_propagation_transition_dist = 400;
+    bool reduce_overlapping_segments = true;
+    if (type == StrategyType::SingleBead)
+    {
+        transition_filter_dist = 50;
+        reduce_overlapping_segments = false;
+    }
+    VoronoiQuadrangulation vq(polys, transitioning_angle, discretization_step_size, transition_filter_dist, beading_propagation_transition_dist);
 
     std::vector<ExtrusionSegment> segments = vq.generateToolpaths(*beading_strategy);
 
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
-    BeadingOrderOptimizer::optimize(segments, result_polygons_per_index, result_polylines_per_index);
+    BeadingOrderOptimizer::optimize(segments, result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments);
     logAlways("Processing took %fs\n", tk.restart());
 
     if (generate_gcodes)
