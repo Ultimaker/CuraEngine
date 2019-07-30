@@ -61,6 +61,7 @@ static Polygons circle;
 static Polygons circle_flawed;
 static Polygons cross_shape;
 static Polygons gMAT_example;
+static Polygons simple_MAT_example;
 static Polygons wedge;
 static Polygons flawed_wedge;
 static Polygons rounded_wedge;
@@ -152,6 +153,15 @@ void generateTestPolys()
         gMAT_example_round.emplace_back(4000, 2000);
         gMAT_example_round.emplace_back(2000, 2000);
         gMAT_example.applyMatrix(PointMatrix::scale(1.0));
+    }
+    
+    {
+        PolygonRef simple_MAT_example_ = simple_MAT_example.newPoly();
+        simple_MAT_example_.emplace_back(0, 20000);
+        simple_MAT_example_.emplace_back(10000, 20000);
+        simple_MAT_example_.emplace_back(4000, 10000);
+        simple_MAT_example_.emplace_back(10000, 0);
+        simple_MAT_example_.emplace_back(0, 0);
     }
 
     {
@@ -485,6 +495,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = circle_flawed;
 //     Polygons polys = cross_shape;
 //     Polygons polys = gMAT_example;
+//     Polygons polys = simple_MAT_example;
 //     Polygons polys = wedge;
 //     Polygons polys = flawed_wedge;
 //     Polygons polys = flawed_wall;
