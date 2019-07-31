@@ -64,6 +64,7 @@ static Polygons gMAT_example;
 static Polygons simple_MAT_example;
 static Polygons wedge;
 static Polygons flawed_wedge;
+static Polygons clean_and_flawed_wedge_part;
 static Polygons rounded_wedge;
 static Polygons flawed_wall;
 static Polygons marked_local_opt;
@@ -197,6 +198,31 @@ void generateTestPolys()
         
         Point3Matrix rot = Point3Matrix(PointMatrix(-90.0));
         flawed_wedgel_1.applyMatrix(rot);
+    }
+    {
+        coord_t large_w = 2100;
+        coord_t small_w = 610;
+        coord_t h = 3000;
+        coord_t d = 1400;
+        coord_t step_count = 7;
+        coord_t deflection = 20;
+        PolygonRef poly = clean_and_flawed_wedge_part.newPoly();
+        poly.emplace_back(0, 0);
+        poly.emplace_back(large_w / 2 - small_w / 2, h);
+        poly.emplace_back(large_w / 2 + small_w / 2, h);
+        poly.emplace_back(large_w, 0);
+        poly.emplace_back(large_w / 2 + small_w / 2, -h);
+//         poly.emplace_back(large_w / 2 - small_w / 2, -h);
+        Point from(large_w / 2 - small_w / 2, -h);
+        Point to(0,0);
+        bool alternate = true;
+        for (coord_t step = 0; step < step_count; step++)
+        {
+            Point mid = from + (to - from) * step / step_count;
+            mid += Point(alternate? deflection : -deflection, 0);
+            poly.add(mid);
+            alternate = !alternate;
+        }
     }
     {
         coord_t l = 10000;
