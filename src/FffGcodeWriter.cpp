@@ -376,17 +376,14 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-
-    const size_t extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
-    const ExtruderTrain& support_infill_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    const ExtruderTrain& support_infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     storage.support.support_infill_angles = support_infill_extruder.settings.get<std::vector<AngleDegrees>>("support_infill_angles");
     if (storage.support.support_infill_angles.empty())
     {
         storage.support.support_infill_angles.push_back(0);
     }
 
-    const size_t extruder_nr_layer_0 = mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr;
-    const ExtruderTrain& support_extruder_nr_layer_0 = Application::getInstance().current_slice->scene.extruders[extruder_nr_layer_0];
+    const ExtruderTrain& support_extruder_nr_layer_0 = mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0");
     storage.support.support_infill_angles_layer_0 = support_extruder_nr_layer_0.settings.get<std::vector<AngleDegrees>>("support_infill_angles");
     if (storage.support.support_infill_angles_layer_0.empty())
     {
@@ -427,12 +424,10 @@ void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
         return angles;
     };
 
-    const size_t roof_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
-    const ExtruderTrain& roof_extruder = Application::getInstance().current_slice->scene.extruders[roof_extruder_nr];
+    const ExtruderTrain& roof_extruder = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr");
     storage.support.support_roof_angles = getInterfaceAngles(roof_extruder, "support_roof_angles", roof_extruder.settings.get<EFillMethod>("support_roof_pattern"), "support_roof_height");
 
-    const size_t bottom_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr;
-    const ExtruderTrain& bottom_extruder = Application::getInstance().current_slice->scene.extruders[bottom_extruder_nr];
+    const ExtruderTrain& bottom_extruder = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr");
     storage.support.support_bottom_angles = getInterfaceAngles(bottom_extruder, "support_bottom_angles", bottom_extruder.settings.get<EFillMethod>("support_bottom_pattern"), "support_bottom_height");
 }
 
