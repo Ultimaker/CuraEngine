@@ -248,9 +248,9 @@ void Statistics::visualize()
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << filename_base << "_segments.csv";
         std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
-        csv << "from_x; from_y; from_width; to_x; to_y; to_width\n";
+        csv << "from_x,from_y,from_width,to_x,to_y,to_width\n";
         for (const Segment& segment : all_segments)
-            csv << segment.s.from.p.X << "; " << segment.s.from.p.Y << "; " << segment.s.from.w << "; " << segment.s.to.p.X << "; " << segment.s.to.p.Y << "; " << segment.s.to.w << '\n';
+            csv << segment.s.from.p.X << "," << segment.s.from.p.Y << "¸" << segment.s.from.w << "," << segment.s.to.p.X << "," << segment.s.to.p.Y << "," << segment.s.to.w << '\n';
         csv.close();
     }
 
