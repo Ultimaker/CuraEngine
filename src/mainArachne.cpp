@@ -400,11 +400,15 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     if (generate_gcodes)
     {
         {
-            GcodeWriter gcode("output/arachne_P3.gcode", GcodeWriter::type_P3);
+            std::ostringstream ss;
+            ss << "output/" << output_prefix << "_" << to_string(type) << "_arachne_P3.gcode";
+            GcodeWriter gcode(ss.str(), GcodeWriter::type_P3);
             gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
         }
         {
-            GcodeWriter gcode("output/arachne_UM3.gcode", GcodeWriter::type_UM3);
+            std::ostringstream ss;
+            ss << "output/" << output_prefix << "_" << to_string(type) << "_arachne_UM3.gcode";
+            GcodeWriter gcode(ss.str(), GcodeWriter::type_UM3);
             gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
             logAlways("Writing gcode took %fs\n", tk.restart());
         }
@@ -466,11 +470,15 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
     if (generate_gcodes)
     {
         {
-            GcodeWriter gcode("output/naive_P3.gcode", GcodeWriter::type_P3);
+            std::ostringstream ss;
+            ss << "output/" << output_prefix << "_naive_arachne_P3.gcode";
+            GcodeWriter gcode(ss.str(), GcodeWriter::type_P3);
             gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
         }
         {
-            GcodeWriter gcode("output/naive_UM3.gcode", GcodeWriter::type_UM3);
+            std::ostringstream ss;
+            ss << "output/" << output_prefix << "_naive_arachne_UM3.gcode";
+            GcodeWriter gcode(ss.str(), GcodeWriter::type_UM3);
             gcode.print(result_polygons_per_index, result_polylines_per_index, AABB(polys));
             logAlways("Writing gcodes took %fs\n", tk.restart());
         }
