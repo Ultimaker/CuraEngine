@@ -562,7 +562,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
     // Preparing Input Geometries.
     int r;
     r = time(0);
-//     r = 1563888830;
+    r = 1563888830;
 //     r = 1563835071;
 //     r = 123;
     srand(r);
@@ -599,14 +599,17 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = circle_flawed;
 //     Polygons polys = cross_shape;
 //     Polygons polys = gMAT_example;
+    Polygons polys = test_various_aspects;polys.applyMatrix(PointMatrix::scale(2.2));
 //     Polygons polys = simple_MAT_example;
-//     Polygons polys = wedge;
+//     Polygons polys = wedge; polys.applyMatrix(PointMatrix::scale(3));
+//     Polygons polys = double_wedge; polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = flawed_wedge;
+//     Polygons polys = clean_and_flawed_wedge_part;
 //     Polygons polys = flawed_wall;
 //     Polygons polys = marked_local_opt;
 //     Polygons polys = pikachu;
 //     Polygons polys = um;
-    Polygons polys = spikes;
+//     Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
 //     Microstructure m; Polygons polys = m.squareGrid(Point(2,2), Point(2000,2000));
@@ -614,6 +617,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = MoessenTests::generateCircles(Point(2, 2), 100, 400, 500, 8);
 //     srand(1563874501); Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 1000, 8);
 //     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 100, 600, 1000);
+//     Polygons polys = MoessenTests::generateTriangles(Point(2, 1), 100, 500, 1000);
 //     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 300, 301, 1000);
 //     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 400, 401, 1000);
 //     Polygons polys = Prescribed::fromDistances({Point(0,800), Point(400,300), Point(610,610), Point(1400, 200)});
@@ -635,12 +639,13 @@ void test(std::string input_outline_filename, std::string output_prefix)
     }
 #endif
 
-    coord_t nozzle_size = MM2INT(0.6);
+    coord_t nozzle_size = MM2INT(0.4);
 
-    StrategyType type = StrategyType::Distributed;
-//     for (int type_n = 0; type_n < static_cast<int>(StrategyType::COUNT); type_n++)
+//     for (StrategyType type : { StrategyType::Center } )
+//     for (StrategyType type : { StrategyType::Distributed } )
+    for (StrategyType type : { StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead } )
+//     for (StrategyType type : { StrategyType::Constant, StrategyType::Center, StrategyType::Distributed } )
     {
-//         StrategyType type = static_cast<StrategyType>(type_n);
         test(polys, nozzle_size, output_prefix, type);
     }
     testNaive(polys, nozzle_size, output_prefix);
