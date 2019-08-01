@@ -6,6 +6,7 @@
 #include <stdio.h> // for file output
 #include <fstream>
 #include <iostream>
+#include <algorithm> // random_shuffle
 
 #include <boost/version.hpp>
 
@@ -641,14 +642,20 @@ void test(std::string input_outline_filename, std::string output_prefix)
 
     coord_t nozzle_size = MM2INT(0.4);
 
-//     for (StrategyType type : { StrategyType::Center } )
-//     for (StrategyType type : { StrategyType::Distributed } )
-    for (StrategyType type : { StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead } )
-//     for (StrategyType type : { StrategyType::Constant, StrategyType::Center, StrategyType::Distributed } )
+//     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead });
+    std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::Naive });
+    std::random_shuffle(strategies.begin(), strategies.end());
+    for (StrategyType type : strategies )
     {
-        test(polys, nozzle_size, output_prefix, type);
+        if (type == StrategyType::Naive)
+        {
+            testNaive(polys, nozzle_size, output_prefix);
+        }
+        else
+        {
+            test(polys, nozzle_size, output_prefix, type);
+        }
     }
-    testNaive(polys, nozzle_size, output_prefix);
 }
 
 
