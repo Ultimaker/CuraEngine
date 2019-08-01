@@ -403,7 +403,7 @@ std::string to_string(StrategyType type)
 {
     switch (type)
     {
-        case StrategyType::Naive: return "Naive";
+        case StrategyType::Naive: return "NaiveStrategy";
         case StrategyType::Constant: return "Constant";
         case StrategyType::Center: return "Center";
         case StrategyType::Distributed: return "Distributed";
@@ -431,6 +431,8 @@ BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = M
 
 void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, StrategyType type, bool generate_MAT_STL = false, bool generate_gcodes = true)
 {
+    std::string type_str = to_string(type);
+    logAlways(">> Performing %s strategy...\n", type_str.c_str());
     float transitioning_angle = M_PI / 4;
 
     BeadingStrategy* beading_strategy = makeStrategy(type, nozzle_size, transitioning_angle);
@@ -497,7 +499,7 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
 
 void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, bool generate_gcodes = false)
 {
-    logAlways("Simulating naive method...\n");
+    logAlways(">> Simulating naive method...\n");
 
     TimeKeeper tk;
 
