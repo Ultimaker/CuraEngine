@@ -2075,7 +2075,7 @@ VoronoiQuadrangulation::BeadingPropagation& VoronoiQuadrangulation::getBeading(n
             RUN_ONCE(logError("Unknown beading for unmarked node!\n"));
 //             assert(false);
             assert(dist != std::numeric_limits<coord_t>::max());
-            node->data.bead_count = beading_strategy.optimal_bead_count(dist);
+            node->data.bead_count = beading_strategy.optimal_bead_count(dist * 2);
         }
         assert(node->data.bead_count != -1);
         beading_it = node_to_beading.emplace(node, beading_strategy.compute(node->data.distance_to_boundary * 2, node->data.bead_count)).first;
