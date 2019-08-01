@@ -430,7 +430,7 @@ BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = M
     }
 }
 
-void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, StrategyType type, bool generate_MAT_STL = false, bool generate_gcodes = true)
+void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, StrategyType type, bool generate_MAT_STL = false, bool generate_gcodes = false)
 {
     std::string type_str = to_string(type);
     logAlways(">> Performing %s strategy...\n", type_str.c_str());
@@ -578,9 +578,9 @@ void test(std::string input_outline_filename, std::string output_prefix)
     */
     
     generateTestPolys();
-//     Polygons polys = SVGloader::load(input_outline_filename);
-//     AABB aabb(polys);
-//     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
+    Polygons polys = SVGloader::load(input_outline_filename);
+    AABB aabb(polys);
+    polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
 
 
     /*
@@ -596,7 +596,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = circle_flawed;
 //     Polygons polys = cross_shape;
 //     Polygons polys = gMAT_example;
-    Polygons polys = test_various_aspects;polys.applyMatrix(PointMatrix::scale(2.2));
+//     Polygons polys = test_various_aspects;polys.applyMatrix(PointMatrix::scale(2.2));
 //     Polygons polys = simple_MAT_example;
 //     Polygons polys = wedge; polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = double_wedge; polys.applyMatrix(PointMatrix::scale(3));
@@ -604,7 +604,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = clean_and_flawed_wedge_part;
 //     Polygons polys = flawed_wall;
 //     Polygons polys = marked_local_opt;
-//     Polygons polys = pikachu;
+//     Polygons polys = pikachu; polys.applyMatrix(PointMatrix::scale(10));
 //     Polygons polys = um;
 //     Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
