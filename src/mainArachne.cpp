@@ -354,9 +354,8 @@ std::string to_string(StrategyType type)
     }
 }
 
-BeadingStrategy* makeStrategy(StrategyType type, float transitioning_angle = M_PI / 4)
+BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = MM2INT(0.5), float transitioning_angle = M_PI / 4)
 {
-    coord_t prefered_bead_width = MM2INT(0.4);
     switch (type)
     {
         case StrategyType::Naive: return              new NaiveBeadingStrategy(prefered_bead_width);
@@ -370,11 +369,11 @@ BeadingStrategy* makeStrategy(StrategyType type, float transitioning_angle = M_P
     }
 }
 
-void test(Polygons& polys, std::string output_prefix, StrategyType type, bool generate_MAT_STL = false, bool generate_gcodes = false)
+void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, StrategyType type, bool generate_MAT_STL = false, bool generate_gcodes = true)
 {
     float transitioning_angle = M_PI / 4;
 
-    BeadingStrategy* beading_strategy = makeStrategy(type, transitioning_angle);
+    BeadingStrategy* beading_strategy = makeStrategy(type, nozzle_size, transitioning_angle);
     if (!beading_strategy) return;
 
 
@@ -433,11 +432,9 @@ void test(Polygons& polys, std::string output_prefix, StrategyType type, bool ge
 
 }
 
-void testNaive(Polygons& polys, std::string output_prefix, bool generate_gcodes = false)
+void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, bool generate_gcodes = false)
 {
     logAlways("Simulating naive method...\n");
-
-    coord_t nozzle_size = 400;
 
     TimeKeeper tk;
 
@@ -570,12 +567,15 @@ void test(std::string input_outline_filename, std::string output_prefix)
     }
 #endif
 
-    for (int type_n = 0; type_n < static_cast<int>(StrategyType::COUNT); type_n++)
+    coord_t nozzle_size = MM2INT(0.6);
+
+    StrategyType type = StrategyType::Distributed;
+//     for (int type_n = 0; type_n < static_cast<int>(StrategyType::COUNT); type_n++)
     {
-        StrategyType type = static_cast<StrategyType>(type_n);
-        test(polys, output_prefix, type);
+//         StrategyType type = static_cast<StrategyType>(type_n);
+        test(polys, nozzle_size, output_prefix, type);
     }
-    testNaive(polys, output_prefix);
+    testNaive(polys, nozzle_size, output_prefix);
 }
 
 
