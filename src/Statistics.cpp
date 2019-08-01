@@ -94,19 +94,22 @@ void Statistics::saveResultsCSV()
 
     {
         std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << filename_base << "_segments.csv";
+        ss << "output/" << output_prefix << "_" << test_type << "_segments.csv";
         std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
-        csv << "from_x,from_y,from_width,to_x,to_y,to_width\n";
+        csv << "from_x,from_y,from_width,to_x,to_y,to_width,filename_base,output_prefix\n";
         for (const Segment& segment : all_segments)
-            csv << segment.s.from.p.X << "," << segment.s.from.p.Y << "¸" << segment.s.from.w << "," << segment.s.to.p.X << "," << segment.s.to.p.Y << "," << segment.s.to.w << '\n';
+            csv << segment.s.from.p.X << "," << segment.s.from.p.Y << "," << segment.s.from.w << ","
+                << segment.s.to.p.X << "," << segment.s.to.p.Y << "," << segment.s.to.w << ","
+                << test_type << "," << output_prefix << '\n';
         csv.close();
     }
     {
         std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << filename_base << "_results.csv";
+        ss << "output/" << output_prefix << "_" << test_type << "_results.csv";
         std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
-        csv << "processing_time,overfill_area,double_overfill_area,total_underfill_area,total_target_area\n";
-        csv << processing_time << "," << overfill_area << "," << double_overfill_area << "," << total_underfill_area << "," << total_target_area << '\n';
+        csv << "processing_time,overfill_area,double_overfill_area,total_underfill_area,total_target_area,test_type,output_prefix\n";
+        csv << processing_time << "," << overfill_area << "," << double_overfill_area << "," << total_underfill_area << "," << total_target_area
+            << "," << test_type << "," << output_prefix << '\n';
         csv.close();
     }
 }
@@ -150,7 +153,7 @@ void Statistics::visualize()
     if (vq)
     {
         std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << filename_base << "_after.svg";
+        ss << "output/" << output_prefix << "_" << test_type << "_after.svg";
         SVG svg(ss.str(), aabb);
         vq->debugOutput(svg, false, false, true);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
@@ -180,7 +183,7 @@ void Statistics::visualize()
 
     {
         std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << filename_base << "_toolpaths.svg";
+        ss << "output/" << output_prefix << "_" << test_type << "_toolpaths.svg";
         SVG svg(ss.str(), aabb);
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
         bool alternate = true;
@@ -194,7 +197,7 @@ void Statistics::visualize()
 
     {
         std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << filename_base << "_widths.svg";
+        ss << "output/" << output_prefix << "_" << test_type << "_widths.svg";
         SVG svg(ss.str(), aabb);
 //         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
 
@@ -258,7 +261,7 @@ void Statistics::visualize()
 
     {
         std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << filename_base << "_accuracy.svg";
+        ss << "output/" << output_prefix << "_" << test_type << "_accuracy.svg";
         SVG svg(ss.str(), aabb);
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 3);
         svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);

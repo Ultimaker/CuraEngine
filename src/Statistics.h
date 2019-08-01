@@ -18,9 +18,9 @@ namespace arachne
 class Statistics
 {
 public:
-    Statistics(std::string filename_base, std::string output_prefix, double processing_time)
+    Statistics(std::string test_type, std::string output_prefix, double processing_time)
     : processing_time(processing_time)
-    , filename_base(filename_base)
+    , test_type(test_type)
     , output_prefix(output_prefix)
     , input(nullptr)
     {
@@ -47,7 +47,7 @@ private:
             return s.toPolygons(!is_full);
         }
     };
-    std::string filename_base;
+    std::string test_type;
     std::string output_prefix;
     Polygons* input;
     VoronoiQuadrangulation* vq;
