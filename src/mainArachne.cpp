@@ -420,7 +420,7 @@ BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = M
     {
         case StrategyType::Naive: return              new NaiveBeadingStrategy(prefered_bead_width);
         case StrategyType::Constant: return           new ConstantBeadingStrategy(prefered_bead_width, 4);
-        case StrategyType::Center: return             new CenterDeviationBeadingStrategy(prefered_bead_width, .5, 1.7);
+        case StrategyType::Center: return             new CenterDeviationBeadingStrategy(prefered_bead_width);
         case StrategyType::Distributed: return        new DistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
         case StrategyType::InwardDistributed: return  new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
         case StrategyType::LimitedDistributed: return new LimitedDistributedBeadingStrategy(prefered_bead_width, 6, transitioning_angle);
