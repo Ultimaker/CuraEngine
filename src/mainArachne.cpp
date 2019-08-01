@@ -455,7 +455,8 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
     BeadingOrderOptimizer::optimize(segments, result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments);
-    logAlways("Processing took %fs\n", tk.restart());
+    double processing_time = tk.restart();
+    logAlways("Processing took %fs\n", processing_time);
 
     if (generate_gcodes)
     {
@@ -483,12 +484,10 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
 
 
 
-    logAlways("Analysing...\n");
-
-    Statistics stats(to_string(type), output_prefix);
+    Statistics stats(to_string(type), output_prefix, processing_time);
     stats.analyse(polys, result_polygons_per_index, result_polylines_per_index, &vq);
     logAlways("Analysis took %fs\n", tk.restart());
-    logAlways("Visualizing...\n");
+    stats.saveResultsCSV();
     stats.visualize();
     logAlways("Visualization took %fs\n", tk.restart());
 
@@ -509,7 +508,8 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
         insets.emplace_back(last_inset);
         last_inset = last_inset.offset(-nozzle_size, ClipperLib::jtRound);
     }
-    logAlways("Naive processing took %fs\n", tk.restart());
+    double processing_time = tk.restart();
+    logAlways("Naive processing took %fs\n", processing_time);
 
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
@@ -544,13 +544,11 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
         }
     }
     
-    logAlways("Analysing...\n");
-
-    Statistics stats("naive", output_prefix);
+    Statistics stats("naive", output_prefix, processing_time);
     stats.analyse(polys, result_polygons_per_index, result_polylines_per_index);
+    stats.saveResultsCSV();
     logAlways("Analysis took %fs\n", tk.restart());
     stats.visualize();
-
     logAlways("Visualization took %fs\n", tk.restart());
 
     

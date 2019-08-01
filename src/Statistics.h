@@ -18,14 +18,21 @@ namespace arachne
 class Statistics
 {
 public:
-    Statistics(std::string filename_base, std::string output_prefix)
-    : filename_base(filename_base)
+    Statistics(std::string filename_base, std::string output_prefix, double processing_time)
+    : processing_time(processing_time)
+    , filename_base(filename_base)
     , output_prefix(output_prefix)
     , input(nullptr)
     {
     }
     void analyse(Polygons& input, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index, VoronoiQuadrangulation* vq = nullptr);
     void visualize();
+    void saveResultsCSV();
+    double processing_time;
+    double overfill_area;
+    double double_overfill_area;
+    double total_underfill_area;
+    double total_target_area;
 private:
     struct Segment
     {

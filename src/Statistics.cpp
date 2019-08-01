@@ -61,22 +61,23 @@ void Statistics::analyse(Polygons& input, std::vector<std::vector<std::vector<Ex
     double_overfills = double_overfills.offset(10);
     double_overfills = double_overfills.offset(-5);
 
-    double total_overfill_area = INT2MM2(overfills.area() + double_overfills.area());
-    logAlways("Total overfill area: %f mm²\n", total_overfill_area);
-    std::vector<PolygonsPart> overfill_areas = overfills.splitIntoParts();
-    logAlways("Average area: %f mm² over %d parts\n", total_overfill_area / overfill_areas.size(), overfill_areas.size());
+    overfill_area = INT2MM2(overfills.area());
+    double_overfill_area = INT2MM2(double_overfills.area());
+    double total_overfill_area = overfill_area + double_overfill_area;
+//     logAlways("Total overfill area: %f mm²\n", total_overfill_area);
 
     underfills = input.difference(area_covered);
     underfills = underfills.offset(5);
     underfills = underfills.offset(-10);
     underfills = underfills.offset(5);
 
-    double total_underfill_area = INT2MM2(underfills.area());
-    logAlways("Total underfill area: %f mm²\n", total_underfill_area);
-    std::vector<PolygonsPart> underfill_areas = underfills.splitIntoParts();
-    logAlways("Average area: %f mm² over %d parts\n", total_underfill_area / underfill_areas.size(), underfill_areas.size());
+    total_underfill_area = INT2MM2(underfills.area());
+//     logAlways("Total underfill area: %f mm²\n", total_underfill_area);
+//     std::vector<PolygonsPart> underfill_areas = underfills.splitIntoParts();
+//     logAlways("Average area: %f mm² over %d parts\n", total_underfill_area / underfill_areas.size(), underfill_areas.size());
 
-    logAlways("Total target area: %f mm²\n", INT2MM2(input.area()));
+    total_target_area = INT2MM2(input.area());
+//     logAlways("Total target area: %f mm²\n", total_target_area);
 
     // initialize paths
     for (Segment& segment : all_segments)
@@ -86,6 +87,28 @@ void Statistics::analyse(Polygons& input, std::vector<std::vector<std::vector<Ex
         poly.emplace_back(segment.s.to.p);
     }
 
+}
+
+void Statistics::saveResultsCSV()
+{
+
+    {
+        std::ostringstream ss;
+        ss << "output/" << output_prefix << "_" << filename_base << "_segments.csv";
+        std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
+        csv << "from_x,from_y,from_width,to_x,to_y,to_width\n";
+        for (const Segment& segment : all_segments)
+            csv << segment.s.from.p.X << "," << segment.s.from.p.Y << "¸" << segment.s.from.w << "," << segment.s.to.p.X << "," << segment.s.to.p.Y << "," << segment.s.to.w << '\n';
+        csv.close();
+    }
+    {
+        std::ostringstream ss;
+        ss << "output/" << output_prefix << "_" << filename_base << "_results.csv";
+        std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
+        csv << "processing_time,overfill_area,double_overfill_area,total_underfill_area,total_target_area\n";
+        csv << processing_time << "," << overfill_area << "," << double_overfill_area << "," << total_underfill_area << "," << total_target_area << '\n';
+        csv.close();
+    }
 }
 
 void Statistics::generateAllSegments(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index)
@@ -243,17 +266,6 @@ void Statistics::visualize()
         svg.writeAreas(underfills, SVG::Color::BLUE, SVG::Color::NONE);
         svg.writePolygons(paths, SVG::Color::BLACK, 1);
     }
-
-    {
-        std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << filename_base << "_segments.csv";
-        std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
-        csv << "from_x,from_y,from_width,to_x,to_y,to_width\n";
-        for (const Segment& segment : all_segments)
-            csv << segment.s.from.p.X << "," << segment.s.from.p.Y << "¸" << segment.s.from.w << "," << segment.s.to.p.X << "," << segment.s.to.p.Y << "," << segment.s.to.w << '\n';
-        csv.close();
-    }
-
 }
 
 std::vector<Statistics::Segment> Statistics::discretize(const Segment& segment, coord_t step_size)
