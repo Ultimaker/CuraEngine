@@ -61,8 +61,10 @@ static Polygons circle;
 static Polygons circle_flawed;
 static Polygons cross_shape;
 static Polygons gMAT_example;
+static Polygons test_various_aspects;
 static Polygons simple_MAT_example;
 static Polygons wedge;
+static Polygons double_wedge;
 static Polygons flawed_wedge;
 static Polygons clean_and_flawed_wedge_part;
 static Polygons rounded_wedge;
@@ -155,6 +157,51 @@ void generateTestPolys()
         gMAT_example_round.emplace_back(2000, 2000);
         gMAT_example.applyMatrix(PointMatrix::scale(1.0));
     }
+    {
+        {
+            PolygonRef poly = test_various_aspects.newPoly();
+            float s = MM2INT(1);
+            poly.emplace_back(s*4.333,s*0.000);
+            poly.emplace_back(s*4.667,s*0.333);
+            poly.emplace_back(s*4.667,s*1.083);
+            poly.emplace_back(s*3.667,s*1.417);
+            poly.emplace_back(s*4.667,s*1.667);
+            poly.emplace_back(s*4.667,s*5.667);
+            poly.emplace_back(s*-0.000,s*5.667);
+            poly.emplace_back(s*0.000,s*3.000);
+            poly.emplace_back(s*0.000,s*2.667);
+            poly.emplace_back(s*-0.000,s*1.000);
+            poly.emplace_back(s*0.107,s*0.676);
+            poly.emplace_back(s*0.351,s*0.434);
+            poly.emplace_back(s*0.651,s*0.262);
+            poly.emplace_back(s*0.975,s*0.141);
+            poly.emplace_back(s*1.312,s*0.061);
+            poly.emplace_back(s*1.654,s*0.015);
+            poly.emplace_back(s*2.000,s*0.000);
+        }
+        {
+            PolygonRef poly = test_various_aspects.newPoly();
+            float s = MM2INT(1);
+            poly.emplace_back(s*0.195,s*3.000);
+            poly.emplace_back(s*0.195,s*5.233);
+            poly.emplace_back(s*2.333,s*5.233);
+            poly.emplace_back(s*4.000,s*4.805);
+            poly.emplace_back(s*2.333,s*4.389);
+            poly.emplace_back(s*2.068,s*4.276);
+            poly.emplace_back(s*1.877,s*4.021);
+            poly.emplace_back(s*1.756,s*3.708);
+            poly.emplace_back(s*1.676,s*3.258);
+            poly.emplace_back(s*1.676,s*2.797);
+            poly.emplace_back(s*1.756,s*2.347);
+            poly.emplace_back(s*1.877,s*2.035);
+            poly.emplace_back(s*2.068,s*1.779);
+            poly.emplace_back(s*2.333,s*1.667);
+            poly.emplace_back(s*3.333,s*1.417);
+            poly.emplace_back(s*2.333,s*1.000);
+            poly.emplace_back(s*0.195,s*1.000);
+            poly.emplace_back(s*0.195,s*2.667);
+        }
+    }
     
     {
         PolygonRef simple_MAT_example_ = simple_MAT_example.newPoly();
@@ -168,6 +215,19 @@ void generateTestPolys()
     {
         PolygonRef wedge_1 = wedge.newPoly();
         wedge_1.emplace_back(2500, 0);
+        wedge_1.emplace_back(0, 2500);
+        wedge_1.emplace_back(20000, 20000);
+//         PointMatrix scaler = PointMatrix::scale(.846); // .846 causes a transition which is just beyond the marked skeleton
+        PointMatrix scaler = PointMatrix::scale(.5); // .846 causes a transition which is just beyond the marked skeleton
+        wedge_1.applyMatrix(scaler);
+        PointMatrix rot(-45);
+        wedge_1.applyMatrix(rot);
+    }
+
+    {
+        PolygonRef wedge_1 = double_wedge.newPoly();
+        wedge_1.emplace_back(2500, 0);
+        wedge_1.emplace_back(-20000, -20000);
         wedge_1.emplace_back(0, 2500);
         wedge_1.emplace_back(20000, 20000);
 //         PointMatrix scaler = PointMatrix::scale(.846); // .846 causes a transition which is just beyond the marked skeleton
