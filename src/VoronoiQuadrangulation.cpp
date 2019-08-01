@@ -953,8 +953,6 @@ void VoronoiQuadrangulation:: filterUnmarkedRegions(const BeadingStrategy& beadi
         {
             continue;
         }
-        if (edge.to->data.bead_count < 0 && edge.to->data.distance_to_boundary > 0)
-            isEndOfMarking(edge);
         assert(edge.to->data.bead_count >= 0 || edge.to->data.distance_to_boundary == 0);
         coord_t max_dist = 400; // beading_strategy.getTransitioningLength(edge.to->data.bead_count)
         filterUnmarkedRegions(&edge, edge.to->data.bead_count, 0, max_dist, beading_strategy);
