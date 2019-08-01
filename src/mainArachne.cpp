@@ -563,13 +563,9 @@ void test(std::string input_outline_filename, std::string output_prefix)
     // Preparing Input Geometries.
     int r;
     r = time(0);
-    r = 1563888830;
-//     r = 1563835071;
-//     r = 123;
     srand(r);
-    printf("srand(%d);\n", r);
-    fflush(stdout);
-    logDebug("boost version: %s\n", BOOST_LIB_VERSION);
+//     logAlways("srand(%d);\n", r);
+//     logDebug("boost version: %s\n", BOOST_LIB_VERSION);
     
     
     // problem of 2 nearby 3-way intersections I wouldn't know the solution to
