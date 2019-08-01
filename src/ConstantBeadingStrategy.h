@@ -16,8 +16,8 @@ class ConstantBeadingStrategy : public BeadingStrategy
 {
 public:
     const coord_t bead_count;
-    ConstantBeadingStrategy(const coord_t bead_width, const coord_t bead_count)
-    : BeadingStrategy(bead_width)
+    ConstantBeadingStrategy(const coord_t bead_width, const coord_t bead_count, float transitioning_angle)
+    : BeadingStrategy(bead_width, transitioning_angle)
     , bead_count(bead_count)
     {
     }
