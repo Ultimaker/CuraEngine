@@ -51,7 +51,7 @@ GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness
     file << "M107\n";
     file << "M204 S625; set acceleration\n";
     file << "M205 X6 Y6; set jerk\n";
-    file << "G0 X" << INT2MM(build_plate_middle.X) << " Y" << INT2MM(build_plate_middle.Y) << " Z" << INT2MM(layer_thickness) << " F1200 ; start location\n";
+    file << "G0 X" << INT2MM(build_plate_middle.X) << " Y" << INT2MM(build_plate_middle.Y) << " Z" << (INT2MM(layer_thickness) + 0.24) << " F1200 ; start location\n";
     file << "G0 E0 F1500 ; unretract\n";
     file << "\n";
     file << "M214 K2.0 ; bueno linear advance\n";
