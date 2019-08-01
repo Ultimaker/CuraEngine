@@ -77,6 +77,7 @@ void Statistics::analyse(Polygons& input, std::vector<std::vector<std::vector<Ex
 //     logAlways("Average area: %f mm² over %d parts\n", total_underfill_area / underfill_areas.size(), underfill_areas.size());
 
     total_target_area = INT2MM2(input.area());
+    total_target_area_length = INT2MM(input.polygonLength());
 //     logAlways("Total target area: %f mm²\n", total_target_area);
 
     // initialize paths
@@ -107,9 +108,10 @@ void Statistics::saveResultsCSV()
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_results.csv";
         std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
-        csv << "processing_time,overfill_area,double_overfill_area,total_underfill_area,total_target_area,test_type,output_prefix\n";
-        csv << processing_time << "," << overfill_area << "," << double_overfill_area << "," << total_underfill_area << "," << total_target_area
-            << "," << test_type << "," << output_prefix << '\n';
+        csv << "processing_time,overfill_area,double_overfill_area,total_underfill_area,total_target_area,total_target_area_length,test_type,output_prefix\n";
+        csv << processing_time << "," << overfill_area << "," << double_overfill_area << "," << total_underfill_area << ","
+            << total_target_area << "," << total_target_area_length << ","
+            << test_type << "," << output_prefix << '\n';
         csv.close();
     }
 }

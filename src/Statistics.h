@@ -33,6 +33,7 @@ public:
     double double_overfill_area;
     double total_underfill_area;
     double total_target_area;
+    double total_target_area_length;
 private:
     struct Segment
     {
