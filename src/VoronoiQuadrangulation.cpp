@@ -981,7 +981,7 @@ bool VoronoiQuadrangulation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead
         else // upward bead count is different
         {
             // dissolve if two marked regions with different bead count are closer together than the max_dist (= transition distance)
-            dissolve = (traveled_dist + length < max_dist);
+            dissolve = (traveled_dist + length < max_dist) && std::abs(next_edge->to->data.bead_count - bead_count) == 1;
         }
         if (dissolve)
         {
