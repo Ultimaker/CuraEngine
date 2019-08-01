@@ -567,7 +567,7 @@ void VoronoiQuadrangulation::init()
     {
         AABB aabb(polys);
         SVG svg("output/vq.svg", aabb);
-        debugOutput(svg, false, false);
+        debugOutput(svg, true, false);
     }
     {
         AABB aabb(polys);
@@ -2498,7 +2498,7 @@ SVG::ColorObject VoronoiQuadrangulation::getColor(edge_t& edge)
     switch (edge.data.type)
     {
         case VoronoiQuadrangulationEdge::EXTRA_VD:
-            return SVG::ColorObject(200, 200, 200);
+            return SVG::ColorObject(100, 100, 100);
         case VoronoiQuadrangulationEdge::TRANSITION_END:
             return SVG::Color::MAGENTA;
         case VoronoiQuadrangulationEdge::NORMAL:
@@ -2523,7 +2523,8 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
         }
         if (draw_arrows)
         {
-            svg.writeArrow(a, b, clr, stroke_width);
+            constexpr coord_t spacing_dist = 10;
+            svg.writeArrow(a + normal(b - a, spacing_dist * 3), b - normal(b - a, spacing_dist), clr, stroke_width, 10, spacing_dist);
         }
         else
         {
@@ -2535,6 +2536,10 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
     }
     for (node_t& node : graph.nodes)
     {
+        if (draw_arrows)
+        {
+            svg.writePoint(node.p);
+        }
         if (draw_dists && node.data.distance_to_boundary > 0)
         {
             svg.writeText(node.p, std::to_string(node.data.distance_to_boundary));

@@ -158,10 +158,10 @@ void generateTestPolys()
     
     {
         PolygonRef simple_MAT_example_ = simple_MAT_example.newPoly();
-        simple_MAT_example_.emplace_back(0, 20000);
-        simple_MAT_example_.emplace_back(10000, 20000);
-        simple_MAT_example_.emplace_back(4000, 10000);
-        simple_MAT_example_.emplace_back(10000, 0);
+        simple_MAT_example_.emplace_back(0, 2000);
+        simple_MAT_example_.emplace_back(1000, 2000);
+        simple_MAT_example_.emplace_back(400, 1000);
+        simple_MAT_example_.emplace_back(1000, 0);
         simple_MAT_example_.emplace_back(0, 0);
     }
 
