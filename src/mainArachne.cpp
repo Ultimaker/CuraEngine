@@ -137,8 +137,9 @@ void generateTestPolys()
 
     {
         PolygonRef gMAT_example_outline = gMAT_example.newPoly();
-        gMAT_example_outline.emplace_back(0, 0);
-        gMAT_example_outline.emplace_back(8050, 0);
+        gMAT_example_outline.emplace_back(0, -20);
+        gMAT_example_outline.emplace_back(7000, -20);
+        gMAT_example_outline.emplace_back(8050, -20);
         gMAT_example_outline.emplace_back(8050, 2000);
         gMAT_example_outline.emplace_back(7000, 2000);
         gMAT_example_outline.emplace_back(7000, 11500);
@@ -146,17 +147,47 @@ void generateTestPolys()
         gMAT_example_outline.emplace_back(0, 12000);
         PolygonRef gMAT_example_triangle = gMAT_example.newPoly();
         gMAT_example_triangle.emplace_back(1000, 7000);
+        gMAT_example_triangle.emplace_back(1000, 7400);
+        gMAT_example_triangle.emplace_back(5000, 9000);
+        gMAT_example_triangle.emplace_back(1000, 10600);
         gMAT_example_triangle.emplace_back(1000, 11000);
-        gMAT_example_triangle.emplace_back(4000, 9000);
+        gMAT_example_triangle.emplace_back(6000, 9000);
         PolygonRef gMAT_example_round = gMAT_example.newPoly();
-        gMAT_example_round.emplace_back(1000, 3000);
-        gMAT_example_round.emplace_back(1000, 5000);
+        gMAT_example_round.emplace_back(1000, 2000);
+        gMAT_example_round.emplace_back(1000, 5600);
         gMAT_example_round.emplace_back(2000, 6000);
         gMAT_example_round.emplace_back(5000, 6000);
         gMAT_example_round.emplace_back(5000, 3000);
         gMAT_example_round.emplace_back(4000, 2000);
-        gMAT_example_round.emplace_back(2000, 2000);
-        gMAT_example.applyMatrix(PointMatrix::scale(1.0));
+        gMAT_example_round.emplace_back(2200, 2000);
+        gMAT_example_round.emplace_back(2200, 4400);
+
+        gMAT_example_round.emplace_back(2500, 4700);
+        gMAT_example_round.emplace_back(2800, 4800);
+        gMAT_example_round.emplace_back(3000, 4800);
+        gMAT_example_round.emplace_back(3300, 4700);
+        
+        gMAT_example_round.emplace_back(3600, 4400);
+        gMAT_example_round.emplace_back(3600, 3000);
+        gMAT_example_round.emplace_back(4200, 3000);
+        gMAT_example_round.emplace_back(4200, 4400);
+        
+        gMAT_example_round.emplace_back(4000, 4800);
+        gMAT_example_round.emplace_back(3800, 5000);
+        gMAT_example_round.emplace_back(3400, 5200);
+        gMAT_example_round.emplace_back(2600, 5200);
+        gMAT_example_round.emplace_back(2200, 5000);
+        gMAT_example_round.emplace_back(2000, 4800);
+        
+        gMAT_example_round.emplace_back(1800, 4400);
+        gMAT_example_round.emplace_back(1800, 2000);
+        
+        PolygonRef circle_hole = gMAT_example.newPoly();
+        coord_t r = 700;
+        for (float a = 360; a > 0; a -= 360 / 37)
+        {
+            circle_hole.add(Point(cos(a/180 * M_PI) * r, sin(a/180 * M_PI) * r) + Point(1600,9000));
+        }
     }
     {
         {
