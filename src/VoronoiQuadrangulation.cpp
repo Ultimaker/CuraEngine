@@ -772,11 +772,16 @@ void VoronoiQuadrangulation::fixNodeDuplication()
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
-std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const BeadingStrategy& beading_strategy)
+std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges)
 {
     setMarking(beading_strategy);
 
     filterMarking(marking_filter_dist);
+
+    if (filter_outermost_marked_edges)
+    {
+        filterOuterMarking();
+    }
 
         debugCheckGraphCompleteness();
         debugCheckGraphConsistency();
@@ -888,6 +893,19 @@ void VoronoiQuadrangulation::filterMarking(coord_t max_length)
         }
     }
 }
+
+void VoronoiQuadrangulation::filterOuterMarking()
+{
+    for (edge_t& edge : graph.edges)
+    {
+        if (!edge.prev)
+        {
+            edge.data.setMarked(false);
+            edge.twin->data.setMarked(false);
+        }
+    }
+}
+
 
 bool VoronoiQuadrangulation::filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length)
 {

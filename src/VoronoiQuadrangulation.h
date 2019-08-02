@@ -47,7 +47,7 @@ public:
     , coord_t beading_propagation_transition_dist = 400
     );
     HalfEdgeGraph<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge> graph;
-    std::vector<ExtrusionSegment> generateToolpaths(const BeadingStrategy& beading_strategy);
+    std::vector<ExtrusionSegment> generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges = false);
 
 protected:
     const Polygons& polys;
@@ -90,6 +90,8 @@ protected:
     void setMarking(const BeadingStrategy& beading_strategy); //! set the is_marked flag for each edge
 
     void filterMarking(coord_t max_length); //! Filter out small marked areas
+
+    void filterOuterMarking(); //! unmark the outermost edges
 
     /*!
      * Filter markings connected to starting_edge recursively.

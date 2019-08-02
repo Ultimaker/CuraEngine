@@ -44,10 +44,6 @@ public:
     : optimal_width(optimal_width)
     , transitioning_angle(transitioning_angle)
     {
-        if (transitioning_angle > M_PI / 3)
-        {
-            logWarning("Transitioning angle is so large that marked regions can have junctions instead of polylines only.\n");
-        }
     }
 
     virtual ~BeadingStrategy()

@@ -451,7 +451,7 @@ BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = M
     switch (type)
     {
         case StrategyType::Naive: return              new NaiveBeadingStrategy(prefered_bead_width);
-        case StrategyType::Constant: return           new ConstantBeadingStrategy(prefered_bead_width, 4, transitioning_angle);
+        case StrategyType::Constant: return           new ConstantBeadingStrategy(prefered_bead_width, 4, 2 * M_PI);
         case StrategyType::Center: return             new CenterDeviationBeadingStrategy(prefered_bead_width, transitioning_angle);
         case StrategyType::Distributed: return        new DistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
         case StrategyType::InwardDistributed: return  new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
@@ -477,10 +477,15 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     coord_t transition_filter_dist = 1000;
     coord_t beading_propagation_transition_dist = 400;
     bool reduce_overlapping_segments = true;
+    bool filter_outermost_marked_edges = false;
     if (type == StrategyType::SingleBead)
     {
         transition_filter_dist = 50;
         reduce_overlapping_segments = false;
+    }
+    else if (type == StrategyType::Constant)
+    {
+        filter_outermost_marked_edges = true;
     }
     VoronoiQuadrangulation vq(polys, transitioning_angle, discretization_step_size, transition_filter_dist, beading_propagation_transition_dist);
 
