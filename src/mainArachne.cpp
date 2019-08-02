@@ -674,14 +674,16 @@ void test(std::string input_outline_filename, std::string output_prefix)
 
     coord_t nozzle_size = MM2INT(0.4);
 
-    
-    std::ostringstream ss;
-    ss << "output/" << output_prefix << "_" << to_string(StrategyType::Distributed) << "_results.csv";
-    std::ifstream file(ss.str().c_str());
-    if (file.good())
+    if (output_prefix.compare("TEST") != 0)
     {
-        logAlways("Test already has results saved\n");
-        std::exit(-1);
+        std::ostringstream ss;
+        ss << "output/" << output_prefix << "_" << to_string(StrategyType::Distributed) << "_results.csv";
+        std::ifstream file(ss.str().c_str());
+        if (file.good())
+        {
+            logAlways("Test already has results saved\n");
+            std::exit(-1);
+        }
     }
     
 //     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead });
