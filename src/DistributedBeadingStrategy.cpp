@@ -43,14 +43,5 @@ coord_t DistributedBeadingStrategy::optimal_bead_count(coord_t thickness) const
     return (thickness + optimal_width / 2) / optimal_width;
 }
 
-coord_t DistributedBeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
-{
-    if (lower_bead_count == 0)
-    {
-        return 10;
-    }
-    return optimal_width;
-}
-
 
 } // namespace arachne
