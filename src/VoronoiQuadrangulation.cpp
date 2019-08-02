@@ -2032,6 +2032,10 @@ void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beadi
                 break;
             }
             Point junction(a + ab * (bead_R - start_R) / (end_R - start_R));
+            if (bead_R > start_R - 5)
+            { // snap to start node if it is really close, in order to be able to see 3-way intersection later on more robustly
+                junction = a;
+            }
             ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx);
         }
     }
