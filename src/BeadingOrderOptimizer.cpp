@@ -59,8 +59,8 @@ void BeadingOrderOptimizer::connect(std::vector<std::vector<std::vector<Extrusio
         bool connect_end = end_it != polyline_end_points.end();
 
         // don't connect polylines at intersections in this initial connection function
-        connect_start &= !segment.is_odd || connection_counts[segment.from.p].n <= 2;
-        connect_end &= !segment.is_odd || connection_counts[segment.to.p].n <= 2;
+        connect_start &= connection_counts[segment.from.p].n <= 2;
+        connect_end &= connection_counts[segment.to.p].n <= 2;
 
         debugCheck();
         if (!connect_start && !connect_end)
