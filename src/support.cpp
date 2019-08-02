@@ -896,9 +896,19 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         { // don't compute overhang for support meshes
             if (use_xy_distance_overhang) //Z overrides XY distance.
             {
+                // we also want to use the min XY distance when the support is resting on a sloped surface so we calculate the area of the
+                // layer below that protudes beyond the current layer's area and combine it with the current layer's overhang disallowed area
+
+                Polygons larger_area_below; // the area in the layer below that protrudes beyond the area of the current layer
+                if (layer_idx > 1)
+                {
+                    // shrink a little so that areas that only protrude very slightly are ignored
+                    larger_area_below = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines()).offset(-layer_thickness / 10);
+                }
+
                 //Compute the areas that are too close to the model.
                 Polygons xy_overhang_disallowed = mesh.overhang_areas[layer_idx].offset(z_distance_top * tan_angle);
-                Polygons xy_non_overhang_disallowed = outlines.difference(mesh.overhang_areas[layer_idx].offset(xy_distance)).offset(xy_distance);
+                Polygons xy_non_overhang_disallowed = outlines.difference(mesh.overhang_areas[layer_idx].unionPolygons(larger_area_below).offset(xy_distance)).offset(xy_distance);
                 xy_disallowed_per_layer[layer_idx] = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(xy_distance_overhang)));
             }
         }
