@@ -33,6 +33,31 @@ public:
         ret = ret.execute(ClipperLib::pftPositive);
         return ret;
     }
+    Polygons hexGrid(Point grid_size, coord_t cell_size)
+    {
+        coord_t r = cell_size / 2;
+        Polygons ret;
+        coord_t x_skip = sin(M_PI / 3) * r * 2;
+        coord_t y_skip = r + cos(M_PI / 3) * r;
+        for (int x = 0; x < grid_size.X; x++)
+        {
+            for (int y = 0; y < grid_size.Y; y++)
+            {
+                coord_t extra_x = (y % 2) * x_skip / 2;
+                Point mid(x_skip * x + extra_x, y_skip * y);
+                for (float a = 0; a < 3; a++)
+                {
+                    if (a == 0 && x == grid_size.X - 1) continue;
+                    if (a == 1 && x == 0) continue;
+                    if (a == 2 && y == 0) continue;
+                    Point to = mid + Point(cos(2*M_PI * (a + .25) / 3) * r, sin(2*M_PI * (a + .25) / 3) * r);
+                    ret.add(generateSegment(mid, to));
+                }
+            }
+        }
+        ret = ret.execute(ClipperLib::pftPositive);
+        return ret;
+    }
 private:
     coord_t step_size = MM2INT(0.2);
     Polygons generateSegment(Point from, Point to)

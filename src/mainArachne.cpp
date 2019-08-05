@@ -650,6 +650,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
 //     Microstructure m; Polygons polys = m.squareGrid(Point(2,2), Point(2000,2000));
+//     Microstructure m; Polygons polys = m.hexGrid(Point(12,12), 5000);
 //     Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 52);
 //     Polygons polys = MoessenTests::generateCircles(Point(2, 2), 100, 400, 500, 8);
 //     srand(1563874501); Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 1000, 8);
