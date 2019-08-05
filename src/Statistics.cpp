@@ -203,7 +203,8 @@ void Statistics::visualize()
         SVG svg(ss.str(), aabb);
 //         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
 
-        coord_t max_dev = 100;
+        coord_t max_dev = 200;
+        coord_t min_w = 30;
 
         // add legend
         auto to_string = [](float v)
@@ -219,7 +220,9 @@ void Statistics::visualize()
         ExtrusionJunction legend_mid((legend_top.p + legend_btm.p) / 2, (legend_top.w + legend_btm.w) / 2, 0);
         legend_btm.p += (legend_mid.p - legend_btm.p) / 4;
         legend_top.p += (legend_mid.p - legend_top.p) / 4;
-        all_segments_plus.emplace_back(ExtrusionSegment(legend_btm, legend_top, true), true);
+        ExtrusionSegment legend_segment(legend_btm, legend_top, true);
+        all_segments_plus.emplace_back(legend_segment, true); // colored
+        svg.writeAreas(legend_segment.toPolygons(false), SVG::Color::NONE); // real outline
         Point legend_text_offset(400, 0);
         svg.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
         svg.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
@@ -252,8 +255,8 @@ void Statistics::visualize()
                 clr = clr * 255 / clr_max;
 
                 clr.y = clr.y * (255 - 92 * clr.dot(green) / green.vSize() / 255) / 255;
-                s.s.from.w = std::max(static_cast<double>(30), 0.75 * (s.s.from.w + (s.s.from.w - 400) * 2.0));
-                s.s.to.w = std::max(static_cast<double>(30), 0.75 * (s.s.to.w + (s.s.to.w - 400) * 2.0));
+                s.s.from.w = std::max(min_w, min_w + (s.s.from.w - (400 - max_dev)) * 5 / 4);
+                s.s.to.w = std::max(min_w, min_w + (s.s.to.w - (400 - max_dev)) * 5 / 4);
                 Polygons covered = s.toPolygons();
                 svg.writeAreas(covered, SVG::ColorObject(clr.x, clr.y, clr.z), SVG::Color::NONE);
             }
