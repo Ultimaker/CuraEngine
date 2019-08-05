@@ -422,6 +422,7 @@ void generateTestPolys()
 enum class StrategyType
 {
     Naive,
+    NaiveStrategy,
     Constant,
     Center,
     Distributed,
@@ -435,7 +436,8 @@ std::string to_string(StrategyType type)
 {
     switch (type)
     {
-        case StrategyType::Naive: return "NaiveStrategy";
+        case StrategyType::Naive: return "Naive";
+        case StrategyType::NaiveStrategy: return "NaiveStrategy";
         case StrategyType::Constant: return "Constant";
         case StrategyType::Center: return "Center";
         case StrategyType::Distributed: return "Distributed";
@@ -450,14 +452,16 @@ BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = M
 {
     switch (type)
     {
-        case StrategyType::Naive: return              new NaiveBeadingStrategy(prefered_bead_width);
+        case StrategyType::NaiveStrategy: return      new NaiveBeadingStrategy(prefered_bead_width);
         case StrategyType::Constant: return           new ConstantBeadingStrategy(prefered_bead_width, 4, 2 * M_PI);
         case StrategyType::Center: return             new CenterDeviationBeadingStrategy(prefered_bead_width, transitioning_angle);
         case StrategyType::Distributed: return        new DistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
         case StrategyType::InwardDistributed: return  new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
         case StrategyType::LimitedDistributed: return new LimitedDistributedBeadingStrategy(prefered_bead_width, 6, transitioning_angle);
         case StrategyType::SingleBead: return         new SingleBeadBeadingStrategy(prefered_bead_width, transitioning_angle);
-        default: return nullptr;
+        default:
+            logError("Cannot make strategy!\n");
+            return nullptr;
     }
 }
 
