@@ -221,8 +221,8 @@ void Statistics::visualize()
         legend_btm.p += (legend_mid.p - legend_btm.p) / 4;
         legend_top.p += (legend_mid.p - legend_top.p) / 4;
         ExtrusionSegment legend_segment(legend_btm, legend_top, true);
+        svg.writeAreas(legend_segment.toPolygons(false), SVG::ColorObject(200,200,200), SVG::Color::NONE); // real outline
         all_segments_plus.emplace_back(legend_segment, true); // colored
-        svg.writeAreas(legend_segment.toPolygons(false), SVG::Color::NONE); // real outline
         Point legend_text_offset(400, 0);
         svg.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
         svg.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
