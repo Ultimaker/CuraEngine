@@ -672,7 +672,11 @@ void test(std::string input_outline_filename, std::string output_prefix)
 
 #ifdef DEBUG
     {
-        SVG svg("output/outline.svg", AABB(polys));
+        SVG svg("output/outline_viz.svg", AABB(polys));
+        svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK);
+    }
+    {
+        SVG svg("output/outline.svg", AABB(polys), INT2MM(1));
         svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK);
     }
 #endif
