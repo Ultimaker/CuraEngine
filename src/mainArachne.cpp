@@ -26,6 +26,7 @@
 #include "utils/VoronoiUtils.h"
 #include "NaiveBeadingStrategy.h"
 #include "CenterDeviationBeadingStrategy.h"
+#include "WideningBeadingStrategy.h"
 #include "ConstantBeadingStrategy.h"
 #include "BeadingOrderOptimizer.h"
 #include "GcodeWriter.h"
@@ -448,20 +449,29 @@ std::string to_string(StrategyType type)
     }
 }
 
-BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = MM2INT(0.5), float transitioning_angle = M_PI / 4)
+BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = MM2INT(0.5), float transitioning_angle = M_PI / 4, bool widening = false)
 {
+    BeadingStrategy* ret = nullptr;
     switch (type)
     {
-        case StrategyType::NaiveStrategy: return      new NaiveBeadingStrategy(prefered_bead_width);
-        case StrategyType::Constant: return           new ConstantBeadingStrategy(prefered_bead_width, 4, 2 * M_PI);
-        case StrategyType::Center: return             new CenterDeviationBeadingStrategy(prefered_bead_width, transitioning_angle);
-        case StrategyType::Distributed: return        new DistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
-        case StrategyType::InwardDistributed: return  new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle);
-        case StrategyType::LimitedDistributed: return new LimitedDistributedBeadingStrategy(prefered_bead_width, 6, transitioning_angle);
-        case StrategyType::SingleBead: return         new SingleBeadBeadingStrategy(prefered_bead_width, transitioning_angle);
+        case StrategyType::NaiveStrategy:      ret = new NaiveBeadingStrategy(prefered_bead_width);                                      break;
+        case StrategyType::Constant:           ret = new ConstantBeadingStrategy(prefered_bead_width, 4, 2 * M_PI);                      break;
+        case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(prefered_bead_width, transitioning_angle);       break;
+        case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(prefered_bead_width, transitioning_angle);           break;
+        case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle);     break;
+        case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(prefered_bead_width, 6, transitioning_angle); break;
+        case StrategyType::SingleBead:         ret = new SingleBeadBeadingStrategy(prefered_bead_width, transitioning_angle);            break;
         default:
             logError("Cannot make strategy!\n");
             return nullptr;
+    }
+    if (widening)
+    {
+        return new WideningBeadingStrategy(ret, MM2INT(0.1), MM2INT(0.3));
+    }
+    else
+    {
+        return ret;
     }
 }
 
