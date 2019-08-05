@@ -41,6 +41,8 @@ void Statistics::analyse(Polygons& input, std::vector<std::vector<std::vector<Ex
             new_poly.add(poly[point_idx]);
         }
     }
+    overfills.add(area_covered.difference(input));
+
     double_overfills = overfills;
     for (PolygonRef poly : area_covered)
     {
