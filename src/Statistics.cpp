@@ -107,12 +107,16 @@ void Statistics::saveResultsCSV()
         csv.close();
     }
     {
+        coord_t vert_count = 0;
+        for (PolygonRef poly : *input)
+            for (Point& p : poly)
+                vert_count++;
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_results.csv";
         std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
-        csv << "processing_time,overfill_area,double_overfill_area,total_underfill_area,total_target_area,total_target_area_length,test_type,output_prefix\n";
+        csv << "processing_time,overfill_area,double_overfill_area,total_underfill_area,total_target_area,total_target_area_length,vert_count,test_type,output_prefix\n";
         csv << processing_time << "," << overfill_area << "," << double_overfill_area << "," << total_underfill_area << ","
-            << total_target_area << "," << total_target_area_length << ","
+            << total_target_area << "," << total_target_area_length << "," << vert_count << ","
             << test_type << "," << output_prefix << '\n';
         csv.close();
     }
