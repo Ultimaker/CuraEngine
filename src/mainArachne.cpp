@@ -467,7 +467,7 @@ BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = M
     }
     if (widening)
     {
-        return new WideningBeadingStrategy(ret, MM2INT(0.1), MM2INT(0.3));
+        return new WideningBeadingStrategy(ret, MM2INT(0.05), MM2INT(0.3));
     }
     else
     {
@@ -628,10 +628,12 @@ void test(std::string input_outline_filename, std::string output_prefix)
     */
     
     generateTestPolys();
+
+    
     Polygons polys = SVGloader::load(input_outline_filename);
     AABB aabb(polys);
     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
-
+    
 
     /*
     Polygons polys = generateTestPoly(40, Point(20000, 20000));
@@ -648,7 +650,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = gMAT_example;
 //     Polygons polys = test_various_aspects;polys.applyMatrix(PointMatrix::scale(2.2));
 //     Polygons polys = simple_MAT_example;
-//     Polygons polys = wedge; polys.applyMatrix(PointMatrix::scale(3));
+//     Polygons polys = wedge; // polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = double_wedge; polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = flawed_wedge;
 //     Polygons polys = clean_and_flawed_wedge_part;
@@ -660,7 +662,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
 //     Microstructure m; Polygons polys = m.squareGrid(Point(2,2), Point(2000,2000));
-//     Microstructure m; Polygons polys = m.hexGrid(Point(12,12), 5000);
+//     Microstructure m; Polygons polys = m.hexGrid(Point(12,12), 8000); polys.applyMatrix(PointMatrix::scale(0.5));
 //     Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 52);
 //     Polygons polys = MoessenTests::generateCircles(Point(2, 2), 100, 400, 500, 8);
 //     srand(1563874501); Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 1000, 8);
@@ -704,9 +706,11 @@ void test(std::string input_outline_filename, std::string output_prefix)
             std::exit(-1);
         }
     }
-    
-//     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead });
-    std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::Naive });
+
+//     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::NaiveStrategy });
+//     std::vector<StrategyType> strategies({ StrategyType::Distributed });
+//     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead, StrategyType::Naive });
+    std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::Naive });
     std::random_shuffle(strategies.begin(), strategies.end());
     for (StrategyType type : strategies )
     {
