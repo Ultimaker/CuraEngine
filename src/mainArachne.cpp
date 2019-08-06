@@ -503,7 +503,7 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     }
     VoronoiQuadrangulation vq(polys, transitioning_angle, discretization_step_size, transition_filter_dist, beading_propagation_transition_dist);
 
-    std::vector<ExtrusionSegment> segments = vq.generateToolpaths(*beading_strategy);
+    std::vector<ExtrusionSegment> segments = vq.generateToolpaths(*beading_strategy, filter_outermost_marked_edges);
 
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
     std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
