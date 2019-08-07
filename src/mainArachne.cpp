@@ -477,7 +477,7 @@ BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = M
     }
 }
 
-void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, StrategyType type, bool generate_MAT_STL = false, bool generate_gcodes = false)
+void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, StrategyType type, bool generate_gcodes = true, bool analyse = false, bool generate_MAT_STL = false)
 {
     std::string type_str = to_string(type);
     logAlways(">> Performing %s strategy...\n", type_str.c_str());
@@ -537,20 +537,21 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
         logAlways("Writing MAT STL took %fs\n", tk.restart());
     }
 
-
-
-    Statistics stats(to_string(type), output_prefix, processing_time);
-    stats.analyse(polys, result_polygons_per_index, result_polylines_per_index, &vq);
-    logAlways("Analysis took %fs\n", tk.restart());
-    stats.saveResultsCSV();
-    stats.visualize();
-    logAlways("Visualization took %fs\n", tk.restart());
+    if (analyse)
+    {
+        Statistics stats(to_string(type), output_prefix, processing_time);
+        stats.analyse(polys, result_polygons_per_index, result_polylines_per_index, &vq);
+        logAlways("Analysis took %fs\n", tk.restart());
+        stats.saveResultsCSV();
+        stats.visualize();
+        logAlways("Visualization took %fs\n", tk.restart());
+    }
 
     delete beading_strategy;
 
 }
 
-void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, bool generate_gcodes = false)
+void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, bool generate_gcodes = false, bool analyse = false)
 {
     logAlways(">> Simulating naive method...\n");
 
@@ -599,13 +600,15 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
         }
     }
     
-    Statistics stats("naive", output_prefix, processing_time);
-    stats.analyse(polys, result_polygons_per_index, result_polylines_per_index);
-    stats.saveResultsCSV();
-    logAlways("Analysis took %fs\n", tk.restart());
-    stats.visualize();
-    logAlways("Visualization took %fs\n", tk.restart());
-
+    if (analyse)
+    {
+        Statistics stats("naive", output_prefix, processing_time);
+        stats.analyse(polys, result_polygons_per_index, result_polylines_per_index);
+        stats.saveResultsCSV();
+        logAlways("Analysis took %fs\n", tk.restart());
+        stats.visualize();
+        logAlways("Visualization took %fs\n", tk.restart());
+    }
     
 }
 
@@ -645,8 +648,8 @@ void writeVarWidthTest()
 
 void test(std::string input_outline_filename, std::string output_prefix)
 {
-    writeVarWidthTest();
-    std::exit(0);
+//     writeVarWidthTest();
+//     std::exit(0);
 
     // Preparing Input Geometries.
     int r;
@@ -745,20 +748,24 @@ void test(std::string input_outline_filename, std::string output_prefix)
         }
     }
 
+    bool generate_gcodes = true;
+    bool analyse = false;
+
 //     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::NaiveStrategy });
-//     std::vector<StrategyType> strategies({ StrategyType::Distributed });
+    std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Naive, StrategyType::Center });
+//     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead, StrategyType::Naive });
-    std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::Naive });
-    std::random_shuffle(strategies.begin(), strategies.end());
+//     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::Naive });
+//     std::random_shuffle(strategies.begin(), strategies.end());
     for (StrategyType type : strategies )
     {
         if (type == StrategyType::Naive)
         {
-            testNaive(polys, nozzle_size, output_prefix);
+            testNaive(polys, nozzle_size, output_prefix, generate_gcodes, analyse);
         }
         else
         {
-            test(polys, nozzle_size, output_prefix, type);
+            test(polys, nozzle_size, output_prefix, type, generate_gcodes, analyse);
         }
     }
 }
