@@ -158,11 +158,13 @@ void Statistics::visualize(bool output_vq, bool output_toolpaths, bool output_wi
 {
     AABB aabb(*input);
 
+    double scale = INT2MM(10);
+    
     if (output_vq && vq)
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_after.svg";
-        SVG svg(ss.str(), aabb, INT2MM(10));
+        SVG svg(ss.str(), aabb, scale);
         vq->debugOutput(svg, false, false, true);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
         
@@ -193,7 +195,7 @@ void Statistics::visualize(bool output_vq, bool output_toolpaths, bool output_wi
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_toolpaths.svg";
-        SVG svg(ss.str(), aabb, INT2MM(10));
+        SVG svg(ss.str(), aabb, scale);
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
         bool alternate = true;
         for (PolygonRef poly : overlaps)
@@ -208,7 +210,7 @@ void Statistics::visualize(bool output_vq, bool output_toolpaths, bool output_wi
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_widths.svg";
-        SVG svg(ss.str(), aabb, INT2MM(10));
+        SVG svg(ss.str(), aabb, scale);
 //         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
 
         coord_t max_dev = 200;
@@ -279,7 +281,7 @@ void Statistics::visualize(bool output_vq, bool output_toolpaths, bool output_wi
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_accuracy.svg";
-        SVG svg(ss.str(), aabb, INT2MM(10));
+        SVG svg(ss.str(), aabb, scale);
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 3);
         svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
         svg.writeAreas(double_overfills, SVG::Color::ORANGE, SVG::Color::NONE);
