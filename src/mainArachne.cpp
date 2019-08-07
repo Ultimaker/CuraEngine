@@ -40,6 +40,8 @@
 #include "TestGeometry/SVGloader.h"
 #include "TestGeometry/Microstructure.h"
 
+#include "TestGeometry/VariableWidthGcodeTester.h"
+
 using arachne::Point;
 
 namespace arachne
@@ -607,9 +609,45 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
     
 }
 
+void writeVarWidthTest()
+{
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
+    result_polylines_per_index = VariableWidthGcodeTester::zigzag();
+
+    AABB aabb;
+    for (auto ps : result_polylines_per_index)
+        for (auto p : ps)
+            for (ExtrusionJunction& j : p)
+                aabb.include(j.p);
+    
+        
+    {
+        std::ostringstream ss;
+        ss << "output/variable_width_test_P3.gcode";
+        GcodeWriter gcode(ss.str(), GcodeWriter::type_P3);
+        gcode.printBrim(aabb, 3);
+        gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
+    }
+    {
+        std::ostringstream ss;
+        ss << "output/variable_width_test_UM3.gcode";
+        GcodeWriter gcode(ss.str(), GcodeWriter::type_UM3);
+        gcode.printBrim(aabb, 3);
+        gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
+    }
+    
+    Polygons fake_outline; fake_outline.add(aabb.toPolygon());
+    Statistics stats("var_width", "test", 1.0);
+    stats.analyse(fake_outline, result_polygons_per_index, result_polylines_per_index);
+    stats.visualize(false, true, true, false, false);
+}
+
 void test(std::string input_outline_filename, std::string output_prefix)
 {
-    
+    writeVarWidthTest();
+    std::exit(0);
+
     // Preparing Input Geometries.
     int r;
     r = time(0);
