@@ -68,6 +68,34 @@ GcodeWriter::~GcodeWriter()
     file.close();
 }
 
+void GcodeWriter::printBrim(AABB aabb, coord_t count, coord_t w, coord_t dist)
+{
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> polygons_per_index;
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> polylines_per_index;
+    polygons_per_index.resize(1);
+    std::vector<std::vector<ExtrusionJunction>>& polygons = polygons_per_index[0];
+
+    Polygons prev;
+    prev.add(aabb.toPolygon());
+    prev = prev.offset(dist * 2);
+    
+    for (int i = 0; i < count; i++)
+    {
+        Polygons skuurt = prev.offset(dist, ClipperLib::jtRound);
+        for (PolygonRef poly : skuurt)
+        {
+            polygons.emplace_back();
+            std::vector<ExtrusionJunction>& polygon = polygons.back();
+            for (Point p : poly)
+            {
+                polygon.emplace_back(p, w, 0);
+            }
+        }
+        prev = skuurt;
+    }
+    print(polygons_per_index, polylines_per_index, aabb);
+}
+
 void GcodeWriter::print(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index, AABB aabb)
 {
     reduction = aabb.getMiddle() - build_plate_middle;
