@@ -154,15 +154,15 @@ void Statistics::generateAllSegments(std::vector<std::vector<std::vector<Extrusi
     }
 }
 
-void Statistics::visualize()
+void Statistics::visualize(bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool output_accuracy)
 {
     AABB aabb(*input);
 
-    if (vq)
+    if (output_vq && vq)
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_after.svg";
-        SVG svg(ss.str(), aabb);
+        SVG svg(ss.str(), aabb, INT2MM(10));
         vq->debugOutput(svg, false, false, true);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
         
@@ -189,10 +189,11 @@ void Statistics::visualize()
         }
     }
 
+    if (output_toolpaths)
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_toolpaths.svg";
-        SVG svg(ss.str(), aabb);
+        SVG svg(ss.str(), aabb, INT2MM(10));
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
         bool alternate = true;
         for (PolygonRef poly : overlaps)
@@ -203,39 +204,43 @@ void Statistics::visualize()
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
     }
 
+    if (output_widths)
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_widths.svg";
-        SVG svg(ss.str(), aabb);
+        SVG svg(ss.str(), aabb, INT2MM(10));
 //         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
 
         coord_t max_dev = 200;
         coord_t min_w = 30;
 
         // add legend
-        auto to_string = [](float v)
-        {
-            std::ostringstream ss;
-            ss << v;
-            return ss.str();
-        };
         std::vector<Segment> all_segments_plus = all_segments;
-        AABB aabb(*input);
-        ExtrusionJunction legend_btm(Point(aabb.max.X + 400 + max_dev, aabb.max.Y), 400 - max_dev, 0);
-        ExtrusionJunction legend_top(Point(aabb.max.X + 400 + max_dev, aabb.min.Y), 400 + max_dev, 0);
-        ExtrusionJunction legend_mid((legend_top.p + legend_btm.p) / 2, (legend_top.w + legend_btm.w) / 2, 0);
-        legend_btm.p += (legend_mid.p - legend_btm.p) / 4;
-        legend_top.p += (legend_mid.p - legend_top.p) / 4;
-        ExtrusionSegment legend_segment(legend_btm, legend_top, true);
-        svg.writeAreas(legend_segment.toPolygons(false), SVG::ColorObject(200,200,200), SVG::Color::NONE); // real outline
-        all_segments_plus.emplace_back(legend_segment, true); // colored
-        Point legend_text_offset(400, 0);
-        svg.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
-        svg.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
-        svg.writeText(legend_mid.p + legend_text_offset, to_string(INT2MM(legend_mid.w)));
-        svg.writeLine(legend_top.p, legend_top.p + legend_text_offset);
-        svg.writeLine(legend_btm.p, legend_btm.p + legend_text_offset);
-        svg.writeLine(legend_mid.p, legend_mid.p + legend_text_offset);
+        if (include_legend)
+        {
+            auto to_string = [](float v)
+            {
+                std::ostringstream ss;
+                ss << v;
+                return ss.str();
+            };
+            AABB aabb(*input);
+            ExtrusionJunction legend_btm(Point(aabb.max.X + 400 + max_dev, aabb.max.Y), 400 - max_dev, 0);
+            ExtrusionJunction legend_top(Point(aabb.max.X + 400 + max_dev, aabb.min.Y), 400 + max_dev, 0);
+            ExtrusionJunction legend_mid((legend_top.p + legend_btm.p) / 2, (legend_top.w + legend_btm.w) / 2, 0);
+            legend_btm.p += (legend_mid.p - legend_btm.p) / 4;
+            legend_top.p += (legend_mid.p - legend_top.p) / 4;
+            ExtrusionSegment legend_segment(legend_btm, legend_top, true);
+            svg.writeAreas(legend_segment.toPolygons(false), SVG::ColorObject(200,200,200), SVG::Color::NONE); // real outline
+            all_segments_plus.emplace_back(legend_segment, true); // colored
+            Point legend_text_offset(400, 0);
+            svg.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
+            svg.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
+            svg.writeText(legend_mid.p + legend_text_offset, to_string(INT2MM(legend_mid.w)));
+            svg.writeLine(legend_top.p, legend_top.p + legend_text_offset);
+            svg.writeLine(legend_btm.p, legend_btm.p + legend_text_offset);
+            svg.writeLine(legend_mid.p, legend_mid.p + legend_text_offset);
+        }
 
 
         Point3 green(0,255,0);
@@ -270,10 +275,11 @@ void Statistics::visualize()
 //         svg.writePolygons(paths, SVG::Color::BLACK, 1);
     }
 
+    if (output_accuracy)
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_accuracy.svg";
-        SVG svg(ss.str(), aabb);
+        SVG svg(ss.str(), aabb, INT2MM(10));
         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 3);
         svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
         svg.writeAreas(double_overfills, SVG::Color::ORANGE, SVG::Color::NONE);
