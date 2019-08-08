@@ -903,7 +903,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
             }
             if (is_small_feature)
             {
-                const bool spiralize = false;
+                constexpr bool spiralize = false;
                 addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
             }
             else
@@ -937,7 +937,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
             }
             if (is_small_feature)
             {
-                const bool spiralize = false;
+                constexpr bool spiralize = false;
                 addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
             }
             else
