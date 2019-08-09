@@ -236,7 +236,8 @@ private:
 
 public:
     const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
-    int z;
+    coord_t z;
+    coord_t final_travel_z;
     bool mode_skip_agressive_merge; //!< Wheter to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
 private:
@@ -588,8 +589,10 @@ public:
      * \param last_wall The wall polygon that was spiralized below the current polygon (or \p wall if this is the first spiralized layer)
      * \param seam_vertex_idx The index of this wall slice's seam vertex
      * \param last_seam_vertex_idx The index of the seam vertex in the last wall (or -1 if this is the first spiralized layer)
+     * \param is_top_layer true when the top layer of the spiral is being printed
+     * \param is_bottom_layer true when the bottom layer of the spiral is being printed
      */
-    void spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx);
+    void spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer);
 
 
     /*!

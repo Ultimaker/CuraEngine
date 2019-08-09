@@ -79,3 +79,30 @@ In many cases with more organic shapes this is still not desirable however, sinc
 ![Minimum X/Y distance](assets/support_min_distance.png)
 
 In the picture above there is a slight kink in the curve along the topside of the support if you look closely. Above the kink the Z distance is leading. Below the kink the Minimum Support X/Y Distance is leading.
+
+Stair-Stepping
+----
+In order to be able to easily remove support from sloped surfaces, stair-stepping was added.
+
+If support has to be generated above a sloped surface, stair-stepping is invoked with the Support Stair Step Height and the Support Stair Step Maximum Width a step can have as parameters. The idea is to start at a layer, and for the next few layers above it (determined by the step-height and layer-height) 'lock' the layers in to place in the specific area of the slope. After that (when the step-height is reached), 'release' the next layer and take that as the next base.
+
+In practice, this will create an inverted staircase, where the tips of the steps are closest to the model and likely the only contact-points.
+
+![Stair Stepping](assets/stair_step_0.png)
+
+This picture shows clearly what stair-stepping is meant to do. For clarity, all support-offset distances have been set to 0.
+
+There are some subtleties to the stair-stepping algorithm however, when it comes to the X/Y-distance offset and Z-distance offset: Namely, _if_ support is higher above the sloped area because of X/Y-distance, then the additional height above the model _isn't_ taken into account when the 'steps' are produced. 
+
+![Stair Stepping](assets/stair_step_1.png)
+
+As you can see in the picture above, in this case (Z-distance set to 0, X/Y distance increased, but lower than the step-height) it's as if the stair-stepping was done _first_, and only afterwards the X/Y distance was subtracted (that's not _quite_ how it works internally, but the effect here is the same).
+
+However, _if_ support is higher above the sloped area because of the Z-distance, then the additional height above the model _is_ taken into account when the steps are created.
+
+![Stair Stepping](assets/stair_step_2.png)
+
+In the picture above you can see that effect in that case (Z-distance increased, X/Y-distance set to 0). Notice how the support is raised above the model, but the height of the stair-steps aren't influenced.
+
+Of course, in practice, X/Y- and Z- distance offsets are both often greater than none. In that case it depends on the slope of the model, whether X/Y overrides Z or the other way around, and on the particular distances involved.
+

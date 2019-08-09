@@ -26,7 +26,7 @@ void Wireframe2gcode::writeGCode()
     Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
     const size_t start_extruder_nr = scene_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr; // TODO: figure out how Wireframe works with dual extrusion
     gcode.preSetup(start_extruder_nr);
-    gcode.setInitialTemps(start_extruder_nr);
+    gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
 
     Application::getInstance().communication->beginGCode();
 

@@ -37,6 +37,7 @@ GCodeExport::GCodeExport()
 : output_stream(&std::cout)
 , currentPosition(0,0,MM2INT(20))
 , layer_nr(0)
+, relative_extrusion(false)
 {
     *output_stream << std::fixed;
 
@@ -50,11 +51,11 @@ GCodeExport::GCodeExport()
     current_print_acceleration = -1;
     current_travel_acceleration = -1;
     current_jerk = -1;
-    current_max_z_feedrate = -1;
 
     is_z_hopped = 0;
     setFlavor(EGCodeFlavor::MARLIN);
     initial_bed_temp = 0;
+    build_volume_temperature = 0;
 
     fan_number = 0;
     use_extruder_offset_to_offset_coords = false;
@@ -103,23 +104,10 @@ void GCodeExport::preSetup(const size_t start_extruder)
         new_line = "\n";
     }
 
-    // initialize current_max_z_feedrate to firmware defaults
-    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-    {
-        const ExtruderTrain& train = scene.extruders[extruder_nr];
-        if (train.settings.get<Velocity>("max_feedrate_z_override") <= 0.0)
-        {
-            // only initialize if firmware default for z feedrate is used by any extruder
-            // that way we don't omit the M203 if Cura thinks the firmware is already at that feedrate, but it isn't the case
-            current_max_z_feedrate = mesh_group->settings.get<Velocity>("machine_max_feedrate_z");
-            break;
-        }
-    }
-
     estimateCalculator.setFirmwareDefaults(mesh_group->settings);
 }
 
-void GCodeExport::setInitialTemps(const unsigned int start_extruder_nr)
+void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
     const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
@@ -134,6 +122,7 @@ void GCodeExport::setInitialTemps(const unsigned int start_extruder_nr)
     }
 
     initial_bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+    build_volume_temperature = scene.current_mesh_group->settings.get<Temperature>("build_volume_temperature");
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
@@ -208,6 +197,12 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         }
         prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
+
+        // build volume temperature = 0 means it's disabled
+        if (build_volume_temperature != 0)
+        {
+            prefix << ";BUILD_VOLUME.TEMPERATURE:" << build_volume_temperature << new_line;
+        }
 
         if (print_time)
         {
@@ -958,12 +953,15 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed/*= 0*/
     if (hop_height > 0)
     {
         if (speed == 0)
-            speed = current_max_z_feedrate;
+        {
+            const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[current_extruder];
+            speed = extruder.settings.get<Velocity>("speed_z_hop");
+        }
         is_z_hopped = hop_height;
         currentSpeed = speed;
         *output_stream << "G1 F" << PrecisionedDouble{1, speed * 60} << " Z" << MMtoStream{current_layer_z + is_z_hopped} << new_line;
         total_bounding_box.includeZ(current_layer_z + is_z_hopped);
-        assert(current_max_z_feedrate > 0.0 && "Z feedrate should be positive");
+        assert(speed > 0.0 && "Z hop speed should be positive.");
     }
 }
 
@@ -972,12 +970,15 @@ void GCodeExport::writeZhopEnd(Velocity speed/*= 0*/)
     if (is_z_hopped)
     {
         if (speed == 0)
-            speed = current_max_z_feedrate;
+        {
+            const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[current_extruder];
+            speed = extruder.settings.get<Velocity>("speed_z_hop");
+        }
         is_z_hopped = 0;
         currentPosition.z = current_layer_z;
         currentSpeed = speed;
         *output_stream << "G1 F" << PrecisionedDouble{1, speed * 60} << " Z" << MMtoStream{current_layer_z} << new_line;
-        assert(current_max_z_feedrate > 0.0 && "Z feedrate should be positive");
+        assert(speed > 0.0 && "Z hop speed should be positive.");
     }
 }
 
@@ -1027,7 +1028,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     setExtruderFanNumber(new_extruder);
 }
 
-void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder)
+void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop /*= 0*/)
 {
     if (current_extruder == new_extruder)
     {
@@ -1040,6 +1041,11 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
         constexpr bool force = true;
         constexpr bool extruder_switch = true;
         writeRetraction(retraction_config_old_extruder, force, extruder_switch);
+    }
+
+    if (perform_z_hop > 0)
+    {
+        writeZhopStart(perform_z_hop);
     }
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
@@ -1084,7 +1090,8 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
         Point3 prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"), extruder_settings.get<coord_t>("extruder_prime_pos_z"));
         if (!extruder_settings.get<bool>("extruder_prime_pos_abs"))
         {
-            prime_pos += currentPosition;
+            // currentPosition.z can be already z hopped
+            prime_pos += Point3(currentPosition.x, currentPosition.y, current_layer_z);
         }
         writeTravel(prime_pos, travel_speed);
     }
@@ -1232,6 +1239,24 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
     *output_stream << PrecisionedDouble{1, temperature} << new_line;
 }
 
+void GCodeExport::writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait)
+{
+    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::GRIFFIN)
+    {
+        //Ultimaker printers don't support build volume temperature commands.
+        return;
+    }
+    if (wait)
+    {
+        *output_stream << "M191 S";
+    }
+    else
+    {
+        *output_stream << "M141 S";
+    }
+    *output_stream << PrecisionedDouble{1, temperature} << new_line;
+}
+
 void GCodeExport::writePrintAcceleration(const Acceleration& acceleration)
 {
     switch (getFlavor())
@@ -1304,28 +1329,6 @@ void GCodeExport::writeJerk(const Velocity& jerk)
         current_jerk = jerk;
         estimateCalculator.setMaxXyJerk(jerk);
     }
-}
-
-void GCodeExport::writeMaxZFeedrate(const Velocity& max_z_feedrate)
-{
-    if (current_max_z_feedrate != max_z_feedrate)
-    {
-        if (getFlavor() == EGCodeFlavor::REPRAP)
-        {
-            *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate * 60} << new_line;
-        }
-        else if (getFlavor() != EGCodeFlavor::REPETIER) //Repetier firmware changes the "temperature monitor" to 0 when encountering a M203 command, which is undesired.
-        {
-            *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate} << new_line;
-        }
-        current_max_z_feedrate = max_z_feedrate;
-        estimateCalculator.setMaxZFeedrate(max_z_feedrate);
-    }
-}
-
-double GCodeExport::getCurrentMaxZFeedrate()
-{
-    return current_max_z_feedrate;
 }
 
 void GCodeExport::finalize(const char* endCode)

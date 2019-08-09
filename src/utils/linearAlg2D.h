@@ -147,7 +147,7 @@ public:
     * \param c the second point on the line segment
     * \param b_is_beyond_ac optional output parameter: whether \p b is closest to the line segment (0), to \p a (-1) or \p b (1)
     */
-    static coord_t getDist2FromLineSegment(const Point& a, const Point& b, const Point& c, short* b_is_beyond_ac = nullptr)
+    static coord_t getDist2FromLineSegment(const Point& a, const Point& b, const Point& c, int16_t* b_is_beyond_ac = nullptr)
     {
     /* 
     *     a,
