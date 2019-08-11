@@ -243,7 +243,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
         SVG svg(ss.str(), aabb, scale);
 //         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
 
-        coord_t max_dev = 200;
+        coord_t max_dev = nozzle_size / 2;
         coord_t min_w = 30;
 
         // add legend
@@ -284,9 +284,9 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
             {
                 coord_t avg_w = (s.s.from.w + s.s.to.w) / 2;
                 Point3 clr;
-                float color_ratio = std::min(1.0, std::abs(avg_w - 400.0) / max_dev);
+                float color_ratio = std::min(1.0, double(std::abs(avg_w - nozzle_size)) / max_dev);
                 color_ratio = color_ratio * .5 + .5 * sqrt(color_ratio);
-                if (avg_w > 400)
+                if (avg_w > nozzle_size)
                 {
                     clr = red * color_ratio + green * (1.0 - color_ratio );
                 }
@@ -298,8 +298,8 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
                 clr = clr * 255 / clr_max;
 
                 clr.y = clr.y * (255 - 92 * clr.dot(green) / green.vSize() / 255) / 255;
-                s.s.from.w = std::max(min_w, min_w + (s.s.from.w - (400 - max_dev)) * 5 / 4);
-                s.s.to.w = std::max(min_w, min_w + (s.s.to.w - (400 - max_dev)) * 5 / 4);
+                s.s.from.w = std::max(min_w, min_w + (s.s.from.w - (nozzle_size - max_dev)) * 5 / 4);
+                s.s.to.w = std::max(min_w, min_w + (s.s.to.w - (nozzle_size - max_dev)) * 5 / 4);
                 Polygons covered = s.toPolygons();
                 svg.writeAreas(covered, SVG::ColorObject(clr.x, clr.y, clr.z), SVG::Color::NONE);
             }
