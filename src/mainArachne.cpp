@@ -68,6 +68,7 @@ static Polygons gMAT_example;
 static Polygons test_various_aspects;
 static Polygons simple_MAT_example;
 static Polygons wedge;
+static Polygons limit_wedge;
 static Polygons double_wedge;
 static Polygons flawed_wedge;
 static Polygons clean_and_flawed_wedge_part;
@@ -257,6 +258,17 @@ void generateTestPolys()
         wedge_1.applyMatrix(scaler);
         PointMatrix rot(-45);
         wedge_1.applyMatrix(rot);
+    }
+
+    {
+        PolygonRef wedge_1 = limit_wedge.newPoly();
+        coord_t length = 10000;
+        wedge_1.emplace_back(0, 0);
+        wedge_1.emplace_back(-length * tan(M_PI / 8), length + 100);
+        wedge_1.emplace_back(length * tan(M_PI / 8), length + 100);
+//         PointMatrix scaler = PointMatrix::scale(.846); // .846 causes a transition which is just beyond the marked skeleton
+        PointMatrix scaler = PointMatrix::scale(.5); // .846 causes a transition which is just beyond the marked skeleton
+        wedge_1.applyMatrix(scaler);
     }
 
     {
