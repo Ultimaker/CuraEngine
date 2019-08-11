@@ -11,7 +11,7 @@
 namespace arachne
 {
 
-void Statistics::analyse(Polygons& input, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index, VoronoiQuadrangulation* vq)
+void Statistics::analyse(Polygons& input, std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, VoronoiQuadrangulation* vq)
 {
     this->input = &input;
     this->vq = vq;
@@ -122,33 +122,33 @@ void Statistics::saveResultsCSV()
     }
 }
 
-void Statistics::generateAllSegments(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index)
+void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index)
 {
-    for (std::vector<std::vector<ExtrusionJunction>>& polygons : polygons_per_index)
+    for (std::list<ExtrusionLine>& polygons : polygons_per_index)
     {
-        for (std::vector<ExtrusionJunction>& polygon : polygons)
+        for (ExtrusionLine& polygon : polygons)
         {
-            ExtrusionJunction last = polygon.back();
-            for (coord_t junction_idx = 0; junction_idx < polygon.size(); junction_idx++)
+            auto last_it = --polygon.junctions.end();
+            for (auto junction_it = polygon.junctions.begin(); junction_it != polygon.junctions.end(); ++junction_it)
             {
-                ExtrusionJunction& junction = polygon[junction_idx];
-                ExtrusionSegment segment(last, junction, false);
+                ExtrusionJunction& junction = *junction_it;
+                ExtrusionSegment segment(*last_it, junction, false);
                 all_segments.emplace_back(segment, false);
-                last = junction;
+                last_it = junction_it;
             }
         }
     }
-    for (std::vector<std::vector<ExtrusionJunction>>& polylines : polylines_per_index)
+    for (std::list<ExtrusionLine>& polylines : polylines_per_index)
     {
-        for (std::vector<ExtrusionJunction>& polyline : polylines)
+        for (ExtrusionLine& polyline : polylines)
         {
-            ExtrusionJunction last = polyline.front();
-            for (coord_t junction_idx = 0; junction_idx < polyline.size(); junction_idx++)
+            auto last_it = polyline.junctions.begin();
+            for (auto junction_it = ++polyline.junctions.begin(); junction_it != polyline.junctions.end(); ++junction_it)
             {
-                ExtrusionJunction& junction = polyline[junction_idx];
-                ExtrusionSegment segment(last, junction, false);
-                all_segments.emplace_back(segment, junction_idx == polyline.size() - 1);
-                last = junction;
+                ExtrusionJunction& junction = *junction_it;
+                ExtrusionSegment segment(*last_it, junction, false);
+                all_segments.emplace_back(segment, junction_it == --polyline.junctions.end());
+                last_it = junction_it;
             }
         }
     }
@@ -173,8 +173,8 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
         {
             for (auto poly : polys)
             {
-                Point prev = poly.front().p;
-                for (ExtrusionJunction& j : poly)
+                Point prev = poly.junctions.front().p;
+                for (ExtrusionJunction& j : poly.junctions)
                 {
                     svg.writeLine(prev, j.p, SVG::Color::RED, 2);
                     prev = j.p;
@@ -183,10 +183,10 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
         }
         for (auto polylines : *polylines_per_index)
         {
-            for (std::vector<ExtrusionJunction>& polyline : polylines)
+            for (ExtrusionLine& polyline : polylines)
             {
-                svg.writePoint(polyline.front().p, false, 2, SVG::Color::GREEN);
-                svg.writePoint(polyline.back().p, false, 2, SVG::Color::BLUE);
+                svg.writePoint(polyline.junctions.front().p, false, 2, SVG::Color::GREEN);
+                svg.writePoint(polyline.junctions.back().p, false, 2, SVG::Color::BLUE);
             }
         }
     }

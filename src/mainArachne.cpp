@@ -517,11 +517,10 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     }
     VoronoiQuadrangulation vq(polys, transitioning_angle, discretization_step_size, transition_filter_dist, beading_propagation_transition_dist);
 
-    std::vector<ExtrusionSegment> segments = vq.generateToolpaths(*beading_strategy, filter_outermost_marked_edges);
+    std::vector<std::list<ExtrusionLine>> result_polylines_per_index = vq.generateToolpaths(*beading_strategy, filter_outermost_marked_edges);
 
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
-    BeadingOrderOptimizer::optimize(segments, result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments);
+    std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
+    BeadingOrderOptimizer::optimize(result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments);
     double processing_time = tk.restart();
     logAlways("Processing took %fs\n", processing_time);
 
@@ -583,18 +582,19 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
     double processing_time = tk.restart();
     logAlways("Naive processing took %fs\n", processing_time);
 
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
+    std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
+    std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
     result_polygons_per_index.resize(insets.size());
     for (coord_t inset_idx = 0; inset_idx < insets.size(); inset_idx++)
     {
         for (PolygonRef poly : insets[inset_idx])
         {
-            result_polygons_per_index[inset_idx].emplace_back();
-            std::vector<ExtrusionJunction>& junction_poly = result_polygons_per_index[inset_idx].back();
+            constexpr bool is_odd = false;
+            result_polygons_per_index[inset_idx].emplace_back(inset_idx, is_odd);
+            ExtrusionLine& junction_poly = result_polygons_per_index[inset_idx].back();
             for (Point p : poly)
             {
-                junction_poly.emplace_back(p, nozzle_size, inset_idx);
+                junction_poly.junctions.emplace_back(p, nozzle_size, inset_idx);
             }
         }
     }
@@ -634,14 +634,14 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
 
 void writeVarWidthTest()
 {
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polygons_per_index;
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
+    std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
+    std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
     result_polylines_per_index = VariableWidthGcodeTester::zigzag();
 
     AABB aabb;
     for (auto ps : result_polylines_per_index)
         for (auto p : ps)
-            for (ExtrusionJunction& j : p)
+            for (ExtrusionJunction& j : p.junctions)
                 aabb.include(j.p);
     
         

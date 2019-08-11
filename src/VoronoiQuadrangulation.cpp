@@ -772,7 +772,7 @@ void VoronoiQuadrangulation::fixNodeDuplication()
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
-std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges)
+std::vector<std::list<ExtrusionLine>> VoronoiQuadrangulation::generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges)
 {
     setMarking(beading_strategy);
 
@@ -830,11 +830,11 @@ std::vector<ExtrusionSegment> VoronoiQuadrangulation::generateToolpaths(const Be
 
     debugCheckDecorationConsistency(true);
 
-    std::vector<ExtrusionSegment> segments;
-    generateSegments(segments, beading_strategy);
+    std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
+    generateSegments(result_polylines_per_index, beading_strategy);
     // junctions = generateJunctions
 
-    return segments;
+    return result_polylines_per_index;
 }
 
 void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
@@ -1771,7 +1771,7 @@ bool VoronoiQuadrangulation::isMarked(const node_t* node) const
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
-void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& segments, const BeadingStrategy& beading_strategy)
+void VoronoiQuadrangulation::generateSegments(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index, const BeadingStrategy& beading_strategy)
 {
     std::vector<edge_t*> upward_quad_mids;
     for (edge_t& edge : graph.edges)
@@ -1825,9 +1825,9 @@ void VoronoiQuadrangulation::generateSegments(std::vector<ExtrusionSegment>& seg
         debugOutput(stl, edge_to_junctions, node_to_beading);
     }
 
-    connectJunctions(edge_to_junctions, segments);
+    connectJunctions(edge_to_junctions, result_polylines_per_index);
     
-    generateLocalMaximaSingleBeads(node_to_beading, segments);
+    generateLocalMaximaSingleBeads(node_to_beading, result_polylines_per_index);
 }
 
 VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::getQuadMaxRedgeTo(edge_t* quad_start_edge)
@@ -2145,14 +2145,71 @@ VoronoiQuadrangulation::BeadingPropagation* VoronoiQuadrangulation::getNearestBe
     return nullptr;
 }
 
-void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<ExtrusionSegment>& segments)
+void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
 {
-    // TODO: walk along cells in order of the input polygons, so that we can easily greedily optimize the order afterwards
-    // TODO: that can result in a 4x speedup! According to my n=1 callgrind check.
-    for (edge_t& edge : graph.edges)
+    // walk along cells in order of the input polygons, so that we can easily greedily optimize the order afterwards
+    std::unordered_map<Point, edge_t*> poly_domain_starts;
     {
-        if (edge.prev) continue;
-        edge_t* quad_start = &edge;
+        std::unordered_set<Point> poly_domain_start_points;
+        for (ConstPolygonRef poly : polys)
+        {
+            if (poly.empty()) continue;
+            poly_domain_start_points.emplace(poly.front());
+        }
+        for (edge_t& edge : graph.edges)
+        {
+            if (edge.prev) continue;
+            if (poly_domain_start_points.find(edge.from->p) != poly_domain_start_points.end())
+            {
+                poly_domain_starts[edge.from->p] = &edge;
+            }
+        }
+        assert(poly_domain_starts.size() == poly_domain_start_points.size());
+    }
+    
+    auto getNextQuad = [](edge_t* quad_start)
+    {
+        edge_t* quad_end = quad_start;
+        while (quad_end->next) quad_end = quad_end->next;
+        return quad_end->twin;
+    };
+    
+    auto addSegment = [&result_polylines_per_index](ExtrusionJunction& from, ExtrusionJunction& to, bool is_odd)
+    {
+        coord_t inset_idx = from.perimeter_index;
+        if (inset_idx >= result_polylines_per_index.size()) result_polylines_per_index.resize(inset_idx + 1);
+        assert(result_polylines_per_index[inset_idx].empty() || !result_polylines_per_index[inset_idx].back().junctions.empty() && "empty extrusion lines should never have been generated");
+        if ( ! result_polylines_per_index[inset_idx].empty()
+            && result_polylines_per_index[inset_idx].back().is_odd == is_odd
+            && shorterThen(result_polylines_per_index[inset_idx].back().junctions.back().p - to.p, 10)
+            && std::abs(result_polylines_per_index[inset_idx].back().junctions.back().w - to.w) < 10
+            )
+        {
+            result_polylines_per_index[inset_idx].back().junctions.push_back(from);
+        }
+        else if ( ! result_polylines_per_index[inset_idx].empty()
+            && result_polylines_per_index[inset_idx].back().is_odd == is_odd
+            && shorterThen(result_polylines_per_index[inset_idx].back().junctions.back().p - from.p, 10)
+            && std::abs(result_polylines_per_index[inset_idx].back().junctions.back().w - from.w) < 10
+            )
+        {
+            result_polylines_per_index[inset_idx].back().junctions.push_back(to);
+        }
+        else
+        {
+            result_polylines_per_index[inset_idx].emplace_back(inset_idx, is_odd);
+            result_polylines_per_index[inset_idx].back().junctions.push_back(from);
+            result_polylines_per_index[inset_idx].back().junctions.push_back(to);
+        }
+    };
+    
+    for (auto pair : poly_domain_starts)
+    {
+    edge_t* poly_domain_start = pair.second;
+    bool first = true;
+    for (edge_t* quad_start = poly_domain_start; first || quad_start != poly_domain_start; quad_start = getNextQuad(quad_start))
+    {
+        first = false;
         edge_t* quad_end = quad_start; while (quad_end->next) quad_end = quad_end->next;
         edge_t* edge_to_peak = getQuadMaxRedgeTo(quad_start);
         // walk down on both sides and connect junctions
@@ -2203,12 +2260,13 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
             {
                 continue; // prevent duplication of single bead segments
             }
-            segments.emplace_back(from, to, is_odd_segment);
+            addSegment(from, to, is_odd_segment);
         }
+    }
     }
 }
 
-void VoronoiQuadrangulation::generateLocalMaximaSingleBeads(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::vector<ExtrusionSegment>& segments)
+void VoronoiQuadrangulation::generateLocalMaximaSingleBeads(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
 {
     for (auto pair : node_to_beading)
     {
@@ -2220,9 +2278,12 @@ void VoronoiQuadrangulation::generateLocalMaximaSingleBeads(std::unordered_map<n
         )
         {
             coord_t inset_index = beading.bead_widths.size() / 2;
-            ExtrusionJunction from(node->p, beading.bead_widths[inset_index], inset_index);
-            ExtrusionJunction to(node->p + Point(10, 0), beading.bead_widths[inset_index], inset_index);
-            segments.emplace_back(from, to, true);
+            bool is_odd = true;
+            if (inset_index >= result_polylines_per_index.size()) result_polylines_per_index.resize(inset_index + 1);
+            result_polylines_per_index[inset_index].emplace_back(inset_index, is_odd);
+            ExtrusionLine& line = result_polylines_per_index[inset_index].back();
+            line.junctions.emplace_back(node->p, beading.bead_widths[inset_index], inset_index);
+            line.junctions.emplace_back(node->p + Point(10, 0), beading.bead_widths[inset_index], inset_index);
         }
     }
 }

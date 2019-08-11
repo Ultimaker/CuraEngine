@@ -14,12 +14,12 @@ namespace arachne
 class VariableWidthGcodeTester
 {
 public:
-    static std::vector<std::vector<std::vector<ExtrusionJunction>>> zigzag(coord_t gap = MM2INT(2.0), coord_t size = MM2INT(50))
+    static std::vector<std::list<ExtrusionLine>> zigzag(coord_t gap = MM2INT(2.0), coord_t size = MM2INT(50))
     {
-        std::vector<std::vector<std::vector<ExtrusionJunction>>> result_polylines_per_index;
+        std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
         result_polylines_per_index.resize(1);
-        result_polylines_per_index[0].resize(1);
-        std::vector<ExtrusionJunction>& polyline = result_polylines_per_index[0][0];
+        result_polylines_per_index[0].emplace_back(0, true);
+        std::list<ExtrusionJunction>& polyline = result_polylines_per_index[0].front().junctions;
         
         coord_t normal_width = 400;
 //         std::vector<float> widths({0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4});

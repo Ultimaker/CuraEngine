@@ -12,8 +12,8 @@
 #include "utils/HalfEdgeGraph.h"
 #include "utils/polygon.h"
 #include "utils/PolygonsSegmentIndex.h"
-#include "utils/ExtrusionSegment.h"
 #include "utils/ExtrusionJunction.h"
+#include "utils/ExtrusionLine.h"
 #include "VoronoiQuadrangulationEdge.h"
 #include "VoronoiQuadrangulationJoint.h"
 #include "BeadingStrategy.h"
@@ -47,7 +47,7 @@ public:
     , coord_t beading_propagation_transition_dist = 400
     );
     HalfEdgeGraph<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge> graph;
-    std::vector<ExtrusionSegment> generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges = false);
+    std::vector<std::list<ExtrusionLine>> generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges = false);
 
 protected:
     const Polygons& polys;
@@ -218,7 +218,7 @@ protected:
     /*!
      * \param[out] segments the generated segments
      */
-    void generateSegments(std::vector<ExtrusionSegment>& segments, const BeadingStrategy& beading_strategy);
+    void generateSegments(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index, const BeadingStrategy& beading_strategy);
 
     edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
 
@@ -287,13 +287,13 @@ protected:
      * \param edge_to_junctions junctions ordered high R to low R
      * \param[out] segments the generated segments
      */
-    void connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<ExtrusionSegment>& segments);
+    void connectJunctions(std::unordered_map< arachne::VoronoiQuadrangulation::edge_t*, std::vector< arachne::ExtrusionJunction > >& edge_to_junctions, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
 
     /*!
      * Genrate small segments for local maxima where the beading would only result in a single bead
      * \param[out] segments the generated segments
      */
-    void generateLocalMaximaSingleBeads(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::vector<ExtrusionSegment>& segments);
+    void generateLocalMaximaSingleBeads(std::unordered_map< arachne::VoronoiQuadrangulation::node_t*, arachne::VoronoiQuadrangulation::BeadingPropagation >& node_to_beading, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
 
     /*!
      * \p edge is assumed to point upward to higher R; otherwise take its twin

@@ -70,10 +70,10 @@ GcodeWriter::~GcodeWriter()
 
 void GcodeWriter::printBrim(AABB aabb, coord_t count, coord_t w, coord_t dist)
 {
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> polygons_per_index;
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> polylines_per_index;
+    std::vector<std::list<ExtrusionLine>> polygons_per_index;
+    std::vector<std::list<ExtrusionLine>> polylines_per_index;
     polygons_per_index.resize(1);
-    std::vector<std::vector<ExtrusionJunction>>& polygons = polygons_per_index[0];
+    std::list<ExtrusionLine>& polygons = polygons_per_index[0];
 
     Polygons prev;
     prev.add(aabb.toPolygon());
@@ -84,11 +84,11 @@ void GcodeWriter::printBrim(AABB aabb, coord_t count, coord_t w, coord_t dist)
         Polygons skuurt = prev.offset(dist, ClipperLib::jtRound);
         for (PolygonRef poly : skuurt)
         {
-            polygons.emplace_back();
-            std::vector<ExtrusionJunction>& polygon = polygons.back();
+            polygons.emplace_back(0, true);
+            ExtrusionLine& polygon = polygons.back();
             for (Point p : poly)
             {
-                polygon.emplace_back(p, w, 0);
+                polygon.junctions.emplace_back(p, w, 0);
             }
         }
         prev = skuurt;
@@ -96,47 +96,70 @@ void GcodeWriter::printBrim(AABB aabb, coord_t count, coord_t w, coord_t dist)
     print(polygons_per_index, polylines_per_index, aabb);
 }
 
-void GcodeWriter::print(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index, AABB aabb)
+void GcodeWriter::print(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb)
 {
+    std::vector<std::vector<ExtrusionLine>> polygons_per_index_vector;
+    polygons_per_index_vector.resize(polygons_per_index.size());
+    for (coord_t inset_idx = 0; inset_idx < polygons_per_index.size(); inset_idx++)
+        polygons_per_index_vector[inset_idx].insert(polygons_per_index_vector[inset_idx].end(), polygons_per_index[inset_idx].begin(), polygons_per_index[inset_idx].end());
+
+    std::vector<std::vector<ExtrusionLine>> polylines_per_index_vector;
+    polylines_per_index_vector.resize(polylines_per_index.size());
+    for (coord_t inset_idx = 0; inset_idx < polylines_per_index.size(); inset_idx++)
+        polylines_per_index_vector[inset_idx].insert(polylines_per_index_vector[inset_idx].end(), polylines_per_index[inset_idx].begin(), polylines_per_index[inset_idx].end());
+    
     reduction = aabb.getMiddle() - build_plate_middle;
-    for (int inset_idx = 0; inset_idx < std::max(polygons_per_index.size(), polylines_per_index.size()); inset_idx++)
+    for (int inset_idx = 0; inset_idx < std::max(polygons_per_index_vector.size(), polylines_per_index_vector.size()); inset_idx++)
     {
-        if (inset_idx < polylines_per_index.size())
+        if (inset_idx < polylines_per_index_vector.size())
         {
             LineOrderOptimizer order_optimizer(cur_pos);
             Polygons recreated;
-            for (std::vector<ExtrusionJunction>& polyline : polylines_per_index[inset_idx])
+            for (ExtrusionLine& polyline : polylines_per_index_vector[inset_idx])
             {
                 PolygonRef recreated_poly = recreated.newPoly();
-                recreated_poly.add(polyline.front().p);
-                recreated_poly.add(polyline.back().p);
+                recreated_poly.add(polyline.junctions.front().p);
+                recreated_poly.add(polyline.junctions.back().p);
             }
             order_optimizer.addPolygons(recreated);
             order_optimizer.optimize();
             for (int poly_idx : order_optimizer.polyOrder)
             {
-                std::vector<ExtrusionJunction>& polyline = polylines_per_index[inset_idx][poly_idx];
+                ExtrusionLine& polyline = polylines_per_index_vector[inset_idx][poly_idx];
                 int start_idx = order_optimizer.polyStart[poly_idx];
-                assert(start_idx < polyline.size());
-                ExtrusionJunction* last = (start_idx == 0)? &polyline.front() : &polyline.back();
-                move(last->p);
-                for (int junction_nr = 1; junction_nr < polyline.size(); junction_nr++)
+                assert(start_idx < polyline.junctions.size());
+                if (start_idx == 0)
                 {
-                    int junction_idx = (start_idx == 0)? junction_nr : polyline.size() - junction_nr - 1;
-                    ExtrusionJunction& junction = polyline[junction_idx];
-                    print(*last, junction);
-                    last = &junction;
+                    auto last = polyline.junctions.begin();
+                    move(last->p);
+                    for (auto junction_it = ++polyline.junctions.begin(); junction_it != polyline.junctions.end(); ++junction_it)
+                    {
+                        ExtrusionJunction& junction = *junction_it;
+                        print(*last, junction);
+                        last = junction_it;
+                    }
+                }
+                else
+                {
+                    auto last = polyline.junctions.rbegin();
+                    move(last->p);
+                    for (auto junction_it = ++polyline.junctions.rbegin(); junction_it != polyline.junctions.rend(); ++junction_it)
+                    {
+                        ExtrusionJunction& junction = *junction_it;
+                        print(*last, junction);
+                        last = junction_it;
+                    }
                 }
             }
         }
-        if (inset_idx < polygons_per_index.size())
+        if (inset_idx < polygons_per_index_vector.size())
         {
             PathOrderOptimizer order_optimizer(cur_pos);
             Polygons recreated;
-            for (std::vector<ExtrusionJunction>& polygon : polygons_per_index[inset_idx])
+            for (ExtrusionLine& polygon : polygons_per_index_vector[inset_idx])
             {
                 PolygonRef recreated_poly = recreated.newPoly();
-                for (ExtrusionJunction& j : polygon)
+                for (ExtrusionJunction& j : polygon.junctions)
                 {
                     recreated_poly.add(j.p);
                 }
@@ -145,16 +168,22 @@ void GcodeWriter::print(std::vector<std::vector<std::vector<ExtrusionJunction>>>
             order_optimizer.optimize();
             for (int poly_idx : order_optimizer.polyOrder)
             {
-                std::vector<ExtrusionJunction>& polygon = polygons_per_index[inset_idx][poly_idx];
+                ExtrusionLine& polygon = polygons_per_index_vector[inset_idx][poly_idx];
                 int start_idx = order_optimizer.polyStart[poly_idx];
-                assert(start_idx < polygon.size());
-                ExtrusionJunction* last = &polygon[start_idx];
-                move(last->p);
-                for (int junction_nr = 1; junction_nr < polygon.size() + 1; junction_nr++)
+                assert(start_idx < polygon.junctions.size());
+                auto first = polygon.junctions.begin();
+                std::advance(first, start_idx);
+                move(first->p);
+                auto prev = first;
+                
+                auto second = first; second++;
+                for (auto junction_it = second; ; ++junction_it)
                 {
-                    ExtrusionJunction& junction = polygon[(start_idx + junction_nr) % polygon.size()];
-                    print(*last, junction);
-                    last = &junction;
+                    if (junction_it == polygon.junctions.end()) junction_it = polygon.junctions.begin();
+                    ExtrusionJunction& junction = *junction_it;
+                    print(*prev, junction);
+                    prev = junction_it;
+                    if (junction_it == first) break;
                 }
             }
         }

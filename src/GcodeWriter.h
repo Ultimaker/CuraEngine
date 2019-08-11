@@ -7,8 +7,9 @@
 #include <fstream>
 
 #include "utils/polygon.h"
-#include "utils/ExtrusionSegment.h"
+#include "utils/AABB.h"
 #include "utils/ExtrusionJunction.h"
+#include "utils/ExtrusionLine.h"
 
 namespace arachne
 {
@@ -24,7 +25,7 @@ public:
     static constexpr int type_P3 = 0;
     static constexpr int type_UM3 = 1;
     void printBrim(AABB aabb, coord_t count, coord_t w = 400, coord_t dist = 600);
-    void print(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index, AABB aabb);
+    void print(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb);
     void move(Point p);
     void print(ExtrusionJunction from, ExtrusionJunction to);
 private:

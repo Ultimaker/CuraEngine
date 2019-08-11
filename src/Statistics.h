@@ -5,8 +5,9 @@
 #define STATISTICS_H
 
 #include "utils/polygon.h"
-#include "utils/ExtrusionSegment.h"
 #include "utils/ExtrusionJunction.h"
+#include "utils/ExtrusionSegment.h"
+#include "utils/ExtrusionLine.h"
 #include "VoronoiQuadrangulation.h"
 
 namespace arachne
@@ -25,8 +26,8 @@ public:
     , input(nullptr)
     {
     }
-    void analyse(Polygons& input, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index, VoronoiQuadrangulation* vq = nullptr);
-    void visualize(coord_t nozzle_size, bool output_vq = false, bool output_toolpaths = false, bool output_widths = true, bool include_legend = false, bool output_accuracy = true, bool visualize_pretty_paths = true);
+    void analyse(Polygons& input, std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, VoronoiQuadrangulation* vq = nullptr);
+    void visualize(coord_t nozzle_size, bool output_vq = false, bool output_toolpaths = false, bool output_widths = true, bool include_legend = false, bool output_accuracy = true, bool visualize_pretty_paths = false);
     void saveResultsCSV();
     double processing_time;
     double overfill_area;
@@ -53,8 +54,8 @@ private:
     Polygons* input;
     VoronoiQuadrangulation* vq;
 
-    std::vector<std::vector<std::vector<ExtrusionJunction>>>* polygons_per_index;
-    std::vector<std::vector<std::vector<ExtrusionJunction>>>* polylines_per_index;
+    std::vector<std::list<ExtrusionLine>>* polygons_per_index;
+    std::vector<std::list<ExtrusionLine>>* polylines_per_index;
     std::vector<Segment> all_segments;
     Polygons area_covered;
     Polygons overlaps;
@@ -63,7 +64,7 @@ private:
     Polygons double_overfills;
     Polygons paths;
 
-    void generateAllSegments(std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index);
+    void generateAllSegments(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index);
 
     std::vector<Segment> discretize(const Segment& ss, coord_t step_size);
 };
