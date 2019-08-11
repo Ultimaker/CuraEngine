@@ -154,7 +154,7 @@ void Statistics::generateAllSegments(std::vector<std::vector<std::vector<Extrusi
     }
 }
 
-void Statistics::visualize(bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool output_accuracy)
+void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool output_accuracy, bool visualize_pretty_paths)
 {
     AABB aabb(*input);
 
@@ -164,7 +164,7 @@ void Statistics::visualize(bool output_vq, bool output_toolpaths, bool output_wi
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_after.svg";
-        SVG svg(ss.str(), aabb, scale);
+        SVG svg(ss.str(), aabb);
         vq->debugOutput(svg, false, false, true);
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
         
@@ -204,6 +204,36 @@ void Statistics::visualize(bool output_vq, bool output_toolpaths, bool output_wi
             alternate = !alternate;
         }
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
+    }
+
+    if (visualize_pretty_paths)
+    {
+        std::ostringstream ss;
+        ss << "output/" << output_prefix << "_" << test_type << "_pretty.svg";
+        SVG svg(ss.str(), aabb);
+        svg.writeAreas(*input, SVG::Color::NONE, SVG::Color::RED, 2);
+        for (PolygonRef poly : area_covered)
+        {
+            svg.writeAreas(poly, SVG::Color::BLACK, SVG::Color::NONE);
+        }
+        for (float w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
+        {
+            
+            Polygons polys;
+            for (coord_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
+            {
+                Segment s = all_segments[segment_idx];
+                s.s.from.w *= w;
+                s.s.to.w *= w;
+                Polygons covered = s.s.toPolygons(false);
+                polys.add(covered);
+            }
+            polys = polys.execute(ClipperLib::pftNonZero);
+            int c = 255 - 200 * w;
+            SVG::ColorObject clr(c, c, c);
+            svg.writeAreas(polys, clr, SVG::Color::NONE);
+        }
+//         svg.writePolygons(paths, SVG::Color::BLACK, 2);
     }
 
     if (output_widths)

@@ -26,7 +26,7 @@ public:
     {
     }
     void analyse(Polygons& input, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polygons_per_index, std::vector<std::vector<std::vector<ExtrusionJunction>>>& polylines_per_index, VoronoiQuadrangulation* vq = nullptr);
-    void visualize(bool output_vq = false, bool output_toolpaths = false, bool output_widths = true, bool include_legend = false, bool output_accuracy = true);
+    void visualize(coord_t nozzle_size, bool output_vq = false, bool output_toolpaths = false, bool output_widths = true, bool include_legend = false, bool output_accuracy = true, bool visualize_pretty_paths = true);
     void saveResultsCSV();
     double processing_time;
     double overfill_area;
