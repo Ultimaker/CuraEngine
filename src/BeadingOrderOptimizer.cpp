@@ -86,6 +86,11 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
     for (auto it = end_points_to_check.begin(); it != end_points_to_check.end(); ++it)
     {
         ExtrusionLineEndRef& end_point = *it;
+        if (end_point.polyline->junctions.empty())
+        { // there is no line. We cannot do anything because we don't know where this ghost line initially was
+            continue;
+        }
+
         Point p = end_point.p();
 
         bool end_point_has_changed = false; // Whether the end_point ref now points to a new end compared to where it was initially pointing to
