@@ -636,14 +636,15 @@ void writeVarWidthTest()
     {
         std::ostringstream ss;
         ss << "output/variable_width_test_P3.gcode";
-        GcodeWriter gcode(ss.str(), GcodeWriter::type_P3);
+        GcodeWriter gcode(ss.str(), GcodeWriter::type_P3, 200);
         gcode.printBrim(aabb, 3);
         gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
     }
+//     if (false)
     {
         std::ostringstream ss;
         ss << "output/variable_width_test_UM3.gcode";
-        GcodeWriter gcode(ss.str(), GcodeWriter::type_UM3);
+        GcodeWriter gcode(ss.str(), GcodeWriter::type_UM3, 200);
         gcode.printBrim(aabb, 3);
         gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
     }
