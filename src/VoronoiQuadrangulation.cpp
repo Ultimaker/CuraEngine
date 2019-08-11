@@ -2207,64 +2207,64 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
     
     for (auto pair : poly_domain_starts)
     {
-    edge_t* poly_domain_start = pair.second;
-    bool first = true;
-    for (edge_t* quad_start = poly_domain_start; first || quad_start != poly_domain_start; quad_start = getNextQuad(quad_start))
-    {
-        first = false;
-        edge_t* quad_end = quad_start; while (quad_end->next) quad_end = quad_end->next;
-        edge_t* edge_to_peak = getQuadMaxRedgeTo(quad_start);
-        // walk down on both sides and connect junctions
-        edge_t* edge_from_peak = edge_to_peak->next; assert(edge_from_peak);
-        
-        
-        
-        
-        std::vector<ExtrusionJunction> from_junctions = getJunctions(edge_to_peak, edge_to_junctions);
-        std::vector<ExtrusionJunction> to_junctions = getJunctions(edge_from_peak->twin, edge_to_junctions);
-        if (edge_to_peak->prev)
+        edge_t* poly_domain_start = pair.second;
+        bool first = true;
+        for (edge_t* quad_start = poly_domain_start; first || quad_start != poly_domain_start; quad_start = getNextQuad(quad_start))
         {
-            std::vector<ExtrusionJunction> from_prev_junctions = getJunctions(edge_to_peak->prev, edge_to_junctions);
-            if (!from_junctions.empty() && !from_prev_junctions.empty() && from_junctions.back().perimeter_index == from_prev_junctions.front().perimeter_index)
+            first = false;
+            edge_t* quad_end = quad_start; while (quad_end->next) quad_end = quad_end->next;
+            edge_t* edge_to_peak = getQuadMaxRedgeTo(quad_start);
+            // walk down on both sides and connect junctions
+            edge_t* edge_from_peak = edge_to_peak->next; assert(edge_from_peak);
+            
+            
+            
+            
+            std::vector<ExtrusionJunction> from_junctions = getJunctions(edge_to_peak, edge_to_junctions);
+            std::vector<ExtrusionJunction> to_junctions = getJunctions(edge_from_peak->twin, edge_to_junctions);
+            if (edge_to_peak->prev)
             {
-                from_junctions.pop_back();
+                std::vector<ExtrusionJunction> from_prev_junctions = getJunctions(edge_to_peak->prev, edge_to_junctions);
+                if (!from_junctions.empty() && !from_prev_junctions.empty() && from_junctions.back().perimeter_index == from_prev_junctions.front().perimeter_index)
+                {
+                    from_junctions.pop_back();
+                }
+                from_junctions.reserve(from_junctions.size() + from_prev_junctions.size());
+                from_junctions.insert(from_junctions.end(), from_prev_junctions.begin(), from_prev_junctions.end());
+                assert(!edge_to_peak->prev->prev);
             }
-            from_junctions.reserve(from_junctions.size() + from_prev_junctions.size());
-            from_junctions.insert(from_junctions.end(), from_prev_junctions.begin(), from_prev_junctions.end());
-            assert(!edge_to_peak->prev->prev);
-        }
-        if (edge_from_peak->next)
-        {
-            std::vector<ExtrusionJunction> to_next_junctions = getJunctions(edge_from_peak->next->twin, edge_to_junctions);
-            if (!to_junctions.empty() && !to_next_junctions.empty() && to_junctions.back().perimeter_index == to_next_junctions.front().perimeter_index)
+            if (edge_from_peak->next)
             {
-                to_junctions.pop_back();
+                std::vector<ExtrusionJunction> to_next_junctions = getJunctions(edge_from_peak->next->twin, edge_to_junctions);
+                if (!to_junctions.empty() && !to_next_junctions.empty() && to_junctions.back().perimeter_index == to_next_junctions.front().perimeter_index)
+                {
+                    to_junctions.pop_back();
+                }
+                to_junctions.reserve(to_junctions.size() + to_next_junctions.size());
+                to_junctions.insert(to_junctions.end(), to_next_junctions.begin(), to_next_junctions.end());
+                assert(!edge_from_peak->next->next);
             }
-            to_junctions.reserve(to_junctions.size() + to_next_junctions.size());
-            to_junctions.insert(to_junctions.end(), to_next_junctions.begin(), to_next_junctions.end());
-            assert(!edge_from_peak->next->next);
-        }
-        assert(std::abs(int(from_junctions.size()) - int(to_junctions.size())) <= 1); // at transitions one end has more beads
-        
-        
-        size_t segment_count = std::min(from_junctions.size(), to_junctions.size());
-        for (size_t junction_rev_idx = 0; junction_rev_idx < segment_count; junction_rev_idx++)
-        {
-            ExtrusionJunction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
-            ExtrusionJunction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
-            assert(from.perimeter_index == to.perimeter_index);
-            bool is_odd_segment = edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
-                && edge_to_peak->to->data.transition_ratio == 0 && edge_to_peak->from->data.transition_ratio == 0 && edge_from_peak->to->data.transition_ratio == 0 // we're not in a transition
-                && junction_rev_idx == segment_count - 1 // is single bead segment
-                && shorterThen(from.p - quad_start->to->p, 5) && shorterThen(to.p - quad_end->from->p, 5);
-            if (is_odd_segment
-                && from.p < to.p) // choose one
+            assert(std::abs(int(from_junctions.size()) - int(to_junctions.size())) <= 1); // at transitions one end has more beads
+
+
+            size_t segment_count = std::min(from_junctions.size(), to_junctions.size());
+            for (size_t junction_rev_idx = 0; junction_rev_idx < segment_count; junction_rev_idx++)
             {
-                continue; // prevent duplication of single bead segments
+                ExtrusionJunction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
+                ExtrusionJunction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
+                assert(from.perimeter_index == to.perimeter_index);
+                bool is_odd_segment = edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
+                    && edge_to_peak->to->data.transition_ratio == 0 && edge_to_peak->from->data.transition_ratio == 0 && edge_from_peak->to->data.transition_ratio == 0 // we're not in a transition
+                    && junction_rev_idx == segment_count - 1 // is single bead segment
+                    && shorterThen(from.p - quad_start->to->p, 5) && shorterThen(to.p - quad_end->from->p, 5);
+                if (is_odd_segment
+                    && from.p < to.p) // choose one
+                {
+                    continue; // prevent duplication of single bead segments
+                }
+                addSegment(from, to, is_odd_segment);
             }
-            addSegment(from, to, is_odd_segment);
         }
-    }
     }
 }
 
