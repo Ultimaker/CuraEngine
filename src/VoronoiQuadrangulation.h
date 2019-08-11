@@ -32,6 +32,8 @@ class VoronoiQuadrangulation
     using node_t = HalfEdgeNode<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
     using Beading = BeadingStrategy::Beading;
 
+    const Polygons& polys;
+
     float transitioning_angle;
     coord_t discretization_step_size;
     coord_t transition_filter_dist; // filter transitions closer together than this
@@ -50,7 +52,6 @@ public:
     std::vector<std::list<ExtrusionLine>> generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges = false);
 
 protected:
-    const Polygons& polys;
 
     void init();
 
