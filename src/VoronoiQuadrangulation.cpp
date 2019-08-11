@@ -2176,6 +2176,8 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
     
     auto addSegment = [&result_polylines_per_index](ExtrusionJunction& from, ExtrusionJunction& to, bool is_odd)
     {
+        if (from == to) return;
+
         coord_t inset_idx = from.perimeter_index;
         if (inset_idx >= result_polylines_per_index.size()) result_polylines_per_index.resize(inset_idx + 1);
         assert(result_polylines_per_index[inset_idx].empty() || !result_polylines_per_index[inset_idx].back().junctions.empty() && "empty extrusion lines should never have been generated");
