@@ -28,7 +28,7 @@ GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness
     file << ";EXTRUDER_TRAIN.0.MATERIAL.GUID:506c9f0d-e3aa-4bd4-b2d2-23e2425b1aa9\n";
     file << ";EXTRUDER_TRAIN.0.NOZZLE.DIAMETER:0.4\n";
     file << ";EXTRUDER_TRAIN.0.NOZZLE.NAME:AA 0.4\n";
-    file << ";BUILD_PLATE.INITIAL_TEMPERATURE:60\n";
+    file << ";BUILD_PLATE.INITIAL_TEMPERATURE:20\n";
     file << ";PRINT.TIME:5201\n";
     file << ";PRINT.SIZE.MIN.X:9\n";
     file << ";PRINT.SIZE.MIN.Y:6\n";
@@ -51,10 +51,10 @@ GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness
     file << "M107\n";
     file << "M204 S625; set acceleration\n";
     file << "M205 X6 Y6; set jerk\n";
-    file << "G0 X" << INT2MM(build_plate_middle.X) << " Y" << INT2MM(build_plate_middle.Y) << " Z" << (INT2MM(layer_thickness) + 0.24) << " F1200 ; start location\n";
+    file << "G0 F" << travel_speed <<"X" << INT2MM(build_plate_middle.X) << " Y" << INT2MM(build_plate_middle.Y) << " Z" << (INT2MM(layer_thickness) + 0.18) << " ; start location\n";
     file << "G0 E0 F1500 ; unretract\n";
     file << "\n";
-    file << "M214 K2.0 ; bueno linear advance\n";
+    file << "M214 K1.0 ; bueno linear advance\n";
 //     file << "M83 ;relative extrusion mode\n";
     file << "\n";
     cur_pos = build_plate_middle;
@@ -63,7 +63,7 @@ GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness
 GcodeWriter::~GcodeWriter()
 {
     
-    file << "M214 K0.0\n";
+//     file << "M214 K0.0\n";
     file << "M107\n";
     file.close();
 }
@@ -187,6 +187,11 @@ void GcodeWriter::print(ExtrusionJunction from, ExtrusionJunction to)
     bool discretize = type != type_P3
         && std::abs(to.w - from.w) > 10;
 
+    if (from.p == to.p)
+    {
+        return;
+    }
+    
     if (!discretize)
     {
         printSingleExtrusionMove(from, to);

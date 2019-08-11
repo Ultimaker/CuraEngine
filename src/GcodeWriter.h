@@ -19,7 +19,7 @@ namespace arachne
 class GcodeWriter
 {
 public:
-    GcodeWriter(std::string filename, int type, coord_t layer_thickness = MM2INT(0.3), float print_speed = 300, float travel_speed = 3500, float extrusion_multiplier = 0.5);
+    GcodeWriter(std::string filename, int type, coord_t layer_thickness = MM2INT(0.2), float print_speed = 600, float travel_speed = 3500, float extrusion_multiplier = 0.8);
     ~GcodeWriter();
     static constexpr int type_P3 = 0;
     static constexpr int type_UM3 = 1;
