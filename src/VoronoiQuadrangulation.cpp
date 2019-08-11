@@ -2148,6 +2148,7 @@ VoronoiQuadrangulation::BeadingPropagation* VoronoiQuadrangulation::getNearestBe
 void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<ExtrusionSegment>& segments)
 {
     // TODO: walk along cells in order of the input polygons, so that we can easily greedily optimize the order afterwards
+    // TODO: that can result in a 4x speedup! According to my n=1 callgrind check.
     for (edge_t& edge : graph.edges)
     {
         if (edge.prev) continue;
