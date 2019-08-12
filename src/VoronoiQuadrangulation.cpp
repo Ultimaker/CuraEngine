@@ -338,7 +338,7 @@ bool VoronoiQuadrangulation::computePointCellRange(vd_t::cell_type& cell, Point&
             ending_vd_edge = vd_edge;
         }
         else
-            assert(VoronoiUtils::p(vd_edge->vertex0()) == source_point || !vd_edge->is_secondary() && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
+            assert((VoronoiUtils::p(vd_edge->vertex0()) == source_point || !vd_edge->is_secondary()) && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
         first = false;
     }
     assert(starting_vd_edge && ending_vd_edge);
