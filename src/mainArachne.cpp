@@ -554,8 +554,8 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
 
     if (analyse)
     {
-        Statistics stats(to_string(type), output_prefix, processing_time);
-        stats.analyse(polys, result_polygons_per_index, result_polylines_per_index, &vq);
+        Statistics stats(to_string(type), output_prefix, polys, processing_time);
+        stats.analyse(result_polygons_per_index, result_polylines_per_index, &vq);
         logAlways("Analysis took %fs\n", tk.restart());
         stats.saveResultsCSV();
         stats.visualize(nozzle_size, true);
@@ -622,8 +622,8 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
     
     if (analyse)
     {
-        Statistics stats("naive", output_prefix, processing_time);
-        stats.analyse(polys, result_polygons_per_index, result_polylines_per_index);
+        Statistics stats("naive", output_prefix, polys, processing_time);
+        stats.analyse(result_polygons_per_index, result_polylines_per_index);
         stats.saveResultsCSV();
         logAlways("Analysis took %fs\n", tk.restart());
         stats.visualize(nozzle_size);
@@ -662,8 +662,8 @@ void writeVarWidthTest()
     }
     
     Polygons fake_outline; fake_outline.add(aabb.toPolygon());
-    Statistics stats("var_width", "test", 1.0);
-    stats.analyse(fake_outline, result_polygons_per_index, result_polylines_per_index);
+    Statistics stats("var_width", "test", fake_outline, 1.0);
+    stats.analyse(result_polygons_per_index, result_polylines_per_index);
     stats.visualize(400, false, true, true, false, false);
 }
 

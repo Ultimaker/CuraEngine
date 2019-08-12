@@ -19,22 +19,24 @@ namespace arachne
 class Statistics
 {
 public:
-    Statistics(std::string test_type, std::string output_prefix, double processing_time)
+    Statistics(std::string test_type, std::string output_prefix, Polygons& input, double processing_time)
     : processing_time(processing_time)
     , test_type(test_type)
     , output_prefix(output_prefix)
-    , input(nullptr)
+    , input(input)
     {
+        total_target_area = INT2MM2(input.area());
+        total_target_area_length = INT2MM(input.polygonLength());
     }
-    void analyse(Polygons& input, std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, VoronoiQuadrangulation* vq = nullptr);
-    void visualize(coord_t nozzle_size, bool output_vq = false, bool output_toolpaths = false, bool output_widths = true, bool include_legend = false, bool output_accuracy = true, bool visualize_pretty_paths = false);
+    void analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, VoronoiQuadrangulation* vq = nullptr);
+    void visualize(coord_t nozzle_size, bool output_vq = true, bool output_toolpaths = true, bool output_widths = true, bool include_legend = false, bool output_accuracy = true, bool visualize_pretty_paths = true);
     void saveResultsCSV();
-    double processing_time;
-    double overfill_area;
-    double double_overfill_area;
-    double total_underfill_area;
-    double total_target_area;
-    double total_target_area_length;
+    double processing_time = -1;
+    double overfill_area = -1;
+    double double_overfill_area = -1;
+    double total_underfill_area = -1;
+    double total_target_area = -1;
+    double total_target_area_length = -1;
 private:
     struct Segment
     {
@@ -51,7 +53,7 @@ private:
     };
     std::string test_type;
     std::string output_prefix;
-    Polygons* input;
+    const Polygons& input;
     VoronoiQuadrangulation* vq;
 
     std::vector<std::list<ExtrusionLine>>* polygons_per_index;

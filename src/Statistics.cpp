@@ -11,9 +11,8 @@
 namespace arachne
 {
 
-void Statistics::analyse(Polygons& input, std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, VoronoiQuadrangulation* vq)
+void Statistics::analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, VoronoiQuadrangulation* vq)
 {
-    this->input = &input;
     this->vq = vq;
     this->polygons_per_index = &polygons_per_index;
     this->polylines_per_index = &polylines_per_index;
@@ -78,8 +77,6 @@ void Statistics::analyse(Polygons& input, std::vector<std::list<ExtrusionLine>>&
 //     std::vector<PolygonsPart> underfill_areas = underfills.splitIntoParts();
 //     logAlways("Average area: %f mm² over %d parts\n", total_underfill_area / underfill_areas.size(), underfill_areas.size());
 
-    total_target_area = INT2MM2(input.area());
-    total_target_area_length = INT2MM(input.polygonLength());
 //     logAlways("Total target area: %f mm²\n", total_target_area);
 
     // initialize paths
@@ -94,7 +91,7 @@ void Statistics::analyse(Polygons& input, std::vector<std::list<ExtrusionLine>>&
 
 void Statistics::saveResultsCSV()
 {
-
+    if ( ! all_segments.empty())
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_segments.csv";
@@ -108,8 +105,8 @@ void Statistics::saveResultsCSV()
     }
     {
         coord_t vert_count = 0;
-        for (PolygonRef poly : *input)
-            for (Point& p : poly)
+        for (ConstPolygonRef poly : input)
+            for (const Point& p : poly)
                 vert_count++;
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_results.csv";
@@ -156,10 +153,8 @@ void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& poly
 
 void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool output_accuracy, bool visualize_pretty_paths)
 {
-    AABB aabb(*input);
+    AABB aabb(input);
 
-    double scale = INT2MM(10);
-    
     if (output_vq && vq)
     {
         std::ostringstream ss;
@@ -195,8 +190,8 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_toolpaths.svg";
-        SVG svg(ss.str(), aabb, scale);
-        svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
+        SVG svg(ss.str(), aabb);
+        svg.writeAreas(input, SVG::Color::GRAY, SVG::Color::NONE, 2);
         bool alternate = true;
         for (PolygonRef poly : overlaps)
         {
@@ -211,7 +206,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_pretty.svg";
         SVG svg(ss.str(), aabb);
-        svg.writeAreas(*input, SVG::Color::NONE, SVG::Color::RED, 2);
+        svg.writeAreas(input, SVG::Color::NONE, SVG::Color::RED, 2);
         for (PolygonRef poly : area_covered)
         {
             svg.writeAreas(poly, SVG::Color::BLACK, SVG::Color::NONE);
@@ -240,8 +235,8 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_widths.svg";
-        SVG svg(ss.str(), aabb, scale);
-//         svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 2);
+        SVG svg(ss.str(), aabb);
+//         svg.writeAreas(input, SVG::Color::GRAY, SVG::Color::NONE, 2);
 
         coord_t max_dev = nozzle_size / 2;
         coord_t min_w = 30;
@@ -256,7 +251,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
                 ss << v;
                 return ss.str();
             };
-            AABB aabb(*input);
+            AABB aabb(input);
             ExtrusionJunction legend_btm(Point(aabb.max.X + 400 + max_dev, aabb.max.Y), 400 - max_dev, 0);
             ExtrusionJunction legend_top(Point(aabb.max.X + 400 + max_dev, aabb.min.Y), 400 + max_dev, 0);
             ExtrusionJunction legend_mid((legend_top.p + legend_btm.p) / 2, (legend_top.w + legend_btm.w) / 2, 0);
@@ -311,8 +306,8 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_accuracy.svg";
-        SVG svg(ss.str(), aabb, scale);
-        svg.writeAreas(*input, SVG::Color::GRAY, SVG::Color::NONE, 3);
+        SVG svg(ss.str(), aabb);
+        svg.writeAreas(input, SVG::Color::GRAY, SVG::Color::NONE, 3);
         svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
         svg.writeAreas(double_overfills, SVG::Color::ORANGE, SVG::Color::NONE);
         svg.writeAreas(underfills, SVG::Color::BLUE, SVG::Color::NONE);
