@@ -538,11 +538,11 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode)
     drag_along = scene_settings.get<coord_t>("wireframe_drag_along");
     
     strategy = STRATEGY_COMPENSATE;
-    if (scene_settings.get<std::string>("wireframe_strategy") == "Compensate")
+    if (scene_settings.get<std::string>("wireframe_strategy") == "compensate")
         strategy = STRATEGY_COMPENSATE;
-    if (scene_settings.get<std::string>("wireframe_strategy") == "Knot")
+    if (scene_settings.get<std::string>("wireframe_strategy") == "knot")
         strategy = STRATEGY_KNOT;
-    if (scene_settings.get<std::string>("wireframe_strategy") == "Retract")
+    if (scene_settings.get<std::string>("wireframe_strategy") == "retract")
         strategy = STRATEGY_RETRACT;
     
     go_back_to_last_top = false;
