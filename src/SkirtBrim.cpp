@@ -117,11 +117,6 @@ int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_
 
 void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, int start_distance, unsigned int primary_line_count, bool allow_helpers /*= true*/)
 {
-    if (first_layer_outline.polygonLength() <= 0) //Empty first layer (or the adhesion type is set to None).
-    {
-        return;
-    }
-
     const bool is_skirt = start_distance > 0;
     Scene& scene = Application::getInstance().current_slice->scene;
     const size_t adhesion_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
@@ -201,6 +196,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
         offset_distance = 0;
     }
 
+    if (first_layer_outline.polygonLength() > 0)
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int last_width = primary_extruder_skirt_brim_line_width;
         std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
