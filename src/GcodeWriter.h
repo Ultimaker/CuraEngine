@@ -20,7 +20,7 @@ namespace arachne
 class GcodeWriter
 {
 public:
-    GcodeWriter(std::string filename, int type, coord_t layer_thickness = MM2INT(0.2), float print_speed = 600, float travel_speed = 3500, float extrusion_multiplier = 0.8);
+    GcodeWriter(std::string filename, int type, coord_t layer_thickness = MM2INT(0.2), float print_speed = 600, float travel_speed = 3500, float extrusion_multiplier = 0.7);
     ~GcodeWriter();
     static constexpr int type_P3 = 0;
     static constexpr int type_UM3 = 1;
@@ -38,7 +38,7 @@ private:
     void printSingleExtrusionMove(ExtrusionJunction& from, ExtrusionJunction& to);
     std::ofstream file;
     int type;
-    Point build_plate_middle = Point(MM2INT(100), MM2INT(150));
+    Point build_plate_middle = Point(MM2INT(100), MM2INT(100));
     float filament_diameter = 2.85;
     coord_t discretization_size = MM2INT(0.4);
     coord_t nozzle_size = MM2INT(0.4);

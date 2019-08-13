@@ -755,7 +755,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
     }
 #endif
 
-    coord_t nozzle_size = MM2INT(0.4);
+    coord_t nozzle_size = MM2INT(0.6);
 
     if (output_prefix.compare("TEST") != 0)
     {
