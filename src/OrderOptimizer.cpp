@@ -68,7 +68,9 @@ void OrderOptimizer::optimize()
 
 //             assert (polys[poly_idx]->size() != 2);
 
-            const Point& p = (*polys[poly_idx].poly)[polyStart[poly_idx]];
+            size_t start_idx = getClosestPointInPoly(prev_point, poly_idx);
+            polyStart[poly_idx] = start_idx;
+            const Point& p = (*polys[poly_idx].poly)[start_idx];
             float dist2 = vSize2f(p - prev_point);
             if (dist2 < bestDist2)
             {
