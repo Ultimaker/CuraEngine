@@ -40,7 +40,8 @@ public:
     z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
     added_something(false),
     wall_overlapper_0(nullptr),
-    wall_overlapper_x(nullptr)
+    wall_overlapper_x(nullptr),
+    retraction_region_calculated(false)
     {
     }
 private:
@@ -58,6 +59,8 @@ private:
     WallOverlapComputation* wall_overlapper_0;
     WallOverlapComputation* wall_overlapper_x;
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
+    Polygons retraction_region; // after printing an outer wall, move into this region so that retractions do not leave visible blobs
+    bool retraction_region_calculated;
 
     /*!
      * Generate the insets for the holes of a given layer part after optimizing the ordering.
