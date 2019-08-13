@@ -63,7 +63,9 @@ GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness
 GcodeWriter::~GcodeWriter()
 {
     
+    file << "G0 F" << travel_speed << " X" << 20 << " Y" << 20 << " Z" << (INT2MM(layer_thickness) + 0.18) << " ; start location\n";
 //     file << "M214 K0.0\n";
+    file << "G92 E0\n";
     file << "M107\n";
     file.close();
 }
