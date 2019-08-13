@@ -1,3 +1,14 @@
+## my dirs
+input/*
+backup/*
+output/*
+old_output/*
+output_dataset_v1/*
+output_dataset_v2/*
+output_applications/*
+
+
+## ignore such files
 *.tar.bz2
 *.tar.gz
 *.7z
@@ -15,6 +26,7 @@ callgrind/*
 ## Building result.
 build/*
 debug_build/*
+release_build/*
 cmake-build-debug/*
 libs/stb
 *.pyc
