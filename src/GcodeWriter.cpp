@@ -3,6 +3,7 @@
 
 #include "GcodeWriter.h"
 #include "pathOrderOptimizer.h"
+#include "OrderOptimizer.h"
 
 namespace arachne
 {
@@ -98,8 +99,22 @@ void GcodeWriter::printBrim(AABB aabb, coord_t count, coord_t w, coord_t dist)
     print(polygons_per_index, polylines_per_index, aabb);
 }
 
-void GcodeWriter::print(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb)
+void GcodeWriter::print(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb, bool ordered)
 {
+    if (ordered)
+    {
+        printOrdered(polygons_per_index, polylines_per_index, aabb);
+    }
+    else
+    {
+        printUnordered(polygons_per_index, polylines_per_index, aabb);
+    }
+}
+
+void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb)
+{
+    reduction = aabb.getMiddle() - build_plate_middle;
+
     std::vector<std::vector<ExtrusionLine>> polygons_per_index_vector;
     polygons_per_index_vector.resize(polygons_per_index.size());
     for (coord_t inset_idx = 0; inset_idx < polygons_per_index.size(); inset_idx++)
@@ -109,8 +124,7 @@ void GcodeWriter::print(std::vector<std::list<ExtrusionLine>>& polygons_per_inde
     polylines_per_index_vector.resize(polylines_per_index.size());
     for (coord_t inset_idx = 0; inset_idx < polylines_per_index.size(); inset_idx++)
         polylines_per_index_vector[inset_idx].insert(polylines_per_index_vector[inset_idx].end(), polylines_per_index[inset_idx].begin(), polylines_per_index[inset_idx].end());
-    
-    reduction = aabb.getMiddle() - build_plate_middle;
+
     for (int inset_idx = 0; inset_idx < std::max(polygons_per_index_vector.size(), polylines_per_index_vector.size()); inset_idx++)
     {
         if (inset_idx < polylines_per_index_vector.size())
@@ -188,6 +202,69 @@ void GcodeWriter::print(std::vector<std::list<ExtrusionLine>>& polygons_per_inde
                     if (junction_it == first) break;
                 }
             }
+        }
+    }
+}
+
+
+void GcodeWriter::printUnordered(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb)
+{
+    reduction = aabb.getMiddle() - build_plate_middle;
+
+    struct Path
+    {
+        std::vector<ExtrusionJunction> junctions;
+        bool is_closed;
+        Path(bool is_closed)
+        : is_closed(is_closed)
+        {}
+    };
+    std::vector<Path> paths;
+    Polygons recreated;
+    for (bool is_closed : {true, false})
+    {
+        auto polys_per_index = is_closed? polygons_per_index : polylines_per_index;
+        for (auto polys : polys_per_index)
+            for (auto poly : polys)
+            {
+                paths.emplace_back(is_closed);
+                Path& path = paths.back();
+                path.junctions.insert(path.junctions.begin(), poly.junctions.begin(), poly.junctions.end());
+
+                recreated.emplace_back();
+                PolygonRef recreated_poly = recreated.back();
+                for (auto j : poly.junctions)
+                    recreated_poly.add(j.p);
+            }
+    }
+    OrderOptimizer order_optimizer(cur_pos);
+    for (coord_t path_idx = 0; path_idx < paths.size(); path_idx++)
+    {
+        order_optimizer.addPoly(recreated[path_idx], paths[path_idx].is_closed);
+    }
+    order_optimizer.optimize();
+
+
+    for (int poly_idx : order_optimizer.polyOrder)
+    {
+        Path& poly = paths[poly_idx];
+        int start_idx = order_optimizer.polyStart[poly_idx];
+        assert(start_idx < poly.junctions.size());
+        ExtrusionJunction* prev = &poly.junctions[start_idx];
+        move(prev->p);
+
+        for (size_t pos = 1; pos < poly.junctions.size(); pos++)
+        {
+            size_t idx;
+            if (poly.is_closed) idx = (start_idx + pos) % poly.junctions.size();
+            else idx = (start_idx == 0)? pos : poly.junctions.size() - 1 - pos;
+            ExtrusionJunction& here = poly.junctions[idx];
+            print(*prev, here);
+            prev = &here;
+        }
+        if (poly.is_closed)
+        {
+            print(*prev, poly.junctions[start_idx]);
         }
     }
 }

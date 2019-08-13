@@ -25,7 +25,13 @@ public:
     static constexpr int type_P3 = 0;
     static constexpr int type_UM3 = 1;
     void printBrim(AABB aabb, coord_t count, coord_t w = 400, coord_t dist = 600);
-    void print(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb);
+    /*!
+     * 
+     * \param ordered Whether to print all index 0 polylines before any index 1 polylines etc.
+     */
+    void print(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb, bool ordered = false);
+    void printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb);
+    void printUnordered(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb);
     void move(Point p);
     void print(ExtrusionJunction from, ExtrusionJunction to);
 private:
