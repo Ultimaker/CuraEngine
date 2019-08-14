@@ -52,8 +52,8 @@ GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness
     file << "M107\n";
     file << "M204 S625; set acceleration\n";
     file << "M205 X6 Y6; set jerk\n";
-    file << "G0 F" << travel_speed << " X" << INT2MM(build_plate_middle.X / 2) << " Y" << INT2MM(build_plate_middle.Y / 2) << " Z" << (INT2MM(layer_thickness) + 0.18) << " ; start location\n";
-    file << "G0 E0 F1500 ; unretract\n";
+    file << "G0 F" << travel_speed << " X" << INT2MM(build_plate_middle.X / 2) << " Y" << INT2MM(build_plate_middle.Y / 2) << " Z" << (INT2MM(layer_thickness) + 0.27) << " ; start location\n";
+    is_unretracted = true;
     file << "\n";
     file << "M214 K1.0 ; bueno linear advance\n";
 //     file << "M83 ;relative extrusion mode\n";
@@ -287,6 +287,11 @@ void GcodeWriter::move(Point p)
 
 void GcodeWriter::print(ExtrusionJunction from, ExtrusionJunction to)
 {
+    if (is_unretracted)
+    {
+        file << "G0 E0 F1500 ; unretract\n";
+        is_unretracted = false;
+    }
     from.p -= reduction;
     to.p -= reduction;
 
