@@ -567,7 +567,7 @@ void VoronoiQuadrangulation::init()
     {
         AABB aabb(polys);
         SVG svg("output/vq.svg", aabb);
-        debugOutput(svg, true, false);
+        debugOutput(svg, false, false);
     }
     {
         AABB aabb(polys);
