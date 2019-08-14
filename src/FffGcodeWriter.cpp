@@ -568,10 +568,9 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
     gcode.writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
-    const Temperature volume_temperature = mesh_group_settings.get<Temperature>("build_volume_temperature");
-    if (volume_temperature != 0)
+    if (mesh_group_settings.get<bool>("machine_heated_build_volume"))
     {
-        gcode.writeBuildVolumeTemperatureCommand(volume_temperature);
+        gcode.writeBuildVolumeTemperatureCommand(mesh_group_settings.get<Temperature>("build_volume_temperature"));
     }
 
     Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
@@ -2717,7 +2716,7 @@ void FffGcodeWriter::finalize()
         gcode.writeBedTemperatureCommand(0); //Cool down the bed (M140).
         //Nozzles are cooled down automatically after the last time they are used (which might be earlier than the end of the print).
     }
-    if (mesh_group_settings.get<Temperature>("build_volume_temperature") != 0)
+    if (mesh_group_settings.get<bool>("machine_heated_build_volume") && mesh_group_settings.get<Temperature>("build_volume_temperature") != 0)
     {
         gcode.writeBuildVolumeTemperatureCommand(0); //Cool down the build volume.
     }
