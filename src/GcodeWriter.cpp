@@ -4,6 +4,7 @@
 #include "GcodeWriter.h"
 #include "pathOrderOptimizer.h"
 #include "OrderOptimizer.h"
+#include "utils/logoutput.h"
 
 namespace arachne
 {
@@ -98,20 +99,25 @@ void GcodeWriter::printBrim(AABB aabb, coord_t count, coord_t w, coord_t dist)
     print(polygons_per_index, polylines_per_index, aabb);
 }
 
-void GcodeWriter::print(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb, bool ordered)
+void GcodeWriter::print(std::vector<std::list<ExtrusionLine>> polygons_per_index, std::vector<std::list<ExtrusionLine>> polylines_per_index, AABB aabb, bool ordered, bool startup_and_reduction)
 {
     if (ordered)
     {
-        printOrdered(polygons_per_index, polylines_per_index, aabb);
+        printOrdered(polygons_per_index, polylines_per_index, aabb, startup_and_reduction);
     }
     else
     {
-        printUnordered(polygons_per_index, polylines_per_index, aabb);
+        printUnordered(polygons_per_index, polylines_per_index, aabb, startup_and_reduction);
     }
 }
 
-void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb)
+void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb, bool startup_and_reduction)
 {
+    if (startup_and_reduction)
+    {
+        logError("not implemented yet\n");
+        std::exit(-1);
+    }
     reduction = aabb.getMiddle() - build_plate_middle;
 
     std::vector<std::vector<ExtrusionLine>> polygons_per_index_vector;
@@ -147,6 +153,7 @@ void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_p
                 {
                     auto last = polyline.junctions.begin();
                     move(last->p);
+                    if (startup_and_reduction) extrude(getExtrusionFilamentMmPerMmMove(last->w) / 2 * last->w / 2 * M_PI);
                     for (auto junction_it = ++polyline.junctions.begin(); junction_it != polyline.junctions.end(); ++junction_it)
                     {
                         ExtrusionJunction& junction = *junction_it;
@@ -158,6 +165,7 @@ void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_p
                 {
                     auto last = polyline.junctions.rbegin();
                     move(last->p);
+                    if (startup_and_reduction) extrude(getExtrusionFilamentMmPerMmMove(last->w) / 2 * last->w / 2 * M_PI);
                     for (auto junction_it = ++polyline.junctions.rbegin(); junction_it != polyline.junctions.rend(); ++junction_it)
                     {
                         ExtrusionJunction& junction = *junction_it;
@@ -189,6 +197,7 @@ void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_p
                 auto first = polygon.junctions.begin();
                 std::advance(first, start_idx);
                 move(first->p);
+                if (startup_and_reduction) extrude(getExtrusionFilamentMmPerMmMove(first->w) / 2 * first->w / 2 * M_PI);
                 auto prev = first;
                 
                 auto second = first; second++;
@@ -206,18 +215,10 @@ void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_p
 }
 
 
-void GcodeWriter::printUnordered(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb)
+void GcodeWriter::printUnordered(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, AABB aabb, bool startup_and_reduction)
 {
     reduction = aabb.getMiddle() - build_plate_middle;
 
-    struct Path
-    {
-        std::vector<ExtrusionJunction> junctions;
-        bool is_closed;
-        Path(bool is_closed)
-        : is_closed(is_closed)
-        {}
-    };
     std::vector<Path> paths;
     Polygons recreated;
     for (bool is_closed : {true, false})
@@ -249,22 +250,97 @@ void GcodeWriter::printUnordered(std::vector<std::list<ExtrusionLine>>& polygons
         Path& poly = paths[poly_idx];
         int start_idx = order_optimizer.polyStart[poly_idx];
         assert(start_idx < poly.junctions.size());
-        ExtrusionJunction* prev = &poly.junctions[start_idx];
-        move(prev->p);
-
-        for (size_t pos = 1; pos < poly.junctions.size(); pos++)
-        {
-            size_t idx;
-            if (poly.is_closed) idx = (start_idx + pos) % poly.junctions.size();
-            else idx = (start_idx == 0)? pos : poly.junctions.size() - 1 - pos;
-            ExtrusionJunction& here = poly.junctions[idx];
-            print(*prev, here);
-            prev = &here;
-        }
         if (poly.is_closed)
         {
-            print(*prev, poly.junctions[start_idx]);
+            printPolygon(poly, start_idx);
         }
+        else
+        {
+            printPolyline(poly, start_idx);
+        }
+    }
+}
+
+void GcodeWriter::printPolygon(GcodeWriter::Path& polygon, int start_idx)
+{
+    Path polyline(false);
+    polyline.junctions.insert(polyline.junctions.end(), polygon.junctions.begin() + start_idx, polygon.junctions.end());
+    polyline.junctions.insert(polyline.junctions.end(), polygon.junctions.begin(), polygon.junctions.begin() + (start_idx + 1) % polygon.junctions.size());
+    
+//     reduce(polyline, polyline.junctions.size() - 1, polyline.junctions.back().w, 0);
+    if (polyline.junctions.empty()) return;
+
+    printPolyline(polyline, 0);
+}
+
+void GcodeWriter::reduce(Path& polyline, size_t start_point_idx, coord_t initial_width, coord_t traveled_dist)
+{
+    if (start_point_idx == 0) polyline.junctions.clear();
+
+    ExtrusionJunction& start_junction = polyline.junctions[start_point_idx];
+    ExtrusionJunction& end_junction = polyline.junctions[start_point_idx - 1];
+    Point a = start_junction.p;
+    Point b = end_junction.p;
+    Point ab = b - a;
+    coord_t length = vSize(ab);
+    
+    
+    coord_t total_reduction_length = initial_width + start_junction.w / 2;
+    
+    if (traveled_dist + length > total_reduction_length)
+    {
+        coord_t reduction_left = total_reduction_length - traveled_dist;
+        Point mid = a + ab * std::max(static_cast<coord_t>(0), std::min(length, reduction_left)) / length;
+        coord_t mid_w = start_junction.w + (end_junction.w - start_junction.w) * reduction_left / length;
+        polyline.junctions.insert(polyline.junctions.begin() + start_point_idx, ExtrusionJunction(mid, mid_w, start_junction.perimeter_index));
+    }
+    else
+    {
+        reduce(polyline, start_point_idx - 1, initial_width, traveled_dist + length);
+    }
+
+    if (traveled_dist + length > total_reduction_length / 2 && traveled_dist < total_reduction_length / 2)
+    {
+        coord_t reduction_left = total_reduction_length / 2 - traveled_dist;
+        Point mid = a + ab * std::max(static_cast<coord_t>(0), std::min(length, reduction_left)) / length;
+        coord_t mid_w = 1;
+        polyline.junctions.insert(polyline.junctions.begin() + start_point_idx, ExtrusionJunction(mid, mid_w, start_junction.perimeter_index));
+    }
+
+    polyline.junctions[start_point_idx].w = std::max(coord_t(1), traveled_dist - total_reduction_length / 2);
+}
+
+void GcodeWriter::printPolyline(GcodeWriter::Path& poly, int start_idx)
+{
+    if (false)
+    {
+        coord_t total_length = 0;
+        Point prev = poly.junctions.front().p;
+        for (size_t j_idx = 1; j_idx < poly.junctions.size(); j_idx++)
+        {
+            Point here = poly.junctions[j_idx].p;
+            total_length += vSize(here - prev);
+            prev = here;
+        }
+        if (total_length < nozzle_size)
+        { // extrude a whole bead
+            double factor = nozzle_size * nozzle_size / 4 * M_PI / double(total_length * nozzle_size);
+            factor = std::max(1.0, factor);
+            for (ExtrusionJunction& j : poly.junctions)
+                j.w *= factor;
+        }
+    }
+    
+    ExtrusionJunction* prev = &poly.junctions[start_idx];
+    move(prev->p);
+//     extrude(getExtrusionFilamentMmPerMmMove(prev->w) / 2 * prev->w / 2 * M_PI);
+
+    for (size_t pos = 1; pos < poly.junctions.size(); pos++)
+    {
+        size_t idx = (start_idx == 0)? pos : poly.junctions.size() - 1 - pos;
+        ExtrusionJunction& here = poly.junctions[idx];
+        print(*prev, here);
+        prev = &here;
     }
 }
 
@@ -327,6 +403,12 @@ void GcodeWriter::print(ExtrusionJunction from, ExtrusionJunction to)
 
 void GcodeWriter::printSingleExtrusionMove(ExtrusionJunction& from, ExtrusionJunction& to)
 {
+//     double print_speed = this->print_speed;
+//     if ((from.w + to.w) / 2 > nozzle_size * 3)
+//     {
+//         double factor = double((from.w + to.w) / 2 - nozzle_size * 2) / nozzle_size;
+//         print_speed /= factor;
+//     }
     switch(type)
     {
         case type_P3:
@@ -340,6 +422,22 @@ void GcodeWriter::printSingleExtrusionMove(ExtrusionJunction& from, ExtrusionJun
             last_E += getExtrusionFilamentMmPerMmMove(w) * vSize(to.p - from.p);
             file << "G1 F" << print_speed << " X" << INT2MM(to.p.X) << " Y" << INT2MM(to.p.Y)
                 << " E" << last_E << "\n";
+            break;
+    }
+}
+
+void GcodeWriter::extrude(float amount)
+{
+    switch(type)
+    {
+        case type_P3:
+            file << "G92 E0\n";
+            file << "G1 E" << amount << "\n";
+            break;
+        case type_UM3:
+        default:
+            last_E += amount;
+            file << "G1 E" << last_E << "\n";
             break;
     }
 }
