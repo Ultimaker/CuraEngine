@@ -69,9 +69,6 @@ private:
     static std::list<ExtrusionJunction>::iterator getInsertPosIt(directional_iterator it);
 
     template<typename directional_iterator>
-    static void updateInsertPos(std::list<ExtrusionJunction>::iterator it, directional_iterator& out);
-
-    template<typename directional_iterator>
     static std::list<ExtrusionJunction>::iterator getSelfPosIt(directional_iterator it);
 
     template<typename directional_iterator>
