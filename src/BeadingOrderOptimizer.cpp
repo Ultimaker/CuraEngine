@@ -246,7 +246,7 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(ExtrusionLine& polyline, d
         Point mid = a + ab * std::max(static_cast<coord_t>(0), std::min(length, reduction_left)) / length;
         std::list<ExtrusionJunction>::iterator forward_it = getInsertPosIt(next_junction_it);
         coord_t mid_w = start_junction.w + (next_junction.w - start_junction.w) * reduction_left / length;
-        polyline.junctions.insert(forward_it, ExtrusionJunction(mid, mid_w, start_junction.perimeter_index));
+        updateInsertPos(polyline.junctions.insert(forward_it, ExtrusionJunction(mid, mid_w, start_junction.perimeter_index)), next_junction_it);
     }
     else
     {
@@ -254,6 +254,18 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(ExtrusionLine& polyline, d
         reduceIntersectionOverlap(polyline, next_junction_it, traveled_dist + length, reduction_length);
     }
 
+
+    if (traveled_dist + length > total_reduction_length / 2 && traveled_dist < total_reduction_length / 2)
+    {
+        coord_t reduction_left = total_reduction_length / 2 - traveled_dist;
+        Point mid = a + ab * std::max(static_cast<coord_t>(0), std::min(length, reduction_left)) / length;
+        std::list<ExtrusionJunction>::iterator forward_it = getInsertPosIt(next_junction_it);
+        coord_t mid_w = 1;
+        polyline.junctions.insert(forward_it, ExtrusionJunction(mid, mid_w, start_junction.perimeter_index));
+    }
+
+    getSelfPosIt(polyline_it)->w = std::max(coord_t(1), traveled_dist - total_reduction_length / 2);
+    /*
     if (polyline.junctions.size() > 1)
     {
         polyline.junctions.erase(getSelfPosIt(polyline_it));
@@ -262,6 +274,7 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(ExtrusionLine& polyline, d
     {
         polyline.junctions.clear();
     }
+    */
 }
 
 
@@ -287,6 +300,19 @@ template<>
 std::list<ExtrusionJunction>::iterator BeadingOrderOptimizer::getInsertPosIt(std::list<ExtrusionJunction>::reverse_iterator it)
 {
     return it.base();
+}
+
+
+template<>
+void BeadingOrderOptimizer::updateInsertPos(std::list<ExtrusionJunction>::iterator it, std::list<ExtrusionJunction>::iterator& out)
+{
+    out = it;
+}
+
+template<>
+void BeadingOrderOptimizer::updateInsertPos(std::list<ExtrusionJunction>::iterator it, std::list<ExtrusionJunction>::reverse_iterator& out)
+{
+    out = std::list<ExtrusionJunction>::reverse_iterator(it);
 }
 
 template<>
