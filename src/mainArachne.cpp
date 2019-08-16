@@ -695,7 +695,6 @@ void test(std::string input_outline_filename, std::string output_prefix)
     Polygons polys = SVGloader::load(input_outline_filename);
     AABB aabb(polys);
     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
-    polys.applyMatrix(PointMatrix::scale(1.5));
     */
 
     /*
@@ -760,6 +759,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
     }
 #endif
 
+    polys.applyMatrix(PointMatrix::scale(1.5));
     coord_t nozzle_size = MM2INT(0.6);
 
     if (output_prefix.compare("TEST") != 0)
