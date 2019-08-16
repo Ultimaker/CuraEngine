@@ -454,7 +454,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                 last_planned_position = combPath.back();
                 distance += vSize(last_point - p);
                 const coord_t retract_threshold = extruder->settings.get<coord_t>("retraction_combing_max_distance");
-                path->retract = retract || (retract_threshold > 0 && distance > retract_threshold);
+                path->retract = retract && (retract_threshold > 0 && distance > retract_threshold);
                 // don't perform a z-hop
             }
         }
