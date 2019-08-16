@@ -312,7 +312,6 @@ void GcodeWriter::reduce(Path& polyline, size_t start_point_idx, coord_t initial
 
 void GcodeWriter::printPolyline(GcodeWriter::Path& poly, int start_idx)
 {
-    if (false)
     {
         coord_t total_length = 0;
         Point prev = poly.junctions.front().p;
@@ -403,12 +402,12 @@ void GcodeWriter::print(ExtrusionJunction from, ExtrusionJunction to)
 
 void GcodeWriter::printSingleExtrusionMove(ExtrusionJunction& from, ExtrusionJunction& to)
 {
-//     double print_speed = this->print_speed;
-//     if ((from.w + to.w) / 2 > nozzle_size * 3)
-//     {
-//         double factor = double((from.w + to.w) / 2 - nozzle_size * 2) / nozzle_size;
-//         print_speed /= factor;
-//     }
+    double print_speed = this->print_speed;
+    if ((from.w + to.w) / 2 > nozzle_size * 3)
+    {
+        double factor = double((from.w + to.w) / 2 - nozzle_size * 2) / nozzle_size;
+        print_speed /= factor;
+    }
     switch(type)
     {
         case type_P3:
