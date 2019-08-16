@@ -1356,4 +1356,47 @@ void PolygonUtils::makeCircle(Point mid, coord_t radius, Polygons& ret, float a_
     }
 }
 
+
+Polygons PolygonUtils::connect(const Polygons& input)
+{
+    Polygons ret;
+    std::vector<PolygonsPart> parts = input.splitIntoParts(true);
+    for (PolygonsPart& part : parts)
+    {
+        PolygonRef outline = part.outerPolygon();
+        for (size_t hole_idx = 1; hole_idx < part.size(); hole_idx++)
+        {
+            PolygonRef hole = part[hole_idx];
+            Point hole_point = hole[0];
+            hole.add(hole_point);
+            // find where the scanline passes the Y
+            size_t best_segment_to_idx = 0;
+            coord_t best_dist = std::numeric_limits<coord_t>::max();
+            Point best_intersection_point = outline.back();
+
+            Point prev = outline.back();
+            for (size_t point_idx = 0; point_idx < outline.size(); point_idx++)
+            {
+                Point here = outline[point_idx];
+                if (here.Y > hole_point.Y && prev.Y <= hole_point.Y && here.Y != prev.Y)
+                {
+                    Point intersection_point = prev + (here - prev) * (hole_point.Y - prev.Y) / (here.Y - prev.Y);
+                    coord_t dist = hole_point.X - intersection_point.X;
+                    if (dist > 0 && dist < best_dist)
+                    {
+                        best_dist = dist;
+                        best_segment_to_idx = point_idx;
+                        best_intersection_point = intersection_point;
+                    }
+                }
+                prev = here;
+            }
+            (*outline).insert(outline.begin() + best_segment_to_idx, 2, best_intersection_point);
+            (*outline).insert(outline.begin() + best_segment_to_idx + 1, hole.begin(), hole.end());
+        }
+        ret.add(outline);
+    }
+    return ret;
+}
+
 }//namespace cura
