@@ -11,7 +11,7 @@ namespace cura
     bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygons_out)
     {
         FILE* handle = std::fopen(filename.c_str(), "r");
-        if (! handle)
+        if (!handle)
         {
             return false;
         }
@@ -48,12 +48,12 @@ namespace cura
             case '&': // finalize 'next' polygon (which may also close a path)
                 // fallthrough
             case '#': // end of file
-                if (! next_path.empty())
+                if (!next_path.empty())
                 {
                     next_shape.add(Polygon(next_path)); // copy and add
                     next_path.clear();
                 }
-                if (command == '&' && ! next_shape.empty())
+                if (command != 'x' && !next_shape.empty())
                 {
                     polygons_out.push_back(Polygons(next_shape)); // copy and add
                     next_shape.clear();
@@ -67,25 +67,6 @@ namespace cura
         return true;
     }
 
-    double calculateInfillArea(const coord_t& infill_line_width, Polygons& infill_shapes)
-    {
-        double total_infill_area = 0;
-        for (PolygonRef poly : infill_shapes)
-        {
-            Point last_line = poly[0];
-            for (const Point& line : poly)
-            {
-                // don't have to skip the 0th line, as it'll have an area of 0 anyway
-                const double vector_x = last_line.X - line.X;
-                const double vector_y = last_line.Y - line.Y;
-                total_infill_area += std::sqrt(vector_x * vector_x + vector_y * vector_y) * infill_line_width;
-
-                last_line = line;
-            }
-        }
-        return total_infill_area;
-    }
-
     template<typename ... Ts>
     std::string makeName(const std::string& format_string, Ts ... args)
     {
@@ -93,6 +74,24 @@ namespace cura
         char buff[buff_size];
         std::snprintf(buff, buff_size, format_string.c_str(), args...);
         return std::string(buff);
+    }
+
+    coord_t getPatternMultiplier(const EFillMethod& pattern)
+    {
+        switch (pattern)
+        {
+        case EFillMethod::GRID: // fallthrough
+        case EFillMethod::TETRAHEDRAL: // fallthrough
+        case EFillMethod::QUARTER_CUBIC:
+            return 2;
+        case EFillMethod::TRIANGLES: // fallthrough
+        case EFillMethod::TRIHEXAGON: // fallthrough
+        case EFillMethod::CUBIC: // fallthrough
+        case EFillMethod::CUBICSUBDIV:
+            return 3;
+        default:
+            return 1;
+        }
     }
 
     // TODO:
@@ -127,6 +126,7 @@ namespace cura
     public:
         bool valid;  // <-- if the file isn't read (or anything else goes wrong with the setup) we can communicate it to the tests
         std::string fail_reason;
+        size_t test_polygon_id;
 
         // Parameters used to generate the infill:
         InfillParameters params;
@@ -141,6 +141,7 @@ namespace cura
         InfillTestParameters() :
             valid(false),
             fail_reason("Read of file with test polygons failed (see generateInfillTests), can't continue tests."),
+            test_polygon_id(-1),
             params(InfillParameters(EFillMethod::NONE, false, false, 0)),
             outline_polygons(Polygons()),
             result_lines(Polygons()),
@@ -149,15 +150,21 @@ namespace cura
         {
         }
 
-        InfillTestParameters(const InfillParameters& params, const Polygons& outline_polygons, const Polygons& result_lines, const Polygons& result_polygons) :
+        InfillTestParameters(const InfillParameters& params, const size_t& test_polygon_id, const Polygons& outline_polygons, const Polygons& result_lines, const Polygons& result_polygons) :
             valid(true),
             fail_reason("__"),
+            test_polygon_id(test_polygon_id),
             params(params),
             outline_polygons(outline_polygons),
             result_lines(result_lines),
             result_polygons(result_polygons)
         {
-            name = makeName("InfillTestParameters_%d_%d_%d_%lld_%d", (int)params.pattern, (int)params.zig_zagify, (int)params.connect_polygons, params.line_distance, (int)valid);
+            name = makeName("InfillTestParameters_P%d_Z%d_C%d_L%lld__%lld", (int)params.pattern, (int)params.zig_zagify, (int)params.connect_polygons, params.line_distance, test_polygon_id);
+        }
+
+        friend std::ostream& operator<<(std::ostream& os, const InfillTestParameters& params)
+        {
+            return os << params.name << "(" << (params.valid ? std::string("input OK") : params.fail_reason) << ")";
         }
     };
 
@@ -169,7 +176,7 @@ namespace cura
     constexpr coord_t z = 100; // future/TODO: test even / uneven layers, check if they support each other
     constexpr coord_t shift = 0;
 
-    InfillTestParameters generateInfillToTest(const InfillParameters& params, const Polygons& outline_polygons)
+    InfillTestParameters generateInfillToTest(const InfillParameters& params, const size_t& test_polygon_id, const Polygons& outline_polygons)
     {
         const EFillMethod pattern = params.pattern;
         const bool zig_zagify = params.zig_zagify;
@@ -196,37 +203,40 @@ namespace cura
         Polygons result_lines;
         infill.generate(result_polygons, result_lines, nullptr, nullptr);
 
-        return InfillTestParameters(params, outline_polygons, result_lines, result_polygons);
+        auto result = InfillTestParameters(params, test_polygon_id, outline_polygons, result_lines, result_polygons);
+        return result;
     }
 
     std::vector<InfillTestParameters> generateInfillTests()
     {
         std::vector<Polygons> shapes;
-        if (! readTestPolygons("../tests/polygons.txt", shapes))
+        if (!readTestPolygons("../tests/polygons.txt", shapes))
         {
             return { InfillTestParameters() };  // return an invalid class, that'll trip up the 'file read' assertion in the TEST_P's
         }
 
         std::vector<EFillMethod> methods;
-        methods = { EFillMethod::LINES, EFillMethod::GRID, EFillMethod::TRIANGLES, EFillMethod::TRIHEXAGON, EFillMethod::CONCENTRIC };
+        methods = { EFillMethod::LINES, EFillMethod::GRID, EFillMethod::TRIANGLES, EFillMethod::TRIHEXAGON }; //, EFillMethod::CONCENTRIC };
         //TODO: In the future, this could maybe be populated by:
         //      "for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method) { methods.push_back(static_cast<EFillMethod>(i_method)); }"
 
-        std::vector<coord_t> line_distances = { 350, 400, 600, 800, 1200 }; //, 2500, 5000 }; // TODO: Why do these last two fail?
+        std::vector<coord_t> line_distances = { 400, 600, 800, 1200, 2400 };
 
         std::vector<InfillTestParameters> parameters_list;
+        size_t test_polygon_id = 0;
         for (const Polygons& polygons : shapes)
         {
             for (const EFillMethod& method : methods)
             {
                 for (const coord_t& line_distance : line_distances)
                 {
-                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, false, false, line_distance), polygons));
-                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, false, true, line_distance), polygons));
-                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, true, false, line_distance), polygons));
-                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, true, true, line_distance), polygons));
+                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, false, false, line_distance), test_polygon_id, polygons));
+                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, false, true, line_distance), test_polygon_id, polygons));
+                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, true, false, line_distance), test_polygon_id, polygons));
+                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, true, true, line_distance), test_polygon_id, polygons));
                 }
             }
+            ++test_polygon_id;
         }
 
         return parameters_list;
@@ -234,7 +244,7 @@ namespace cura
 
     class InfillTest : public testing::TestWithParam<InfillTestParameters> {};
 
-    INSTANTIATE_TEST_CASE_P(InfillTestcases, InfillTest, testing::ValuesIn(generateInfillTests()), [](testing::TestParamInfo<InfillTestParameters> info){ return info.param.name; });
+    INSTANTIATE_TEST_CASE_P(InfillTestcases, InfillTest, testing::ValuesIn(generateInfillTests()), [](testing::TestParamInfo<InfillTestParameters> info) { return info.param.name; });
 
     TEST_P(InfillTest, TestInfillSanity)
     {
@@ -242,12 +252,12 @@ namespace cura
         ASSERT_TRUE(params.valid) << params.fail_reason;
         ASSERT_FALSE(params.result_polygons.empty() && params.result_lines.empty()) << "Infill should have been generated.";
 
-        const double available_area = std::abs(params.outline_polygons.offset(-infill_line_width / 2).area());
+        const double available_area = std::abs(params.outline_polygons.area());
         const double expected_infill_area = (available_area * infill_line_width) / params.params.line_distance;
-        const double total_infill_area = calculateInfillArea(infill_line_width, params.result_polygons) + calculateInfillArea(infill_line_width, params.result_lines);
+        const double total_infill_area = (params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * infill_line_width / getPatternMultiplier(params.params.pattern);
 
-        ASSERT_GT((coord_t) available_area, (coord_t) total_infill_area) << "Infill area should allways be less than the total area available.";
-        ASSERT_NEAR((coord_t) total_infill_area, (coord_t) expected_infill_area, (coord_t) (total_infill_area * 0.5)) << "Infill area should be within 5% of total size.";
+        ASSERT_GT((coord_t)available_area, (coord_t)total_infill_area) << "Infill area should allways be less than the total area available.";
+        ASSERT_NEAR((coord_t)total_infill_area, (coord_t)expected_infill_area, (coord_t)(total_infill_area * 0.25)) << "Infill area should be within 25% of expected size.";
         ASSERT_NEAR(params.outline_polygons.intersection(params.result_polygons).area(), params.result_polygons.area(), 100) << "Infill (polys) should not be outside target polygon.";
         ASSERT_NEAR(params.outline_polygons.intersection(params.result_lines).area(), params.result_lines.area(), 100) << "Infill (lines) should not be outside target polygon.";
 
