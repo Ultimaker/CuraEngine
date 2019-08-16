@@ -12,6 +12,7 @@
 
 #include "utils/linearAlg2D.h"
 #include "utils/IntPoint.h"
+#include "utils/polygonUtils.h" // only used in svg output for now
 
 #include "utils/logoutput.h"
 
@@ -1819,11 +1820,19 @@ void VoronoiQuadrangulation::generateSegments(std::vector<std::list<ExtrusionLin
     std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions; // junctions ordered high R to low R
     generateJunctions(node_to_beading, edge_to_junctions, beading_strategy);
 
-    if (false)
+
+#ifdef DEBUG
+    {
+        SVG svg("output/junctions.svg", AABB(polys));
+//         debugOutput(svg, false, false, true, false);
+        svg.writePolygons(polys);
+        debugOutput(svg, edge_to_junctions);
+    }
     {
         STLwriter stl("output/vq.stl");
         debugOutput(stl, edge_to_junctions, node_to_beading);
     }
+#endif
 
     connectJunctions(edge_to_junctions, result_polylines_per_index);
     
@@ -2699,6 +2708,25 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, std::unordered_map<edge_t*, s
             }
         }
     }
+}
+
+void VoronoiQuadrangulation::debugOutput(SVG& svg, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions)
+{
+    for (auto& pair : edge_to_junctions)
+        for (ExtrusionJunction& junction : pair.second)
+        {
+            svg.writePoint(junction.p, false, svg.getScale() * junction.w / 2, SVG::Color::BLACK);
+            
+            for (double w = .95; w > .25; w = 1.0 - (1.0 - w) * 1.2)
+            {
+                int c = std::min(255.0, 255 - 300 * w);
+                SVG::ColorObject clr(c, c, c);
+                svg.writePoint(junction.p, false, svg.getScale() * junction.w / 2 * w, clr);
+            }
+        }
+    for (auto& pair : edge_to_junctions)
+        for (ExtrusionJunction& junction : pair.second)
+            svg.writePoint(junction.p, false, 2, SVG::Color::YELLOW);
 }
 
 void VoronoiQuadrangulation::debugOutput(STLwriter& stl)
