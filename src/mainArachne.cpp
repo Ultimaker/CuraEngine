@@ -712,12 +712,13 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
 //     Polygons polys = cross_shape;
-//     Polygons polys = gMAT_example; polys.applyMatrix(mirror);
-//     Polygons polys = test_various_aspects;polys.applyMatrix(PointMatrix::scale(2.2));
+    Polygons polys = gMAT_example; polys.applyMatrix(mirror);
+//     Polygons polys = test_various_aspects; polys.applyMatrix(PointMatrix::scale(2.2));
 //     Polygons polys = simple_MAT_example;
 //     Polygons polys = wedge; polys.applyMatrix(PointMatrix::scale(3));
-//     Polygons polys = limit_wedge; // polys.applyMatrix(PointMatrix::scale(3));
-    Polygons polys = double_wedge; // polys.applyMatrix(PointMatrix::scale(3));
+//     Polygons polys = wedge; polys.applyMatrix(PointMatrix::scale(6));
+//     Polygons polys = limit_wedge; polys.applyMatrix(PointMatrix::scale(3));
+//     Polygons polys = double_wedge; // polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = flawed_wedge;
 //     Polygons polys = clean_and_flawed_wedge_part;
 //     Polygons polys = flawed_wall;
@@ -762,7 +763,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
     polys.applyMatrix(PointMatrix::scale(1.5));
     coord_t nozzle_size = MM2INT(0.6);
 
-    if (output_prefix.compare("TEST") != 0)
+    if (false && output_prefix.compare("TEST") != 0)
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << to_string(StrategyType::InwardDistributed) << "_results.csv";
@@ -775,15 +776,15 @@ void test(std::string input_outline_filename, std::string output_prefix)
     }
 
     bool generate_gcodes = true;
-    bool analyse = false;
+    bool analyse = true;
     bool generate_MAT_STL = false;
 
 //     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::NaiveStrategy });
 //     std::vector<StrategyType> strategies({ StrategyType::NaiveStrategy });
-//     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Naive, StrategyType::Center });
+    std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Naive, StrategyType::Center });
 //     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed });
-    std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Center, StrategyType::Naive });
-//     std::vector<StrategyType> strategies({ StrategyType::Distributed });
+//     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Center, StrategyType::Naive });
+//     std::vector<StrategyType> strategies({ StrategyType::Distributed, StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead, StrategyType::Naive });
 //     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::Naive });
