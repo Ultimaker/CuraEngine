@@ -2611,8 +2611,31 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
         float stroke_width = 1;
         if (edge.data.markingIsSet() && edge.data.isMarked())
         {
-            clr = SVG::Color::BLUE;
-            stroke_width = 2;
+            continue;
+        }
+        if (draw_arrows)
+        {
+            constexpr coord_t spacing_dist = 10;
+            svg.writeArrow(a + normal(b - a, spacing_dist * 3), b - normal(b - a, spacing_dist), clr, stroke_width, 10, spacing_dist);
+        }
+        else
+        {
+            if (edge.to->p < edge.from->p)
+            {
+                svg.writeLine(a, b, clr, stroke_width);
+            }
+        }
+    }
+    svg.nextLayer();
+    for (edge_t& edge : graph.edges)
+    {
+        Point a = edge.from->p;
+        Point b = edge.to->p;
+        SVG::ColorObject clr = SVG::Color::BLUE;
+        float stroke_width = 2;
+        if ( ! edge.data.markingIsSet() || ! edge.data.isMarked())
+        {
+            continue;
         }
         if (draw_arrows)
         {

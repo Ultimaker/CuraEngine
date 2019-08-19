@@ -197,6 +197,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
         ss << "output/" << output_prefix << "_" << test_type << "_toolpaths.svg";
         SVG svg(ss.str(), aabb);
         svg.writeAreas(input, SVG::Color::GRAY, SVG::Color::NONE, 2);
+        svg.nextLayer();
         bool alternate = true;
         for (PolygonRef poly : overlaps)
         {
@@ -211,7 +212,8 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_pretty.svg";
         SVG svg(ss.str(), aabb);
-        svg.writeAreas(input, SVG::Color::NONE, SVG::Color::RED, 2);
+        svg.writeAreas(input, SVG::Color::NONE, SVG::Color::BLACK, 3);
+        svg.nextLayer();
         Polygons connecteds = PolygonUtils::connect(area_covered);
         for (PolygonRef connected : connecteds)
             svg.writeAreas(connected, SVG::Color::BLACK, SVG::Color::NONE);
