@@ -96,11 +96,16 @@ void Statistics::saveResultsCSV()
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_segments.csv";
         std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
-        csv << "from_x,from_y,from_width,to_x,to_y,to_width,filename_base,output_prefix\n";
+        csv << "from_x,from_y,from_width,to_x,to_y,to_width,filename_base,output_prefix,inset_index\n";
         for (const Segment& segment : all_segments)
+        {
+            if (segment.s.from.perimeter_index != segment.s.to.perimeter_index)
+                std::cerr << "Inset index doesn't correspond!\n";
             csv << segment.s.from.p.X << "," << segment.s.from.p.Y << "," << segment.s.from.w << ","
                 << segment.s.to.p.X << "," << segment.s.to.p.Y << "," << segment.s.to.w << ","
-                << test_type << "," << output_prefix << '\n';
+                << test_type << "," << output_prefix << ","
+                << segment.s.from.perimeter_index << '\n';
+        }
         csv.close();
     }
     {
