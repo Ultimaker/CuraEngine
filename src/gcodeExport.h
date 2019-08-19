@@ -240,11 +240,6 @@ public:
 
     void setFlowRateExtrusionSettings(double max_extrusion_offset, double extrusion_offset_factor);
 
-    void addLastCoastedVolume(double last_coasted_volume) 
-    {
-        extruder_attr[current_extruder].prime_volume += last_coasted_volume; 
-    }
-
     /*!
      * Add extra amount of material to be primed after an unretraction.
      *
