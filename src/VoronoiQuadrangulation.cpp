@@ -2790,8 +2790,10 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge
         coord_t upper_inset_idx = 0;
         while (upper_inset_idx < beading.beading.toolpath_locations.size() && beading.beading.toolpath_locations[upper_inset_idx] < r)
             upper_inset_idx++;
-        if (upper_inset_idx >= beading.beading.toolpath_locations.size() || upper_inset_idx <= 0)
-            return static_cast<float>(beading.beading.toolpath_locations.size());
+        if (upper_inset_idx >= beading.beading.toolpath_locations.size())
+        {
+            return static_cast<float>(std::max(size_t(1), beading.beading.toolpath_locations.size()));
+        }
         coord_t upper_inset_r = beading.beading.toolpath_locations[upper_inset_idx];
         if (upper_inset_idx <= 0)
         {
