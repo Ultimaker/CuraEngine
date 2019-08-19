@@ -2842,6 +2842,9 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge
                 {
                     break;
                 }
+                Point3 end = toPoint3(quad_end->from->p, getHeight(quad_end->from));
+                stl.writeTriangle(start_prev, end_prev, end);
+                end_prev = end;
                 quad_end = quad_end->prev;
                 end_junctions = &edge_to_junctions[quad_end->twin];
                 if (end_junctions->empty()) break;
@@ -2853,6 +2856,9 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge
                 {
                     break;
                 }
+                Point3 start = toPoint3(quad_start->to->p, getHeight(quad_start->to));
+                stl.writeTriangle(start_prev, end_prev, start);
+                start_prev = start;
                 quad_start = quad_start->next;
                 start_junctions = &edge_to_junctions[quad_start];
                 if (start_junctions->empty()) break;
