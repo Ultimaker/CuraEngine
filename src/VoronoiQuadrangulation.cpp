@@ -2843,7 +2843,7 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge
                     break;
                 }
                 Point3 end = toPoint3(quad_end->from->p, getHeight(quad_end->from));
-                stl.writeTriangle(start_prev, end_prev, end);
+                stl.writeQuad(start_prev, start_prev, end_prev, end);
                 end_prev = end;
                 quad_end = quad_end->prev;
                 end_junctions = &edge_to_junctions[quad_end->twin];
@@ -2857,7 +2857,7 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge
                     break;
                 }
                 Point3 start = toPoint3(quad_start->to->p, getHeight(quad_start->to));
-                stl.writeTriangle(start_prev, end_prev, start);
+                stl.writeQuad(start_prev, start, end_prev, end_prev);
                 start_prev = start;
                 quad_start = quad_start->next;
                 start_junctions = &edge_to_junctions[quad_start];
@@ -2867,8 +2867,7 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge
             Point3 start = toPoint3((*start_junctions)[start_junction_index].p, (*start_junctions)[start_junction_index].perimeter_index * 2 + 1);
             Point3 end = toPoint3((*end_junctions)[end_junction_index].p, (*end_junctions)[end_junction_index].perimeter_index * 2 + 1);
             
-            stl.writeTriangle(start_prev, end_prev, end);
-            stl.writeTriangle(start_prev, end, start);
+            stl.writeQuad(start_prev, start, end_prev, end);
             start_prev = start;
             end_prev = end;
             start_junction_index--;
@@ -2877,8 +2876,7 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge
 
         Point3 start = toPoint3(quad_start->to->p, getHeight(quad_start->to));
         Point3 end = toPoint3(quad_end->from->p, getHeight(quad_end->from));
-        stl.writeTriangle(start_prev, end_prev, end);
-        stl.writeTriangle(start_prev, end, start);
+        stl.writeQuad(start_prev, start, end_prev, end);
     }
 }
 
