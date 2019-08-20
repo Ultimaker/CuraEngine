@@ -382,6 +382,11 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         bypass_combing = true; // first travel move is bogus; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
         first_travel_destination = p;
         first_travel_destination_is_inside = is_inside;
+        if (layer_nr == 0 && extruder->settings.get<bool>("retraction_hop_enabled"))
+        {
+            path->retract = true;
+            path->perform_z_hop = true;
+        }
         forceNewPathStart(); // force a new travel path after this first bogus move
     }
     else if (force_comb_retract && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
