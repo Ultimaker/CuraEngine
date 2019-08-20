@@ -319,6 +319,8 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
      * and don't allow that to exceed allowed_error_distance_squared. */
     coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; //Shoelace formula for area of polygon per line segment.
 
+    new_path.push_back(previous);
+
     for (size_t point_idx = 1; point_idx <= size(); point_idx++)
     {
         current = path->at(point_idx % size());
