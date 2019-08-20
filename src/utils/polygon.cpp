@@ -376,11 +376,21 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
             new_path.pop_back();
         }
     }
-    for(size_t i = 0; i < 2; i++) //For the first two points we haven't checked yet if they are almost exactly straight.
+    //For the first two points we haven't checked yet if they are almost exactly straight.
+    if (new_path.size() > 2)
     {
-        if(new_path.size() > 2 && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 25)
+        if (LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 25)
         {
+            // first point is colinear, remove it and check the 2nd point
             new_path.erase(new_path.begin());
+            if (new_path.size() > 2 && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 25)
+            {
+                new_path.erase(new_path.begin());
+            }
+        }
+        else if (LinearAlg2D::getDist2FromLine(new_path[1], new_path[0], new_path[2]) <= 25)
+        {
+            new_path.erase(new_path.begin() + 1);
         }
     }
 
