@@ -484,7 +484,9 @@ coord_t AreaSupport::getActualSupportOffset()
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<cura::ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t support_line_width = infill_extruder.settings.get<cura::coord_t>("support_line_width");
     const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
-    const coord_t support_offset = wall_line_count > 0 ? -support_line_width / 2 : 0;
+    // Actual support will offset on half of a line width when support walls are present.
+    // Also support infill line zig zag connections must lie next to the border, not on it.
+    const coord_t support_offset = (wall_line_count > 0 || infill_extruder.settings.get<bool>("zig_zaggify_support") || infill_extruder.settings.get<EFillMethod>("support_pattern") == EFillMethod::ZIG_ZAG) ? -support_line_width / 2 : 0;
     return support_offset;
 }
 
