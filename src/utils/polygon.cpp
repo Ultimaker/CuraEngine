@@ -321,26 +321,15 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
 
     new_path.push_back(previous);
 
-    for (size_t point_idx = 1; point_idx <= size(); point_idx++)
+    for (size_t point_idx = 1; point_idx < size(); point_idx++)
     {
-        current = path->at(point_idx % size());
+        current = path->at(point_idx);
+
+        Point next = path->at((point_idx + 1) % size());
 
         const coord_t length2 = vSize2(current - previous);
 
         //Check if the accumulated area doesn't exceed the maximum.
-        Point next;
-        if (point_idx + 1 < size())
-        {
-            next = path->at(point_idx + 1);
-        }
-        else if (!new_path.empty())
-        {
-            next = new_path[0]; //Spill over to new polygon for checking removed area.
-        }
-        else
-        {
-            break; //New polygon also doesn't have any vertices yet, meaning we've completed the loop without adding any vertices. The entire polygon is too small to be significant.
-        }
         accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
 
         const coord_t area_removed_so_far = accumulated_area_removed + next.X * previous.Y - next.Y * previous.X; //Close the polygon.
