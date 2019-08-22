@@ -67,6 +67,8 @@ static Polygons cross_shape;
 static Polygons gMAT_example;
 static Polygons test_various_aspects;
 static Polygons simple_MAT_example;
+static Polygons simple_MAT_example_rounded_corner;
+static Polygons beading_conflict;
 static Polygons wedge;
 static Polygons limit_wedge;
 static Polygons double_wedge;
@@ -75,6 +77,7 @@ static Polygons clean_and_flawed_wedge_part;
 static Polygons rounded_wedge;
 static Polygons flawed_wall;
 static Polygons marked_local_opt;
+static Polygons parabola;
 static Polygons pikachu;
 static Polygons jin;
 static Polygons um;
@@ -247,6 +250,45 @@ void generateTestPolys()
         simple_MAT_example_.emplace_back(1000, 0);
         simple_MAT_example_.emplace_back(0, 0);
     }
+    
+    {
+        coord_t size = 200;
+        PolygonRef p = simple_MAT_example_rounded_corner.newPoly();
+        p.emplace_back(0, 2000);
+        p.emplace_back(1000, 2000);
+        p.emplace_back(400, 1000);
+        p.emplace_back(1000, 0);
+        p.emplace_back(size, 0);
+        p.emplace_back(.65 * size, .25 * size);
+        p.emplace_back(.25 * size, .65 * size);
+        p.emplace_back(0, size);
+    }
+    {
+        PolygonRef p = beading_conflict.newPoly();
+        coord_t l = 1000;
+//         coord_t a = 300;
+//         coord_t b = 950;
+        coord_t a = 600;
+        coord_t b = 1395;
+        coord_t dy = 2;
+        coord_t dx = 5;
+        p.emplace_back(l, 0);
+        p.emplace_back(l, l);
+        p.emplace_back(l-dx, l+dy);
+        p.emplace_back(0, l);
+        p.emplace_back(0, l + a);
+        p.emplace_back(l-dx, l + a -dy);
+        p.emplace_back(l, l + a);
+        p.emplace_back(l, l * 2 + a);
+        p.emplace_back(l + b, l * 2 + a);
+        p.emplace_back(l + b, l + a);
+        p.emplace_back(l + b +dx, l + a -dy);
+        p.emplace_back(l * 2 + b, l + a);
+        p.emplace_back(l * 2 + b, l);
+        p.emplace_back(l + b +dx, l +dy);
+        p.emplace_back(l + b, l);
+        p.emplace_back(l + b, 0);
+    }
 
     {
         PolygonRef wedge_1 = wedge.newPoly();
@@ -357,6 +399,16 @@ void generateTestPolys()
         marked_local_opt_1.emplace_back(10000, 400);
         Point3Matrix rot = Point3Matrix(PointMatrix(60.0));
         marked_local_opt_1.applyMatrix(rot);
+    }
+    {
+        PolygonRef pb = parabola.newPoly();
+        coord_t w = 2000;
+        coord_t h = 8000;
+        coord_t step = 100;
+        for (coord_t x = -w / 2; x <= w / 2; x += step)
+        {
+            pb.add(Point(x, x * x * h / w / w));
+        }
     }
     
     pikachu = generatePika();
@@ -691,13 +743,13 @@ void test(std::string input_outline_filename, std::string output_prefix)
     polys = polys.intersection(abs);
     */
     
-    generateTestPolys();
+//     generateTestPolys();
 
-    /*
+    
     Polygons polys = SVGloader::load(input_outline_filename);
     AABB aabb(polys);
     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
-    */
+    
 
     /*
     Polygons polys = generateTestPoly(40, Point(20000, 20000));
@@ -714,17 +766,20 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
 //     Polygons polys = cross_shape;
-    Polygons polys = gMAT_example; polys.applyMatrix(mirror);
+//     Polygons polys = gMAT_example; polys.applyMatrix(mirror);
 //     Polygons polys = test_various_aspects; polys.applyMatrix(PointMatrix::scale(2.2));
-//     Polygons polys = simple_MAT_example;
-//     Polygons polys = wedge; polys.applyMatrix(PointMatrix::scale(3));
+//     Polygons polys = simple_MAT_example; polys.applyMatrix(PointMatrix::scale(3)); polys.applyMatrix(PointMatrix(-90));
+//     Polygons polys = simple_MAT_example_rounded_corner; polys.applyMatrix(PointMatrix::scale(3)); polys.applyMatrix(PointMatrix(-90));
+//     Polygons polys = beading_conflict;
+//     Polygons polys = wedge; // polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = wedge; polys.applyMatrix(PointMatrix::scale(6));
 //     Polygons polys = limit_wedge; polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = double_wedge; // polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = flawed_wedge;
-//     Polygons polys = clean_and_flawed_wedge_part;
+//     Polygons polys = clean_and_flawed_wedge_part; polys.applyMatrix(mirror);
 //     Polygons polys = flawed_wall;
 //     Polygons polys = marked_local_opt;
+//     Polygons polys = parabola;
 //     Polygons polys = pikachu; polys.applyMatrix(PointMatrix::scale(10));
 //     Polygons polys = um;
 //     Polygons polys = spikes;
@@ -762,8 +817,8 @@ void test(std::string input_outline_filename, std::string output_prefix)
     }
 #endif
 
-    polys.applyMatrix(PointMatrix::scale(1.5));
-    coord_t nozzle_size = MM2INT(0.6);
+    coord_t nozzle_size = MM2INT(0.4);
+    polys.applyMatrix(PointMatrix::scale(INT2MM(nozzle_size) / 0.4));
 
     if (false && output_prefix.compare("TEST") != 0)
     {
@@ -777,17 +832,20 @@ void test(std::string input_outline_filename, std::string output_prefix)
         }
     }
 
-    bool generate_gcodes = true;
-    bool analyse = true;
+    bool generate_gcodes = false;
+    bool analyse = false;
     bool generate_MAT_STL = false;
 
 //     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::NaiveStrategy });
 //     std::vector<StrategyType> strategies({ StrategyType::NaiveStrategy });
-    std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Naive, StrategyType::Center });
+//     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Naive, StrategyType::Center });
 //     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Center, StrategyType::Naive });
-//     std::vector<StrategyType> strategies({ StrategyType::Distributed, StrategyType::InwardDistributed });
+//     std::vector<StrategyType> strategies({ StrategyType::Distributed });
+//     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed });
+//     std::vector<StrategyType> strategies({ StrategyType::Center });
 //     std::vector<StrategyType> strategies({ StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed });
+    std::vector<StrategyType> strategies({ StrategyType::Distributed, StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead, StrategyType::Naive });
 //     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::Naive });
 //     std::random_shuffle(strategies.begin(), strategies.end());
