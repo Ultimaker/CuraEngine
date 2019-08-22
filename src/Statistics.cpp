@@ -210,7 +210,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
     if (visualize_pretty_paths)
     {
         std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << test_type << "_pretty.svg";
+        ss << "output/" << output_prefix << "_" << test_type << "_accuracy.svg";
         SVG svg(ss.str(), aabb);
         svg.writeAreas(input, SVG::Color::NONE, SVG::Color::BLACK, 3);
         svg.nextLayer();
@@ -236,6 +236,11 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
                 svg.writeAreas(connected, clr, SVG::Color::NONE);
         }
 //         svg.writePolygons(paths, SVG::Color::BLACK, 2);
+        svg.nextLayer();
+        svg.writeAreas(underfills, SVG::Color::BLUE, SVG::Color::NONE);
+        svg.nextLayer();
+        svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
+        svg.writeAreas(double_overfills, SVG::Color::ORANGE, SVG::Color::NONE);
     }
 
     if (output_widths)
@@ -307,18 +312,6 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
             }
         }
 //         svg.writePolygons(paths, SVG::Color::BLACK, 1);
-    }
-
-    if (output_accuracy)
-    {
-        std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << test_type << "_accuracy.svg";
-        SVG svg(ss.str(), aabb);
-        svg.writeAreas(input, SVG::Color::GRAY, SVG::Color::NONE, 3);
-        svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
-        svg.writeAreas(double_overfills, SVG::Color::ORANGE, SVG::Color::NONE);
-        svg.writeAreas(underfills, SVG::Color::BLUE, SVG::Color::NONE);
-        svg.writePolygons(paths, SVG::Color::BLACK, 1);
     }
 }
 
