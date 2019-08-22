@@ -2595,13 +2595,12 @@ SVG::ColorObject VoronoiQuadrangulation::getColor(edge_t& edge)
 {
     switch (edge.data.type)
     {
-        case VoronoiQuadrangulationEdge::EXTRA_VD:
-            return SVG::ColorObject(100, 100, 100);
         case VoronoiQuadrangulationEdge::TRANSITION_END:
             return SVG::Color::MAGENTA;
         case VoronoiQuadrangulationEdge::NORMAL:
+        case VoronoiQuadrangulationEdge::EXTRA_VD:
         default:
-            return SVG::Color::RED;
+            return SVG::ColorObject(100, 100, 100);
     }
 }
 
