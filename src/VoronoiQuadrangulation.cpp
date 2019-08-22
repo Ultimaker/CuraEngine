@@ -587,6 +587,11 @@ void VoronoiQuadrangulation::init()
     }
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
+
+    {
+        STLwriter stl("output/mat.stl");
+        debugOutput(stl);
+    }
 #endif
 
     vd_edge_to_he_edge.clear();
@@ -2752,11 +2757,12 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, std::unordered_map<edge_t*, s
             svg.writePoint(junction.p, false, 2, SVG::Color::YELLOW);
 }
 
-void VoronoiQuadrangulation::debugOutput(STLwriter& stl)
+void VoronoiQuadrangulation::debugOutput(STLwriter& stl, bool use_bead_count)
 {
-    auto toPoint3 = [](node_t* node)
+    auto toPoint3 = [use_bead_count](node_t* node)
         {
-            return Point3(node->p.X, node->p.Y, node->data.distance_to_boundary);
+            coord_t h = use_bead_count? std::max(float(0), node->data.bead_count + node->data.transition_ratio) * 200 : node->data.distance_to_boundary;
+            return Point3(node->p.X, node->p.Y, h);
         };
     for (edge_t& edge : graph.edges)
     {
@@ -2766,10 +2772,15 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl)
         }
         
         assert(edge.next);
-        stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.to), toPoint3(edge.next->to));
         if (edge.next->next)
         {
-            stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.next->to), toPoint3(edge.next->next->to));
+            stl.writeQuad(toPoint3(edge.next->next->to), toPoint3(edge.next->to), toPoint3(edge.from), toPoint3(edge.to));
+//             stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.next->to), toPoint3(edge.next->next->to));
+//             stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.to), toPoint3(edge.next->to));
+        }
+        else
+        {
+            stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.to), toPoint3(edge.next->to));
         }
     }
 }
@@ -2845,7 +2856,10 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge
                     break;
                 }
                 Point3 end = toPoint3(quad_end->from->p, getHeight(quad_end->from));
-                stl.writeQuad(start_prev, start_prev, end_prev, end);
+                Point3 start_focus_point = toPoint3(quad_start->to->p, getHeight(quad_start->to));
+                Point3 start = start_prev + (start_focus_point - start_prev) * (end.z - end_prev.z) / (start_focus_point.z - start_prev.z);
+                stl.writeQuad(start_prev, start, end_prev, end);
+                start_prev = start;
                 end_prev = end;
                 quad_end = quad_end->prev;
                 end_junctions = &edge_to_junctions[quad_end->twin];
@@ -2859,8 +2873,11 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge
                     break;
                 }
                 Point3 start = toPoint3(quad_start->to->p, getHeight(quad_start->to));
-                stl.writeQuad(start_prev, start, end_prev, end_prev);
+                Point3 end_focus_point = toPoint3(quad_end->from->p, getHeight(quad_end->from));
+                Point3 end = end_prev + (end_focus_point - end_prev) * (start.z - start_prev.z) / (end_focus_point.z - end_prev.z);
+                stl.writeQuad(start_prev, start, end_prev, end);
                 start_prev = start;
+                end_prev = end;
                 quad_start = quad_start->next;
                 start_junctions = &edge_to_junctions[quad_start];
                 if (start_junctions->empty()) break;

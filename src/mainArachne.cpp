@@ -547,8 +547,10 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
 
     if (generate_MAT_STL)
     {
-        STLwriter stl("output/mat.stl");
-        vq.debugOutput(stl);
+        {
+            STLwriter stl("output/vq_bead_count.stl");
+            vq.debugOutput(stl, true);
+        }
         logAlways("Writing MAT STL took %fs\n", tk.restart());
     }
 

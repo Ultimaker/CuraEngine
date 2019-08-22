@@ -317,7 +317,7 @@ public:
     void debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts = false, bool draw_locations = false);
     void debugOutput(SVG& svg, std::unordered_map<edge_t*, std::list<TransitionMiddle>>* edge_to_transition_mids = nullptr, std::unordered_map<edge_t*, std::list<TransitionEnd>>* edge_to_transition_ends = nullptr);
     void debugOutput(SVG& svg, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions);
-    void debugOutput(STLwriter& stl);
+    void debugOutput(STLwriter& stl, bool use_bead_count = false);
     void debugOutput(STLwriter& stl, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
 protected:
     SVG::ColorObject getColor(edge_t& edge);
