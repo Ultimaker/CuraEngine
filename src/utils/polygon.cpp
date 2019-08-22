@@ -362,6 +362,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         new_path.push_back(current);
     }
 
+    //For the last/first vertex, we didn't check the connection that closes the polygon yet. Remove it if it's too short.
     if(new_path.size() > 2 && (vSize2(new_path.back() - new_path[0]) < smallest_line_segment_squared || vSize2(new_path.back() - new_path[new_path.size() - 2]) < smallest_line_segment_squared))
     {
         if (LinearAlg2D::getDist2FromLine(new_path.back(), new_path[new_path.size() - 2], new_path[0]) < allowed_error_distance_squared)
