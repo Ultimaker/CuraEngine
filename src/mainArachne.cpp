@@ -69,6 +69,7 @@ static Polygons test_various_aspects;
 static Polygons simple_MAT_example;
 static Polygons simple_MAT_example_rounded_corner;
 static Polygons beading_conflict;
+static Polygons legend;
 static Polygons wedge;
 static Polygons limit_wedge;
 static Polygons double_wedge;
@@ -288,6 +289,27 @@ void generateTestPolys()
         p.emplace_back(l + b +dx, l +dy);
         p.emplace_back(l + b, l);
         p.emplace_back(l + b, 0);
+    }
+    
+    {
+        PolygonRef p = legend.newPoly();
+        
+        coord_t l = 1000;
+        coord_t gap = 400;
+        coord_t bridge = 400;
+        
+        p.emplace_back(0, 0);
+        p.emplace_back(0, l);
+        p.emplace_back(l-gap/2, l);
+        p.emplace_back(l, l/2 + bridge/2);
+        p.emplace_back(l * 3/2, l * 2);
+        p.emplace_back(l * 2, bridge);
+        p.emplace_back(l * 2 + gap, l);
+        p.emplace_back(l * 3, l);
+        p.emplace_back(l * 3, 0);
+        p.emplace_back(l + gap/2, 0);
+        p.emplace_back(l, l/2 - bridge/2);
+        p.emplace_back(l - gap/2, 0);
     }
 
     {
@@ -779,6 +801,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = clean_and_flawed_wedge_part; polys.applyMatrix(mirror);
 //     Polygons polys = flawed_wall;
 //     Polygons polys = marked_local_opt;
+//     Polygons polys = legend;
 //     Polygons polys = parabola;
 //     Polygons polys = pikachu; polys.applyMatrix(PointMatrix::scale(10));
 //     Polygons polys = um;
