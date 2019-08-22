@@ -156,7 +156,7 @@ void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& poly
     }
 }
 
-void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool output_accuracy, bool visualize_pretty_paths)
+void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool output_accuracy, bool visualize_pretty_paths, bool exaggerate_widths)
 {
     AABB aabb(input);
 
@@ -305,8 +305,16 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
                 clr = clr * 255 / clr_max;
 
                 clr.y = clr.y * (255 - 92 * clr.dot(green) / green.vSize() / 255) / 255;
-                s.s.from.w = std::max(min_w, min_w + (s.s.from.w - (nozzle_size - max_dev)) * 5 / 4);
-                s.s.to.w = std::max(min_w, min_w + (s.s.to.w - (nozzle_size - max_dev)) * 5 / 4);
+                if (exaggerate_widths)
+                {
+                    s.s.from.w = std::max(min_w, min_w + (s.s.from.w - (nozzle_size - max_dev)) * 5 / 4);
+                    s.s.to.w = std::max(min_w, min_w + (s.s.to.w - (nozzle_size - max_dev)) * 5 / 4);
+                }
+                else
+                {
+                    s.s.from.w *= 0.9;
+                    s.s.to.w *= 0.9;
+                }
                 Polygons covered = s.toPolygons();
                 svg.writeAreas(covered, SVG::ColorObject(clr.x, clr.y, clr.z), SVG::Color::NONE);
             }
