@@ -1189,7 +1189,22 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sta
             }
         }
     }
-    support_areas = support_areas.difference(to_be_removed);
+    Polygons to_be_kept;
+    Polygons result = support_areas.difference(to_be_removed);
+    if (result.size() < support_areas.size()) // <- check if an island is completely erased by stair stepping
+    {
+        for (const ConstPolygonRef& part : support_areas)
+        {
+            Polygons part_as_poly;
+            part_as_poly.add(part);
+            if (part_as_poly.difference(to_be_removed).empty())
+            {
+                to_be_kept.add(part);
+            }
+        }
+        result.add(to_be_kept); // <- add any _completely_ missing islands back
+    }
+    support_areas = result;
 }
 
 
