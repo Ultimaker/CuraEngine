@@ -67,7 +67,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
             first_layer_outline.add(support_layer.support_bottom);
             first_layer_outline.add(support_layer.support_roof);
         }
-        if (storage.primeTower.enabled)
+        if (storage.primeTower.enabled && !train.settings.get<bool>("prime_tower_brim_enable"))
         {
             first_layer_outline.add(storage.primeTower.outer_poly_first_layer); // don't remove parts of the prime tower, but make a brim for it
         }
