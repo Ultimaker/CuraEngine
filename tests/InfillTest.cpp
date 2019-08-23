@@ -7,7 +7,6 @@
 
 namespace cura
 {
-    // TODO (in the input file?): Should path be closed?
     bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygons_out)
     {
         FILE* handle = std::fopen(filename.c_str(), "r");
@@ -94,12 +93,6 @@ namespace cura
         }
     }
 
-    // TODO:
-    //   - put read polygons in some cached/singleton struct -> for the whole suite
-    //   - put 'generated infill' in  "   "   "  -> for each set of tests that need to be done on that
-    //     ...
-    //  solve this: put the generation of infill in 'InfillTestParameters'
-
     struct InfillParameters
     {
     public:
@@ -173,7 +166,7 @@ namespace cura
     constexpr coord_t infill_overlap = 0;
     constexpr size_t infill_multiplier = 1;
     const AngleDegrees fill_angle = 0.;
-    constexpr coord_t z = 100; // future/TODO: test even / uneven layers, check if they support each other
+    constexpr coord_t z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
     constexpr coord_t shift = 0;
 
     InfillTestParameters generateInfillToTest(const InfillParameters& params, const size_t& test_polygon_id, const Polygons& outline_polygons)
@@ -197,13 +190,13 @@ namespace cura
             fill_angle,
             z,
             shift
-        ); // There are some optional parameters, but these will do for now.
+        ); // There are some optional parameters, but these will do for now (future improvement?).
 
         Polygons result_polygons;
         Polygons result_lines;
         infill.generate(result_polygons, result_lines, nullptr, nullptr);
 
-        auto result = InfillTestParameters(params, test_polygon_id, outline_polygons, result_lines, result_polygons);
+        InfillTestParameters result = InfillTestParameters(params, test_polygon_id, outline_polygons, result_lines, result_polygons);
         return result;
     }
 
@@ -216,11 +209,17 @@ namespace cura
         }
 
         std::vector<EFillMethod> methods;
-        methods = { EFillMethod::LINES, EFillMethod::GRID, EFillMethod::TRIANGLES, EFillMethod::TRIHEXAGON }; //, EFillMethod::CONCENTRIC };
-        //TODO: In the future, this could maybe be populated by:
-        //      "for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method) { methods.push_back(static_cast<EFillMethod>(i_method)); }"
+        std::vector<EFillMethod> skip_methods = { EFillMethod::CROSS, EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV }; //TODO: Support for testing infill that needs the sierpinski-provider!
+        for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method)
+        {
+            const EFillMethod method = static_cast<EFillMethod>(i_method);
+            if (std::find(skip_methods.begin(), skip_methods.end(), method) == skip_methods.end()) // Only use if not in skipped.
+            {
+                methods.push_back(method);
+            }
+        }
 
-        std::vector<coord_t> line_distances = { 400, 600, 800, 1200, 2400 };
+        std::vector<coord_t> line_distances = { 400, 600, 800, 1200 };
 
         std::vector<InfillTestParameters> parameters_list;
         size_t test_polygon_id = 0;
@@ -257,14 +256,17 @@ namespace cura
         const double total_infill_area = (params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * infill_line_width / getPatternMultiplier(params.params.pattern);
 
         ASSERT_GT((coord_t)available_area, (coord_t)total_infill_area) << "Infill area should allways be less than the total area available.";
-        ASSERT_NEAR((coord_t)total_infill_area, (coord_t)expected_infill_area, (coord_t)(total_infill_area * 0.25)) << "Infill area should be within 25% of expected size.";
-        ASSERT_NEAR(params.outline_polygons.intersection(params.result_polygons).area(), params.result_polygons.area(), 100) << "Infill (polys) should not be outside target polygon.";
-        ASSERT_NEAR(params.outline_polygons.intersection(params.result_lines).area(), params.result_lines.area(), 100) << "Infill (lines) should not be outside target polygon.";
-
-        // TODO: (Almost) none of this works yet: I have a hunch that the input polygons aren't correct (inside-out and/or missing a closing line segment).
-        // TODO: Are all vertices/parts of the infill -- inside of the 'to generate' polygon?
-        // TODO (large?): Infill should support last layer.
-        // TODO: Split TestInfillSanity into multiple methods
+        ASSERT_NEAR((coord_t)total_infill_area, (coord_t)expected_infill_area, (coord_t)(total_infill_area * 0.10)) << "Infill area should be within 10% of expected size.";
+        ASSERT_TRUE(params.result_polygons.difference(params.outline_polygons.offset(infill_line_width)).empty()) << "Infill (polys) should not be outside target polygon.";
+        ASSERT_TRUE(params.result_lines.difference(params.outline_polygons.offset(infill_line_width)).empty()) << "Infill (lines) should not be outside target polygon.";
     }
+
+    //TEST_P(InfillTest, TestInfillOrder)
+    //{
+    //    InfillTestParameters params = GetParam();
+    //    ASSERT_TRUE(params.valid) << params.fail_reason;
+
+    //    // TODO: Test order of travels: do the lines inersect each other (except at end-points and/or consecutive lines?)
+    //}
 
 } //namespace cura
