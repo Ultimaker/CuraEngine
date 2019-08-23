@@ -290,6 +290,8 @@ protected:
      */
     void connectJunctions(std::unordered_map< arachne::VoronoiQuadrangulation::edge_t*, std::vector< arachne::ExtrusionJunction > >& edge_to_junctions, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
 
+    bool isMultiIntersection(node_t* node);
+
     /*!
      * Genrate small segments for local maxima where the beading would only result in a single bead
      * \param[out] segments the generated segments
