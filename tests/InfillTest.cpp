@@ -254,19 +254,12 @@ namespace cura
         const double available_area = std::abs(params.outline_polygons.area());
         const double expected_infill_area = (available_area * infill_line_width) / params.params.line_distance;
         const double total_infill_area = (params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * infill_line_width / getPatternMultiplier(params.params.pattern);
-
         ASSERT_GT((coord_t)available_area, (coord_t)total_infill_area) << "Infill area should allways be less than the total area available.";
         ASSERT_NEAR((coord_t)total_infill_area, (coord_t)expected_infill_area, (coord_t)(total_infill_area * 0.15)) << "Infill area should be within 15% of expected size."; // TODO: 10 ~ 20% is actually quite bad?
-        ASSERT_TRUE(params.result_polygons.difference(params.outline_polygons.offset(infill_line_width)).empty()) << "Infill (polys) should not be outside target polygon.";
-        ASSERT_TRUE(params.result_lines.difference(params.outline_polygons.offset(infill_line_width)).empty()) << "Infill (lines) should not be outside target polygon.";
+        
+        const Polygons padded_shape_outline = params.outline_polygons.offset(infill_line_width / 2);
+        ASSERT_EQ(padded_shape_outline.intersectionPolyLines(params.result_lines).polyLineLength(), params.result_lines.polyLineLength()) << "Infill (lines) should not be outside target polygon.";
+        ASSERT_EQ(params.result_polygons.difference(padded_shape_outline).area(), 0) << "Infill (polys) should not be outside target polygon.";
     }
-
-    //TEST_P(InfillTest, TestInfillOrder)
-    //{
-    //    InfillTestParameters params = GetParam();
-    //    ASSERT_TRUE(params.valid) << params.fail_reason;
-
-    //    // TODO: Test order of travels: do the lines inersect each other (except at end-points and/or consecutive lines?)
-    //}
 
 } //namespace cura
