@@ -765,13 +765,13 @@ void test(std::string input_outline_filename, std::string output_prefix)
     polys = polys.intersection(abs);
     */
     
-//     generateTestPolys();
+    generateTestPolys();
 
-    
+    /*
     Polygons polys = SVGloader::load(input_outline_filename);
     AABB aabb(polys);
     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
-    
+    */
 
     /*
     Polygons polys = generateTestPoly(40, Point(20000, 20000));
@@ -788,13 +788,13 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = circle;
 //     Polygons polys = circle_flawed;
 //     Polygons polys = cross_shape;
-//     Polygons polys = gMAT_example; polys.applyMatrix(mirror);
+    Polygons polys = gMAT_example; polys.applyMatrix(mirror);
 //     Polygons polys = test_various_aspects; polys.applyMatrix(PointMatrix::scale(2.2));
 //     Polygons polys = simple_MAT_example; polys.applyMatrix(PointMatrix::scale(3)); polys.applyMatrix(PointMatrix(-90));
 //     Polygons polys = simple_MAT_example_rounded_corner; polys.applyMatrix(PointMatrix::scale(3)); polys.applyMatrix(PointMatrix(-90));
 //     Polygons polys = beading_conflict;
 //     Polygons polys = wedge; // polys.applyMatrix(PointMatrix::scale(3));
-//     Polygons polys = wedge; polys.applyMatrix(PointMatrix::scale(6));
+//     Polygons polys = wedge; polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = limit_wedge; polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = double_wedge; // polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = flawed_wedge;
@@ -840,7 +840,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
     }
 #endif
 
-    coord_t nozzle_size = MM2INT(0.4);
+    coord_t nozzle_size = MM2INT(0.6);
     polys.applyMatrix(PointMatrix::scale(INT2MM(nozzle_size) / 0.4));
 
     if (false && output_prefix.compare("TEST") != 0)
@@ -856,21 +856,21 @@ void test(std::string input_outline_filename, std::string output_prefix)
     }
 
     bool generate_gcodes = false;
-    bool analyse = false;
+    bool analyse = true;
     bool generate_MAT_STL = false;
 
 //     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::NaiveStrategy });
 //     std::vector<StrategyType> strategies({ StrategyType::NaiveStrategy });
-//     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Naive, StrategyType::Center });
+//     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::Center, StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Center, StrategyType::Naive });
 //     std::vector<StrategyType> strategies({ StrategyType::Distributed });
 //     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Center });
 //     std::vector<StrategyType> strategies({ StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed });
-    std::vector<StrategyType> strategies({ StrategyType::Distributed, StrategyType::InwardDistributed });
+//     std::vector<StrategyType> strategies({ StrategyType::Distributed, StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead, StrategyType::Naive });
-//     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::Naive });
+    std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::Naive });
 //     std::random_shuffle(strategies.begin(), strategies.end());
     for (StrategyType type : strategies )
     {
