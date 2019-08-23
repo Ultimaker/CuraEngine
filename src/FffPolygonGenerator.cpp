@@ -1031,6 +1031,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         primary_line_count = train.settings.get<size_t>("brim_line_count");
         SkirtBrim::getFirstLayerOutline(storage, primary_line_count, false, first_layer_outline);
         SkirtBrim::generate(storage, first_layer_outline, 0, primary_line_count);
+        should_brim_prime_tower = false; // prime tower (if enabled) has already been included in first layer outline
         break;
     case EPlatformAdhesion::RAFT:
         Raft::generate(storage);
