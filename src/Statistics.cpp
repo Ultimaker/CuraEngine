@@ -156,7 +156,7 @@ void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& poly
     }
 }
 
-void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool output_accuracy, bool visualize_pretty_paths, bool exaggerate_widths)
+void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool visualize_accuracy, bool exaggerate_widths)
 {
     AABB aabb(input);
 
@@ -207,28 +207,28 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
         svg.writePolygons(paths, SVG::Color::BLACK, 2);
     }
 
-    if (visualize_pretty_paths)
+    if (visualize_accuracy)
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_accuracy.svg";
         SVG svg(ss.str(), aabb);
-        svg.writeAreas(input, SVG::Color::NONE, SVG::Color::BLACK, 3);
-        svg.nextLayer();
-        Polygons connecteds = PolygonUtils::connect(area_covered);
-        for (PolygonRef connected : connecteds)
-            svg.writeAreas(connected, SVG::Color::BLACK, SVG::Color::NONE);
+//         svg.writeAreas(input, SVG::Color::NONE, SVG::Color::BLACK, 3);
+//         svg.nextLayer();
+//         Polygons connecteds = PolygonUtils::connect(area_covered);
+//         for (PolygonRef connected : connecteds)
+//             svg.writeAreas(connected, SVG::Color::BLACK, SVG::Color::NONE);
         for (float w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
         {
             Polygons polys;
             for (coord_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
             {
                 Segment s = all_segments[segment_idx];
-                s.s.from.w *= w;
-                s.s.to.w *= w;
+                s.s.from.w *= w / .9;
+                s.s.to.w *= w / .9;
                 Polygons covered = s.s.toPolygons(false);
                 polys.add(covered);
             }
-            int c = 255 - 200 * w;
+            int c = 255 - 200 * (w - .25);
             SVG::ColorObject clr(c, c, c);
             polys = polys.execute(ClipperLib::pftNonZero);
             polys = PolygonUtils::connect(polys);
@@ -264,15 +264,15 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
                 return ss.str();
             };
             AABB aabb(input);
-            ExtrusionJunction legend_btm(Point(aabb.max.X + 400 + max_dev, aabb.max.Y), 400 - max_dev, 0);
-            ExtrusionJunction legend_top(Point(aabb.max.X + 400 + max_dev, aabb.min.Y), 400 + max_dev, 0);
+            ExtrusionJunction legend_btm(Point(aabb.max.X + nozzle_size + max_dev, aabb.max.Y), nozzle_size - max_dev, 0);
+            ExtrusionJunction legend_top(Point(aabb.max.X + nozzle_size + max_dev, aabb.min.Y), nozzle_size + max_dev, 0);
             ExtrusionJunction legend_mid((legend_top.p + legend_btm.p) / 2, (legend_top.w + legend_btm.w) / 2, 0);
             legend_btm.p += (legend_mid.p - legend_btm.p) / 4;
             legend_top.p += (legend_mid.p - legend_top.p) / 4;
             ExtrusionSegment legend_segment(legend_btm, legend_top, true);
             svg.writeAreas(legend_segment.toPolygons(false), SVG::ColorObject(200,200,200), SVG::Color::NONE); // real outline
             all_segments_plus.emplace_back(legend_segment, true); // colored
-            Point legend_text_offset(400, 0);
+            Point legend_text_offset(nozzle_size, 0);
             svg.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
             svg.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
             svg.writeText(legend_mid.p + legend_text_offset, to_string(INT2MM(legend_mid.w)));
@@ -282,44 +282,63 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
         }
 
 
-        Point3 green(0,255,0);
+        Point3 green(255,255,255);
         Point3 red(255,0,0);
         Point3 blue(0,0,255);
-        for (const Segment& ss : all_segments_plus)
+        
+//         Polygons connecteds = PolygonUtils::connect(area_covered);
+//         for (PolygonRef connected : connecteds)
+//             svg.writeAreas(connected, SVG::Color::BLACK, SVG::Color::NONE);
+        
+        for (float w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
         {
-            for (Segment s : discretize(ss, MM2INT(0.1)))
+            int c = 255 - 200 * (w - .25);
+            for (coord_t segment_idx = 0; segment_idx < all_segments_plus.size(); segment_idx++)
             {
-                coord_t avg_w = (s.s.from.w + s.s.to.w) / 2;
-                Point3 clr;
-                float color_ratio = std::min(1.0, double(std::abs(avg_w - nozzle_size)) / max_dev);
-                color_ratio = color_ratio * .5 + .5 * sqrt(color_ratio);
-                if (avg_w > nozzle_size)
+                Segment ss = all_segments_plus[segment_idx];
+//                 ss.s.from.w *= w;
+//                 ss.s.to.w *= w;
+                for (Segment s : discretize(ss, MM2INT(0.1)))
                 {
-                    clr = red * color_ratio + green * (1.0 - color_ratio );
-                }
-                else
-                {
-                    clr = blue * color_ratio + green * (1.0 - color_ratio );
-                }
-                coord_t clr_max = std::max(clr.x, std::max(clr.y, clr.z));
-                clr = clr * 255 / clr_max;
+                    coord_t avg_w = (s.s.from.w + s.s.to.w) / 2;
+                    Point3 clr;
+                    float color_ratio = std::min(1.0, double(std::abs(avg_w - nozzle_size)) / max_dev);
+                    color_ratio = color_ratio * .5 + .5 * sqrt(color_ratio);
+                    if (avg_w > nozzle_size)
+                    {
+                        clr = red * color_ratio + green * (1.0 - color_ratio );
+                    }
+                    else
+                    {
+                        clr = blue * color_ratio + green * (1.0 - color_ratio );
+                    }
+                    clr = clr * c / 255;
+    //                 coord_t clr_max = std::max(clr.x, std::max(clr.y, clr.z));
+    //                 clr = clr * 255 / clr_max;
 
-                clr.y = clr.y * (255 - 92 * clr.dot(green) / green.vSize() / 255) / 255;
-                if (exaggerate_widths)
-                {
-                    s.s.from.w = std::max(min_w, min_w + (s.s.from.w - (nozzle_size - max_dev)) * 5 / 4);
-                    s.s.to.w = std::max(min_w, min_w + (s.s.to.w - (nozzle_size - max_dev)) * 5 / 4);
+    //                 clr.y = clr.y * (255 - 92 * clr.dot(green) / green.vSize() / 255) / 255;
+                    if (exaggerate_widths)
+                    {
+                        s.s.from.w = std::max(min_w, min_w + (s.s.from.w - (nozzle_size - max_dev)) * 5 / 4);
+                        s.s.to.w = std::max(min_w, min_w + (s.s.to.w - (nozzle_size - max_dev)) * 5 / 4);
+                    }
+//                     else
+//                     {
+//                         s.s.from.w *= 0.9;
+//                         s.s.to.w *= 0.9;
+//                     }
+                    s.s.from.w *= w / .9;
+                    s.s.to.w *= w / .9;
+                    Polygons covered = s.toPolygons();
+                    svg.writeAreas(covered, SVG::ColorObject(clr.x, clr.y, clr.z), SVG::Color::NONE);
                 }
-                else
-                {
-                    s.s.from.w *= 0.9;
-                    s.s.to.w *= 0.9;
-                }
-                Polygons covered = s.toPolygons();
-                svg.writeAreas(covered, SVG::ColorObject(clr.x, clr.y, clr.z), SVG::Color::NONE);
             }
         }
-//         svg.writePolygons(paths, SVG::Color::BLACK, 1);
+//         svg.nextLayer();
+//         svg.writeAreas(underfills, SVG::ColorObject(255,0,255), SVG::Color::NONE);
+//         svg.nextLayer();
+//         svg.writeAreas(overfills, SVG::ColorObject(255,255,0), SVG::Color::NONE);
+//         svg.writeAreas(double_overfills, SVG::ColorObject(255,0,0), SVG::Color::NONE);
     }
 }
 

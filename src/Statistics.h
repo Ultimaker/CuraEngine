@@ -29,7 +29,7 @@ public:
         total_target_area_length = INT2MM(input.polygonLength());
     }
     void analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, VoronoiQuadrangulation* vq = nullptr);
-    void visualize(coord_t nozzle_size, bool output_vq = true, bool output_toolpaths = true, bool output_widths = true, bool include_legend = false, bool output_accuracy = true, bool visualize_pretty_paths = true, bool exaggerate_widths = false);
+    void visualize(coord_t nozzle_size, bool output_vq = true, bool output_toolpaths = true, bool output_widths = true, bool include_legend = false, bool output_accuracy = true, bool exaggerate_widths = false);
     void saveResultsCSV();
     double processing_time = -1;
     double overfill_area = -1;
