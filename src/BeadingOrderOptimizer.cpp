@@ -67,9 +67,9 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
             for (ExtrusionJunction& junction : polygon.junctions)
                 polygon_grid.insert(junction.p);
 
-    std::vector<ExtrusionLineEndRef> end_points_to_check_;
     // order of end_points_to_check and nearby_end_points determines which ends are connected together
     // TODO: decide on the best way to connect polylines at 3-way intersections
+    std::list<ExtrusionLineEndRef> end_points_to_check;
 
     for (std::list<ExtrusionLine>& polys : polylines_per_index)
     {
@@ -80,15 +80,11 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
             {
                 for (bool front : { true, false })
                 {
-                    end_points_to_check_.emplace_back(poly_it->inset_idx, poly_it, front);
+                    end_points_to_check.emplace_back(poly_it->inset_idx, poly_it, front);
                 }
             }
         }
     }
-
-    std::random_shuffle(end_points_to_check_.begin(), end_points_to_check_.end());
-    std::list<ExtrusionLineEndRef> end_points_to_check(end_points_to_check_.begin(), end_points_to_check_.end());
-
     for (auto it = end_points_to_check.begin(); it != end_points_to_check.end(); ++it)
     {
         ExtrusionLineEndRef& end_point = *it;
@@ -120,7 +116,6 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
         }
 
         std::vector<ExtrusionLineEndRef> nearby_end_points = polyline_grid.getNearbyVals(p, snap_dist);
-        std::random_shuffle(nearby_end_points.begin(), nearby_end_points.end());
         for (size_t other_end_idx = 0; other_end_idx < nearby_end_points.size(); ++other_end_idx)
         {
             ExtrusionLineEndRef& other_end = nearby_end_points[other_end_idx];
