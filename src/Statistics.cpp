@@ -160,13 +160,14 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
 {
     AABB aabb(input);
 
+#ifdef DEBUG
     if (output_vq && vq)
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_after.svg";
         SVG svg(ss.str(), aabb);
         vq->debugOutput(svg, false, false, true);
-        svg.writePolygons(paths, SVG::Color::BLACK, 2);
+        svg.writePolylines(paths, SVG::Color::BLACK, 2);
         
         if (false)
         for (auto polys : *polylines_per_index)
@@ -190,6 +191,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
             }
         }
     }
+#endif // DEBUG
 
     if (output_toolpaths)
     {
@@ -204,7 +206,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
             svg.writeAreas(poly, alternate? SVG::Color::BLUE : SVG::Color::MAGENTA, SVG::Color::NONE);
             alternate = !alternate;
         }
-        svg.writePolygons(paths, SVG::Color::BLACK, 2);
+        svg.writePolylines(paths, SVG::Color::BLACK, 2);
     }
 
     if (visualize_accuracy)
@@ -235,11 +237,12 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
             for (PolygonRef connected : polys)
                 svg.writeAreas(connected, clr, SVG::Color::NONE);
         }
-//         svg.writePolygons(paths, SVG::Color::BLACK, 2);
+//         svg.nextLayer();
+//         svg.writePolylines(paths, SVG::Color::BLACK, 2);
         svg.nextLayer();
-        svg.writeAreas(underfills, SVG::Color::BLUE, SVG::Color::NONE);
+        svg.writeAreas(underfills, SVG::ColorObject(0,128,255), SVG::Color::NONE);
         svg.nextLayer();
-        svg.writeAreas(overfills, SVG::Color::RED, SVG::Color::NONE);
+        svg.writeAreas(overfills, SVG::Color::ORANGE, SVG::Color::NONE);
         svg.writeAreas(double_overfills, SVG::Color::ORANGE, SVG::Color::NONE);
     }
 
@@ -333,6 +336,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
                     svg.writeAreas(covered, SVG::ColorObject(clr.x, clr.y, clr.z), SVG::Color::NONE);
                 }
             }
+            svg.nextLayer();
         }
 //         svg.nextLayer();
 //         svg.writeAreas(underfills, SVG::ColorObject(255,0,255), SVG::Color::NONE);
