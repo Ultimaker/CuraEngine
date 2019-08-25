@@ -126,7 +126,6 @@ private:
     Acceleration current_print_acceleration; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate travel acceleration)
     Acceleration current_travel_acceleration; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
     Velocity current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
-    Velocity current_max_z_feedrate; //!< The current max z speed (in mm/s)
 
     AABB3D total_bounding_box; //!< The bounding box of all g-code.
 
@@ -154,6 +153,8 @@ private:
     unsigned int layer_nr; //!< for sending travel data
 
     Temperature initial_bed_temp; //!< bed temperature at the beginning of the print.
+    Temperature build_volume_temperature;  //!< build volume temperature
+    bool machine_heated_build_volume;  //!< does the machine have the ability to control/stabilize build-volume-temperature
 protected:
     /*!
      * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
@@ -239,9 +240,14 @@ public:
 
     void setFlowRateExtrusionSettings(double max_extrusion_offset, double extrusion_offset_factor);
 
-    void addLastCoastedVolume(double last_coasted_volume) 
+    /*!
+     * Add extra amount of material to be primed after an unretraction.
+     *
+     * \param extra_prime_distance Amount of material in mm.
+     */
+    void addExtraPrimeAmount(double extra_prime_volume)
     {
-        extruder_attr[current_extruder].prime_volume += last_coasted_volume; 
+        extruder_attr[current_extruder].prime_volume += extra_prime_volume;
     }
     
     Point3 getPosition() const;
@@ -421,17 +427,17 @@ public:
     void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
 
     /*!
-     * Start a z hop with the given \p hop_height
+     * Start a z hop with the given \p hop_height.
      * 
-     * \param hop_height The height to move above the current layer
-     * \param speed The speed used for moving. Default is 0, which means use current_max_z_feedrate
+     * \param hop_height The height to move above the current layer.
+     * \param speed The speed used for moving. 
      */
     void writeZhopStart(const coord_t hop_height, Velocity speed = 0);
 
     /*!
      * End a z hop: go back to the layer height
      *
-     * \param speed The speed used for moving. Default is 0, which means use current_max_z_feedrate
+     * \param speed The speed used for moving.
      */
     void writeZhopEnd(Velocity speed = 0);
 
@@ -455,8 +461,9 @@ public:
      * 
      * \param new_extruder The extruder to switch to
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
+     * \param perform_z_hop The amount by which the print head should be z hopped during extruder switch, or zero if it should not z hop.
      */
-    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder);
+    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop = 0);
 
     void writeCode(const char* str);
     
@@ -478,6 +485,7 @@ public:
     
     void writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait = false);
     void writeBedTemperatureCommand(const Temperature& temperature, const bool wait = false);
+    void writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait = false);
 
     /*!
      * Write the command for setting the acceleration for print moves to a specific value
@@ -495,18 +503,6 @@ public:
     void writeJerk(const Velocity& jerk);
 
     /*!
-     * Write the command for setting the maximum z feedrate to a specific value
-     */
-    void writeMaxZFeedrate(const Velocity& max_z_feedrate);
-
-    /*!
-     * Get the last set max z feedrate value sent in the gcode.
-     * 
-     * Returns a value <= 0 when no value is set.
-     */
-    double getCurrentMaxZFeedrate();
-
-    /*!
      * Set member variables using the settings in \p settings.
      */
     void preSetup(const size_t start_extruder);
@@ -518,7 +514,7 @@ public:
      * See FffGcodeWriter::processStartingCode
      * \param start_extruder_nr The extruder with which to start this print
      */
-    void setInitialTemps(const unsigned int start_extruder_nr);
+    void setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr);
 
     /*!
      * Override or set an initial nozzle temperature as written by GCodeExport::setInitialTemps

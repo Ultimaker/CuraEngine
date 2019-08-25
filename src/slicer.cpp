@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stdio.h>
@@ -9,6 +9,7 @@
 #include "Slice.h"
 #include "slicer.h"
 #include "settings/EnumSettings.h"
+#include "settings/types/LayerIndex.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"
@@ -780,7 +781,8 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     const coord_t line_segment_resolution = mesh->settings.get<coord_t>("meshfix_maximum_resolution");
-    polygons.simplify(line_segment_resolution, line_segment_resolution / 2); //Maximum error is half of the resolution so it's only a limit when removing really sharp corners.
+    const coord_t line_segment_deviation = mesh->settings.get<coord_t>("meshfix_maximum_deviation");
+    polygons.simplify(line_segment_resolution, line_segment_deviation);
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 }
@@ -946,22 +948,21 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
         ;
     }
 
-    // if first printable layer is empty, remove it to shift all the layers down and so xy_offset_layer_0 will be effective
-
+    LayerIndex layer_apply_initial_xy_offset = 0;
     if (layers.size() > 0 && layers[0].polygons.size() == 0
         && !mesh->settings.get<bool>("support_mesh")
         && !mesh->settings.get<bool>("anti_overhang_mesh")
         && !mesh->settings.get<bool>("cutting_mesh")
         && !mesh->settings.get<bool>("infill_mesh"))
     {
-        layers.erase(layers.begin());
+        layer_apply_initial_xy_offset = 1;
     }
 
-#pragma omp parallel for default(none) shared(mesh, layers_ref)
+#pragma omp parallel for default(none) shared(mesh, layers_ref, layer_apply_initial_xy_offset)
     // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_nr = 0; layer_nr < static_cast<int>(layers_ref.size()); layer_nr++)
     {
-        const coord_t xy_offset = mesh->settings.get<coord_t>((layer_nr == 0) ? "xy_offset_layer_0" : "xy_offset");
+        const coord_t xy_offset = mesh->settings.get<coord_t>((layer_nr <= layer_apply_initial_xy_offset) ? "xy_offset_layer_0" : "xy_offset");
 
         if (xy_offset != 0)
         {

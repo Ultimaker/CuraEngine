@@ -25,8 +25,9 @@ public:
      * \param distance The distance of the first outset from the parts at the first
      * layer.
      * \param primary_line_count Number of offsets / brim lines of the primary extruder.
+     * \param set to false to force not doing brim generation for helper-structures (support and ooze/draft shields)
      */
-    static void generate(SliceDataStorage& storage, Polygons first_layer_outline, int distance, unsigned int primary_line_count);
+    static void generate(SliceDataStorage& storage, Polygons first_layer_outline, int distance, unsigned int primary_line_count, bool allow_helpers = true);
 
     /*!
      * \brief Get the reference outline of the first layer around which to

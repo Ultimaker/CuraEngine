@@ -211,6 +211,17 @@ private:
     static void generateSupportInterfaceLayer(Polygons& support_areas, const Polygons mesh_outlines, const coord_t safety_offset, const coord_t outline_offset, const double minimum_interface_area, Polygons& interface_polygons);
 
     /*!
+     * \brief Remove interface generated without support below/above (dangling interface)
+     * \param[out] interface_polygons The resulting interface layer, after filtering.
+     * \param test_polygons Used to filter out the interface_polygons areas and leave only those, which intersect with test_polygons.
+     * This is used to check whether interface areas are dangling. Because some support could be pushed away by large XY distance or
+     * support could be tiny, so that it was skipped by offset of support wall thickness.
+     * This causes the dangling interface - interface generated without support beneath or above it.
+     * Pass the test_polygons as generated interface + actual support at the layer below/above for roof/bottom.
+     */
+    static void removeDanglingInterface( Polygons& interface_polygons, const Polygons& test_polygons);
+
+    /*!
      * \brief Join current support layer with the support of the layer above,
      * (make support conical) and perform smoothing etc. operations.
      * \param storage Where to store the resulting support.
@@ -231,7 +242,6 @@ private:
      * and the bottom half will follow the model.
      * 
      * \param storage Where to get model outlines from
-     * \param xy_disallowed Will be removed from support after all layers have processed, this unfortunately can't be done before this method is called.
      * \param[in,out] stair_removal The polygons to be removed for stair stepping on the current layer (input) and for the next layer (output). Only changed every [step_height] layers.
      * \param[in,out] support_areas The support areas before and after this function
      * \param layer_idx The layer number of the support layer we are processing
@@ -239,7 +249,7 @@ private:
      * \param bottom_stair_step_layer_count The max height (in nr of layers) of the support bottom stairs
      * \param support_bottom_stair_step_width The max width of the support bottom stairs
      */
-    static void moveUpFromModel(const SliceDataStorage& storage, const Polygons& xy_disallowed, Polygons& stair_removal, Polygons& support_areas, const size_t layer_idx, const size_t bottom_empty_layer_count, const size_t bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
+    static void moveUpFromModel(const SliceDataStorage& storage, Polygons& stair_removal, Polygons& support_areas, const size_t layer_idx, const size_t bottom_empty_layer_count, const size_t bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width);
 
     /*!
      * Joins the layer part outlines of all meshes and collects the overhang
@@ -308,6 +318,13 @@ private:
      * 
      */
     static void cleanup(SliceDataStorage& storage);
+
+    /*!
+     * Actual outermost contour of the support polygons may be printed with some offset.
+     *
+     * Returns the actual offset value.
+     */
+    static coord_t getActualSupportOffset();
 };
 
 

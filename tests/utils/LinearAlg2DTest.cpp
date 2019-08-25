@@ -1,8 +1,10 @@
 //Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <cstdint>
 #include <gtest/gtest.h>
-#include <../src/utils/linearAlg2D.h>
+
+#include "../src/utils/linearAlg2D.h"
 
 #define FUZZ_DISTANCE 2 //Error that is allowed to be introduced by rounding.
 
@@ -18,9 +20,9 @@ struct GetDist2FromLineSegmentParameters
     Point line_end;
     Point point;
     coord_t actual_distance2;
-    short actual_is_beyond;
+    int16_t actual_is_beyond;
 
-    GetDist2FromLineSegmentParameters(Point line_start, Point line_end, Point point, coord_t actual_distance2, short actual_is_beyond)
+    GetDist2FromLineSegmentParameters(Point line_start, Point line_end, Point point, coord_t actual_distance2, int16_t actual_is_beyond)
     : line_start(line_start)
     , line_end(line_end)
     , point(point)
@@ -50,9 +52,14 @@ TEST_P(GetDist2FromLineSegmentTest, GetDist2FromLineSegment)
     const Point line_end = parameters.line_end;
     const Point point = parameters.point;
     const coord_t actual_distance2 = parameters.actual_distance2;
-    const short actual_is_beyond = parameters.actual_is_beyond;
+    const int16_t actual_is_beyond = parameters.actual_is_beyond;
 
-    short supposed_is_beyond;
+    // FIXME: or at least review this. The optional output parameter supposed_is_beyond in LinearAlg2D::getDist2FromLineSegment()
+    // may not always be set. In many cases, the value will not be set so the original value remains. In many test cases
+    // supposed_is_beyond is expected to be 0 while it's not true: supposed_is_beyond is expected to remain the same.
+    // I initialize supposed_is_beyond to 0 here to fix this for now, but I think this probably should be fixed in
+    // LinearAlg2D::getDist2FromLineSegment() so it doesn't have those undefined behaviour.
+    int16_t supposed_is_beyond = 0;
     const coord_t supposed_distance = LinearAlg2D::getDist2FromLineSegment(line_start, point, line_end, &supposed_is_beyond);
     ASSERT_LE(std::fabs(sqrt(double(supposed_distance)) - sqrt(double(actual_distance2))), maximum_error)
             << "Line [" << line_start.X << ", " << line_start.Y << "] -- [" << line_end.X << ", " << line_end.Y << "], point [" << point.X << ", " << point.Y << "], squared distance was " << supposed_distance << " rather than " << actual_distance2 << ".";

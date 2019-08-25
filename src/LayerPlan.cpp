@@ -82,6 +82,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , z(z)
+, final_travel_z(z)
 , mode_skip_agressive_merge(false)
 , layer_nr(layer_nr)
 , is_initial_layer(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
@@ -381,6 +382,11 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         bypass_combing = true; // first travel move is bogus; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
         first_travel_destination = p;
         first_travel_destination_is_inside = is_inside;
+        if (layer_nr == 0 && extruder->settings.get<bool>("retraction_enable") && extruder->settings.get<bool>("retraction_hop_enabled"))
+        {
+            path->retract = true;
+            path->perform_z_hop = true;
+        }
         forceNewPathStart(); // force a new travel path after this first bogus move
     }
     else if (force_comb_retract && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
@@ -498,10 +504,9 @@ GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
     return *path;
 }
 
-void LayerPlan::planPrime()
+void LayerPlan::planPrime(const float& prime_blob_wipe_length)
 {
     forceNewPathStart();
-    constexpr float prime_blob_wipe_length = 10.0;
     GCodePath& prime_travel = addTravel_simple(getLastPlannedPositionOrStartingPosition() + Point(0, MM2INT(prime_blob_wipe_length)));
     prime_travel.retract = false;
     prime_travel.perform_z_hop = false;
@@ -789,6 +794,9 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     const coord_t min_bridge_line_len = mesh.settings.get<coord_t>("bridge_wall_min_length");
     const Ratio wall_min_flow = mesh.settings.get<Ratio>("wall_min_flow");
     const bool wall_min_flow_retract = mesh.settings.get<bool>("wall_min_flow_retract");
+    const coord_t small_feature_max_length = mesh.settings.get<coord_t>("small_feature_max_length");
+    const bool is_small_feature = (small_feature_max_length > 0) && wall.shorterThan(small_feature_max_length);
+    const Ratio small_feature_speed_factor = mesh.settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -897,7 +905,15 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
                 first_line = false;
                 travel_required = false;
             }
-            addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            if (is_small_feature)
+            {
+                constexpr bool spiralize = false;
+                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+            }
+            else
+            {
+                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            }
         }
         else
         {
@@ -923,7 +939,15 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
             {
                 addTravel(p0, wall_min_flow_retract);
             }
-            addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            if (is_small_feature)
+            {
+                constexpr bool spiralize = false;
+                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+            }
+            else
+            {
+                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            }
 
             if (wall_0_wipe_dist > 0)
             { // apply outer wall wipe
@@ -1079,10 +1103,24 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     }
 }
 
-void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx)
+void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer)
 {
-    const Point origin = (last_seam_vertex_idx >= 0) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
+    const bool smooth_contours = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
+
+    // once we are into the spiral we always start at the end point of the last layer (if any)
+    const Point origin = (last_seam_vertex_idx >= 0 && !is_bottom_layer) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
     addTravel_simple(origin);
+
+    if (!smooth_contours && last_seam_vertex_idx >= 0) {
+        // when not smoothing, we get to the (unchanged) outline for this layer as quickly as possible so that the remainder of the
+        // outline wall has the correct direction - although this creates a little step, the end result is generally better because when the first
+        // outline wall has the wrong direction (due to it starting from the finish point of the last layer) the visual effect is very noticeable
+        Point join_first_wall_at = LinearAlg2D::getClosestOnLineSegment(origin, wall[seam_vertex_idx], wall[(seam_vertex_idx + 1) % wall.size()]);
+        if (vSize(join_first_wall_at - origin) > 10)
+        {
+            addExtrusionMove(join_first_wall_at, config, SpaceFillType::Polygons, 1.0, true);
+        }
+    }
 
     const int n_points = wall.size();
     Polygons last_wall_polygons;
@@ -1104,38 +1142,101 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
         return;
     }
 
+    // if this is the bottom layer, avoid creating a big elephants foot by starting with a reduced flow and increasing the flow
+    // so that by the time the end of the first spiral is complete the flow is 100% - note that immediately before the spiral
+    // is output, the extruder will be printing a normal wall line and so will be fully pressurised so that will tend to keep the
+    // flow going
+
+    // if this is the top layer, avoid an abrupt end by printing the same outline again but this time taper the spiral by reducing
+    // the flow whilst keeping the same height - once the flow is down to a minimum allowed value, coast a little further
+
+    const double min_bottom_layer_flow = 0.25; // start the bottom spiral at this flow rate
+    const double min_top_layer_flow = 0.25; // lowest allowed flow while tapering the last spiral
+
+    double speed_factor = 1; // may be reduced when printing the top layer so as to avoid a jump in extrusion rate as the layer starts
+
+    if (is_top_layer)
+    {
+        // HACK ALERT - the last layer is approx 50% longer than the previous layer so it should take longer to print but the
+        // normal slow down for quick layers mechanism can kick in and speed this layer up (because it is longer) but we prefer
+        // the layer to be printed at a similar speed to the previous layer to avoid abrupt changes in extrusion rate so we slow it down
+
+        const FanSpeedLayerTimeSettings& layer_time_settings = extruder_plans.back().fan_speed_layer_time_settings;
+        const double min_time = layer_time_settings.cool_min_layer_time;
+        const double normal_layer_time = total_length / config.getSpeed();
+
+        // would this layer's speed normally get reduced to satisfy the min layer time?
+        if (normal_layer_time < min_time)
+        {
+            // yes, so the extended version will not get slowed down so much and we want to compensate for that
+            const double extended_layer_time = (total_length * (2 - min_top_layer_flow)) / config.getSpeed();
+
+            // modify the speed factor to cancel out the speed increase that would normally happen due to the longer layer time
+            speed_factor = normal_layer_time / std::min(extended_layer_time, min_time);
+        }
+    }
+
     // extrude to the points following the seam vertex
     // the last point is the seam vertex as the polygon is a loop
     double wall_length = 0.0;
     p0 = origin;
-    const bool smooth_contours = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
     for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
     {
         // p is a point from the current wall polygon
         const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
-        if (smooth_contours)
-        {
-            wall_length += vSizeMM(p - p0);
-            p0 = p;
+        wall_length += vSizeMM(p - p0);
+        p0 = p;
 
+        const double flow = (is_bottom_layer) ? (min_bottom_layer_flow + ((1 - min_bottom_layer_flow) * wall_length / total_length)) : 1.0;
+
+        // if required, use interpolation to smooth the x/y coordinates between layers but not for the first spiralized layer
+        // as that lies directly on top of a non-spiralized wall with exactly the same outline and not for the last point in each layer
+        // because we want that to be numerically exactly the same as the starting point on the next layer (not subject to any rounding)
+        if (smooth_contours && !is_bottom_layer && wall_point_idx < n_points)
+        {
             // now find the point on the last wall that is closest to p
             ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, last_wall_polygons);
+
             // if we found a point and it's not further away than max_dist2, use it
             if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
             {
                 // interpolate between cpp.location and p depending on how far we have progressed along wall
-                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, 1.0, true);
+                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, flow, true, speed_factor);
             }
             else
             {
                 // no point in the last wall was found close enough to the current wall point so don't interpolate
-                addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
+                addExtrusionMove(p, config, SpaceFillType::Polygons, flow, true, speed_factor);
             }
         }
         else
         {
             // no smoothing, use point verbatim
-            addExtrusionMove(p, config, SpaceFillType::Polygons, 1.0, true);
+            addExtrusionMove(p, config, SpaceFillType::Polygons, flow, true, speed_factor);
+        }
+    }
+
+    if (is_top_layer)
+    {
+        // add the tapering spiral
+        const double min_spiral_coast_dist = 10; // mm
+        double distance_coasted = 0;
+        wall_length = 0;
+        for (int wall_point_idx = 1; wall_point_idx <= n_points && distance_coasted < min_spiral_coast_dist; wall_point_idx++)
+        {
+            const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+            const double seg_length = vSizeMM(p - p0);
+            wall_length += seg_length;
+            p0 = p;
+            // flow is reduced in step with the distance travelled so the wall width should remain roughly constant
+            double flow = 1 - (wall_length / total_length);
+            if (flow < min_top_layer_flow)
+            {
+                flow = 0;
+                distance_coasted += seg_length;
+            }
+            // reduce number of paths created when polygon has many points by limiting precision of flow
+            addExtrusionMove(p, config, SpaceFillType::Polygons, ((int)(flow * 20)) / 20.0, false, speed_factor);
         }
     }
 }
@@ -1358,6 +1459,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
         const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder_nr];
+        coord_t z_hop_height = retraction_config.zHop;
 
         if (extruder_nr != extruder_plan.extruder_nr)
         {
@@ -1366,13 +1468,18 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             gcode.ResetLastEValueAfterWipe(prev_extruder);
 
-            gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
+            const ExtruderTrain& prev_extruder_train = Application::getInstance().current_slice->scene.extruders[prev_extruder];
+            if (prev_extruder_train.settings.get<bool>("retraction_hop_after_extruder_switch"))
+            {
+                z_hop_height = storage.extruder_switch_retraction_config_per_extruder[prev_extruder].zHop;
+                gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder], z_hop_height);
+            }
+            else
+            {
+                gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
+            }
 
             const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-            if (extruder.settings.get<Velocity>("max_feedrate_z_override") > 0)
-            {
-                gcode.writeMaxZFeedrate(extruder.settings.get<Velocity>("max_feedrate_z_override"));
-            }
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
@@ -1390,6 +1497,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
+
+            const double extra_prime_amount = extruder.settings.get<bool>("retraction_enable") ? extruder.settings.get<double>("switch_extruder_extra_prime_amount") : 0;
+            gcode.addExtraPrimeAmount(extra_prime_amount);
         }
         else if (extruder_plan_idx == 0)
         {
@@ -1417,10 +1527,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             });
 
         const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-        if (extruder.settings.get<Velocity>("max_feedrate_z_override") > 0)
-        {
-            gcode.writeMaxZFeedrate(extruder.settings.get<Velocity>("max_feedrate_z_override"));
-        }
 
         bool update_extrusion_offset = true;
 
@@ -1463,7 +1569,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeRetraction(retraction_config);
                 if (path.perform_z_hop)
                 {
-                    gcode.writeZhopStart(retraction_config.zHop);
+                    gcode.writeZhopStart(z_hop_height);
+                    z_hop_height = retraction_config.zHop; // back to normal z hop
                 }
                 else
                 {
@@ -1505,6 +1612,16 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
+                if (!path.perform_z_hop && final_travel_z != z && extruder_plan_idx == (extruder_plans.size() - 1) && path_idx == (paths.size() - 1))
+                {
+                    // Before the final travel, move up to the next layer height, on the current spot, with a sensible speed.
+                    Point3 current_position = gcode.getPosition();
+                    current_position.z = final_travel_z;
+                    gcode.writeTravel(current_position, extruder.settings.get<Velocity>("speed_z_hop"));
+
+                    // Prevent the final travel(s) from resetting to the 'previous' layer height.
+                    gcode.setZ(final_travel_z);
+                }
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                 {
                     gcode.writeTravel(path.points[point_idx], speed);
@@ -1749,8 +1866,6 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
         const Velocity speed = Velocity(coasting_speed_modifier * path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor());
         gcode.writeTravel(path.points[point_idx], speed);
     }
-
-    gcode.addLastCoastedVolume(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));
     return true;
 }
 

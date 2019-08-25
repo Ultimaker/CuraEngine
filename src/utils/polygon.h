@@ -706,7 +706,9 @@ public:
     Polygons() {}
 
     Polygons(const Polygons& other) { paths = other.paths; }
+    Polygons(Polygons&& other) { paths = std::move(other.paths); }
     Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
+    Polygons& operator=(Polygons&& other) { paths = std::move(other.paths); return *this; }
 
     bool operator==(const Polygons& other) const =delete;
 
@@ -759,16 +761,14 @@ public:
     /*!
      * Clips input line segments by this Polygons.
      * \param other Input line segments to be cropped
-     * \return the resulting interior line segments
+     * \param segment_tree the resulting interior line segments
      */
-    ClipperLib::PolyTree lineSegmentIntersection(const Polygons& other) const
+    void lineSegmentIntersection(const Polygons& other, ClipperLib::PolyTree& segment_tree) const
     {
-        ClipperLib::PolyTree ret;
         ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(paths, ClipperLib::ptClip, true);
         clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
-        clipper.Execute(ClipperLib::ctIntersection, ret);
-        return ret;
+        clipper.Execute(ClipperLib::ctIntersection, segment_tree);
     }
     Polygons xorPolygons(const Polygons& other) const
     {
@@ -882,10 +882,21 @@ public:
     Polygons smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
     
     /*!
-     * removes points connected to similarly oriented lines
-     * 
-     * \param smallest_line_segment maximal length of removed line segments
-     * \param allowed_error_distance The distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
+     * Removes vertices of the polygons to make sure that they are not too high
+     * resolution.
+     *
+     * This removes points which are connected to line segments that are shorter
+     * than the `smallest_line_segment`, unless that would introduce a deviation
+     * in the contour of more than `allowed_error_distance`.
+     *
+     * Vertices which introduce an error of less than 5 microns are removed
+     * anyway, even if the segments are longer than the smallest line segment.
+     * This makes sure that (practically) colinear line segments are joined into
+     * a single line segment.
+     * \param smallest_line_segment Maximal length of removed line segments.
+     * \param allowed_error_distance If removing a vertex introduces a deviation
+     * from the original path that is more than this distance, the vertex may
+     * not be removed.
      */
     void simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5) 
     {
