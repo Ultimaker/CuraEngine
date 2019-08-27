@@ -461,7 +461,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
     }
 
     // CURA-6675:
-    // Retraction Minimal Travel Distance should work for all travel moves. If the travel move is not shorter than the
+    // Retraction Minimal Travel Distance should work for all travel moves. If the travel move is shorter than the
     // Retraction Minimal Travel Distance, retraction should be disabled.
     if (!is_first_travel_of_layer && last_planned_position && shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
     {
