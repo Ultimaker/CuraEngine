@@ -23,7 +23,7 @@ float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
         if (
             (ba.X != 0 && (ba.X > 0) == (bc.X > 0))
             || (ba.X == 0 && (ba.Y > 0) == (bc.Y > 0))
-            }
+            )
         {
             return 0; // pointy bit
         }
