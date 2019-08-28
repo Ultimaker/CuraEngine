@@ -142,7 +142,12 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
         const Point& p2 = poly[(point_idx + 1) % poly.size()];
         // when type is SHARPEST_CORNER, actual distance is ignored, we use a fixed distance and decision is based on curvature only
         float dist_score = (config.type == EZSeamType::SHARPEST_CORNER && config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)? 10000 : vSize2(p1 - prev_point);
-        const float corner_angle = LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI; // 0 -> 2
+        float corner_angle = LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI; // 0 -> 2
+        if (std::abs(corner_angle - 1) < 0.05)
+        {
+            // ignore slight kinks in almost straight lines
+            corner_angle = 1;
+        }
         float corner_shift;
         if (config.type == EZSeamType::SHORTEST)
         {
