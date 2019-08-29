@@ -1,13 +1,11 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef FFF_PROCESSOR_H
 #define FFF_PROCESSOR_H
 
-#include "settings/settings.h"
 #include "FffGcodeWriter.h"
 #include "FffPolygonGenerator.h"
-#include "commandSocket.h"
-#include "Weaver.h"
-#include "Wireframe2gcode.h"
-#include "progress/Progress.h"
 #include "utils/gettime.h"
 #include "utils/NoCopy.h"
 
@@ -16,85 +14,39 @@
 namespace cura {
 
 //FusedFilamentFabrication processor. Singleton class
-class FffProcessor : public SettingsBase , NoCopy
+class FffProcessor : public NoCopy
 {
 private:
     /*!
      * The FffProcessor used for the (current) slicing (The instance of this singleton)
      */
-    static FffProcessor instance; 
-    
-    FffProcessor();
+    static FffProcessor instance;
+
 public:
     /*!
      * Get the instance
      * \return The instance
      */
     static FffProcessor* getInstance() 
-    { 
+    {
         return &instance; 
     }
 
-    /*!
-     * Get the index of the meshgroup currently being processed, starting at zero.
-     */
-    int getMeshgroupNr();
-
-private:
-    /*!
-     * The polygon generator, which slices the models and generates all polygons to be printed and areas to be filled.
-     */
-    FffPolygonGenerator polygon_generator;
-
+public:
     /*!
      * The gcode writer, which generates paths in layer plans in a buffer, which converts these paths into gcode commands.
      */
     FffGcodeWriter gcode_writer;
 
     /*!
-     * The index of the meshgroup currently being processed, starting at zero.
+     * The polygon generator, which slices the models and generates all polygons to be printed and areas to be filled.
      */
-    int meshgroup_number;
-
-    /*!
-     * A string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
-     * 
-     * Used in debugging.
-     */
-    std::string profile_string = "";
-
-    /*!
-     * Get all settings for the current meshgroup in the format by which CuraEngine is called via the command line.
-     * 
-     * Also includes all global settings if this is the first meshgroup.
-     * 
-     * Used in debugging.
-     * 
-     * \param meshgroup The meshgroup for which to stringify all settings
-     * \param first_meshgroup Whether this is the first meshgroup and all global settigns should be included as well
-     */
-    std::string getAllSettingsString(MeshGroup& meshgroup, bool first_meshgroup);
-
-public:
-    /*!
-     * Get a string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
-     * 
-     * \return A string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
-     */
-    std::string getProfileString() { return profile_string; }
+    FffPolygonGenerator polygon_generator;
 
     /*!
      * The stop watch used to time how long the different stages take to compute.
      */
     TimeKeeper time_keeper; // TODO: use singleton time keeper
-
-    /*!
-     * Reset the meshgroup number to the first meshgroup to start a new slicing.
-     */
-    void resetMeshGroupNumber()
-    {
-        meshgroup_number = 0;
-    }
 
     /*!
      * Set the target to write gcode to: to a file.
@@ -138,7 +90,7 @@ public:
      * 
      * \return total print time in seconds for each feature
      */
-    std::vector<double> getTotalPrintTimePerFeature()
+    std::vector<Duration> getTotalPrintTimePerFeature()
     {
         return gcode_writer.getTotalPrintTimePerFeature();
     }
@@ -150,15 +102,6 @@ public:
     {
         gcode_writer.finalize();
     }
-
-    /*!
-     * Generate gcode for a given \p meshgroup
-     * The primary function of this class.
-     * 
-     * \param meshgroup The meshgroup for which to generate gcode
-     * \return Whether this function succeeded
-     */
-    bool processMeshGroup(MeshGroup* meshgroup);
 };
 
 }//namespace cura

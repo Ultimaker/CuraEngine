@@ -1,24 +1,31 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
 #include "Mold.h"
-#include "utils/IntPoint.h"
+#include "Scene.h"
+#include "Slice.h"
 #include "sliceDataStorage.h"
+#include "slicer.h"
+#include "settings/types/Ratio.h"
+#include "utils/IntPoint.h"
 
 namespace cura
 {
 
-void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list, coord_t layer_height)
+void Mold::process(std::vector<Slicer*>& slicer_list)
 {
+    Scene& scene = Application::getInstance().current_slice->scene;
     { // check whether we even need to process molds
         bool has_any_mold = false;
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
-            if (mesh.getSettingBoolean("mold_enabled"))
+            Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
+            if (mesh.settings.get<bool>("mold_enabled"))
             {
                 has_any_mold = true;
-                mesh.expandXY(mesh.getSettingInMicrons("mold_width"));
+                mesh.expandXY(mesh.settings.get<coord_t>("mold_width"));
             }
         }
         if (!has_any_mold)
@@ -37,6 +44,7 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
         }
     }
 
+    const coord_t layer_height = scene.current_mesh_group->settings.get<coord_t>("layer_height");
     std::vector<Polygons> mold_outline_above_per_mesh; // the outer outlines of the layer above without the original model(s) being cut out
     mold_outline_above_per_mesh.resize(slicer_list.size());
     for (int layer_nr = layer_count - 1; layer_nr >= 0; layer_nr--)
@@ -46,24 +54,24 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
         // first generate outlines
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+            const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
             Slicer& slicer = *slicer_list[mesh_idx];
-            if (!mesh.getSettingBoolean("mold_enabled") || layer_nr >= static_cast<int>(slicer.layers.size()))
+            if (!mesh.settings.get<bool>("mold_enabled") || layer_nr >= static_cast<int>(slicer.layers.size()))
             {
                 continue;
             }
-            coord_t width = mesh.getSettingInMicrons("mold_width");
-            coord_t open_polyline_width = mesh.getSettingInMicrons("wall_line_width_0");
+            coord_t width = mesh.settings.get<coord_t>("mold_width");
+            coord_t open_polyline_width = mesh.settings.get<coord_t>("wall_line_width_0");
             if (layer_nr == 0)
             {
-                const ExtruderTrain& train_wall_0 = *storage.meshgroup->getExtruderTrain(mesh.getSettingAsExtruderNr("wall_0_extruder_nr"));
-                open_polyline_width *= train_wall_0.getSettingAsRatio("initial_layer_line_width_factor");
+                const ExtruderTrain& train_wall_0 = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr");
+                open_polyline_width *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
             }
-            double angle = mesh.getSettingInAngleDegrees("mold_angle");
-            coord_t roof_height = mesh.getSettingInMicrons("mold_roof_height");
+            const AngleDegrees angle = mesh.settings.get<AngleDegrees>("mold_angle");
+            const coord_t roof_height = mesh.settings.get<coord_t>("mold_roof_height");
 
-            coord_t inset = tan(angle / 180 * M_PI) * layer_height;
-            unsigned int roof_layer_count = roof_height / layer_height;
+            const coord_t inset = tan(angle / 180 * M_PI) * layer_height;
+            const size_t roof_layer_count = roof_height / layer_height;
 
 
             SlicerLayer& layer = slicer.layers[layer_nr];
@@ -98,8 +106,8 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
         // carve molds out of all other models
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            const Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
-            if (!mesh.getSettingBoolean("mold_enabled"))
+            const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
+            if (!mesh.settings.get<bool>("mold_enabled"))
             {
                 continue; // only cut original models out of all molds
             }

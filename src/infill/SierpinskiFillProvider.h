@@ -1,17 +1,19 @@
-/** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
+//Copyright (C) 2017 Tim Kuipers
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef INFILL_SIERPINSKI_FILL_PROVIDER_H
 #define INFILL_SIERPINSKI_FILL_PROVIDER_H
 
-#include "../utils/optional.h"
-
 #include "SierpinskiFill.h"
-#include "DensityProvider.h"
-#include "ImageBasedDensityProvider.h"
-#include "UniformDensityProvider.h"
-#include "../settings/settings.h"
+#include "../settings/EnumSettings.h" //For EFillMethod.
+#include "../utils/optional.h"
 
 namespace cura
 {
+
+struct AABB3D;
+class DensityProvider;
 
 /*!
  * Class for generating infill patterns using the SierpinskiFill class.

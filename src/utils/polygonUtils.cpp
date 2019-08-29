@@ -1,11 +1,14 @@
-/** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
-#include "polygonUtils.h"
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
 #include <sstream>
+#include <unordered_set>
 
 #include "linearAlg2D.h"
+#include "polygonUtils.h"
 #include "SparsePointGridInclusive.h"
+#include "../utils/logoutput.h"
 
 #ifdef DEBUG
 #include "AABB.h"
@@ -533,7 +536,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
     // The offset is performed on the closest reference polygon in order to save computation time
     else
     {
-        int offset = (is_outside_boundary)? -preferred_dist_inside : preferred_dist_inside; // perform inset on outer boundary and outset on holes
+        const coord_t offset = (is_outside_boundary) ? -preferred_dist_inside : preferred_dist_inside; // perform inset on outer boundary and outset on holes
         Polygons insetted = closest_poly.offset(offset / 2); // perform less inset, because chances are (thin parts of) the polygon will disappear, given that moveInside did an overshoot
         if (insetted.size() == 0)
         {
@@ -602,42 +605,71 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
 }
 
 
-void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
+
+std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findConnection(ConstPolygonRef poly1, Polygons& polys2, coord_t min_connection_length, coord_t max_connection_length, std::function<bool (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>)> precondition)
 {
-    if (!poly1_result.poly || !poly2_result.poly)
+    ClosestPolygonPoint invalid;
+    std::pair<ClosestPolygonPoint, ClosestPolygonPoint> ret = std::make_pair(invalid, invalid);
+    if (poly1.empty() || polys2.empty())
     {
-        return;
+        return ret;
     }
-    ConstPolygonRef poly1 = *poly1_result.poly;
-    ConstPolygonRef poly2 = *poly2_result.poly;
-    if (poly1.size() == 0 || poly2.size() == 0)
+
+    const coord_t min_connection_dist2 = min_connection_length * min_connection_length;
+    const coord_t max_connection_dist2 = max_connection_length * max_connection_length;
+
+    LocToLineGrid* grid = PolygonUtils::createLocToLineGrid(polys2, max_connection_length);
+
+
+    std::unordered_set<std::pair<size_t, PolygonsPointIndex>> checked_segment_pairs; // pairs of index into segment start on poly1 and PolygonsPointIndex to segment start on polys2
+
+    for (size_t point_idx = 0; point_idx < poly1.size(); point_idx++)
     {
-        return;
-    }
-    
-    int bestDist2 = -1;
-    
-    int step1 = std::max<unsigned int>(1, poly1.size() / sample_size);
-    int step2 = std::max<unsigned int>(1, poly2.size() / sample_size);
-    for (unsigned int i = 0; i < poly1.size(); i += step1)
-    {
-        for (unsigned int j = 0; j < poly2.size(); j += step2)
-        {
-            int dist2 = vSize2(poly1[i] - poly2[j]);
-            if (bestDist2 == -1 || dist2 < bestDist2)
+        std::function<bool (const PolygonsPointIndex&)> process_elem_func =
+            [&, point_idx](const PolygonsPointIndex& line_from)
             {
-                bestDist2 = dist2;
-                poly1_result.point_idx = i;
-                poly2_result.point_idx = j;
-            }
-        }
+                std::pair<size_t, PolygonsPointIndex> segment_pair = std::make_pair(point_idx, line_from);
+                if (checked_segment_pairs.count(segment_pair) > 0)
+                { // these two line segments were already checked
+                    return true; // continue looking for connections
+                }
+
+                Point a1 = poly1[point_idx];
+                Point a2 = poly1[(point_idx + 1) % poly1.size()];
+                Point b1 = line_from.p();
+                Point b2 = line_from.next().p();
+                std::pair<Point, Point> connection = LinearAlg2D::getClosestConnection(a1, a2, b1, b2);
+                coord_t dist2 = vSize2(connection.first - connection.second);
+                ret = std::make_pair(
+                    ClosestPolygonPoint(connection.first, point_idx, poly1),
+                    ClosestPolygonPoint(connection.second, line_from.point_idx, polys2[line_from.poly_idx], line_from.poly_idx));
+                if (min_connection_dist2 < dist2 && dist2 < max_connection_dist2
+                    && precondition(ret))
+                {
+                    return false; // stop the search; break the for-loop
+                }
+
+                checked_segment_pairs.emplace(point_idx, line_from);
+                return true; // continue looking for connections
+            };
+
+        std::pair<Point, Point> line = std::make_pair(poly1[point_idx], poly1[(point_idx + 1) % poly1.size()]);
+        Point normal_vector = normal(turn90CCW(line.second - line.first), max_connection_length);
+        std::pair<Point, Point> line2 = std::make_pair(line.first + normal_vector, line.second + normal_vector); // for neighborhood around the line
+        std::pair<Point, Point> line3 = std::make_pair(line.first - normal_vector, line.second - normal_vector); // for neighborhood around the line
+
+        bool continue_;
+        continue_ = grid->processLine(line, process_elem_func);
+        if (!continue_) break;
+        continue_ = grid->processLine(line2, process_elem_func);
+        if (!continue_) break;
+        continue_ = grid->processLine(line3, process_elem_func);
+        if (!continue_) break;
     }
-
-    poly1_result.location = poly1[poly1_result.point_idx];
-    poly2_result.location = poly2[poly2_result.point_idx];
-    walkToNearestSmallestConnection(poly1_result, poly2_result);
+    ret.first.poly_idx = 0;
+    delete grid;
+    return ret;
 }
-
 
 void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
 {
@@ -652,9 +684,11 @@ void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, Clo
         return;
     }
 
-    Point center1 = poly1.centerOfMass();
+    Point center1 = poly1[0];
+    ClosestPolygonPoint intermediate_poly2_result = findClosest(center1, poly2);
+    ClosestPolygonPoint intermediate_poly1_result = findClosest(intermediate_poly2_result.p(), poly1);
 
-    poly2_result = findClosest(center1, poly2);
+    poly2_result = findClosest(intermediate_poly1_result.p(), poly2);
     poly1_result = findClosest(poly2_result.p(), poly1);
     walkToNearestSmallestConnection(poly1_result, poly2_result);
 }
@@ -667,6 +701,8 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
     }
     ConstPolygonRef poly1 = *poly1_result.poly;
     ConstPolygonRef poly2 = *poly2_result.poly;
+    size_t poly1_idx = poly1_result.poly_idx;
+    size_t poly2_idx = poly2_result.poly_idx;
     if (poly1_result.point_idx == NO_INDEX || poly2_result.point_idx == NO_INDEX)
     {
         return;
@@ -710,6 +746,9 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
     check_neighboring_vert(poly1, poly2, poly1_result, poly2_result, true);
     check_neighboring_vert(poly2, poly1, poly2_result, poly1_result, false);
     check_neighboring_vert(poly2, poly1, poly2_result, poly1_result, true);
+
+    poly1_result.poly_idx = poly1_idx;
+    poly2_result.poly_idx = poly2_idx;
 }
 
 ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef polygon, int start_idx)
@@ -744,7 +783,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef
     int bestPos = 0;
 
     size_t poly_size = polygon.size();
-    for (int p = 0; p < poly_size; p++)
+    for (size_t p = 0; p < poly_size; p++)
     {
         int p1_idx = (poly_size + direction * p + start_idx) % poly_size;
         int p2_idx = (poly_size + direction * (p + 1) + start_idx) % poly_size;
@@ -757,7 +796,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef
         {
             best = closest_here;
             closestDist = dist;
-            bestPos = (direction > 0)? p1_idx : p2_idx;
+            bestPos = (direction > 0) ? p1_idx : p2_idx;
         }
         else 
         {
@@ -826,7 +865,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, ConstPolygonRef polygo
 
     int64_t closestDist2_score = vSize2(from - best) + penalty_function(best);
     int bestPos = 0;
-//
+
     for (unsigned int p = 0; p<polygon.size(); p++)
     {
         const Point& p1 = polygon[p];
@@ -1095,7 +1134,7 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
     for (unsigned int next_point_nr = 0; next_point_nr < poly.size(); next_point_nr++)
     {
         const unsigned int next_point_idx =
-            forward?
+            forward ?
                 (start.point_idx + 1 + next_point_nr) % poly.size()
                 : (static_cast<size_t>(start.point_idx) - next_point_nr + poly.size()) % poly.size(); // cast in order to accomodate subtracting
         const Point next_vert = poly[next_point_idx];
@@ -1106,17 +1145,17 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
             const Point segment_vector = next_vert - prev_vert;
             const coord_t segment_length = vSize(segment_vector);
             const coord_t projected_segment_length = std::abs(projected - prev_projected);
-            const char sign = (projected > 0)? 1 : -1;
+            const char sign = (projected > 0) ? 1 : -1;
             const coord_t projected_inter_segment_length = dist - sign * prev_projected; // add the prev_projected to dist if it is projected to the other side of the input line than where the intersection occurs.
             const coord_t inter_segment_length = segment_length * projected_inter_segment_length / projected_segment_length;
             const Point intersection = prev_vert + normal(next_vert - prev_vert, inter_segment_length);
 
-            unsigned int vert_before_idx = next_point_idx;
+            size_t vert_before_idx = next_point_idx;
             if (forward)
             {
-                vert_before_idx = (next_point_idx > 0)? vert_before_idx - 1 : poly.size() - 1;
+                vert_before_idx = (next_point_idx > 0) ? vert_before_idx - 1 : poly.size() - 1;
             }
-            assert(vert_before_idx < poly.size() && vert_before_idx >= 0);
+            assert(vert_before_idx < poly.size());
             return ClosestPolygonPoint(intersection, vert_before_idx, poly);
         }
 
@@ -1268,6 +1307,44 @@ void PolygonUtils::findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_ind
             adjacent_poly_indices.push_back(poly_idx);
         }
     }
+}
+
+double PolygonUtils::relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b)
+{
+    const double area_a = std::abs(poly_a.area());
+    const double area_b = std::abs(poly_b.area());
+    const double total_area = area_a + area_b;
+
+    //If the total area is 0.0, we'd get a division by zero. Instead, only return 0.0 if they are exactly equal.
+    constexpr bool borders_allowed = true;
+    if(total_area == 0.0)
+    {
+        for(const ConstPolygonRef& polygon_a : poly_a)
+        {
+            for(Point point : polygon_a)
+            {
+                if(!poly_b.inside(point, borders_allowed))
+                {
+                    return 1.0;
+                }
+            }
+        }
+        for(const ConstPolygonRef& polygon_b : poly_b)
+        {
+            for(Point point : polygon_b)
+            {
+                if(!poly_a.inside(point, borders_allowed))
+                {
+                    return 1.0;
+                }
+            }
+        }
+        return 0.0; //All points are inside the other polygon, regardless of where the vertices are along the edges.
+    }
+
+    const Polygons symmetric_difference = poly_a.xorPolygons(poly_b);
+    const double hamming_distance = symmetric_difference.area();
+    return hamming_distance / total_area;
 }
 
 }//namespace cura

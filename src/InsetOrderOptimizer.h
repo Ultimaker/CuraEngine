@@ -1,14 +1,22 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
 
-#include "FffGcodeWriter.h"
+#include "pathOrderOptimizer.h"
+#include "sliceDataStorage.h" //For SliceMeshStorage, which is used here at implementation in the header.
 
-namespace cura 
+namespace cura
 {
 
-class InsetOrderOptimizer {
-public:
+class FffGcodeWriter;
+class LayerPlan;
+class WallOverlapComputation;
 
+class InsetOrderOptimizer
+{
+public:
     /*!
      * Constructor for inset ordering optimizer
      * \param gcode_writer The gcode_writer on whose behalf the inset order is being optimized
@@ -19,9 +27,8 @@ public:
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number
-     * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
      */
-    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, Point z_seam_pos) :
+    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) :
     gcode_writer(gcode_writer),
     storage(storage),
     gcode_layer(gcode_layer),
@@ -30,7 +37,7 @@ public:
     mesh_config(mesh_config),
     part(part),
     layer_nr(layer_nr),
-    z_seam_config(mesh.getSettingAsZSeamType("z_seam_type"), z_seam_pos, mesh.getSettingAsZSeamCornerPrefType("z_seam_corner")),
+    z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
     added_something(false),
     wall_overlapper_0(nullptr),
     wall_overlapper_x(nullptr)
@@ -42,7 +49,7 @@ private:
     const SliceDataStorage& storage;
     LayerPlan& gcode_layer;
     const SliceMeshStorage& mesh;
-    const int extruder_nr;
+    const size_t extruder_nr;
     const PathConfigStorage::MeshPathConfigs& mesh_config;
     const SliceLayerPart& part;
     const unsigned int layer_nr;

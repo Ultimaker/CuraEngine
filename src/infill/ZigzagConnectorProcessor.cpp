@@ -6,13 +6,13 @@ using namespace cura;
 
 void ZigzagConnectorProcessor::registerVertex(const Point& vertex)
 {
-    if (this->is_first_connector)
+    if (is_first_connector)
     {
-        this->first_connector.push_back(vertex);
+        first_connector.push_back(vertex);
     }
     else
     { // it's yet unclear whether the polygon segment should be included, so we store it until we know
-        this->current_connector.push_back(vertex);
+        current_connector.push_back(vertex);
     }
 }
 
@@ -38,7 +38,7 @@ bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx,
     const bool is_this_endpiece = start_scanline_idx == end_scanline_idx;
     const bool is_this_connection_even = start_scanline_idx % 2 == 0;
     bool should_skip_this_connection = false;
-    if (this->skip_some_zags && this->zag_skip_count > 0)
+    if (skip_some_zags && zag_skip_count > 0)
     {
         //
         // Here is an illustration of how the zags will be removed.
@@ -65,17 +65,17 @@ bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx,
         //
         if (direction > 0)
         {
-            should_skip_this_connection = start_scanline_idx % this->zag_skip_count == 0;
+            should_skip_this_connection = start_scanline_idx % zag_skip_count == 0;
         }
         else
         {
-            should_skip_this_connection = (start_scanline_idx - 1) % this->zag_skip_count == 0;
+            should_skip_this_connection = (start_scanline_idx - 1) % zag_skip_count == 0;
         }
     }
 
     const bool should_add =
         (is_this_connection_even && !is_this_endpiece && !should_skip_this_connection) // normal connections that should be added
-        || (this->use_endpieces && is_this_endpiece);  // end piece if it is enabled;
+        || (use_endpieces && is_this_endpiece);  // end piece if it is enabled;
 
     return should_add;
 }
@@ -83,54 +83,54 @@ bool ZigzagConnectorProcessor::shouldAddCurrentConnector(int start_scanline_idx,
 
 void ZigzagConnectorProcessor::registerScanlineSegmentIntersection(const Point& intersection, int scanline_index)
 {
-    if (this->is_first_connector)
+    if (is_first_connector)
     {
         // process as the first connector if we haven't found one yet
         // this will be processed with the last remaining piece at the end (when the polygon finishes)
-        this->first_connector.push_back(intersection);
-        this->first_connector_end_scanline_index = scanline_index;
-        this->is_first_connector = false;
+        first_connector.push_back(intersection);
+        first_connector_end_scanline_index = scanline_index;
+        is_first_connector = false;
     }
     else
     {
         // add the current connector if needed
-        if (this->shouldAddCurrentConnector(this->last_connector_index, scanline_index))
+        if (shouldAddCurrentConnector(last_connector_index, scanline_index))
         {
-            const bool is_this_endpiece = scanline_index == this->last_connector_index;
-            this->current_connector.push_back(intersection);
-            this->addZagConnector(this->current_connector, is_this_endpiece);
+            const bool is_this_endpiece = scanline_index == last_connector_index;
+            current_connector.push_back(intersection);
+            addZagConnector(current_connector, is_this_endpiece);
         }
     }
 
     // update state
-    this->current_connector.clear(); // we're starting a new (odd) zigzag connector, so clear the old one
-    this->current_connector.push_back(intersection);
-    this->last_connector_index = scanline_index;
+    current_connector.clear(); // we're starting a new (odd) zigzag connector, so clear the old one
+    current_connector.push_back(intersection);
+    last_connector_index = scanline_index;
 }
 
 
 void ZigzagConnectorProcessor::registerPolyFinished()
 {
-    int scanline_start_index = this->last_connector_index;
-    int scanline_end_index = this->first_connector_end_scanline_index;
-    const bool is_endpiece = this->is_first_connector || (!this->is_first_connector && scanline_start_index == scanline_end_index);
+    int scanline_start_index = last_connector_index;
+    int scanline_end_index = first_connector_end_scanline_index;
+    const bool is_endpiece = is_first_connector || (!is_first_connector && scanline_start_index == scanline_end_index);
 
     // decides whether to add this zag according to the following rules
-    if ((is_endpiece && this->use_endpieces)
-        || (!is_endpiece && this->shouldAddCurrentConnector(scanline_start_index, scanline_end_index)))
+    if ((is_endpiece && use_endpieces)
+        || (!is_endpiece && shouldAddCurrentConnector(scanline_start_index, scanline_end_index)))
     {
         // for convenience, put every point in one vector
-        for (const Point& point : this->first_connector)
+        for (const Point& point : first_connector)
         {
-            this->current_connector.push_back(point);
+            current_connector.push_back(point);
         }
-        this->first_connector.clear();
+        first_connector.clear();
 
-        this->addZagConnector(this->current_connector, is_endpiece);
+        addZagConnector(current_connector, is_endpiece);
     }
 
     // reset member variables
-    this->reset();
+    reset();
 }
 
 
@@ -141,28 +141,14 @@ void ZigzagConnectorProcessor::addZagConnector(std::vector<Point>& points, bool 
     {
         for (size_t point_idx = 1; point_idx <= points.size() - 2; ++point_idx)
         {
-            checkAndAddZagConnectorLine(&points[point_idx - 1],
-                                        &points[point_idx]);
+            addLine(points[point_idx - 1], points[point_idx]);
         }
     }
     // only add the last line if:
     //  - it is not an end piece, or
     //  - it is an end piece and "connected end pieces" is enabled
-    if ((!is_endpiece || (is_endpiece && this->connected_endpieces)) && points.size() >= 2)
+    if ((!is_endpiece || (is_endpiece && connected_endpieces)) && points.size() >= 2)
     {
-        checkAndAddZagConnectorLine(&points[points.size() - 2],
-                                    &points[points.size() - 1]);
+        addLine(points[points.size() - 2], points[points.size() - 1]);
     }
-}
-
-
-void ZigzagConnectorProcessor::checkAndAddZagConnectorLine(Point* first_point, Point* second_point)
-{
-    if (vSize2(*first_point - *second_point) < minimum_zag_line_length*minimum_zag_line_length)
-    {
-        *second_point = *first_point;
-        return;
-    }
-
-    addLine(*first_point, *second_point);
 }

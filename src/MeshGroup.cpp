@@ -1,18 +1,15 @@
-//Copyright (C) 2013 Ultimaker
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (C) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <string.h>
-#include <strings.h>
 #include <stdio.h>
 #include <limits>
 
 #include "MeshGroup.h"
+#include "utils/floatpoint.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"
-
-#include "settings/SettingRegistry.h" // loadExtruderJSONsettings
 
 namespace cura
 {
@@ -35,69 +32,16 @@ void* fgets_(char* ptr, size_t len, FILE* f)
     return nullptr;
 }
 
-MeshGroup::MeshGroup(SettingsBaseVirtual* settings_base)
-: SettingsBase(settings_base)
-, extruder_count(-1)
-{}
-
-MeshGroup::~MeshGroup()
-{
-    for (unsigned int extruder = 0; extruder < MAX_EXTRUDERS; extruder++)
-    {
-        if (extruders[extruder])
-        {
-            delete extruders[extruder];
-        }
-    }
-}
-
-unsigned int MeshGroup::getExtruderCount() const
-{
-    if (extruder_count == -1)
-    {
-        extruder_count = getSettingAsCount("machine_extruder_count");
-    }
-    return extruder_count;
-}
-
-ExtruderTrain* MeshGroup::createExtruderTrain(unsigned int extruder_nr)
-{
-    assert((int)extruder_nr >= 0 && (int)extruder_nr < getSettingAsCount("machine_extruder_count") && "only valid extruder trains may be requested!");
-    if (!extruders[extruder_nr])
-    {
-        extruders[extruder_nr] = new ExtruderTrain(this, extruder_nr);
-        int err = SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, extruders[extruder_nr]);
-        if (err)
-        {
-            logError("Couldn't load extruder.def.json for extruder %i\n", extruder_nr);
-            std::exit(1);
-        }
-    }
-    return extruders[extruder_nr];
-}
-
-ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr)
-{
-    assert(extruders[extruder_nr]);
-    return extruders[extruder_nr];
-}
-
-const ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr) const
-{
-    assert(extruders[extruder_nr]);
-    return extruders[extruder_nr];
-}
-
 Point3 MeshGroup::min() const
 {
     if (meshes.size() < 1)
     {
         return Point3(0, 0, 0);
     }
-    Point3 ret(std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max());
+    Point3 ret(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
     for (const Mesh& mesh : meshes)
     {
-        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh")) //Don't count pieces that are not printed.
+        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("cutting_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")) //Don't count pieces that are not printed.
         {
             continue;
         }
@@ -118,7 +62,7 @@ Point3 MeshGroup::max() const
     Point3 ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
     for (const Mesh& mesh : meshes)
     {
-        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("cutting_mesh") || mesh.getSettingBoolean("anti_overhang_mesh")) //Don't count pieces that are not printed.
+        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("cutting_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")) //Don't count pieces that are not printed.
         {
             continue;
         }
@@ -140,21 +84,19 @@ void MeshGroup::clear()
 
 void MeshGroup::finalize()
 {
-    extruder_count = getSettingAsCount("machine_extruder_count");
-
     //If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
     Point3 meshgroup_offset(0, 0, 0);
-    if (!getSettingBoolean("machine_center_is_zero"))
+    if (!settings.get<bool>("machine_center_is_zero"))
     {
-        meshgroup_offset.x = getSettingInMicrons("machine_width") / 2;
-        meshgroup_offset.y = getSettingInMicrons("machine_depth") / 2;
+        meshgroup_offset.x = settings.get<coord_t>("machine_width") / 2;
+        meshgroup_offset.y = settings.get<coord_t>("machine_depth") / 2;
     }
     
     // If a mesh position was given, put the mesh at this position in 3D space. 
     for(Mesh& mesh : meshes)
     {
-        Point3 mesh_offset(mesh.getSettingInMicrons("mesh_position_x"), mesh.getSettingInMicrons("mesh_position_y"), mesh.getSettingInMicrons("mesh_position_z"));
-        if (mesh.getSettingBoolean("center_object"))
+        Point3 mesh_offset(mesh.settings.get<coord_t>("mesh_position_x"), mesh.settings.get<coord_t>("mesh_position_y"), mesh.settings.get<coord_t>("mesh_position_z"));
+        if (mesh.settings.get<bool>("center_object"))
         {
             Point3 object_min = mesh.min();
             Point3 object_max = mesh.max();
@@ -258,7 +200,10 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     {
         return false;
     }
-
+    
+    //assign filename to mesh_name
+    mesh->mesh_name = filename;
+    
     //Skip any whitespace at the beginning of the file.
     unsigned long long num_whitespace = 0; //Number of whitespace characters.
     unsigned char whitespace;
@@ -305,18 +250,18 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings)
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, Settings& object_parent_settings)
 {
     TimeKeeper load_timer;
 
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
-        Mesh mesh = object_parent_settings ? Mesh(object_parent_settings) : Mesh(meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
-        if(loadMeshSTL(&mesh,filename,transformation)) //Load it! If successful...
+        Mesh mesh(object_parent_settings);
+        if (loadMeshSTL(&mesh, filename, transformation)) //Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
-            log("loading '%s' took %.3f seconds\n",filename,load_timer.restart());
+            log("loading '%s' took %.3f seconds\n", filename, load_timer.restart());
             return true;
         }
     }

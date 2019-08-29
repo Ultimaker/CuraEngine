@@ -1,16 +1,13 @@
-/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 #define INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 
-#include "../utils/polygon.h"
-#include "../settings/settings.h"
+#include "../utils/polygon.h" //TODO: We have implementation in this header file!
 
 namespace cura
 {
-
-// The default minimum line length threashold for lines in a zag connection.
-const coord_t DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD = 5;
-
 
 /*!
  * Processor class for processing the connections between lines which makes the infill a zigzag pattern.
@@ -110,14 +107,10 @@ public:
      * \param connected_endpieces Whether the end pieces should be connected with the rest part of the infill
      * \param skip_some_zags Whether to skip some zags
      * \param zag_skip_count Skip 1 zag in every N zags
-     * \param minimum_zag_line_length The minimum length for lines in a zag connector. If a line is shorter than
-     *                                this threshold, it won't be added until there is a line that's long enough
-     *                                to exceed the threshold.
      */
     ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result,
                              bool use_endpieces, bool connected_endpieces,
-                             bool skip_some_zags, int zag_skip_count,
-                             coord_t minimum_zag_line_length = DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD)
+                             bool skip_some_zags, int zag_skip_count)
     : rotation_matrix(rotation_matrix)
     , result(result)
     , use_endpieces(use_endpieces)
@@ -127,7 +120,6 @@ public:
     , is_first_connector(true)
     , first_connector_end_scanline_index(0)
     , last_connector_index(0)
-    , minimum_zag_line_length(minimum_zag_line_length)
     {}
 
     virtual ~ZigzagConnectorProcessor()
@@ -160,7 +152,7 @@ protected:
     void reset();
 
     /*!
-     * Add a line to the result bu unapplying the rotation rotation_matrix.
+     * Add a line to the result but not applying the rotation matrix.
      * 
      * \param from The one end of the line segment
      * \param to The other end of the line segment
@@ -208,8 +200,6 @@ protected:
     int first_connector_end_scanline_index; //!< scanline segment index of the first connector
     int last_connector_index; //!< scanline segment index of the last connector
 
-    coord_t minimum_zag_line_length; //!< maximum resolution so too short lines can be removed
-
     /*!
      * The line segments belonging the zigzag connector to which the very first vertex belongs.
      * This will be combined with the last handled zigzag_connector, which combine to a whole zigzag connector.
@@ -229,11 +219,11 @@ protected:
 
 inline void ZigzagConnectorProcessor::reset()
 {
-    this->is_first_connector = true;
-    this->first_connector_end_scanline_index = 0;
-    this->last_connector_index = 0;
-    this->first_connector.clear();
-    this->current_connector.clear();
+    is_first_connector = true;
+    first_connector_end_scanline_index = 0;
+    last_connector_index = 0;
+    first_connector.clear();
+    current_connector.clear();
 }
 
 inline void ZigzagConnectorProcessor::addLine(Point from, Point to)

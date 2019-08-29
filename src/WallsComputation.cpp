@@ -1,17 +1,17 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "ExtruderTrain.h"
+#include "sliceDataStorage.h"
 #include "WallsComputation.h"
+#include "settings/types/Ratio.h"
 #include "utils/polygonUtils.h"
+
 namespace cura {
 
-WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, size_t inset_count, bool recompute_outline_based_on_outer_wall, bool remove_parts_with_no_insets)
-: wall_0_inset(wall_0_inset)
-, line_width_0(line_width_0)
-, line_width_x(line_width_x)
-, inset_count(inset_count)
-, recompute_outline_based_on_outer_wall(recompute_outline_based_on_outer_wall)
-, remove_parts_with_no_insets(remove_parts_with_no_insets)
+WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)
+: settings(settings)
+, layer_nr(layer_nr)
 {
 }
 
@@ -23,6 +23,17 @@ WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_
  */
 void WallsComputation::generateInsets(SliceLayerPart* part)
 {
+    size_t inset_count = settings.get<size_t>("wall_line_count");
+    const bool spiralize = settings.get<bool>("magic_spiralize");
+    if (spiralize && layer_nr < LayerIndex(settings.get<size_t>("bottom_layers")) && ((layer_nr % 2) + 2) % 2 == 1) //Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
+    {
+        inset_count += 5;
+    }
+    if (settings.get<bool>("alternate_extra_perimeter"))
+    {
+        inset_count += ((layer_nr % 2) + 2) % 2;
+    }
+
     if (inset_count == 0)
     {
         part->insets.push_back(part->outline);
@@ -30,6 +41,18 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         return;
     }
 
+    const coord_t wall_0_inset = settings.get<coord_t>("wall_0_inset");
+    coord_t line_width_0 = settings.get<coord_t>("wall_line_width_0");
+    coord_t line_width_x = settings.get<coord_t>("wall_line_width_x");
+    if (layer_nr == 0)
+    {
+        const ExtruderTrain& train_wall_0 = settings.get<ExtruderTrain&>("wall_0_extruder_nr");
+        line_width_0 *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
+        const ExtruderTrain& train_wall_x = settings.get<ExtruderTrain&>("wall_x_extruder_nr");
+        line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
+    }
+
+    const bool recompute_outline_based_on_outer_wall = (settings.get<bool>("support_enable") || settings.get<bool>("support_tree_enable")) && !settings.get<bool>("fill_outline_gaps");
     for(size_t i = 0; i < inset_count; i++)
     {
         part->insets.push_back(Polygons());
@@ -108,6 +131,7 @@ void WallsComputation::generateInsets(SliceLayer* layer)
         generateInsets(&layer->parts[partNr]);
     }
 
+    const bool remove_parts_with_no_insets = !settings.get<bool>("fill_outline_gaps");
     //Remove the parts which did not generate an inset. As these parts are too small to print,
     // and later code can now assume that there is always minimal 1 inset line.
     for (unsigned int part_idx = 0; part_idx < layer->parts.size(); part_idx++)

@@ -35,30 +35,28 @@ public:
      * Optimize the order of \ref OrderOptimizer::items
      * \return A vector of the ordered indices into \ref OrderOptimizer::items
      */
-    std::list<unsigned int> optimize(const Point& start_position);
-
-
+    std::list<size_t> optimize(const Point& start_position);
 };
 
 template <typename T>
 void OrderOptimizer<T>::addItem(const Point location, const T item)
 {
-    this->items.emplace_back(location, item);
+    items.emplace_back(location, item);
 }
 
 template <typename T>
-std::list<unsigned int> OrderOptimizer<T>::optimize(const Point& start_position)
+std::list<size_t> OrderOptimizer<T>::optimize(const Point& start_position)
 {
     // Use the nearest mesh ordering
-    std::list<unsigned int> order;
-    std::vector<unsigned int> item_idx_list;
+    std::list<size_t> order;
+    std::vector<size_t> item_idx_list;
 
     if (items.size() == 0)
     {
         return order;
     }
 
-    for (unsigned int i = 0; i < items.size(); i++)
+    for (size_t i = 0; i < items.size(); i++)
     {
         item_idx_list.emplace_back(i);
     }
@@ -67,12 +65,12 @@ std::list<unsigned int> OrderOptimizer<T>::optimize(const Point& start_position)
     while (!item_idx_list.empty())
     {
         coord_t shortest_distance = POINT_MAX;
-        unsigned int shortest_distance_item_idx = -1;
-        unsigned int idx_in_list = -1;
+        size_t shortest_distance_item_idx = -1;
+        size_t idx_in_list = -1;
 
-        for (unsigned int idx = 0; idx < item_idx_list.size(); idx++)
+        for (size_t idx = 0; idx < item_idx_list.size(); idx++)
         {
-            const unsigned int item_idx = item_idx_list[idx];
+            const size_t item_idx = item_idx_list[idx];
             const Point& position = items[item_idx].first;
             const coord_t distance = vSize(position - *last_item_position);
             if (distance < shortest_distance)

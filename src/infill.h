@@ -4,17 +4,17 @@
 #ifndef INFILL_H
 #define INFILL_H
 
-#include "utils/polygon.h"
-#include "settings/settings.h"
 #include "infill/ZigzagConnectorProcessor.h"
-#include "infill/NoZigZagConnectorProcessor.h"
-#include "infill/SubDivCube.h"
-#include "infill/DensityProvider.h"
+#include "settings/EnumSettings.h" //For infill types.
+#include "settings/types/AngleDegrees.h"
 #include "utils/IntPoint.h"
-#include "utils/AABB.h"
 
 namespace cura
 {
+
+class AABB;
+class SierpinskiFillProvider;
+class SliceMeshStorage;
 
 class Infill 
 {
@@ -28,19 +28,18 @@ class Infill
     coord_t infill_line_width; //!< The line width of the infill lines to generate
     coord_t line_distance; //!< The distance between two infill lines / polygons
     coord_t infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
-    int infill_multiplier; //!< the number of infill lines next to each other
-    double fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
+    size_t infill_multiplier; //!< the number of infill lines next to each other
+    AngleDegrees fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     coord_t z; //!< height of the layer for which we generate infill
     coord_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
-    int wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
+    size_t wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     const Point infill_origin; //!< origin of the infill pattern
     Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
-    int zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
+    size_t zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     coord_t pocket_size; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
-    coord_t minimum_zag_line_length; //!< Throw away perimeters that are too small
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
@@ -60,19 +59,18 @@ public:
         , coord_t infill_line_width
         , coord_t line_distance
         , coord_t infill_overlap
-        , int infill_multiplier
-        , double fill_angle
+        , size_t infill_multiplier
+        , AngleDegrees fill_angle
         , coord_t z
         , coord_t shift
-        , int wall_line_count = 0
+        , size_t wall_line_count = 0
         , const Point& infill_origin = Point()
         , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
         , bool use_endpieces = false
         , bool skip_some_zags = false
-        , int zag_skip_count = 0
+        , size_t zag_skip_count = 0
         , coord_t pocket_size = 0
-        , coord_t minimum_zag_line_length = DEFAULT_MINIMUM_LINE_LENGTH_THRESHOLD
     )
     : pattern(pattern)
     , zig_zaggify(zig_zaggify)
@@ -94,7 +92,6 @@ public:
     , skip_some_zags(skip_some_zags)
     , zag_skip_count(zag_skip_count)
     , pocket_size(pocket_size)
-    , minimum_zag_line_length(minimum_zag_line_length)
     {
     }
 
@@ -221,6 +218,12 @@ private:
     std::vector<std::vector<std::vector<InfillLineSegment*>>> crossings_on_line;
 
     /*!
+     * Generate gyroid infill
+     * \param result (output) The resulting polygons
+     */
+    void generateGyroidInfill(Polygons& result);
+    
+    /*!
      * Generate sparse concentric infill
      * 
      * Also adds \ref Infill::perimeter_gaps between \ref Infill::in_outline and the first wall
@@ -309,7 +312,7 @@ private:
      * \param cut_list A mapping of each scanline to all y-coordinates (in the space transformed by rotation_matrix) where the polygons are crossing the scanline
      * \param total_shift total shift of the scanlines in the direction perpendicular to the fill_angle.
      */
-    void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list, int64_t total_shift);
+    void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t total_shift);
 
     /*!
      * Crop line segments by the infill polygon using Clipper
@@ -329,7 +332,7 @@ private:
      * \param infill_rotation The angle of the generated lines
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the infill_rotation
      */
-    void generateLineInfill(Polygons& result, int line_distance, const double& infill_rotation, int64_t extra_shift);
+    void generateLineInfill(Polygons& result, int line_distance, const double& infill_rotation, coord_t extra_shift);
     
     /*!
      * Function for creating linear based infill types (Lines, ZigZag).
@@ -347,7 +350,7 @@ private:
      * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
      */
-    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, int64_t extra_shift);
+    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift);
 
     /*!
      * 
@@ -396,7 +399,7 @@ private:
      * \param line_distance The distance between two lines which are in the same direction
      * \param infill_rotation The angle of the generated lines
      */
-    void generateZigZagInfill(Polygons& result, const int line_distance, const double& infill_rotation);
+    void generateZigZagInfill(Polygons& result, const coord_t line_distance, const double& infill_rotation);
 
     /*!
      * determine how far the infill pattern should be shifted based on the values of infill_origin and \p infill_rotation
@@ -405,7 +408,7 @@ private:
      *
      * \return the distance the infill pattern should be shifted
      */
-    int64_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
+    coord_t getShiftOffsetFromInfillOriginAndRotation(const double& infill_rotation);
 
     /*!
      * Connects infill lines together so that they form polylines.
