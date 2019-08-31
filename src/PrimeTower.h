@@ -14,6 +14,7 @@ namespace cura
 
 class SliceDataStorage;
 class LayerPlan;
+class Ratio;
 
 /*!
  * Class for everything to do with the prime tower:
@@ -120,8 +121,9 @@ private:
      * to store the generated layer paths.
      * \param extruder The extruder we just switched to, with which the prime
      * tower paths should be drawn.
+     * \param extrude Whether or not to extrude material while moving along the prime tower path.
      */
-    void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
+    void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder, bool extrude, Ratio speed_factor) const;
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.
