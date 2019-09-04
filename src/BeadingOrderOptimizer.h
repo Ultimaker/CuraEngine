@@ -14,6 +14,9 @@ namespace arachne
 
 /*!
  * Connecting ExtrusionSegments together into chains / polygons
+ * 
+ * TODO: there's a bug which connects thw wrong end of a short segment because our algorithm is gready
+ * When adding a segment we should explicitly check whether it would be better to connect the segment the other way around.
  */
 class BeadingOrderOptimizer
 {
