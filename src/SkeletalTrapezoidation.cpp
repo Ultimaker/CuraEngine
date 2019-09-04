@@ -1,5 +1,5 @@
 //Copyright (c) 2019 Ultimaker B.V.
-#include "VoronoiQuadrangulation.h"
+#include "SkeletalTrapezoidation.h"
 
 #include <stack>
 #include <functional>
@@ -40,17 +40,17 @@ struct point_traits<arachne::Point>
 };
 
 template <>
-struct geometry_concept<arachne::VoronoiQuadrangulation::Segment>
+struct geometry_concept<arachne::SkeletalTrapezoidation::Segment>
 {
     typedef segment_concept type;
 };
 
 template <>
-struct segment_traits<arachne::VoronoiQuadrangulation::Segment>
+struct segment_traits<arachne::SkeletalTrapezoidation::Segment>
 {
     typedef arachne::coord_t coordinate_type;
     typedef arachne::Point point_type;
-    static inline point_type get(const arachne::VoronoiQuadrangulation::Segment& segment, direction_1d dir) {
+    static inline point_type get(const arachne::SkeletalTrapezoidation::Segment& segment, direction_1d dir) {
         return dir.to_int() ? segment.p() : segment.next().p();
     }
 };
@@ -62,12 +62,12 @@ struct segment_traits<arachne::VoronoiQuadrangulation::Segment>
 namespace arachne
 {
 
-VoronoiQuadrangulation::node_t& VoronoiQuadrangulation::make_node(vd_t::vertex_type& vd_node, Point p)
+SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::make_node(vd_t::vertex_type& vd_node, Point p)
 {
     auto he_node_it = vd_node_to_he_node.find(&vd_node);
     if (he_node_it == vd_node_to_he_node.end())
     {
-        graph.nodes.emplace_front(VoronoiQuadrangulationJoint(), p);
+        graph.nodes.emplace_front(SkeletalTrapezoidationJoint(), p);
         node_t& node = graph.nodes.front();
         vd_node_to_he_node.emplace(&vd_node, &node);
         return node;
@@ -78,7 +78,7 @@ VoronoiQuadrangulation::node_t& VoronoiQuadrangulation::make_node(vd_t::vertex_t
     }
 }
 
-void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments)
+void SkeletalTrapezoidation::transfer_edge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     auto he_edge_it = vd_edge_to_he_edge.find(vd_edge.twin());
     if (he_edge_it != vd_edge_to_he_edge.end())
@@ -93,7 +93,7 @@ void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type
             twin = twin->prev->twin->prev)
         {
             assert(twin);
-            graph.edges.emplace_front(VoronoiQuadrangulationEdge());
+            graph.edges.emplace_front(SkeletalTrapezoidationEdge());
             edge_t* edge = &graph.edges.front();
             edge->from = twin->to;
             edge->to = twin->from;
@@ -142,7 +142,7 @@ void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type
             node_t* v1;
             if (p1_idx < discretized.size() - 1)
             {
-                graph.nodes.emplace_front(VoronoiQuadrangulationJoint(), p1);
+                graph.nodes.emplace_front(SkeletalTrapezoidationJoint(), p1);
                 v1 = &graph.nodes.front();
             }
             else
@@ -150,7 +150,7 @@ void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type
                 v1 = &make_node(*vd_edge.vertex1(), to);
             }
 
-            graph.edges.emplace_front(VoronoiQuadrangulationEdge());
+            graph.edges.emplace_front(SkeletalTrapezoidationEdge());
             edge_t* edge = &graph.edges.front();
             edge->from = v0;
             edge->to = v1;
@@ -178,20 +178,20 @@ void VoronoiQuadrangulation::transfer_edge(Point from, Point to, vd_t::edge_type
     }
 }
 
-void VoronoiQuadrangulation::make_rib(edge_t*& prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
+void SkeletalTrapezoidation::make_rib(edge_t*& prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
 {
     Point p = LinearAlg2D::getClosestOnLineSegment(prev_edge->to->p, start_source_point, end_source_point);
     coord_t dist = vSize(prev_edge->to->p - p);
     prev_edge->to->data.distance_to_boundary = dist;
     assert(dist >= 0);
 
-    graph.nodes.emplace_front(VoronoiQuadrangulationJoint(), p);
+    graph.nodes.emplace_front(SkeletalTrapezoidationJoint(), p);
     node_t* node = &graph.nodes.front();
     node->data.distance_to_boundary = 0;
     
-    graph.edges.emplace_front(VoronoiQuadrangulationEdge(VoronoiQuadrangulationEdge::EXTRA_VD));
+    graph.edges.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EXTRA_VD));
     edge_t* forth_edge = &graph.edges.front();
-    graph.edges.emplace_front(VoronoiQuadrangulationEdge(VoronoiQuadrangulationEdge::EXTRA_VD));
+    graph.edges.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EXTRA_VD));
     edge_t* back_edge = &graph.edges.front();
     
     prev_edge->next = forth_edge;
@@ -207,7 +207,7 @@ void VoronoiQuadrangulation::make_rib(edge_t*& prev_edge, Point start_source_poi
     prev_edge = back_edge;
 }
 
-std::vector<Point> VoronoiQuadrangulation::discretize(const vd_t::edge_type& vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
+std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     const vd_t::cell_type* left_cell = vd_edge.cell();
     const vd_t::cell_type* right_cell = vd_edge.twin()->cell();
@@ -306,7 +306,7 @@ std::vector<Point> VoronoiQuadrangulation::discretize(const vd_t::edge_type& vd_
 }
 
 
-bool VoronoiQuadrangulation::computePointCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
+bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     if (cell.incident_edge()->is_infinite())
     {
@@ -346,7 +346,7 @@ bool VoronoiQuadrangulation::computePointCellRange(vd_t::cell_type& cell, Point&
     assert(starting_vd_edge != ending_vd_edge);
     return true;
 }
-void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
+void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     const Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
     Point from = source_segment.from();
@@ -417,7 +417,7 @@ void VoronoiQuadrangulation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
     end_source_point = source_segment.from();
 }
 
-VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys, float transitioning_angle
+SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys, float transitioning_angle
 , coord_t discretization_step_size
 , coord_t transition_filter_dist
 , coord_t beading_propagation_transition_dist
@@ -431,7 +431,7 @@ VoronoiQuadrangulation::VoronoiQuadrangulation(const Polygons& polys, float tran
     init();
 }
 
-void VoronoiQuadrangulation::init()
+void SkeletalTrapezoidation::init()
 {
     std::vector<Point> points; // remains empty
 
@@ -598,7 +598,7 @@ void VoronoiQuadrangulation::init()
     vd_node_to_he_node.clear();
 }
 
-void VoronoiQuadrangulation::separatePointyQuadEndNodes()
+void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 {
     std::unordered_set<node_t*> visited_nodes;
     for (edge_t& edge : graph.edges)
@@ -622,7 +622,7 @@ void VoronoiQuadrangulation::separatePointyQuadEndNodes()
     debugCheckEndpointUniqueness();
 }
 
-void VoronoiQuadrangulation::removeZeroLengthSegments()
+void SkeletalTrapezoidation::removeZeroLengthSegments()
 {
     std::unordered_map<edge_t*, std::list<edge_t>::iterator> edge_locator;
     std::unordered_map<node_t*, std::list<node_t>::iterator> node_locator;
@@ -735,7 +735,7 @@ void VoronoiQuadrangulation::removeZeroLengthSegments()
     }
 }
 
-void VoronoiQuadrangulation::fixNodeDuplication()
+void SkeletalTrapezoidation::fixNodeDuplication()
 { // fix duplicate verts
     for (auto node_it = graph.nodes.begin(); node_it != graph.nodes.end();)
     {
@@ -778,7 +778,7 @@ void VoronoiQuadrangulation::fixNodeDuplication()
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
-std::vector<std::list<ExtrusionLine>> VoronoiQuadrangulation::generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges)
+std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges)
 {
     setMarking(beading_strategy);
 
@@ -843,7 +843,7 @@ std::vector<std::list<ExtrusionLine>> VoronoiQuadrangulation::generateToolpaths(
     return result_polylines_per_index;
 }
 
-void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
+void SkeletalTrapezoidation::setMarking(const BeadingStrategy& beading_strategy)
 {
     //                                            _.-'^`      .
     //                                      _.-'^`            .
@@ -868,7 +868,7 @@ void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
         {
             edge.data.setMarked(edge.twin->data.isMarked());
         }
-        else if (edge.data.type == VoronoiQuadrangulationEdge::EXTRA_VD)
+        else if (edge.data.type == SkeletalTrapezoidationEdge::EXTRA_VD)
         {
             edge.data.setMarked(false);
         }
@@ -889,7 +889,7 @@ void VoronoiQuadrangulation::setMarking(const BeadingStrategy& beading_strategy)
 }
 
 
-void VoronoiQuadrangulation::filterMarking(coord_t max_length)
+void SkeletalTrapezoidation::filterMarking(coord_t max_length)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -901,7 +901,7 @@ void VoronoiQuadrangulation::filterMarking(coord_t max_length)
 }
 
 
-bool VoronoiQuadrangulation::filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length)
+bool SkeletalTrapezoidation::filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length)
 {
     coord_t length = vSize(starting_edge->from->p - starting_edge->to->p);
     if (traveled_dist + length > max_length)
@@ -925,7 +925,7 @@ bool VoronoiQuadrangulation::filterMarking(edge_t* starting_edge, coord_t travel
     return should_dissolve;
 }
 
-void VoronoiQuadrangulation::filterOuterMarking()
+void SkeletalTrapezoidation::filterOuterMarking()
 {
     for (edge_t& edge : graph.edges)
     {
@@ -937,7 +937,7 @@ void VoronoiQuadrangulation::filterOuterMarking()
     }
 }
 
-void VoronoiQuadrangulation::setBeadCount(const BeadingStrategy& beading_strategy)
+void SkeletalTrapezoidation::setBeadCount(const BeadingStrategy& beading_strategy)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -969,7 +969,7 @@ void VoronoiQuadrangulation::setBeadCount(const BeadingStrategy& beading_strateg
     }
 }
 
-void VoronoiQuadrangulation:: filterUnmarkedRegions(const BeadingStrategy& beading_strategy)
+void SkeletalTrapezoidation:: filterUnmarkedRegions(const BeadingStrategy& beading_strategy)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -983,7 +983,7 @@ void VoronoiQuadrangulation:: filterUnmarkedRegions(const BeadingStrategy& beadi
     }
 }
 
-bool VoronoiQuadrangulation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist, const BeadingStrategy& beading_strategy)
+bool SkeletalTrapezoidation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist, const BeadingStrategy& beading_strategy)
 {
     coord_t r = to_edge->to->data.distance_to_boundary;
     bool dissolve = false;
@@ -1019,7 +1019,7 @@ bool VoronoiQuadrangulation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead
     return dissolve;
 }
 
-void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& beading_strategy)
+void SkeletalTrapezoidation::generateTransitioningRibs(const BeadingStrategy& beading_strategy)
 {
         debugCheckGraphCompleteness();
 
@@ -1071,7 +1071,7 @@ void VoronoiQuadrangulation::generateTransitioningRibs(const BeadingStrategy& be
 }
 
 
-void VoronoiQuadrangulation::generateTransitionMids(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions)
+void SkeletalTrapezoidation::generateTransitionMids(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -1133,7 +1133,7 @@ void VoronoiQuadrangulation::generateTransitionMids(const BeadingStrategy& beadi
     }
 }
 
-void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, const BeadingStrategy& beading_strategy)
+void SkeletalTrapezoidation::filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, const BeadingStrategy& beading_strategy)
 {
     for (auto pair_it = edge_to_transitions.begin(); pair_it != edge_to_transitions.end();)
     {
@@ -1217,7 +1217,7 @@ void VoronoiQuadrangulation::filterTransitionMids(std::unordered_map<edge_t*, st
     }
 }
 
-std::list<VoronoiQuadrangulation::TransitionMidRef> VoronoiQuadrangulation::dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, const BeadingStrategy& beading_strategy)
+std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, const BeadingStrategy& beading_strategy)
 {
     std::list<TransitionMidRef> to_be_dissolved;
     if (traveled_dist > max_dist)
@@ -1260,7 +1260,7 @@ std::list<VoronoiQuadrangulation::TransitionMidRef> VoronoiQuadrangulation::diss
         }
         if (!seen_transition_on_this_edge)
         {
-            std::list<VoronoiQuadrangulation::TransitionMidRef> to_be_dissolved_here = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions, beading_strategy);
+            std::list<SkeletalTrapezoidation::TransitionMidRef> to_be_dissolved_here = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions, beading_strategy);
             if (to_be_dissolved_here.empty())
             { // the region is too long to be dissolved in this direction, so it cannot be dissolved in any direction.
                 to_be_dissolved.clear();
@@ -1278,7 +1278,7 @@ std::list<VoronoiQuadrangulation::TransitionMidRef> VoronoiQuadrangulation::diss
 }
 
 
-void VoronoiQuadrangulation::dissolveBeadCountRegion(edge_t* edge_to_start, coord_t from_bead_count, coord_t to_bead_count)
+void SkeletalTrapezoidation::dissolveBeadCountRegion(edge_t* edge_to_start, coord_t from_bead_count, coord_t to_bead_count)
 {
     assert(from_bead_count != to_bead_count);
     if (edge_to_start->to->data.bead_count != from_bead_count)
@@ -1296,7 +1296,7 @@ void VoronoiQuadrangulation::dissolveBeadCountRegion(edge_t* edge_to_start, coor
     }
 }
 
-bool VoronoiQuadrangulation::filterEndOfMarkingTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count, const BeadingStrategy& beading_strategy)
+bool SkeletalTrapezoidation::filterEndOfMarkingTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count, const BeadingStrategy& beading_strategy)
 {
     if (traveled_dist > max_dist)
     {
@@ -1324,7 +1324,7 @@ bool VoronoiQuadrangulation::filterEndOfMarkingTransition(edge_t* edge_to_start,
     return should_dissolve;
 }
 
-void VoronoiQuadrangulation::generateTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
+void SkeletalTrapezoidation::generateTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
 {
     for (std::pair<edge_t*, std::list<TransitionMiddle>> pair : edge_to_transitions)
     {
@@ -1341,7 +1341,7 @@ void VoronoiQuadrangulation::generateTransitionEnds(const BeadingStrategy& beadi
     }
 }
 
-void VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, const BeadingStrategy& beading_strategy, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
+void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, const BeadingStrategy& beading_strategy, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -1379,7 +1379,7 @@ void VoronoiQuadrangulation::generateTransition(edge_t& edge, coord_t mid_pos, c
         debugCheckGraphConsistency();
 }
 
-bool VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
+bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -1473,7 +1473,7 @@ bool VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
 }
 
 
-bool VoronoiQuadrangulation::isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t max_dist, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids) const
+bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t max_dist, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids) const
 {
     // NOTE: the logic below is not fully thought through.
     // TODO: take transition mids into account
@@ -1531,7 +1531,7 @@ bool VoronoiQuadrangulation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
     return has_recursed && is_only_going_down;
 }
 
-void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
+void SkeletalTrapezoidation::applyTransitions(std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
 {
     for (std::pair<edge_t* const, std::list<TransitionEnd>>& pair : edge_to_transition_ends)
     {
@@ -1586,9 +1586,9 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
             debugCheckDecorationConsistency(false);
 
             assert(last_edge_replacing_input->data.isMarked());
-            assert(last_edge_replacing_input->data.type != VoronoiQuadrangulationEdge::EXTRA_VD);
+            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
             last_edge_replacing_input = insertNode(last_edge_replacing_input, mid, new_node_bead_count);
-            assert(last_edge_replacing_input->data.type != VoronoiQuadrangulationEdge::EXTRA_VD);
+            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
             assert(last_edge_replacing_input->data.isMarked());
 
 
@@ -1598,19 +1598,19 @@ void VoronoiQuadrangulation::applyTransitions(std::unordered_map<edge_t*, std::l
     }
 }
 
-VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::insertNode(edge_t* edge, Point mid, coord_t mide_node_bead_count)
+SkeletalTrapezoidation::edge_t* SkeletalTrapezoidation::insertNode(edge_t* edge, Point mid, coord_t mide_node_bead_count)
 {
     edge_t* last_edge_replacing_input = edge;
 
-    graph.nodes.emplace_back(VoronoiQuadrangulationJoint(), mid);
+    graph.nodes.emplace_back(SkeletalTrapezoidationJoint(), mid);
     node_t* mid_node = &graph.nodes.back();
 
     edge_t* twin = last_edge_replacing_input->twin;
     last_edge_replacing_input->twin = nullptr;
     twin->twin = nullptr;
-    std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> left_pair
+    std::pair<SkeletalTrapezoidation::edge_t*, SkeletalTrapezoidation::edge_t*> left_pair
         = insertRib(*last_edge_replacing_input, mid_node);
-    std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> right_pair
+    std::pair<SkeletalTrapezoidation::edge_t*, SkeletalTrapezoidation::edge_t*> right_pair
         = insertRib(*twin, mid_node);
     edge_t* first_edge_replacing_input = left_pair.first;
     last_edge_replacing_input = left_pair.second;
@@ -1627,7 +1627,7 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::insertNode(edge_t* edge,
     return last_edge_replacing_input;
 }
 
-std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> VoronoiQuadrangulation::insertRib(edge_t& edge, node_t* mid_node)
+std::pair<SkeletalTrapezoidation::edge_t*, SkeletalTrapezoidation::edge_t*> SkeletalTrapezoidation::insertRib(edge_t& edge, node_t* mid_node)
 {
     debugCheckGraphConsistency();
     edge_t* edge_before = edge.prev;
@@ -1644,16 +1644,16 @@ std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> Voro
     mid_node->data.distance_to_boundary = dist;
     mid_node->data.transition_ratio = 0; // both transition end should have rest = 0, because at the ends a whole number of beads fits without rest
 
-    graph.nodes.emplace_back(VoronoiQuadrangulationJoint(), px);
+    graph.nodes.emplace_back(SkeletalTrapezoidationJoint(), px);
     node_t* source_node = &graph.nodes.back();
     source_node->data.distance_to_boundary = 0;
 
     edge_t* first = &edge;
-    graph.edges.emplace_back(VoronoiQuadrangulationEdge());
+    graph.edges.emplace_back(SkeletalTrapezoidationEdge());
     edge_t* second = &graph.edges.back();
-    graph.edges.emplace_back(VoronoiQuadrangulationEdge(VoronoiQuadrangulationEdge::TRANSITION_END));
+    graph.edges.emplace_back(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::TRANSITION_END));
     edge_t* outward_edge = &graph.edges.back();
-    graph.edges.emplace_back(VoronoiQuadrangulationEdge(VoronoiQuadrangulationEdge::TRANSITION_END));
+    graph.edges.emplace_back(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::TRANSITION_END));
     edge_t* inward_edge = &graph.edges.back();
 
     if (edge_before) edge_before->next = first;
@@ -1700,7 +1700,7 @@ std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> Voro
 
     return std::make_pair(first, second);
 }
-std::pair<Point, Point> VoronoiQuadrangulation::getSource(const edge_t& edge)
+std::pair<Point, Point> SkeletalTrapezoidation::getSource(const edge_t& edge)
 {
     const edge_t* from_edge;
     for (from_edge = &edge; from_edge->prev; from_edge = from_edge->prev) {}
@@ -1709,7 +1709,7 @@ std::pair<Point, Point> VoronoiQuadrangulation::getSource(const edge_t& edge)
     return std::make_pair(from_edge->from->p, to_edge->to->p);
 }
 
-bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to) const
+bool SkeletalTrapezoidation::isEndOfMarking(const edge_t& edge_to) const
 {
     if (!edge_to.data.isMarked())
     {
@@ -1730,7 +1730,7 @@ bool VoronoiQuadrangulation::isEndOfMarking(const edge_t& edge_to) const
     return true;
 }
 
-bool VoronoiQuadrangulation::isLocalMaximum(const node_t& node) const
+bool SkeletalTrapezoidation::isLocalMaximum(const node_t& node) const
 {
     if (node.data.distance_to_boundary == 0)
     {
@@ -1753,7 +1753,7 @@ bool VoronoiQuadrangulation::isLocalMaximum(const node_t& node) const
     return true;
 }
 
-bool VoronoiQuadrangulation::isMarked(const node_t* node) const
+bool SkeletalTrapezoidation::isMarked(const node_t* node) const
 {
     bool first = true;
     for (edge_t* edge = node->some_edge; first || edge != node->some_edge; edge = edge->twin->next)
@@ -1778,7 +1778,7 @@ bool VoronoiQuadrangulation::isMarked(const node_t* node) const
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
-void VoronoiQuadrangulation::generateSegments(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index, const BeadingStrategy& beading_strategy)
+void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index, const BeadingStrategy& beading_strategy)
 {
     std::vector<edge_t*> upward_quad_mids;
     for (edge_t& edge : graph.edges)
@@ -1845,7 +1845,7 @@ void VoronoiQuadrangulation::generateSegments(std::vector<std::list<ExtrusionLin
     generateLocalMaximaSingleBeads(node_to_beading, result_polylines_per_index);
 }
 
-VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::getQuadMaxRedgeTo(edge_t* quad_start_edge)
+SkeletalTrapezoidation::edge_t* SkeletalTrapezoidation::getQuadMaxRedgeTo(edge_t* quad_start_edge)
 {
     assert(quad_start_edge->prev == nullptr);
     assert(quad_start_edge->from->data.distance_to_boundary == 0);
@@ -1869,7 +1869,7 @@ VoronoiQuadrangulation::edge_t* VoronoiQuadrangulation::getQuadMaxRedgeTo(edge_t
     return ret;
 }
 
-void VoronoiQuadrangulation::propagateBeadingsUpward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
+void SkeletalTrapezoidation::propagateBeadingsUpward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
 {
     for (auto upward_quad_mids_it = upward_quad_mids.rbegin(); upward_quad_mids_it != upward_quad_mids.rend(); ++upward_quad_mids_it)
     {
@@ -1897,7 +1897,7 @@ void VoronoiQuadrangulation::propagateBeadingsUpward(std::vector<edge_t*>& upwar
     }
 }
 
-void VoronoiQuadrangulation::propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
+void SkeletalTrapezoidation::propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
 {
     for (edge_t* upward_quad_mid : upward_quad_mids)
     {
@@ -1919,7 +1919,7 @@ void VoronoiQuadrangulation::propagateBeadingsDownward(std::vector<edge_t*>& upw
     }
 }
 
-void VoronoiQuadrangulation::propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
+void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
 {
     coord_t length = vSize(edge_to_peak->to->p - edge_to_peak->from->p);
     BeadingPropagation& top_beading = getBeading(edge_to_peak->to, node_to_beading, beading_strategy);
@@ -1953,7 +1953,7 @@ void VoronoiQuadrangulation::propagateBeadingsDownward(edge_t* edge_to_peak, std
 }
 
 
-VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right, coord_t switching_radius) const
+SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right, coord_t switching_radius) const
 {
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     Beading ret = interpolate(left, ratio_left_to_whole, right);
@@ -1996,7 +1996,7 @@ VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beadin
 }
 
 
-VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right) const
+SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right) const
 {
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     float ratio_right_to_whole = 1.0 - ratio_left_to_whole;
@@ -2010,7 +2010,7 @@ VoronoiQuadrangulation::Beading VoronoiQuadrangulation::interpolate(const Beadin
     return ret;
 }
 
-void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, const BeadingStrategy& beading_strategy)
+void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, const BeadingStrategy& beading_strategy)
 {
     for (edge_t& edge_ : graph.edges)
     {
@@ -2074,7 +2074,7 @@ void VoronoiQuadrangulation::generateJunctions(std::unordered_map<node_t*, Beadi
     }
 }
 
-const std::vector<ExtrusionJunction>& VoronoiQuadrangulation::getJunctions(edge_t* edge, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions)
+const std::vector<ExtrusionJunction>& SkeletalTrapezoidation::getJunctions(edge_t* edge, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions)
 {
     assert(edge->to->data.distance_to_boundary >= edge->from->data.distance_to_boundary);
     auto ret_it = edge_to_junctions.find(edge);
@@ -2083,7 +2083,7 @@ const std::vector<ExtrusionJunction>& VoronoiQuadrangulation::getJunctions(edge_
 }
 
 
-VoronoiQuadrangulation::BeadingPropagation& VoronoiQuadrangulation::getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
+SkeletalTrapezoidation::BeadingPropagation& SkeletalTrapezoidation::getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy)
 {
     auto beading_it = node_to_beading.find(node);
     if (beading_it == node_to_beading.end())
@@ -2118,7 +2118,7 @@ VoronoiQuadrangulation::BeadingPropagation& VoronoiQuadrangulation::getBeading(n
     return beading_it->second;
 }
 
-VoronoiQuadrangulation::BeadingPropagation* VoronoiQuadrangulation::getNearestBeading(node_t* node, coord_t max_dist, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
+SkeletalTrapezoidation::BeadingPropagation* SkeletalTrapezoidation::getNearestBeading(node_t* node, coord_t max_dist, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
 {
     struct DistEdge
     {
@@ -2160,7 +2160,7 @@ VoronoiQuadrangulation::BeadingPropagation* VoronoiQuadrangulation::getNearestBe
     return nullptr;
 }
 
-void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
+void SkeletalTrapezoidation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
 {
     // walk along cells in order of the input polygons, so that we can easily greedily optimize the order afterwards
     std::unordered_map<Point, edge_t*> poly_domain_starts;
@@ -2286,7 +2286,7 @@ void VoronoiQuadrangulation::connectJunctions(std::unordered_map<edge_t*, std::v
     }
 }
 
-bool VoronoiQuadrangulation::isMultiIntersection(node_t* node)
+bool SkeletalTrapezoidation::isMultiIntersection(node_t* node)
 {
     int odd_path_count = 0;
     bool first = true;
@@ -2299,7 +2299,7 @@ bool VoronoiQuadrangulation::isMultiIntersection(node_t* node)
     return odd_path_count > 2;
 }
 
-void VoronoiQuadrangulation::generateLocalMaximaSingleBeads(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
+void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
 {
     for (auto pair : node_to_beading)
     {
@@ -2332,7 +2332,7 @@ void VoronoiQuadrangulation::generateLocalMaximaSingleBeads(std::unordered_map<n
 //
 
 
-void VoronoiQuadrangulation::debugCheckGraphCompleteness()
+void SkeletalTrapezoidation::debugCheckGraphCompleteness()
 {
 #ifdef DEBUG
     for (const node_t& node : graph.nodes)
@@ -2356,7 +2356,7 @@ void VoronoiQuadrangulation::debugCheckGraphCompleteness()
 #endif
 }
 
-void VoronoiQuadrangulation::debugCheckEndpointUniqueness()
+void SkeletalTrapezoidation::debugCheckEndpointUniqueness()
 {
 #ifdef DEBUG
     for (edge_t& edge : graph.edges)
@@ -2370,7 +2370,7 @@ void VoronoiQuadrangulation::debugCheckEndpointUniqueness()
 #endif
 }
 
-void VoronoiQuadrangulation::debugCheckGraphExistance()
+void SkeletalTrapezoidation::debugCheckGraphExistance()
 {
 #ifdef DEBUG
     std::unordered_set<edge_t*> all_edges;
@@ -2410,7 +2410,7 @@ void VoronoiQuadrangulation::debugCheckGraphExistance()
 #endif
 }
 
-void VoronoiQuadrangulation::debugCheckGraphStructure()
+void SkeletalTrapezoidation::debugCheckGraphStructure()
 {
 #ifdef DEBUG
     for (edge_t& edge : graph.edges)
@@ -2431,7 +2431,7 @@ void VoronoiQuadrangulation::debugCheckGraphStructure()
 #endif
 }
 
-void VoronoiQuadrangulation::debugCheckGraphReachability()
+void SkeletalTrapezoidation::debugCheckGraphReachability()
 {
 #ifdef DEBUG
     std::unordered_set<node_t*> reachable_nodes;
@@ -2482,7 +2482,7 @@ void VoronoiQuadrangulation::debugCheckGraphReachability()
 #endif
 }
 
-void VoronoiQuadrangulation::debugCheckGraphConsistency(bool ignore_duplication)
+void SkeletalTrapezoidation::debugCheckGraphConsistency(bool ignore_duplication)
 {
 #ifdef DEBUG
     auto vert_assert = [ignore_duplication](const node_t* first, const node_t* second)
@@ -2491,7 +2491,7 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency(bool ignore_duplication)
         {
             if (first->p == second->p)
             {
-                RUN_ONCE(logWarning("Unneccesary duplicatation of VoronoiQuadrangulation nodes!\n"));
+                RUN_ONCE(logWarning("Unneccesary duplicatation of SkeletalTrapezoidation nodes!\n"));
                 assert(ignore_duplication);
             }
             else
@@ -2555,14 +2555,14 @@ void VoronoiQuadrangulation::debugCheckGraphConsistency(bool ignore_duplication)
 #endif // DEBUG
 }
 
-void VoronoiQuadrangulation::debugCheckDecorationConsistency(bool transitioned)
+void SkeletalTrapezoidation::debugCheckDecorationConsistency(bool transitioned)
 {
 #ifdef DEBUG
     for (const edge_t& edge : graph.edges)
     {
         const edge_t* edge_p = &edge;
-        assert(edge.data.type >= VoronoiQuadrangulationEdge::NORMAL);
-        if (edge.data.type != VoronoiQuadrangulationEdge::NORMAL)
+        assert(edge.data.type >= SkeletalTrapezoidationEdge::NORMAL);
+        if (edge.data.type != SkeletalTrapezoidationEdge::NORMAL)
         {
             if (edge.from->data.distance_to_boundary != -1 && edge.to->data.distance_to_boundary != -1)
             {
@@ -2582,7 +2582,7 @@ void VoronoiQuadrangulation::debugCheckDecorationConsistency(bool transitioned)
 #endif // DEBUG
 }
 
-void VoronoiQuadrangulation::debugCheckTransitionMids(const std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions) const
+void SkeletalTrapezoidation::debugCheckTransitionMids(const std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions) const
 {
 #ifdef DEBUG
     for (std::pair<edge_t*, std::list<TransitionMiddle>> pair : edge_to_transitions)
@@ -2608,20 +2608,20 @@ void VoronoiQuadrangulation::debugCheckTransitionMids(const std::unordered_map<e
 #endif // DEBUG
 }
 
-SVG::ColorObject VoronoiQuadrangulation::getColor(edge_t& edge)
+SVG::ColorObject SkeletalTrapezoidation::getColor(edge_t& edge)
 {
     switch (edge.data.type)
     {
-        case VoronoiQuadrangulationEdge::TRANSITION_END:
+        case SkeletalTrapezoidationEdge::TRANSITION_END:
             return SVG::Color::MAGENTA;
-        case VoronoiQuadrangulationEdge::NORMAL:
-        case VoronoiQuadrangulationEdge::EXTRA_VD:
+        case SkeletalTrapezoidationEdge::NORMAL:
+        case SkeletalTrapezoidationEdge::EXTRA_VD:
         default:
             return SVG::ColorObject(100, 100, 100);
     }
 }
 
-void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts, bool draw_locations)
+void SkeletalTrapezoidation::debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts, bool draw_locations)
 {
     svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK, 3);
     for (edge_t& edge : graph.edges)
@@ -2705,7 +2705,7 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, bool draw_arrows, bool draw_d
     }
 }
 
-void VoronoiQuadrangulation::debugOutput(SVG& svg, std::unordered_map<edge_t*, std::list<TransitionMiddle>>* edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>* edge_to_transition_ends)
+void SkeletalTrapezoidation::debugOutput(SVG& svg, std::unordered_map<edge_t*, std::list<TransitionMiddle>>* edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>* edge_to_transition_ends)
 {
     coord_t font_size = 20;
     SVG::ColorObject up_clr(255, 0, 150);
@@ -2754,7 +2754,7 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, std::unordered_map<edge_t*, s
     }
 }
 
-void VoronoiQuadrangulation::debugOutput(SVG& svg, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions)
+void SkeletalTrapezoidation::debugOutput(SVG& svg, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions)
 {
     for (auto& pair : edge_to_junctions)
         for (ExtrusionJunction& junction : pair.second)
@@ -2773,7 +2773,7 @@ void VoronoiQuadrangulation::debugOutput(SVG& svg, std::unordered_map<edge_t*, s
             svg.writePoint(junction.p, false, 2, SVG::Color::YELLOW);
 }
 
-void VoronoiQuadrangulation::debugOutput(STLwriter& stl, bool use_bead_count)
+void SkeletalTrapezoidation::debugOutput(STLwriter& stl, bool use_bead_count)
 {
     auto toPoint3 = [use_bead_count](node_t* node)
         {
@@ -2801,7 +2801,7 @@ void VoronoiQuadrangulation::debugOutput(STLwriter& stl, bool use_bead_count)
     }
 }
 
-void VoronoiQuadrangulation::debugOutput(STLwriter& stl, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
+void SkeletalTrapezoidation::debugOutput(STLwriter& stl, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
 {
     auto toPoint3 = [](Point p, float h)
     {

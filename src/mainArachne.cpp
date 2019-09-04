@@ -18,7 +18,7 @@
 #include "utils/gettime.h"
 #include "utils/SVG.h"
 
-#include "VoronoiQuadrangulation.h"
+#include "SkeletalTrapezoidation.h"
 #include "DistributedBeadingStrategy.h"
 #include "InwardDistributedBeadingStrategy.h"
 #include "LimitedDistributedBeadingStrategy.h"
@@ -589,9 +589,9 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     {
         filter_outermost_marked_edges = true;
     }
-    VoronoiQuadrangulation vq(polys, transitioning_angle, discretization_step_size, transition_filter_dist, beading_propagation_transition_dist);
+    SkeletalTrapezoidation st(polys, transitioning_angle, discretization_step_size, transition_filter_dist, beading_propagation_transition_dist);
 
-    std::vector<std::list<ExtrusionLine>> result_polylines_per_index = vq.generateToolpaths(*beading_strategy, filter_outermost_marked_edges);
+    std::vector<std::list<ExtrusionLine>> result_polylines_per_index = st.generateToolpaths(*beading_strategy, filter_outermost_marked_edges);
 
     std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
     BeadingOrderOptimizer::optimize(result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments);
@@ -622,8 +622,8 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     if (generate_MAT_STL)
     {
         {
-            STLwriter stl("output/vq_bead_count.stl");
-            vq.debugOutput(stl, true);
+            STLwriter stl("output/st_bead_count.stl");
+            st.debugOutput(stl, true);
         }
         logAlways("Writing MAT STL took %fs\n", tk.restart());
     }
@@ -631,7 +631,7 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     if (analyse)
     {
         Statistics stats(to_string(type), output_prefix, polys, processing_time);
-        stats.analyse(result_polygons_per_index, result_polylines_per_index, &vq);
+        stats.analyse(result_polygons_per_index, result_polylines_per_index, &st);
         logAlways("Analysis took %fs\n", tk.restart());
         stats.saveResultsCSV();
         stats.visualize(nozzle_size, true);

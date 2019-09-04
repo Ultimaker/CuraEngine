@@ -14,8 +14,8 @@
 #include "utils/PolygonsSegmentIndex.h"
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionLine.h"
-#include "VoronoiQuadrangulationEdge.h"
-#include "VoronoiQuadrangulationJoint.h"
+#include "SkeletalTrapezoidationEdge.h"
+#include "SkeletalTrapezoidationJoint.h"
 #include "BeadingStrategy.h"
 
 #include "utils/STLwriter.h"
@@ -40,13 +40,13 @@ namespace arachne
  * 1. Class for generating the decomposition and aux functions for performing updates
  * 2. Class for editing the structure for our purposes.
  */
-class VoronoiQuadrangulation
+class SkeletalTrapezoidation
 {
     using pos_t = double;
     using vd_t = boost::polygon::voronoi_diagram<pos_t>;
-    using graph_t = HalfEdgeGraph<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
-    using edge_t = HalfEdge<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
-    using node_t = HalfEdgeNode<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
+    using graph_t = HalfEdgeGraph<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
+    using edge_t = HalfEdge<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
+    using node_t = HalfEdgeNode<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
     using Beading = BeadingStrategy::Beading;
 
     const Polygons& polys; //!< input outline boundary shape
@@ -60,12 +60,12 @@ class VoronoiQuadrangulation
 
 public:
     using Segment = PolygonsSegmentIndex;
-    VoronoiQuadrangulation(const Polygons& polys, float transitioning_angle
+    SkeletalTrapezoidation(const Polygons& polys, float transitioning_angle
     , coord_t discretization_step_size = 200
     , coord_t transition_filter_dist = 1000
     , coord_t beading_propagation_transition_dist = 400
     );
-    HalfEdgeGraph<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge> graph;
+    HalfEdgeGraph<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge> graph;
     std::vector<std::list<ExtrusionLine>> generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges = false);
 
 protected:
@@ -255,7 +255,7 @@ protected:
     /*!
      * Return the first and last edge of the edges replacing \p edge pointing to the same node
      */
-    std::pair<VoronoiQuadrangulation::edge_t*, VoronoiQuadrangulation::edge_t*> insertRib(edge_t& edge, node_t* mid_node);
+    std::pair<SkeletalTrapezoidation::edge_t*, SkeletalTrapezoidation::edge_t*> insertRib(edge_t& edge, node_t* mid_node);
 
     std::pair<Point, Point> getSource(const edge_t& edge);
     bool isEndOfMarking(const edge_t& edge) const;
@@ -340,7 +340,7 @@ protected:
      * \param edge_to_junctions junctions ordered high R to low R
      * \param[out] segments the generated segments
      */
-    void connectJunctions(std::unordered_map< arachne::VoronoiQuadrangulation::edge_t*, std::vector< arachne::ExtrusionJunction > >& edge_to_junctions, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
+    void connectJunctions(std::unordered_map< arachne::SkeletalTrapezoidation::edge_t*, std::vector< arachne::ExtrusionJunction > >& edge_to_junctions, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
 
     bool isMultiIntersection(node_t* node);
 
@@ -348,7 +348,7 @@ protected:
      * Genrate small segments for local maxima where the beading would only result in a single bead
      * \param[out] segments the generated segments
      */
-    void generateLocalMaximaSingleBeads(std::unordered_map< arachne::VoronoiQuadrangulation::node_t*, arachne::VoronoiQuadrangulation::BeadingPropagation >& node_to_beading, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
+    void generateLocalMaximaSingleBeads(std::unordered_map< arachne::SkeletalTrapezoidation::node_t*, arachne::SkeletalTrapezoidation::BeadingPropagation >& node_to_beading, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
 
     /*!
      * \p edge is assumed to point upward to higher R; otherwise take its twin

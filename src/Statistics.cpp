@@ -11,9 +11,9 @@
 namespace arachne
 {
 
-void Statistics::analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, VoronoiQuadrangulation* vq)
+void Statistics::analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, SkeletalTrapezoidation* st)
 {
-    this->vq = vq;
+    this->st = st;
     this->polygons_per_index = &polygons_per_index;
     this->polylines_per_index = &polylines_per_index;
 
@@ -156,17 +156,17 @@ void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& poly
     }
 }
 
-void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool visualize_accuracy, bool exaggerate_widths, bool rounded_visualization)
+void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_toolpaths, bool output_widths, bool include_legend, bool visualize_accuracy, bool exaggerate_widths, bool rounded_visualization)
 {
     AABB aabb(input);
 
 #ifdef DEBUG
-    if (output_vq && vq)
+    if (output_st && st)
     {
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_after.svg";
         SVG svg(ss.str(), aabb);
-        vq->debugOutput(svg, false, false, true);
+        st->debugOutput(svg, false, false, true);
         svg.writePolylines(paths, SVG::Color::BLACK, 2);
         
         if (false)

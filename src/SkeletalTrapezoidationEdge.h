@@ -8,7 +8,7 @@
 namespace arachne
 {
 
-class VoronoiQuadrangulationEdge
+class SkeletalTrapezoidationEdge
 {
     using type_t = int_least16_t;
 public:
@@ -17,10 +17,10 @@ public:
     static constexpr type_t EXTRA_VD = 1; // introduced to voronoi diagram in order to make the gMAT
     static constexpr type_t TRANSITION_END = 2; // introduced to voronoi diagram in order to make the gMAT
 
-    VoronoiQuadrangulationEdge()
-    : VoronoiQuadrangulationEdge(NORMAL)
+    SkeletalTrapezoidationEdge()
+    : SkeletalTrapezoidationEdge(NORMAL)
     {}
-    VoronoiQuadrangulationEdge(type_t type)
+    SkeletalTrapezoidationEdge(type_t type)
     : type(type)
     , is_marked(-1)
     {}

@@ -8,7 +8,7 @@
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionSegment.h"
 #include "utils/ExtrusionLine.h"
-#include "VoronoiQuadrangulation.h"
+#include "SkeletalTrapezoidation.h"
 
 namespace arachne
 {
@@ -28,8 +28,8 @@ public:
         total_target_area = INT2MM2(input.area());
         total_target_area_length = INT2MM(input.polygonLength());
     }
-    void analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, VoronoiQuadrangulation* vq = nullptr);
-    void visualize(coord_t nozzle_size, bool output_vq = true, bool output_toolpaths = false, bool output_widths = true, bool include_legend = false, bool output_accuracy = true, bool exaggerate_widths = false, bool rounded_visualization = true);
+    void analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, SkeletalTrapezoidation* st = nullptr);
+    void visualize(coord_t nozzle_size, bool output_st = true, bool output_toolpaths = false, bool output_widths = true, bool include_legend = false, bool output_accuracy = true, bool exaggerate_widths = false, bool rounded_visualization = true);
     void saveResultsCSV();
     double processing_time = -1;
     double overfill_area = -1;
@@ -54,7 +54,7 @@ private:
     std::string test_type;
     std::string output_prefix;
     const Polygons& input;
-    VoronoiQuadrangulation* vq;
+    SkeletalTrapezoidation* st;
 
     std::vector<std::list<ExtrusionLine>>* polygons_per_index;
     std::vector<std::list<ExtrusionLine>>* polylines_per_index;
