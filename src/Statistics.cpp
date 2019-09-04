@@ -156,7 +156,7 @@ void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& poly
     }
 }
 
-void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool visualize_accuracy, bool exaggerate_widths)
+void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_toolpaths, bool output_widths, bool include_legend, bool visualize_accuracy, bool exaggerate_widths, bool rounded_visualization)
 {
     AABB aabb(input);
 
@@ -236,9 +236,10 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
             polys = PolygonUtils::connect(polys);
             for (PolygonRef connected : polys)
                 svg.writeAreas(connected, clr, SVG::Color::NONE);
+            if (!rounded_visualization) break;
         }
-//         svg.nextLayer();
-//         svg.writePolylines(paths, SVG::Color::BLACK, 2);
+        svg.nextLayer();
+        svg.writePolylines(paths, SVG::Color::BLACK, 2);
         svg.nextLayer();
         svg.writeAreas(underfills, SVG::ColorObject(0,128,255), SVG::Color::NONE);
         svg.nextLayer();
@@ -285,9 +286,10 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
         }
 
 
-        Point3 green(255,255,255);
-        Point3 red(255,0,0);
-        Point3 blue(0,0,255);
+//         Point3 middle = rounded_visualization? Point3(255,255,255) : Point3(192,192,192);
+        Point3 middle(255,255,255);
+        Point3 wide(255,0,0);
+        Point3 narrow(0,0,255);
         
 //         Polygons connecteds = PolygonUtils::connect(area_covered);
 //         for (PolygonRef connected : connecteds)
@@ -295,7 +297,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
         
         for (float w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
         {
-            int c = 255 - 200 * (w - .25);
+            int brightness = rounded_visualization? 255 - 200 * (w - .25) : 192;
             for (coord_t segment_idx = 0; segment_idx < all_segments_plus.size(); segment_idx++)
             {
                 Segment ss = all_segments_plus[segment_idx];
@@ -309,13 +311,14 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
                     color_ratio = color_ratio * .5 + .5 * sqrt(color_ratio);
                     if (avg_w > nozzle_size)
                     {
-                        clr = red * color_ratio + green * (1.0 - color_ratio );
+                        clr = wide * color_ratio + middle * (1.0 - color_ratio );
                     }
                     else
                     {
-                        clr = blue * color_ratio + green * (1.0 - color_ratio );
+                        clr = narrow * color_ratio + middle * (1.0 - color_ratio );
                     }
-                    clr = clr * c / 255;
+                    clr = clr * brightness / 255;
+                        
     //                 coord_t clr_max = std::max(clr.x, std::max(clr.y, clr.z));
     //                 clr = clr * 255 / clr_max;
 
@@ -336,6 +339,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_vq, bool output_tool
                     svg.writeAreas(covered, SVG::ColorObject(clr.x, clr.y, clr.z), SVG::Color::NONE);
                 }
             }
+            if (!rounded_visualization) break;
             svg.nextLayer();
         }
 //         svg.nextLayer();
