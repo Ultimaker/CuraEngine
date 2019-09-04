@@ -900,18 +900,6 @@ void VoronoiQuadrangulation::filterMarking(coord_t max_length)
     }
 }
 
-void VoronoiQuadrangulation::filterOuterMarking()
-{
-    for (edge_t& edge : graph.edges)
-    {
-        if (!edge.prev)
-        {
-            edge.data.setMarked(false);
-            edge.twin->data.setMarked(false);
-        }
-    }
-}
-
 
 bool VoronoiQuadrangulation::filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length)
 {
@@ -937,6 +925,18 @@ bool VoronoiQuadrangulation::filterMarking(edge_t* starting_edge, coord_t travel
     return should_dissolve;
 }
 
+void VoronoiQuadrangulation::filterOuterMarking()
+{
+    for (edge_t& edge : graph.edges)
+    {
+        if (!edge.prev)
+        {
+            edge.data.setMarked(false);
+            edge.twin->data.setMarked(false);
+        }
+    }
+}
+
 void VoronoiQuadrangulation::setBeadCount(const BeadingStrategy& beading_strategy)
 {
     for (edge_t& edge : graph.edges)
@@ -948,7 +948,7 @@ void VoronoiQuadrangulation::setBeadCount(const BeadingStrategy& beading_strateg
     }
 
     // fix bead count at locally maximal R
-    // also for marked regions!! See TODOs in generateTransitionEnd(.)
+    // also for marked regions!! See TODO s in generateTransitionEnd(.)
     for (node_t& node : graph.nodes)
     {
         if (isLocalMaximum(node))
@@ -1422,8 +1422,9 @@ bool VoronoiQuadrangulation::generateTransitionEnd(edge_t& edge, coord_t start_p
                 continue; // don't put transition ends in non-marked regions
             }
             if (marked_edge_count > 1 && going_up && isGoingDown(outgoing, 0, end_pos - ab_size + transition_half_length, lower_bead_count, edge_to_transition_mids))
-            { // we're after a 3-way all marked junction node and going in the direction of lower bead count
+            { // we're after a 3-way_all-marked_junction-node and going in the direction of lower bead count
                 // don't introduce a transition end along this marked direction, because this direction is the downward direction
+                // while we are supposed to be [going_up]
                 outgoing = next;
                 continue;
             }

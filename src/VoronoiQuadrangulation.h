@@ -23,6 +23,23 @@
 namespace arachne
 {
 
+/*!
+ * Main class of this library.
+ * 
+ * The input polygon region is decomposed into trapezoids and represented as a half-edge data-structure.
+ * 
+ * We determine which edges are 'central' accordinding to the transitioning_angle of the beading strategy,
+ * and determine the bead count for these central regions and apply them outward when generating toolpaths. [oversimplified]
+ * 
+ * The method can be visually explained as generating the 3D union of cones surface on the outline polygons,
+ * and changing the heights along central regions of that surface so that they are flat. (See paper)
+ * This visual explanation aid explains the use of "upward", "lower" etc,
+ * i.e. the radial distance and/or the bead count are used as heights of this visualization, there is no coordinate called 'Z'.
+ * 
+ * TODO: split this class into two:
+ * 1. Class for generating the decomposition and aux functions for performing updates
+ * 2. Class for editing the structure for our purposes.
+ */
 class VoronoiQuadrangulation
 {
     using pos_t = double;
@@ -32,14 +49,14 @@ class VoronoiQuadrangulation
     using node_t = HalfEdgeNode<VoronoiQuadrangulationJoint, VoronoiQuadrangulationEdge>;
     using Beading = BeadingStrategy::Beading;
 
-    const Polygons& polys;
+    const Polygons& polys; //!< input outline boundary shape
 
-    float transitioning_angle;
-    coord_t discretization_step_size;
-    coord_t transition_filter_dist; // filter transitions closer together than this
-    coord_t beading_propagation_transition_dist;
-    coord_t marking_filter_dist = 20; // filter marking areas smaller than this
-    coord_t snap_dist = 20; // generic arithmatic inaccuracy
+    float transitioning_angle; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
+    coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
+    coord_t transition_filter_dist; //!< filter transition mids (i.e. anchors) closer together than this
+    coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
+    coord_t marking_filter_dist = 20; //!< filter areas marked as 'central' smaller than this
+    coord_t snap_dist = 20; //!< generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
 
 public:
     using Segment = PolygonsSegmentIndex;
@@ -53,6 +70,19 @@ public:
 
 protected:
 
+    /*!
+     * Compute the skeletal trapezoidation decomposition of the input shape.
+     * 
+     * Compute the Voronoi Diagram (VD) and transfer all inside edges into our half-edge (HE) datastructure.
+     * 
+     * The algorithm is currently a bit overcomplicated, because the discretization of parabolic edges is performed at the same time as all edges are being transfered,
+     * which means that there is no one-to-one mapping from VD edges to HE edges.
+     * Instead we map from a VD edge to the last HE edge.
+     * This could be cimplified by recording the edges which should be discretized and discretizing the mafterwards.
+     * 
+     * Another complication arises because the VD uses floating logic, which can result in zero-length segments after rounding to integers.
+     * We therefore collapse edges and their whole cells afterwards.
+     */
     void init();
 
     /*!
@@ -61,8 +91,9 @@ protected:
      */
     std::unordered_map<vd_t::edge_type*, edge_t*> vd_edge_to_he_edge;
     std::unordered_map<vd_t::vertex_type*, node_t*> vd_node_to_he_node;
-    node_t& make_node(vd_t::vertex_type& vd_node, Point p);
+    node_t& make_node(vd_t::vertex_type& vd_node, Point p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
     /*!
+     * Transfer an edge vrom the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
      * \p prev_edge serves as input and output. May be null as input.
      */
     void transfer_edge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments);
@@ -88,21 +119,33 @@ protected:
 
     // ^ init | v transitioning
 
-    void setMarking(const BeadingStrategy& beading_strategy); //! set the is_marked flag for each edge
+    void setMarking(const BeadingStrategy& beading_strategy); //!< set the is_marked flag for each edge based on the transitioning_angle
 
-    void filterMarking(coord_t max_length); //! Filter out small marked areas
-
-    void filterOuterMarking(); //! unmark the outermost edges
+    /*!
+     * Filter out small marked areas.
+     * 
+     * Only used to get rid of small edges which get marked because of rounding errors because hte region is so small.
+     */
+    void filterMarking(coord_t max_length);
 
     /*!
      * Filter markings connected to starting_edge recursively.
      * 
-     * \return Whether we should unmark this marked section
+     * \return Whether we should unmark this marked section on the way back out of the recursion
      */
     bool filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length);
 
     /*!
-     * set bead count in marked regions
+     * Unmark the outermost edges directly connected to the outline.
+     * 
+     * Only used to emulate some related literature.
+     * 
+     * The paper shows that this function is bad for the stability of the framework.
+     */
+    void filterOuterMarking();
+
+    /*!
+     * Set bead count in marked regions based on the optimal_bead_count of the beading strategy.
      */
     void setBeadCount(const BeadingStrategy& beading_strategy);
 
@@ -118,6 +161,9 @@ protected:
      */
     bool filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist, const BeadingStrategy& beading_strategy);
 
+    /*!
+     * Representing the location along an edge where the anchor position of a transition should be placed.
+     */
     struct TransitionMiddle
     {
         coord_t pos; //! position along edge as measure from edge.from.p
@@ -127,6 +173,9 @@ protected:
         {}
     };
 
+    /*!
+     * Auxiliary for referencing one transition along an edge which may contain multiple transitions
+     */
     struct TransitionMidRef
     {
         std::unordered_map<edge_t*, std::list<TransitionMiddle>>::iterator pair_it;
@@ -137,6 +186,9 @@ protected:
         {}
     };
 
+    /*!
+     * Represents the location along an edge where the lower or upper end of a transition should be placed.
+     */
     struct TransitionEnd
     {
         coord_t pos; //!< position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R

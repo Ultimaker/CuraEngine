@@ -38,7 +38,11 @@ public:
 
     coord_t optimal_width; //! optimal bead width
 
-    float transitioning_angle; //!< The maximum angle between outline segments smaller than which we are going to add transitions
+    /*!
+     * The maximum angle between outline segments smaller than which we are going to add transitions
+     * Equals 180 - the "limit bisector angle" from the paper
+     */
+    float transitioning_angle;
 
     BeadingStrategy(coord_t optimal_width, float transitioning_angle = M_PI / 3)
     : optimal_width(optimal_width)
@@ -59,7 +63,7 @@ public:
     virtual Beading compute(coord_t thickness, coord_t bead_count) const = 0;
 
     /*!
-     * The ideal thickness for a given 
+     * The ideal thickness for a given \param bead_count
      */
     virtual coord_t optimal_thickness(coord_t bead_count) const = 0;
 
@@ -74,7 +78,9 @@ public:
     virtual coord_t optimal_bead_count(coord_t thickness) const = 0;
 
     /*!
-     * The length of the transitioning region along the marked / significant regions of the skeleton
+     * The length of the transitioning region along the marked / significant regions of the skeleton.
+     * 
+     * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps with some incline defined by their length.
      */
     virtual coord_t getTransitioningLength(coord_t lower_bead_count) const
     {
@@ -85,6 +91,11 @@ public:
         return optimal_width;
     }
 
+    /*!
+     * The fraction of the transition length to put between the lower end of the transition and the point where the unsmoothed bead count jumps.
+     * 
+     * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps which could be positioned relative to the jump location.
+     */
     virtual float getTransitionAnchorPos(coord_t lower_bead_count) const
     {
         coord_t lower_optimum = optimal_thickness(lower_bead_count);

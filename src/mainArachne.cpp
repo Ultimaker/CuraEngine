@@ -567,7 +567,7 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
 {
     std::string type_str = to_string(type);
     logAlways(">> Performing %s strategy...\n", type_str.c_str());
-    float transitioning_angle = M_PI / 4;
+    float transitioning_angle = M_PI / 4; // = 180 - the "limit bisector angle" from the paper
 
     BeadingStrategy* beading_strategy = makeStrategy(type, nozzle_size, transitioning_angle);
     if (!beading_strategy) return;
