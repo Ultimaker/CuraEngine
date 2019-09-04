@@ -751,8 +751,9 @@ void test(std::string input_outline_filename, std::string output_prefix)
     // Preparing Input Geometries.
     int r;
     r = time(0);
+    r = 1566731558;
     srand(r);
-//     logAlways("srand(%d);\n", r);
+//     logAlways("r = %d;\n", r);
 //     logDebug("boost version: %s\n", BOOST_LIB_VERSION);
     
     
@@ -771,6 +772,34 @@ void test(std::string input_outline_filename, std::string output_prefix)
     Polygons polys = SVGloader::load(input_outline_filename);
     AABB aabb(polys);
     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
+    */
+    
+    /*
+    AABB aabb(Point(0,0), Point(1000,1000));
+    Polygons qwe;
+    qwe.add(aabb.toPolygon());
+    Statistics stats("asf", "asf", qwe, 1.0);
+    
+    std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
+
+    std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
+    result_polylines_per_index.emplace_back();
+    ExtrusionLine line(0, false);
+    line.junctions.emplace_back(ExtrusionJunction(Point(0,0), 300, 0));
+    line.junctions.emplace_back(ExtrusionJunction(Point(10000,0), 500, 0));
+    result_polylines_per_index.back().emplace_back(line);
+    stats.analyse(result_polygons_per_index, result_polylines_per_index);
+    stats.visualize(400);
+    
+    std::exit(0);*/
+    
+    
+    /*
+    coord_t scale = 10000;
+    Point p(20000,70000);
+    AABB ab(p - scale * Point(1,1), p + scale * Point(1,1));
+    Polygons abs; abs.add(ab.toPolygon());
+    polys = polys.intersection(abs);
     */
 
     /*
@@ -795,7 +824,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = beading_conflict;
 //     Polygons polys = wedge; // polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = wedge; polys.applyMatrix(PointMatrix::scale(3));
-//     Polygons polys = limit_wedge; polys.applyMatrix(PointMatrix::scale(3));
+//     Polygons polys = limit_wedge; //polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = double_wedge; // polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = flawed_wedge;
 //     Polygons polys = clean_and_flawed_wedge_part; polys.applyMatrix(mirror);
@@ -803,7 +832,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = marked_local_opt;
 //     Polygons polys = legend;
 //     Polygons polys = parabola;
-//     Polygons polys = pikachu; polys.applyMatrix(PointMatrix::scale(10));
+//     Polygons polys = pikachu; polys.applyMatrix(PointMatrix::scale(1)); polys.applyMatrix(mirror);
 //     Polygons polys = um;
 //     Polygons polys = spikes;
 //     Polygons polys = enclosed_region;
@@ -857,20 +886,15 @@ void test(std::string input_outline_filename, std::string output_prefix)
 
     bool generate_gcodes = false;
     bool analyse = true;
-    bool generate_MAT_STL = false;
+    bool generate_MAT_STL = true;
 
-//     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::NaiveStrategy });
-//     std::vector<StrategyType> strategies({ StrategyType::NaiveStrategy });
 //     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::Center, StrategyType::InwardDistributed });
-//     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed });
-//     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed, StrategyType::Center, StrategyType::Naive });
+    std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::Distributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Distributed });
 //     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Center });
-//     std::vector<StrategyType> strategies({ StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Distributed, StrategyType::InwardDistributed });
-//     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::SingleBead, StrategyType::Naive });
-    std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::Naive });
+//     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::Naive });
 //     std::random_shuffle(strategies.begin(), strategies.end());
     for (StrategyType type : strategies )
     {
