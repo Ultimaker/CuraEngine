@@ -813,8 +813,8 @@ std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(
 #endif
 
     generateTransitioningRibs(beading_strategy);
-    
-    
+
+    generateExtraRibs(beading_strategy);
 
 #ifdef DEBUG
     {
@@ -1766,6 +1766,75 @@ bool SkeletalTrapezoidation::isMarked(const node_t* node) const
         assert(edge->twin); if (!edge->twin) return false;
     }
     return false;
+}
+
+
+
+
+
+
+
+void SkeletalTrapezoidation::generateExtraRibs(const BeadingStrategy& beading_strategy)
+{
+    auto end_edge_it = --graph.edges.end(); // don't check newly introduced edges
+    for (auto edge_it = graph.edges.begin(); std::prev(edge_it) != end_edge_it; ++edge_it)
+    {
+        edge_t& edge = *edge_it;
+        if ( ! edge.data.isMarked()) continue;
+        if (shorterThen(edge.to->p - edge.from->p, discretization_step_size)) continue;
+        if (edge.from->data.distance_to_boundary >= edge.to->data.distance_to_boundary) continue;
+
+        std::vector<coord_t> rib_thicknesses = beading_strategy.getNonlinearThicknesses(edge.from->data.bead_count);
+
+        if (rib_thicknesses.empty()) continue;
+
+        // preload some variables before [edge] gets changed
+        node_t* from = edge.from;
+        node_t* to = edge.to;
+        Point a = from->p;
+        Point b = to->p;
+        Point ab = b - a;
+        coord_t ab_size = vSize(ab);
+        coord_t a_R = edge.from->data.distance_to_boundary;
+        coord_t b_R = edge.to->data.distance_to_boundary;
+        
+        edge_t* last_edge_replacing_input = &edge;
+        for (coord_t rib_thickness : rib_thicknesses)
+        {
+            if (rib_thickness / 2 <= a_R) continue;
+            if (rib_thickness / 2 >= b_R) break;
+            coord_t new_node_bead_count = edge.from->data.bead_count;
+            coord_t end_pos = ab_size * (rib_thickness / 2 - a_R) / (b_R - a_R);
+            assert(end_pos > 0);
+            assert(end_pos < ab_size);
+            node_t* close_node = (end_pos < ab_size / 2)? from : to;
+            if ((end_pos < snap_dist || end_pos > ab_size - snap_dist)
+                && close_node->data.bead_count == new_node_bead_count
+            )
+            {
+                assert(end_pos <= ab_size);
+//                 close_node->data.bead_count = new_node_bead_count;
+                close_node->data.transition_ratio = 0;
+                continue;
+            }
+            Point mid = a + normal(ab, end_pos);
+            
+            debugCheckGraphCompleteness();
+            debugCheckGraphConsistency();
+
+            debugCheckDecorationConsistency(false);
+
+            assert(last_edge_replacing_input->data.isMarked());
+            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
+            last_edge_replacing_input = insertNode(last_edge_replacing_input, mid, new_node_bead_count);
+            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
+            assert(last_edge_replacing_input->data.isMarked());
+
+
+            debugCheckGraphCompleteness();
+            debugCheckGraphConsistency();
+        }
+    }
 }
 
 //

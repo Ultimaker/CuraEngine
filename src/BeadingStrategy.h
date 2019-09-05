@@ -104,6 +104,17 @@ public:
         return 1.0 - float(transition_point - lower_optimum) / float(upper_optimum - lower_optimum);
     }
 
+    /*!
+     * Get the locations in a bead count region where \ref BeadingStrategy::compute exhibits a bend in the widths.
+     * Ordered from lower thickness to higher.
+     * 
+     * This is used to insert extra support bones into the skeleton, so that the resulting beads in long trapezoids don't linearly change between the two ends.
+     */
+    virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const
+    {
+        return std::vector<coord_t>();
+    }
+
     static bool checkTranisionThicknessConsistency(const BeadingStrategy* strategy);
 };
 

@@ -264,6 +264,9 @@ protected:
 
     bool isMarked(const node_t* node) const;
 
+
+    void generateExtraRibs(const BeadingStrategy& beading_strategy);
+
     // ^ transitioning | v toolpath generation
 
 
