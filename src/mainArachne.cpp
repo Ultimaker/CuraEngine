@@ -22,10 +22,12 @@
 #include "DistributedBeadingStrategy.h"
 #include "InwardDistributedBeadingStrategy.h"
 #include "LimitedDistributedBeadingStrategy.h"
+#include "LimitedBeadingStrategy.h"
 #include "SingleBeadBeadingStrategy.h"
 #include "utils/VoronoiUtils.h"
 #include "NaiveBeadingStrategy.h"
 #include "CenterDeviationBeadingStrategy.h"
+#include "OutlineAccuracyBeadingStrategy.h"
 #include "WideningBeadingStrategy.h"
 #include "ConstantBeadingStrategy.h"
 #include "BeadingOrderOptimizer.h"
@@ -518,6 +520,7 @@ enum class StrategyType
     InwardDistributed,
     LimitedDistributed,
     SingleBead,
+    OutlineAccuracy,
     COUNT
 };
 
@@ -533,6 +536,7 @@ std::string to_string(StrategyType type)
         case StrategyType::InwardDistributed: return "InwardDistributed";
         case StrategyType::LimitedDistributed: return "LimitedDistributed";
         case StrategyType::SingleBead: return "SingleBead";
+        case StrategyType::OutlineAccuracy: return "OutlineAccuracy";
         default: return "unknown_strategy";
     }
 }
@@ -549,6 +553,7 @@ BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = M
         case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle);     break;
         case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(prefered_bead_width, 6, transitioning_angle); break;
         case StrategyType::SingleBead:         ret = new SingleBeadBeadingStrategy(prefered_bead_width, transitioning_angle);            break;
+        case StrategyType::OutlineAccuracy:    ret = new LimitedBeadingStrategy(6, new OutlineAccuracyBeadingStrategy(prefered_bead_width, prefered_bead_width * 3 / 4, prefered_bead_width / 2, transitioning_angle)); break;
         default:
             logError("Cannot make strategy!\n");
             return nullptr;
@@ -890,8 +895,9 @@ void test(std::string input_outline_filename, std::string output_prefix)
     bool generate_MAT_STL = true;
 
 //     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::Center, StrategyType::InwardDistributed });
-    std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::Distributed });
+//     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::Distributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Distributed });
+    std::vector<StrategyType> strategies({ StrategyType::OutlineAccuracy });
 //     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Center });
 //     std::vector<StrategyType> strategies({ StrategyType::Distributed, StrategyType::InwardDistributed });
