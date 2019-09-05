@@ -572,6 +572,7 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     BeadingStrategy* beading_strategy = makeStrategy(type, nozzle_size, transitioning_angle);
     if (!beading_strategy) return;
 
+    BeadingStrategy::checkTranisionThicknessConsistency(beading_strategy);
 
     TimeKeeper tk;
 

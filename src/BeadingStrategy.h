@@ -103,6 +103,8 @@ public:
         coord_t upper_optimum = optimal_thickness(lower_bead_count + 1);
         return 1.0 - float(transition_point - lower_optimum) / float(upper_optimum - lower_optimum);
     }
+
+    static bool checkTranisionThicknessConsistency(const BeadingStrategy* strategy);
 };
 
 
