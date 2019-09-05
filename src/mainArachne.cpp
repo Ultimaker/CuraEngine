@@ -151,6 +151,7 @@ void generateTestPolys()
         gMAT_example_outline.emplace_back(7000, -20);
         gMAT_example_outline.emplace_back(8050, -20);
         gMAT_example_outline.emplace_back(8050, 2000);
+        gMAT_example_outline.emplace_back(7500, 12000); // extra wedge part
         gMAT_example_outline.emplace_back(7000, 2000);
         gMAT_example_outline.emplace_back(7000, 11500);
         gMAT_example_outline.emplace_back(6500, 12000);
@@ -833,7 +834,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = limit_wedge; //polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = double_wedge; // polys.applyMatrix(PointMatrix::scale(3));
 //     Polygons polys = flawed_wedge;
-//     Polygons polys = clean_and_flawed_wedge_part; polys.applyMatrix(mirror);
+//     Polygons polys = clean_and_flawed_wedge_part; polys.applyMatrix(PointMatrix::scale(2.0)); polys.applyMatrix(mirror);
 //     Polygons polys = flawed_wall;
 //     Polygons polys = marked_local_opt;
 //     Polygons polys = legend;
