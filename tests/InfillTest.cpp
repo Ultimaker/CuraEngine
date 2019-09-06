@@ -153,6 +153,11 @@ namespace cura
 
     std::vector<InfillTestParameters> generateInfillTests()
     {
+		constexpr bool do_zig_zaggify = true;
+		constexpr bool dont_zig_zaggify = false;
+		constexpr bool do_connect_polygons = true;
+		constexpr bool dont_connect_polygons = false;
+
         std::vector<Polygons> shapes;
         if (!readTestPolygons(polygon_filenames, shapes))
         {
@@ -180,10 +185,10 @@ namespace cura
             {
                 for (const coord_t& line_distance : line_distances)
                 {
-                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, false, false, line_distance), test_polygon_id, polygons));
-                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, false, true, line_distance), test_polygon_id, polygons));
-                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, true, false, line_distance), test_polygon_id, polygons));
-                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, true, true, line_distance), test_polygon_id, polygons));
+                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, dont_zig_zaggify, dont_connect_polygons, line_distance), test_polygon_id, polygons));
+                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, dont_zig_zaggify, do_connect_polygons, line_distance), test_polygon_id, polygons));
+                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, do_zig_zaggify, dont_connect_polygons, line_distance), test_polygon_id, polygons));
+                    parameters_list.push_back(generateInfillToTest(InfillParameters(method, do_zig_zaggify, do_connect_polygons, line_distance), test_polygon_id, polygons));
                 }
             }
             ++test_polygon_id;
