@@ -57,6 +57,11 @@ double ExtruderPlan::getFanSpeed()
     return fan_speed;
 }
 
+void LayerPlan::addTempCommand(size_t extruder_nr, Temperature temperature, bool wait) {
+    auto& current_extruder_plan = extruder_plans.back();
+    current_extruder_plan.insertCommand(current_extruder_plan.paths.size(), extruder_nr, temperature, wait);
+}
+
 
 GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow, bool spiralize, const Ratio speed_factor)
 {
@@ -1482,8 +1487,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
             { // require printing temperature to be met
-                constexpr bool wait = true;
-                gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature, wait);
             }
 
             if (extruder_plan.prev_extruder_standby_temp)
@@ -1495,11 +1498,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
                 }
-                gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
 
-            const double extra_prime_amount = extruder.settings.get<bool>("retraction_enable") ? extruder.settings.get<double>("switch_extruder_extra_prime_amount") : 0;
-            gcode.addExtraPrimeAmount(extra_prime_amount);
         }
         else if (extruder_plan_idx == 0)
         {

@@ -186,6 +186,21 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         gotoStartLocation(gcode_layer, new_extruder);
     }
 
+    auto prev_extruder_train = Application::getInstance().current_slice->scene.extruders[prev_extruder];
+    auto new_extruder_train = Application::getInstance().current_slice->scene.extruders[new_extruder];
+    auto prev_idle_temp = prev_extruder_train.settings.get<Temperature>("material_standby_temperature");
+    auto new_print_temp = new_extruder_train.settings.get<Temperature>("material_print_temperature");
+
+
+    if (prev_extruder != new_extruder) {
+        gcode_layer.setExtruder(prev_extruder);
+        gcode_layer.addTempCommand(prev_extruder, prev_idle_temp, false);
+        addToGcode_denseInfill(gcode_layer, prev_extruder, false, 0.1_r);
+        gcode_layer.setExtruder(new_extruder);
+        gcode_layer.addTempCommand(new_extruder, new_print_temp, false);
+        addToGcode_denseInfill(gcode_layer, new_extruder, false, 0.07_r);
+    }
+    gcode_layer.addTempCommand(new_extruder, new_print_temp, false);
     addToGcode_denseInfill(gcode_layer, new_extruder, true, 1.0_r);
 
     // post-wipe:

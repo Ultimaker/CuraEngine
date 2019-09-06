@@ -916,7 +916,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         int extruder_nr = gcode_layer.getExtruder();
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
-            processSkirtBrim(storage, gcode_layer, extruder_nr);
+            processSkirtBrim(storage, gcode_layer, extruder_nr, false);
         }
     }
     if (include_helper_parts)
@@ -1001,7 +1001,19 @@ bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataSto
     return need_prime_blob;
 }
 
-void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr) const
+void FffGcodeWriter::processSkirtBrimPre(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int prev_extruder_nr, bool preheat) const
+{
+    const Polygons& skirt_brim = storage.skirt_brim[prev_extruder_nr];
+    const ExtruderTrain& prev_train = Application::getInstance().current_slice->scene.extruders[prev_extruder_nr];
+    const Temperature prev_standby_temp = prev_train.settings.get<Temperature>("material_standby_temperature");
+    if (preheat) {
+        gcode_layer.addTempCommand(prev_extruder_nr, prev_standby_temp, false);
+        gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[prev_extruder_nr], nullptr, ZSeamConfig(), 0, false, 0.0, false, false, 0.5_r);
+        gcode_layer.addTempCommand(prev_extruder_nr, prev_standby_temp, true);
+    }
+}
+
+void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr, bool preheat) const
 {
     if (gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
     {
@@ -1015,6 +1027,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
     // Start brim close to the prime location
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+    const Temperature current_print_temp = train.settings.get<Temperature>("material_print_temperature");
     Point start_close_to;
     if (train.settings.get<bool>("prime_blob_enable"))
     {
@@ -1030,6 +1043,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     if (train.settings.get<bool>("brim_outside_only"))
     {
         gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
+        if (preheat) {
+            gcode_layer.addTempCommand(extruder_nr, current_print_temp, false);
+            gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], nullptr, ZSeamConfig(), 0, false, 0.0, false, false, 0.5_r);
+        }
+        gcode_layer.addTempCommand(extruder_nr, current_print_temp, true);
         gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
     }
     else
@@ -2670,6 +2688,9 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
     {
         return;
     }
+    if (previous_extruder != extruder_nr && gcode_layer.getLayerNr() == 0) {
+        processSkirtBrimPre(storage, gcode_layer, previous_extruder, true);
+    }
     const bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
 
     if (extruder_changed)
@@ -2696,7 +2717,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
         if (gcode_layer.getLayerNr() == 0 && !gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
         {
-            processSkirtBrim(storage, gcode_layer, extruder_nr);
+            processSkirtBrim(storage, gcode_layer, extruder_nr, true);
         }
     }
 

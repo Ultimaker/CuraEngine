@@ -97,10 +97,14 @@ public:
      */
     void handleInserts(unsigned int& path_idx, GCodeExport& gcode)
     {
-        while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
-        { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
-            inserts.front().write(gcode);
-            inserts.pop_front();
+        for (auto inserts_iter = inserts.begin(); inserts_iter != inserts.end(); ) {
+            if (inserts_iter->path_idx <= path_idx) {
+                inserts_iter->write(gcode);
+                inserts_iter = inserts.erase(inserts_iter);
+                continue;
+            }
+
+            ++inserts_iter;
         }
     }
 
@@ -657,6 +661,15 @@ public:
      * \param starting_position Start from this coordinate.
      * */
     void optimizePaths(const Point& starting_position);
+
+    /*!
+     * Add a temperature command at the end of the current extruder plan.
+     * \param extruder_nr The extruder to set the temperature for.
+     * \param temperature The temperature to set the extruder to.
+     * \param wait Whether or not to wait for the extruder to reach temperature
+     *             before continuing.
+     * */
+    void addTempCommand(size_t extruder_nr, Temperature temperature, bool wait);
 };
 
 }//namespace cura

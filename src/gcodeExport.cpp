@@ -1182,11 +1182,6 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         return;
     }
 
-    if ((!wait || extruder_attr[extruder].waited_for_temperature) && extruder_attr[extruder].currentTemperature == temperature)
-    {
-        return;
-    }
-
     if (wait && flavor != EGCodeFlavor::MAKERBOT)
     {
         if(flavor == EGCodeFlavor::MARLIN)
