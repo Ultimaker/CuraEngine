@@ -7,6 +7,18 @@
 
 namespace cura
 {
+	bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Polygons>& polygons_out)
+	{
+		for (const std::string& filename : filenames)
+		{
+			if (!readTestPolygons(filename, polygons_out))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygons_out)
 	{
 		FILE* handle = std::fopen(filename.c_str(), "r");

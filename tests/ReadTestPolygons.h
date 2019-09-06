@@ -11,6 +11,7 @@
 
 namespace cura
 {
+	bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Polygons>& polygons_out);
 	bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygons_out);
 }
 

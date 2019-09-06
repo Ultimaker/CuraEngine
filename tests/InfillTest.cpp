@@ -110,6 +110,15 @@ namespace cura
     const AngleDegrees fill_angle = 0.;
     constexpr coord_t z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
     constexpr coord_t shift = 0;
+	const std::vector<std::string> polygon_filenames =
+		{
+			"../tests/resources/polygon_concave.txt",
+			"../tests/resources/polygon_concave_hole.txt",
+			"../tests/resources/polygon_square.txt",
+			"../tests/resources/polygon_square_hole.txt",
+			"../tests/resources/polygon_triangle.txt",
+			"../tests/resources/polygon_two_squares.txt",
+		};
 
     InfillTestParameters generateInfillToTest(const InfillParameters& params, const size_t& test_polygon_id, const Polygons& outline_polygons)
     {
@@ -145,9 +154,9 @@ namespace cura
     std::vector<InfillTestParameters> generateInfillTests()
     {
         std::vector<Polygons> shapes;
-        if (!readTestPolygons("../tests/resources/polygons.txt", shapes))
+        if (!readTestPolygons(polygon_filenames, shapes))
         {
-            return { InfillTestParameters() };  // return an invalid class, that'll trip up the 'file read' assertion in the TEST_P's
+            return { InfillTestParameters() };  // return an invalid singleton, that'll trip up the 'file read' assertion in the TEST_P's
         }
 
         std::vector<EFillMethod> methods;
