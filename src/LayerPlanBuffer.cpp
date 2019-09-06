@@ -127,6 +127,8 @@ void LayerPlanBuffer::processFanSpeedLayerTime()
 
 void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_after_extruder_plan_start, const size_t extruder_nr, const Temperature temp)
 {
+    return;
+
     Duration acc_time = 0.0;
     for (unsigned int path_idx = extruder_plan_before.paths.size() - 1; int(path_idx) != -1 ; path_idx--)
     {
@@ -205,6 +207,8 @@ void LayerPlanBuffer::insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_ex
 
 void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx, double standby_temp)
 {
+    return;
+
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     size_t extruder = extruder_plan.extruder_nr;
     for (size_t extruder_plan_before_idx = extruder_plan_idx - 2; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
@@ -223,6 +227,8 @@ void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_pla
 
 void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
 {
+    return;
+
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     const size_t extruder = extruder_plan.extruder_nr;
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;
@@ -296,6 +302,8 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
 
 void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 {
+    return;
+
     if (!extruder_plan.extrusion_temperature)
     {
         logWarning("Empty extruder plan detected! Discarding extrusion temperature command.\n");
@@ -331,6 +339,8 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 
 void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int last_extruder_plan_idx)
 {
+    return;
+
     ExtruderPlan& last_extruder_plan = *extruder_plans[last_extruder_plan_idx];
     const size_t extruder = last_extruder_plan.extruder_nr;
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder].settings;

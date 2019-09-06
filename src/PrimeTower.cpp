@@ -186,7 +186,22 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
         gotoStartLocation(gcode_layer, new_extruder);
     }
 
-    addToGcode_denseInfill(gcode_layer, new_extruder);
+    auto prev_extruder_train = Application::getInstance().current_slice->scene.extruders[prev_extruder];
+    auto new_extruder_train = Application::getInstance().current_slice->scene.extruders[new_extruder];
+    auto prev_idle_temp = prev_extruder_train.settings.get<Temperature>("material_standby_temperature");
+    auto new_print_temp = new_extruder_train.settings.get<Temperature>("material_print_temperature");
+
+
+    if (prev_extruder != new_extruder) {
+        gcode_layer.setExtruder(prev_extruder);
+        gcode_layer.addTempCommand(prev_extruder, prev_idle_temp, false);
+        addToGcode_denseInfill(gcode_layer, prev_extruder, false, 0.1_r);
+        gcode_layer.setExtruder(new_extruder);
+        gcode_layer.addTempCommand(new_extruder, new_print_temp, false);
+        addToGcode_denseInfill(gcode_layer, new_extruder, false, 0.07_r);
+    }
+    gcode_layer.addTempCommand(new_extruder, new_print_temp, false);
+    addToGcode_denseInfill(gcode_layer, new_extruder, true, 1.0_r);
 
     // post-wipe:
     if (post_wipe)
@@ -202,7 +217,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     gcode_layer.setPrimeTowerIsPlanned(new_extruder);
 }
 
-void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder_nr) const
+void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder_nr, bool extrude, Ratio speed_factor) const
 {
     const ExtrusionMoves& pattern = (gcode_layer.getLayerNr() == -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
         ? pattern_per_extruder_layer0[extruder_nr]
@@ -210,8 +225,8 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
 
     const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
-    gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
-    gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
+    gcode_layer.addPolygonsByOptimizer(pattern.polygons, config, nullptr, ZSeamConfig(), 0, false, extrude ? 1.0 : 0.0, false, false, speed_factor);
+    gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines, false, 0, extrude ? 1.0 : 0.0, std::optional<Point>(), GCodePathConfig::FAN_SPEED_DEFAULT, speed_factor);
 }
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)

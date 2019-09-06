@@ -288,7 +288,8 @@ private:
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.
      */
-    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr) const;
+    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr, bool preheat) const;
+    void processSkirtBrimPre(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int prev_extruder_nr, bool preheat) const;
 
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.
