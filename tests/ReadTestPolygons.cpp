@@ -5,8 +5,12 @@
 
 #include <cstdio>
 
+// NOTE: See the documentation in the header-file for an explanation of this simple file format.
+
 namespace cura
 {
+	// Read multiple files to the collection of polygons.
+	// Returns boolean success/failure (read errors, not found, etc.).
 	bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Polygons>& polygons_out)
 	{
 		for (const std::string& filename : filenames)
@@ -19,6 +23,8 @@ namespace cura
 		return true;
 	}
 
+	// Read a single file to the collection of polygons.
+	// Returns boolean success/failure (read errors, not found, etc.).
 	bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygons_out)
 	{
 		FILE* handle = std::fopen(filename.c_str(), "r");
@@ -54,9 +60,9 @@ namespace cura
 				}
 				next_path.emplace_back(coord_x, coord_y);
 				break;
-			case 'x': // close 'next' path
+			case 'x': // close 'next' loop
 				// fallthrough
-			case '&': // finalize 'next' polygon (which may also close a path)
+			case '&': // finalize 'next' polygon (which may also close a loop)
 				// fallthrough
 			case '#': // end of file
 				if (!next_path.empty())
