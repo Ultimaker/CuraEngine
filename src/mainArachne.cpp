@@ -85,6 +85,7 @@ static Polygons pikachu;
 static Polygons jin;
 static Polygons um;
 static Polygons spikes;
+static Polygons spikes_row;
 static Polygons enclosed_region;
 
 void generateTestPolys()
@@ -469,8 +470,8 @@ void generateTestPolys()
         um = um.difference(as);
     }
     {
-        coord_t min_r = 3000;
-        coord_t max_r = 8000;
+        coord_t min_r = 6000;
+        coord_t max_r = 24000;
         Polygons circles;
         PolygonUtils::makeCircle(Point(0,0), 1600, circles);
         for (int a = 0; a < 360; a += 360 / 10)
@@ -480,7 +481,24 @@ void generateTestPolys()
             PolygonUtils::makeCircle(Point(-r * cos(a /180.0 * M_PI), r * sin(a /180.0 * M_PI)), 10, dot);
             dot = dot.unionPolygons(circles);
             dot = dot.approxConvexHull();
+            dot.makeConvex();
             spikes = spikes.unionPolygons(dot);
+        }
+    }
+    {
+        coord_t min_r = 6000;
+        coord_t max_r = 16000;
+        coord_t step = 1600;
+        coord_t spike_count = 10;
+        PolygonRef p = spikes_row.newPoly();
+//         p.emplace_back(spike_count * step, 0);
+        p.emplace_back(spike_count * step, -step);
+        p.emplace_back(0, -step);
+        p.emplace_back(0, 0);
+        for (coord_t spike = 0; spike < spike_count; spike++)
+        {
+            p.emplace_back(spike * step + step / 2, min_r + (max_r - min_r) * spike / (spike_count - 1));
+            p.emplace_back(spike * step + step, 0);
         }
     }
     {
