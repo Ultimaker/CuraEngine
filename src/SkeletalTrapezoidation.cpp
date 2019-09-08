@@ -860,7 +860,7 @@ void SkeletalTrapezoidation::setMarking(const BeadingStrategy& beading_strategy)
 
     coord_t outer_edge_filter_length = beading_strategy.transition_thickness(0) / 2;
 
-    float cap = 1.0 / sin(beading_strategy.transitioning_angle * 0.5);
+    float cap = sin(beading_strategy.transitioning_angle * 0.5); // = cos(bisector_angle / 2)
     for (edge_t& edge : graph.edges)
     {
         assert(edge.twin);
@@ -883,7 +883,7 @@ void SkeletalTrapezoidation::setMarking(const BeadingStrategy& beading_strategy)
             Point ab = b - a;
             coord_t dR = std::abs(edge.to->data.distance_to_boundary - edge.from->data.distance_to_boundary);
             coord_t dD = vSize(ab);
-            edge.data.setMarked(dD > cap * dR);
+            edge.data.setMarked(dR < dD * cap);
         }
     }
 }
