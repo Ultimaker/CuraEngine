@@ -895,7 +895,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 #else
     #pragma omp parallel for default(none) \
         shared(xy_disallowed_per_layer, storage, mesh, layer_count, is_support_mesh_place_holder,  \
-               use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang) \
+               use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang, layer_thickness, support_line_width) \
         schedule(dynamic)
 #endif // defined(__GNUC__) && __GNUC__ <= 8
 
