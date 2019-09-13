@@ -6,6 +6,12 @@
 #include "../src/infill.h"
 #include "ReadTestPolygons.h"
 
+//#define TEST_INFILL_SVG_OUTPUT
+#ifdef TEST_INFILL_SVG_OUTPUT
+#include <cstdlib>
+#include "../src/utils/SVG.h"
+#endif //TEST_INFILL_SVG_OUTPUT
+
 namespace cura
 {
     template<typename ... Ts>
@@ -110,15 +116,33 @@ namespace cura
     const AngleDegrees fill_angle = 0.;
     constexpr coord_t z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
     constexpr coord_t shift = 0;
-	const std::vector<std::string> polygon_filenames =
-		{
-			"../tests/resources/polygon_concave.txt",
-			"../tests/resources/polygon_concave_hole.txt",
-			"../tests/resources/polygon_square.txt",
-			"../tests/resources/polygon_square_hole.txt",
-			"../tests/resources/polygon_triangle.txt",
-			"../tests/resources/polygon_two_squares.txt",
-		};
+    const std::vector<std::string> polygon_filenames =
+    {
+        "../tests/resources/polygon_concave.txt",
+        "../tests/resources/polygon_concave_hole.txt",
+        "../tests/resources/polygon_square.txt",
+        "../tests/resources/polygon_square_hole.txt",
+        "../tests/resources/polygon_triangle.txt",
+        "../tests/resources/polygon_two_squares.txt",
+    };
+
+#ifdef TEST_INFILL_SVG_OUTPUT
+    void writeTestcaseSVG(const InfillTestParameters& params)
+    {
+        constexpr int buff_size = 1024;
+        char buff[buff_size];
+        std::snprintf(buff, buff_size, "/tmp/%s.svg", params.name.c_str());
+        const std::string filename(buff);
+
+        AABB aabb(params.outline_polygons);
+
+        SVG svgFile(filename.c_str(), aabb);
+        svgFile.writePolygons(params.outline_polygons , SVG::Color::BLUE);
+        svgFile.writePolygons(params.result_lines, SVG::Color::RED);
+        svgFile.writePolygons(params.result_polygons, SVG::Color::RED);
+        // Note: SVG writes 'itself' when the object is destroyed.
+    }
+#endif //TEST_INFILL_SVG_OUTPUT
 
     InfillTestParameters generateInfillToTest(const InfillParameters& params, const size_t& test_polygon_id, const Polygons& outline_polygons)
     {
@@ -153,10 +177,10 @@ namespace cura
 
     std::vector<InfillTestParameters> generateInfillTests()
     {
-		constexpr bool do_zig_zaggify = true;
-		constexpr bool dont_zig_zaggify = false;
-		constexpr bool do_connect_polygons = true;
-		constexpr bool dont_connect_polygons = false;
+        constexpr bool do_zig_zaggify = true;
+        constexpr bool dont_zig_zaggify = false;
+        constexpr bool do_connect_polygons = true;
+        constexpr bool dont_connect_polygons = false;
 
         std::vector<Polygons> shapes;
         if (!readTestPolygons(polygon_filenames, shapes))
@@ -165,7 +189,7 @@ namespace cura
         }
 
         std::vector<EFillMethod> methods;
-        std::vector<EFillMethod> skip_methods = { EFillMethod::CROSS, EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV }; //TODO: Support for testing infill that needs the sierpinski-provider!
+        std::vector<EFillMethod> skip_methods = { EFillMethod::CROSS, EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV, EFillMethod::GYROID }; //TODO: Support for testing infill that needs the sierpinski-provider!
         for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method)
         {
             const EFillMethod method = static_cast<EFillMethod>(i_method);
@@ -207,12 +231,21 @@ namespace cura
         ASSERT_TRUE(params.valid) << params.fail_reason;
         ASSERT_FALSE(params.result_polygons.empty() && params.result_lines.empty()) << "Infill should have been generated.";
 
-        const double available_area = std::abs(params.outline_polygons.area());
-        const double expected_infill_area = (available_area * infill_line_width) / params.params.line_distance;
-        const double total_infill_area = (params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * infill_line_width / getPatternMultiplier(params.params.pattern);
-        ASSERT_GT((coord_t)available_area, (coord_t)total_infill_area) << "Infill area should allways be less than the total area available.";
-        ASSERT_NEAR((coord_t)total_infill_area, (coord_t)expected_infill_area, (coord_t)(total_infill_area * 0.15)) << "Infill area should be within 15% of expected size."; // TODO: 10 ~ 20% is actually quite bad?
-        
+#ifdef TEST_INFILL_SVG_OUTPUT
+        writeTestcaseSVG(params);
+#endif //TEST_INFILL_SVG_OUTPUT
+
+        const double min_available_area = std::abs(params.outline_polygons.offset(-infill_line_width).area());
+        const double max_available_area = std::abs(params.outline_polygons.offset( infill_line_width).area());
+        const double min_expected_infill_area = (min_available_area * infill_line_width) / params.params.line_distance;
+        const double max_expected_infill_area = (max_available_area * infill_line_width) / params.params.line_distance;
+
+        const double out_infill_area = ((params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * infill_line_width) / getPatternMultiplier(params.params.pattern);
+
+        ASSERT_GT((coord_t)max_available_area, (coord_t)out_infill_area) << "Infill area should allways be less than the total area available.";
+        ASSERT_GT((coord_t)out_infill_area, (coord_t)(min_expected_infill_area * 0.96)) << "Infill area should be greater than a % of the minimum area expected to be covered.";
+        ASSERT_LT((coord_t)out_infill_area, (coord_t)(max_expected_infill_area * 1.04)) << "Infill area should be less than a % of the maximum area to be covered.";
+
         const Polygons padded_shape_outline = params.outline_polygons.offset(infill_line_width / 2);
         ASSERT_EQ(padded_shape_outline.intersectionPolyLines(params.result_lines).polyLineLength(), params.result_lines.polyLineLength()) << "Infill (lines) should not be outside target polygon.";
         ASSERT_EQ(params.result_polygons.difference(padded_shape_outline).area(), 0) << "Infill (polys) should not be outside target polygon.";
