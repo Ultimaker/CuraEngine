@@ -26,7 +26,9 @@ enum class EFillMethod
     ZIG_ZAG,
     CROSS,
     CROSS_3D,
-    GYROID,
+    GYROID_HI_RES,
+    GYROID_MED_RES,
+    GYROID_LOW_RES,
     NONE
 };
 

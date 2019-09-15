@@ -331,7 +331,15 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     }
     else if (value == "gyroid")
     {
-        return EFillMethod::GYROID;
+        return EFillMethod::GYROID_HI_RES;
+    }
+    else if (value == "gyroid_med_res")
+    {
+        return EFillMethod::GYROID_MED_RES;
+    }
+    else if (value == "gyroid_low_res")
+    {
+        return EFillMethod::GYROID_LOW_RES;
     }
     else //Default.
     {

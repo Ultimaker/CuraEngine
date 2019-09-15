@@ -376,6 +376,10 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
             {
                 mesh.infill_angles.push_back(22); // put most infill lines in between 45 and 0 degrees
             }
+            else if (infill_pattern == EFillMethod::GYROID_HI_RES || infill_pattern == EFillMethod::GYROID_MED_RES || infill_pattern == EFillMethod::GYROID_LOW_RES)
+            {
+                mesh.infill_angles.push_back(0);
+            }
             else
             {
                 mesh.infill_angles.push_back(45); // generally all infill patterns use 45 degrees
@@ -1518,7 +1522,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             , /*bool use_endpieces =*/ false
             , /*bool skip_some_zags =*/ false
             , /*int zag_skip_count =*/ 0
-            , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
+            , mesh.settings.get<coord_t>("cross_infill_pocket_size")
+            , mesh.settings.get<Ratio>("infill_scaling_z"));
         infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
     }
     if (infill_lines.size() > 0 || infill_polygons.size() > 0)

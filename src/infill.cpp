@@ -98,9 +98,10 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
     if (in_outline.empty()) return;
     if (line_distance == 0) return;
 
-    if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
+    if (pattern == EFillMethod::ZIG_ZAG || (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON || pattern == EFillMethod::GYROID_HI_RES || pattern == EFillMethod::GYROID_MED_RES || pattern == EFillMethod::GYROID_LOW_RES)))
     {
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
+        const float width_scale = (mesh) ? (float)mesh->settings.get<coord_t>("layer_height") / mesh->settings.get<coord_t>("infill_sparse_thickness") : 1;
+        outline_offset -= width_scale * infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
     }
 
     switch(pattern)
@@ -149,8 +150,10 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         }
         generateCrossInfill(*cross_fill_provider, result_polygons, result_lines);
         break;
-    case EFillMethod::GYROID:
-        generateGyroidInfill(result_lines);
+    case EFillMethod::GYROID_HI_RES:
+    case EFillMethod::GYROID_MED_RES:
+    case EFillMethod::GYROID_LOW_RES:
+        generateGyroidInfill(result_lines, pattern);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -250,9 +253,9 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
     }
 }
 
-void Infill::generateGyroidInfill(Polygons& result_lines)
+void Infill::generateGyroidInfill(Polygons& result_lines, EFillMethod pattern)
 {
-    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset + infill_overlap, infill_line_width, line_distance, in_outline, z);
+    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset + infill_overlap, infill_line_width, line_distance, in_outline, z, pattern, infill_origin, fill_angle, scaling_z);
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
@@ -470,7 +473,7 @@ void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance,
 
     PointMatrix rotation_matrix(infill_rotation);
     ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
-    generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
+    generateLinearBasedInfill(outline_offset, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
 }
 
 /* 

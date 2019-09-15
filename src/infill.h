@@ -7,6 +7,7 @@
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
 #include "settings/types/AngleDegrees.h"
+#include "settings/types/Ratio.h"
 #include "utils/IntPoint.h"
 
 namespace cura
@@ -40,6 +41,7 @@ class Infill
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
     size_t zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     coord_t pocket_size; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
+    Ratio scaling_z; //!< The vertical scaling factor of the pattern
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
@@ -71,6 +73,7 @@ public:
         , bool skip_some_zags = false
         , size_t zag_skip_count = 0
         , coord_t pocket_size = 0
+        , Ratio scaling_z = 1.0_r
     )
     : pattern(pattern)
     , zig_zaggify(zig_zaggify)
@@ -92,6 +95,7 @@ public:
     , skip_some_zags(skip_some_zags)
     , zag_skip_count(zag_skip_count)
     , pocket_size(pocket_size)
+    , scaling_z(scaling_z)
     {
     }
 
@@ -220,9 +224,10 @@ private:
     /*!
      * Generate gyroid infill
      * \param result (output) The resulting polygons
+     * \param pattern The space filling pattern of the infill to generate
      */
-    void generateGyroidInfill(Polygons& result);
-    
+    void generateGyroidInfill(Polygons& result, EFillMethod pattern);
+
     /*!
      * Generate sparse concentric infill
      * 
