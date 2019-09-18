@@ -591,8 +591,10 @@ public:
      * \param last_seam_vertex_idx The index of the seam vertex in the last wall (or -1 if this is the first spiralized layer)
      * \param is_top_layer true when the top layer of the spiral is being printed
      * \param is_bottom_layer true when the bottom layer of the spiral is being printed
+     * \param flows vector of flow values, one for each line in the wall polygon (used for variable width lines)
+     * \param shifts vector of shift values, one for each line in the wall polygon (used for variable width lines)
      */
-    void spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer);
+    void spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, int seam_vertex_idx, int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer, const std::vector<float>& flows, const std::vector<Point>& shifts);
 
 
     /*!

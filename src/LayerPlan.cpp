@@ -1103,11 +1103,12 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     }
 }
 
-void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer)
+void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer, const std::vector<float>& flows, const std::vector<Point>& shifts)
 {
     const bool smooth_contours = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
 
     // once we are into the spiral we always start at the end point of the last layer (if any)
+    // NOTE: this travel move is now ignored when the g-code is being generated but we can't actually remove it
     const Point origin = (last_seam_vertex_idx >= 0 && !is_bottom_layer) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
     addTravel_simple(origin);
 
@@ -1115,10 +1116,12 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
         // when not smoothing, we get to the (unchanged) outline for this layer as quickly as possible so that the remainder of the
         // outline wall has the correct direction - although this creates a little step, the end result is generally better because when the first
         // outline wall has the wrong direction (due to it starting from the finish point of the last layer) the visual effect is very noticeable
-        Point join_first_wall_at = LinearAlg2D::getClosestOnLineSegment(origin, wall[seam_vertex_idx], wall[(seam_vertex_idx + 1) % wall.size()]);
-        if (vSize(join_first_wall_at - origin) > 10)
+        const Point p0 = wall[seam_vertex_idx] + shifts[seam_vertex_idx];
+        const Point p1 = wall[(seam_vertex_idx + 1) % wall.size()] + shifts[(seam_vertex_idx + 1) % wall.size()];
+        const Point join_first_wall_at = LinearAlg2D::getClosestOnLineSegment(origin + shifts[seam_vertex_idx], p0, p1);
+        if (vSize(join_first_wall_at - (origin + shifts[seam_vertex_idx])) > 10)
         {
-            addExtrusionMove(join_first_wall_at, config, SpaceFillType::Polygons, 1.0, true);
+            addExtrusionMove(join_first_wall_at, config, SpaceFillType::Polygons, flows[seam_vertex_idx], true);
         }
     }
 
@@ -1183,11 +1186,12 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
     for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
     {
         // p is a point from the current wall polygon
-        const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+        const size_t idx = (seam_vertex_idx + wall_point_idx) % n_points;
+        const Point& p = wall[idx];
         wall_length += vSizeMM(p - p0);
         p0 = p;
 
-        const double flow = (is_bottom_layer) ? (min_bottom_layer_flow + ((1 - min_bottom_layer_flow) * wall_length / total_length)) : 1.0;
+        const double flow = (is_bottom_layer) ? (min_bottom_layer_flow + ((std::max((double)flows[idx], min_bottom_layer_flow) - min_bottom_layer_flow) * wall_length / total_length)) : flows[idx];
 
         // if required, use interpolation to smooth the x/y coordinates between layers but not for the first spiralized layer
         // as that lies directly on top of a non-spiralized wall with exactly the same outline and not for the last point in each layer
@@ -1201,18 +1205,18 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
             if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
             {
                 // interpolate between cpp.location and p depending on how far we have progressed along wall
-                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, flow, true, speed_factor);
+                addExtrusionMove(shifts[idx] + cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, flow, true, speed_factor);
             }
             else
             {
                 // no point in the last wall was found close enough to the current wall point so don't interpolate
-                addExtrusionMove(p, config, SpaceFillType::Polygons, flow, true, speed_factor);
+                addExtrusionMove(shifts[idx] + p, config, SpaceFillType::Polygons, flow, true, speed_factor);
             }
         }
         else
         {
             // no smoothing, use point verbatim
-            addExtrusionMove(p, config, SpaceFillType::Polygons, flow, true, speed_factor);
+            addExtrusionMove(shifts[idx] + p, config, SpaceFillType::Polygons, flow, true, speed_factor);
         }
     }
 
@@ -1224,19 +1228,20 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
         wall_length = 0;
         for (int wall_point_idx = 1; wall_point_idx <= n_points && distance_coasted < min_spiral_coast_dist; wall_point_idx++)
         {
-            const Point& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+            const size_t idx = (seam_vertex_idx + wall_point_idx) % n_points;
+            const Point& p = wall[idx];
             const double seg_length = vSizeMM(p - p0);
             wall_length += seg_length;
             p0 = p;
             // flow is reduced in step with the distance travelled so the wall width should remain roughly constant
-            double flow = 1 - (wall_length / total_length);
+            double flow = flows[idx] * (1 - (wall_length / total_length));
             if (flow < min_top_layer_flow)
             {
                 flow = 0;
                 distance_coasted += seg_length;
             }
             // reduce number of paths created when polygon has many points by limiting precision of flow
-            addExtrusionMove(p, config, SpaceFillType::Polygons, ((int)(flow * 20)) / 20.0, false, speed_factor);
+            addExtrusionMove(shifts[idx] + p, config, SpaceFillType::Polygons, ((int)(flow * 20)) / 20.0, false, speed_factor);
         }
     }
 }
@@ -1612,15 +1617,29 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
-                if (!path.perform_z_hop && final_travel_z != z && extruder_plan_idx == (extruder_plans.size() - 1) && path_idx == (paths.size() - 1))
+                const bool is_final_travel = (extruder_plan_idx == (extruder_plans.size() - 1) && path_idx == (paths.size() - 1));
+                if (is_final_travel)
                 {
-                    // Before the final travel, move up to the next layer height, on the current spot, with a sensible speed.
-                    Point3 current_position = gcode.getPosition();
-                    current_position.z = final_travel_z;
-                    gcode.writeTravel(current_position, extruder.settings.get<Velocity>("speed_z_hop"));
+                    if (path_idx > 0 && paths[path_idx - 1].spiralize)
+                    {
+                        // this is a final travel following a spiralized wall, ignore it
+                        continue;
+                    }
+                    if (!path.perform_z_hop && final_travel_z != z)
+                    {
+                        // Before the final travel, move up to the next layer height, on the current spot, with a sensible speed.
+                        Point3 current_position = gcode.getPosition();
+                        current_position.z = final_travel_z;
+                        gcode.writeTravel(current_position, extruder.settings.get<Velocity>("speed_z_hop"));
 
-                    // Prevent the final travel(s) from resetting to the 'previous' layer height.
-                    gcode.setZ(final_travel_z);
+                        // Prevent the final travel(s) from resetting to the 'previous' layer height.
+                        gcode.setZ(final_travel_z);
+                    }
+                }
+                else if (extruder_plan_idx == 0 && path_idx == 0 && paths.size() > 1 && paths[1].spiralize)
+                {
+                    // this is the first travel on the layer and it precedes a spiralized wall, ignore it
+                    continue;
                 }
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                 {
@@ -1655,7 +1674,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 //If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
                 float totalLength = 0.0;
                 Point p0 = gcode.getPositionXY();
-                for (unsigned int _path_idx = path_idx; _path_idx < paths.size() && !paths[_path_idx].isTravelPath(); _path_idx++)
+                for (unsigned int _path_idx = path_idx; _path_idx < paths.size() && paths[_path_idx].spiralize; _path_idx++)
                 {
                     GCodePath& _path = paths[_path_idx];
                     for (unsigned int point_idx = 0; point_idx < _path.points.size(); point_idx++)
@@ -1668,6 +1687,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
                 float length = 0.0;
                 p0 = gcode.getPositionXY();
+                Point spiral_start = p0;
                 for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)
                 { // handle all consecutive spiralized paths > CHANGES path_idx!
                     GCodePath& path = paths[path_idx];
@@ -1690,7 +1710,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // vertex would not be shifted (as it's the last vertex in the sequence). The smoother the model,
                     // the less the vertices are shifted and the less obvious is the ridge. If the layer display
                     // really displayed a spiral rather than slices of a spiral, this would not be required.
-                    communication->sendLineTo(path.config->type, path.points[0], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
+                    if (path_idx + 1 >= paths.size() || !paths[path_idx + 1].spiralize)
+                    {
+                        communication->sendLineTo(path.config->type, spiral_start, path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
+                    }
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }

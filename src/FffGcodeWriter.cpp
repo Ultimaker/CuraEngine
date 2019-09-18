@@ -1577,8 +1577,113 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
     const bool is_top_layer = ((size_t)layer_nr == (storage.spiralize_wall_outlines.size() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr);
     ConstPolygonRef wall_outline = part.insets[0][0]; // current layer outer wall outline
     const int seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr]; // use pre-computed seam vertex index for current layer
+
+    std::vector<float> flows(wall_outline.size(), 1.0); // flow multiplier for each line segment
+    std::vector<Point> shifts(wall_outline.size()); // per vertex shift to compensate for line width changes
+
+    const coord_t default_line_width = mesh.settings.get<coord_t>("wall_line_width_0");
+    const double min_line_width = mesh.settings.get<Ratio>("spiralize_min_line_width");
+    const double max_line_width = mesh.settings.get<Ratio>("spiralize_max_line_width");
+
+    if (min_line_width != 1.0 || max_line_width != 1.0)
+    {
+        // wall line width can vary
+
+        auto get_line_width = [&](const Point& prev_point, const Point& this_point, const Point& next_point, coord_t& line_width, Point& bisector, double& abs_sine)
+        {
+            const double corner_rads = LinearAlg2D::getAngleLeft(prev_point, this_point, next_point);
+
+            bisector = rotate(normal(next_point - this_point, default_line_width * 5), corner_rads / 2);
+            abs_sine = std::abs(std::sin(corner_rads / 2));
+
+            Polygons lines;
+            lines.addLine(this_point - bisector, this_point + bisector);
+#if 0
+            // diagnostic - print vertex bisector lines
+            gcode_layer.addTravel(lines[0][0]);
+            gcode_layer.addExtrusionMove(lines[0][1], this_point == wall_outline[seam_vertex_idx] ? mesh_config.insetX_config : mesh_config.inset0_config, SpaceFillType::Lines, 0.1);
+#endif
+
+            lines = part.outline.intersectionPolyLines(lines);
+            if (lines.size() > 0)
+            {
+                // find clipped line segment that starts/ends close to poly[n]
+                unsigned ln = 0;
+                while (ln < (lines.size() - 1) && vSize2(lines[ln][0] - this_point) > 100 && vSize2(lines[ln][1] - this_point) > 100)
+                {
+                    ++ln;
+                }
+
+                line_width = vSize(lines[ln][1] - lines[ln][0]) * abs_sine;
+            }
+        };
+
+        for (unsigned n = 0; n < wall_outline.size(); ++n)
+        {
+            const Point& this_point = wall_outline[n];
+            const Point& prev_point = wall_outline[(n + wall_outline.size() - 1) % wall_outline.size()];
+            const Point& next_point = wall_outline[(n + 1) % wall_outline.size()];
+
+            Point bisector;
+            double abs_sine = 1;
+            coord_t line_width = default_line_width;
+
+            get_line_width(prev_point, this_point, next_point, line_width, bisector, abs_sine);
+
+            // flow[n] sets the line width used when drawing the line that finishes at wall_outline[n]
+            flows[n] = std::max(std::min((double)line_width / default_line_width, max_line_width), min_line_width);
+
+            if (flows[n] > 1)
+            {
+                // the wall is wider so move the vertex away from the outline
+                shifts[n] = normal(bisector, default_line_width * (flows[n] - 1) / 2 / abs_sine);
+            }
+            else if(flows[n] < 1)
+            {
+                // the wall is narrower so move the vertex towards the outline
+                shifts[n] = normal(-bisector, default_line_width * (1 - flows[n]) / 2 / abs_sine);
+            }
+        }
+
+        float prev_flow = flows.back();
+        for (unsigned n = 0; n < wall_outline.size(); ++n)
+        {
+            unsigned prev_n = ((n == 0) ? wall_outline.size() : n) - 1;
+
+            const float next_prev_flow = flows[n];
+
+            if (std::abs(flows[n] - prev_flow) >= 0.5)
+            {
+                // this point's flow differs from the previous point's flow by an appreciable amount so
+                // calculate the flow for an intermediate point and if that is fairly similar to the previous
+                // point's flow, use that for this point's flow (but don't change the shift)
+
+                const Point& this_point = wall_outline[n];
+                const Point& prev_point = wall_outline[prev_n];
+
+                // only check if the line segment length is at least a couple of line widths
+                if (vSize(this_point - prev_point) >= default_line_width * 2)
+                {
+                    Point bisector;
+                    double abs_sine = 1;
+                    coord_t intermediate_line_width = default_line_width;
+
+                    // check the line width at 60% of the length of the line segment
+                    get_line_width(prev_point, prev_point + (this_point - prev_point) * 0.6, this_point, intermediate_line_width, bisector, abs_sine);
+
+                    float intermediate_flow = std::max(std::min((double)intermediate_line_width / default_line_width, max_line_width), min_line_width);
+
+                    if (std::abs(intermediate_flow - prev_flow) < 0.5)
+                    {
+                        flows[n] = intermediate_flow;
+                    }
+                }
+            }
+            prev_flow = next_prev_flow;
+        }
+    }
     // output a wall slice that is interpolated between the last and current walls
-    gcode_layer.spiralizeWallSlice(mesh_config.inset0_config, wall_outline, ConstPolygonRef(*last_wall_outline), seam_vertex_idx, last_seam_vertex_idx, is_top_layer, is_bottom_layer);
+    gcode_layer.spiralizeWallSlice(mesh_config.inset0_config, wall_outline, ConstPolygonRef(*last_wall_outline), seam_vertex_idx, last_seam_vertex_idx, is_top_layer, is_bottom_layer, flows, shifts);
 }
 
 bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const

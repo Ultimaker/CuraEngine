@@ -58,7 +58,15 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         part->insets.push_back(Polygons());
         if (i == 0)
         {
-            part->insets[0] = part->outline.offset(-line_width_0 / 2 - wall_0_inset);
+            if (spiralize && layer_nr >= LayerIndex(settings.get<size_t>("bottom_layers")))
+            {
+                // use part outline sans holes
+                part->insets[0] = part->outline.getOutsidePolygons().offset(-line_width_0 / 2 - wall_0_inset);
+            }
+            else
+            {
+                part->insets[0] = part->outline.offset(-line_width_0 / 2 - wall_0_inset);
+            }
         }
         else if (i == 1)
         {
