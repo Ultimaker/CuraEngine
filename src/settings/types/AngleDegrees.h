@@ -1,10 +1,11 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef ANGLEDEGREES_H
 #define ANGLEDEGREES_H
 
 #include <cmath> //For fmod.
+#include "AngleRadians.h" //Specialisation to convert radians to degrees.
 
 namespace cura
 {
@@ -21,6 +22,11 @@ struct AngleDegrees
      * \brief Default constructor setting the angle to 0.
      */
     AngleDegrees() : value(0.0) {};
+
+    /*
+     * \brief Converts radians to degrees.
+     */
+    AngleDegrees(AngleRadians value) : value(value * 360 / TAU) {};
 
     /*
      * \brief Casts a double to an AngleDegrees instance.

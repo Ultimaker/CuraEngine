@@ -132,7 +132,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
     else
     {
-        slice_layer_count = (storage.model_max.z - initial_layer_thickness) / layer_thickness + 2;
+        slice_layer_count = (storage.model_max.z - initial_layer_thickness) / layer_thickness + 1;
     }
 
     // Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
@@ -146,7 +146,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         // Check if adaptive layers is populated to prevent accessing a method on NULL
         std::vector<AdaptiveLayer>* adaptive_layer_height_values = {};
-        if (adaptive_layer_heights != nullptr) {
+        if (adaptive_layer_heights != nullptr)
+        {
             adaptive_layer_height_values = adaptive_layer_heights->getLayers();
         }
 
@@ -220,6 +221,15 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         if (!is_support_modifier)
         {
             createLayerParts(meshStorage, slicer);
+        }
+
+        // Do not add and process support _modifier_ meshes further, and ONLY skip support _modifiers_. They have been
+        // processed in AreaSupport::handleSupportModifierMesh(), but other helper meshes such as infill meshes are
+        // processed in a later stage, except for support mesh itself, so an exception is made for that.
+        if (is_support_modifier && ! mesh.settings.get<bool>("support_mesh"))
+        {
+            storage.meshes.pop_back();
+            continue;
         }
 
         // check one if raft offset is needed
@@ -884,7 +894,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
-    max_print_height_per_extruder.resize(extruder_count, -1); //Initialize all as -1.
+    max_print_height_per_extruder.resize(extruder_count, -(Raft::getTotalExtraLayers() + 1)); //Initialize all as -1 (or lower in case of raft).
     { // compute max_object_height_per_extruder
         //Height of the meshes themselves.
         for (SliceMeshStorage& mesh : storage.meshes)
@@ -938,7 +948,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
     }
     else
     {
-        storage.max_print_height_second_to_last_extruder = -1;
+        storage.max_print_height_second_to_last_extruder = -(Raft::getTotalExtraLayers() + 1);
     }
 }
 
@@ -957,7 +967,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     {
         constexpr bool around_support = true;
         constexpr bool around_prime_tower = false;
-        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower).offset(ooze_shield_dist, ClipperLib::jtRound));
+        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower).offset(ooze_shield_dist, ClipperLib::jtRound).getOutsidePolygons());
     }
 
     const AngleDegrees angle = mesh_group_settings.get<AngleDegrees>("ooze_shield_angle");
@@ -1039,7 +1049,8 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     // If brim for prime tower is used, add the brim for prime tower separately.
     if (should_brim_prime_tower)
     {
-        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"));
+        constexpr bool allow_helpers = false;
+        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"), allow_helpers);
     }
 }
 

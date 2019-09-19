@@ -180,6 +180,10 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
                 // the more curved the region, the more we reduce the distance
                 dist_score -= fabs(corner_angle - 1) * corner_shift;
                 break;
+            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
+                //More curve is better score (reduced distance), but slightly in favour of concave curves.
+                dist_score -= fabs(corner_angle - 0.8) * corner_shift;
+                break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
             default:
                 // do nothing

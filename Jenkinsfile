@@ -24,10 +24,27 @@ parallel_nodes(["linux && cura", "windows && cura"]) {
                 }
                 // Try and run the unit tests. If this stage fails, we consider the build to be "unstable".
                 stage('Unit Test') {
-                    try {
-                        make('test')
-                    } catch(e) {
-                        currentBuild.result = "UNSTABLE"
+                    if (isUnix())
+                    {
+                        // For Linux
+                        try {
+                            sh 'make CTEST_OUTPUT_ON_FAILURE=TRUE test'
+                        } catch(e)
+                        {
+                            currentBuild.result = "UNSTABLE"
+                        }
+                    }
+                    else
+                    {
+                        // For Windows
+                        try
+                        {
+                            // This also does code style checks.
+                            bat 'ctest -V'
+                        } catch(e)
+                        {
+                            currentBuild.result = "UNSTABLE"
+                        }
                     }
                 }
             }
