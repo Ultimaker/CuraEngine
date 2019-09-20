@@ -2726,6 +2726,7 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
 
 void FffGcodeWriter::finalize()
 {
+    gcode.writeComment("MESH:NONMESH");
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<bool>("machine_heated_bed"))
     {
