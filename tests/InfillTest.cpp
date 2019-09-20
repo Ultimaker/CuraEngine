@@ -188,8 +188,15 @@ namespace cura
             return { InfillTestParameters() };  // return an invalid singleton, that'll trip up the 'file read' assertion in the TEST_P's
         }
 
+        /* Skip methods:
+         *  - that require the SierpinskyInfillProvider class, since these test classes aren't equipped to handle that yet
+         *    this can be considered a TODO for these testcases here, not in the methods themselves
+         *    (these are; Cross, Cross-3D and Cubic-Subdivision)
+         *  - Gyroid, since it doesn't handle the 100% infill and related cases well
+         */
+        std::vector<EFillMethod> skip_methods = { EFillMethod::CROSS, EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV, EFillMethod::GYROID };
+
         std::vector<EFillMethod> methods;
-        std::vector<EFillMethod> skip_methods = { EFillMethod::CROSS, EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV, EFillMethod::GYROID }; //TODO: Support for testing infill that needs the sierpinski-provider!
         for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method)
         {
             const EFillMethod method = static_cast<EFillMethod>(i_method);
@@ -199,7 +206,7 @@ namespace cura
             }
         }
 
-        std::vector<coord_t> line_distances = { 400, 600, 800, 1200 }; // TODO?: Gyroid fails the 'fill less than 100% of area available' with values close to the line width, like 350.
+        std::vector<coord_t> line_distances = { 350, 400, 600, 800, 1200 };
 
         std::vector<InfillTestParameters> parameters_list;
         size_t test_polygon_id = 0;
