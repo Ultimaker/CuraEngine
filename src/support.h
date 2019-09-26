@@ -211,17 +211,6 @@ private:
     static void generateSupportInterfaceLayer(Polygons& support_areas, const Polygons mesh_outlines, const coord_t safety_offset, const coord_t outline_offset, const double minimum_interface_area, Polygons& interface_polygons);
 
     /*!
-     * \brief Remove interface generated without support below/above (dangling interface)
-     * \param[out] interface_polygons The resulting interface layer, after filtering.
-     * \param test_polygons Used to filter out the interface_polygons areas and leave only those, which intersect with test_polygons.
-     * This is used to check whether interface areas are dangling. Because some support could be pushed away by large XY distance or
-     * support could be tiny, so that it was skipped by offset of support wall thickness.
-     * This causes the dangling interface - interface generated without support beneath or above it.
-     * Pass the test_polygons as generated interface + actual support at the layer below/above for roof/bottom.
-     */
-    static void removeDanglingInterface( Polygons& interface_polygons, const Polygons& test_polygons);
-
-    /*!
      * \brief Join current support layer with the support of the layer above,
      * (make support conical) and perform smoothing etc. operations.
      * \param storage Where to store the resulting support.
@@ -318,13 +307,6 @@ private:
      * 
      */
     static void cleanup(SliceDataStorage& storage);
-
-    /*!
-     * Actual outermost contour of the support polygons may be printed with some offset.
-     *
-     * Returns the actual offset value.
-     */
-    static coord_t getActualSupportOffset();
 };
 
 
