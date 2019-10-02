@@ -790,7 +790,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
 : mesh(mesh)
 {
-    SlicingTolerance slicing_tolerance = mesh->settings.get<SlicingTolerance>("slicing_tolerance");
+    const SlicingTolerance slicing_tolerance = mesh->settings.get<SlicingTolerance>("slicing_tolerance");
 
     assert(slice_layer_count > 0);
 
