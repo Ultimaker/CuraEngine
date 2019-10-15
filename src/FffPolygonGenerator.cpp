@@ -1019,7 +1019,15 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
     Polygons first_layer_outline;
     coord_t primary_line_count;
+    //If brim for prime tower is used, add the brim for prime tower separately.
+    //Since FffGCodeWriter assumes that the outermost contour is last, add this first. Keep it ordered!
     bool should_brim_prime_tower = storage.primeTower.enabled && mesh_group_settings.get<bool>("prime_tower_brim_enable");
+    if (should_brim_prime_tower)
+    {
+        constexpr bool dont_allow_helpers = false;
+        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"), dont_allow_helpers);
+    }
+
     switch(mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
     {
     case EPlatformAdhesion::SKIRT:
@@ -1042,12 +1050,6 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
             SkirtBrim::generate(storage, Polygons(), 0, 0);
         }
         break;
-    }
-    // If brim for prime tower is used, add the brim for prime tower separately.
-    if (should_brim_prime_tower)
-    {
-        constexpr bool allow_helpers = false;
-        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"), allow_helpers);
     }
 }
 

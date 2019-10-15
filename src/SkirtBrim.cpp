@@ -1,4 +1,4 @@
-//Copyright (C) 2018 Ultimaker B.V.
+//Copyright (C) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h"
@@ -140,7 +140,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
         start_distance = primary_extruder_skirt_brim_line_width / 2;
     }
 
-    int offset_distance = generatePrimarySkirtBrimLines(start_distance, primary_line_count, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
+    coord_t offset_distance = generatePrimarySkirtBrimLines(start_distance, primary_line_count, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
 
     // handle support-brim
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
@@ -160,7 +160,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
         //  || ||     ||[]|| > expand to fit an extra brim line
         //  |+-+|     |+--+|
         //  +---+     +----+ 
-        const int64_t primary_skirt_brim_width = (primary_line_count + primary_line_count % 2) * primary_extruder_skirt_brim_line_width; // always use an even number, because we will fil the area from both sides
+        const coord_t primary_skirt_brim_width = (primary_line_count + primary_line_count % 2) * primary_extruder_skirt_brim_line_width; // always use an even number, because we will fil the area from both sides
 
         Polygons shield_brim;
         if (has_ooze_shield)
