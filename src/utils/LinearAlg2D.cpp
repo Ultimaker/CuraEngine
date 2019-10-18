@@ -18,6 +18,20 @@ float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
     const Point bc = c - b;
     const coord_t dott = dot(ba, bc); // dot product
     const coord_t det = ba.X * bc.Y - ba.Y * bc.X; // determinant
+    if (det == 0)
+    {
+        if (
+            (ba.X != 0 && (ba.X > 0) == (bc.X > 0))
+            || (ba.X == 0 && (ba.Y > 0) == (bc.Y > 0))
+            )
+        {
+            return 0; // pointy bit
+        }
+        else
+        {
+            return M_PI; // straight bit
+        }
+    }
     const float angle = -atan2(det, dott); // from -pi to pi
     if (angle >= 0)
     {
