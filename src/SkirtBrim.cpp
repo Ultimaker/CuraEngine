@@ -1,9 +1,14 @@
-//Copyright (C) 2018 Ultimaker B.V.
+//Copyright (C) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "SkirtBrim.h"
-#include "support.h"
 #include "Application.h"
+#include "ExtruderTrain.h"
+#include "SkirtBrim.h"
+#include "Slice.h"
+#include "sliceDataStorage.h"
+#include "support.h"
+#include "settings/types/Ratio.h"
+#include "utils/logoutput.h"
 
 namespace cura 
 {
@@ -11,19 +16,22 @@ namespace cura
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline)
 {
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+    const ExtruderTrain& support_infill_extruder = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const bool external_only = is_skirt || train.settings.get<bool>("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
     const LayerIndex layer_nr = 0;
     if (is_skirt)
     {
-        const bool include_helper_parts = true;
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
+        constexpr bool include_support = true;
+        constexpr bool include_prime_tower = true;
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_only);
         first_layer_outline = first_layer_outline.approxConvexHull();
     }
     else
     { // add brim underneath support by removing support where there's brim around the model
-        constexpr bool include_helper_parts = false; // include manually below
+        constexpr bool include_support = false; //Include manually below.
+        constexpr bool include_prime_tower = false; //Include manually below.
         constexpr bool external_outlines_only = false; //Remove manually below.
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_outlines_only);
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_outlines_only);
         first_layer_outline = first_layer_outline.unionPolygons(); //To guard against overlapping outlines, which would produce holes according to the even-odd rule.
         Polygons first_layer_empty_holes;
         if (external_only)
@@ -34,7 +42,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
         if (storage.support.generated && primary_line_count > 0 && !storage.support.supportLayers.empty())
         { // remove model-brim from support
             SupportLayer& support_layer = storage.support.supportLayers[0];
-            if (train.settings.get<bool>("brim_replaces_support"))
+            if (support_infill_extruder.settings.get<bool>("brim_replaces_support"))
             {
                 // avoid gap in the middle
                 //    V
@@ -61,7 +69,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
         }
         if (storage.primeTower.enabled)
         {
-            first_layer_outline.add(storage.primeTower.outer_poly); // don't remove parts of the prime tower, but make a brim for it
+            first_layer_outline.add(storage.primeTower.outer_poly_first_layer); // don't remove parts of the prime tower, but make a brim for it
         }
     }
     constexpr coord_t join_distance = 20;
@@ -71,11 +79,11 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
     first_layer_outline.simplify(smallest_line_length, largest_error_of_removed_point); // simplify for faster processing of the brim lines
     if (first_layer_outline.size() == 0)
     {
-        logError("Couldn't generate skirt / brim! No polygons on first layer.");
+        logError("Couldn't generate skirt / brim! No polygons on first layer.\n");
     }
 }
 
-int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_t primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
+coord_t SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_t primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
 {
     const Settings& adhesion_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
     const coord_t primary_extruder_skirt_brim_line_width = adhesion_settings.get<coord_t>("skirt_brim_line_width") * adhesion_settings.get<Ratio>("initial_layer_line_width_factor");
@@ -98,7 +106,7 @@ int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_
 
         skirt_brim_primary_extruder.add(outer_skirt_brim_line);
 
-        int length = skirt_brim_primary_extruder.polygonLength();
+        const coord_t length = skirt_brim_primary_extruder.polygonLength();
         if (skirt_brim_number + 1 >= primary_line_count && length > 0 && length < primary_extruder_minimal_length) //Make brim or skirt have more lines when total length is too small.
         {
             primary_line_count++;
@@ -107,10 +115,9 @@ int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_
     return offset_distance;
 }
 
-void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count)
+void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, const coord_t start_distance, const size_t primary_line_count, const bool allow_helpers /*= true*/)
 {
     const bool is_skirt = start_distance > 0;
-
     Scene& scene = Application::getInstance().current_slice->scene;
     const size_t adhesion_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
     const Settings& adhesion_settings = scene.extruders[adhesion_extruder_nr].settings;
@@ -119,12 +126,10 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
 
-    Polygons first_layer_outline;
-    getFirstLayerOutline(storage, primary_line_count, is_skirt, first_layer_outline);
+    const bool has_ooze_shield = allow_helpers && storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
+    const bool has_draft_shield = allow_helpers && storage.draft_protection_shield.size() > 0;
 
-    const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
-    const bool has_draft_shield = storage.draft_protection_shield.size() > 0;
-
+    coord_t gap;
     if (is_skirt && (has_ooze_shield || has_draft_shield))
     { // make sure we don't generate skirt through draft / ooze shield
         first_layer_outline = first_layer_outline.offset(start_distance - primary_extruder_skirt_brim_line_width / 2, ClipperLib::jtRound).unionPolygons(storage.draft_protection_shield);
@@ -133,14 +138,18 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
             first_layer_outline = first_layer_outline.unionPolygons(storage.oozeShield[0]);
         }
         first_layer_outline = first_layer_outline.approxConvexHull();
-        start_distance = primary_extruder_skirt_brim_line_width / 2;
+        gap = primary_extruder_skirt_brim_line_width / 2;
+    }
+    else
+    {
+        gap = start_distance;
     }
 
-    int offset_distance = generatePrimarySkirtBrimLines(start_distance, primary_line_count, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
+    coord_t offset_distance = generatePrimarySkirtBrimLines(gap, primary_line_count, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
 
     // handle support-brim
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    if (support_infill_extruder.settings.get<bool>("support_brim_enable"))
+    if (allow_helpers && support_infill_extruder.settings.get<bool>("support_brim_enable"))
     {
         generateSupportBrim(storage);
     }
@@ -156,7 +165,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
         //  || ||     ||[]|| > expand to fit an extra brim line
         //  |+-+|     |+--+|
         //  +---+     +----+ 
-        const int64_t primary_skirt_brim_width = (primary_line_count + primary_line_count % 2) * primary_extruder_skirt_brim_line_width; // always use an even number, because we will fil the area from both sides
+        const coord_t primary_skirt_brim_width = (primary_line_count + primary_line_count % 2) * primary_extruder_skirt_brim_line_width; // always use an even number, because we will fil the area from both sides
 
         Polygons shield_brim;
         if (has_ooze_shield)
@@ -192,6 +201,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
         offset_distance = 0;
     }
 
+    if (first_layer_outline.polygonLength() > 0)
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int last_width = primary_extruder_skirt_brim_line_width;
         std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
@@ -242,6 +252,8 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage)
     const Polygons brim_area = support_outline.difference(support_outline.offset(-brim_width));
     support_layer.excludeAreasFromSupportInfillAreas(brim_area, AABB(brim_area));
 
+    Polygons support_brim;
+
     coord_t offset_distance = brim_line_width / 2;
     for (size_t skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)
     {
@@ -259,9 +271,9 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage)
             }
         }
 
-        skirt_brim.add(brim_line);
+        support_brim.add(brim_line);
 
-        const coord_t length = skirt_brim.polygonLength();
+        const coord_t length = skirt_brim.polygonLength() + support_brim.polygonLength();
         if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) //Make brim or skirt have more lines when total length is too small.
         {
             line_count++;
@@ -270,6 +282,15 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage)
         { // the fist layer of support is fully filled with brim
             break;
         }
+    }
+
+    if (support_brim.size())
+    {
+        // to ensure that the skirt brim is printed from outside to inside, the support brim lines must
+        // come before the skirt brim lines in the Polygon object so that the outermost skirt brim line
+        // is at the back of the list
+        support_brim.add(skirt_brim);
+        skirt_brim = support_brim;
     }
 }
 

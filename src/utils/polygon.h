@@ -140,7 +140,7 @@ public:
         return length;
     }
 
-    bool shorterThan(int64_t check_length) const;
+    bool shorterThan(const coord_t check_length) const;
 
     Point min() const
     {
@@ -455,7 +455,7 @@ public:
      * \param smallest_line_segment_squared maximal squared length of removed line segments
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
-    void simplify(int smallest_line_segment_squared = 100, int allowed_error_distance_squared = 25);
+    void simplify(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25);
 
     void pop_back()
     { 
@@ -680,7 +680,7 @@ public:
      */
     void addLine(const Point from, const Point to)
     {
-        paths.emplace_back((std::initializer_list<Point>){from, to});
+        paths.emplace_back(ClipperLib::Path{from, to});
     }
 
     template<typename... Args>
@@ -706,7 +706,9 @@ public:
     Polygons() {}
 
     Polygons(const Polygons& other) { paths = other.paths; }
+    Polygons(Polygons&& other) { paths = std::move(other.paths); }
     Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
+    Polygons& operator=(Polygons&& other) { paths = std::move(other.paths); return *this; }
 
     bool operator==(const Polygons& other) const =delete;
 
@@ -759,16 +761,14 @@ public:
     /*!
      * Clips input line segments by this Polygons.
      * \param other Input line segments to be cropped
-     * \return the resulting interior line segments
+     * \param segment_tree the resulting interior line segments
      */
-    ClipperLib::PolyTree lineSegmentIntersection(const Polygons& other) const
+    void lineSegmentIntersection(const Polygons& other, ClipperLib::PolyTree& segment_tree) const
     {
-        ClipperLib::PolyTree ret;
         ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(paths, ClipperLib::ptClip, true);
         clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
-        clipper.Execute(ClipperLib::ctIntersection, ret);
-        return ret;
+        clipper.Execute(ClipperLib::ctIntersection, segment_tree);
     }
     Polygons xorPolygons(const Polygons& other) const
     {
@@ -882,17 +882,28 @@ public:
     Polygons smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
     
     /*!
-     * removes points connected to similarly oriented lines
-     * 
-     * \param smallest_line_segment maximal length of removed line segments
-     * \param allowed_error_distance The distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
+     * Removes vertices of the polygons to make sure that they are not too high
+     * resolution.
+     *
+     * This removes points which are connected to line segments that are shorter
+     * than the `smallest_line_segment`, unless that would introduce a deviation
+     * in the contour of more than `allowed_error_distance`.
+     *
+     * Vertices which introduce an error of less than 5 microns are removed
+     * anyway, even if the segments are longer than the smallest line segment.
+     * This makes sure that (practically) colinear line segments are joined into
+     * a single line segment.
+     * \param smallest_line_segment Maximal length of removed line segments.
+     * \param allowed_error_distance If removing a vertex introduces a deviation
+     * from the original path that is more than this distance, the vertex may
+     * not be removed.
      */
-    void simplify(int smallest_line_segment = 10, int allowed_error_distance = 5) 
+    void simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5) 
     {
-        int allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
-        int smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
+        const coord_t allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
+        const coord_t smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
         Polygons& thiss = *this;
-        for (unsigned int p = 0; p < size(); p++)
+        for (size_t p = 0; p < size(); p++)
         {
             thiss[p].simplify(smallest_line_segment_squared, allowed_error_distance_squared);
             if (thiss[p].size() < 3)
@@ -1150,7 +1161,7 @@ public:
  * This class has little more functionality than Polygons, but serves to show that a specific instance is ordered such that the first Polygon is the outline and the rest are holes.
  */
 class PolygonsPart : public Polygons
-{   
+{
 public:
     PolygonRef outerPolygon()
     {

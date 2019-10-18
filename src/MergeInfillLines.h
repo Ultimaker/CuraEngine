@@ -4,13 +4,26 @@
 #ifndef MERGE_INFILL_LINES_H
 #define MERGE_INFILL_LINES_H
 
-#include "pathPlanning/GCodePath.h" //To accept and generate g-code paths.
+#ifdef BUILD_TESTS
+    #include <gtest/gtest_prod.h>
+#endif //BUILD_TESTS
+
+#include "utils/IntPoint.h" //For Point.
 
 namespace cura
 {
 
+class ExtruderPlan;
+class GCodePath;
+
 class MergeInfillLines 
 {
+#ifdef BUILD_TESTS
+    FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthEmpty);
+    FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthSingle);
+    FRIEND_TEST(MergeInfillLinesTest, CalcPathLengthMultiple);
+#endif //BUILD_TESTS
+
 public:
     /*
      * Create a new merger instance.
@@ -34,8 +47,16 @@ private:
      * we can use.
      */
     ExtruderPlan& extruder_plan;
+
+    /*
+     * The nozzle size that's printing these lines.
+     */
     const coord_t nozzle_size;
-    const coord_t maximum_resolution;
+
+    /*
+     * The allowed deviation in the line positioning.
+     */
+    const coord_t maximum_deviation;
 
     /*
      *

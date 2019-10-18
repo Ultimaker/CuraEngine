@@ -4,23 +4,27 @@
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
-#include "gcodeExport.h" // CoastingConfig
-#include "mesh.h"
-#include "MeshGroup.h"
+#include <map>
 #include "PrimeTower.h"
+#include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
-#include "infill/SierpinskiFillProvider.h"
+#include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/AngleDegrees.h" //Infill angles.
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
+#include "utils/AABB3D.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 #include "utils/optional.h"
 #include "utils/polygon.h"
+#include "WipeScriptConfig.h"
 
 namespace cura 
 {
+
+class Mesh;
+class SierpinskiFillProvider;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
@@ -216,6 +220,11 @@ public:
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
 
+    std::vector<AngleDegrees> support_infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<AngleDegrees> support_infill_angles_layer_0; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<AngleDegrees> support_roof_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<AngleDegrees> support_bottom_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+
     std::vector<SupportLayer> supportLayers;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
@@ -292,6 +301,8 @@ public:
     AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
     std::vector<SliceMeshStorage> meshes;
 
+    std::vector<WipeScriptConfig> wipe_config_per_extruder; //!< Wipe configs per extruder.
+
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
     std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
 
@@ -325,11 +336,14 @@ public:
     /*!
      * Get all outlines within a given layer.
      * 
-     * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)
-     * \param include_helper_parts whether to include support and prime tower
-     * \param external_polys_only whether to disregard all hole polygons
+     * \param layer_nr The index of the layer for which to get the outlines
+     * (negative layer numbers indicate the raft).
+     * \param include_support Whether to include support in the outline.
+     * \param include_prime_tower Whether to include the prime tower in the
+     * outline.
+     * \param external_polys_only Whether to disregard all hole polygons.
      */
-    Polygons getLayerOutlines(const LayerIndex layer_nr, bool include_helper_parts, bool external_polys_only = false) const;
+    Polygons getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false) const;
 
     /*!
      * Get the extruders used.
@@ -355,11 +369,25 @@ public:
      */
     bool getExtruderPrimeBlobEnabled(const size_t extruder_nr) const;
 
+    /*!
+     * Gets the border of the usable print area for this machine.
+     *
+     * \param adhesion_offset whether to offset the border by the adhesion width to account for brims, skirts and
+     * rafts, if present.
+     * \return a Polygon representing the usable area of the print bed.
+     */
+    Polygon getMachineBorder(bool adhesion_offset = false) const;
+
 private:
     /*!
      * Construct the retraction_config_per_extruder
      */
     std::vector<RetractionConfig> initializeRetractionConfigs();
+
+    /*!
+     * Construct the wipe_config_per_extruder
+     */
+    std::vector<WipeScriptConfig> initializeWipeConfigs();
 };
 
 }//namespace cura
