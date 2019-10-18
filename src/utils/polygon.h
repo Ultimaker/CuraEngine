@@ -140,7 +140,7 @@ public:
         return length;
     }
 
-    bool shorterThan(int64_t check_length) const;
+    bool shorterThan(const coord_t check_length) const;
 
     Point min() const
     {
