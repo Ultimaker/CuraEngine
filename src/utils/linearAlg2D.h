@@ -107,18 +107,24 @@ public:
 
         if (x_p1 == 0)
         {
+            //Line segment has length 0.
             return p0;
         }
         if (projected_x <= x_p0)
         {
+            //Projection is beyond p0.
             return p0;
         }
         if (projected_x >= x_p1)
         {
+            //Projection is beyond p1.
             return p1;
         }
         else
         {
+            //Projection is between p0 and p1.
+            //Return direction-normalised projection (projected_x / vSize(direction)) on direction vector.
+            //vSize(direction) * vSize(direction) == vSize2(direction) == x_p1.
             return p0 + projected_x * direction / x_p1;
         }
     }
