@@ -19,11 +19,13 @@ namespace cura
 AdaptiveLayer::AdaptiveLayer(const coord_t layer_height) : layer_height(layer_height) { }
 
 AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation,
-                                           const coord_t step_size, const double threshold)
+                                           const coord_t step_size, const double threshold,
+                                           const MeshGroup* meshgroup)
     : base_layer_height(base_layer_height)
     , max_variation(variation)
     , step_size(step_size)
     , threshold(threshold)
+    , meshgroup(meshgroup)
 {
     layers = {};
 
@@ -63,6 +65,7 @@ void AdaptiveLayerHeights::calculateLayers()
     Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     SlicingTolerance slicing_tolerance = mesh_group_settings.get<SlicingTolerance>("slicing_tolerance");
     std::vector<size_t> triangles_of_interest;
+    const coord_t model_max_z = meshgroup->max().z;
     coord_t z_level = 0;
     coord_t previous_layer_height = 0;
 
@@ -76,7 +79,7 @@ void AdaptiveLayerHeights::calculateLayers()
     layers.push_back(adaptive_layer);
 
     // loop while triangles are found
-    while (!triangles_of_interest.empty() || layers.size() < 2)
+    while (z_level <= model_max_z || layers.size() < 2)
     {
         double global_min_slope = std::numeric_limits<double>::max();
         int layer_height_for_global_min_slope = 0;
@@ -173,20 +176,11 @@ void AdaptiveLayerHeights::calculateLayers()
             }
         }
 
-        // stop calculating when we're out of triangles (e.g. above the mesh)
-        if (triangles_of_interest.empty())
-        {
-            break;
-        }
         // this means we cannot find a layer height that has an angle lower than the threshold.
         // in this case, we use the layer height with the lowest
         if (!has_added_layer)
         {
-            z_level += layer_height_for_global_min_slope;
-            AdaptiveLayer adaptive_layer(layer_height_for_global_min_slope);
-            adaptive_layer.z_position = z_level;
-            previous_layer_height = adaptive_layer.layer_height;
-            layers.push_back(adaptive_layer);
+            z_level += allowed_layer_heights.back();
         }
     }
 }

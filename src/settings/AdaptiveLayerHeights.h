@@ -5,6 +5,7 @@
 #define ADAPTIVELAYERHEIGHTS_H
 
 #include "../utils/Coord_t.h"
+#include "../MeshGroup.h"
 
 namespace cura {
 
@@ -90,8 +91,10 @@ public:
      * adjacent layers.
      * \param threshold Threshold to compare the tangent of the steepest slope
      * to.
+     * \param meshgroup The meshgroup to process.
      */
-    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const double threshold);
+    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const double threshold,
+                         const MeshGroup* meshgroup);
 
 private:
 
@@ -101,6 +104,7 @@ private:
     std::vector<double> face_slopes;
     std::vector<int> face_min_z_values;
     std::vector<int> face_max_z_values;
+    const MeshGroup* meshgroup;
 
     /*!
      * Calculate the allowed layer heights depending on variation and step input
