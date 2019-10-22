@@ -2037,14 +2037,9 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
         mesh.settings.get<EFillMethod>("top_bottom_pattern");
 
     AngleDegrees skin_angle = 45;
-    const bool skin_alternate_rotation = mesh.settings.get<bool>("skin_alternate_rotation") && (mesh.settings.get<size_t>("top_layers") >= 4 || mesh.settings.get<size_t>("bottom_layers") >= 4 );
     if (mesh.skin_angles.size() > 0)
     {
         skin_angle = mesh.skin_angles.at(layer_nr % mesh.skin_angles.size());
-    }
-    if (skin_alternate_rotation && (layer_nr / 2 ) & 1)
-    {
-        skin_angle -= 45;
     }
 
     // generate skin_polygons and skin_lines (and concentric_perimeter_gaps if needed)
