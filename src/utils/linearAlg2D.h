@@ -119,8 +119,7 @@ public:
         }
         else
         {
-            Point ret = p0 + projected_x / vSize(direction) * direction  / vSize(direction);
-            return ret;
+            return p0 + projected_x * direction / x_p1;
         }
     }
 
