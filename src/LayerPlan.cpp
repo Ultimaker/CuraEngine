@@ -362,7 +362,7 @@ std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState(
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
+GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
 {
     const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
     const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
@@ -391,7 +391,7 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         }
         forceNewPathStart(); // force a new travel path after this first bogus move
     }
-    else if (force_comb_retract && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    else if (force_retract && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
     {
         // path is not shorter than min travel distance, force a retraction
         path->retract = true;
