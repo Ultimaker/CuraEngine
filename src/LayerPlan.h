@@ -450,17 +450,32 @@ public:
     }
 
     /*!
-     * Add a travel path to a certain point, retract if needed and when avoiding boundary crossings:
-     * avoiding obstacles and comb along the boundary of parts.
-     * 
-     * \warning For the first travel move in a layer this will result in a bogous travel move with no combing and no retraction
-     * This travel move needs to be fixed afterwards
-     * 
-     * \param p The point to travel to
-     * \param force_comb_retract Whether to force a retraction to occur when travelling to this point. (Only enforced when distance is larger than retraction_min_travel)
+     * Travel to a certain point, with all of the procedures necessary to do so.
+     *
+     * Additional procedures here are:
+     * - If retraction is forced, always retract.
+     * - If combing is enabled, try a combing move.
+     *   - If combing succeeds, i.e. there is a path to the destination
+     *     - If the combed path is longer than retraction_combing_max_distance
+     *       - Only retract (if enabled). Don't Z hop. Then follow coming path.
+     *     - If the combed path is shorter
+     *       - Travel the combing path without retraction.
+     *   - If combing fails, i.e. the destination is in a different part
+     *     - If Z hop is enabled
+     *       - Retract (if enabled) and make a straight travel move.
+     *     - If Z hop is disabled
+     *       - Retract (if enabled) and make a multi-part travel move.
+     * - If combing is disabled
+     *   - Retract (if enabled) and Z hop (if enabled) and make straight travel.
+     *
+     * The first travel move in a layer will result in a bogus travel move with
+     * no combing and no retraction. This travel move needs to be fixed
+     * afterwards.
+     * \param p The point to travel to.
+     * \param force_comb_retract Whether to force a retraction to occur.
      */
-    GCodePath& addTravel(Point p, bool force_comb_retract = false);
-    
+    GCodePath& addTravel(const Point p, const bool force_retract = false);
+
     /*!
      * Add a travel path to a certain point and retract if needed.
      * 
