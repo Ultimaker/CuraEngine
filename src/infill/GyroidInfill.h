@@ -19,7 +19,7 @@ public:
 
     ~GyroidInfill();
 
-    static void generateTotalGyroidInfill(Polygons& result_lines, bool zig_zaggify, coord_t outline_offset, coord_t infill_line_width, coord_t line_distance, const Polygons& in_outline, coord_t z, EFillMethod pattern, const Point& infill_origin, const AngleDegrees fill_angle, const Ratio scaling_z);
+    static void generateTotalGyroidInfill(Polygons& result_lines, bool zig_zaggify, coord_t outline_offset, coord_t infill_line_width, coord_t line_distance, const Polygons& in_outline, coord_t z, EFillMethod pattern, const Point& infill_origin, const AngleDegrees fill_angle);
     
 private:
 

@@ -255,7 +255,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
 void Infill::generateGyroidInfill(Polygons& result_lines, EFillMethod pattern)
 {
-    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset + infill_overlap, infill_line_width, line_distance, in_outline, z, pattern, infill_origin, fill_angle, scaling_z);
+    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset + infill_overlap, infill_line_width, line_distance, in_outline, z, pattern, infill_origin, fill_angle);
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)

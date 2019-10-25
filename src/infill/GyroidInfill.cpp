@@ -14,7 +14,7 @@ GyroidInfill::GyroidInfill() {
 GyroidInfill::~GyroidInfill() {
 }
 
-void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_zaggify, coord_t outline_offset, coord_t infill_line_width, coord_t line_distance, const Polygons& in_outline, coord_t z, EFillMethod pattern, const Point& infill_origin, const AngleDegrees fill_angle, const Ratio scaling_z)
+void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_zaggify, coord_t outline_offset, coord_t infill_line_width, coord_t line_distance, const Polygons& in_outline, coord_t z, EFillMethod pattern, const Point& infill_origin, const AngleDegrees fill_angle)
 {
     // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
     // kudos to the author of the Slic3r implementation equation code, the equation code here is based on that
@@ -50,7 +50,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
         step = pitch / num_steps;
     }
     pitch = step * num_steps; // recalculate to avoid precision errors
-    const double z_rads = 2 * M_PI * z / (pitch * scaling_z);
+    const double z_rads = 2 * M_PI * z / pitch;
     const double cos_z = std::cos(z_rads);
     const double sin_z = std::sin(z_rads);
     std::vector<coord_t> odd_line_coords;
