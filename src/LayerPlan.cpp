@@ -413,7 +413,12 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
         const coord_t max_distance_ignored = extruder->settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2;
 
         const bool combed = comb->calc(*extruder, *last_planned_position, p, comb_paths, was_inside, is_inside, max_distance_ignored);
-        if(combed && comb_paths.size() == 1) //Combing consists of a single part, i.e. doesn't cross walls.
+        if(comb_paths.empty())
+        {
+            //Combed path was shorter than max_distance_ignored. Don't retract or comb.
+            bypass_combing = true;
+        }
+        else if(combed && comb_paths.size() == 1) //Combing consists of a single part, i.e. doesn't cross walls.
         {
             const CombPath& comb_path = comb_paths[0];
             //Compute total length of combing path.
