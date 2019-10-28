@@ -455,18 +455,25 @@ public:
      * Additional procedures here are:
      * - If retraction is forced, always retract.
      * - If combing is enabled, try a combing move.
-     *   - If combing succeeds, i.e. there is a path to the destination
+     *   - If combing consists of a single part, i.e. doesn't cross walls
      *     - If the combed path is longer than retraction_combing_max_distance
      *       - Only retract (if enabled). Don't Z hop. Then follow coming path.
-     *     - If the combed path is shorter
-     *       - Travel the combing path without retraction.
-     *   - If combing fails, i.e. the destination is in a different part
+     *     - If the combed path is shorter than retraction_combing_max_distance
+     *       - If the combed path has any detours (not straight line)
+     *         - If the combing goes through support and we limit support
+     *           retractions
+     *           - Travel the combing path without retraction or Z hop.
+     *         - Otherwise
+     *           - Only retract (if enabled). Don't Z hop. Follow coming path.
+     *       - If the combed path is straight (combing was unnecessary)
+     *         - Travel the combing path without retraction or Z hop.
+     *   - If combing consists of multiple parts, i.e. crosses walls
      *     - If Z hop is enabled
-     *       - Retract (if enabled) and make a straight travel move.
+     *       - Retract (if enabled) and Z hop and make a straight travel move.
      *     - If Z hop is disabled
-     *       - Retract (if enabled) and make a multi-part travel move.
+     *       - Retract (if enabled) and follow combing path.
      * - If combing is disabled
-     *   - Retract (if enabled) and Z hop (if enabled) and make straight travel.
+     *   - Retract (if enabled) and Z hop (if enabled) and make straight move.
      *
      * The first travel move in a layer will result in a bogus travel move with
      * no combing and no retraction. This travel move needs to be fixed
