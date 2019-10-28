@@ -431,10 +431,12 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
             }
             else //The combed path is shorter than retraction_combing_max_distance.
             {
-                if(comb_path.size() != 2 || comb_path[0] != *last_planned_position || comb_path[1] == p
-                        || !comb_paths.throughAir || comb_path.cross_boundary || !extruder->settings.get<bool>("limit_support_retractions"))
+                if(comb_path.size() != 2 || comb_path[0] != *last_planned_position || comb_path[1] != p) //If the combed path has any detours (not a straight line)...
                 {
-                    path->retract = retraction_enable;
+                    if(comb_paths.throughAir && !comb_path.cross_boundary && !extruder->settings.get<bool>("limit_support_retractions")) //If the combing goes through support and we limit support retractions...
+                    {
+                        path->retract = retraction_enable;
+                    }
                 }
             }
         }
