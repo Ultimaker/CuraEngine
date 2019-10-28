@@ -425,7 +425,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
                 last_point = comb_point;
             }
             const coord_t retract_threshold = extruder->settings.get<coord_t>("retraction_combing_max_distance");
-            if(path_length > retract_threshold) //If the combed path is longer than retraction_combing_max_distance...
+            if(retract_threshold != 0 && path_length > retract_threshold) //If the combed path is longer than retraction_combing_max_distance...
             {
                 path->retract = retraction_enable;
             }
