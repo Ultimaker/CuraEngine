@@ -23,9 +23,9 @@ Within a plan for an extruder on a layer, there is also a rigid order in which t
 - Draft shield, if enabled and this is the first extruder on the layer.
 - Support, if enabled and set to print with this extruder.
 - Each part is printed in order.
-  - Infill.
   - Inner Walls.
   - Outer Wall.
+  - Infill.
   - Gaps in the walls are filled.
   - Skin.
   - Gaps in the skin are filled.
