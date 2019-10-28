@@ -477,6 +477,8 @@ public:
      * - If combing is disabled
      *   - Retract (if enabled) and Z hop (if enabled) and make straight move.
      *
+     * \image svg ../docs/assets/retraction_combing_hop.svg
+     *
      * The first travel move in a layer will result in a bogus travel move with
      * no combing and no retraction. This travel move needs to be fixed
      * afterwards.
