@@ -372,11 +372,18 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
     const ExtruderTrain* extruder = getLastPlannedExtruderTrain();
     const bool retraction_enable = extruder->settings.get<bool>("retraction_enable");
     const bool retraction_hop_enabled = retraction_enable && extruder->settings.get<bool>("retraction_hop_enabled");
+    bool bypass_combing = false;
 
     const coord_t maximum_travel_resolution = extruder->settings.get<coord_t>("meshfix_maximum_travel_resolution");
 
+    //Z hop after extruder switch?
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 1 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
-    bool bypass_combing = is_first_travel_of_extruder_after_switch && extruder->settings.get<bool>("retraction_hop_after_extruder_switch");
+    if(is_first_travel_of_extruder_after_switch && extruder->settings.get<bool>("retraction_hop_after_extruder_switch"))
+    {
+        bypass_combing = true;
+        path->retract = true;
+        path->perform_z_hop = true;
+    }
 
     const bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
     if(is_first_travel_of_layer)
