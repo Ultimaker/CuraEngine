@@ -411,13 +411,16 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
         }
     }
 
-    if(comb != nullptr && !bypass_combing) //If combing is enabled, try a combing move.
+    Point last_point(last_planned_position ? *last_planned_position : Point(0, 0));
+    const coord_t max_distance_ignored = extruder->settings.get<coord_t>("machine_nozzle_tip_outer_diameter"); //Ignore very short travel moves: Less than the outer size of the nozzle.
+    const coord_t flight_distance_2 = vSize2(last_point - p);
+    if(flight_distance_2 <= max_distance_ignored * max_distance_ignored)
+    {
+        //No retract, no hop, no combing. Just a simple travel move.
+    }
+    else if(comb != nullptr && !bypass_combing) //If combing is enabled, try a combing move.
     {
         CombPaths comb_paths;
-
-        // Divide by 2 to get the radius
-        // Multiply by 2 because if two lines start and end points places very close then will be applied combing with retractions. (Ex: for brim)
-        const coord_t max_distance_ignored = extruder->settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2;
 
         const bool combed = comb->calc(*extruder, *last_planned_position, p, comb_paths, was_inside, is_inside, max_distance_ignored);
         if(comb_paths.empty())
@@ -429,7 +432,6 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
         {
             const CombPath& comb_path = comb_paths[0];
             //Compute total length of combing path.
-            Point last_point(last_planned_position ? *last_planned_position : Point(0, 0));
             coord_t path_length = 0;
             for(const Point& comb_point : comb_path)
             {
