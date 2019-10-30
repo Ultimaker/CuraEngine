@@ -9,6 +9,7 @@
 #include "Slice.h"
 #include "slicer.h"
 #include "settings/EnumSettings.h"
+#include "utils/AABB.h"
 
 namespace cura 
 {
@@ -17,6 +18,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
 {
     //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
     const bool alternate_carve_order = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("alternate_carve_order");
+    const bool interlocking_carving = true;
     std::vector<Slicer*> ranked_volumes = volumes;
     std::sort(ranked_volumes.begin(), ranked_volumes.end(),
               [](Slicer* volume_1, Slicer* volume_2)
@@ -53,7 +55,48 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
             {
                 SlicerLayer& layer1 = volume_1.layers[layerNr];
                 SlicerLayer& layer2 = volume_2.layers[layerNr];
-                if (alternate_carve_order && layerNr % 2 == 0 && volume_1.mesh->settings.get<int>("infill_mesh_order") == volume_2.mesh->settings.get<int>("infill_mesh_order"))
+                if (interlocking_carving)
+                {
+                    coord_t layer1_width = 2 * volume_1.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO
+                    coord_t layer2_width = 2 * volume_2.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO
+                    coord_t period = layer1_width + layer2_width;
+                    float angle = 45.0; // TODO  make into setting?
+                    coord_t alternation_height = period / 2 / Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height"); // TODO make setting?
+
+                    constexpr coord_t poly_separation_prevention = 10;
+
+                    if ((layerNr / alternation_height) % 2 == 1)
+                    {
+                        angle -= 90.0;
+                    }
+                    PointMatrix rotation_matrix(angle);
+
+                    Polygons overlap_area = layer2.polygons.intersection(layer1.polygons);
+                    overlap_area.applyMatrix(rotation_matrix);
+
+                    Polygons layer1_lines;
+                    { // generate layer1_lines
+                        AABB aabb(overlap_area);
+                        aabb.expand(coord_t(10)); // avoid exact intersections of points between the polygons
+                        coord_t start_x = (aabb.min.X / period) * period;
+                        if (start_x < 0) start_x -= period;
+                        for (coord_t x = start_x; x < aabb.max.X + period; x += period)
+                        {
+                            PolygonRef square = layer1_lines.newPoly();
+                            square.emplace_back(x, aabb.min.Y);
+                            square.emplace_back(x + layer1_width, aabb.min.Y);
+                            square.emplace_back(x + layer1_width, aabb.max.Y);
+                            square.emplace_back(x, aabb.max.Y);
+                        }
+
+                        layer1_lines = overlap_area.offset(poly_separation_prevention).intersection(layer1_lines);
+                        layer1_lines.applyMatrix(rotation_matrix.inverse());
+                    }
+
+                    layer2.polygons = layer2.polygons.difference(layer1_lines);
+                    layer1.polygons = layer1.polygons.difference(layer2.polygons);
+                }
+                else if (alternate_carve_order && layerNr % 2 == 0 && volume_1.mesh->settings.get<int>("infill_mesh_order") == volume_2.mesh->settings.get<int>("infill_mesh_order"))
                 {
                     layer2.polygons = layer2.polygons.difference(layer1.polygons);
                 }
