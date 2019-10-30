@@ -193,7 +193,21 @@ public:
         matrix[2] = -matrix[1];
         matrix[3] = matrix[0];
     }
+    
+    PointMatrix(double a, double b, double c, double d)
+    {
+        matrix[0] = a;
+        matrix[1] = b;
+        matrix[2] = c;
+        matrix[3] = d;
+    }
 
+    PointMatrix inverse()
+    {
+        double det = matrix[0] * matrix[3] - matrix[1] * matrix[2];
+        return PointMatrix(matrix[3] / det, - matrix[1] / det, - matrix[2] / det, matrix[0] / det);
+    }
+    
     Point apply(const Point p) const
     {
         return Point(p.X * matrix[0] + p.Y * matrix[1], p.X * matrix[2] + p.Y * matrix[3]);

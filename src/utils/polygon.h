@@ -1158,6 +1158,14 @@ public:
             }
         }
     }
+
+    void applyMatrix(const Point3Matrix& matrix)
+    {
+        for (PolygonRef poly : *this)
+        {
+            poly.applyMatrix(matrix);
+        }
+    }
 };
 
 /*!
