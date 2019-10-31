@@ -603,12 +603,12 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 {
                     const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
 
-                    Polygons inner = part.infill_area;
+                    // accumulate area of skin and infill that will be printed
+                    Polygons inner;
                     for (const SkinPart& skin_part : part.skin_parts)
                     {
                         inner.add(skin_part.outline);
                     }
-                    inner = inner.unionPolygons();
                     // for some reason the zig-zag and lines patterns behave differently and a narrow region that isn't filled with zig-zag pattern can be filled with
                     // lines pattern so we only add the narrow region to the perimeter gaps when the pattern is zig-zag.
                     if (((layer_nr == 0) ? mesh.settings.get<EFillMethod>("top_bottom_pattern_0") : mesh.settings.get<EFillMethod>("top_bottom_pattern")) == EFillMethod::ZIG_ZAG)
@@ -617,6 +617,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                         // we print them as a perimeter gap
                         inner = inner.offset(-skin_line_width / 2).offset(skin_line_width / 2);
                     }
+                    inner.add(part.infill_area);
                     part.perimeter_gaps.add(outer.difference(inner));
                 }
 
