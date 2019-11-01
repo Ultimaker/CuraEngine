@@ -477,6 +477,59 @@ void Polygons::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& 
     }
 }
 
+void Polygons::removeSmallAreas(const double min_area_size, const bool remove_holes)
+{
+    std::vector<ConstPolygonRef> outlines_removed;
+    std::vector<size_t> small_hole_indices;
+    Polygons& thiss = *this;
+    for(size_t i = 0; i < size(); i++)
+    {
+        double area = INT2MM(INT2MM(thiss[i].area()));
+        // holes have negative area and small holes will be ignored unless remove_holes is true
+        // or the hole is contained within an outline that is itself smaller in area than the threshold
+        if (fabs(area) < min_area_size)
+        {
+            if (!remove_holes)
+            {
+                if (area > 0)
+                {
+                    // remember this outline has been removed so we can later check if it contains any holes that also need to be removed
+                    outlines_removed.push_back(thiss[i]);
+                }
+                else
+                {
+                    // remember this small hole so we can later check if it is contained within an outline that has been removed
+                    small_hole_indices.push_back(i);
+                }
+            }
+            // the polygon area is below the threshold, remove it if it is an outline or we are removing holes as well as outlines
+            if (area > 0 || remove_holes)
+            {
+                remove(i);
+                i -= 1;
+            }
+        }
+    }
+    if (outlines_removed.size() > 0 && small_hole_indices.size() > 0)
+    {
+        size_t num_holes_removed = 0;
+        // now remove any holes that are inside outlines that have been removed
+        for (size_t small_hole_index : small_hole_indices)
+        {
+            const size_t hole_index = small_hole_index - num_holes_removed; // adjust index to account for removed holes
+            // if hole polygon's first point is inside a removed polygon, remove the hole polygon also
+            for (ConstPolygonRef removed_outline : outlines_removed)
+            {
+                if (removed_outline.inside(thiss[hole_index][0]))
+                {
+                    remove(hole_index);
+                    ++num_holes_removed;
+                    break;
+                }
+            }
+        }
+    }
+}
 
 Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
 {
