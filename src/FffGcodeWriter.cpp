@@ -1271,25 +1271,50 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         return;
     }
 
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
     gcode_layer.setMesh(mesh.mesh_name);
 
-    ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-    const Point layer_start_position(train.settings.get<coord_t>("layer_start_x"), train.settings.get<coord_t>("layer_start_y"));
-    PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_config);
-    for (unsigned int part_idx = 0; part_idx < layer.parts.size(); part_idx++)
+    if (mesh.isPrinted())
     {
-        const SliceLayerPart& part = layer.parts[part_idx];
-        ConstPolygonRef part_representative = (part.insets.size() > 0) ? part.insets[0][0] : part.outline[0];
-        part_order_optimizer.addPolygon(part_representative);
+        // "normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings
+        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
+        PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+        for (unsigned int part_idx = 0; part_idx < layer.parts.size(); part_idx++)
+        {
+            const SliceLayerPart& part = layer.parts[part_idx];
+            part_order_optimizer.addPolygon((part.insets.size() > 0) ? part.insets[0][0] : part.outline[0]);
+        }
+        part_order_optimizer.optimize();
+        for (int part_idx : part_order_optimizer.polyOrder)
+        {
+            const SliceLayerPart& part = layer.parts[part_idx];
+            addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, part, gcode_layer);
+        }
     }
-    part_order_optimizer.optimize();
+    else
+    {
+        // infill meshes and anything else that doesn't have walls (so no z-seams) get parts ordered by closeness to the last planned position
 
-    for (int part_idx : part_order_optimizer.polyOrder)
-    {
-        const SliceLayerPart& part = layer.parts[part_idx];
-        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, part, gcode_layer);
+        std::vector<const SliceLayerPart*> parts; // use pointers to avoid recreating the SliceLayerPart objects
+
+        for(const SliceLayerPart& part_ref : layer.parts)
+        {
+            parts.emplace_back(&part_ref);
+        }
+
+        while (parts.size())
+        {
+            PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
+            for (auto part : parts)
+            {
+                part_order_optimizer.addPolygon((part->insets.size() > 0) ? part->insets[0][0] : part->outline[0]);
+            }
+            part_order_optimizer.optimize();
+            const int nearest_part_index = part_order_optimizer.polyOrder[0];
+            addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *parts[nearest_part_index], gcode_layer);
+            parts.erase(parts.begin() + nearest_part_index);
+        }
     }
+
     processIroning(mesh, layer, mesh_config.ironing_config, gcode_layer);
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
     {
