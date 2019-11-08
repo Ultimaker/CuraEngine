@@ -290,7 +290,10 @@ void SVG::writePolygon(ConstPolygonRef poly, ColorObject color, float stroke_wid
             int g = (i * 255 * 11 / size) % (255 * 2);
             if (g > 255) g = 255 * 2 - g;
             int b = (i * 255 * 5 / size) % (255 * 2);
-            if (b > 255) b = 255 * 2 - b;
+            if (b > 255)
+            {
+                b = 255 * 2 - b;
+            }
             writeLineRGB(p0, p1, i * 255 / size, g, b, stroke_width);
         }
         else
