@@ -28,7 +28,7 @@ public:
         ORANGE,
         MAGENTA,
         YELLOW,
-        RAINBOW,
+        RAINBOW, // used for making the color change throughout the polygon which is drawn
         NONE
     };
 
