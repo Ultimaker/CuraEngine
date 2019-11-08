@@ -288,7 +288,10 @@ void SVG::writePolygon(ConstPolygonRef poly, ColorObject color, float stroke_wid
         if (color.color == Color::RAINBOW)
         {
             int g = (i * 255 * 11 / size) % (255 * 2);
-            if (g > 255) g = 255 * 2 - g;
+            if (g > 255)
+            {
+                g = 255 * 2 - g;
+            }
             int b = (i * 255 * 5 / size) % (255 * 2);
             if (b > 255)
             {
