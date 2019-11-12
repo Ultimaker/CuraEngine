@@ -60,6 +60,10 @@ GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness
 //     file << "M83 ;relative extrusion mode\n";
     file << "\n";
     cur_pos = build_plate_middle;
+    
+    
+    time_estimates.setFirmwareDefaults();
+    time_estimates.setPosition(TimeEstimateCalculator::Position(INT2MM(cur_pos.X), INT2MM(cur_pos.Y), /*Z=*/0, /*E=*/0));
 }
 
 GcodeWriter::~GcodeWriter()
@@ -358,6 +362,7 @@ void GcodeWriter::move(Point p)
             break;
     }
     cur_pos = p;
+    time_estimates.plan(TimeEstimateCalculator::Position(INT2MM(cur_pos.X), INT2MM(cur_pos.Y), /*Z=*/0, last_E), travel_speed / 60.0);
 }
 
 void GcodeWriter::print(ExtrusionJunction from, ExtrusionJunction to)
@@ -423,6 +428,7 @@ void GcodeWriter::printSingleExtrusionMove(ExtrusionJunction& from, ExtrusionJun
     }
     
     cur_pos = to.p;
+    time_estimates.plan(TimeEstimateCalculator::Position(INT2MM(cur_pos.X), INT2MM(cur_pos.Y), /*Z=*/0, last_E), print_speed / 60.0);
 }
 
 void GcodeWriter::extrude(float amount)
@@ -449,5 +455,16 @@ float GcodeWriter::getExtrusionFilamentMmPerMmMove(coord_t width)
     // v / m / (v / f) = f / m
     return volume_per_mm_move / volume_per_mm_filament * extrusion_multiplier;
 }
+
+
+Duration GcodeWriter::getPrintTime()
+{
+    return time_estimates.calculate();
+}
+void GcodeWriter::resetPrintTime()
+{
+    time_estimates.reset();
+}
+
 
 } // namespace arachne

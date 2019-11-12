@@ -10,6 +10,7 @@
 #include "utils/AABB.h"
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionLine.h"
+#include "timeEstimate.h"
 
 namespace arachne
 {
@@ -46,6 +47,8 @@ public:
     void move(Point p);
     void print(ExtrusionJunction from, ExtrusionJunction to);
     void extrude(float amount);
+    Duration getPrintTime();
+    void resetPrintTime();
 private:
     void printSingleExtrusionMove(ExtrusionJunction& from, ExtrusionJunction& to);
     std::ofstream file;
@@ -65,6 +68,7 @@ private:
     Point cur_pos;
     bool is_unretracted;
     float last_E = 0;
+    TimeEstimateCalculator time_estimates;
 
     float getExtrusionFilamentMmPerMmMove(coord_t width);
 };
