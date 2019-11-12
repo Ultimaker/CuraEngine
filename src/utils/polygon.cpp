@@ -109,7 +109,7 @@ void Polygons::makeConvex()
         {
             Point b = poly[i];
             Point c = poly[(i + 1) % poly.size()];
-            if (LinearAlg2D::pointIsLeftOfLine(b, a, c) > 0)
+            if (LinearAlg2D::pointIsLeftOfLine(b, a, c) >= 0)
             {
                 poly.remove(i);
             }
