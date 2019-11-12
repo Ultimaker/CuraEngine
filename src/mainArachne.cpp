@@ -631,7 +631,9 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
             ss << "output/" << output_prefix << "_" << to_string(type) << "_arachne_P3.gcode";
             GcodeWriter gcode(ss.str(), GcodeWriter::type_P3);
             gcode.printBrim(aabb, 3, nozzle_size, nozzle_size * 1.5);
+            gcode.resetPrintTime();
             gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
+//             std::cerr << "P3 Print time: " << gcode.getPrintTime() << "\n";
         }
 //         if (false)
         {
@@ -639,7 +641,10 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
             ss << "output/" << output_prefix << "_" << to_string(type) << "_arachne_UM3.gcode";
             GcodeWriter gcode(ss.str(), GcodeWriter::type_UM3);
             gcode.printBrim(aabb, 3, nozzle_size, nozzle_size * 1.5);
+            gcode.resetPrintTime();
             gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
+            Statistics stats(to_string(type), output_prefix, polys, processing_time);
+            stats.savePrintTimeCSV(gcode.getPrintTime());
             logAlways("Writing gcode took %fs\n", tk.restart());
         }
     }
@@ -708,7 +713,9 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
             ss << "output/" << output_prefix << "_naive_arachne_P3.gcode";
             GcodeWriter gcode(ss.str(), GcodeWriter::type_P3);
             gcode.printBrim(aabb, 3, nozzle_size, nozzle_size * 1.5);
+            gcode.resetPrintTime();
             gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
+//             std::cerr << "P3 Print time: " << gcode.getPrintTime() << "\n";
         }
 //         if (false)
         {
@@ -716,7 +723,10 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
             ss << "output/" << output_prefix << "_naive_arachne_UM3.gcode";
             GcodeWriter gcode(ss.str(), GcodeWriter::type_UM3);
             gcode.printBrim(aabb, 3, nozzle_size, nozzle_size * 1.5);
+            gcode.resetPrintTime();
             gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
+            Statistics stats("naive", output_prefix, polys, processing_time);
+            stats.savePrintTimeCSV(gcode.getPrintTime());
             logAlways("Writing gcodes took %fs\n", tk.restart());
         }
     }
@@ -744,6 +754,7 @@ void writeVarWidthTest()
         for (auto p : ps)
             for (ExtrusionJunction& j : p.junctions)
                 aabb.include(j.p);
+    Polygons fake_outline; fake_outline.add(aabb.toPolygon());
     
         
     {
@@ -751,7 +762,9 @@ void writeVarWidthTest()
         ss << "output/variable_width_test_P3.gcode";
         GcodeWriter gcode(ss.str(), GcodeWriter::type_P3, 200);
         gcode.printBrim(aabb, 3);
+        gcode.resetPrintTime();
         gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
+//         std::cerr << "P3 Print time: " << gcode.getPrintTime() << "\n";
     }
 //     if (false)
     {
@@ -759,10 +772,12 @@ void writeVarWidthTest()
         ss << "output/variable_width_test_UM3.gcode";
         GcodeWriter gcode(ss.str(), GcodeWriter::type_UM3, 200);
         gcode.printBrim(aabb, 3);
+        gcode.resetPrintTime();
         gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
+        Statistics stats("var_width", "test", fake_outline, 1.0);
+        stats.savePrintTimeCSV(gcode.getPrintTime());
     }
     
-    Polygons fake_outline; fake_outline.add(aabb.toPolygon());
     Statistics stats("var_width", "test", fake_outline, 1.0);
     stats.analyse(result_polygons_per_index, result_polylines_per_index);
     stats.visualize(400, false, true, true, false, false);
