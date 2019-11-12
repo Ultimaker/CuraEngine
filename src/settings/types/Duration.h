@@ -4,6 +4,8 @@
 #ifndef DURATION_H
 #define DURATION_H
 
+#include <ostream>
+
 namespace cura
 {
 
@@ -63,6 +65,26 @@ struct Duration
 constexpr Duration operator "" _s(const long double seconds)
 {
     return Duration(seconds);
+}
+
+
+inline std::ostream& operator<< (std::ostream& out, const Duration seconds)
+{
+    double s = seconds;
+    if (seconds > 60)
+    {
+        int min = seconds / 60;
+        if (min > 60)
+        {
+            int hrs = min / 60;
+            out << hrs << "h ";
+            min -= hrs * 60;
+        }
+        out << min << "min ";
+        s -= min * 60;
+    }
+    out << s << "s";
+    return out;
 }
 
 }
