@@ -253,18 +253,20 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
         std::swap(msx, mex);
     }
     
-    bool add_marking_start = msx * dir > (sx - px) * dir;
-    bool add_marking_end = mex * dir > (sx - px) * dir;
+    bool add_marking_start = msx * dir > (sx - px) * dir && msx * dir < (ex - px) * dir;
+    bool add_marking_end = mex * dir > (sx - px) * dir && mex * dir < (ex - px) * dir;
+
+    Point apex = rot.unapply(Point(0, d / 2)) + pxx;
+    bool add_apex = (sx - px) * dir < 0 && (ex - px) * dir > 0;
+
+    assert(!(add_marking_start && add_marking_end) || add_apex);
     
     coord_t step_count = static_cast<coord_t>(static_cast<float>(std::abs(ex - sx)) / approximate_step_size + 0.5);
-    if (step_count % 2 == 1)
-    {
-        step_count++; // enforce a discretization point being added in the middle
-    }
-
+    
     discretized.emplace_back(s);
     for (coord_t step = 1; step < step_count; step++)
     {
+        
         coord_t x = sx + sxex * step / step_count - px;
         coord_t y = x * x / (2 * d) + d / 2;
         
@@ -272,6 +274,11 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
         {
             discretized.emplace_back(marking_start);
             add_marking_start = false;
+        }
+        if (add_apex && x * dir > 0)
+        {
+            discretized.emplace_back(apex);
+            add_apex = false; // only add the apex just before the 
         }
         if (add_marking_end && mex * dir < x * dir)
         {
@@ -281,7 +288,11 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
         Point result = rot.unapply(Point(x, y)) + pxx;
         discretized.emplace_back(result);
     }
-    if (add_marking_end && mex * dir < (ex - px) * dir)
+    if (add_apex)
+    {
+        discretized.emplace_back(apex);
+    }
+    if (add_marking_end)
     {
         discretized.emplace_back(marking_end);
     }
