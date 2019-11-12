@@ -874,7 +874,8 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     Polygons polys = parabola;
 //     Polygons polys = pikachu; polys.applyMatrix(PointMatrix::scale(1)); polys.applyMatrix(mirror);
 //     Polygons polys = um;
-//     Polygons polys = spikes;
+//     Polygons polys = spikes; polys.applyMatrix(PointMatrix::scale(2.0));
+//     Polygons polys = spikes_row; polys.applyMatrix(PointMatrix::scale(2.0));
 //     Polygons polys = enclosed_region;
 //     Polygons polys = jin;
 //     Microstructure m; Polygons polys = m.squareGrid(Point(2,2), Point(2000,2000));
