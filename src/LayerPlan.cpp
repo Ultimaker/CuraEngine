@@ -1343,7 +1343,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
             {
                 material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
             }
-            double thisTime = length / path.config->getSpeed();
+            double thisTime = length / (path.config->getSpeed() * path.speed_factor);
             *path_time_estimate += thisTime;
             p0 = p1;
         }
