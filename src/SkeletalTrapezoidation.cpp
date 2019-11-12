@@ -1803,7 +1803,7 @@ void SkeletalTrapezoidation::generateExtraRibs(const BeadingStrategy& beading_st
         {
             if (rib_thickness / 2 <= a_R) continue;
             if (rib_thickness / 2 >= b_R) break;
-            coord_t new_node_bead_count = edge.from->data.bead_count;
+            coord_t new_node_bead_count = std::min(edge.from->data.bead_count, edge.to->data.bead_count);
             coord_t end_pos = ab_size * (rib_thickness / 2 - a_R) / (b_R - a_R);
             assert(end_pos > 0);
             assert(end_pos < ab_size);
