@@ -387,7 +387,7 @@ void GcodeWriter::print(ExtrusionJunction from, ExtrusionJunction to)
     {
         Point vec = to.p - from.p;
         coord_t length = vSize(vec);
-        coord_t segment_count = (length + discretization_size / 2) / discretization_size; // round to nearest
+        coord_t segment_count = std::max(coord_t(1), (length + discretization_size / 2) / discretization_size); // round to nearest
         ExtrusionJunction last = from;
         for (coord_t segment_idx = 0; segment_idx < segment_count; segment_idx++)
         {
@@ -396,8 +396,6 @@ void GcodeWriter::print(ExtrusionJunction from, ExtrusionJunction to)
             last = here;
         }
     }
-    
-    cur_pos = to.p;
 }
 
 void GcodeWriter::printSingleExtrusionMove(ExtrusionJunction& from, ExtrusionJunction& to)
@@ -423,6 +421,8 @@ void GcodeWriter::printSingleExtrusionMove(ExtrusionJunction& from, ExtrusionJun
                 << " E" << last_E << "\n";
             break;
     }
+    
+    cur_pos = to.p;
 }
 
 void GcodeWriter::extrude(float amount)
