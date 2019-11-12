@@ -124,6 +124,17 @@ void Statistics::saveResultsCSV()
     }
 }
 
+
+void Statistics::savePrintTimeCSV(Duration print_time)
+{
+    std::cerr << "Print time: " << print_time << "\n";
+
+    std::ostringstream ss;
+    ss << "output/" << output_prefix << "_" << test_type << "_printtime.csv";
+    std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
+    csv << test_type << "," << output_prefix << "," << float(print_time) << "," << print_time << '\n';
+}
+
 void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index)
 {
     for (std::list<ExtrusionLine>& polygons : polygons_per_index)

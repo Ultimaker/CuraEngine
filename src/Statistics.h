@@ -8,6 +8,7 @@
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionSegment.h"
 #include "utils/ExtrusionLine.h"
+#include "utils/types/Duration.h"
 #include "SkeletalTrapezoidation.h"
 
 namespace arachne
@@ -31,6 +32,7 @@ public:
     void analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, SkeletalTrapezoidation* st = nullptr);
     void visualize(coord_t nozzle_size, bool output_st = true, bool output_toolpaths = false, bool output_widths = true, bool include_legend = false, bool output_accuracy = true, bool exaggerate_widths = false, bool rounded_visualization = true);
     void saveResultsCSV();
+    void savePrintTimeCSV(Duration print_time);
     double processing_time = -1;
     double overfill_area = -1;
     double double_overfill_area = -1;
