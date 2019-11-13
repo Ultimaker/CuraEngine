@@ -20,7 +20,7 @@ void Statistics::analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_ind
     generateAllSegments(polygons_per_index, polylines_per_index);
 
     
-    for (coord_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
+    for (size_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
     {
         Segment s = all_segments[segment_idx];
         Polygons covered = s.s.toPolygons(false);
@@ -233,7 +233,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
         for (float w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
         {
             Polygons polys;
-            for (coord_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
+            for (size_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
             {
                 Segment s = all_segments[segment_idx];
                 s.s.from.w *= w / .9;
@@ -309,7 +309,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
         for (float w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
         {
             int brightness = rounded_visualization? 255 - 200 * (w - .25) : 192;
-            for (coord_t segment_idx = 0; segment_idx < all_segments_plus.size(); segment_idx++)
+            for (size_t segment_idx = 0; segment_idx < all_segments_plus.size(); segment_idx++)
             {
                 Segment ss = all_segments_plus[segment_idx];
 //                 ss.s.from.w *= w;

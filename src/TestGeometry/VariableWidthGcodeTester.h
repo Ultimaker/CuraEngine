@@ -30,7 +30,7 @@ public:
         polyline.emplace_back(Point(widths.size() * gap , -normal_width / 2), normal_width, 0);
         polyline.emplace_back(Point(-gap, -normal_width / 2), normal_width, 0);
         bool downward = true;
-        for (int idx = 0; idx < widths.size(); idx++)
+        for (size_t idx = 0; idx < widths.size(); idx++)
         {
             coord_t x = idx * gap;
             coord_t w = MM2INT(widths[widths.size() - 1 - idx]);

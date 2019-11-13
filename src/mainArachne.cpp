@@ -216,7 +216,7 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
     std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
     std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
     result_polygons_per_index.resize(insets.size());
-    for (coord_t inset_idx = 0; inset_idx < insets.size(); inset_idx++)
+    for (size_t inset_idx = 0; inset_idx < insets.size(); inset_idx++)
     {
         for (PolygonRef poly : insets[inset_idx])
         {

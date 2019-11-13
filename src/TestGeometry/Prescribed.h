@@ -26,7 +26,7 @@ public:
         if (height_data.size() < 1) return ret;
         
         ExtrusionJunction prev(Point(height_data.front().X, y), height_data.front().Y, 0);
-        for (coord_t datum_idx = 1; datum_idx < height_data.size(); datum_idx++)
+        for (size_t datum_idx = 1; datum_idx < height_data.size(); datum_idx++)
         {
             Point datum = height_data[datum_idx];
             ExtrusionJunction junction(Point(datum.X, y), datum.Y, 0);

@@ -2046,11 +2046,11 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
         assert(left.toolpath_locations.empty() || left.toolpath_locations.front() >= switching_radius);
         return ret;
     }
-    if (next_inset_idx + 1 == left.toolpath_locations.size())
+    if (next_inset_idx + 1 == coord_t(left.toolpath_locations.size()))
     { // we cant adjust to fit the next edge because there is no previous one?!
         return ret;
     }
-    assert(next_inset_idx < left.toolpath_locations.size());
+    assert(next_inset_idx < coord_t(left.toolpath_locations.size()));
     assert(left.toolpath_locations[next_inset_idx] <= switching_radius);
     assert(left.toolpath_locations[next_inset_idx + 1] >= switching_radius);
     if (ret.toolpath_locations[next_inset_idx] > switching_radius)
@@ -2075,7 +2075,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     float ratio_right_to_whole = 1.0 - ratio_left_to_whole;
 
     Beading ret = (left.bead_widths.size() > right.bead_widths.size())? left : right;
-    for (int inset_idx = 0; inset_idx < std::min(left.bead_widths.size(), right.bead_widths.size()); inset_idx++)
+    for (size_t inset_idx = 0; inset_idx < std::min(left.bead_widths.size(), right.bead_widths.size()); inset_idx++)
     {
         ret.bead_widths[inset_idx] = ratio_left_to_whole * left.bead_widths[inset_idx] + ratio_right_to_whole * right.bead_widths[inset_idx];
         ret.toolpath_locations[inset_idx] = ratio_left_to_whole * left.toolpath_locations[inset_idx] + ratio_right_to_whole * right.toolpath_locations[inset_idx];
@@ -2110,7 +2110,7 @@ void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, Beadi
 
         coord_t junction_idx;
         // compute starting junction_idx for this segment
-        for (junction_idx = (beading->toolpath_locations.size() - 1) / 2; junction_idx >= 0 && junction_idx < beading->toolpath_locations.size(); junction_idx--)
+        for (junction_idx = (std::max(size_t(1), beading->toolpath_locations.size()) - 1) / 2; junction_idx >= 0 && junction_idx < coord_t(beading->toolpath_locations.size()); junction_idx--)
         {
             coord_t bead_R = beading->toolpath_locations[junction_idx];
             if (bead_R <= start_R)
@@ -2121,7 +2121,7 @@ void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, Beadi
 
         // rebustness against odd segments which might lie just slightly outside of the range due to rounding errors
         // not sure if this is really needed (TODO)
-        if (junction_idx + 1 < beading->toolpath_locations.size()
+        if (junction_idx + 1 < coord_t(beading->toolpath_locations.size())
             && beading->toolpath_locations[junction_idx + 1] <= start_R + 5
             && beading->total_thickness < start_R + 5
         )
@@ -2266,7 +2266,7 @@ void SkeletalTrapezoidation::connectJunctions(std::unordered_map<edge_t*, std::v
     {
         if (from == to) return;
 
-        coord_t inset_idx = from.perimeter_index;
+        size_t inset_idx = from.perimeter_index;
         if (inset_idx >= result_polylines_per_index.size()) result_polylines_per_index.resize(inset_idx + 1);
         assert((result_polylines_per_index[inset_idx].empty() || !result_polylines_per_index[inset_idx].back().junctions.empty()) && "empty extrusion lines should never have been generated");
         if ( ! force_new_path
@@ -2383,7 +2383,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::unordered_map<n
             && !isMarked(node)
         )
         {
-            coord_t inset_index = beading.bead_widths.size() / 2;
+            size_t inset_index = beading.bead_widths.size() / 2;
             bool is_odd = true;
             if (inset_index >= result_polylines_per_index.size()) result_polylines_per_index.resize(inset_index + 1);
             result_polylines_per_index[inset_index].emplace_back(inset_index, is_odd);
@@ -2887,7 +2887,7 @@ void SkeletalTrapezoidation::debugOutput(STLwriter& stl, std::unordered_map<edge
             return 0.0f;
         BeadingPropagation& beading = found->second;
         coord_t r = node->data.distance_to_boundary;
-        coord_t upper_inset_idx = 0;
+        size_t upper_inset_idx = 0;
         while (upper_inset_idx < beading.beading.toolpath_locations.size() && beading.beading.toolpath_locations[upper_inset_idx] < r)
             upper_inset_idx++;
         if (upper_inset_idx >= beading.beading.toolpath_locations.size())
@@ -2905,7 +2905,7 @@ void SkeletalTrapezoidation::debugOutput(STLwriter& stl, std::unordered_map<edge
     auto getPoint = [](float h, std::vector<ExtrusionJunction>& junctions)
     {
         float inset_ifx_f = (h - 1) / 2;
-        coord_t lower_inset_idx = std::floor(inset_ifx_f);
+        size_t lower_inset_idx = std::floor(inset_ifx_f);
         float rest = inset_ifx_f - lower_inset_idx;
         if (lower_inset_idx >= junctions.size()
             || lower_inset_idx + 1 >= junctions.size())
