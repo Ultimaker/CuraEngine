@@ -574,17 +574,17 @@ void SkeletalTrapezoidation::init()
     }
     {
         AABB aabb(polys);
-        SVG svg("output/graph.svg", aabb);
+        SVG svg("output/radial_dists.svg", aabb);
         debugOutput(svg, false, true);
     }
     {
         AABB aabb(polys);
-        SVG svg("output/graph2.svg", aabb);
+        SVG svg("output/bead_counts.svg", aabb);
         debugOutput(svg, false, false, true);
     }
     {
         AABB aabb(polys);
-        SVG svg("output/graph3.svg", aabb);
+        SVG svg("output/locations.svg", aabb);
         debugOutput(svg, false, false, false, true);
     }
     debugCheckGraphCompleteness();
@@ -822,17 +822,17 @@ std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(
 #ifdef DEBUG
     {
         AABB aabb(polys);
-        SVG svg("output/graph.svg", aabb);
+        SVG svg("output/radial_dists.svg", aabb);
         debugOutput(svg, false, true);
     }
     {
         AABB aabb(polys);
-        SVG svg("output/graph2.svg", aabb);
+        SVG svg("output/bead_counts.svg", aabb);
         debugOutput(svg, false, false, true);
     }
     {
         AABB aabb(polys);
-        SVG svg("output/graph3.svg", aabb);
+        SVG svg("output/locations.svg", aabb);
         debugOutput(svg, false, false, false, true);
     }
 #endif // DEBUG
