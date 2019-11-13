@@ -45,7 +45,7 @@ using arachne::Point;
 
 using namespace arachne;
 
-static TCLAP::CmdLine gCmdLine(" Generate polygon inset toolpaths ", ' ', "0.3.2.7alpha9");
+static TCLAP::CmdLine gCmdLine(" Generate polygon inset toolpaths ", ' ', "0.1");
 
 static TCLAP::SwitchArg cmd__generate_gcodes("g", "gcode", "Generate gcode", false);
 static TCLAP::SwitchArg cmd__analyse("a", "analyse", "Analyse output paths", false);
@@ -55,8 +55,12 @@ static TCLAP::ValueArg<std::string> cmd__output_prefix("o", "output", "Output fi
 static TCLAP::ValueArg<double> cmd__scale_amount("", "scale", "Input polygon scaler", false /* required? */, 1.0, "floating number");
 static TCLAP::SwitchArg cmd__mirroring("m", "mirror", "Mirror the input file vertically", false);
 static TCLAP::SwitchArg cmd__shuffle_strategies("", "shuffle", "Execute the strategies in random order", false);
-static TCLAP::ValueArg<std::string> cmd__strategy_set("s", "strat", "Set of strategies to test. Each character identifies one strategy.", false /* required? */, "crdin", "");
-
+static TCLAP::ValueArg<std::string> cmd__strategy_set("s", "strat", "Set of strategies to test. Each character identifies one strategy.", false /* required? */, "crdin", "n|N|c|r|d|i|n|s|o");
+static TCLAP::ValueArg<double> cmd__discretization_step_size("d", "discretization", "Discretization step size", /*req=*/ false, /*default=*/0.2, "mm");
+static TCLAP::ValueArg<double> cmd__transition_filter_dist("f", "transitionfilter", "Smallest distance between alternating bead counts", /*req=*/ false, /*default=*/1.0, "mm");
+static TCLAP::ValueArg<double> cmd__beading_propagation_transition_dist("t", "bptd", "Beading propagation transition distance", /*req=*/ false, /*default=*/0.4, "mm");
+static TCLAP::ValueArg<bool> cmd__reduce_extrusion_line_overlap("r", "reduce", "Cut off part of the ends of extrusion lines in order to reduce overlap", /*req=*/ false, /*default=*/true, "boolean");
+static TCLAP::SwitchArg cmd__filter_outermost_marked_edges("", "filterouter", "Unmark all outer edges of the Voronoi Diagram, so that marked edges never touch the outline", /*req=*/ false);
 
 bool generate_gcodes = true;
 bool analyse = false;
@@ -70,6 +74,11 @@ bool mirroring;
 bool shuffle_strategies;
 std::vector<StrategyType> strategies;
 
+coord_t discretization_step_size = 200;
+coord_t transition_filter_dist = 1000;
+coord_t beading_propagation_transition_dist = 400;
+bool reduce_overlapping_segments = true;
+bool filter_outermost_marked_edges = false;
 
 bool readCommandLine(int argc, char **argv)
 {
@@ -83,6 +92,11 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__mirroring);
         gCmdLine.add(cmd__shuffle_strategies);
         gCmdLine.add(cmd__strategy_set);
+        gCmdLine.add(cmd__discretization_step_size);
+        gCmdLine.add(cmd__transition_filter_dist);
+        gCmdLine.add(cmd__beading_propagation_transition_dist);
+        gCmdLine.add(cmd__reduce_extrusion_line_overlap);
+        gCmdLine.add(cmd__filter_outermost_marked_edges);
 
         gCmdLine.parse(argc, argv);
 
@@ -100,6 +114,12 @@ bool readCommandLine(int argc, char **argv)
             strategies.emplace_back(toStrategyType(c));
         }
         
+        discretization_step_size = MM2INT(cmd__discretization_step_size.getValue());
+        transition_filter_dist = MM2INT(cmd__transition_filter_dist.getValue());
+        beading_propagation_transition_dist = MM2INT(cmd__beading_propagation_transition_dist.getValue());
+        reduce_overlapping_segments = cmd__reduce_extrusion_line_overlap.getValue();
+        filter_outermost_marked_edges = cmd__filter_outermost_marked_edges.getValue();
+
         return false;
     }
     catch (const TCLAP::ArgException & e) {
@@ -125,11 +145,7 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
 
     TimeKeeper tk;
 
-    coord_t discretization_step_size = 200;
-    coord_t transition_filter_dist = 1000;
-    coord_t beading_propagation_transition_dist = 400;
-    bool reduce_overlapping_segments = true;
-    bool filter_outermost_marked_edges = false;
+
     if (type == StrategyType::SingleBead)
     {
         transition_filter_dist = 50;
