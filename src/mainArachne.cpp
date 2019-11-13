@@ -8,6 +8,8 @@
 #include <iostream>
 #include <algorithm> // random_shuffle
 
+#include <tclap/CmdLine.h> // command line argument parser
+
 #include <boost/version.hpp>
 
 #include <unordered_set>
@@ -41,8 +43,60 @@
 
 using arachne::Point;
 
-namespace arachne
+using namespace arachne;
+
+static TCLAP::CmdLine gCmdLine(" Generate polygon inset toolpaths ", ' ', "0.3.2.7alpha9");
+
+static TCLAP::SwitchArg cmd__generate_gcodes("g", "gcode", "Generate gcode", false);
+static TCLAP::SwitchArg cmd__analyse("a", "analyse", "Analyse output paths", false);
+static TCLAP::SwitchArg cmd__generate_MAT_STL("", "matstl", "Generate an stl corresponding to the medial axis transform", false);
+static TCLAP::ValueArg<std::string> cmd__input_outline_filename("p", "polygon", "Input file for polygon", false /* required? */, "-", "path to file");
+static TCLAP::ValueArg<std::string> cmd__output_prefix("o", "output", "Output file name prefix", false /* required? */, "TEST", "path to file");
+static TCLAP::ValueArg<double> cmd__scale_amount("s", "scale", "Input polygon scaler", false /* required? */, 1.0, "floating number");
+static TCLAP::SwitchArg cmd__mirroring("m", "mirror", "Mirror the input file vertically", false);
+
+
+bool generate_gcodes = true;
+bool analyse = false;
+bool generate_MAT_STL = false;
+
+std::string input_outline_filename;
+std::string output_prefix;
+
+double scale_amount;
+bool mirroring;
+
+
+bool readCommandLine(int argc, char **argv)
 {
+    try {
+        gCmdLine.add(cmd__generate_gcodes);
+        gCmdLine.add(cmd__analyse);
+        gCmdLine.add(cmd__generate_MAT_STL);
+        gCmdLine.add(cmd__input_outline_filename);
+        gCmdLine.add(cmd__output_prefix);
+        gCmdLine.add(cmd__scale_amount);
+        gCmdLine.add(cmd__mirroring);
+
+        gCmdLine.parse(argc, argv);
+
+        generate_gcodes = cmd__generate_gcodes.getValue();
+        analyse = cmd__analyse.getValue();
+        generate_MAT_STL = cmd__generate_MAT_STL.getValue();
+        input_outline_filename = cmd__input_outline_filename.getValue();
+        output_prefix = cmd__output_prefix.getValue();
+        scale_amount = cmd__scale_amount.getValue();
+        mirroring = cmd__mirroring.getValue();
+        return false;
+    }
+    catch (const TCLAP::ArgException & e) {
+        std::cerr << "Error: " << e.error() << " for arg " << e.argId() << std::endl;
+    } catch (...) { // catch any exceptions
+        std::cerr << "Error: unknown exception caught" << std::endl;
+    }
+    return true;
+}
+
 
 
 void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, StrategyType type, bool generate_gcodes = true, bool analyse = false, bool generate_MAT_STL = false)
@@ -254,111 +308,25 @@ void test(std::string input_outline_filename, std::string output_prefix)
 //     logAlways("r = %d;\n", r);
 //     logDebug("boost version: %s\n", BOOST_LIB_VERSION);
     
-    
-    // problem of 2 nearby 3-way intersections I wouldn't know the solution to
-    /*
-    srand(1564134608);
-    Polygons polys = generateTestPoly(30, Point(20000, 20000));
-    AABB ab(Point(16436,6754) - Point(1000,1000), Point(16436,6754) + Point(1000,1000));
-    Polygons abs; abs.add(ab.toPolygon());
-    polys = polys.intersection(abs);
-    */
-    
-    TestPolys::generateTestPolys();
-
-    Polygons polys = SVGloader::load(input_outline_filename);
-    AABB aabb(polys);
-    polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
-    
-    /*
-    AABB aabb(Point(0,0), Point(1000,1000));
-    Polygons qwe;
-    qwe.add(aabb.toPolygon());
-    Statistics stats("asf", "asf", qwe, 1.0);
-    
-    std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
-
-    std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
-    result_polylines_per_index.emplace_back();
-    ExtrusionLine line(0, false);
-    line.junctions.emplace_back(ExtrusionJunction(Point(0,0), 300, 0));
-    line.junctions.emplace_back(ExtrusionJunction(Point(10000,0), 500, 0));
-    result_polylines_per_index.back().emplace_back(line);
-    stats.analyse(result_polygons_per_index, result_polylines_per_index);
-    stats.visualize(400);
-    
-    std::exit(0);*/
-    
-    
-    /*
-    coord_t scale = 10000;
-    Point p(20000,70000);
-    AABB ab(p - scale * Point(1,1), p + scale * Point(1,1));
-    Polygons abs; abs.add(ab.toPolygon());
-    polys = polys.intersection(abs);
-    */
-
-    /*
-    Polygons polys = generateTestPoly(40, Point(20000, 20000));
-    coord_t scale = 2000;
-    AABB ab(Point(6000,10000) - scale * Point(1,1), Point(6000,10000) + scale * Point(1,1));
-    Polygons abs; abs.add(ab.toPolygon());
-    polys = polys.intersection(abs);*/
 
     PointMatrix mirror = PointMatrix::scale(1);
-    mirror.matrix[3] = -1;
+    if (mirroring)
+    {
+        mirror.matrix[3] = -1;
+    }
+    PointMatrix scaler = PointMatrix::scale(scale_amount);
 
-//     Polygons polys = TestPolys::test_poly_1;
-//     Polygons polys = TestPolys::squares;
-//     Polygons polys = TestPolys::circle;
-//     Polygons polys = TestPolys::circle_flawed;
-//     Polygons polys = TestPolys::cross_shape;
-//     Polygons polys = TestPolys::gMAT_example; polys.applyMatrix(mirror);
-//     Polygons polys = TestPolys::test_various_aspects; polys.applyMatrix(PointMatrix::scale(2.2));
-//     Polygons polys = TestPolys::simple_MAT_example; polys.applyMatrix(PointMatrix::scale(3)); polys.applyMatrix(PointMatrix(-90));
-//     Polygons polys = TestPolys::simple_MAT_example_rounded_corner; polys.applyMatrix(PointMatrix::scale(3)); polys.applyMatrix(PointMatrix(-90));
-//     Polygons polys = TestPolys::beading_conflict;
-//     Polygons polys = TestPolys::wedge; // polys.applyMatrix(PointMatrix::scale(3));
-//     Polygons polys = TestPolys::wedge; polys.applyMatrix(PointMatrix::scale(3));
-//     Polygons polys = TestPolys::limit_wedge; //polys.applyMatrix(PointMatrix::scale(3));
-//     Polygons polys = TestPolys::double_wedge; // polys.applyMatrix(PointMatrix::scale(3));
-//     Polygons polys = TestPolys::flawed_wedge;
-//     Polygons polys = TestPolys::clean_and_flawed_wedge_part; polys.applyMatrix(PointMatrix::scale(2.0)); polys.applyMatrix(mirror);
-//     Polygons polys = TestPolys::flawed_wall;
-//     Polygons polys = TestPolys::marked_local_opt;
-//     Polygons polys = TestPolys::legend;
-//     Polygons polys = TestPolys::parabola;
-//     Polygons polys = TestPolys::pikachu; polys.applyMatrix(PointMatrix::scale(1)); polys.applyMatrix(mirror);
-//     Polygons polys = TestPolys::um;
-//     Polygons polys = TestPolys::spikes; polys.applyMatrix(PointMatrix::scale(2.0));
-//     Polygons polys = TestPolys::spikes_row; polys.applyMatrix(PointMatrix::scale(2.0));
-//     Polygons polys = TestPolys::enclosed_region;
-//     Polygons polys = TestPolys::jin;
-//     Microstructure m; Polygons polys = TestPolys::m.squareGrid(Point(2,2), Point(2000,2000));
-//     Microstructure m; Polygons polys = TestPolys::m.hexGrid(Point(12,12), 8000); polys.applyMatrix(PointMatrix::scale(0.5));
-//     Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 500, 52);
-//     Polygons polys = MoessenTests::generateCircles(Point(2, 2), 100, 400, 500, 8);
-//     srand(1563874501); Polygons polys = MoessenTests::generateCircles(Point(3, 3), 100, 400, 1000, 8);
-//     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 100, 600, 1000);
-//     Polygons polys = MoessenTests::generateTriangles(Point(2, 1), 100, 500, 1000);
-//     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 300, 301, 1000);
-//     Polygons polys = MoessenTests::generateTriangles(Point(4, 2), 400, 401, 1000);
-//     Polygons polys = Prescribed::fromDistances({Point(0,800), Point(400,300), Point(610,610), Point(1400, 200)});
-//     Polygons polys = Spiky::oneSpike(200);
-//     Polygons polys = Spiky::twoSpikes();
-//     Polygons polys = Spiky::twoSpikesDiamond(MM2INT(0.8), MM2INT(4.0), MM2INT(.1)); polys.applyMatrix(PointMatrix(45.0));
-//     Polygons polys = Spiky::oneSpikeOneCorner(MM2INT(0.8), MM2INT(4.0), MM2INT(.1));
-//     Polygons polys = Spiky::fourSpikes();
-//     Polygons polys = Spiky::doubleOutSpike(800, 380);
-
+    Polygons polys = SVGloader::load(input_outline_filename);
+    polys.applyMatrix(Point3Matrix(scaler).compose(mirror));
+    
+    AABB aabb(polys);
+    polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
     polys = polys.unionPolygons();
+    
+    
     polys.simplify();
 
 #ifdef DEBUG
-    {
-        SVG svg("output/outline_viz.svg", AABB(polys));
-        svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK);
-    }
     {
         SVG svg("output/outline.svg", AABB(polys), INT2MM(1));
         svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK);
@@ -380,9 +348,6 @@ void test(std::string input_outline_filename, std::string output_prefix)
         }
     }
 
-    bool generate_gcodes = false;
-    bool analyse = true;
-    bool generate_MAT_STL = true;
 
 //     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::Center, StrategyType::InwardDistributed });
 //     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::Distributed });
@@ -408,18 +373,14 @@ void test(std::string input_outline_filename, std::string output_prefix)
 
 
 
-} // namespace arachne
-
 int main(int argc, char *argv[])
 {
-    std::string input_outline_filename;
-    std::string output_prefix;
-    if (argc >= 2) input_outline_filename = argv[1];
-    if (argc >= 3) output_prefix = argv[2];
+    if( readCommandLine(argc, argv) ) exit(EXIT_FAILURE);
+
     long n = 1;
     for (int i = 0; i < n; i++)
     {
-        arachne::test(input_outline_filename, output_prefix);
+        test(input_outline_filename, output_prefix);
 //         if (++i % std::max(1l, n / 100) == 0)
 //             std::cerr << (i / 100) << "%\n";
     }
