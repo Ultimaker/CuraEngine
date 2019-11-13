@@ -62,6 +62,8 @@ struct segment_traits<arachne::SkeletalTrapezoidation::Segment>
 namespace arachne
 {
 
+bool generate_MAT_STL = false;
+
 SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::make_node(vd_t::vertex_type& vd_node, Point p)
 {
     auto he_node_it = vd_node_to_he_node.find(&vd_node);
@@ -588,6 +590,7 @@ void SkeletalTrapezoidation::init()
     debugCheckGraphCompleteness();
     debugCheckGraphConsistency();
 
+    if (generate_MAT_STL)
     {
         STLwriter stl("output/mat.stl");
         debugOutput(stl);
@@ -1903,6 +1906,7 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
         svg.writePolygons(polys);
         debugOutput(svg, edge_to_junctions);
     }
+    if (generate_MAT_STL)
     {
         STLwriter stl("output/vq.stl");
         debugOutput(stl, edge_to_junctions, node_to_beading);

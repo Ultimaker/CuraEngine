@@ -23,6 +23,8 @@
 namespace arachne
 {
 
+extern bool generate_MAT_STL;
+
 /*!
  * Main class of this library.
  * 

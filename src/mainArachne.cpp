@@ -60,7 +60,6 @@ static TCLAP::ValueArg<std::string> cmd__strategy_set("s", "strat", "Set of stra
 
 bool generate_gcodes = true;
 bool analyse = false;
-bool generate_MAT_STL = false;
 
 std::string input_outline_filename;
 std::string output_prefix;
