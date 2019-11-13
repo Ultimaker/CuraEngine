@@ -896,7 +896,7 @@ void SkeletalTrapezoidation::filterMarking(coord_t max_length)
 {
     for (edge_t& edge : graph.edges)
     {
-        if (isEndOfMarking(edge) && !isLocalMaximum(*edge.to) && !isLocalMaximum(*edge.to))
+        if (isEndOfMarking(edge) && !isLocalMaximum(*edge.to, true) && !isLocalMaximum(*edge.to, true))
         {
             filterMarking(edge.twin, 0, max_length);
         }
@@ -1733,7 +1733,7 @@ bool SkeletalTrapezoidation::isEndOfMarking(const edge_t& edge_to) const
     return true;
 }
 
-bool SkeletalTrapezoidation::isLocalMaximum(const node_t& node) const
+bool SkeletalTrapezoidation::isLocalMaximum(const node_t& node, bool equal_distance_result) const
 {
     if (node.data.distance_to_boundary == 0)
     {
@@ -1742,7 +1742,9 @@ bool SkeletalTrapezoidation::isLocalMaximum(const node_t& node) const
     bool first = true;
     for (edge_t* edge = node.some_edge; first || edge != node.some_edge; edge = edge->twin->next)
     {
-        if (edge->to->data.distance_to_boundary >= node.data.distance_to_boundary)
+        if (edge->to->data.distance_to_boundary > node.data.distance_to_boundary
+            || (edge->to->data.distance_to_boundary == node.data.distance_to_boundary && !equal_distance_result)
+            )
         {
             return false;
         }

@@ -262,7 +262,7 @@ protected:
     std::pair<Point, Point> getSource(const edge_t& edge);
     bool isEndOfMarking(const edge_t& edge) const;
 
-    bool isLocalMaximum(const node_t& node) const;
+    bool isLocalMaximum(const node_t& node, bool equal_distance_result = false) const;
 
     bool isMarked(const node_t* node) const;
 
