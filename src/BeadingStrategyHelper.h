@@ -33,6 +33,30 @@ enum class StrategyType
     COUNT
 };
 
+StrategyType toStrategyType(char c)
+{
+    switch (c)
+    {
+        case 'n':
+            return StrategyType::Naive;
+        case 'N':
+            return StrategyType::NaiveStrategy;
+        case 'c':
+            return StrategyType::Constant;
+        case 'r':
+            return StrategyType::Center;
+        case 'd':
+            return StrategyType::Distributed;
+        case 'i':
+            return StrategyType::InwardDistributed;
+        case 's':
+            return StrategyType::SingleBead;
+        case 'o':
+            return StrategyType::OutlineAccuracy;
+    }
+    return StrategyType::COUNT;
+}
+
 std::string to_string(StrategyType type)
 {
     switch (type)

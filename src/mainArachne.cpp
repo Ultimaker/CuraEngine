@@ -52,8 +52,10 @@ static TCLAP::SwitchArg cmd__analyse("a", "analyse", "Analyse output paths", fal
 static TCLAP::SwitchArg cmd__generate_MAT_STL("", "matstl", "Generate an stl corresponding to the medial axis transform", false);
 static TCLAP::ValueArg<std::string> cmd__input_outline_filename("p", "polygon", "Input file for polygon", false /* required? */, "-", "path to file");
 static TCLAP::ValueArg<std::string> cmd__output_prefix("o", "output", "Output file name prefix", false /* required? */, "TEST", "path to file");
-static TCLAP::ValueArg<double> cmd__scale_amount("s", "scale", "Input polygon scaler", false /* required? */, 1.0, "floating number");
+static TCLAP::ValueArg<double> cmd__scale_amount("", "scale", "Input polygon scaler", false /* required? */, 1.0, "floating number");
 static TCLAP::SwitchArg cmd__mirroring("m", "mirror", "Mirror the input file vertically", false);
+static TCLAP::SwitchArg cmd__shuffle_strategies("", "shuffle", "Execute the strategies in random order", false);
+static TCLAP::ValueArg<std::string> cmd__strategy_set("s", "strat", "Set of strategies to test. Each character identifies one strategy.", false /* required? */, "crdin", "");
 
 
 bool generate_gcodes = true;
@@ -66,6 +68,9 @@ std::string output_prefix;
 double scale_amount;
 bool mirroring;
 
+bool shuffle_strategies;
+std::vector<StrategyType> strategies;
+
 
 bool readCommandLine(int argc, char **argv)
 {
@@ -77,6 +82,8 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__output_prefix);
         gCmdLine.add(cmd__scale_amount);
         gCmdLine.add(cmd__mirroring);
+        gCmdLine.add(cmd__shuffle_strategies);
+        gCmdLine.add(cmd__strategy_set);
 
         gCmdLine.parse(argc, argv);
 
@@ -87,6 +94,13 @@ bool readCommandLine(int argc, char **argv)
         output_prefix = cmd__output_prefix.getValue();
         scale_amount = cmd__scale_amount.getValue();
         mirroring = cmd__mirroring.getValue();
+        
+        shuffle_strategies = cmd__shuffle_strategies.getValue();
+        for (char c : cmd__strategy_set.getValue())
+        {
+            strategies.emplace_back(toStrategyType(c));
+        }
+        
         return false;
     }
     catch (const TCLAP::ArgException & e) {
@@ -348,21 +362,19 @@ void test(std::string input_outline_filename, std::string output_prefix)
         }
     }
 
-
-//     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::Center, StrategyType::InwardDistributed });
-//     std::vector<StrategyType> strategies({ StrategyType::Naive, StrategyType::Distributed });
-//     std::vector<StrategyType> strategies({ StrategyType::Distributed });
-    std::vector<StrategyType> strategies({ StrategyType::OutlineAccuracy });
-//     std::vector<StrategyType> strategies({ StrategyType::InwardDistributed });
-//     std::vector<StrategyType> strategies({ StrategyType::Center });
-//     std::vector<StrategyType> strategies({ StrategyType::Distributed, StrategyType::InwardDistributed });
-//     std::vector<StrategyType> strategies({ StrategyType::Constant, StrategyType::Center, StrategyType::Distributed, StrategyType::InwardDistributed, StrategyType::Naive });
-//     std::random_shuffle(strategies.begin(), strategies.end());
+    if (shuffle_strategies)
+    {
+        std::random_shuffle(strategies.begin(), strategies.end());
+    }
     for (StrategyType type : strategies )
     {
         if (type == StrategyType::Naive)
         {
             testNaive(polys, nozzle_size, output_prefix, generate_gcodes, analyse);
+        }
+        else if (type == StrategyType::COUNT)
+        {
+            std::cerr << "Trying to perform unknown strategy type!\n";
         }
         else
         {
@@ -381,8 +393,6 @@ int main(int argc, char *argv[])
     for (int i = 0; i < n; i++)
     {
         test(input_outline_filename, output_prefix);
-//         if (++i % std::max(1l, n / 100) == 0)
-//             std::cerr << (i / 100) << "%\n";
     }
     return 0;
 }
