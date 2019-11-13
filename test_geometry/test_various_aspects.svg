@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg 
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="12.467000"
+   width="10.267000"
+   id="svg1860"
+   version="1.1">
+   inkscape:export-xdpi="100"
+   inkscape:export-ydpi="100"
+  <metadata
+     id="metadata1866">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+    inkscape:groupmode="layer"
+    inkscape:label="layer1"
+    id="layer1">
+<polygon points="10.267000,0.732000 10.267000,2.382000 8.067000,3.117000 10.267000,3.667000 10.267000,12.467000 0.000000,12.467000 0.000000,2.200000 0.235000,1.487000 0.772000,0.954000 1.432000,0.576000 2.145000,0.310000 2.886000,0.134000 3.638000,0.033000 4.400000,0.000000 9.532000,0.000000 " style="fill:none;stroke:black;stroke-width:1.000000" />
+<polygon points="0.429000,2.200000 0.429000,11.512000 5.132000,11.512000 8.800000,10.571000 5.132000,9.655000 4.549000,9.407000 4.129000,8.846000 3.863000,8.157000 3.687000,7.167000 3.687000,6.153000 3.863000,5.163000 4.129000,4.477000 4.549000,3.913000 5.132000,3.667000 7.332000,3.117000 5.132000,2.200000 " style="fill:white;stroke:black;stroke-width:1.000000" />
+  </g>
+</svg>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg 
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="6.000000"
+   width="6.000000"
+   id="svg1860"
+   version="1.1">
+   inkscape:export-xdpi="100"
+   inkscape:export-ydpi="100"
+  <metadata
+     id="metadata1866">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+    inkscape:groupmode="layer"
+    inkscape:label="layer1"
+    id="layer1">
+<polygon points="6.000000,6.000000 0.000000,6.000000 0.000000,0.000000 6.000000,0.000000 " style="fill:none;stroke:black;stroke-width:1.000000" />
+<polygon points="2.724000,4.724000 2.610000,5.000000 2.724000,5.276000 3.000000,5.390000 3.276000,5.276000 3.391000,5.000000 3.276000,4.724000 3.000000,4.610000 " style="fill:white;stroke:black;stroke-width:1.000000" />
+<polygon points="0.809000,4.809000 0.730000,5.000000 0.809000,5.191000 1.000000,5.270000 1.191000,5.191000 1.271000,5.000000 1.191000,4.809000 1.000000,4.730000 " style="fill:white;stroke:black;stroke-width:1.000000" />
+<polygon points="4.873000,4.873000 4.821000,5.000000 4.873000,5.127000 5.000000,5.179000 5.127000,5.127000 5.180000,5.000000 5.127000,4.873000 5.000000,4.821000 " style="fill:white;stroke:black;stroke-width:1.000000" />
+<polygon points="4.750000,2.750000 4.647000,3.000000 4.750000,3.250000 5.000000,3.353000 5.250000,3.250000 5.354000,3.000000 5.250000,2.750000 5.000000,2.647000 " style="fill:white;stroke:black;stroke-width:1.000000" />
+<polygon points="0.798000,2.798000 0.715000,3.000000 0.798000,3.202000 1.000000,3.285000 1.202000,3.202000 1.286000,3.000000 1.202000,2.798000 1.000000,2.715000 " style="fill:white;stroke:black;stroke-width:1.000000" />
+<polygon points="2.882000,2.882000 2.834000,3.000000 2.882000,3.118000 3.000000,3.166000 3.118000,3.118000 3.167000,3.000000 3.118000,2.882000 3.000000,2.834000 " style="fill:white;stroke:black;stroke-width:1.000000" />
+<polygon points="4.844000,0.844000 4.779000,1.000000 4.844000,1.156000 5.000000,1.221000 5.156000,1.156000 5.222000,1.000000 5.156000,0.844000 5.000000,0.779000 " style="fill:white;stroke:black;stroke-width:1.000000" />
+<polygon points="0.858000,0.858000 0.800000,1.000000 0.858000,1.142000 1.000000,1.200000 1.142000,1.142000 1.201000,1.000000 1.142000,0.858000 1.000000,0.800000 " style="fill:white;stroke:black;stroke-width:1.000000" />
+<polygon points="2.903000,0.903000 2.863000,1.000000 2.903000,1.097000 3.000000,1.137000 3.097000,1.097000 3.138000,1.000000 3.097000,0.903000 3.000000,0.863000 " style="fill:white;stroke:black;stroke-width:1.000000" />
+  </g>
+</svg>
