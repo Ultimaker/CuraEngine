@@ -74,14 +74,14 @@ inline std::ostream& operator<< (std::ostream& out, const Duration seconds)
     if (seconds > 60)
     {
         int min = seconds / 60;
+        s -= min * 60;
         if (min > 60)
         {
             int hrs = min / 60;
-            out << hrs << "h ";
             min -= hrs * 60;
+            out << hrs << "h ";
         }
         out << min << "min ";
-        s -= min * 60;
     }
     out << s << "s";
     return out;
