@@ -4,6 +4,8 @@
 #ifndef BEADING_STRATEGY_HELPER_H
 #define BEADING_STRATEGY_HELPER_H
 
+#include <optional>
+
 #include "BeadingStrategy.h"
 #include "InwardDistributedBeadingStrategy.h"
 #include "LimitedDistributedBeadingStrategy.h"
@@ -77,7 +79,7 @@ std::string to_string(StrategyType type)
 class BeadingStrategyHelper
 {
 public:
-    static BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = MM2INT(0.5), float transitioning_angle = M_PI / 4, bool widening = false)
+    static BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = MM2INT(0.5), float transitioning_angle = M_PI / 4, std::optional<coord_t> min_bead_width = NULL, std::optional<coord_t> min_feature_size = NULL)
     {
         BeadingStrategy* ret = nullptr;
         switch (type)
@@ -94,9 +96,9 @@ public:
                 logError("Cannot make strategy!\n");
                 return nullptr;
         }
-        if (widening)
+        if (min_bead_width || min_feature_size)
         {
-            return new WideningBeadingStrategy(ret, MM2INT(0.05), MM2INT(0.3));
+            return new WideningBeadingStrategy(ret, min_feature_size.value_or(*min_bead_width), min_bead_width.value_or(*min_feature_size));
         }
         else
         {

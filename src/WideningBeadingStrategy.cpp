@@ -8,12 +8,25 @@ namespace arachne
 
 WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
-    Beading ret = parent->compute(thickness, bead_count);
-    if (ret.bead_widths.size() == 1)
+    if (thickness < optimal_width)
     {
-        ret.bead_widths[0] = std::max(ret.bead_widths[0], min_output_width);
+        Beading ret;
+        ret.total_thickness = thickness;
+        if (thickness >= min_input_width)
+        {
+            ret.bead_widths.emplace_back(std::max(thickness, min_output_width));
+            ret.toolpath_locations.emplace_back(thickness / 2);
+        }
+        else
+        {
+            ret.left_over = thickness;
+        }
+        return ret;
     }
-    return ret;
+    else
+    {
+        return parent->compute(thickness, bead_count);
+    }
 }
 
 coord_t WideningBeadingStrategy::optimal_thickness(coord_t bead_count) const

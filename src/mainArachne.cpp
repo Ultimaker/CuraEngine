@@ -61,6 +61,8 @@ static TCLAP::ValueArg<double> cmd__transition_filter_dist("f", "transitionfilte
 static TCLAP::ValueArg<double> cmd__beading_propagation_transition_dist("t", "bptd", "Beading propagation transition distance", /*req=*/ false, /*default=*/0.4, "mm");
 static TCLAP::ValueArg<bool> cmd__reduce_extrusion_line_overlap("r", "reduce", "Cut off part of the ends of extrusion lines in order to reduce overlap", /*req=*/ false, /*default=*/true, "boolean");
 static TCLAP::SwitchArg cmd__filter_outermost_marked_edges("", "filterouter", "Unmark all outer edges of the Voronoi Diagram, so that marked edges never touch the outline", /*req=*/ false);
+static TCLAP::ValueArg<double> cmd__min_bead_width("", "minw", "Minimal toolpath bead width for geometry with a diameter smaller than the nozzle size", /*req=*/ false, /*default=*/0, "mm");
+static TCLAP::ValueArg<double> cmd__min_feature_size("", "mins", "Minimal geometry diameter for which to generate a bead", /*req=*/ false, /*default=*/0, "mm");
 
 bool generate_gcodes = true;
 bool analyse = false;
@@ -80,6 +82,9 @@ coord_t beading_propagation_transition_dist = 400;
 bool reduce_overlapping_segments = true;
 bool filter_outermost_marked_edges = false;
 
+std::optional<coord_t> min_bead_width; // for if we want to deal with geometry smaller than the nozzle size separately
+std::optional<coord_t> min_feature_size; // for if we want to deal with geometry smaller than the nozzle size separately
+
 bool readCommandLine(int argc, char **argv)
 {
     try {
@@ -97,6 +102,8 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__beading_propagation_transition_dist);
         gCmdLine.add(cmd__reduce_extrusion_line_overlap);
         gCmdLine.add(cmd__filter_outermost_marked_edges);
+        gCmdLine.add(cmd__min_bead_width);
+        gCmdLine.add(cmd__min_feature_size);
 
         gCmdLine.parse(argc, argv);
 
@@ -119,6 +126,8 @@ bool readCommandLine(int argc, char **argv)
         beading_propagation_transition_dist = MM2INT(cmd__beading_propagation_transition_dist.getValue());
         reduce_overlapping_segments = cmd__reduce_extrusion_line_overlap.getValue();
         filter_outermost_marked_edges = cmd__filter_outermost_marked_edges.getValue();
+        if (cmd__min_bead_width.getValue() > 0.0) min_bead_width = MM2INT(cmd__min_bead_width.getValue());
+        if (cmd__min_feature_size.getValue() > 0.0) min_feature_size = MM2INT(cmd__min_feature_size.getValue());
 
         return false;
     }
@@ -138,7 +147,7 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     logAlways(">> Performing %s strategy...\n", type_str.c_str());
     float transitioning_angle = M_PI / 4; // = 180 - the "limit bisector angle" from the paper
 
-    BeadingStrategy* beading_strategy = BeadingStrategyHelper::makeStrategy(type, nozzle_size, transitioning_angle);
+    BeadingStrategy* beading_strategy = BeadingStrategyHelper::makeStrategy(type, nozzle_size, transitioning_angle, min_bead_width, min_feature_size);
     if (!beading_strategy) return;
 
     BeadingStrategy::checkTranisionThicknessConsistency(beading_strategy);
