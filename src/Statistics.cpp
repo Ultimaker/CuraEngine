@@ -249,8 +249,8 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
                 svg.writeAreas(connected, clr, SVG::Color::NONE);
             if (!rounded_visualization) break;
         }
-        svg.nextLayer();
-        svg.writePolylines(paths, SVG::Color::BLACK, 2);
+//         svg.nextLayer();
+//         svg.writePolylines(paths, SVG::Color::BLACK, 2);
         svg.nextLayer();
         svg.writeAreas(underfills, SVG::ColorObject(0,128,255), SVG::Color::NONE);
         svg.nextLayer();
