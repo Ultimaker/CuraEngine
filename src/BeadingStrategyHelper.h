@@ -86,7 +86,7 @@ public:
             case StrategyType::Constant:           ret = new ConstantBeadingStrategy(prefered_bead_width, 4, .99 * M_PI);                    break;
             case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(prefered_bead_width, transitioning_angle);       break;
             case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(prefered_bead_width, transitioning_angle);           break;
-            case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle);     break;
+            case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle, 2);  break;
             case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(prefered_bead_width, 6, transitioning_angle); break;
             case StrategyType::SingleBead:         ret = new SingleBeadBeadingStrategy(prefered_bead_width, transitioning_angle);            break;
             case StrategyType::OutlineAccuracy:    ret = new LimitedBeadingStrategy(6, new OutlineAccuracyBeadingStrategy(prefered_bead_width, prefered_bead_width * 3 / 4, prefered_bead_width / 2, transitioning_angle)); break;

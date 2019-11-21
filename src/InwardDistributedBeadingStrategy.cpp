@@ -17,11 +17,11 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
         float total_weight = 0;
         float middle = static_cast<float>(bead_count - 1) / 2;
         
-        auto getWeight = [middle](coord_t bead_idx)
+        auto getWeight = [middle, this](coord_t bead_idx)
         {
             float dev_from_middle = bead_idx - middle;
 //             if (dev_from_middle > 3) return 0.0f;
-            return std::max(0.0f, 1.0f - (1.0f / 3) * (1.0f / 3) * dev_from_middle * dev_from_middle);
+            return std::max(0.0f, 1.0f - one_over_distribution_radius_squared * dev_from_middle * dev_from_middle);
 //             return 1.0f / (1.0 + .5*dev_from_middle * dev_from_middle * dev_from_middle * dev_from_middle);
 //             return 1.0f / (.6 + sqrt(std::abs(dev_from_middle * dev_from_middle * dev_from_middle)));
 //             return 1.0f / (.5 + sqrt(std::abs(dev_from_middle * dev_from_middle * dev_from_middle)));
