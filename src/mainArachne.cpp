@@ -145,22 +145,23 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
 
     TimeKeeper tk;
 
-
+    bool reduce_overlapping_segments_now = reduce_overlapping_segments;
+    bool filter_outermost_marked_edges_now = filter_outermost_marked_edges;
     if (type == StrategyType::SingleBead)
     {
         transition_filter_dist = 50;
-        reduce_overlapping_segments = false;
+        reduce_overlapping_segments_now = false;
     }
     else if (type == StrategyType::Constant)
     {
-        filter_outermost_marked_edges = true;
+        filter_outermost_marked_edges_now = true;
     }
     SkeletalTrapezoidation st(polys, transitioning_angle, discretization_step_size, transition_filter_dist, beading_propagation_transition_dist);
 
-    std::vector<std::list<ExtrusionLine>> result_polylines_per_index = st.generateToolpaths(*beading_strategy, filter_outermost_marked_edges);
+    std::vector<std::list<ExtrusionLine>> result_polylines_per_index = st.generateToolpaths(*beading_strategy, filter_outermost_marked_edges_now);
 
     std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
-    BeadingOrderOptimizer::optimize(result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments);
+    BeadingOrderOptimizer::optimize(result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments_now);
     double processing_time = tk.restart();
     logAlways("Processing took %fs\n", processing_time);
 
