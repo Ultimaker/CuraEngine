@@ -13,6 +13,10 @@
 
 namespace cura {
 
+constexpr coord_t COINCIDENT_POINT_DISTANCE = 5; // In uM. Points closer than this may be considered overlapping / at the same place
+constexpr coord_t SQUARED_COINCIDENT_POINT_DISTANCE = COINCIDENT_POINT_DISTANCE * COINCIDENT_POINT_DISTANCE;
+
+
 /**
 *
 */
@@ -86,10 +90,10 @@ void PathOrderOptimizer::optimize()
                         loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
                     }
                     CombPath comb_path;
-                    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p, prev_point, comb_path, -40, 0, false))
+                    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, prev_point, p, comb_path, -40, 0, false))
                     {
                         float dist = 0;
-                        Point last_point = p;
+                        Point last_point = prev_point; // comb_path includes prev_point (and p) so first dist will be zero
                         for (const Point& comb_point : comb_path)
                         {
                             dist += vSize(comb_point - last_point);
@@ -181,9 +185,16 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
                 dist_score -= fabs(corner_angle - 1) * corner_shift;
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
+            {
                 //More curve is better score (reduced distance), but slightly in favour of concave curves.
-                dist_score -= fabs(corner_angle - 0.8) * corner_shift;
+                float dist_score_corner = fabs(corner_angle - 1) * corner_shift;
+                if (corner_angle < 1)
+                {
+                    dist_score_corner *= 2;
+                }
+                dist_score -= dist_score_corner;
                 break;
+            }
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
             default:
                 // do nothing
@@ -206,7 +217,7 @@ int PathOrderOptimizer::getRandomPointInPolygon(int poly_idx)
 
 static inline bool pointsAreCoincident(const Point& a, const Point& b)
 {
-    return vSize2(a - b) < 25; // points are closer than 5uM, consider them coincident
+    return vSize2(a - b) < SQUARED_COINCIDENT_POINT_DISTANCE; // points are closer than 5uM, consider them coincident
 }
 
 /**
