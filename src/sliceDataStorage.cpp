@@ -422,14 +422,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                     continue;
                 }
                 const SliceLayer& layer = mesh.layers[layer_nr];
-                if (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)
-                {
-                    total.add(layer.getOutlines(external_polys_only).offset(mesh.settings.get<coord_t>("brim_gap")));
-                }
-                else
-                {
-                    layer.getOutlines(total, external_polys_only);
-                }
+                layer.getOutlines(total, external_polys_only);
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));

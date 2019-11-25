@@ -145,6 +145,11 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
         gap = start_distance;
     }
 
+    if (adhesion_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)
+    {
+        gap += adhesion_settings.get<coord_t>("brim_gap");
+    }
+
     coord_t offset_distance = generatePrimarySkirtBrimLines(gap, primary_line_count, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
 
     // handle support-brim
