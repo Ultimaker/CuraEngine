@@ -382,7 +382,7 @@ SliceDataStorage::SliceDataStorage()
     machine_size.include(machine_max);
 }
 
-Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only) const
+Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const bool for_brim) const
 {
     if (layer_nr < 0 && layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
     { // when processing raft
@@ -422,7 +422,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                     continue;
                 }
                 const SliceLayer& layer = mesh.layers[layer_nr];
-                if (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)
+                if (for_brim)
                 {
                     total.add(layer.getOutlines(external_polys_only).offset(mesh.settings.get<coord_t>("brim_gap")));
                 }
