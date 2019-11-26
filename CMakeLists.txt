@@ -218,6 +218,7 @@ set(engine_SRCS # Except main.cpp.
 # List of tests. For each test there must be a file tests/${NAME}.cpp.
 set(engine_TEST
     GCodeExportTest
+    InfillTest
     MergeInfillLinesTest
     TimeEstimateCalculatorTest
 )
@@ -252,6 +253,9 @@ set(engine_TEST_UTILS
 # Helper classes for some tests.
 set(engine_TEST_ARCUS_HELPERS
     tests/arcus/MockSocket.cpp
+)
+set(engine_TEST_HELPERS
+    tests/ReadTestPolygons.cpp
 )
 
 # Generating ProtoBuf protocol
@@ -323,7 +327,7 @@ if (BUILD_TESTS)
     add_test(BuildTests "${CMAKE_COMMAND}" --build ${CMAKE_CURRENT_BINARY_DIR} --target build_all_tests)
 
     foreach (test ${engine_TEST})
-        add_executable(${test} tests/main.cpp tests/${test}.cpp)
+        add_executable(${test} tests/main.cpp ${engine_TEST_HELPERS} tests/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
         add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.

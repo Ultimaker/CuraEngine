@@ -123,7 +123,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         // Calculate adaptive layer heights
         const coord_t variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
         const coord_t variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
-        const double adaptive_threshold = mesh_group_settings.get<double>("adaptive_layer_height_threshold");
+        const coord_t adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
         adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation,
                                                           variable_layer_height_variation_step, adaptive_threshold);
 
@@ -466,14 +466,14 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     // skin & infill
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    size_t mesh_max_bottom_layer_count = 0;
+    size_t mesh_max_initial_bottom_layer_count = 0;
     if (mesh_group_settings.get<bool>("magic_spiralize"))
     {
-        mesh_max_bottom_layer_count = std::max(mesh_max_bottom_layer_count, mesh.settings.get<size_t>("bottom_layers"));
+        mesh_max_initial_bottom_layer_count = std::max(mesh_max_initial_bottom_layer_count, mesh.settings.get<size_t>("initial_bottom_layers"));
     }
 
     processed_layer_count = 0;
-#pragma omp parallel default(none) shared(mesh_layer_count, mesh, mesh_max_bottom_layer_count, process_infill, inset_skin_progress_estimate, processed_layer_count, mesh_group_settings)
+#pragma omp parallel default(none) shared(mesh_layer_count, mesh, mesh_max_initial_bottom_layer_count, process_infill, inset_skin_progress_estimate, processed_layer_count, mesh_group_settings)
     {
 
 #pragma omp for schedule(dynamic)
@@ -481,7 +481,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
         for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
         {
             logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
-            if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < static_cast<int>(mesh_max_bottom_layer_count))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+            if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < static_cast<int>(mesh_max_initial_bottom_layer_count))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
                 processSkinsAndInfill(mesh, layer_number, process_infill);
             }
@@ -603,11 +603,21 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 {
                     const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
 
-                    Polygons inner = part.infill_area;
+                    // accumulate area of skin and infill that will be printed
+                    Polygons inner;
                     for (const SkinPart& skin_part : part.skin_parts)
                     {
                         inner.add(skin_part.outline);
                     }
+                    // for some reason the zig-zag and lines patterns behave differently and a narrow region that isn't filled with zig-zag pattern can be filled with
+                    // lines pattern so we only add the narrow region to the perimeter gaps when the pattern is zig-zag.
+                    if (((layer_nr == 0) ? mesh.settings.get<EFillMethod>("top_bottom_pattern_0") : mesh.settings.get<EFillMethod>("top_bottom_pattern")) == EFillMethod::ZIG_ZAG)
+                    {
+                        // remove skin areas that are narrower than skin_line_width as they won't get printed unless
+                        // we print them as a perimeter gap
+                        inner = inner.offset(-skin_line_width / 2).offset(skin_line_width / 2);
+                    }
+                    inner.add(part.infill_area);
                     inner = inner.unionPolygons();
                     part.perimeter_gaps.add(outer.difference(inner));
                 }
@@ -1019,7 +1029,15 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
     Polygons first_layer_outline;
     coord_t primary_line_count;
+    //If brim for prime tower is used, add the brim for prime tower separately.
+    //Since FffGCodeWriter assumes that the outermost contour is last, add this first. Keep it ordered!
     bool should_brim_prime_tower = storage.primeTower.enabled && mesh_group_settings.get<bool>("prime_tower_brim_enable");
+    if (should_brim_prime_tower)
+    {
+        constexpr bool dont_allow_helpers = false;
+        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"), dont_allow_helpers);
+    }
+
     switch(mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
     {
     case EPlatformAdhesion::SKIRT:
@@ -1042,12 +1060,6 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
             SkirtBrim::generate(storage, Polygons(), 0, 0);
         }
         break;
-    }
-    // If brim for prime tower is used, add the brim for prime tower separately.
-    if (should_brim_prime_tower)
-    {
-        constexpr bool allow_helpers = false;
-        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"), allow_helpers);
     }
 }
 
