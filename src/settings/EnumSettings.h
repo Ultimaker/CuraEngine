@@ -29,7 +29,7 @@ enum class EFillMethod
     GYROID_HI_RES,
     GYROID_MED_RES,
     GYROID_LOW_RES,
-    NONE
+    NONE  // NOTE: Should remain last! (May be used in testing to enumarate the enum.)
 };
 
 /*!
