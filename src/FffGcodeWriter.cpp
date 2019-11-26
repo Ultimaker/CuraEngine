@@ -1583,8 +1583,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                             , /*bool use_endpieces =*/ false
                             , /*bool skip_some_zags =*/ false
                             , /*int zag_skip_count =*/ 0
-                            , mesh.settings.get<coord_t>("cross_infill_pocket_size")
-                            , maximum_resolution);
+                            , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
                         infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
 
                         // normal processing for the infill that isn't below skin
