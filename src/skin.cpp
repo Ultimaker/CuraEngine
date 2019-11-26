@@ -68,6 +68,7 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr,
 : layer_nr(layer_nr)
 , mesh(mesh)
 , bottom_layer_count(mesh.settings.get<size_t>("bottom_layers"))
+, initial_bottom_layer_count(mesh.settings.get<size_t>("initial_bottom_layers"))
 , top_layer_count(mesh.settings.get<size_t>("top_layers"))
 , wall_line_count(mesh.settings.get<size_t>("wall_line_count"))
 , skin_line_width(getSkinLineWidth(mesh, layer_nr))
@@ -208,7 +209,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
         upskin = Polygons(original_outline);
     }
     Polygons downskin;
-    if (bottom_layer_count > 0)
+    if (bottom_layer_count > 0 || layer_nr < LayerIndex(initial_bottom_layer_count))
     {
         downskin = Polygons(original_outline);
     }
@@ -245,23 +246,29 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
  */
 void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, Polygons& downskin)
 {
-    if (static_cast<int>(layer_nr - bottom_layer_count) >= 0 && bottom_layer_count > 0)
+    if (bottom_layer_count == 0 && initial_bottom_layer_count == 0)
     {
-        Polygons not_air = getWalls(part, layer_nr - bottom_layer_count, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion);
-        if (!no_small_gaps_heuristic)
-        {
-            for (int downskin_layer_nr = layer_nr - bottom_layer_count + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
-            {
-                not_air = not_air.intersection(getWalls(part, downskin_layer_nr, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion));
-            }
-        }
-        const double min_infill_area = mesh.settings.get<double>("min_infill_area");
-        if (min_infill_area > 0.0)
-        {
-            not_air.removeSmallAreas(min_infill_area);
-        }
-        downskin = downskin.difference(not_air); // skin overlaps with the walls
+        return; // downskin remains empty
     }
+    if (layer_nr < LayerIndex(initial_bottom_layer_count))
+    {
+        return; // don't subtract anything form the downskin
+    }
+    LayerIndex bottom_check_start_layer_idx = std::max(LayerIndex(0), layer_nr - bottom_layer_count);
+    Polygons not_air = getWalls(part, bottom_check_start_layer_idx, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion);
+    if (!no_small_gaps_heuristic)
+    {
+        for (int downskin_layer_nr = bottom_check_start_layer_idx + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
+        {
+            not_air = not_air.intersection(getWalls(part, downskin_layer_nr, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion));
+        }
+    }
+    const double min_infill_area = mesh.settings.get<double>("min_infill_area");
+    if (min_infill_area > 0.0)
+    {
+        not_air.removeSmallAreas(min_infill_area);
+    }
+    downskin = downskin.difference(not_air); // skin overlaps with the walls
 }
 
 void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Polygons& upskin)
@@ -553,7 +560,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     layer_skip_count = gradual_infill_step_layer_count / n_skip_steps_per_gradual_step;
     const size_t max_infill_steps = mesh.settings.get<size_t>("gradual_infill_steps");
 
-    const LayerIndex min_layer = mesh.settings.get<size_t>("bottom_layers");
+    const LayerIndex min_layer = mesh.settings.get<size_t>("initial_bottom_layers");
     const LayerIndex max_layer = mesh.layers.size() - 1 - mesh.settings.get<size_t>("top_layers");
 
     for (LayerIndex layer_idx = 0; layer_idx < static_cast<LayerIndex>(mesh.layers.size()); layer_idx++)
@@ -635,7 +642,8 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
     divisible index. Otherwise we get some parts that have infill at divisible
     layers and some at non-divisible layers. Those layers would then miss each
     other. */
-    LayerIndex min_layer = static_cast<LayerIndex>(mesh.settings.get<size_t>("bottom_layers") + amount) - 1;
+    size_t bottom_most_layers = mesh.settings.get<size_t>("initial_bottom_layers");
+    LayerIndex min_layer = static_cast<LayerIndex>(bottom_most_layers + amount) - 1;
     min_layer -= min_layer % amount; //Round upwards to the nearest layer divisible by infill_sparse_combine.
     LayerIndex max_layer = static_cast<LayerIndex>(mesh.layers.size()) - 1 - mesh.settings.get<size_t>("top_layers");
     max_layer -= max_layer % amount; //Round downwards to the nearest layer divisible by infill_sparse_combine.

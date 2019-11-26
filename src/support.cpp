@@ -478,18 +478,6 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
     }
 }
 
-coord_t AreaSupport::getActualSupportOffset()
-{
-    const Settings& mesh_group_settings = cura::Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    const ExtruderTrain& infill_extruder = mesh_group_settings.get<cura::ExtruderTrain&>("support_infill_extruder_nr");
-    const coord_t support_line_width = infill_extruder.settings.get<cura::coord_t>("support_line_width");
-    const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
-    // Actual support will offset on half of a line width when support walls are present.
-    // Also support infill line zig zag connections must lie next to the border, not on it.
-    const coord_t support_offset = (wall_line_count > 0 || infill_extruder.settings.get<bool>("zig_zaggify_support") || infill_extruder.settings.get<EFillMethod>("support_pattern") == EFillMethod::ZIG_ZAG) ? -support_line_width / 2 : 0;
-    return support_offset;
-}
-
 Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, const coord_t smoothing_distance)
 {
     Polygons joined;
@@ -1477,15 +1465,6 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         }
         Polygons bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, minimum_bottom_area, bottoms);
-
-        if (layer_idx < support_layers.size() - 1)
-        {
-            Polygons test_polygons;
-            const auto actual_support_offset = getActualSupportOffset();
-            test_polygons.add(support_layers[layer_idx + 1].support_bottom);
-            test_polygons.add(global_support_areas_per_layer[layer_idx + 1].offset(actual_support_offset).offset(-actual_support_offset));
-            removeDanglingInterface(bottoms, test_polygons);
-        }
         support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
@@ -1519,15 +1498,6 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         }
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
-
-        if (layer_idx > 0)
-        {
-            Polygons test_polygons;
-            const auto actual_support_offset = getActualSupportOffset();
-            test_polygons.add(support_layers[layer_idx - 1].support_roof);
-            test_polygons.add(global_support_areas_per_layer[layer_idx - 1].offset(actual_support_offset).offset(-actual_support_offset));
-            removeDanglingInterface(roofs, test_polygons);
-        }
         support_layers[layer_idx].support_roof.add(roofs);
     }
 }
@@ -1550,20 +1520,6 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const P
         interface_polygons.removeSmallAreas(minimum_interface_area);
     }
     support_areas = support_areas.difference(interface_polygons);
-}
-
-void AreaSupport::removeDanglingInterface(Polygons& interface_polygons, const Polygons& test_polygons)
-{
-    const auto interface_parts = interface_polygons.splitIntoParts();
-    interface_polygons.clear();
-    for (const PolygonsPart& interface_part : interface_parts)
-    {
-        const bool is_dangling_interface_part = interface_part.intersection(test_polygons).empty();
-        if (!is_dangling_interface_part)
-        {
-            interface_polygons.add(interface_part);
-        }
-    }
 }
 
 }//namespace cura

@@ -286,7 +286,12 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
         insertPreheatCommand_singleExtrusion(*prev_extruder_plan, extruder, extruder_plan.required_start_temperature);
         prev_extruder_plan->extrusion_temperature_command = --prev_extruder_plan->inserts.end();
     }
-    else 
+    else if (Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_extruders_share_heater"))
+    {
+        // extruders share a heater so command the previous extruder to change to the temperature required for this extruder
+        insertPreheatCommand_singleExtrusion(*prev_extruder_plan, prev_extruder, extruder_plan.required_start_temperature);
+    }
+    else
     {
         insertPreheatCommand_multiExtrusion(extruder_plans, extruder_plan_idx);
         insertFinalPrintTempCommand(extruder_plans, extruder_plan_idx - 1);
@@ -501,6 +506,7 @@ void LayerPlanBuffer::insertTempCommands()
         const Temperature print_temp = preheat_config.getTemp(extruder, avg_flow, extruder_plan.is_initial_layer);
         const Temperature initial_print_temp = extruder_settings.get<Temperature>("material_initial_print_temperature");
         if (initial_print_temp == 0.0 // user doesn't want to use initial print temp feature
+            || extruder_settings.get<bool>("machine_extruders_share_heater") // ignore initial print temps when extruders share a heater
             || !extruder_used_in_meshgroup[extruder] // prime blob uses print temp rather than initial print temp
             || (overall_extruder_plan_idx > 0 && extruder_plans[overall_extruder_plan_idx - 1]->extruder_nr == extruder  // prev plan has same extruder ..
                 && extruder_plans[overall_extruder_plan_idx - 1]->estimates.getTotalUnretractedTime() > 0.0) // and prev extruder plan already heated to printing temperature
