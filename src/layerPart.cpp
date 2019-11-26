@@ -52,7 +52,14 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
 {
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
-#pragma omp parallel for default(none) shared(mesh, slicer) schedule(dynamic)
+
+    // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
+    // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
+#if defined(__GNUC__) && __GNUC__ <= 8
+    #pragma omp parallel for default(none) shared(mesh, slicer) schedule(dynamic)
+#else
+    #pragma omp parallel for default(none) shared(mesh, slicer, total_layers) schedule(dynamic)
+#endif // defined(__GNUC__) && __GNUC__ <= 8
     // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_nr = 0; layer_nr < static_cast<int>(total_layers); layer_nr++)
     {

@@ -478,18 +478,6 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
     }
 }
 
-coord_t AreaSupport::getActualSupportOffset()
-{
-    const Settings& mesh_group_settings = cura::Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    const ExtruderTrain& infill_extruder = mesh_group_settings.get<cura::ExtruderTrain&>("support_infill_extruder_nr");
-    const coord_t support_line_width = infill_extruder.settings.get<cura::coord_t>("support_line_width");
-    const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
-    // Actual support will offset on half of a line width when support walls are present.
-    // Also support infill line zig zag connections must lie next to the border, not on it.
-    const coord_t support_offset = (wall_line_count > 0 || infill_extruder.settings.get<bool>("zig_zaggify_support") || infill_extruder.settings.get<EFillMethod>("support_pattern") == EFillMethod::ZIG_ZAG) ? -support_line_width / 2 : 0;
-    return support_offset;
-}
-
 Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supportLayer_up, Polygons& supportLayer_this, const coord_t smoothing_distance)
 {
     Polygons joined;
@@ -886,8 +874,19 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
-    // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
+
+    // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
+    // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
+#if defined(__GNUC__) && __GNUC__ <= 8
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
+#else
+    #pragma omp parallel for default(none) \
+        shared(xy_disallowed_per_layer, storage, mesh, layer_count, is_support_mesh_place_holder,  \
+               use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang) \
+        schedule(dynamic)
+#endif // defined(__GNUC__) && __GNUC__ <= 8
+
+    // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
     // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_idx = 1; layer_idx < static_cast<int>(layer_count); layer_idx++)
     {
@@ -1082,7 +1081,15 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         const int max_checking_layer_idx = std::max(0,
                                                     std::min(static_cast<int>(storage.support.supportLayers.size()),
                                                              static_cast<int>(layer_count - (layer_z_distance_top - 1))));
-#pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
+
+    // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
+    // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
+#if defined(__GNUC__) && __GNUC__ <= 8
+    #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
+#else
+    #pragma omp parallel for default(none) shared(support_areas, storage, max_checking_layer_idx, layer_z_distance_top) schedule(dynamic)
+#endif // defined(__GNUC__) && __GNUC__ <= 8
+
         // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
         for (int layer_idx = 0; layer_idx < max_checking_layer_idx; layer_idx++)
         {
@@ -1189,22 +1196,7 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sta
             }
         }
     }
-    Polygons to_be_kept;
-    Polygons result = support_areas.difference(to_be_removed);
-    if (result.size() < support_areas.size()) // <- check if an island is completely erased by stair stepping
-    {
-        for (const ConstPolygonRef& part : support_areas)
-        {
-            Polygons part_as_poly;
-            part_as_poly.add(part);
-            if (part_as_poly.difference(to_be_removed).empty())
-            {
-                to_be_kept.add(part);
-            }
-        }
-        result.add(to_be_kept); // <- add any _completely_ missing islands back
-    }
-    support_areas = result;
+    support_areas = support_areas.difference(to_be_removed);
 }
 
 
@@ -1441,15 +1433,6 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         }
         Polygons bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, minimum_bottom_area, bottoms);
-
-        if (layer_idx < support_layers.size() - 1)
-        {
-            Polygons test_polygons;
-            const auto actual_support_offset = getActualSupportOffset();
-            test_polygons.add(support_layers[layer_idx + 1].support_bottom);
-            test_polygons.add(global_support_areas_per_layer[layer_idx + 1].offset(actual_support_offset).offset(-actual_support_offset));
-            removeDanglingInterface(bottoms, test_polygons);
-        }
         support_layers[layer_idx].support_bottom.add(bottoms);
     }
 }
@@ -1483,15 +1466,6 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         }
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
-
-        if (layer_idx > 0)
-        {
-            Polygons test_polygons;
-            const auto actual_support_offset = getActualSupportOffset();
-            test_polygons.add(support_layers[layer_idx - 1].support_roof);
-            test_polygons.add(global_support_areas_per_layer[layer_idx - 1].offset(actual_support_offset).offset(-actual_support_offset));
-            removeDanglingInterface(roofs, test_polygons);
-        }
         support_layers[layer_idx].support_roof.add(roofs);
     }
 }
@@ -1514,20 +1488,6 @@ void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const P
         interface_polygons.removeSmallAreas(minimum_interface_area);
     }
     support_areas = support_areas.difference(interface_polygons);
-}
-
-void AreaSupport::removeDanglingInterface(Polygons& interface_polygons, const Polygons& test_polygons)
-{
-    const auto interface_parts = interface_polygons.splitIntoParts();
-    interface_polygons.clear();
-    for (const PolygonsPart& interface_part : interface_parts)
-    {
-        const bool is_dangling_interface_part = interface_part.intersection(test_polygons).empty();
-        if (!is_dangling_interface_part)
-        {
-            interface_polygons.add(interface_part);
-        }
-    }
 }
 
 }//namespace cura

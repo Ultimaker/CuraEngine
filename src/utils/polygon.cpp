@@ -20,7 +20,7 @@ bool ConstPolygonRef::empty() const
     return path->empty();
 }
 
-bool ConstPolygonRef::shorterThan(int64_t check_length) const
+bool ConstPolygonRef::shorterThan(const coord_t check_length) const
 {
     const ConstPolygonRef& polygon = *this;
     const Point* p0 = &polygon.back();

@@ -1,4 +1,4 @@
-//Copyright (C) 2018 Ultimaker B.V.
+//Copyright (C) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h"
@@ -83,7 +83,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
     }
 }
 
-int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_t primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
+coord_t SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_t primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
 {
     const Settings& adhesion_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
     const coord_t primary_extruder_skirt_brim_line_width = adhesion_settings.get<coord_t>("skirt_brim_line_width") * adhesion_settings.get<Ratio>("initial_layer_line_width_factor");
@@ -115,7 +115,7 @@ int SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_
     return offset_distance;
 }
 
-void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, int start_distance, unsigned int primary_line_count, bool allow_helpers /*= true*/)
+void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, const coord_t start_distance, const size_t primary_line_count, const bool allow_helpers /*= true*/)
 {
     const bool is_skirt = start_distance > 0;
     Scene& scene = Application::getInstance().current_slice->scene;
@@ -129,6 +129,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
     const bool has_ooze_shield = allow_helpers && storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
     const bool has_draft_shield = allow_helpers && storage.draft_protection_shield.size() > 0;
 
+    coord_t gap;
     if (is_skirt && (has_ooze_shield || has_draft_shield))
     { // make sure we don't generate skirt through draft / ooze shield
         first_layer_outline = first_layer_outline.offset(start_distance - primary_extruder_skirt_brim_line_width / 2, ClipperLib::jtRound).unionPolygons(storage.draft_protection_shield);
@@ -137,10 +138,14 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
             first_layer_outline = first_layer_outline.unionPolygons(storage.oozeShield[0]);
         }
         first_layer_outline = first_layer_outline.approxConvexHull();
-        start_distance = primary_extruder_skirt_brim_line_width / 2;
+        gap = primary_extruder_skirt_brim_line_width / 2;
+    }
+    else
+    {
+        gap = start_distance;
     }
 
-    int offset_distance = generatePrimarySkirtBrimLines(start_distance, primary_line_count, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
+    coord_t offset_distance = generatePrimarySkirtBrimLines(gap, primary_line_count, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
 
     // handle support-brim
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
@@ -160,7 +165,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
         //  || ||     ||[]|| > expand to fit an extra brim line
         //  |+-+|     |+--+|
         //  +---+     +----+ 
-        const int64_t primary_skirt_brim_width = (primary_line_count + primary_line_count % 2) * primary_extruder_skirt_brim_line_width; // always use an even number, because we will fil the area from both sides
+        const coord_t primary_skirt_brim_width = (primary_line_count + primary_line_count % 2) * primary_extruder_skirt_brim_line_width; // always use an even number, because we will fil the area from both sides
 
         Polygons shield_brim;
         if (has_ooze_shield)
