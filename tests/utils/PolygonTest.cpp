@@ -229,7 +229,7 @@ TEST_F(PolygonTest, simplifyCircle)
     circle_polygons.simplify(minimum_segment_length, 999999999); //With segments of 1000, we need to remove exactly half of the vertices to meet the requirement that all segments are >1010.
     constexpr coord_t maximum_segment_length = segment_length * 2 + 20; //+20 for some error margin due to rounding.
 
-    for (size_t point_index = 1; point_index - 1 < circle.size(); point_index++) //Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
+    for (size_t point_index = 1; point_index + 1 < circle.size(); point_index++) //Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
     {
         coord_t segment_length = vSize(circle[point_index % circle.size()] - circle[point_index - 1]);
         ASSERT_GE(segment_length, minimum_segment_length) << "Segment " << (point_index - 1) << " - " << point_index << " is too short!";
@@ -316,8 +316,7 @@ TEST_F(PolygonTest, simplifyLimitedError)
     const coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
     spiral_polygons.simplify(999999999, height - 10);
 
-    using namespace testing;
-    EXPECT_THAT(spiral.size(), AllOf(Ge(11 - 5), Le(11 - 4))) << "Should merge segments of length 1000 through 1400 and (optionally) first with last.";
+    EXPECT_THAT(spiral.size(), testing::AllOf(testing::Ge(11 - 5), testing::Le(11 - 4))) << "Should merge segments of length 1000 through 1400 and (optionally) first with last.";
 }
 
 TEST_F(PolygonTest, simplifyColinear)
@@ -346,6 +345,25 @@ TEST_F(PolygonTest, simplifyColinear)
     EXPECT_EQ(colinear_polygons[0][start_point], Point(-1, -1));
     EXPECT_EQ(colinear_polygons[0][(start_point + 1) % 3], Point(spacing * 9, spacing * 9));
     EXPECT_EQ(colinear_polygons[0][(start_point + 2) % 3], Point(spacing * 9, 0));
+}
+
+/*
+ * Test whether a polygon can be reduced to 1 or 2 vertices. In that case, it
+ * should get reduced to 0 or stay at 3.
+ */
+TEST_F(PolygonTest, simplifyToDegenerate)
+{
+    //Generate a D shape with one long side and another curved side broken up into smaller pieces that can be removed.
+    Polygons d_polygons;
+    PolygonRef d = d_polygons.newPoly();
+    d.add(Point(0, 0));
+    d.add(Point(10, 55));
+    d.add(Point(0, 110));
+
+    d.simplify(100, 15);
+
+    EXPECT_NE(d.size(), 1);
+    EXPECT_NE(d.size(), 2);
 }
 
 }

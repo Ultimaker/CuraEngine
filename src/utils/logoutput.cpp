@@ -24,72 +24,72 @@ void enableProgressLogging()
 
 void logError(const char* fmt, ...)
 {
+    va_list args;
+    va_start(args, fmt);
     #pragma omp critical
     {
-        va_list args;
-        va_start(args, fmt);
         fprintf(stderr, "[ERROR] ");
         vfprintf(stderr, fmt, args);
-        va_end(args);
         fflush(stderr);
     }
+    va_end(args);
 }
 
 void logWarning(const char* fmt, ...)
 {
+    va_list args;
+    va_start(args, fmt);
     #pragma omp critical
     {
-        va_list args;
-        va_start(args, fmt);
         fprintf(stderr, "[WARNING] ");
         vfprintf(stderr, fmt, args);
-        va_end(args);
         fflush(stderr);
     }
+    va_end(args);
 }
 
 void logAlways(const char* fmt, ...)
 {
+    va_list args;
+    va_start(args, fmt);
     #pragma omp critical
     {
-        va_list args;
-        va_start(args, fmt);
         vfprintf(stderr, fmt, args);
-        va_end(args);
         fflush(stderr);
     }
+    va_end(args);
 }
 
 void log(const char* fmt, ...)
 {
+    va_list args;
     if (verbose_level < 1)
         return;
 
+    va_start(args, fmt);
     #pragma omp critical
     {
-        va_list args;
-        va_start(args, fmt);
         vfprintf(stderr, fmt, args);
-        va_end(args);
         fflush(stderr);
     }
+    va_end(args);
 }
 
 void logDebug(const char* fmt, ...)
 {
+    va_list args;
     if (verbose_level < 2)
     {
         return;
     }
+    va_start(args, fmt);
     #pragma omp critical
     {
-        va_list args;
-        va_start(args, fmt);
         fprintf(stderr, "[DEBUG] ");
         vfprintf(stderr, fmt, args);
-        va_end(args);
         fflush(stderr);
     }
+    va_end(args);
 }
 
 void logProgress(const char* type, int value, int maxValue, float percent)
