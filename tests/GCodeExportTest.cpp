@@ -54,7 +54,6 @@ public:
         gcode.current_print_acceleration = -1;
         gcode.current_travel_acceleration = -1;
         gcode.current_jerk = -1;
-        gcode.current_max_z_feedrate = -1;
         gcode.is_z_hopped = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
         gcode.initial_bed_temp = 0;
@@ -207,7 +206,6 @@ public:
         gcode.current_print_acceleration = -1;
         gcode.current_travel_acceleration = -1;
         gcode.current_jerk = -1;
-        gcode.current_max_z_feedrate = -1;
         gcode.is_z_hopped = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
         gcode.initial_bed_temp = 0;
@@ -461,7 +459,8 @@ TEST_F(GCodeExportTest, WriteZHopStartZero)
 
 TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 {
-    gcode.current_max_z_feedrate = 1; // 60 mm/min.
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); //60mm/min.
     gcode.current_layer_z = 2000;
     constexpr coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
@@ -470,7 +469,8 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 
 TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 {
-    gcode.current_max_z_feedrate = 1;
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); //60mm/min.
     gcode.current_layer_z = 2000;
     constexpr coord_t hop_height = 3000;
     constexpr Velocity speed = 4; // 240 mm/min.
@@ -487,7 +487,8 @@ TEST_F(GCodeExportTest, WriteZHopEndZero)
 
 TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 {
-    gcode.current_max_z_feedrate = 1; // 60 mm/min.
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); //60mm/min.
     gcode.current_layer_z = 2000;
     gcode.is_z_hopped = 3000;
     gcode.writeZhopEnd();
@@ -496,7 +497,8 @@ TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 
 TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 {
-    gcode.current_max_z_feedrate = 1;
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1");
     gcode.current_layer_z = 2000;
     gcode.is_z_hopped = 3000;
     constexpr Velocity speed = 4; // 240 mm/min.
@@ -656,7 +658,6 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     gcode.current_layer_z = 1000;
     gcode.use_extruder_offset_to_offset_coords = false;
     gcode.currentSpeed = 1;
-    gcode.current_max_z_feedrate = 1;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
 
     WipeScriptConfig config;

@@ -17,7 +17,8 @@ void SpaghettiInfill::generateTotalSpaghettiInfill(SliceMeshStorage& mesh)
     for (int layer_idx = 0; layer_idx <= max_layer; layer_idx++)
     {
         const coord_t layer_height = (layer_idx == 0) ? mesh.settings.get<coord_t>("layer_height_0") : mesh.settings.get<coord_t>("layer_height");
-        if (layer_idx < static_cast<LayerIndex>(mesh.settings.get<size_t>("bottom_layers")))
+        if (layer_idx < static_cast<LayerIndex>(mesh.settings.get<size_t>("bottom_layers"))
+            && layer_idx < static_cast<LayerIndex>(mesh.settings.get<size_t>("initial_bottom_layers")))
         { // nothing to add
             continue;
         }
@@ -87,7 +88,8 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     {
         const coord_t layer_height = (layer_idx == 0) ? mesh.settings.get<coord_t>("layer_height_0") : mesh.settings.get<coord_t>("layer_height");
         current_z += layer_height;
-        if (layer_idx < static_cast<LayerIndex>(mesh.settings.get<size_t>("bottom_layers")))
+        if (layer_idx < static_cast<LayerIndex>(mesh.settings.get<size_t>("bottom_layers"))
+            && layer_idx < static_cast<LayerIndex>(mesh.settings.get<size_t>("initial_bottom_layers")))
         { // nothing to add to pillar base
             continue;
         }
