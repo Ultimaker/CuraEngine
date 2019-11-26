@@ -60,6 +60,9 @@ public:
      *
      * It will start by parsing the command line arguments to see what it must
      * be doing.
+     *
+     * This function can only be called once, because it has side-effects on
+     * static fields across the application.
      * \param argc The number of arguments provided to the application.
      * \param argv The arguments provided to the application.
      */

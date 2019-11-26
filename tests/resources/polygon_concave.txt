@@ -1,0 +1,11 @@
+v 10000 10000
+v 12000 30000
+v 10000 50000
+v 30000 48000
+v 50000 50000
+v 48000 30000
+v 50000 10000
+v 30000 12000
+#
+
+A 'square' with an extra inner corner along each edge, creating a concave shape.
