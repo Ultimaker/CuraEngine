@@ -775,7 +775,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     }
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
-    const coord_t snap_distance = mesh->settings.get<coord_t>("minimum_polygon_circumference");
+    const coord_t snap_distance = std::max(mesh->settings.get<coord_t>("minimum_polygon_circumference"), static_cast<coord_t>(1));
     auto it = std::remove_if(polygons.begin(), polygons.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
     polygons.erase(it, polygons.end());
 
@@ -790,7 +790,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
 : mesh(mesh)
 {
-    SlicingTolerance slicing_tolerance = mesh->settings.get<SlicingTolerance>("slicing_tolerance");
+    const SlicingTolerance slicing_tolerance = mesh->settings.get<SlicingTolerance>("slicing_tolerance");
 
     assert(slice_layer_count > 0);
 

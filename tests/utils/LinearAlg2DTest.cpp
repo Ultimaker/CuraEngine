@@ -140,12 +140,14 @@ TEST_P(GetAngleTest, GetAngle)
 }
 
 INSTANTIATE_TEST_CASE_P(GetAngleInstantiation, GetAngleTest, testing::Values(
-    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(100, 1), 180), //Line.
+    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(100, 1), 180), //Almost straight line.
+    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(100, 0), 180), //Completely straight line.
     GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, -100), 315), //-45 degrees.
     GetAngleParameters(Point(-100, 0), Point(0, 0), Point(0, -100), 270), //-90 degrees.
     GetAngleParameters(Point(-100, 0), Point(0, 0), Point(0, 100), 90), //Straight angle.
     GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, 1), 0), //Almost straight back.
-    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, -1), 360) //Almost straight back but the other way around.
+    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, -1), 360), //Almost straight back but the other way around.
+    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, 0), 0) //Completely straight back.
 ));
 
 TEST(GetAngleTest, GetAngleLeftAABTest)

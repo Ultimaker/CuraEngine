@@ -18,6 +18,8 @@ class SliceMeshStorage;
 
 class Infill 
 {
+    friend class InfillTest;
+
     static constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
 
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
