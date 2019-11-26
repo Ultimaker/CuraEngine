@@ -20,7 +20,7 @@ bool ConstPolygonRef::empty() const
     return path->empty();
 }
 
-bool ConstPolygonRef::shorterThan(int64_t check_length) const
+bool ConstPolygonRef::shorterThan(const coord_t check_length) const
 {
     const ConstPolygonRef& polygon = *this;
     const Point* p0 = &polygon.back();
@@ -385,9 +385,12 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
             new_path.pop_back();
         }
     }
-    if(new_path.size() > 2 && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 25)
+    for(size_t i = 0; i < 2; i++) //For the first two points we haven't checked yet if they are almost exactly straight.
     {
-        new_path.erase(new_path.begin());
+        if(new_path.size() > 2 && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 25)
+        {
+            new_path.erase(new_path.begin());
+        }
     }
 
     *path = new_path;

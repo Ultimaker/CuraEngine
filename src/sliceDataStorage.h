@@ -150,6 +150,7 @@ public:
     coord_t thickness;  //!< The thickness of this layer. Can be different when using variable layer heights.
     size_t  top_layers; //!< The number of top skin layers that could be above this layer. Can be different when using variable layer heights.
     size_t  bottom_layers; //!< The number of bottom skin layers that could be below this layer. Can be different when using variable layer heights.
+    size_t  initial_bottom_layers; //!< The number of initial bottom skin layers that could be below this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
     mutable std::map<size_t, Polygons> innermost_walls_cache; //!< Cache for the in some cases computationaly expensive calculations in 'getInnermostWalls'.
@@ -221,6 +222,11 @@ public:
     bool generated; //!< whether generateSupportGrid(.) has completed (successfully)
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
+
+    std::vector<AngleDegrees> support_infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<AngleDegrees> support_infill_angles_layer_0; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<AngleDegrees> support_roof_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<AngleDegrees> support_bottom_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
 
     std::vector<SupportLayer> supportLayers;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern

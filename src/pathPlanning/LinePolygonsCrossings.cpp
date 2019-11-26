@@ -10,27 +10,17 @@
 
 namespace cura {
 
-LinePolygonsCrossings::Crossing::Crossing(const coord_t x, const size_t point_idx)
-: x(x)
-, point_idx(point_idx)
-{
-}
-
-LinePolygonsCrossings::PolyCrossings::PolyCrossings(const size_t poly_idx)
+LinePolygonsCrossings::Crossing::Crossing(const size_t poly_idx, const coord_t x, const size_t point_idx)
 : poly_idx(poly_idx)
-, min(std::numeric_limits<coord_t>::max(), NO_INDEX), max(std::numeric_limits<coord_t>::min(), NO_INDEX)
-, n_crossings(0)
+, x(x)
+, point_idx(point_idx)
 {
 }
 
 bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obstacles)
 {
-    min_crossing_idx = NO_INDEX;
-    max_crossing_idx = NO_INDEX;
-
     for(unsigned int poly_idx = 0; poly_idx < boundary.size(); poly_idx++)
     {
-        PolyCrossings minMax(poly_idx); 
         ConstPolygonRef poly = boundary[poly_idx];
         Point p0 = transformation_matrix.apply(poly[poly.size() - 1]);
         for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
@@ -50,35 +40,20 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obsta
                     if (!((p1.Y == transformed_startPoint.Y && p1.Y < p0.Y) || (p0.Y == transformed_startPoint.Y && p0.Y < p1.Y)))
                     { // perform edge case only for line segments on and below the scanline, not for line segments on and above.
                         // \/ will be no crossings and /\ two, but most importantly | will be one crossing.
-                        minMax.n_crossings++;
-                    }
-                    if(x < minMax.min.x) //For the leftmost intersection, move x left to stay outside of the border.
-                                         //Note: The actual distance from the intersection to the border is almost always less than dist_to_move_boundary_point_outside, since it only moves along the direction of the scanline.
-                    {
-                        minMax.min.x = x;
-                        minMax.min.point_idx = point_idx;
-                    }
-                    if(x > minMax.max.x) //For the rightmost intersection, move x right to stay outside of the border.
-                    {
-                        minMax.max.x = x;
-                        minMax.max.point_idx = point_idx;
+                        crossings.emplace_back(poly_idx, x, point_idx);
                     }
                 }
             }
             p0 = p1;
         }
 
-        if (fail_on_unavoidable_obstacles && minMax.n_crossings % 2 == 1)
+        if (fail_on_unavoidable_obstacles && crossings.size() % 2 == 1)
         { // if start area and end area are not the same
             return false;
         }
-        else if (minMax.min.point_idx != NO_INDEX) // then always also max.point_idx != NO_INDEX
-        { // if this polygon crossed the scanline
-            if (min_crossing_idx == NO_INDEX || minMax.min.x < crossings[min_crossing_idx].min.x) { min_crossing_idx = crossings.size(); }
-            if (max_crossing_idx == NO_INDEX || minMax.max.x > crossings[max_crossing_idx].max.x) { max_crossing_idx = crossings.size(); }
-            crossings.push_back(minMax);
-        }
     }
+    // order crossings by increasing x
+    std::sort(crossings.begin(), crossings.end(), [](const Crossing& a, const Crossing& b) -> bool { return a.x < b.x; });
     return true;
 }
 
@@ -145,28 +120,38 @@ bool LinePolygonsCrossings::generateCombingPath(CombPath& combPath, int64_t max_
 
 void LinePolygonsCrossings::generateBasicCombingPath(CombPath& combPath)
 {
-    for (PolyCrossings* crossing = getNextPolygonAlongScanline(transformed_startPoint.X)
-        ; crossing != nullptr
-        ; crossing = getNextPolygonAlongScanline(crossing->max.x))
+    // crossings are ordered by increasing x
+    for (unsigned i = 0; i < crossings.size(); ++i)
     {
-        generateBasicCombingPath(*crossing, combPath);
+        // find the next crossing that belongs to the same polygon
+        for (unsigned j = i + 1; j < crossings.size(); ++j)
+        {
+            if (crossings[i].poly_idx == crossings[j].poly_idx)
+            {
+                // comb between the two crossings
+                generateBasicCombingPath(crossings[i], crossings[j], combPath);
+                // update outer loop variable to skip any crossings on other polygons
+                i = j;
+                break;
+            }
+        }
     }
     combPath.push_back(endPoint);
 }
 
-void LinePolygonsCrossings::generateBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath)
+void LinePolygonsCrossings::generateBasicCombingPath(const Crossing& min, const Crossing& max, CombPath& combPath)
 {
     // minimise the path length by measuring the length of both paths around the polygon so we can determine the shorter path
 
-    ConstPolygonRef poly = boundary[polyCrossings.poly_idx];
-    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x - std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y)));
+    ConstPolygonRef poly = boundary[min.poly_idx];
+    combPath.push_back(transformation_matrix.unapply(Point(min.x - std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y)));
 
     // follow the path in the same direction as the winding order of the boundary polygon
     std::vector<Point> fwd_points;
     Point prev = combPath.back();
     coord_t fwd_len = 0;
-    for (unsigned int point_idx = polyCrossings.min.point_idx
-        ; point_idx != polyCrossings.max.point_idx
+    for (unsigned int point_idx = min.point_idx
+        ; point_idx != max.point_idx
         ; point_idx = (point_idx < poly.size() - 1) ? (point_idx + 1) : (0))
     {
         const Point p = PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside);
@@ -175,7 +160,7 @@ void LinePolygonsCrossings::generateBasicCombingPath(PolyCrossings& polyCrossing
         prev = p;
     }
 
-    const Point last = transformation_matrix.unapply(Point(polyCrossings.max.x + std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y));
+    const Point last = transformation_matrix.unapply(Point(max.x + std::abs(dist_to_move_boundary_point_outside), transformed_startPoint.Y));
 
     if (fwd_points.size() > 0)
     {
@@ -186,8 +171,8 @@ void LinePolygonsCrossings::generateBasicCombingPath(PolyCrossings& polyCrossing
     std::vector<Point> rev_points;
     prev = combPath.back();
     coord_t rev_len = 0;
-    unsigned int min_idx = (polyCrossings.min.point_idx == 0)? poly.size() - 1 : polyCrossings.min.point_idx - 1;
-    unsigned int max_idx = (polyCrossings.max.point_idx == 0)? poly.size() - 1 : polyCrossings.max.point_idx - 1;
+    unsigned int min_idx = (min.point_idx == 0)? poly.size() - 1 : min.point_idx - 1;
+    unsigned int max_idx = (max.point_idx == 0)? poly.size() - 1 : max.point_idx - 1;
     for (unsigned int point_idx = min_idx
         ; point_idx != max_idx
         ; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
@@ -214,21 +199,6 @@ void LinePolygonsCrossings::generateBasicCombingPath(PolyCrossings& polyCrossing
         combPath.push_back(p);
     }
     combPath.push_back(last);
-}
-
-
-
-LinePolygonsCrossings::PolyCrossings* LinePolygonsCrossings::getNextPolygonAlongScanline(int64_t x)
-{
-    PolyCrossings* ret = nullptr;
-    for(PolyCrossings& crossing : crossings)
-    {
-        if (crossing.min.x > x && (ret == nullptr || crossing.min.x < ret->min.x) )
-        {
-            ret = &crossing;
-        }
-    }
-    return ret;
 }
 
 bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimized_comb_path) 

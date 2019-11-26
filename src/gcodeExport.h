@@ -146,14 +146,15 @@ private:
 
     std::vector<Duration> total_print_times; //!< The total estimated print time in seconds for each feature
     TimeEstimateCalculator estimateCalculator;
-    
-    bool is_volumetric;
-    bool relative_extrusion; //!< whether to use relative extrusion distances rather than absolute
 
     unsigned int layer_nr; //!< for sending travel data
 
+    bool is_volumetric;
+    bool relative_extrusion; //!< whether to use relative extrusion distances rather than absolute
+
     Temperature initial_bed_temp; //!< bed temperature at the beginning of the print.
     Temperature build_volume_temperature;  //!< build volume temperature
+    bool machine_heated_build_volume;  //!< does the machine have the ability to control/stabilize build-volume-temperature
 protected:
     /*!
      * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
@@ -238,11 +239,6 @@ public:
     void setZ(int z);
 
     void setFlowRateExtrusionSettings(double max_extrusion_offset, double extrusion_offset_factor);
-
-    void addLastCoastedVolume(double last_coasted_volume) 
-    {
-        extruder_attr[current_extruder].prime_volume += last_coasted_volume; 
-    }
 
     /*!
      * Add extra amount of material to be primed after an unretraction.
