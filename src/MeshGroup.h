@@ -4,13 +4,14 @@
 #ifndef MESH_GROUP_H
 #define MESH_GROUP_H
 
-#include "utils/NoCopy.h"
 #include "mesh.h"
-#include "ExtruderTrain.h"
+#include "utils/NoCopy.h"
 
 namespace cura
 {
-    
+
+class FMatrix3x3;
+
 /*!
  * A MeshGroup is a collection with 1 or more 3D meshes.
  * 

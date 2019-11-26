@@ -1,10 +1,10 @@
 //Copyright (C) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef CURAENGINE_CALCULATEADAPTIVELAYERHEIGHTS_H
-#define CURAENGINE_CALCULATEADAPTIVELAYERHEIGHTS_H
+#ifndef ADAPTIVELAYERHEIGHTS_H
+#define ADAPTIVELAYERHEIGHTS_H
 
-#include "../MeshGroup.h"
+#include "../utils/Coord_t.h"
 
 namespace cura {
 
@@ -56,9 +56,10 @@ public:
     int step_size;
 
     /*!
-     * Threshold to compare the tan of the steepest slope to.
+     * Target topography size. Adaptive layers will try to keep the horizontal
+     * distance the same.
      */
-    double threshold;
+    coord_t threshold;
 
     /*!
      * Stores the found layer heights
@@ -91,7 +92,7 @@ public:
      * \param threshold Threshold to compare the tangent of the steepest slope
      * to.
      */
-    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const double threshold);
+    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold);
 
 private:
 
@@ -121,4 +122,4 @@ private:
 
 }
 
-#endif //CURAENGINE_CALCULATEADAPTIVELAYERHEIGHTS_H
+#endif //ADAPTIVELAYERHEIGHTS_H

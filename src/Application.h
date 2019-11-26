@@ -4,11 +4,13 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "Slice.h" //To store the current slice.
+#include "utils/NoCopy.h"
+#include <cstddef> //For size_t.
 
 namespace cura
 {
 class Communication;
+class Slice;
 
 /*!
  * A singleton class that serves as the starting point for all slicing.
@@ -58,6 +60,9 @@ public:
      *
      * It will start by parsing the command line arguments to see what it must
      * be doing.
+     *
+     * This function can only be called once, because it has side-effects on
+     * static fields across the application.
      * \param argc The number of arguments provided to the application.
      * \param argv The arguments provided to the application.
      */

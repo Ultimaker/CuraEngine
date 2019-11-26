@@ -12,18 +12,17 @@
 #include "Listener.h" //To listen to the Arcus socket.
 #include "SliceDataStruct.h" //To store sliced layer data.
 #include "../Application.h" //To get and set the current slice command.
+#include "../ExtruderTrain.h"
 #include "../FffProcessor.h" //To start a slice.
 #include "../PrintFeature.h"
 #include "../Slice.h" //To process slices.
 #include "../settings/types/LayerIndex.h" //To point to layers.
 #include "../settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "../utils/logoutput.h"
+#include "../utils/polygon.h"
 
 namespace cura
 {
-
-//Forward declarations for compilation speed.
-class MeshGroup;
 
 /*
  * \brief A computation class that formats layer view data in a way that the

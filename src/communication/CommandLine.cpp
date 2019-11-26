@@ -4,7 +4,6 @@
 #include <cstring> //For strtok and strcopy.
 #include <fstream> //To check if files exist.
 #include <errno.h> // error number when trying to read file
-#include <libgen.h> //To get the parent directory of a file path.
 #include <numeric> //For std::accumulate.
 #ifdef _OPENMP
     #include <omp.h> //To change the number of threads to slice with.
@@ -16,7 +15,12 @@
 
 #include "CommandLine.h"
 #include "../Application.h" //To get the extruders for material estimates.
+#include "../ExtruderTrain.h"
 #include "../FffProcessor.h" //To start a slice and get time estimates.
+#include "../Slice.h"
+#include "../utils/getpath.h"
+#include "../utils/floatpoint.h"
+#include "../utils/logoutput.h"
 
 namespace cura
 {
@@ -100,7 +104,7 @@ void CommandLine::sliceNext()
 
     slice.scene.extruders.reserve(arguments.size() >> 1); //Allocate enough memory to prevent moves.
     slice.scene.extruders.emplace_back(0, &slice.scene.settings); //Always have one extruder.
-    ExtruderTrain& last_extruder = slice.scene.extruders[0];
+    ExtruderTrain* last_extruder = &slice.scene.extruders[0];
 
     for (size_t argument_index = 2; argument_index < arguments.size(); argument_index++)
     {
@@ -191,6 +195,7 @@ void CommandLine::sliceNext()
                             slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
                         }
                         last_settings = &slice.scene.extruders[extruder_nr].settings;
+                        last_extruder = &slice.scene.extruders[extruder_nr];
                         break;
                     }
                     case 'l':
@@ -205,7 +210,7 @@ void CommandLine::sliceNext()
 
                         const FMatrix3x3 transformation = last_settings->get<FMatrix3x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
 
-                        if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder.settings))
+                        if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings))
                         {
                             logError("Failed to load model: %s. (error number %d)\n", argument.c_str(), errno);
                             exit(1);
@@ -327,9 +332,7 @@ int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
     }
 
     std::unordered_set<std::string> search_directories = defaultSearchDirectories(); //For finding the inheriting JSON files.
-    char filename_copy[json_filename.size()];
-    std::strcpy(filename_copy, json_filename.c_str());
-    std::string directory = std::string(dirname(filename_copy));
+    std::string directory = getPathName(json_filename);
     search_directories.emplace(directory);
 
     return loadJSON(json_document, search_directories, settings);

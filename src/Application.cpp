@@ -9,7 +9,9 @@
 #include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
+#include "progress/Progress.h"
 #include "utils/logoutput.h"
+#include "utils/string.h" //For stringcasecompare.
 
 namespace cura
 {
@@ -138,7 +140,7 @@ void Application::printLicense() const
 {
     logAlways("\n");
     logAlways("Cura_SteamEngine version %s\n", VERSION);
-    logAlways("Copyright (C) 2018 Ultimaker\n");
+    logAlways("Copyright (C) 2019 Ultimaker\n");
     logAlways("\n");
     logAlways("This program is free software: you can redistribute it and/or modify\n");
     logAlways("it under the terms of the GNU Affero General Public License as published by\n");

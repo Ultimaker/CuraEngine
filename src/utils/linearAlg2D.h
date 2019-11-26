@@ -107,20 +107,25 @@ public:
 
         if (x_p1 == 0)
         {
+            //Line segment has length 0.
             return p0;
         }
         if (projected_x <= x_p0)
         {
+            //Projection is beyond p0.
             return p0;
         }
         if (projected_x >= x_p1)
         {
+            //Projection is beyond p1.
             return p1;
         }
         else
         {
-            Point ret = p0 + projected_x / vSize(direction) * direction  / vSize(direction);
-            return ret;
+            //Projection is between p0 and p1.
+            //Return direction-normalised projection (projected_x / vSize(direction)) on direction vector.
+            //vSize(direction) * vSize(direction) == vSize2(direction) == x_p1.
+            return p0 + projected_x * direction / x_p1;
         }
     }
 
@@ -147,7 +152,7 @@ public:
     * \param c the second point on the line segment
     * \param b_is_beyond_ac optional output parameter: whether \p b is closest to the line segment (0), to \p a (-1) or \p b (1)
     */
-    static coord_t getDist2FromLineSegment(const Point& a, const Point& b, const Point& c, char* b_is_beyond_ac = nullptr)
+    static coord_t getDist2FromLineSegment(const Point& a, const Point& b, const Point& c, int16_t* b_is_beyond_ac = nullptr)
     {
     /* 
     *     a,
@@ -171,7 +176,7 @@ public:
         if (ac_size == 0) 
         {
             const coord_t ab_dist2 = vSize2(ab); 
-            if (ab_dist2 == 0)
+            if (ab_dist2 == 0 && b_is_beyond_ac)
             {
                 *b_is_beyond_ac = 0; // a is on b is on c
             }

@@ -1,8 +1,12 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "ExtruderTrain.h"
+#include "sliceDataStorage.h"
 #include "WallsComputation.h"
+#include "settings/types/Ratio.h"
 #include "utils/polygonUtils.h"
+
 namespace cura {
 
 WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)
@@ -21,7 +25,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
 {
     size_t inset_count = settings.get<size_t>("wall_line_count");
     const bool spiralize = settings.get<bool>("magic_spiralize");
-    if (spiralize && layer_nr < LayerIndex(settings.get<size_t>("bottom_layers")) && ((layer_nr % 2) + 2) % 2 == 1) //Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
+    if (spiralize && layer_nr < LayerIndex(settings.get<size_t>("initial_bottom_layers")) && ((layer_nr % 2) + 2) % 2 == 1) //Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
     {
         inset_count += 5;
     }

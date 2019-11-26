@@ -1,19 +1,25 @@
-/** Copyright (C) 2017 Tim Kuipers - Released under terms of the AGPLv3 License */
+//Copyright (c) 2017 Tim Kuipers
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "SierpinskiFill.h"
 
-#include <algorithm> // swap 
+#include <algorithm> // swap
+#include <assert.h>
 #include <functional> // function
 #include <iterator> // next, prev
 
 #include "ImageBasedDensityProvider.h"
 #include "UniformDensityProvider.h"
+#include "../utils/AABB3D.h"
+#include "../utils/logoutput.h"
+#include "../utils/polygon.h"
+#include "../utils/SVG.h"
 
 namespace cura {
 
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;
-
-static constexpr float sqrt2 = 1.41421356237;
 
 static constexpr float allowed_length_error = .01;
 

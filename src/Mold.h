@@ -4,13 +4,10 @@
 #ifndef MOLD_H
 #define MOLD_H
 
-#include "slicer.h"
-#include "utils/IntPoint.h"
-
 namespace cura
 {
 
-class SliceDataStorage;
+class Slicer;
 
 /*!
  * Class for transforming the outlines of a model into a mold into which the model can be cast.

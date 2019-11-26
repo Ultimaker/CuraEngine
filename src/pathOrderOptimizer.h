@@ -5,9 +5,9 @@
 #define PATHOPTIMIZER_H
 
 #include <stdint.h>
+#include "settings/EnumSettings.h"
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
-#include "settings/Settings.h"
 
 namespace cura {
 

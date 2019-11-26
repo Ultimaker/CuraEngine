@@ -1,10 +1,13 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <cassert>
+
 #include "Progress.h"
 #include "../Application.h" //To get the communication channel to send progress through.
 #include "../communication/Communication.h" //To send progress through the communication channel.
 #include "../utils/gettime.h"
+#include "../utils/logoutput.h"
 
 namespace cura {
     
@@ -29,22 +32,8 @@ std::string Progress::names [] =
     "process"
 };
 
-    
 double Progress::accumulated_times [N_PROGRESS_STAGES] = {-1};
 double Progress::total_timing = -1;
-
-/*
-const Progress::Stage Progress::stages[] = 
-{ 
-    Progress::Stage::START, 
-    Progress::Stage::SLICING, 
-    Progress::Stage::PARTS, 
-    Progress::Stage::INSET_SKIN, 
-    Progress::Stage::SUPPORT, 
-    Progress::Stage::EXPORT, 
-    Progress::Stage::FINISH 
-};
-*/
 
 float Progress::calcOverallProgress(Stage stage, float stage_progress)
 {

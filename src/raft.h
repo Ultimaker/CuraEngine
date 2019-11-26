@@ -4,9 +4,12 @@
 #ifndef RAFT_H
 #define RAFT_H
 
-#include "sliceDataStorage.h"
+#include "utils/Coord_t.h"
 
-namespace cura {
+namespace cura
+{
+
+class SliceDataStorage;
 
 class Raft
 {

@@ -4,29 +4,29 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
-
 #include <fstream>
-#include "utils/gettime.h"
-#include "utils/logoutput.h"
-#include "utils/NoCopy.h"
-#include "utils/polygonUtils.h"
-#include "sliceDataStorage.h"
-#include "raft.h"
-#include "infill.h"
-#include "bridge.h"
-#include "pathOrderOptimizer.h"
-#include "LayerPlan.h"
-#include "gcodeExport.h"
-#include "PrimeTower.h"
 #include "FanSpeedLayerTime.h"
-#include "PrintFeature.h"
-
-
+#include "gcodeExport.h"
 #include "LayerPlanBuffer.h"
+#include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
+#include "utils/NoCopy.h"
 
+namespace std
+{
+template<typename T> class optional;
+}
 
 namespace cura 
 {
+
+class AngleDegrees;
+class Polygons;
+class SkinPart;
+class SliceDataStorage;
+class SliceMeshStorage;
+class SliceLayer;
+class SliceLayerPart;
+class TimeKeeper;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
@@ -177,6 +177,13 @@ private:
     void setConfigRetraction(SliceDataStorage& storage);
 
     /*!
+     * Set the wipe config globally, per extruder.
+     *
+     * \param[out] storage The data storage to which to save the configurations
+     */
+    void setConfigWipe(SliceDataStorage& storage);
+
+    /*!
      * Get the extruder with which to start the print.
      * 
      * Generally this is the adhesion_extruder_nr, but in case the platform adhesion type is none,
@@ -194,6 +201,18 @@ private:
      * \param mesh The mesh for which to determine the infill and skin angles.
      */
     void setInfillAndSkinAngles(SliceMeshStorage& mesh);
+
+    /*!
+     * Set the support and interface infill angles in the SliceDataStorage.
+     *
+     * Default angles depend on which pattern it's using and in certain patterns it
+     * alternates between layers.
+     *
+     * These lists of angles are cycled through to get the support infill angle of a specific layer.
+     *
+     * \param storage The storage for which to determine the support infill angles.
+     */
+    void setSupportAngles(SliceDataStorage& storage);
 
     /*!
     * Set temperatures for the initial layer. Called by 'processStartingCode' and whenever a new object is started at layer 0.
@@ -431,8 +450,9 @@ private:
      * \param[out] gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      */
-    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+    void processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh) const;
 
     /*!
      * Add the gcode of the outline gaps: the areas for thin parts in which a single perimter doesnt fit.
@@ -649,22 +669,6 @@ private:
      * \return Whether any support skin was added to the layer plan.
      */
     bool addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer) const;
-
-    /*!
-     * \brief Gives the angle of the infill of support interface.
-     *
-     * The angle depends on which pattern it's using and in certain patterns it
-     * alternates between layers.
-     *
-     * \param storage A storage of meshes and their settings.
-     * \param pattern The pattern of the support interface to get the fill angle
-     * for.
-     * \param interface_height_setting The setting to retrieve from every mesh
-     * to determine whether the support interface should alternate.
-     * \param layer_nr The layer number of the layer for which to determine the interface angle
-     * \return The angle of support interface.
-     */
-    AngleDegrees supportInterfaceFillAngle(const SliceDataStorage& storage, const EFillMethod pattern, const std::string interface_height_setting, const LayerIndex layer_nr) const;
 
 public:
     /*!

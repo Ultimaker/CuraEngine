@@ -4,23 +4,27 @@
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
-#include "gcodeExport.h" // CoastingConfig
-#include "mesh.h"
-#include "MeshGroup.h"
+#include <map>
 #include "PrimeTower.h"
+#include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
-#include "infill/SierpinskiFillProvider.h"
+#include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/AngleDegrees.h" //Infill angles.
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
+#include "utils/AABB3D.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 #include "utils/optional.h"
 #include "utils/polygon.h"
+#include "WipeScriptConfig.h"
 
 namespace cura 
 {
+
+class Mesh;
+class SierpinskiFillProvider;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
@@ -216,6 +220,11 @@ public:
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
 
+    std::vector<AngleDegrees> support_infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<AngleDegrees> support_infill_angles_layer_0; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<AngleDegrees> support_roof_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<AngleDegrees> support_bottom_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+
     std::vector<SupportLayer> supportLayers;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
@@ -291,6 +300,8 @@ public:
     Point3 model_size, model_min, model_max;
     AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
     std::vector<SliceMeshStorage> meshes;
+
+    std::vector<WipeScriptConfig> wipe_config_per_extruder; //!< Wipe configs per extruder.
 
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
     std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
@@ -372,6 +383,11 @@ private:
      * Construct the retraction_config_per_extruder
      */
     std::vector<RetractionConfig> initializeRetractionConfigs();
+
+    /*!
+     * Construct the wipe_config_per_extruder
+     */
+    std::vector<WipeScriptConfig> initializeWipeConfigs();
 };
 
 }//namespace cura
