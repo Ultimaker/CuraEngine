@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::sort.
@@ -98,9 +98,10 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
     if (in_outline.empty()) return;
     if (line_distance == 0) return;
 
-    if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
+    if (pattern == EFillMethod::ZIG_ZAG || (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON || pattern == EFillMethod::GYROID)))
     {
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
+        const float width_scale = (mesh) ? (float)mesh->settings.get<coord_t>("layer_height") / mesh->settings.get<coord_t>("infill_sparse_thickness") : 1;
+        outline_offset -= width_scale * infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
     }
 
     switch(pattern)
@@ -393,7 +394,8 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
 {
-    ClipperLib::PolyTree interior_segments_tree = in_outline.offset(infill_overlap).lineSegmentIntersection(input);
+    ClipperLib::PolyTree interior_segments_tree;
+    in_outline.offset(infill_overlap).lineSegmentIntersection(input, interior_segments_tree);
     ClipperLib::Paths interior_segments;
     ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
     for (size_t idx = 0; idx < interior_segments.size(); idx++)
@@ -468,8 +470,8 @@ void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance,
     const coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
 
     PointMatrix rotation_matrix(infill_rotation);
-    ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count, minimum_zag_line_length);
-    generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
+    ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
+    generateLinearBasedInfill(outline_offset, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
 }
 
 /* 
