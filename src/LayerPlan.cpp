@@ -458,7 +458,6 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                         last_point = comb_point;
                     }
                 }
-                last_planned_position = combPath.back();
                 distance += vSize(last_point - p);
                 const coord_t retract_threshold = extruder->settings.get<coord_t>("retraction_combing_max_distance");
                 path->retract = retract || (retract_threshold > 0 && distance > retract_threshold);
@@ -466,7 +465,15 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
             }
         }
     }
-    
+
+    // CURA-6675:
+    // Retraction Minimal Travel Distance should work for all travel moves. If the travel move is shorter than the
+    // Retraction Minimal Travel Distance, retraction should be disabled.
+    if (!is_first_travel_of_layer && last_planned_position && shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    {
+        path->retract = false;
+    }
+
     // no combing? retract only when path is not shorter than minimum travel distance
     if (!combed && !is_first_travel_of_layer && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
     {
@@ -483,6 +490,9 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         path->retract = true;
         path->perform_z_hop = extruder->settings.get<bool>("retraction_hop_enabled");
     }
+
+    // must start new travel path as retraction can be enabled or not depending on path length, etc.
+    forceNewPathStart();
 
     GCodePath& ret = addTravel_simple(p, path);
     was_inside = is_inside;
