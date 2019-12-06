@@ -63,5 +63,9 @@ float WideningBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) 
     return parent->getTransitionAnchorPos(lower_bead_count);
 }
 
+std::vector<coord_t> WideningBeadingStrategy::getNonlinearThicknesses(coord_t lower_bead_count) const
+{
+    return parent->getNonlinearThicknesses(lower_bead_count);
+}
 
 } // namespace arachne
