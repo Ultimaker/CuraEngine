@@ -55,7 +55,7 @@ static TCLAP::ValueArg<std::string> cmd__output_prefix("o", "output", "Output fi
 static TCLAP::ValueArg<double> cmd__scale_amount("", "scale", "Input polygon scaler", false /* required? */, 1.0, "floating number");
 static TCLAP::SwitchArg cmd__mirroring("m", "mirror", "Mirror the input file vertically", false);
 static TCLAP::SwitchArg cmd__shuffle_strategies("", "shuffle", "Execute the strategies in random order", false);
-static TCLAP::ValueArg<std::string> cmd__strategy_set("s", "strat", "Set of strategies to test. Each character identifies one strategy.", false /* required? */, "crdin", "n|N|c|r|d|i|n|s|o");
+static TCLAP::ValueArg<std::string> cmd__strategy_set("s", "strat", "Set of strategies to test. Each character identifies one strategy.", false /* required? */, "crdin", "n|N|c|r|d|i|n|s|l|o");
 static TCLAP::ValueArg<double> cmd__discretization_step_size("d", "discretization", "Discretization step size", /*req=*/ false, /*default=*/0.2, "mm");
 static TCLAP::ValueArg<double> cmd__transition_filter_dist("f", "transitionfilter", "Smallest distance between alternating bead counts", /*req=*/ false, /*default=*/1.0, "mm");
 static TCLAP::ValueArg<double> cmd__beading_propagation_transition_dist("t", "bptd", "Beading propagation transition distance", /*req=*/ false, /*default=*/0.4, "mm");
@@ -63,6 +63,7 @@ static TCLAP::ValueArg<bool> cmd__reduce_extrusion_line_overlap("r", "reduce", "
 static TCLAP::SwitchArg cmd__filter_outermost_marked_edges("", "filterouter", "Unmark all outer edges of the Voronoi Diagram, so that marked edges never touch the outline", /*req=*/ false);
 static TCLAP::ValueArg<double> cmd__min_bead_width("", "minw", "Minimal toolpath bead width for geometry with a diameter smaller than the nozzle size", /*req=*/ false, /*default=*/0, "mm");
 static TCLAP::ValueArg<double> cmd__min_feature_size("", "mins", "Minimal geometry diameter for which to generate a bead", /*req=*/ false, /*default=*/0, "mm");
+static TCLAP::ValueArg<double> cmd__inward_distributed_center_size("n", "beadcount", "Number of beads to use in strategy (depends on strategy)", /*req=*/ false, /*default=*/2, "");
 
 bool generate_gcodes = true;
 bool analyse = false;
@@ -104,6 +105,7 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__filter_outermost_marked_edges);
         gCmdLine.add(cmd__min_bead_width);
         gCmdLine.add(cmd__min_feature_size);
+        gCmdLine.add(cmd__inward_distributed_center_size);
 
         gCmdLine.parse(argc, argv);
 
@@ -128,6 +130,8 @@ bool readCommandLine(int argc, char **argv)
         filter_outermost_marked_edges = cmd__filter_outermost_marked_edges.getValue();
         if (cmd__min_bead_width.getValue() > 0.0) min_bead_width = MM2INT(cmd__min_bead_width.getValue());
         if (cmd__min_feature_size.getValue() > 0.0) min_feature_size = MM2INT(cmd__min_feature_size.getValue());
+
+        inward_distributed_center_size = cmd__inward_distributed_center_size.getValue();
 
         return false;
     }
