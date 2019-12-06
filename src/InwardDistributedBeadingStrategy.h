@@ -27,6 +27,7 @@ public:
     virtual ~InwardDistributedBeadingStrategy() override
     {}
     Beading compute(coord_t thickness, coord_t bead_count) const override;
+    virtual std::string toString() const override { return "InwardDistributedBeadingStrategy";}
 private:
     float one_over_distribution_radius_squared; // (1 / distribution_radius)^2
 };

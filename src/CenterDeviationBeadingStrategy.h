@@ -33,6 +33,7 @@ public:
     {
         return optimal_width / 2;
     }
+    virtual std::string toString() const override { return "CenterDeviationBeadingStrategy";}
 };
 
 

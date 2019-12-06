@@ -116,6 +116,8 @@ public:
     }
 
     static bool checkTranisionThicknessConsistency(const BeadingStrategy* strategy);
+
+    virtual std::string toString() const = 0;
 };
 
 
