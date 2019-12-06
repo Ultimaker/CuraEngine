@@ -56,11 +56,11 @@ coord_t LimitedBeadingStrategy::optimal_bead_count(coord_t thickness) const
 
 std::vector<coord_t> LimitedBeadingStrategy::getNonlinearThicknesses(coord_t lower_bead_count) const
 {
-    std::vector<coord_t> ret;
+    std::vector<coord_t> ret = parent->getNonlinearThicknesses(lower_bead_count);
     if (lower_bead_count == max_bead_count)
     {
         ret.emplace_back(optimal_thickness(max_bead_count));
-        ret.emplace_back(parent->transition_thickness(max_bead_count));
+        ret.emplace_back(parent->transition_thickness(max_bead_count) - 10); // -10 to fix rounding bug
         ret.emplace_back(parent->transition_thickness(max_bead_count) + optimal_width / 2); // ideally the transition from a thin section to a section where all beads have preferred widths is a constant length, while now the length is determined by the slope of the marked region.
     }
     return ret;
