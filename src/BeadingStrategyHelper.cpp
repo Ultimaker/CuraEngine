@@ -6,7 +6,7 @@ namespace arachne
 {
 
 double inward_distributed_center_size = 2;
-
+int max_bead_count = -1;
 
 StrategyType toStrategyType(char c)
 {
@@ -61,20 +61,21 @@ BeadingStrategy* BeadingStrategyHelper::makeStrategy(StrategyType type, coord_t 
             case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(prefered_bead_width, transitioning_angle);       break;
             case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(prefered_bead_width, transitioning_angle);           break;
             case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle, inward_distributed_center_size);  break;
-            case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(prefered_bead_width, inward_distributed_center_size, transitioning_angle); break;
+            case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(prefered_bead_width, max_bead_count, transitioning_angle); break;
             case StrategyType::SingleBead:         ret = new SingleBeadBeadingStrategy(prefered_bead_width, transitioning_angle);            break;
-            case StrategyType::OutlineAccuracy:    ret = new LimitedBeadingStrategy(inward_distributed_center_size, new OutlineAccuracyBeadingStrategy(prefered_bead_width, prefered_bead_width * 3 / 4, prefered_bead_width / 2, transitioning_angle)); break;
+            case StrategyType::OutlineAccuracy:    ret = new LimitedBeadingStrategy(max_bead_count, new OutlineAccuracyBeadingStrategy(prefered_bead_width, prefered_bead_width * 3 / 4, prefered_bead_width / 2, transitioning_angle)); break;
             default:
                 logError("Cannot make strategy!\n");
                 return nullptr;
         }
         if (min_bead_width || min_feature_size)
         {
-            return new WideningBeadingStrategy(ret, min_feature_size.value_or(*min_bead_width), min_bead_width.value_or(*min_feature_size));
+            ret = new WideningBeadingStrategy(ret, min_feature_size.value_or(*min_bead_width), min_bead_width.value_or(*min_feature_size));
         }
-        else
+        if (max_bead_count > 0)
         {
-            return ret;
+            ret = new LimitedBeadingStrategy(max_bead_count, ret);
         }
+        return ret;
     }
 } // namespace arachne

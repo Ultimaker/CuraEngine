@@ -65,7 +65,7 @@ static TCLAP::ValueArg<bool> cmd__reduce_extrusion_line_overlap("r", "reduce", "
 static TCLAP::SwitchArg cmd__filter_outermost_marked_edges("", "filterouter", "Unmark all outer edges of the Voronoi Diagram, so that marked edges never touch the outline", /*req=*/ false);
 static TCLAP::ValueArg<double> cmd__min_bead_width("", "minw", "Minimal toolpath bead width for geometry with a diameter smaller than the nozzle size", /*req=*/ false, /*default=*/0, "mm");
 static TCLAP::ValueArg<double> cmd__min_feature_size("", "mins", "Minimal geometry diameter for which to generate a bead", /*req=*/ false, /*default=*/0, "mm");
-static TCLAP::ValueArg<double> cmd__inward_distributed_center_size("n", "beadcount", "Number of beads to use in strategy (depends on strategy)", /*req=*/ false, /*default=*/2, "");
+static TCLAP::ValueArg<double> cmd__inward_distributed_center_size("n", "centersize", "(Half of ) the number of beads over which to distribute the discrepancy", /*req=*/ false, /*default=*/2, "");static TCLAP::ValueArg<int> cmd__max_bead_count("b", "beadcount", "Number of beads to generate. -1 = infinity", /*req=*/ false, /*default=*/-1, "");
 
 bool generate_gcodes = true;
 bool generate_toolpaths = true;
@@ -110,6 +110,7 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__min_bead_width);
         gCmdLine.add(cmd__min_feature_size);
         gCmdLine.add(cmd__inward_distributed_center_size);
+        gCmdLine.add(cmd__max_bead_count);
 
         gCmdLine.parse(argc, argv);
 
@@ -137,6 +138,7 @@ bool readCommandLine(int argc, char **argv)
         if (cmd__min_feature_size.getValue() > 0.0) min_feature_size = MM2INT(cmd__min_feature_size.getValue());
 
         inward_distributed_center_size = cmd__inward_distributed_center_size.getValue();
+        max_bead_count = cmd__max_bead_count.getValue();
 
         return false;
     }
