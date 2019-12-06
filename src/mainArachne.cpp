@@ -28,6 +28,7 @@
 #include "NaiveBeadingStrategy.h"
 #include "BeadingOrderOptimizer.h"
 #include "GcodeWriter.h"
+#include "ToolpathWriter.h"
 #include "Statistics.h"
 
 #include "TestGeometry/TestPolys.h"
@@ -48,6 +49,7 @@ using namespace arachne;
 static TCLAP::CmdLine gCmdLine(" Generate polygon inset toolpaths ", ' ', "0.1");
 
 static TCLAP::SwitchArg cmd__generate_gcodes("g", "gcode", "Generate gcode", false);
+static TCLAP::SwitchArg cmd__generate_toolpaths("", "toolpaths", "Generate toolpaths file", false);
 static TCLAP::SwitchArg cmd__analyse("a", "analyse", "Analyse output paths", false);
 static TCLAP::SwitchArg cmd__generate_MAT_STL("", "matstl", "Generate an stl corresponding to the medial axis transform", false);
 static TCLAP::ValueArg<std::string> cmd__input_outline_filename("p", "polygon", "Input file for polygon", false /* required? */, "-", "path to file");
@@ -66,6 +68,7 @@ static TCLAP::ValueArg<double> cmd__min_feature_size("", "mins", "Minimal geomet
 static TCLAP::ValueArg<double> cmd__inward_distributed_center_size("n", "beadcount", "Number of beads to use in strategy (depends on strategy)", /*req=*/ false, /*default=*/2, "");
 
 bool generate_gcodes = true;
+bool generate_toolpaths = true;
 bool analyse = false;
 
 std::string input_outline_filename;
@@ -90,6 +93,7 @@ bool readCommandLine(int argc, char **argv)
 {
     try {
         gCmdLine.add(cmd__generate_gcodes);
+        gCmdLine.add(cmd__generate_toolpaths);
         gCmdLine.add(cmd__analyse);
         gCmdLine.add(cmd__generate_MAT_STL);
         gCmdLine.add(cmd__input_outline_filename);
@@ -110,6 +114,7 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.parse(argc, argv);
 
         generate_gcodes = cmd__generate_gcodes.getValue();
+        generate_toolpaths = cmd__generate_toolpaths.getValue();
         analyse = cmd__analyse.getValue();
         generate_MAT_STL = cmd__generate_MAT_STL.getValue();
         input_outline_filename = cmd__input_outline_filename.getValue();
@@ -202,6 +207,13 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
             stats.savePrintTimeCSV(gcode.getPrintTime());
             logAlways("Writing gcode took %fs\n", tk.restart());
         }
+    }
+    if (generate_toolpaths)
+    {
+        std::ostringstream ss;
+        ss << "output/" << output_prefix << "_" << to_string(type) << "_toolpaths.txt";
+        ToolpathWriter toolpather(ss.str());
+        toolpather.write(result_polygons_per_index, result_polylines_per_index);
     }
 
     if (generate_MAT_STL)
