@@ -85,7 +85,7 @@ INLINE float vSize2f(const Point& p0)
     return float(p0.X)*float(p0.X)+float(p0.Y)*float(p0.Y);
 }
 
-INLINE bool shorterThen(const Point& p0, int32_t len)
+INLINE bool shorterThen(const Point& p0, coord_t len)
 {
     if (p0.X > len || p0.X < -len)
         return false;
