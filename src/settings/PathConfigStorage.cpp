@@ -241,7 +241,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
             PrintFeatureType::Support
             , support_infill_train.settings.get<coord_t>("support_line_width") * (combine_idx + 1) * support_infill_line_width_factor
             , layer_thickness
-            , support_infill_train.settings.get<Ratio>("infill_material_flow") * ((layer_nr == 0) ? support_infill_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
+            , support_infill_train.settings.get<Ratio>("support_material_flow") * ((layer_nr == 0) ? support_infill_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
             , GCodePathConfig::SpeedDerivatives{support_infill_train.settings.get<Velocity>("speed_support_infill"), support_infill_train.settings.get<Acceleration>("acceleration_support_infill"), support_infill_train.settings.get<Velocity>("jerk_support_infill")}
         );
     }
