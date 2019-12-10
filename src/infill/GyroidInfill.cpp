@@ -19,11 +19,6 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
     // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
     // kudos to the author of the Slic3r implementation equation code, the equation code here is based on that
 
-    if (zig_zaggify)
-    {
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
-    }
-
     const Polygons outline = in_outline.offset(outline_offset);
     const AABB aabb(outline);
 
@@ -270,7 +265,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     for (unsigned point_index = 0; point_index < 2; ++point_index)
                     {
                         // don't include chain ends that are close to the segment but are beyond the segment ends
-                        char beyond = 0;
+                        short beyond = 0;
                         if (LinearAlg2D::getDist2FromLineSegment(op0, chains[point_index][chain_index], op1, &beyond) < 10 && !beyond)
                         {
                             points_on_outline_point_index.push_back(point_index);

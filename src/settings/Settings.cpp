@@ -413,6 +413,10 @@ template<> EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::s
     {
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY;
     }
+    else if (value == "z_seam_corner_weighted")
+    {
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED;
+    }
     else //Default.
     {
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;

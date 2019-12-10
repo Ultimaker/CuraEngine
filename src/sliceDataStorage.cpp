@@ -138,12 +138,14 @@ Polygons& SliceLayer::getInnermostWalls(const size_t max_inset, const SliceMeshS
             {
                 // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline
                 // with the portions of outer we just calculated
-
-                result.add(part.insets[1].offset(half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0 + 15)).offset(-std::min(half_line_width_0, half_line_width_x)));
+                // NOTE - expanding the 2nd wall by an extra factor of 2 is needed to successfully merge tiny 2nd wall outlines with sharp corners into the outer wall
+                // the effect of the extra expansion is that the boundary will hug the outline of the 2nd wall regions rather than its centre line
+                result.add(part.insets[1].offset(2*half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0))
+                    .offset(-std::min(half_line_width_0, half_line_width_x)).intersection(outer));
             }
             else
             {
-                // the 2nd wall is complete so use it verbatim
+                // the 2nd wall is complete so use its centre line
                 result.add(part.insets[1]);
             }
         }
@@ -182,6 +184,11 @@ SliceMeshStorage::~SliceMeshStorage()
 
 bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
 {
+    if (settings.get<bool>("anti_overhang_mesh")
+        || settings.get<bool>("support_mesh"))
+    { // object is not printed as object, but as support.
+        return false;
+    }
     if (settings.get<bool>("magic_spiralize"))
     {
         if (settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr)
@@ -349,8 +356,16 @@ std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
     return ret;
 }
 
+std::vector<WipeScriptConfig> SliceDataStorage::initializeWipeConfigs()
+{
+    std::vector<WipeScriptConfig> ret;
+    ret.resize(Application::getInstance().current_slice->scene.extruders.size());
+    return ret;
+}
+
 SliceDataStorage::SliceDataStorage()
 : print_layer_count(0)
+, wipe_config_per_extruder(initializeWipeConfigs())
 , retraction_config_per_extruder(initializeRetractionConfigs())
 , extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs())
 , max_print_height_second_to_last_extruder(-1)
@@ -397,6 +412,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
     {
         Polygons total;
         coord_t maximum_resolution = std::numeric_limits<coord_t>::max();
+        coord_t maximum_deviation = std::numeric_limits<coord_t>::max();
         if (layer_nr >= 0)
         {
             for (const SliceMeshStorage& mesh : meshes)
@@ -412,6 +428,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
                 }
                 maximum_resolution = std::min(maximum_resolution, mesh.settings.get<coord_t>("meshfix_maximum_resolution"));
+                maximum_deviation = std::min(maximum_deviation, mesh.settings.get<coord_t>("meshfix_maximum_deviation"));
             }
         }
         if (include_support)
@@ -434,7 +451,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                 total.add(layer_nr == 0 ? primeTower.outer_poly_first_layer : primeTower.outer_poly);
             }
         }
-        total.simplify(maximum_resolution, maximum_resolution);
+        total.simplify(maximum_resolution, maximum_deviation);
         return total;
     }
 }
