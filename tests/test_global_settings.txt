@@ -73,7 +73,6 @@ material_flow=100
 connect_skin_polygons=False
 raft_base_line_spacing=1.6
 support_bottom_distance=0.2
-prime_tower_circular=True
 wall_thickness=1
 magic_fuzzy_skin_enabled=False
 raft_surface_thickness=0.2

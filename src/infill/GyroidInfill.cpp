@@ -1,17 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/* 
- * File:   GyroidInfill.cpp
- * Author: asasin
- * 
- * Created on October 1, 2018, 11:59 AM
- */
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "GyroidInfill.h"
+#include "../utils/AABB.h"
+#include "../utils/linearAlg2D.h"
+#include "../utils/polygon.h"
 
 namespace cura {
 
@@ -25,11 +18,6 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
 {
     // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
     // kudos to the author of the Slic3r implementation equation code, the equation code here is based on that
-
-    if (zig_zaggify)
-    {
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
-    }
 
     const Polygons outline = in_outline.offset(outline_offset);
     const AABB aabb(outline);
@@ -260,21 +248,25 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
             unsigned connector_start_chain_index = std::numeric_limits<unsigned>::max();
             unsigned connector_start_point_index = std::numeric_limits<unsigned>::max();
 
+            Point cur_point; // current point of interest - either an outline point or a chain end
+
             // go round all of the region's outline and find the chain ends that meet it
             // quit the loop early if we have seen all the chain ends and are not currently drawing a connector
             for (unsigned outline_point_index = 0; (chain_ends_remaining > 0 || drawing) && outline_point_index < outline_poly.size(); ++outline_point_index)
             {
                 Point op0 = outline_poly[outline_point_index];
                 Point op1 = outline_poly[(outline_point_index + 1) % outline_poly.size()];
-                Point cur_point = op0;
                 std::vector<unsigned> points_on_outline_chain_index;
                 std::vector<unsigned> points_on_outline_point_index;
+
                 // collect the chain ends that meet this segment of the outline
                 for (unsigned chain_index = 0; chain_index < chains[0].size(); ++chain_index)
                 {
                     for (unsigned point_index = 0; point_index < 2; ++point_index)
                     {
-                        if (LinearAlg2D::getDist2FromLineSegment(op0, chains[point_index][chain_index], op1) < 10)
+                        // don't include chain ends that are close to the segment but are beyond the segment ends
+                        short beyond = 0;
+                        if (LinearAlg2D::getDist2FromLineSegment(op0, chains[point_index][chain_index], op1, &beyond) < 10 && !beyond)
                         {
                             points_on_outline_point_index.push_back(point_index);
                             points_on_outline_chain_index.push_back(chain_index);
@@ -282,16 +274,22 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     }
                 }
 
-                if (first_chain_chain_index == std::numeric_limits<unsigned>::max())
+                if (outline_point_index == 0 || vSize2(op0 - cur_point) > 100)
                 {
-                    // include the outline point in the path to the first chain
-                    path_to_first_chain.push_back(op0);
-                }
+                    // this is either the first outline point or it is another outline point that is not too close to cur_point
 
-                if (drawing)
-                {
-                    // include the start point of this outline segment in the connector
-                    connector_points.push_back(op0);
+                    if (first_chain_chain_index == std::numeric_limits<unsigned>::max())
+                    {
+                        // include the outline point in the path to the first chain
+                        path_to_first_chain.push_back(op0);
+                    }
+
+                    cur_point = op0;
+                    if (drawing)
+                    {
+                        // include the start point of this outline segment in the connector
+                        connector_points.push_back(op0);
+                    }
                 }
 
                 // iterate through each of the chain ends that meet the current outline segment
@@ -311,8 +309,15 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     }
                     const unsigned point_index = points_on_outline_point_index[nearest_point_index];
                     const unsigned chain_index = points_on_outline_chain_index[nearest_point_index];
+
                     // make the chain end the current point and add it to the connector line
                     cur_point = chains[point_index][chain_index];
+
+                    if (drawing && connector_points.size() > 0 && vSize2(cur_point - connector_points.back()) < 100)
+                    {
+                        // this chain end will be too close to the last connector point so throw away the last connector point
+                        connector_points.pop_back();
+                    }
                     connector_points.push_back(cur_point);
 
                     if (first_chain_chain_index == std::numeric_limits<unsigned>::max())
@@ -403,7 +408,6 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
     }
 
     result_lines = result;
-
 }
 
 } // namespace cura

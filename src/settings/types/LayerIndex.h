@@ -4,6 +4,8 @@
 #ifndef LAYERINDEX_H
 #define LAYERINDEX_H
 
+#include <functional>
+
 namespace cura
 {
 
@@ -107,6 +109,18 @@ struct LayerIndex
     int value = 0;
 };
 
+}
+
+namespace std
+{
+    template<>
+    struct hash<cura::LayerIndex>
+    {
+        size_t operator()(const cura::LayerIndex& layer_index) const
+        {
+            return hash<int>()(layer_index.value);
+        }
+    };
 }
 
 #endif //LAYERINDEX_H

@@ -12,18 +12,16 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 
 //Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
 #include <clipper.hpp>
-
+#include <cmath>
+#include <functional> // for hash function object
+#include <iostream> // auto-serialization / auto-toString()
 #include <limits>
 #include <stdint.h>
-#include <cmath>
-
-#include <functional> // for hash function obkject
-
-#include <iostream> // auto-serialization / auto-toString()
 
 #include "Point3.h" //For applying Point3Matrices.
 
-#include "Coord_t.h"
+
+#include "../utils/math.h" // for M_PI. Use relative path to avoid pulling <math.h>
 
 #ifdef __GNUC__
 #define DEPRECATED(func) func __attribute__ ((deprecated))
@@ -87,13 +85,17 @@ INLINE float vSize2f(const Point& p0)
     return float(p0.X)*float(p0.X)+float(p0.Y)*float(p0.Y);
 }
 
-INLINE bool shorterThen(const Point& p0, int32_t len)
+INLINE bool shorterThen(const Point& p0, const coord_t len)
 {
     if (p0.X > len || p0.X < -len)
+    {
         return false;
+    }
     if (p0.Y > len || p0.Y < -len)
+    {
         return false;
-    return vSize2(p0) <= len*len;
+    }
+    return vSize2(p0) <= len * len;
 }
 
 INLINE coord_t vSize(const Point& p0)

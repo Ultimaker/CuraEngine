@@ -107,24 +107,40 @@ public:
 
         if (x_p1 == 0)
         {
+            //Line segment has length 0.
             return p0;
         }
         if (projected_x <= x_p0)
         {
+            //Projection is beyond p0.
             return p0;
         }
         if (projected_x >= x_p1)
         {
+            //Projection is beyond p1.
             return p1;
         }
         else
         {
-            Point ret = p0 + projected_x / vSize(direction) * direction  / vSize(direction);
-            return ret;
+            //Projection is between p0 and p1.
+            //Return direction-normalised projection (projected_x / vSize(direction)) on direction vector.
+            //vSize(direction) * vSize(direction) == vSize2(direction) == x_p1.
+            return p0 + projected_x * direction / x_p1;
         }
     }
 
-
+    /*!
+     * Find the two points on two line segments closest to each other.
+     * 
+     * Find the smallest line segment connecting the two line segments a and b.
+     * 
+     * \param a1 first point on line a
+     * \param a2 second point on line a
+     * \param b1 first point on line b
+     * \param b2 second point on line b
+     * \return A pair: the first point on line a and the second pouint on line b
+     */
+    static std::pair<Point, Point> getClosestConnection(Point a1, Point a2, Point b1, Point b2);
 
     /*!
     * Get the squared distance from point \p b to a line *segment* from \p a to \p c.
@@ -136,7 +152,7 @@ public:
     * \param c the second point on the line segment
     * \param b_is_beyond_ac optional output parameter: whether \p b is closest to the line segment (0), to \p a (-1) or \p b (1)
     */
-    static coord_t getDist2FromLineSegment(const Point& a, const Point& b, const Point& c, char* b_is_beyond_ac = nullptr)
+    static coord_t getDist2FromLineSegment(const Point& a, const Point& b, const Point& c, int16_t* b_is_beyond_ac = nullptr)
     {
     /* 
     *     a,
@@ -160,7 +176,7 @@ public:
         if (ac_size == 0) 
         {
             const coord_t ab_dist2 = vSize2(ab); 
-            if (ab_dist2 == 0)
+            if (ab_dist2 == 0 && b_is_beyond_ac)
             {
                 *b_is_beyond_ac = 0; // a is on b is on c
             }
@@ -215,6 +231,24 @@ public:
                 || getDist2FromLineSegment(a, d, b) <= max_dist2
                 || getDist2FromLineSegment(c, a, d) <= max_dist2
                 || getDist2FromLineSegment(c, b, d) <= max_dist2;
+    }
+
+    /*!
+     * Get the minimal distance between two line segments
+     * The first line semgent is given by end points \p a and \p b, the second by \p c and \p d.
+     * 
+     * \param a One end point of the first line segment
+     * \param b Another end point of the first line segment
+     * \param c One end point of the second line segment
+     * \param d Another end point of the second line segment
+     */
+    static coord_t getDist2BetweenLineSegments(const Point& a, const Point& b, const Point& c, const Point& d)
+    {
+        return
+            std::min(getDist2FromLineSegment(a, c, b), 
+            std::min(getDist2FromLineSegment(a, d, b),
+            std::min(getDist2FromLineSegment(c, a, d),
+                     getDist2FromLineSegment(c, b, d))));
     }
 
     /*!

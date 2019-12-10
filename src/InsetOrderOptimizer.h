@@ -1,14 +1,22 @@
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
 
-#include "FffGcodeWriter.h"
+#include "pathOrderOptimizer.h"
+#include "sliceDataStorage.h" //For SliceMeshStorage, which is used here at implementation in the header.
 
-namespace cura 
+namespace cura
 {
 
-class InsetOrderOptimizer {
-public:
+class FffGcodeWriter;
+class LayerPlan;
+class WallOverlapComputation;
 
+class InsetOrderOptimizer
+{
+public:
     /*!
      * Constructor for inset ordering optimizer
      * \param gcode_writer The gcode_writer on whose behalf the inset order is being optimized
@@ -31,6 +39,7 @@ public:
     layer_nr(layer_nr),
     z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
     added_something(false),
+    retraction_region_calculated(false),
     wall_overlapper_0(nullptr),
     wall_overlapper_x(nullptr)
     {
@@ -47,9 +56,11 @@ private:
     const unsigned int layer_nr;
     const ZSeamConfig z_seam_config;
     bool added_something;
+    bool retraction_region_calculated; //Whether the retraction_region field has been calculated or not.
     WallOverlapComputation* wall_overlapper_0;
     WallOverlapComputation* wall_overlapper_x;
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
+    Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
 
     /*!
      * Generate the insets for the holes of a given layer part after optimizing the ordering.

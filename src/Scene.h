@@ -4,11 +4,9 @@
 #ifndef SCENE_H
 #define SCENE_H
 
-#include "FffPolygonGenerator.h"
-#include "FffGcodeWriter.h"
+#include "ExtruderTrain.h" //To store the extruders in the scene.
 #include "MeshGroup.h" //To store the mesh groups in the scene.
 #include "settings/Settings.h" //To store the global settings.
-#include "utils/gettime.h" //For tracking the time spent on slicing.
 
 namespace cura
 {

@@ -6,15 +6,14 @@
 
 #include <list>
 
-#include "gcodeExport.h"
-#include "LayerPlan.h"
-#include "MeshGroup.h"
 #include "Preheat.h"
-#include "settings/Settings.h"
 #include "settings/types/Duration.h"
 
 namespace cura 
 {
+
+class ExtruderPlan;
+class LayerPlan;
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.

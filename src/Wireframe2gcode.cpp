@@ -5,9 +5,12 @@
 #include <fstream> // debug IO
 
 #include "Application.h" //To get the communication channel.
+#include "ExtruderTrain.h"
 #include "pathOrderOptimizer.h" //For skirt/brim.
 #include "PrintFeature.h"
+#include "Slice.h"
 #include "weaveDataStorage.h"
+#include "Weaver.h"
 #include "Wireframe2gcode.h"
 #include "communication/Communication.h" //To write g-code output.
 #include "progress/Progress.h"
@@ -20,11 +23,10 @@ namespace cura
 
 void Wireframe2gcode::writeGCode()
 {
-    gcode.preSetup();
-
     Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
     const size_t start_extruder_nr = scene_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr; // TODO: figure out how Wireframe works with dual extrusion
-    gcode.setInitialTemps(start_extruder_nr);
+    gcode.preSetup(start_extruder_nr);
+    gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
 
     Application::getInstance().communication->beginGCode();
 
@@ -536,11 +538,11 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode)
     drag_along = scene_settings.get<coord_t>("wireframe_drag_along");
     
     strategy = STRATEGY_COMPENSATE;
-    if (scene_settings.get<std::string>("wireframe_strategy") == "Compensate")
+    if (scene_settings.get<std::string>("wireframe_strategy") == "compensate")
         strategy = STRATEGY_COMPENSATE;
-    if (scene_settings.get<std::string>("wireframe_strategy") == "Knot")
+    if (scene_settings.get<std::string>("wireframe_strategy") == "knot")
         strategy = STRATEGY_KNOT;
-    if (scene_settings.get<std::string>("wireframe_strategy") == "Retract")
+    if (scene_settings.get<std::string>("wireframe_strategy") == "retract")
         strategy = STRATEGY_RETRACT;
     
     go_back_to_last_top = false;

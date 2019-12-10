@@ -1,14 +1,16 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef BRIDGE_H
 #define BRIDGE_H
 
-#include "sliceDataStorage.h"
+namespace cura
+{
 
-namespace cura {
-    class Polygons;
-    class SliceLayer;
+class Polygons;
+class Settings;
+class SliceDataStorage;
+class SupportLayer;
 
 /*!
  * \brief Computes the angle that lines have to take to bridge a certain shape
@@ -19,12 +21,13 @@ namespace cura {
  * \param skin_outline The shape to fill with lines.
  * \param storage The slice data storage where to find objects that the bridge
  * could rest on in previous layers.
- * \param layer_nr The layer that the bridge has to be created on.
+ * \param layer_nr The layer currently being printed.
+ * \param bridge_layer The bridge layer number (1, 2 or 3).
  * \param support_layer Support that the bridge could rest on.
  * \param supported_regions Pre-computed regions that the support layer would
  * support.
  */
-int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const SupportLayer* support_layer, Polygons& supported_regions);
+int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const unsigned bridge_layer, const SupportLayer* support_layer, Polygons& supported_regions);
 
 }//namespace cura
 

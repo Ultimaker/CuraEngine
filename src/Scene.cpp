@@ -1,10 +1,15 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "Application.h"
 #include "FffProcessor.h" //To start a slice.
 #include "Scene.h"
-#include "Application.h"
+#include "sliceDataStorage.h"
+#include "Weaver.h"
+#include "Wireframe2gcode.h"
 #include "communication/Communication.h" //To flush g-code and layer view when we're done.
+#include "progress/Progress.h"
+#include "utils/logoutput.h"
 
 namespace cura
 {

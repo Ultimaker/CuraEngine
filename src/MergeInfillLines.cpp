@@ -1,8 +1,12 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
+#include "ExtruderTrain.h"
+#include "LayerPlan.h"
 #include "MergeInfillLines.h"
+#include "Slice.h"
+#include "PrintFeature.h"
 #include "utils/linearAlg2D.h"
 
 namespace cura
@@ -10,7 +14,7 @@ namespace cura
 MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
 : extruder_plan(plan)
 , nozzle_size(Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<coord_t>("machine_nozzle_size"))
-, maximum_resolution(Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<coord_t>("meshfix_maximum_resolution"))
+, maximum_deviation(Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<coord_t>("meshfix_maximum_deviation"))
     {
         //Just copy the parameters to their fields.
     }
@@ -69,22 +73,22 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         else
         {
             average_first_path += first_path_start;
-            for (const Point point : first_path.points)
+            for (const Point& point : first_path.points)
             {
                 average_first_path += point;
             }
-            average_first_path = average_first_path / (first_path.points.size() + 1);
+            average_first_path = average_first_path / static_cast<coord_t>(first_path.points.size() + 1);
         }
 
         coord_t second_path_length = calcPathLength(second_path_start, second_path);
         Point average_second_path = second_path_start;
-        for (const Point point : second_path.points)
+        for (const Point& point : second_path.points)
         {
             average_second_path += point;
         }
         second_path_length *= second_path.flow;
         coord_t second_path_length_flow = second_path_length;
-        average_second_path = average_second_path / (second_path.points.size() + 1);
+        average_second_path = average_second_path / static_cast<coord_t>(second_path.points.size() + 1);
 
         // predict new length and flow and if the new flow is to big, don't merge. conditions in this part must exactly match the actual merging
         coord_t new_path_length = first_path_length;
@@ -100,8 +104,8 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
                 merged_part_length = vSize(first_path.points[first_path.points.size() - 2] - average_second_path);
                 new_error_area = sqrt(dist2_from_line) * merged_part_length / 2;
             }
-            // The max error margin uses the meshfix_maximum_resolution setting
-            if (first_path.points.size() > 1 && error_area + new_error_area < merged_part_length * maximum_resolution)
+            // The max error margin uses the meshfix_maximum_deviation setting.
+            if (first_path.points.size() > 1 && error_area + new_error_area < merged_part_length * maximum_deviation)
             {
                 new_path_length -= vSize(first_path.points[first_path.points.size() - 2] - first_path.points[first_path.points.size() - 1]);
                 new_path_length += vSize(first_path.points[first_path.points.size() - 2] - average_second_path);
@@ -117,7 +121,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             new_path_length += vSize(average_second_path - average_first_path);
         }
         double new_flow = ((first_path_length_flow + second_path_length_flow) / static_cast<double>(new_path_length));
-        if (new_flow > 2 * nozzle_size / line_width)  // line width becomes too wide.
+        if (new_flow > 3.0 * nozzle_size / line_width)  // line width becomes too wide.
         {
             return false;
         }
@@ -131,7 +135,9 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             {
                 first_path.points[first_path.points.size() - 1] = average_second_path;
                 error_area += new_error_area;
-            } else {
+            }
+            else
+            {
                 first_path.points.push_back(average_second_path);
                 error_area = 0;
             }
@@ -144,7 +150,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             error_area = 0;
         }
 
-        first_path.flow = static_cast<double>(first_path_length_flow + second_path_length_flow) / new_path_length;
+        first_path.flow = new_flow;
 
         return true;
     }
@@ -179,7 +185,9 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         if (first_is_already_merged)
         {
             first_path_leave_point = first_path.points.back();  // this is the point that's going to merge
-        } else {
+        }
+        else
+        {
             first_path_leave_point = (first_path_start + first_path_end) / 2;
         }
         const Point second_path_destination_point = (second_path_start + second_path_end) / 2;
@@ -202,12 +210,10 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
             return false;  // returning true will not work for the gradual infill
         }
 
-        // Max 1 line width to the side of the merged_direction
-        if (LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
-            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > line_width * line_width
-            //|| abs(dot(normal(merged_direction, 1000), normal(second_path_end - second_path_start, 1000))) > 866000    // 866000 angle of old second_path with new merged direction should not be too small (30 degrees), as it will introduce holes
-            )
+        // Max 1.5 line widths to the side of the merged_direction
+        if (LinearAlg2D::getDist2FromLine(first_path_end, second_path_destination_point, second_path_destination_point + merged_direction) > 2.25 * line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_start, first_path_leave_point, first_path_leave_point + merged_direction) > 2.25 * line_width * line_width
+            || LinearAlg2D::getDist2FromLine(second_path_end,   first_path_leave_point, first_path_leave_point + merged_direction) > 2.25 * line_width * line_width)
         {
             return false; //One of the lines is too far from the merged line. Lines would be too wide or too far off.
         }
@@ -218,7 +224,6 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
 
         return mergeLinesSideBySide(first_is_already_merged, first_path, first_path_start, second_path, second_path_start, new_first_path_start, error_area);
     }
-
 
     bool MergeInfillLines::mergeInfillLines(std::vector<GCodePath>& paths, const Point& starting_position) const
     {
@@ -238,6 +243,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         size_t first_path_index = 0;
         Point first_path_start = Point(starting_position.X, starting_position.Y);  // this one is not going to be overwritten
         size_t second_path_index = 1;
+        bool has_first_path = paths.empty() ? false : !paths[0].config->isTravelPath();  // in case the first path is not an extrusion path.
         coord_t error_area = 0;
 
         for (; second_path_index < paths.size(); second_path_index++)
@@ -248,7 +254,30 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
 
             if (second_path.config->isTravelPath())
             {
+                has_first_path = false;
                 continue; //Skip travel paths, we're looking for the first non-travel path.
+            }
+
+            // FIXME: This is difficult to fix, need to put extra effort into it.
+            // CURA-5776:  This works in some cases but it is not exactly correct, because what this will avoid merging
+            // lines are kind like in parallel but with a travel move in between, which is a case mergeLinesSideBySide()
+            // tries to handle. We found that something can go wrong when it tries to merge some pattern like those
+            // parallel lines, and we think that the current merging method is not suitable for that. In short, we
+            // probably need treat different patterns with different methods.
+            //
+            // Use the first non-travel path as the first path that can be used for merging. After we encounter
+            // a travel path, we need to find another first non-travel path for merging.
+            if (
+                (
+                  first_path.config->type == PrintFeatureType::Infill ||
+                  first_path.config->type == PrintFeatureType::SupportInfill ||
+                  first_path.skip_agressive_merge_hint
+                ) && !has_first_path)
+            {
+                first_path_index = second_path_index;
+                first_path_start = second_path_start;
+                has_first_path = true;
+                continue;
             }
 
             bool allow_try_merge = true;

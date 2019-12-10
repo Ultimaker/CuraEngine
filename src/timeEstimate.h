@@ -10,11 +10,12 @@
 
 #include "PrintFeature.h"
 #include "settings/types/Duration.h" //Print time estimates.
-#include "settings/types/Ratio.h" //For speed factors.
 #include "settings/types/Velocity.h" //Speeds and accelerations at which we print.
 
 namespace cura
 {
+
+class Ratio;
 class Settings;
 
 /*!
@@ -93,7 +94,6 @@ public:
     void addTime(const Duration& time);
     void setAcceleration(const Acceleration& acc); //!< Set the default acceleration to \p acc
     void setMaxXyJerk(const Velocity& jerk); //!< Set the max xy jerk to \p jerk
-    void setMaxZFeedrate(const Velocity& max_z_feedrate); //!< Set the maximal feedrate in the z direction to \p max_z_feedrate
 
     void reset();
     
