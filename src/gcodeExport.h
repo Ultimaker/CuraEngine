@@ -126,7 +126,6 @@ private:
     Acceleration current_print_acceleration; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate travel acceleration)
     Acceleration current_travel_acceleration; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
     Velocity current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
-    Velocity current_max_z_feedrate; //!< The current max z speed (in mm/s)
 
     AABB3D total_bounding_box; //!< The bounding box of all g-code.
 
@@ -147,14 +146,15 @@ private:
 
     std::vector<Duration> total_print_times; //!< The total estimated print time in seconds for each feature
     TimeEstimateCalculator estimateCalculator;
-    
-    bool is_volumetric;
-    bool relative_extrusion; //!< whether to use relative extrusion distances rather than absolute
 
     unsigned int layer_nr; //!< for sending travel data
 
+    bool is_volumetric;
+    bool relative_extrusion; //!< whether to use relative extrusion distances rather than absolute
+
     Temperature initial_bed_temp; //!< bed temperature at the beginning of the print.
     Temperature build_volume_temperature;  //!< build volume temperature
+    bool machine_heated_build_volume;  //!< does the machine have the ability to control/stabilize build-volume-temperature
 protected:
     /*!
      * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
@@ -239,11 +239,6 @@ public:
     void setZ(int z);
 
     void setFlowRateExtrusionSettings(double max_extrusion_offset, double extrusion_offset_factor);
-
-    void addLastCoastedVolume(double last_coasted_volume) 
-    {
-        extruder_attr[current_extruder].prime_volume += last_coasted_volume; 
-    }
 
     /*!
      * Add extra amount of material to be primed after an unretraction.
@@ -435,16 +430,14 @@ public:
      * Start a z hop with the given \p hop_height.
      * 
      * \param hop_height The height to move above the current layer.
-     * \param speed The speed used for moving. Default is 0, which means use
-     * ``current_max_z_feedrate``.
+     * \param speed The speed used for moving. 
      */
     void writeZhopStart(const coord_t hop_height, Velocity speed = 0);
 
     /*!
      * End a z hop: go back to the layer height
      *
-     * \param speed The speed used for moving. Default is 0, which means use
-     * ``current_max_z_feedrate``.
+     * \param speed The speed used for moving.
      */
     void writeZhopEnd(Velocity speed = 0);
 
@@ -508,18 +501,6 @@ public:
      * Write the command for setting the jerk to a specific value
      */
     void writeJerk(const Velocity& jerk);
-
-    /*!
-     * Write the command for setting the maximum z feedrate to a specific value
-     */
-    void writeMaxZFeedrate(const Velocity& max_z_feedrate);
-
-    /*!
-     * Get the last set max z feedrate value sent in the gcode.
-     * 
-     * Returns a value <= 0 when no value is set.
-     */
-    double getCurrentMaxZFeedrate();
 
     /*!
      * Set member variables using the settings in \p settings.

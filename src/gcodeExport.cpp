@@ -51,12 +51,12 @@ GCodeExport::GCodeExport()
     current_print_acceleration = -1;
     current_travel_acceleration = -1;
     current_jerk = -1;
-    current_max_z_feedrate = -1;
 
     is_z_hopped = 0;
     setFlavor(EGCodeFlavor::MARLIN);
     initial_bed_temp = 0;
     build_volume_temperature = 0;
+    machine_heated_build_volume = false;
 
     fan_number = 0;
     use_extruder_offset_to_offset_coords = false;
@@ -105,19 +105,6 @@ void GCodeExport::preSetup(const size_t start_extruder)
         new_line = "\n";
     }
 
-    // initialize current_max_z_feedrate to firmware defaults
-    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-    {
-        const ExtruderTrain& train = scene.extruders[extruder_nr];
-        if (train.settings.get<Velocity>("max_feedrate_z_override") <= 0.0)
-        {
-            // only initialize if firmware default for z feedrate is used by any extruder
-            // that way we don't omit the M203 if Cura thinks the firmware is already at that feedrate, but it isn't the case
-            current_max_z_feedrate = mesh_group->settings.get<Velocity>("machine_max_feedrate_z");
-            break;
-        }
-    }
-
     estimateCalculator.setFirmwareDefaults(mesh_group->settings);
 }
 
@@ -136,7 +123,8 @@ void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extrude
     }
 
     initial_bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
-    build_volume_temperature = scene.current_mesh_group->settings.get<Temperature>("build_volume_temperature");
+    machine_heated_build_volume = scene.current_mesh_group->settings.get<bool>("machine_heated_build_volume");
+    build_volume_temperature = machine_heated_build_volume ? scene.current_mesh_group->settings.get<Temperature>("build_volume_temperature") : Temperature(0);
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
@@ -212,8 +200,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
-        // build volume temperature = 0 means it's disabled
-        if (build_volume_temperature != 0)
+        if (machine_heated_build_volume)
         {
             prefix << ";BUILD_VOLUME.TEMPERATURE:" << build_volume_temperature << new_line;
         }
@@ -1190,9 +1177,33 @@ void GCodeExport::writeFanCommand(double speed)
 
 void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait)
 {
-    if (!Application::getInstance().current_slice->scene.extruders[extruder].settings.get<bool>("machine_nozzle_temp_enabled"))
+    const ExtruderTrain& extruder_train = Application::getInstance().current_slice->scene.extruders[extruder];
+
+    if (!extruder_train.settings.get<bool>("machine_nozzle_temp_enabled"))
     {
         return;
+    }
+
+    if (extruder_train.settings.get<bool>("machine_extruders_share_heater"))
+    {
+        // extruders share a single heater
+        if (extruder != current_extruder)
+        {
+            // ignore all changes to the non-current extruder
+            return;
+        }
+
+        // sync all extruders with the change to the current extruder
+        const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
+
+        for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+        {
+            if (extruder_nr != extruder)
+            {
+                extruder_attr[extruder_nr].waited_for_temperature = wait;
+                extruder_attr[extruder_nr].currentTemperature = temperature;
+            }
+        }
     }
 
     if ((!wait || extruder_attr[extruder].waited_for_temperature) && extruder_attr[extruder].currentTemperature == temperature)
@@ -1343,28 +1354,6 @@ void GCodeExport::writeJerk(const Velocity& jerk)
         current_jerk = jerk;
         estimateCalculator.setMaxXyJerk(jerk);
     }
-}
-
-void GCodeExport::writeMaxZFeedrate(const Velocity& max_z_feedrate)
-{
-    if (current_max_z_feedrate != max_z_feedrate)
-    {
-        if (getFlavor() == EGCodeFlavor::REPRAP)
-        {
-            *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate * 60} << new_line;
-        }
-        else if (getFlavor() != EGCodeFlavor::REPETIER) //Repetier firmware changes the "temperature monitor" to 0 when encountering a M203 command, which is undesired.
-        {
-            *output_stream << "M203 Z" << PrecisionedDouble{2, max_z_feedrate} << new_line;
-        }
-        current_max_z_feedrate = max_z_feedrate;
-        estimateCalculator.setMaxZFeedrate(max_z_feedrate);
-    }
-}
-
-double GCodeExport::getCurrentMaxZFeedrate()
-{
-    return current_max_z_feedrate;
 }
 
 void GCodeExport::finalize(const char* endCode)

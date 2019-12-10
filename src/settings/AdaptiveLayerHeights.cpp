@@ -19,7 +19,7 @@ namespace cura
 AdaptiveLayer::AdaptiveLayer(const coord_t layer_height) : layer_height(layer_height) { }
 
 AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation,
-                                           const coord_t step_size, const double threshold)
+                                           const coord_t step_size, const coord_t threshold)
     : base_layer_height(base_layer_height)
     , max_variation(variation)
     , step_size(step_size)

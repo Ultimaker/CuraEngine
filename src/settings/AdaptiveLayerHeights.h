@@ -56,9 +56,10 @@ public:
     int step_size;
 
     /*!
-     * Threshold to compare the tan of the steepest slope to.
+     * Target topography size. Adaptive layers will try to keep the horizontal
+     * distance the same.
      */
-    double threshold;
+    coord_t threshold;
 
     /*!
      * Stores the found layer heights
@@ -91,7 +92,7 @@ public:
      * \param threshold Threshold to compare the tangent of the steepest slope
      * to.
      */
-    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const double threshold);
+    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold);
 
 private:
 

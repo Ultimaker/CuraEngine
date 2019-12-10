@@ -129,14 +129,17 @@ void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataS
     // at this stage, the outlines are final, and we can generate insets and infill area
     for (SupportLayer& support_layer : storage.support.supportLayers)
     {
-        for (std::vector<SupportInfillPart>::iterator part_itr = support_layer.support_infill_parts.begin(); part_itr != support_layer.support_infill_parts.end(); ++part_itr)
+        for (std::vector<SupportInfillPart>::iterator part_itr = support_layer.support_infill_parts.begin(); part_itr != support_layer.support_infill_parts.end();)
         {
             SupportInfillPart& part = *part_itr;
             const bool is_not_empty_part = part.generateInsetsAndInfillAreas();
             if (!is_not_empty_part)
             {
-                support_layer.support_infill_parts.erase(part_itr);
-                --part_itr;
+                part_itr = support_layer.support_infill_parts.erase(part_itr);
+            }
+            else
+            {
+                part_itr++;
             }
         }
     }
@@ -805,8 +808,8 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     }
 
     //Generate points and lines of overhang (for corners pointing downwards, since they don't have an area to support but still need supporting).
-    const coord_t minimum_diameter = mesh.settings.get<coord_t>("support_minimal_diameter");
-    const bool use_towers = mesh.settings.get<bool>("support_use_towers") && minimum_diameter > 0;
+    const coord_t max_supported_diameter = mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter");
+    const bool use_towers = mesh.settings.get<bool>("support_use_towers") && max_supported_diameter > 0;
     if (use_towers)
     {
         AreaSupport::detectOverhangPoints(storage, mesh);
@@ -871,8 +874,19 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
-    // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
+
+    // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
+    // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
+#if defined(__GNUC__) && __GNUC__ <= 8
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
+#else
+    #pragma omp parallel for default(none) \
+        shared(xy_disallowed_per_layer, storage, mesh, layer_count, is_support_mesh_place_holder,  \
+               use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang) \
+        schedule(dynamic)
+#endif // defined(__GNUC__) && __GNUC__ <= 8
+
+    // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
     // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_idx = 1; layer_idx < static_cast<int>(layer_count); layer_idx++)
     {
@@ -902,8 +916,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const coord_t bottom_stair_step_width = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_width"));
     const coord_t extension_offset = infill_settings.get<coord_t>("support_offset");
 
-    const coord_t minimum_diameter = infill_settings.get<coord_t>("support_minimal_diameter");
-    const bool use_towers = infill_settings.get<bool>("support_use_towers") && minimum_diameter > 0;
+    const coord_t max_tower_supported_diameter = infill_settings.get<coord_t>("support_tower_maximum_supported_diameter");
+    const bool use_towers = infill_settings.get<bool>("support_use_towers") && max_tower_supported_diameter > 0;
 
     coord_t smoothing_distance;
     { // compute best smoothing_distance
@@ -929,8 +943,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const size_t bottom_empty_layer_count = round_up_divide(z_distance_bottom, layer_thickness); // number of empty layers between support and model
     const coord_t bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_height"));
     const size_t bottom_stair_step_layer_count = bottom_stair_step_height / layer_thickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
-
-    const int supportMinAreaSqrt = infill_settings.get<coord_t>("support_minimal_diameter");
 
     for (size_t layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != static_cast<size_t>(-1); layer_idx--)
     {
@@ -967,7 +979,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             for (PolygonsPart poly : layer_this.splitIntoParts())
             {
                 const int64_t part_area = poly.area();
-                if (part_area > 0 && part_area < supportMinAreaSqrt * supportMinAreaSqrt)
+                if (part_area > 0 && part_area < max_tower_supported_diameter * max_tower_supported_diameter)
                 {
                     constexpr size_t tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
                     if (layer_idx < layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
@@ -1069,7 +1081,15 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         const int max_checking_layer_idx = std::max(0,
                                                     std::min(static_cast<int>(storage.support.supportLayers.size()),
                                                              static_cast<int>(layer_count - (layer_z_distance_top - 1))));
-#pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
+
+    // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
+    // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
+#if defined(__GNUC__) && __GNUC__ <= 8
+    #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
+#else
+    #pragma omp parallel for default(none) shared(support_areas, storage, max_checking_layer_idx, layer_z_distance_top) schedule(dynamic)
+#endif // defined(__GNUC__) && __GNUC__ <= 8
+
         // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
         for (int layer_idx = 0; layer_idx < max_checking_layer_idx; layer_idx++)
         {
@@ -1232,7 +1252,7 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
 {
     const ExtruderTrain& infill_extruder = mesh.settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
-    const coord_t minimum_diameter = mesh.settings.get<coord_t>("support_minimal_diameter");
+    const coord_t max_tower_supported_diameter = mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter");
 
     mesh.overhang_points.resize(storage.print_layer_count);
 
@@ -1241,7 +1261,7 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
         const SliceLayer& layer = mesh.layers[layer_idx];
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (part.outline.outerPolygon().area() < minimum_diameter * minimum_diameter)
+            if (part.outline.outerPolygon().area() < max_tower_supported_diameter * max_tower_supported_diameter)
             {
                 const SliceLayer& layer_below = mesh.layers[layer_idx - 1];
                 if (layer_below.getOutlines().intersection(part.outline).size() > 0)
@@ -1293,13 +1313,13 @@ void AreaSupport::handleTowers(
         { // make sure we have the lowest point (make polys empty if they have small parts below)
             if (layer_overhang_point < static_cast<LayerIndex>(layer_count) && !overhang_points[layer_overhang_point - 1].empty())
             {
-                const coord_t minimum_diameter = settings.get<coord_t>("support_minimal_diameter");
+                const coord_t max_tower_supported_diameter = settings.get<coord_t>("support_tower_maximum_supported_diameter");
                 std::vector<Polygons>& overhang_points_below = overhang_points[layer_overhang_point - 1];
                 for (Polygons& poly_here : overhang_points_here)
                 {
                     for (const Polygons& poly_below : overhang_points_below)
                     {
-                        poly_here = poly_here.difference(poly_below.offset(minimum_diameter * 2));
+                        poly_here = poly_here.difference(poly_below.offset(max_tower_supported_diameter * 2));
                     }
                 }
             }
@@ -1340,7 +1360,7 @@ void AreaSupport::handleTowers(
 
 void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLayer_this)
 {
-    const coord_t minimum_diameter = settings.get<coord_t>("support_minimal_diameter");
+    const coord_t max_tower_supported_diameter = settings.get<coord_t>("support_tower_maximum_supported_diameter");
     const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
     for (unsigned int p = 0; p < supportLayer_this.size(); p++)
     {
@@ -1360,7 +1380,7 @@ void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLa
                 }
             }
 
-            if (best_length2 < minimum_diameter * minimum_diameter)
+            if (best_length2 < max_tower_supported_diameter * max_tower_supported_diameter)
             {
                 break; // this is a small area, not a wall!
             }
@@ -1369,7 +1389,7 @@ void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLa
             int width = sqrt( poly.area() * poly.area() / best_length2 ); // sqrt (a^2 / l^2) instead of a / sqrt(l^2)
 
             // add square tower (strut) in the middle of the wall
-            if (width < minimum_diameter)
+            if (width < max_tower_supported_diameter)
             {
                 Point mid = (poly[best] + poly[(best+1) % poly.size()] ) / 2;
                 Polygons struts;
@@ -1403,7 +1423,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     const double minimum_bottom_area = mesh.settings.get<double>("minimum_bottom_area");
 
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
-    for (unsigned int layer_idx = z_distance_bottom; layer_idx < support_layers.size(); layer_idx++)
+    for (unsigned int layer_idx = support_layers.size() - 1; static_cast<int>(layer_idx) >= static_cast<int>(z_distance_bottom); layer_idx--)
     {
         const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
         Polygons mesh_outlines;

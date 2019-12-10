@@ -28,7 +28,7 @@ Polygons& Comb::getBoundaryOutside()
 {
     return *boundary_outside;
 }
-  
+
 Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, coord_t travel_avoid_distance, coord_t move_inside_distance)
 : storage(storage)
 , layer_nr(layer_nr)
@@ -377,8 +377,8 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
         }
     }
     else
-    {
-        in_or_mid = dest_point; // mid-case
+    { // mid-case
+        in_or_mid = dest_point;
     }
 };
 
@@ -394,12 +394,12 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
         {
             out = PolygonUtils::moveOutside(*crossing_1_out_cpp, comber.offset_dist_to_get_from_on_the_polygon_to_outside);
         }
-        else 
+        else
         {
             PolygonUtils::moveOutside(outside, out, comber.offset_dist_to_get_from_on_the_polygon_to_outside);
         }
     }
-    int64_t in_out_dist2_1 = vSize2(out - in_or_mid); 
+    int64_t in_out_dist2_1 = vSize2(out - in_or_mid);
     if (dest_is_inside && in_out_dist2_1 > comber.max_crossing_dist2) // moveInside moved too far
     { // if move is too far over in_between
         // find crossing closer by
@@ -434,7 +434,7 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
         { // preliminary filtering
             continue;
         }
-        
+
         const coord_t dist_to_start = vSize(crossing_candidate.second.location - estimated_start); // use outside location, so that the crossing direction is taken into account
         const coord_t dist_to_end = vSize(crossing_candidate.second.location - estimated_end);
         const coord_t detour_dist = dist_to_start + dist_to_end;
