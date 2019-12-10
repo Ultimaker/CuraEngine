@@ -20,23 +20,46 @@ class PolygonsPointIndex
 {
 public:
     /*!
-     * The polygons into which this index is indexing
+     * The polygons into which this index is indexing.
      */
     const Polygons* polygons; // (pointer to const polygons)
+
     unsigned int poly_idx; //!< The index of the polygon in \ref PolygonsPointIndex::polygons
+
     unsigned int point_idx; //!< The index of the point in the polygon in \ref PolygonsPointIndex::polygons
+
+    /*!
+     * Constructs an empty point index to no polygon.
+     *
+     * This is used as a placeholder for when there is a zero-construction
+     * needed. Since the `polygons` field is const you can't ever make this
+     * initialisation useful.
+     */
     PolygonsPointIndex()
     : polygons(nullptr)
     , poly_idx(0)
     , point_idx(0)
     {
     }
+
+    /*!
+     * Constructs a new point index to a vertex of a polygon.
+     * \param polygons The Polygons instance to which this index points.
+     * \param poly_idx The index of the sub-polygon to point to.
+     * \param point_idx The index of the vertex in the sub-polygon.
+     */
     PolygonsPointIndex(const Polygons* polygons, unsigned int poly_idx, unsigned int point_idx)
     : polygons(polygons)
     , poly_idx(poly_idx)
     , point_idx(point_idx)
     {
     }
+
+    /*!
+     * Copy constructor to copy these indices.
+     */
+    PolygonsPointIndex(const PolygonsPointIndex& original) = default;
+
     Point p() const
     {
         if (!polygons)

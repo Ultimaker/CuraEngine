@@ -21,6 +21,8 @@
 
 namespace cura {
 
+constexpr int MINIMUM_LINE_LENGTH = 5; // in uM. Generated lines shorter than this may be discarded
+constexpr int MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_LENGTH;
 
 ExtruderPlan::ExtruderPlan(const size_t extruder, const LayerIndex layer_nr, const bool is_initial_layer, const bool is_raft_layer, const coord_t layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : heated_pre_travel_time(0)
@@ -606,7 +608,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
 {
     const coord_t min_line_len = 5; // we ignore lines less than 5um long
     const double acceleration_segment_len = 1000; // accelerate using segments of this length
-    const double acceleration_factor = 0.85; // must be < 1, the larger the value, the slower the acceleration
+    const double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
 
     const coord_t min_bridge_line_len = mesh.settings.get<coord_t>("bridge_wall_min_length");
@@ -680,6 +682,10 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
             non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * speed_factor * non_bridge_config.getSpeed();
             cur_point = segment_end;
             speed_factor = 1 - (1 - speed_factor) * acceleration_factor;
+            if (speed_factor >= 0.9)
+            {
+                speed_factor = 1;
+            }
             distance_to_line_end = vSize(cur_point - line_end);
         }
     };
@@ -751,7 +757,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
                         non_bridge_line_volume = 0;
                         cur_point = b1;
                         // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
-                        speed_factor = std::min(Ratio(bridge_config.getSpeed() / non_bridge_config.getSpeed()), 1.0_r);
+                        speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / non_bridge_config.getSpeed()), 1.0_r), 0.5_r);
                     }
                 }
                 else
@@ -1066,8 +1072,13 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         const size_t start = orderOptimizer.polyStart[poly_idx];
         const size_t end = 1 - start;
         const Point& p0 = polygon[start];
-        addTravel(p0);
         const Point& p1 = polygon[end];
+        // ignore line segments that are less than 5uM long
+        if(vSize2(p1 - p0) < MINIMUM_SQUARED_LINE_LENGTH)
+        {
+            continue;
+        }
+        addTravel(p0);
         addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
 
         // Wipe

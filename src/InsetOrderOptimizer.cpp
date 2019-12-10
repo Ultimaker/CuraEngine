@@ -33,8 +33,13 @@ void InsetOrderOptimizer::moveInside()
     // try to move p inside the outer wall by 1.1 times the outer wall line width
     if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 1.1f) != NO_INDEX)
     {
+        if (!retraction_region_calculated)
+        {
+            retraction_region = part.insets[0].offset(-outer_wall_line_width);
+            retraction_region_calculated = true;
+        }
         // move to p if it is not closer than a line width from the centre line of the outer wall
-        if (part.insets[0].offset(-outer_wall_line_width).inside(p))
+        if (retraction_region.inside(p))
         {
             gcode_layer.addTravel_simple(p);
             gcode_layer.forceNewPathStart();
@@ -47,7 +52,7 @@ void InsetOrderOptimizer::moveInside()
             if (PolygonUtils::moveInside(part.insets[0], p, outer_wall_line_width * 1.1f) != NO_INDEX)
             {
                 // move to p if it is not closer than a line width from the centre line of the outer wall
-                if (part.insets[0].offset(-outer_wall_line_width).inside(p))
+                if (retraction_region.inside(p))
                 {
                     gcode_layer.addTravel_simple(p);
                     gcode_layer.forceNewPathStart();
