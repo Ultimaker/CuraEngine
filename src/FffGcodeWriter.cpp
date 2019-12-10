@@ -2167,30 +2167,9 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
             support_layer = &storage.support.supportLayers[support_layer_nr - (bridge_layer - 1)];
         }
 
-        // for upper bridge skins, outline used is union of current skin part and those skin parts from the 1st bridge layer that overlap the curent skin part
-
-        // this is done because if we only use skin_part.outline for this layer and that outline is different (i.e. smaller) than
-        // the skin outline used to compute the bridge angle for the first skin, the angle computed for this (second) skin could
-        // be different and we would prefer it to be the same as computed for the first bridge layer
-        Polygons skin_outline(skin_part.outline);
-
-        if (bridge_layer > 1)
-        {
-            for (const SliceLayerPart& layer_part : mesh.layers[layer_nr - (bridge_layer - 1)].parts)
-            {
-                for (const SkinPart& other_skin_part : layer_part.skin_parts)
-                {
-                    if (PolygonUtils::polygonsIntersect(skin_part.outline.outerPolygon(), other_skin_part.outline.outerPolygon()))
-                    {
-                        skin_outline = skin_outline.unionPolygons(other_skin_part.outline);
-                    }
-                }
-            }
-        }
-
         Polygons supported_skin_part_regions;
 
-        const int angle = bridgeAngle(mesh.settings, skin_part.outline, storage, layer_nr - bridge_layer, support_layer, supported_skin_part_regions);
+        const int angle = bridgeAngle(mesh.settings, skin_part.outline, storage, layer_nr, bridge_layer, support_layer, supported_skin_part_regions);
 
         if (angle > -1 || (supported_skin_part_regions.area() / (skin_part.outline.area() + 1) < support_threshold))
         {
