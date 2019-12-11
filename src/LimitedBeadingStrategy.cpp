@@ -47,11 +47,7 @@ coord_t LimitedBeadingStrategy::transition_thickness(coord_t lower_bead_count) c
 
 coord_t LimitedBeadingStrategy::optimal_bead_count(coord_t thickness) const
 {
-    if (thickness < parent->optimal_thickness(max_bead_count))
-    {
-        return parent->optimal_bead_count(thickness);
-    }
-    return max_bead_count;
+    return std::min(max_bead_count, parent->optimal_bead_count(thickness));
 }
 
 std::vector<coord_t> LimitedBeadingStrategy::getNonlinearThicknesses(coord_t lower_bead_count) const
