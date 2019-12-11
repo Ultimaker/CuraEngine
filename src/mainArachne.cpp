@@ -305,6 +305,14 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
             logAlways("Writing gcodes took %fs\n", tk.restart());
         }
     }
+    if (generate_toolpaths)
+    {
+        std::ostringstream ss;
+        ss << "output/" << output_prefix << "_naive_toolpaths.txt";
+        ToolpathWriter toolpather(ss.str());
+        toolpather.write(result_polygons_per_index, result_polylines_per_index);
+    }
+
     
     if (analyse)
     {
