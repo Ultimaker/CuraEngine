@@ -333,6 +333,10 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     {
         return EFillMethod::GYROID;
     }
+    else if (value == "truncated_octahedron")
+    {
+        return EFillMethod::TRUNCATED_OCTAHEDRON;
+    }
     else //Default.
     {
         return EFillMethod::NONE;

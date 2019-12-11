@@ -1571,7 +1571,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         }
         else
         {
-            gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization
+            gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], (pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::TRUNCATED_OCTAHEDRON) ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization
                 , /* wipe_dist = */ 0, /*float_ratio = */ 1.0, near_start_location);
         }
     }

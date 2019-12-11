@@ -421,6 +421,14 @@ private:
      * \param[in/out] result_lines The lines to connect together.
      */
     void connectLines(Polygons& result_lines);
+
+    /*!
+     * Generate Truncated Octahedron infill pattern
+     * \param[out] result (output) The resulting lines
+     * \param[in] infill_rotation the angle the infill pattern is rotated through
+     */
+    void generateTroctInfill(Polygons& result, const double& infill_rotation);
+
 };
 
 }//namespace cura
