@@ -65,7 +65,9 @@ static TCLAP::ValueArg<bool> cmd__reduce_extrusion_line_overlap("r", "reduce", "
 static TCLAP::SwitchArg cmd__filter_outermost_marked_edges("", "filterouter", "Unmark all outer edges of the Voronoi Diagram, so that marked edges never touch the outline", /*req=*/ false);
 static TCLAP::ValueArg<double> cmd__min_bead_width("", "minw", "Minimal toolpath bead width for geometry with a diameter smaller than the nozzle size", /*req=*/ false, /*default=*/0, "mm");
 static TCLAP::ValueArg<double> cmd__min_feature_size("", "mins", "Minimal geometry diameter for which to generate a bead", /*req=*/ false, /*default=*/0, "mm");
-static TCLAP::ValueArg<double> cmd__inward_distributed_center_size("n", "centersize", "(Half of ) the number of beads over which to distribute the discrepancy", /*req=*/ false, /*default=*/2, "");static TCLAP::ValueArg<int> cmd__max_bead_count("b", "beadcount", "Number of beads to generate. -1 = infinity", /*req=*/ false, /*default=*/-1, "");
+static TCLAP::ValueArg<double> cmd__inward_distributed_center_size("n", "centersize", "(Half of ) the number of beads over which to distribute the discrepancy", /*req=*/ false, /*default=*/2, "");
+static TCLAP::ValueArg<int> cmd__max_bead_count("b", "beadcount", "Number of beads to generate. -1 = infinity", /*req=*/ false, /*default=*/-1, "");
+static TCLAP::ValueArg<double> cmd__nozzle_size("w", "width", "Preferred bead width, middle of range of possible widths", /*req=*/ false, /*default=*/0.5, "");
 
 bool generate_gcodes = true;
 bool generate_toolpaths = true;
@@ -89,6 +91,8 @@ bool filter_outermost_marked_edges = false;
 std::optional<coord_t> min_bead_width; // for if we want to deal with geometry smaller than the nozzle size separately
 std::optional<coord_t> min_feature_size; // for if we want to deal with geometry smaller than the nozzle size separately
 
+coord_t nozzle_size;
+
 bool readCommandLine(int argc, char **argv)
 {
     try {
@@ -111,6 +115,7 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__min_feature_size);
         gCmdLine.add(cmd__inward_distributed_center_size);
         gCmdLine.add(cmd__max_bead_count);
+        gCmdLine.add(cmd__nozzle_size);
 
         gCmdLine.parse(argc, argv);
 
@@ -139,6 +144,7 @@ bool readCommandLine(int argc, char **argv)
 
         inward_distributed_center_size = cmd__inward_distributed_center_size.getValue();
         max_bead_count = cmd__max_bead_count.getValue();
+        nozzle_size = MM2INT(cmd__nozzle_size.getValue());
 
         return false;
     }
@@ -389,9 +395,6 @@ void test(std::string input_outline_filename, std::string output_prefix)
         svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK);
     }
 #endif
-
-    coord_t nozzle_size = MM2INT(0.6);
-    polys.applyMatrix(PointMatrix::scale(INT2MM(nozzle_size) / 0.4));
 
     if (false && output_prefix.compare("TEST") != 0)
     {
