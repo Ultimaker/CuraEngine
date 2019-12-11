@@ -225,6 +225,8 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
         std::ostringstream ss;
         ss << "output/" << output_prefix << "_" << test_type << "_accuracy.svg";
         SVG svg(ss.str(), aabb);
+        svg.writePolygons(input, SVG::Color::BLACK, 2);
+        svg.nextLayer();
 //         svg.writeAreas(input, SVG::Color::NONE, SVG::Color::BLACK, 3);
 //         svg.nextLayer();
 //         Polygons connecteds = PolygonUtils::connect(area_covered);
@@ -249,7 +251,6 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
                 svg.writeAreas(connected, clr, SVG::Color::NONE);
             if (!rounded_visualization) break;
         }
-//         svg.nextLayer();
 //         svg.writePolylines(paths, SVG::Color::BLACK, 2);
         svg.nextLayer();
         svg.writeAreas(underfills, SVG::ColorObject(0,128,255), SVG::Color::NONE);
@@ -264,6 +265,8 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
         ss << "output/" << output_prefix << "_" << test_type << "_widths.svg";
         SVG svg(ss.str(), aabb);
 //         svg.writeAreas(input, SVG::Color::GRAY, SVG::Color::NONE, 2);
+        svg.writePolygons(input, SVG::Color::BLACK, 2);
+        svg.nextLayer();
 
         coord_t max_dev = nozzle_size / 2;
         coord_t min_w = 30;
