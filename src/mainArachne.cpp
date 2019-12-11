@@ -391,7 +391,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
     polys.applyMatrix(Point3Matrix(scaler).compose(mirror));
     
     AABB aabb(polys);
-    polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
+//     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
     polys = polys.unionPolygons();
     
     
