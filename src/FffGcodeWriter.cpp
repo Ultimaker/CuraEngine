@@ -1545,21 +1545,27 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                         for (const SkinPart& skin_part : part.skin_parts)
                         {
                             if (i == 1)
+                            {
                                 skin_above.add(skin_part.outline);
+                            }
                             else
+                            {
                                 skin_above_upper.add(skin_part.outline);
+                            }
                         }
                     }
                 }
             }
 
-            const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * 25;
+            constexpr double min_area_multiplier = 25;
+            const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
 
             Polygons infill_below_skin = skin_above.intersection(in_outline);
             infill_below_skin.removeSmallAreas(min_area);
 
             // combine the skin regions with a small gap between them
-            infill_below_skin.add(skin_above_upper.unionPolygons().intersection(in_outline).difference(infill_below_skin.offset(10)));
+            constexpr coord_t tiny_infill_offset = 10;
+            infill_below_skin.add(skin_above_upper.unionPolygons().intersection(in_outline).difference(infill_below_skin.offset(tiny_infill_offset)));
             infill_below_skin.removeSmallAreas(min_area);
 
             if (infill_below_skin.size())
@@ -1567,22 +1573,28 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                 // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
                 const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
 
-                if (infill_below_skin.offset(-(infill_skin_overlap + 10)).size())
+                if (infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset)).size())
                 {
                     // there is infill below skin, is there also infill that isn't below skin?
                     Polygons infill_not_below_skin = in_outline.difference(infill_below_skin);
                     infill_not_below_skin.removeSmallAreas(min_area);
 
-                    if (infill_not_below_skin.offset(-(infill_skin_overlap + 10)).size())
+                    if (infill_not_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset)).size())
                     {
+                        constexpr Polygons* perimeter_gaps = nullptr;
+                        constexpr bool connected_zigzags = false;
+                        constexpr bool use_endpieces = false;
+                        constexpr bool skip_some_zags = false;
+                        constexpr int zag_skip_count = 0;
+
                         // infill region with skin above has to have at least one infill wall line
                         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin, /*outline_offset =*/ 0
                             , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, std::max(1, (int)wall_line_count), infill_origin
-                            , /*Polygons* perimeter_gaps =*/ nullptr
-                            , /*bool connected_zigzags =*/ false
-                            , /*bool use_endpieces =*/ false
-                            , /*bool skip_some_zags =*/ false
-                            , /*int zag_skip_count =*/ 0
+                            , perimeter_gaps
+                            , connected_zigzags
+                            , use_endpieces
+                            , skip_some_zags
+                            , zag_skip_count
                             , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
                         infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
 
