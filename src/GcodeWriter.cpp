@@ -72,6 +72,17 @@ GcodeWriter::~GcodeWriter()
     file << "G0 F" << travel_speed << " X" << 20 << " Y" << 20 << " Z" << (INT2MM(layer_thickness) + 0.18) << " ; start location\n";
 //     file << "M214 K0.0\n";
     file << "M107\n";
+    file << ";End of gcode\n";
+    file << ";Extra padding to prevent potential firmware issue\n";
+    file << ";SETTING_3 {\"global_quality\": \"[general]\\nversion = 4\\nname = Fine #2\\ndefini\n";
+    file << ";SETTING_3 tion = ultimaker_s5\\n\\n[metadata]\\nquality_type = normal\\ntype = \n";
+    file << ";SETTING_3 quality_changes\\n\\n[values]\\nadhesion_extruder_nr = 1\\nadhesion_t\n";
+    file << ";SETTING_3 ype = raft\\n\\n\", \"extruder_quality\": [\"[general]\\nversion = 4\\nna\n";
+    file << ";SETTING_3 me = Fine #2\\ndefinition = ultimaker_s5\\n\\n[metadata]\\nquality_ty\n";
+    file << ";SETTING_3 pe = normal\\nposition = 0\\ntype = quality_changes\\n\\n[values]\\n\\\n";
+    file << ";SETTING_3 \\n\", \"[general]\\nversion = 4\\nname = Fine #2\\ndefinition = ultimak\n";
+    file << ";SETTING_3 er_s5\\n\\n[metadata]\\nquality_type = normal\\nposition = 1\\ntype =\n";
+    file << ";SETTING_3  quality_changes\\n\\n[values]\\nraft_margin = 5\\n\\n\"]}\n";
     file.close();
 }
 
