@@ -48,8 +48,9 @@ coord_t WideningBeadingStrategy::transition_thickness(coord_t lower_bead_count) 
 
 coord_t WideningBeadingStrategy::optimal_bead_count(coord_t thickness) const
 {
+    if (thickness < min_input_width) return 0;
     coord_t ret = parent->optimal_bead_count(thickness);
-    if (thickness > min_input_width && ret < 1) return 1;
+    if (thickness >= min_input_width && ret < 1) return 1;
     return ret;
 }
 
