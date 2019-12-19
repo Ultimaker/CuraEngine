@@ -68,11 +68,11 @@ BeadingStrategy* BeadingStrategyHelper::makeStrategy(StrategyType type, coord_t 
                 logError("Cannot make strategy!\n");
                 return nullptr;
         }
-        if (min_bead_width || min_feature_size)
+        if ((min_bead_width || min_feature_size) && type != StrategyType::Constant)
         {
             ret = new WideningBeadingStrategy(ret, min_feature_size.value_or(*min_bead_width), min_bead_width.value_or(*min_feature_size));
         }
-        if (max_bead_count > 0)
+        if ((max_bead_count > 0) && type != StrategyType::Constant)
         {
             ret = new LimitedBeadingStrategy(max_bead_count, ret);
         }
