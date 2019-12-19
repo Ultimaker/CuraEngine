@@ -392,10 +392,18 @@ void test(std::string input_outline_filename, std::string output_prefix)
     
     AABB aabb(polys);
 //     polys.applyMatrix(Point3Matrix::translate(aabb.min * -1));
+    
+    // prevent any problem in the input polygon
+    // prevent single polygon to be two areas connected only by a zero width channel, i.e. the polygon has two points at the same location
     polys = polys.unionPolygons();
-    
-    
     polys.simplify();
+    polys.processEvenOdd();
+    polys = polys.offset(-20);
+    polys.removeSmallAreas(INT2MM(nozzle_size) * INT2MM(nozzle_size));
+    polys = polys.offset(20);
+    polys.simplify();
+    polys.processEvenOdd();
+    polys.removeDegenerateVerts();
 
 #ifdef DEBUG
     {
