@@ -2254,20 +2254,39 @@ SkeletalTrapezoidation::BeadingPropagation* SkeletalTrapezoidation::getNearestBe
 void SkeletalTrapezoidation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
 {
     // walk along cells in order of the input polygons, so that we can easily greedily optimize the order afterwards
-    std::unordered_map<Point, edge_t*> poly_domain_starts;
+    std::unordered_map<PolygonsPointIndex, edge_t*> poly_domain_starts;
     {
-        std::unordered_set<Point> poly_domain_start_points;
-        for (ConstPolygonRef poly : polys)
+        std::unordered_multimap<Point, PolygonsPointIndex> poly_domain_start_points;
+        for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
         {
+            ConstPolygonRef poly = polys[poly_idx];
             if (poly.empty()) continue;
-            poly_domain_start_points.emplace(poly.front());
+            poly_domain_start_points.emplace(poly.front(), PolygonsPointIndex(&polys, poly_idx, 0));
         }
         for (edge_t& edge : graph.edges)
         {
             if (edge.prev) continue;
-            if (poly_domain_start_points.find(edge.from->p) != poly_domain_start_points.end())
+            size_t n_poly_domains_starting_here = poly_domain_start_points.count(edge.from->p);
+            if (n_poly_domains_starting_here == 0)
             {
-                poly_domain_starts[edge.from->p] = &edge;
+                continue;
+            }
+            if (n_poly_domains_starting_here == 1)
+            {
+                poly_domain_starts[poly_domain_start_points.find(edge.from->p)->second] = &edge;
+            }
+            else if (n_poly_domains_starting_here > 1)
+            {
+                auto range = poly_domain_start_points.equal_range(edge.from->p);
+                for (auto it = range.first; it != range.second; ++it)
+                {
+                    assert(edge.from->p == it->first);
+                    PolygonsPointIndex ppi = it->second;
+                    if (LinearAlg2D::isInsideCorner(ppi.prev().p(), ppi.p(), ppi.next().p(), edge.to->p))
+                    {
+                        poly_domain_starts[ppi] = &edge;
+                    }
+                }
             }
         }
         assert(poly_domain_starts.size() == poly_domain_start_points.size());
