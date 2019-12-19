@@ -10,6 +10,8 @@ namespace arachne
 ToolpathWriter::ToolpathWriter(std::string filename)
 : file(filename.c_str())
 {
+    if (!file.good())
+        std::cerr << "ERROR: Cannot open '" << filename << "' for writing!\n";
     assert(file.good());
 }
 
