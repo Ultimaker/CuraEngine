@@ -1698,7 +1698,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         Point p1 = path.points[point_idx];
                         length += vSizeMM(p0 - p1);
                         p0 = p1;
-                        gcode.setZ(z + layer_thickness * length / totalLength);
+                        gcode.setZ(std::round(z + layer_thickness * length / totalLength));
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
                         gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }
