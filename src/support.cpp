@@ -873,6 +873,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const double tan_angle = tan(angle) - 0.01;  // the XY-component of the supportAngle
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
+    const coord_t support_line_width = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings.get<coord_t>("support_line_width");
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
 
     // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
@@ -882,7 +883,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 #else
     #pragma omp parallel for default(none) \
         shared(xy_disallowed_per_layer, storage, mesh, layer_count, is_support_mesh_place_holder,  \
-               use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang) \
+               use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang, layer_thickness, support_line_width) \
         schedule(dynamic)
 #endif // defined(__GNUC__) && __GNUC__ <= 8
 
@@ -895,9 +896,40 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         { // don't compute overhang for support meshes
             if (use_xy_distance_overhang) //Z overrides XY distance.
             {
+                // we also want to use the min XY distance when the support is resting on a sloped surface so we calculate the area of the
+                // layer below that protudes beyond the current layer's area and combine it with the current layer's overhang disallowed area
+
+                Polygons larger_area_below; // the areas in the layer below that protrude beyond the area of the current layer
+                if (layer_idx > 1)
+                {
+                    // shrink a little so that areas that only protrude very slightly are ignored
+                    larger_area_below = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines()).offset(-layer_thickness / 10);
+
+                    if (larger_area_below.size())
+                    {
+                        // if the layer below protudes sufficiently such that a normal support at xy_distance could be placed there,
+                        // we don't want to use the min XY distance in that area and so we remove the wide area from larger_area_below
+
+                        // assume that a minimal support structure would be one line spaced at xy_distance from the model (verified by experiment)
+
+                        const coord_t limit_distance = xy_distance + support_line_width;
+
+                        // area_beyond_limit is the portion of the layer below's outline that lies further away from the current layer's outline than limit_distance
+                        Polygons area_beyond_limit = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines().offset(limit_distance));
+
+                        if (area_beyond_limit.size())
+                        {
+                            // expand area_beyond_limit so that the inner hole fills in all the way back to the current layer's outline
+                            // and use that to remove the regions in larger_area_below that should not use min XY because the regions are
+                            // wide enough for a normal support to be placed there
+                            larger_area_below = larger_area_below.difference(area_beyond_limit.offset(limit_distance + 10));
+                        }
+                    }
+                }
+
                 //Compute the areas that are too close to the model.
                 Polygons xy_overhang_disallowed = mesh.overhang_areas[layer_idx].offset(z_distance_top * tan_angle);
-                Polygons xy_non_overhang_disallowed = outlines.difference(mesh.overhang_areas[layer_idx].offset(xy_distance)).offset(xy_distance);
+                Polygons xy_non_overhang_disallowed = outlines.difference(mesh.overhang_areas[layer_idx].unionPolygons(larger_area_below).offset(xy_distance)).offset(xy_distance);
                 xy_disallowed_per_layer[layer_idx] = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(xy_distance_overhang)));
             }
         }
