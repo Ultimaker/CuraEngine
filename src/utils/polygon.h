@@ -428,6 +428,13 @@ public:
         path->erase(path->begin() + index);
     }
 
+    void insert(size_t index, Point p)
+    {
+        POLY_ASSERT(index < size() && index <= std::numeric_limits<int>::max());
+        POLY_ASSERT(index >= 0);
+        path->insert(path->begin() + index, p);
+    }
+
     void clear()
     {
         path->clear();
