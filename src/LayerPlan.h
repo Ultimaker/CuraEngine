@@ -454,6 +454,8 @@ public:
      *
      * Additional procedures here are:
      * - If retraction is forced, always retract.
+     * - If the travel distance is shorter than the outer diameter of the nozzle
+     *   - Travel directly without combing, retraction or Z hop.
      * - If combing is enabled, try a combing move.
      *   - If combing succeeds, i.e. there is a path to the destination
      *     - If the combed path is longer than retraction_combing_max_distance
