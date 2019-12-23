@@ -1623,11 +1623,6 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
 
             Polygons lines;
             lines.addLine(this_point - bisector, this_point + bisector);
-#if 0
-            // diagnostic - print vertex bisector lines
-            gcode_layer.addTravel(lines[0][0]);
-            gcode_layer.addExtrusionMove(lines[0][1], this_point == wall_outline[seam_vertex_idx] ? mesh_config.insetX_config : mesh_config.inset0_config, SpaceFillType::Lines, 0.1);
-#endif
 
             lines = part.outline.intersectionPolyLines(lines);
             if (lines.size() > 0)
