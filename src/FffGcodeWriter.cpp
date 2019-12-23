@@ -1694,7 +1694,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
     {
         // wall line width can vary
 
-        auto get_line_width = [&](const Point& prev_point, const Point& this_point, const Point& next_point, coord_t& line_width, Point& bisector, double& abs_sine)
+        auto get_point_attributes = [&](const Point& prev_point, const Point& this_point, const Point& next_point, coord_t& line_width, Point& bisector, double& abs_sine)
         {
             const double corner_rads = LinearAlg2D::getAngleLeft(prev_point, this_point, next_point);
 
@@ -1728,7 +1728,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
             double abs_sine = 1;
             coord_t line_width = default_line_width;
 
-            get_line_width(prev_point, this_point, next_point, line_width, bisector, abs_sine);
+            get_point_attributes(prev_point, this_point, next_point, line_width, bisector, abs_sine);
 
             // flow[n] sets the line width used when drawing the line that finishes at wall_outline[n]
             flows[n] = std::max(std::min((double)line_width / default_line_width, max_line_width), min_line_width);
@@ -1769,7 +1769,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
                     coord_t intermediate_line_width = default_line_width;
 
                     // check the line width at 60% of the length of the line segment
-                    get_line_width(prev_point, prev_point + (this_point - prev_point) * 0.6, this_point, intermediate_line_width, bisector, abs_sine);
+                    get_point_attributes(prev_point, prev_point + (this_point - prev_point) * 0.6, this_point, intermediate_line_width, bisector, abs_sine);
 
                     float intermediate_flow = std::max(std::min((double)intermediate_line_width / default_line_width, max_line_width), min_line_width);
 
