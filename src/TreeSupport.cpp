@@ -88,7 +88,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t branch_radius = mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2;
-    const size_t wall_count = mesh_group_settings.get<size_t>("support_tree_wall_count");
+    const size_t wall_count = mesh_group_settings.get<size_t>("support_wall_count");
     Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
     for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
     {
