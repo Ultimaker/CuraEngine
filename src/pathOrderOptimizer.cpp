@@ -79,27 +79,37 @@ void PathOrderOptimizer::optimize()
             if (dist2 < bestDist2 && combing_boundary)
             {
                 // using direct routing, this poly is the closest so far but as the combing boundary
-                // is available, get the combed distance and use that instead
+                // is available see if the travel would cross the combing boundary and, if so, either get
+                // the combed distance and use that instead or increase the distance to make it less attractive
                 if (PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, p, prev_point))
                 {
-                    if (!loc_to_line)
+                    if ((polygons.size() - poly_order_idx) > 100)
                     {
-                        // the combing boundary has been provided so do the initialisation
-                        // required to be able to calculate realistic travel distances to the start of new paths
-                        const int travel_avoid_distance = 2000; // assume 2mm - not really critical for our purposes
-                        loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
+                        // calculating the combing distance for lots of polygons is too time consuming so, instead,
+                        // just increase the distance to penalise travels that hit the combing boundary
+                        dist2 *= 5;
                     }
-                    CombPath comb_path;
-                    if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, prev_point, p, comb_path, -40, 0, false))
+                    else
                     {
-                        float dist = 0;
-                        Point last_point = prev_point; // comb_path includes prev_point (and p) so first dist will be zero
-                        for (const Point& comb_point : comb_path)
+                        if (!loc_to_line)
                         {
-                            dist += vSize(comb_point - last_point);
-                            last_point = comb_point;
+                            // the combing boundary has been provided so do the initialisation
+                            // required to be able to calculate realistic travel distances to the start of new paths
+                            const int travel_avoid_distance = 2000; // assume 2mm - not really critical for our purposes
+                            loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, travel_avoid_distance);
                         }
-                        dist2 = dist * dist;
+                        CombPath comb_path;
+                        if (LinePolygonsCrossings::comb(*combing_boundary, *loc_to_line, p, prev_point, comb_path, -40, 0, false))
+                        {
+                            float dist = 0;
+                            Point last_point = p;
+                            for (const Point& comb_point : comb_path)
+                            {
+                                dist += vSize(comb_point - last_point);
+                                last_point = comb_point;
+                            }
+                            dist2 = dist * dist;
+                        }
                     }
                 }
             }

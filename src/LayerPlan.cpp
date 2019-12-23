@@ -458,7 +458,6 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
                         last_point = comb_point;
                     }
                 }
-                last_planned_position = combPath.back();
                 distance += vSize(last_point - p);
                 const coord_t retract_threshold = extruder->settings.get<coord_t>("retraction_combing_max_distance");
                 path->retract = retract || (retract_threshold > 0 && distance > retract_threshold);
@@ -466,7 +465,15 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
             }
         }
     }
-    
+
+    // CURA-6675:
+    // Retraction Minimal Travel Distance should work for all travel moves. If the travel move is shorter than the
+    // Retraction Minimal Travel Distance, retraction should be disabled.
+    if (!is_first_travel_of_layer && last_planned_position && shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
+    {
+        path->retract = false;
+    }
+
     // no combing? retract only when path is not shorter than minimum travel distance
     if (!combed && !is_first_travel_of_layer && last_planned_position && !shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
     {
@@ -483,6 +490,9 @@ GCodePath& LayerPlan::addTravel(Point p, bool force_comb_retract)
         path->retract = true;
         path->perform_z_hop = extruder->settings.get<bool>("retraction_hop_enabled");
     }
+
+    // must start new travel path as retraction can be enabled or not depending on path length, etc.
+    forceNewPathStart();
 
     GCodePath& ret = addTravel_simple(p, path);
     was_inside = is_inside;
@@ -608,7 +618,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
 {
     const coord_t min_line_len = 5; // we ignore lines less than 5um long
     const double acceleration_segment_len = 1000; // accelerate using segments of this length
-    const double acceleration_factor = 0.85; // must be < 1, the larger the value, the slower the acceleration
+    const double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
 
     const coord_t min_bridge_line_len = mesh.settings.get<coord_t>("bridge_wall_min_length");
@@ -682,6 +692,10 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
             non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * speed_factor * non_bridge_config.getSpeed();
             cur_point = segment_end;
             speed_factor = 1 - (1 - speed_factor) * acceleration_factor;
+            if (speed_factor >= 0.9)
+            {
+                speed_factor = 1;
+            }
             distance_to_line_end = vSize(cur_point - line_end);
         }
     };
@@ -753,7 +767,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
                         non_bridge_line_volume = 0;
                         cur_point = b1;
                         // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
-                        speed_factor = std::min(Ratio(bridge_config.getSpeed() / non_bridge_config.getSpeed()), 1.0_r);
+                        speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / non_bridge_config.getSpeed()), 1.0_r), 0.5_r);
                     }
                 }
                 else
@@ -1704,7 +1718,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         Point p1 = path.points[point_idx];
                         length += vSizeMM(p0 - p1);
                         p0 = p1;
-                        gcode.setZ(z + layer_thickness * length / totalLength);
+                        gcode.setZ(std::round(z + layer_thickness * length / totalLength));
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
                         gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }

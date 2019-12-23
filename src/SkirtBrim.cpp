@@ -31,7 +31,8 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
         constexpr bool include_support = false; //Include manually below.
         constexpr bool include_prime_tower = false; //Include manually below.
         constexpr bool external_outlines_only = false; //Remove manually below.
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_outlines_only);
+        constexpr bool for_brim = true;
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_outlines_only, for_brim);
         first_layer_outline = first_layer_outline.unionPolygons(); //To guard against overlapping outlines, which would produce holes according to the even-odd rule.
         Polygons first_layer_empty_holes;
         if (external_only)
@@ -67,7 +68,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
             first_layer_outline.add(support_layer.support_bottom);
             first_layer_outline.add(support_layer.support_roof);
         }
-        if (storage.primeTower.enabled)
+        if (storage.primeTower.enabled && !train.settings.get<bool>("prime_tower_brim_enable"))
         {
             first_layer_outline.add(storage.primeTower.outer_poly_first_layer); // don't remove parts of the prime tower, but make a brim for it
         }

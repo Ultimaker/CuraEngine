@@ -342,8 +342,9 @@ public:
      * \param include_prime_tower Whether to include the prime tower in the
      * outline.
      * \param external_polys_only Whether to disregard all hole polygons.
+     * \param for_brim Whether the outline is to be used to construct the brim.
      */
-    Polygons getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false) const;
+    Polygons getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false, const bool for_brim = false) const;
 
     /*!
      * Get the extruders used.
