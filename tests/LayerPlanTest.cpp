@@ -22,6 +22,18 @@ class LayerPlanTest : public testing::Test
 {
 public:
     /*!
+     * Cooling settings, which are passed to the layer plan by reference.
+     *
+     * One for each extruder. There is only one extruder by default in this
+     * fixture.
+     *
+     * \note This needs to be allocated BEFORE layer_plan since the constructor
+     * of layer_plan in the initializer list needs to have a valid vector
+     * reference.
+     */
+    std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings;
+
+    /*!
      * Sliced layers divided up into regions for each structure.
      */
     SliceDataStorage* storage;
@@ -30,14 +42,6 @@ public:
      * A pre-filled layer plan.
      */
     LayerPlan layer_plan;
-
-    /*!
-     * Cooling settings, which are passed to the layer plan by reference.
-     *
-     * One for each extruder. There is only one extruder by default in this
-     * fixture.
-     */
-    std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings;
 
     //Some generic settings.
     LayerIndex layer_nr = 100;
@@ -126,12 +130,7 @@ public:
 
         Application::getInstance().current_slice->scene.extruders.emplace_back(0, &settings); //Add an extruder train.
 
-        SliceDataStorage* result = new SliceDataStorage();
-        return result;
-    }
-
-    void SetUp()
-    {
+        //Set the fan speed layer time settings (since the LayerPlan constructor copies these).
         FanSpeedLayerTimeSettings fan_settings;
         fan_settings.cool_min_layer_time = 5;
         fan_settings.cool_min_layer_time_fan_speed_max = 10;
@@ -141,6 +140,13 @@ public:
         fan_settings.cool_min_speed = 10;
         fan_settings.cool_fan_full_layer = 3;
         fan_speed_layer_time_settings.push_back(fan_settings);
+
+        SliceDataStorage* result = new SliceDataStorage();
+        return result;
+    }
+
+    void SetUp()
+    {
     }
 };
 
