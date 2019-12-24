@@ -91,9 +91,19 @@ public:
         settings.add("jerk_support_infill", "5.9");
         settings.add("jerk_support_roof", "5.4");
         settings.add("jerk_travel", "5.6");
+        settings.add("layer_height", "0.1");
+        settings.add("layer_start_x", "0");
+        settings.add("layer_start_y", "0");
+        settings.add("machine_center_is_zero", "false");
+        settings.add("machine_depth", "1000");
+        settings.add("machine_height", "1000");
+        settings.add("machine_width", "1000");
         settings.add("material_flow_layer_0", "100");
+        settings.add("prime_tower_enable", "true");
         settings.add("prime_tower_flow", "108");
         settings.add("prime_tower_line_width", "0.48");
+        settings.add("prime_tower_min_volume", "10");
+        settings.add("prime_tower_size", "40");
         settings.add("raft_base_line_width", "0.401");
         settings.add("raft_base_acceleration", "5001");
         settings.add("raft_base_jerk", "5.1");
@@ -109,6 +119,7 @@ public:
         settings.add("raft_surface_line_width", "0.403");
         settings.add("raft_surface_speed", "53");
         settings.add("raft_surface_thickness", "0.103");
+        settings.add("retraction_combing", "off");
         settings.add("skirt_brim_line_width", "0.47");
         settings.add("skirt_brim_material_flow", "107");
         settings.add("skirt_brim_speed", "57");
