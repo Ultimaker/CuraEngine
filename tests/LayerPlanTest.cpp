@@ -100,6 +100,7 @@ public:
         settings.add("machine_height", "1000");
         settings.add("machine_width", "1000");
         settings.add("material_flow_layer_0", "100");
+        settings.add("meshfix_maximum_travel_resolution", "0");
         settings.add("prime_tower_enable", "true");
         settings.add("prime_tower_flow", "108");
         settings.add("prime_tower_line_width", "0.48");
@@ -172,11 +173,22 @@ public:
 };
 
 /*!
- * Tests planning a travel move through open space.
+ * Tests planning a travel move:
+ *  - Through open space, no polygons in the way.
+ *  - Combing is disabled.
+ *  - Retraction is disabled.
+ *  - Z hop is disabled.
  */
-TEST_F(LayerPlanTest, AddTravelOpen)
+TEST_F(LayerPlanTest, AddTravelOpenNoCombingNoRetractNoHop)
 {
-    
+    Point destination(500000, 500000);
+    GCodePath result = layer_plan.addTravel(destination);
+
+    EXPECT_FALSE(result.retract);
+    EXPECT_FALSE(result.perform_z_hop);
+    EXPECT_FALSE(result.perform_prime);
+    ASSERT_EQ(result.points.size(), 1);
+    EXPECT_EQ(result.points[0], destination);
 }
 
 }
