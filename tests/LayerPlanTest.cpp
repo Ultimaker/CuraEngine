@@ -43,18 +43,19 @@ public:
      */
     LayerPlan layer_plan;
 
-    //Some generic settings.
-    LayerIndex layer_nr = 100;
-    coord_t layer_thickness = 100; //0.1mm.
-    coord_t z = layer_thickness * layer_nr;
-    size_t extruder_nr = 0;
-    size_t comb_boundary_offset = 2000; //2mm.
-    size_t comb_move_inside_distance = 1000; //1mm.
-    size_t travel_avoid_distance = 5000; //5mm.
-
     LayerPlanTest() :
         storage(setUpStorage()),
-        layer_plan(*storage, layer_nr, z, layer_thickness, extruder_nr, fan_speed_layer_time_settings, comb_boundary_offset, comb_move_inside_distance, travel_avoid_distance)
+        layer_plan(
+            *storage,
+            /*layer_nr=*/100,
+            /*z=*/10000,
+            /*layer_thickness=*/100,
+            /*extruder_nr=*/0,
+            fan_speed_layer_time_settings,
+            /*comb_boundary_offset=*/2000,
+            /*comb_move_inside_distance=*/1000,
+            /*travel_avoid_distance=*/5000
+        )
     {
     }
 
