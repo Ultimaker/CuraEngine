@@ -373,8 +373,6 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
 
     const ExtruderTrain* extruder = getLastPlannedExtruderTrain();
 
-    const coord_t maximum_travel_resolution = extruder->settings.get<coord_t>("meshfix_maximum_travel_resolution");
-
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 1 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     bool bypass_combing = is_first_travel_of_extruder_after_switch && extruder->settings.get<bool>("retraction_hop_after_extruder_switch");
 
@@ -441,6 +439,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
                 }
             }
 
+            const coord_t maximum_travel_resolution = extruder->settings.get<coord_t>("meshfix_maximum_travel_resolution");
             coord_t distance = 0;
             Point last_point((last_planned_position) ? *last_planned_position : Point(0, 0));
             for (CombPath& combPath : combPaths)
