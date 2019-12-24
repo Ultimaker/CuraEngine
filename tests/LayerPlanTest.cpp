@@ -159,6 +159,15 @@ public:
     void SetUp()
     {
     }
+
+    /*!
+     * Cleaning up after a test is hardly necessary but just for neatness.
+     */
+    void TearDown()
+    {
+        delete storage;
+        delete Application::getInstance().current_slice;
+    }
 };
 
 /*!
