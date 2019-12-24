@@ -694,7 +694,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         {
             if (minimum_support_area > 0.0)
             {
-                mesh_support_areas_per_layer[layer_idx].removeSmallAreas(minimum_support_area);
+                constexpr bool also_process_holes = false;
+                mesh_support_areas_per_layer[layer_idx].removeSmallAreas(minimum_support_area, also_process_holes);
             }
             global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
         }

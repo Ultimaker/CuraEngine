@@ -967,13 +967,13 @@ public:
     /*!
      * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
      */
-    void removeSmallAreas(double minAreaSize)
+    void removeSmallAreas(double min_area_size, bool also_process_holes = true)
     {
         Polygons& thiss = *this;
-        for(unsigned int i=0; i<size(); i++)
+        for(unsigned int i = 0; i < size(); i++)
         {
-            double area = INT2MM(INT2MM(fabs(thiss[i].area())));
-            if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
+            const double area = INT2MM(INT2MM(thiss[i].area()));
+            if (std::abs(area) < min_area_size && (also_process_holes || area >= 0)) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
             {
                 remove(i);
                 i -= 1;
