@@ -22,14 +22,14 @@ class LayerPlanTest : public testing::Test
 {
 public:
     /*!
+     * Sliced layers divided up into regions for each structure.
+     */
+    SliceDataStorage* storage;
+
+    /*!
      * A pre-filled layer plan.
      */
     LayerPlan layer_plan;
-
-    /*!
-     * Sliced layers divided up into regions for each structure.
-     */
-    SliceDataStorage storage;
 
     /*!
      * Cooling settings, which are passed to the layer plan by reference.
@@ -48,7 +48,9 @@ public:
     size_t comb_move_inside_distance = 1000; //1mm.
     size_t travel_avoid_distance = 5000; //5mm.
 
-    LayerPlanTest() : layer_plan(setUp(storage), layer_nr, z, layer_thickness, extruder_nr, fan_speed_layer_time_settings, comb_boundary_offset, comb_move_inside_distance, travel_avoid_distance)
+    LayerPlanTest() :
+        storage(setUpStorage()),
+        layer_plan(*storage, layer_nr, z, layer_thickness, extruder_nr, fan_speed_layer_time_settings, comb_boundary_offset, comb_move_inside_distance, travel_avoid_distance)
     {
     }
 
@@ -60,10 +62,9 @@ public:
      *
      * This needs to be done in a separate function so that it can be executed
      * in the initializer list.
-     * \param storage The SliceDataStorage to fill.
      * \return That same SliceDataStorage.
      */
-    SliceDataStorage& setUp(SliceDataStorage& storage)
+    SliceDataStorage* setUpStorage()
     {
         constexpr size_t num_mesh_groups = 1;
         Application::getInstance().current_slice = new Slice(num_mesh_groups);
@@ -124,7 +125,9 @@ public:
         settings.add("support_roof_material_flow", "104");
 
         Application::getInstance().current_slice->scene.extruders.emplace_back(0, &settings); //Add an extruder train.
-        return storage;
+
+        SliceDataStorage* result = new SliceDataStorage();
+        return result;
     }
 
     void SetUp()
