@@ -122,6 +122,7 @@ public:
         settings.add("raft_surface_speed", "53");
         settings.add("raft_surface_thickness", "0.103");
         settings.add("retraction_combing", "off");
+        settings.add("retraction_hop_enabled", "false");
         settings.add("skirt_brim_line_width", "0.47");
         settings.add("skirt_brim_material_flow", "107");
         settings.add("skirt_brim_speed", "57");
@@ -140,6 +141,9 @@ public:
         settings.add("support_roof_extruder_nr", "0");
         settings.add("support_roof_line_width", "0.404");
         settings.add("support_roof_material_flow", "104");
+        settings.add("wall_line_count", "3");
+        settings.add("wall_line_width_x", "0.3");
+        settings.add("wall_line_width_0", "0.301");
 
         Application::getInstance().current_slice->scene.extruders.emplace_back(0, &settings); //Add an extruder train.
 
@@ -160,6 +164,7 @@ public:
 
     void SetUp()
     {
+        layer_plan.addTravel_simple(Point(0, 0)); //Make sure that it appears as if we have already done things in this layer plan. Just the standard case.
     }
 
     /*!
@@ -187,8 +192,9 @@ TEST_F(LayerPlanTest, AddTravelOpenNoCombingNoRetractNoHop)
     EXPECT_FALSE(result.retract);
     EXPECT_FALSE(result.perform_z_hop);
     EXPECT_FALSE(result.perform_prime);
-    ASSERT_EQ(result.points.size(), 1);
-    EXPECT_EQ(result.points[0], destination);
+    ASSERT_EQ(result.points.size(), 2);
+    EXPECT_EQ(result.points[0], Point(0, 0));
+    EXPECT_EQ(result.points[1], destination);
 }
 
 }
