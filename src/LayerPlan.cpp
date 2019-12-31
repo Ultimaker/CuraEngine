@@ -377,12 +377,13 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
     bool bypass_combing = is_first_travel_of_extruder_after_switch && extruder->settings.get<bool>("retraction_hop_after_extruder_switch");
 
     const bool is_first_travel_of_layer = !static_cast<bool>(last_planned_position);
+    const bool retraction_enable = extruder->settings.get<bool>("retraction_enable");
     if (is_first_travel_of_layer)
     {
         bypass_combing = true; // first travel move is bogus; it is added after this and the previous layer have been planned in LayerPlanBuffer::addConnectingTravelMove
         first_travel_destination = p;
         first_travel_destination_is_inside = is_inside;
-        if (layer_nr == 0 && extruder->settings.get<bool>("retraction_enable") && extruder->settings.get<bool>("retraction_hop_enabled"))
+        if (layer_nr == 0 && retraction_enable && extruder->settings.get<bool>("retraction_hop_enabled"))
         {
             path->retract = true;
             path->perform_z_hop = true;
@@ -410,12 +411,12 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
         combed = comb->calc(*extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored);
         if (combed)
         {
-            bool retract = path->retract || combPaths.size() > 1;
+            bool retract = path->retract || (combPaths.size() > 1 && retraction_enable);
             if (!retract)
             { // check whether we want to retract
                 if (combPaths.throughAir)
                 {
-                    retract = true;
+                    retract = retraction_enable;
                 }
                 else
                 {
@@ -423,7 +424,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
                     { // retract when path moves through a boundary
                         if (combPath.cross_boundary)
                         {
-                            retract = true;
+                            retract = retraction_enable;
                             break;
                         }
                     }
@@ -459,7 +460,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
                 }
                 distance += vSize(last_point - p);
                 const coord_t retract_threshold = extruder->settings.get<coord_t>("retraction_combing_max_distance");
-                path->retract = retract || (retract_threshold > 0 && distance > retract_threshold);
+                path->retract = retract || (retract_threshold > 0 && distance > retract_threshold && retraction_enable);
                 // don't perform a z-hop
             }
         }
@@ -486,7 +487,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
             }
             moveInsideCombBoundary(innermost_wall_line_width);
         }
-        path->retract = true;
+        path->retract = retraction_enable;
         path->perform_z_hop = extruder->settings.get<bool>("retraction_hop_enabled");
     }
 

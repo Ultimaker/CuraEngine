@@ -122,6 +122,7 @@ public:
         settings.add("raft_surface_speed", "53");
         settings.add("raft_surface_thickness", "0.103");
         settings.add("retraction_combing", "off");
+        settings.add("retraction_enable", "false");
         settings.add("retraction_hop_enabled", "false");
         settings.add("skirt_brim_line_width", "0.47");
         settings.add("skirt_brim_material_flow", "107");
