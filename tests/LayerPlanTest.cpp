@@ -81,7 +81,7 @@ public:
 
         //Define all settings in the mesh group. The extruder train and model settings will fall back on that then.
         settings = &Application::getInstance().current_slice->scene.current_mesh_group->settings;
-        //Default settings. These are not (always) the FDM printer defaults, but just setting values that can be recognised uniquely as much as possible.
+        //Default settings. These are not (always) the FDM printer defaults, but sometimes just setting values that can be recognised uniquely as much as possible.
         settings->add("acceleration_prime_tower", "5008");
         settings->add("acceleration_skirt_brim", "5007");
         settings->add("acceleration_support_bottom", "5005");
@@ -90,6 +90,13 @@ public:
         settings->add("acceleration_travel", "5006");
         settings->add("adhesion_extruder_nr", "0");
         settings->add("adhesion_type", "brim");
+        settings->add("cool_fan_full_layer", "3");
+        settings->add("cool_fan_speed_0", "0");
+        settings->add("cool_fan_speed_min", "75");
+        settings->add("cool_fan_speed_max", "100");
+        settings->add("cool_min_speed", "10");
+        settings->add("cool_min_layer_time", "5");
+        settings->add("cool_min_layer_time_fan_speed_max", "10");
         settings->add("initial_layer_line_width_factor", "1.0");
         settings->add("jerk_prime_tower", "5.8");
         settings->add("jerk_skirt_brim", "5.7");
@@ -126,9 +133,17 @@ public:
         settings->add("raft_surface_line_width", "0.403");
         settings->add("raft_surface_speed", "53");
         settings->add("raft_surface_thickness", "0.103");
+        settings->add("retraction_amount", "8");
         settings->add("retraction_combing", "off");
+        settings->add("retraction_count_max", "30");
         settings->add("retraction_enable", "false");
+        settings->add("retraction_extra_prime_amount", "1");
+        settings->add("retraction_extrusion_window", "10");
+        settings->add("retraction_hop", "1.5");
         settings->add("retraction_hop_enabled", "false");
+        settings->add("retraction_min_travel", "0");
+        settings->add("retraction_prime_speed", "12");
+        settings->add("retraction_retract_speed", "11");
         settings->add("skirt_brim_line_width", "0.47");
         settings->add("skirt_brim_material_flow", "107");
         settings->add("skirt_brim_speed", "57");
@@ -155,16 +170,28 @@ public:
 
         //Set the fan speed layer time settings (since the LayerPlan constructor copies these).
         FanSpeedLayerTimeSettings fan_settings;
-        fan_settings.cool_min_layer_time = 5;
-        fan_settings.cool_min_layer_time_fan_speed_max = 10;
-        fan_settings.cool_fan_speed_0 = 0.0;
-        fan_settings.cool_fan_speed_min = 75.0;
-        fan_settings.cool_fan_speed_max = 100.0;
-        fan_settings.cool_min_speed = 10;
-        fan_settings.cool_fan_full_layer = 3;
+        fan_settings.cool_min_layer_time = settings->get<Duration>("cool_min_layer_time");
+        fan_settings.cool_min_layer_time_fan_speed_max = settings->get<Duration>("cool_min_layer_time_fan_speed_max");
+        fan_settings.cool_fan_speed_0 = settings->get<Ratio>("cool_fan_speed_0");
+        fan_settings.cool_fan_speed_min = settings->get<Ratio>("cool_fan_speed_min");
+        fan_settings.cool_fan_speed_max = settings->get<Ratio>("cool_fan_speed_max");
+        fan_settings.cool_min_speed = settings->get<Velocity>("cool_min_speed");
+        fan_settings.cool_fan_full_layer = settings->get<LayerIndex>("cool_fan_full_layer");
         fan_speed_layer_time_settings.push_back(fan_settings);
 
+        //Set the retraction settings (also copied by LayerPlan).
+        RetractionConfig retraction_config;
+        retraction_config.distance = settings->get<double>("retraction_amount");
+        retraction_config.prime_volume = settings->get<double>("retraction_extra_prime_amount");
+        retraction_config.speed = settings->get<Velocity>("retraction_retract_speed");
+        retraction_config.primeSpeed = settings->get<Velocity>("retraction_prime_speed");
+        retraction_config.zHop = settings->get<coord_t>("retraction_hop");
+        retraction_config.retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel");
+        retraction_config.retraction_extrusion_window = settings->get<double>("retraction_extrusion_window");
+        retraction_config.retraction_count_max = settings->get<size_t>("retraction_count_max");
+
         SliceDataStorage* result = new SliceDataStorage();
+        result->retraction_config_per_extruder[0] = retraction_config;
         return result;
     }
 
@@ -261,6 +288,7 @@ TEST_F(LayerPlanTest, AddTravelOpenNoCombingRetractNoHopShort)
 {
     settings->add("retraction_enable", "true");
     settings->add("retraction_min_travel", "1"); //Travels shorter than 1mm should not retract.
+    storage->retraction_config_per_extruder[0].retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); //Update the copy that the storage has of this.
 
     Point destination(500, 500); //Move from 0,0 to 500,500, so travel move is 0.7mm long.
     GCodePath result = layer_plan.addTravel(destination);
