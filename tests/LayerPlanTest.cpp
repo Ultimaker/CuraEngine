@@ -225,6 +225,37 @@ std::vector<std::string> scene = {
 };
 
 /*!
+ * Parameters for the AddTravelTest class.
+ *
+ * Instead of using a tuple for this, an explicit struct makes the code easier
+ * to read since you can get individual parameters by name rather than using
+ * std::get<4> or something.
+ */
+struct AddTravelParameters
+{
+    std::string retraction_enable;
+    std::string hop_enable;
+    std::string combing;
+    bool is_long;
+    bool is_long_combing;
+    std::string scene;
+
+    /*!
+     * Unrolls the parameters.
+     * \param parameters The parameters as received by testing::Combine().
+     */
+    AddTravelParameters(const std::tuple<std::string, std::string, std::string, bool, bool, std::string>& parameters)
+    {
+        retraction_enable = std::get<0>(parameters);
+        hop_enable = std::get<1>(parameters);
+        combing = std::get<2>(parameters);
+        is_long = std::get<3>(parameters);
+        is_long_combing = std::get<4>(parameters);
+        scene = std::get<5>(parameters);
+    }
+};
+
+/*!
  * Parameterised testing class that combines many combinations of cases to test
  * travel moves in. The parameters are in the same order as above:
  * 1. retraction_enable
@@ -237,20 +268,24 @@ std::vector<std::string> scene = {
 class AddTravelTest : public LayerPlanTest, public testing::WithParamInterface<std::tuple<std::string, std::string, std::string, bool, bool, std::string>>
 {
 public:
+    AddTravelParameters parameters;
+    AddTravelTest() : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, std::string>("false", "false", "off", false, false, "open")) {}
+
     /*!
      * Runs the actual test, adding a travel move to the layer plan with the
      * specified parameters.
      * \param parameters The parameter object provided to the test.
      * \return The resulting g-code path.
      */
-    GCodePath run(const std::tuple<std::string, std::string, std::string, bool, bool, std::string>& parameters)
+    GCodePath run(const std::tuple<std::string, std::string, std::string, bool, bool, std::string>& combine_parameters)
     {
-        settings->add("retraction_enable", std::get<0>(parameters));
-        settings->add("retraction_hop_enable", std::get<1>(parameters));
-        settings->add("retraction_combing", std::get<2>(parameters));
-        settings->add("retraction_min_travel", std::get<3>(parameters) ? "1" : "10000"); //If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
+        parameters = AddTravelParameters(combine_parameters);
+        settings->add("retraction_enable", parameters.retraction_enable);
+        settings->add("retraction_hop_enable", parameters.hop_enable);
+        settings->add("retraction_combing", parameters.combing);
+        settings->add("retraction_min_travel", parameters.is_long ? "1" : "10000"); //If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
         storage->retraction_config_per_extruder[0].retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); //Update the copy that the storage has of this.
-        settings->add("retraction_combing_max_distance", std::get<4>(parameters) ? "1" : "10000");
+        settings->add("retraction_combing_max_distance", parameters.is_long_combing ? "1" : "10000");
         //TODO: Set up a scene depending on std::get<5>.
 
         const Point destination(500000, 500000);
@@ -274,7 +309,7 @@ TEST_P(AddTravelTest, NoRetractionIfDisabled)
 {
     GCodePath result = run(GetParam());
 
-    if(std::get<0>(GetParam()) == "false") //Retraction is disabled.
+    if(parameters.retraction_enable == "false")
     {
         EXPECT_FALSE(result.retract) << "If retraction is disabled it should not retract.";
     }
@@ -287,7 +322,7 @@ TEST_P(AddTravelTest, NoHopIfDisabled)
 {
     GCodePath result = run(GetParam());
 
-    if(std::get<1>(GetParam()) == "false") //Z hop is disabled.
+    if(parameters.hop_enable == "false")
     {
         EXPECT_FALSE(result.perform_z_hop) << "If Z hop is disabled it should not hop.";
     }
@@ -301,7 +336,7 @@ TEST_P(AddTravelTest, NoRetractionIfShort)
 {
     GCodePath result = run(GetParam());
 
-    if(!std::get<3>(GetParam())) //Short travel move.
+    if(!parameters.is_long)
     {
         EXPECT_FALSE(result.retract) << "If the travel move is shorter than retraction_min_travel, it should not retract.";
     }
