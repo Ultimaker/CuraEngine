@@ -248,4 +248,29 @@ TEST_F(LayerPlanTest, AddTravelOpenNoCombingRetractHop)
     EXPECT_EQ(result.points[1], destination);
 }
 
+/*!
+ * Tests planning a travel move:
+ *  - Through open space, no polygons in the way.
+ *  - Combing is disabled.
+ *  - Retraction is enabled.
+ *  - Z hop is disabled.
+ *  - The distance of the move is shorter than the maximum distance without
+ *    retraction.
+ */
+TEST_F(LayerPlanTest, AddTravelOpenNoCombingRetractNoHopShort)
+{
+    settings->add("retraction_enable", "true");
+    settings->add("retraction_min_travel", "1"); //Travels shorter than 1mm should not retract.
+
+    Point destination(500, 500); //Move from 0,0 to 500,500, so travel move is 0.7mm long.
+    GCodePath result = layer_plan.addTravel(destination);
+
+    EXPECT_FALSE(result.retract) << "It must not retract since the travel move is shorter than retraction_min_travel.";
+    EXPECT_FALSE(result.perform_z_hop);
+    EXPECT_FALSE(result.perform_prime);
+    ASSERT_EQ(result.points.size(), 2);
+    EXPECT_EQ(result.points[0], Point(0, 0));
+    EXPECT_EQ(result.points[1], destination);
+}
+
 }
