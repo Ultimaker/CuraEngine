@@ -210,6 +210,83 @@ public:
     }
 };
 
+//Test all combinations of these settings in parameterised tests.
+std::vector<std::string> retraction_enable = {"false", "true"};
+std::vector<std::string> hop_enable = {"false", "true"};
+std::vector<std::string> combing = {"off", "all"};
+std::vector<bool> is_long = {false, true}; //Whether or not the travel move is longer than retraction_min_travel.
+std::vector<bool> is_long_combing = {false, true}; //Whether or not the total travel distance is longer than retraction_combing_max_distance.
+std::vector<std::string> scene = {
+    "open", //The travel move goes through open air. There's nothing in the entire layer.
+    "inside", //The travel move goes through a part on the inside.
+    "obstruction", //The travel move goes through open air, but there's something in the way that needs to be avoided.
+    "inside_obstruction", //The travel move goes through the inside of a part, but there's a hole in the way that needs to be avoided.
+    "other_part" //The travel move goes from one part to another.
+};
+
+/*!
+ * Parameterised testing class that combines many combinations of cases to test
+ * travel moves in. The parameters are in the same order as above:
+ * 1. retraction_enable
+ * 2. hop_enable
+ * 3. combing mode
+ * 4. Long travel move.
+ * 5. Long travel move (combing).
+ * 6. Scene.
+ */
+class AddTravelTest : public LayerPlanTest, public testing::WithParamInterface<std::tuple<std::string, std::string, std::string, bool, bool, std::string>>
+{
+public:
+    /*!
+     * Runs the actual test, adding a travel move to the layer plan with the
+     * specified parameters.
+     * \param parameters The parameter object provided to the test.
+     * \return The resulting g-code path.
+     */
+    GCodePath run(const std::tuple<std::string, std::string, std::string, bool, bool, std::string>& parameters)
+    {
+        settings->add("retraction_enable", std::get<0>(parameters));
+        settings->add("retraction_hop_enable", std::get<1>(parameters));
+        settings->add("retraction_combing", std::get<2>(parameters));
+        settings->add("retraction_min_travel", std::get<3>(parameters) ? "1" : "10000"); //If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
+        storage->retraction_config_per_extruder[0].retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); //Update the copy that the storage has of this.
+        settings->add("retraction_combing_max_distance", std::get<4>(parameters) ? "1" : "10000");
+        //TODO: Set up a scene depending on std::get<5>.
+
+        const Point destination(500000, 500000);
+        return layer_plan.addTravel(destination);
+    }
+};
+
+INSTANTIATE_TEST_CASE_P(AllCombinations, AddTravelTest, testing::Combine(
+    testing::ValuesIn(retraction_enable),
+    testing::ValuesIn(hop_enable),
+    testing::ValuesIn(combing),
+    testing::ValuesIn(is_long),
+    testing::ValuesIn(is_long_combing),
+    testing::ValuesIn(scene)
+));
+
+TEST_P(AddTravelTest, NoRetractionIfDisabled)
+{
+    GCodePath result = run(GetParam());
+
+    if(std::get<0>(GetParam()) == "false") //Retraction is disabled.
+    {
+        EXPECT_FALSE(result.retract);
+    }
+}
+
+TEST_P(AddTravelTest, NoHopIfDisabled)
+{
+    GCodePath result = run(GetParam());
+
+    if(std::get<1>(GetParam()) == "false") //Z hop is disabled.
+    {
+        EXPECT_FALSE(result.perform_z_hop);
+    }
+}
+
 /*!
  * Tests planning a travel move:
  *  - Through open space, no polygons in the way.
