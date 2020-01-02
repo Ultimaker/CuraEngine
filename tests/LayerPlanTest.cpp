@@ -198,4 +198,19 @@ TEST_F(LayerPlanTest, AddTravelOpenNoCombingNoRetractNoHop)
     EXPECT_EQ(result.points[1], destination);
 }
 
+TEST_F(LayerPlanTest, AddTravelOpenNoCombingRetractNoHop)
+{
+    Application::getInstance().current_slice->scene.current_mesh_group->settings.add("retraction_enable", "true");
+
+    Point destination(500000, 500000);
+    GCodePath result = layer_plan.addTravel(destination);
+
+    EXPECT_TRUE(result.retract) << "It must retract since it's going through air.";
+    EXPECT_FALSE(result.perform_z_hop);
+    EXPECT_FALSE(result.perform_prime);
+    ASSERT_EQ(result.points.size(), 2);
+    EXPECT_EQ(result.points[0], Point(0, 0));
+    EXPECT_EQ(result.points[1], destination);
+}
+
 }
