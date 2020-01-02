@@ -198,6 +198,13 @@ TEST_F(LayerPlanTest, AddTravelOpenNoCombingNoRetractNoHop)
     EXPECT_EQ(result.points[1], destination);
 }
 
+/*!
+ * Tests planning a travel move:
+ *  - Through open space, no polygons in the way.
+ *  - Combing is disabled.
+ *  - Retraction is enabled.
+ *  - Z hop is disabled.
+ */
 TEST_F(LayerPlanTest, AddTravelOpenNoCombingRetractNoHop)
 {
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("retraction_enable", "true");
@@ -207,6 +214,30 @@ TEST_F(LayerPlanTest, AddTravelOpenNoCombingRetractNoHop)
 
     EXPECT_TRUE(result.retract) << "It must retract since it's going through air.";
     EXPECT_FALSE(result.perform_z_hop);
+    EXPECT_FALSE(result.perform_prime);
+    ASSERT_EQ(result.points.size(), 2);
+    EXPECT_EQ(result.points[0], Point(0, 0));
+    EXPECT_EQ(result.points[1], destination);
+}
+
+/*!
+ * Tests planning a travel move:
+ *  - Through open space, no polygons in the way.
+ *  - Combing is disabled.
+ *  - Retraction is enabled.
+ *  - Z hop is enabled.
+ */
+TEST_F(LayerPlanTest, AddTravelOpenNoCombingRetractHop)
+{
+    Settings& settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    settings.add("retraction_enable", "true");
+    settings.add("retraction_hop_enabled", "true");
+
+    Point destination(500000, 500000);
+    GCodePath result = layer_plan.addTravel(destination);
+
+    EXPECT_TRUE(result.retract) << "It must retract since it's going through air.";
+    EXPECT_TRUE(result.perform_z_hop) << "It must do a Z hop since it's retracting.";
     EXPECT_FALSE(result.perform_prime);
     ASSERT_EQ(result.points.size(), 2);
     EXPECT_EQ(result.points[0], Point(0, 0));
