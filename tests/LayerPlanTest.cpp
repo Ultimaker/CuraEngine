@@ -267,23 +267,43 @@ INSTANTIATE_TEST_CASE_P(AllCombinations, AddTravelTest, testing::Combine(
     testing::ValuesIn(scene)
 ));
 
+/*!
+ * Test if there are indeed no retractions if retractions are disabled.
+ */
 TEST_P(AddTravelTest, NoRetractionIfDisabled)
 {
     GCodePath result = run(GetParam());
 
     if(std::get<0>(GetParam()) == "false") //Retraction is disabled.
     {
-        EXPECT_FALSE(result.retract);
+        EXPECT_FALSE(result.retract) << "If retraction is disabled it should not retract.";
     }
 }
 
+/*!
+ * Test if there are indeed no Z hops if they are disabled.
+ */
 TEST_P(AddTravelTest, NoHopIfDisabled)
 {
     GCodePath result = run(GetParam());
 
     if(std::get<1>(GetParam()) == "false") //Z hop is disabled.
     {
-        EXPECT_FALSE(result.perform_z_hop);
+        EXPECT_FALSE(result.perform_z_hop) << "If Z hop is disabled it should not hop.";
+    }
+}
+
+/*!
+ * Test if there are no retractions if the travel move is short, regardless of
+ * whether retractions are enabled or not.
+ */
+TEST_P(AddTravelTest, NoRetractionIfShort)
+{
+    GCodePath result = run(GetParam());
+
+    if(!std::get<3>(GetParam())) //Short travel move.
+    {
+        EXPECT_FALSE(result.retract) << "If the travel move is shorter than retraction_min_travel, it should not retract.";
     }
 }
 
