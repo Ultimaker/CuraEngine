@@ -440,4 +440,17 @@ TEST_P(AddTravelTest, NoRetractionShortCombing)
     }
 }
 
+/*!
+ * Tests that we do retract for long combing moves (if enabled).
+ */
+TEST_P(AddTravelTest, RetractionLongCombing)
+{
+    const GCodePath result = run(GetParam());
+
+    if(parameters.combing != "off" && parameters.is_long_combing && parameters.retraction_enable == "true")
+    {
+        EXPECT_FALSE(result.retract) << "Combing move is longer than the retraction_combing_max_distance, so it should retract.";
+    }
+}
+
 }
