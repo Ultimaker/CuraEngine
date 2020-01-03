@@ -379,7 +379,7 @@ INSTANTIATE_TEST_CASE_P(AllCombinations, AddTravelTest, testing::Combine(
  */
 TEST_P(AddTravelTest, NoRetractionIfDisabled)
 {
-    GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if(parameters.retraction_enable == "false")
     {
@@ -392,7 +392,7 @@ TEST_P(AddTravelTest, NoRetractionIfDisabled)
  */
 TEST_P(AddTravelTest, NoHopIfDisabled)
 {
-    GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if(parameters.hop_enable == "false")
     {
@@ -406,7 +406,7 @@ TEST_P(AddTravelTest, NoHopIfDisabled)
  */
 TEST_P(AddTravelTest, NoRetractionIfShort)
 {
-    GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if(!parameters.is_long)
     {
@@ -419,11 +419,24 @@ TEST_P(AddTravelTest, NoRetractionIfShort)
  */
 TEST_P(AddTravelTest, NoCombingRetraction)
 {
-    GCodePath result = run(GetParam());
+    const GCodePath result = run(GetParam());
 
     if(parameters.retraction_enable == "true" && parameters.combing == "off" && parameters.is_long)
     {
         EXPECT_TRUE(result.retract) << "If we don't do combing, we should always retract since we aren't even checking if any walls are crossed.";
+    }
+}
+
+/*!
+ * Tests that we don't retract for short combing moves.
+ */
+TEST_P(AddTravelTest, NoRetractionShortCombing)
+{
+    const GCodePath result = run(GetParam());
+
+    if(parameters.combing != "off" && !parameters.is_long_combing)
+    {
+        EXPECT_FALSE(result.retract) << "Combing move is shorter than the retraction_combing_max_distance, so it shouldn't retract.";
     }
 }
 
