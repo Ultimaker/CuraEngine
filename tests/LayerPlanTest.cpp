@@ -292,7 +292,7 @@ public:
     {
         parameters = AddTravelParameters(combine_parameters);
         settings->add("retraction_enable", parameters.retraction_enable);
-        settings->add("retraction_hop_enable", parameters.hop_enable);
+        settings->add("retraction_hop_enabled", parameters.hop_enable);
         settings->add("retraction_combing", parameters.combing);
         settings->add("retraction_min_travel", parameters.is_long ? "1" : "10000"); //If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
         storage->retraction_config_per_extruder[0].retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); //Update the copy that the storage has of this.
@@ -450,6 +450,27 @@ TEST_P(AddTravelTest, RetractionLongCombing)
     if(parameters.combing != "off" && parameters.is_long_combing && parameters.retraction_enable == "true")
     {
         EXPECT_FALSE(result.retract) << "Combing move is longer than the retraction_combing_max_distance, so it should retract.";
+    }
+}
+
+/*!
+ * Tests that we always hop if retracting (if enabled), except for long combing
+ * moves.
+ */
+TEST_P(AddTravelTest, HopWhenRetracting)
+{
+    const GCodePath result = run(GetParam());
+
+    if(result.retract)
+    {
+        if(parameters.combing != "off" && parameters.is_long_combing && parameters.scene != AddTravelTestScene::OTHER_PART)
+        {
+            EXPECT_FALSE(result.perform_z_hop) << "If combing without hitting any walls, it should not hop, but if the combing move is long it might still retract.";
+        }
+        else if(parameters.hop_enable == "true")
+        {
+            EXPECT_TRUE(result.perform_z_hop) << "If hop is enabled and we retract, we must also hop.";
+        }
     }
 }
 
