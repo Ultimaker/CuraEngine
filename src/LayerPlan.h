@@ -231,6 +231,7 @@ class LayerPlanBuffer; // forward declaration to prevent circular dependency
 class LayerPlan : public NoCopy
 {
     friend class LayerPlanBuffer;
+    friend class AddTravelTest;
 private:
     const SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 

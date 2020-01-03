@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "../src/Application.h" //To provide settings for the layer plan.
+#include "../src/pathPlanning/Comb.h" //To create a combing path around the layer plan.
 #include "../src/LayerPlan.h" //The code under test.
 #include "../src/RetractionConfig.h" //To provide retraction settings.
 #include "../src/Slice.h" //To provide settings for the layer plan.
@@ -48,6 +49,14 @@ public:
      */
     Settings* settings;
 
+    /*!
+     * An empty mesh. You need to add the layers you want to test with yourself.
+     *
+     * Necessary to get per-mesh settings. This fixture doesn't add per-mesh
+     * setting overrides, so the settings are just the global ones.
+     */
+    Mesh mesh;
+
     LayerPlanTest() :
         storage(setUpStorage()),
         layer_plan(
@@ -57,8 +66,8 @@ public:
             /*layer_thickness=*/100,
             /*extruder_nr=*/0,
             fan_speed_layer_time_settings,
-            /*comb_boundary_offset=*/2000,
-            /*comb_move_inside_distance=*/1000,
+            /*comb_boundary_offset=*/20,
+            /*comb_move_inside_distance=*/10,
             /*travel_avoid_distance=*/5000
         )
     {
@@ -110,6 +119,7 @@ public:
         settings->add("machine_center_is_zero", "false");
         settings->add("machine_depth", "1000");
         settings->add("machine_height", "1000");
+        settings->add("machine_nozzle_tip_outer_diameter", "1000");
         settings->add("machine_width", "1000");
         settings->add("material_flow_layer_0", "100");
         settings->add("meshfix_maximum_travel_resolution", "0");
@@ -216,13 +226,14 @@ std::vector<std::string> hop_enable = {"false", "true"};
 std::vector<std::string> combing = {"off", "all"};
 std::vector<bool> is_long = {false, true}; //Whether or not the travel move is longer than retraction_min_travel.
 std::vector<bool> is_long_combing = {false, true}; //Whether or not the total travel distance is longer than retraction_combing_max_distance.
-std::vector<std::string> scene = {
-    "open", //The travel move goes through open air. There's nothing in the entire layer.
-    "inside", //The travel move goes through a part on the inside.
-    "obstruction", //The travel move goes through open air, but there's something in the way that needs to be avoided.
-    "inside_obstruction", //The travel move goes through the inside of a part, but there's a hole in the way that needs to be avoided.
-    "other_part" //The travel move goes from one part to another.
+enum AddTravelTestScene {
+    OPEN, //The travel move goes through open air. There's nothing in the entire layer.
+    INSIDE, //The travel move goes through a part on the inside.
+    OBSTRUCTION, //The travel move goes through open air, but there's something in the way that needs to be avoided.
+    INSIDE_OBSTRUCTION, //The travel move goes through the inside of a part, but there's a hole in the way that needs to be avoided.
+    OTHER_PART //The travel move goes from one part to another.
 };
+std::vector<AddTravelTestScene> scene = {OPEN, INSIDE, OBSTRUCTION, INSIDE_OBSTRUCTION, OTHER_PART};
 
 /*!
  * Parameters for the AddTravelTest class.
@@ -238,13 +249,13 @@ struct AddTravelParameters
     std::string combing;
     bool is_long;
     bool is_long_combing;
-    std::string scene;
+    AddTravelTestScene scene;
 
     /*!
      * Unrolls the parameters.
      * \param parameters The parameters as received by testing::Combine().
      */
-    AddTravelParameters(const std::tuple<std::string, std::string, std::string, bool, bool, std::string>& parameters)
+    AddTravelParameters(const std::tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>& parameters)
     {
         retraction_enable = std::get<0>(parameters);
         hop_enable = std::get<1>(parameters);
@@ -265,11 +276,11 @@ struct AddTravelParameters
  * 5. Long travel move (combing).
  * 6. Scene.
  */
-class AddTravelTest : public LayerPlanTest, public testing::WithParamInterface<std::tuple<std::string, std::string, std::string, bool, bool, std::string>>
+class AddTravelTest : public LayerPlanTest, public testing::WithParamInterface<std::tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>>
 {
 public:
     AddTravelParameters parameters;
-    AddTravelTest() : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, std::string>("false", "false", "off", false, false, "open")) {}
+    AddTravelTest() : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN)) {}
 
     /*!
      * Runs the actual test, adding a travel move to the layer plan with the
@@ -277,7 +288,7 @@ public:
      * \param parameters The parameter object provided to the test.
      * \return The resulting g-code path.
      */
-    GCodePath run(const std::tuple<std::string, std::string, std::string, bool, bool, std::string>& combine_parameters)
+    GCodePath run(const std::tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>& combine_parameters)
     {
         parameters = AddTravelParameters(combine_parameters);
         settings->add("retraction_enable", parameters.retraction_enable);
@@ -286,7 +297,68 @@ public:
         settings->add("retraction_min_travel", parameters.is_long ? "1" : "10000"); //If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
         storage->retraction_config_per_extruder[0].retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); //Update the copy that the storage has of this.
         settings->add("retraction_combing_max_distance", parameters.is_long_combing ? "1" : "10000");
-        //TODO: Set up a scene depending on std::get<5>.
+
+        Polygons slice_data;
+        Polygon slice_poly1;
+        Polygon slice_poly2;
+        switch(parameters.scene)
+        {
+            case OPEN: break; //Nothing to modify if the scene needs to be open.
+            case INSIDE:
+                //Poly1 becomes a square around the start and end position.
+                slice_poly1.add(Point(-100, -100));
+                slice_poly1.add(Point(500100, -100));
+                slice_poly1.add(Point(500100, 500100));
+                slice_poly1.add(Point(-100, 500100));
+                slice_data.add(slice_poly1);
+                break;
+            case OBSTRUCTION:
+                //Poly1 becomes a square in between the start and end position.
+                slice_poly1.add(Point(250000, 240000));
+                slice_poly1.add(Point(260000, 240000));
+                slice_poly1.add(Point(260000, 300000));
+                slice_poly1.add(Point(250000, 300000));
+                slice_data.add(slice_poly1);
+                break;
+            case INSIDE_OBSTRUCTION:
+                //Poly1 becomes a square around the start and end position.
+                slice_poly1.add(Point(-100, -100));
+                slice_poly1.add(Point(500100, -100));
+                slice_poly1.add(Point(500100, 500100));
+                slice_poly1.add(Point(-100, 500100));
+                slice_data.add(slice_poly1);
+                //Poly2 becomes a square hole in between the start and end position.
+                slice_poly2.add(Point(250000, 240000));
+                slice_poly2.add(Point(250000, 300000));
+                slice_poly2.add(Point(260000, 300000));
+                slice_poly2.add(Point(260000, 240000));
+                slice_data.add(slice_poly2);
+                break;
+            case OTHER_PART:
+                //Poly1 becomes a square around the start position.
+                slice_poly1.add(Point(-100, -100));
+                slice_poly1.add(Point(100, -100));
+                slice_poly1.add(Point(100, 100));
+                slice_poly1.add(Point(-100, 100));
+                slice_data.add(slice_poly1);
+                //Poly2 becomes a square around the end position.
+                slice_poly2.add(Point(249900, 249900));
+                slice_poly2.add(Point(250100, 249900));
+                slice_poly2.add(Point(250100, 250100));
+                slice_poly2.add(Point(249900, 249900));
+                slice_data.add(slice_poly2);
+                break;
+        }
+        layer_plan.comb_boundary_inside1 = slice_data;
+        layer_plan.comb_boundary_inside2 = slice_data; //We don't care about the combing accuracy itself, so just use the same for both.
+        if(parameters.combing != "off")
+        {
+            layer_plan.comb = new Comb(*storage, /*layer_nr=*/100, layer_plan.comb_boundary_inside1, layer_plan.comb_boundary_inside2, /*comb_boundary_offset=*/20, /*travel_avoid_distance=*/5000, /*comb_move_inside_distance=*/10);
+        }
+        else
+        {
+            layer_plan.comb = nullptr;
+        }
 
         const Point destination(500000, 500000);
         return layer_plan.addTravel(destination);
