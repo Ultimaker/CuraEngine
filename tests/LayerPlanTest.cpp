@@ -414,4 +414,17 @@ TEST_P(AddTravelTest, NoRetractionIfShort)
     }
 }
 
+/*!
+ * Tests that without combing we do a retraction (if enabled).
+ */
+TEST_P(AddTravelTest, NoCombingRetraction)
+{
+    GCodePath result = run(GetParam());
+
+    if(parameters.retraction_enable == "true" && parameters.combing == "off" && parameters.is_long)
+    {
+        EXPECT_TRUE(result.retract) << "If we don't do combing, we should always retract since we aren't even checking if any walls are crossed.";
+    }
+}
+
 }
