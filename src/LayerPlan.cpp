@@ -472,6 +472,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
     if (!is_first_travel_of_layer && last_planned_position && shorterThen(*last_planned_position - p, retraction_config.retraction_min_travel_distance))
     {
         path->retract = false;
+        path->perform_z_hop = false;
     }
 
     // no combing? retract only when path is not shorter than minimum travel distance
@@ -488,7 +489,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
             moveInsideCombBoundary(innermost_wall_line_width);
         }
         path->retract = retraction_enable;
-        path->perform_z_hop = extruder->settings.get<bool>("retraction_hop_enabled");
+        path->perform_z_hop = retraction_enable && extruder->settings.get<bool>("retraction_hop_enabled");
     }
 
     // must start new travel path as retraction can be enabled or not depending on path length, etc.
