@@ -333,9 +333,34 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     {
         return EFillMethod::GYROID;
     }
+    else if (value == "schwarz_p")
+    {
+        return EFillMethod::SCHWARZ_P;
+    }
+    else if (value == "schwarz_d")
+    {
+        return EFillMethod::SCHWARZ_D;
+    }
     else //Default.
     {
         return EFillMethod::NONE;
+    }
+}
+
+template<> EFillResolution Settings::get<EFillResolution>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "low_resolution")
+    {
+        return EFillResolution::LOW_RESOLUTION;
+    }
+    else if (value == "medium_resolution")
+    {
+        return EFillResolution::MEDIUM_RESOLUTION;
+    }
+    else
+    {
+        return EFillResolution::HIGH_RESOLUTION;
     }
 }
 

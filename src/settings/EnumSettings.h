@@ -27,7 +27,16 @@ enum class EFillMethod
     CROSS,
     CROSS_3D,
     GYROID,
+    SCHWARZ_P,
+    SCHWARZ_D,
     NONE  // NOTE: Should remain last! (May be used in testing to enumarate the enum.)
+};
+
+enum class EFillResolution
+{
+    LOW_RESOLUTION,
+    MEDIUM_RESOLUTION,
+    HIGH_RESOLUTION
 };
 
 /*!
