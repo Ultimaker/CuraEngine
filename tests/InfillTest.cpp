@@ -192,9 +192,16 @@ namespace cura
          *  - that require the SierpinskyInfillProvider class, since these test classes aren't equipped to handle that yet
          *    this can be considered a TODO for these testcases here, not in the methods themselves
          *    (these are; Cross, Cross-3D and Cubic-Subdivision)
-         *  - Gyroid, since it doesn't handle the 100% infill and related cases well
+         *  - Gyroid, Schwarz P and Schwarz D since they don't handle the 100% infill and related cases well
          */
-        std::vector<EFillMethod> skip_methods = { EFillMethod::CROSS, EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV, EFillMethod::GYROID };
+        std::vector<EFillMethod> skip_methods = {
+            EFillMethod::CROSS,
+            EFillMethod::CROSS_3D,
+            EFillMethod::CUBICSUBDIV,
+            EFillMethod::GYROID,
+            EFillMethod::SCHWARZ_P,
+            EFillMethod::SCHWARZ_D
+        };
 
         std::vector<EFillMethod> methods;
         for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method)
