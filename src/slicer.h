@@ -7,6 +7,7 @@
 #include <queue>
 #include <unordered_map>
 #include "utils/polygon.h"
+#include "settings/EnumSettings.h"
 
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
@@ -492,6 +493,9 @@ public:
 
     Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer> *adaptive_layers);
 
+
+private:
+
     /*!
      * \brief Linear interpolation between coordinates of a line.
      *
@@ -504,7 +508,13 @@ public:
      * \param y1 The Y coordinate of the second end point of the line segment.
      * \return The Y coordinate of the point to find.
      */
-    coord_t interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1) const;
+    static coord_t interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1)
+    {
+        const coord_t dx_01 = x1 - x0;
+        coord_t num = (y1 - y0) * (x - x0);
+        num += num > 0 ? dx_01 / 2 : -dx_01 / 2; // add in offset to round result
+        return y0 + num / dx_01;
+    }
 
     /*!
      * \brief Project a triangle onto a 2D layer.
@@ -518,9 +528,23 @@ public:
      * \param z The Z coordinate of the layer to intersect with.
      * \return A slicer segment.
      */
-    SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z) const;
+    static SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z);;
 
-    void dumpSegmentsToHTML(const char* filename);
+    /*! Create an array of "z bboxes" for each face. */
+    static std::vector<std::pair<int32_t, int32_t>> buildZHeightsForFaces(const Mesh &mesh);
+
+    /*! Create the polygons in layers. */
+    static void makePolygons(Mesh &mesh, SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers);
+
+    /* Creates a vector of layers and set their z value. */
+    static std::vector<SlicerLayer> buildLayersWithHeight(size_t slice_layer_count, SlicingTolerance slicing_tolerance,
+        coord_t initial_layer_thickness, coord_t thickness, bool use_variable_layer_heights,
+        const std::vector<AdaptiveLayer> *adaptive_layers);
+
+    /* Creates the segments and write them into the layers. */
+    static void buildSegments(const Mesh &mesh, const std::vector<std::pair<int32_t, int32_t>> &zbbox, 
+        std::vector<SlicerLayer>& layers);
+
 };
 
 }//namespace cura
