@@ -83,6 +83,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     { // calculate the mesh order for each extruder
         const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
+        mesh_order_per_extruder.clear(); // Might be not empty in case of sequential printing. 
         mesh_order_per_extruder.reserve(extruder_count);
         for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
