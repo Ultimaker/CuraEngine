@@ -966,6 +966,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     { // add prime tower if it hasn't already been added
         int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
         addPrimeTower(storage, gcode_layer, prev_extruder);
+		addPrimeTowerFillTheGap(storage, gcode_layer);
     }
 
     if (!disable_path_optimisation)
@@ -2665,6 +2666,16 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
     {
         return;
     }
+
+	// 'De-prime the old extruder (before change)
+	if (previous_extruder != extruder_nr)
+	{
+		if (!gcode_layer.getPrimeTowerIsPlanned(previous_extruder))
+		{
+			addPrimeTower(storage, gcode_layer, previous_extruder);
+		}
+	}
+
     const bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
 
     if (extruder_changed)
@@ -2717,6 +2728,16 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
     }
 
     storage.primeTower.addToGcode(storage, gcode_layer, prev_extruder, gcode_layer.getExtruder());
+}
+
+void FffGcodeWriter::addPrimeTowerFillTheGap(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
+{
+	if (!Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("prime_tower_enable"))
+	{
+		return;
+	}
+
+	storage.primeTower.addToGcodePlugTheGap(storage, gcode_layer);
 }
 
 void FffGcodeWriter::finalize()

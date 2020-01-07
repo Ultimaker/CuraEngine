@@ -13,7 +13,7 @@
 #include <cmath> // fabs
 #include <limits> // int64_t.min
 #include <list>
-
+#include <iterator>
 #include <initializer_list>
 
 #include "IntPoint.h"

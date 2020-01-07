@@ -691,6 +691,13 @@ private:
      */
     void addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int prev_extruder) const;
     
+	/*!
+	* Add the prime tower gcode for missing paths
+	* \param [in] storage where the slice data is stored.
+	* \param gcodeLayer The initial planning of the gcode of the layer.
+	*/
+	void addPrimeTowerFillTheGap(const SliceDataStorage& storage, LayerPlan& gcodeLayer) const;
+
     /*!
      * Add the end gcode and set all temperatures to zero.
      */

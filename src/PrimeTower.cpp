@@ -214,6 +214,51 @@ void PrimeTower::addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t ext
     gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
 }
 
+void PrimeTower::addToGcodePlugTheGap(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
+{
+	if (!enabled)
+	{
+		return;
+	}
+
+	const LayerIndex layer_nr = gcode_layer.getLayerNr();
+	if (layer_nr == 0)
+	{
+		return;
+	}
+
+	const size_t current_extruder_nr = gcode_layer.getExtruder();
+	const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[current_extruder_nr];
+
+	// Check if there is any prime tower action for this layer; 
+	// if not - don't fill up
+	bool mind_the_gap = false;
+	for (size_t extrudr_nr : extruder_order)
+	{
+		if (gcode_layer.getPrimeTowerIsPlanned(extrudr_nr))
+			mind_the_gap = true;
+	}
+
+	if (!mind_the_gap)
+		return;
+
+	// Go over each extruder; 
+	// if the path hasn't been planned - add it's path
+	// using the current extruder
+	for (size_t extrudr_nr : extruder_order)
+	{
+		if (!gcode_layer.getPrimeTowerIsPlanned(extrudr_nr))
+		{
+			// Get the polygon config of the extruder
+			const ExtrusionMoves& pattern = pattern_per_extruder[extrudr_nr];
+
+			gcode_layer.addPolygonsByOptimizer(pattern.polygons, config);
+			gcode_layer.addLinesByOptimizer(pattern.lines, config, SpaceFillType::Lines);
+		}
+	}
+}
+
+
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
     const Polygons outside_polygon = outer_poly.getOutsidePolygons();

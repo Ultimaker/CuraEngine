@@ -85,6 +85,13 @@ public:
      * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
      */
     void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int prev_extruder, const int new_extruder) const;
+	
+	/*!
+	* Add path for the prime tower to the \p gcode_layer
+	* for polygon data of extruders that haven't been used in the current layer
+	* will use the current tool
+	*/
+	void addToGcodePlugTheGap(const SliceDataStorage& storage, LayerPlan& gcode_layer) const;
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.
