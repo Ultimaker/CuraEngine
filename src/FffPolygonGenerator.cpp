@@ -550,20 +550,25 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
+        const FillPerimeterGapMode fill_perimeter_gaps_mode = mesh.settings.get<FillPerimeterGapMode>("fill_perimeter_gaps");
         constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
-        const bool fill_perimeter_gaps = mesh.settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
-            && !mesh_group_settings.get<bool>("magic_spiralize");
+        const bool fill_perimeter_gaps = fill_perimeter_gaps_mode != FillPerimeterGapMode::NOWHERE && !mesh_group_settings.get<bool>("magic_spiralize");
         bool filter_out_tiny_gaps = mesh.settings.get<bool>("filter_out_tiny_gaps");
 
         if (!fill_perimeter_gaps)
         {
             continue;
         }
+
+        const bool fill_skin_and_infill_gaps = fill_perimeter_gaps_mode != FillPerimeterGapMode::ONLY_WALL_GAPS;
+        const bool fill_infill_gaps = fill_perimeter_gaps_mode != FillPerimeterGapMode::WALL_AND_SKIN_GAPS;
+
         for (LayerIndex layer_nr = 0; layer_nr < static_cast<LayerIndex>(mesh.layers.size()); layer_nr++)
         {
             const ExtruderTrain& train_wall_x = mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr");
             bool fill_gaps_between_inner_wall_and_skin_or_infill =
-                mesh.settings.get<coord_t>("infill_line_distance") > 0
+                fill_skin_and_infill_gaps
+                && mesh.settings.get<coord_t>("infill_line_distance") > 0
                 && mesh.settings.get<coord_t>("infill_overlap_mm") >= 0
                 && !(mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CONCENTRIC
                     && (mesh.settings.get<bool>("alternate_extra_perimeter") || (layer_nr == 0 && train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor") > 1.0))
@@ -599,7 +604,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                 }
 
                 // gap between inner wall and skin/infill
-                if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0)
+                if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0 && (fill_infill_gaps || part.skin_parts.size() > 0))
                 {
                     const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
 

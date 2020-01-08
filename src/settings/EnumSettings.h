@@ -78,6 +78,8 @@ enum class ESurfaceMode
 enum class FillPerimeterGapMode
 {
     NOWHERE,
+    ONLY_WALL_GAPS,
+    WALL_AND_SKIN_GAPS,
     EVERYWHERE
 };
 

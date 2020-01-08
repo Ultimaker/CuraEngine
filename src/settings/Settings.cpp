@@ -446,6 +446,14 @@ template<> FillPerimeterGapMode Settings::get<FillPerimeterGapMode>(const std::s
     {
         return FillPerimeterGapMode::EVERYWHERE;
     }
+    else if (get<std::string>(key) == "wall_and_skin_gaps")
+    {
+        return FillPerimeterGapMode::WALL_AND_SKIN_GAPS;
+    }
+    else if (get<std::string>(key) == "only_wall_gaps")
+    {
+        return FillPerimeterGapMode::ONLY_WALL_GAPS;
+    }
     else //Default.
     {
         return FillPerimeterGapMode::NOWHERE;
