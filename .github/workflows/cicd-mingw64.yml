@@ -1,0 +1,53 @@
+---
+name: CI/CD for mingw64 packages
+on: [push, pull_request]
+jobs:
+  build:
+    name: Build packages
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    container: debian:buster
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get upgrade -y
+        apt-get install -y curl git cmake gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
+        update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+        update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+        curl -1sLf 'https://dl.cloudsmith.io/public/ultimaker/cura-public/cfg/setup/bash.deb.sh' | bash
+        apt-get install -y cura-libprotobuf-dev cura-libprotobuf-mingw-w64-dev cura-libarcus-mingw-w64-dev
+    - name: Build debian package
+      run: |
+        docker/build-mingw64.sh
+    - name: Upload build directory
+      uses: actions/upload-artifact@v1
+      with:
+        name: build
+        path: build/
+  publish:
+    name: Publish packages
+    if: github.event_name != 'pull_request'
+    needs: build
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    container: python:3.7-slim-buster
+    env:
+      CLOUDSMITH_API_KEY: "${{ secrets.CLOUDSMITH_API_KEY }}"
+      CLOUDSMITH_DEB_REPO: "${{ secrets.CLOUDSMITH_DEB_REPO }}"
+      CLOUDSMITH_RAW_REPO: "${{ secrets.CLOUDSMITH_RAW_REPO }}"
+    steps:
+    - name: Check repository
+      uses: actions/checkout@v2
+    - name: Prepare cloudsmith-cli
+      run: |
+        pip3 install --upgrade cloudsmith-cli
+    - name: Download artifacts
+      uses: actions/download-artifact@v1
+      with:
+        name: build
+    - name: Publish debian package
+      run: |
+        docker/publish-packages.sh
