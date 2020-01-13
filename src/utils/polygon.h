@@ -965,21 +965,12 @@ private:
     void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const;
 public:
     /*!
-     * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
+     * Removes polygons with area smaller than \p min_area_size (note that min_area_size is in mm^2, not in micron^2).
+     * Unless \p remove_holes is true, holes are not removed even if their area is below \p min_area_size.
+     * However, holes that are contained within outlines whose area is below the threshold are removed though.
      */
-    void removeSmallAreas(double minAreaSize)
-    {
-        Polygons& thiss = *this;
-        for(unsigned int i=0; i<size(); i++)
-        {
-            double area = INT2MM(INT2MM(fabs(thiss[i].area())));
-            if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
-            {
-                remove(i);
-                i -= 1;
-            }
-        }
-    }
+    void removeSmallAreas(const double min_area_size, const bool remove_holes = false);
+
     /*!
      * Removes overlapping consecutive line segments which don't delimit a positive area.
      */
