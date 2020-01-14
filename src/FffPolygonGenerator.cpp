@@ -1061,6 +1061,14 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         }
         break;
     }
+
+    // Also apply maximum_[deviation|resolution] to skirt/brim.
+    const coord_t line_segment_resolution = train.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t line_segment_deviation = train.settings.get<coord_t>("meshfix_maximum_deviation");
+    for (Polygons& polygons : storage.skirt_brim)
+    {
+        polygons.simplify(line_segment_resolution, line_segment_deviation);
+    }
 }
 
 
