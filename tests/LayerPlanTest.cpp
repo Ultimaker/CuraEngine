@@ -338,20 +338,31 @@ public:
         Polygons slice_data;
         switch(parameters.scene)
         {
-            case OPEN: break; //Nothing to modify if the scene needs to be open.
+            case OPEN:
+                layer_plan.setIsInside(false);
+                layer_plan.was_inside = false;
+                break;
             case INSIDE:
                 slice_data.add(around_start_end);
+                layer_plan.setIsInside(true);
+                layer_plan.was_inside = true;
                 break;
             case OBSTRUCTION:
                 slice_data.add(between);
+                layer_plan.setIsInside(false);
+                layer_plan.was_inside = false;
                 break;
             case INSIDE_OBSTRUCTION:
                 slice_data.add(around_start_end);
                 slice_data.add(between_hole);
+                layer_plan.setIsInside(true);
+                layer_plan.was_inside = true;
                 break;
             case OTHER_PART:
                 slice_data.add(around_start);
                 slice_data.add(around_end);
+                layer_plan.setIsInside(true);
+                layer_plan.was_inside = true;
                 break;
         }
         layer_plan.comb_boundary_inside1 = slice_data;
