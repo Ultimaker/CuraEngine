@@ -116,10 +116,11 @@ public:
         settings->add("layer_height", "0.1");
         settings->add("layer_start_x", "0");
         settings->add("layer_start_y", "0");
+        settings->add("limit_support_retractions", "false");
         settings->add("machine_center_is_zero", "false");
         settings->add("machine_depth", "1000");
         settings->add("machine_height", "1000");
-        settings->add("machine_nozzle_tip_outer_diameter", "1000");
+        settings->add("machine_nozzle_tip_outer_diameter", "1");
         settings->add("machine_width", "1000");
         settings->add("material_flow_layer_0", "100");
         settings->add("meshfix_maximum_travel_resolution", "0");
@@ -151,6 +152,7 @@ public:
         settings->add("retraction_extrusion_window", "10");
         settings->add("retraction_hop", "1.5");
         settings->add("retraction_hop_enabled", "false");
+        settings->add("retraction_hop_only_when_collides", "false");
         settings->add("retraction_min_travel", "0");
         settings->add("retraction_prime_speed", "12");
         settings->add("retraction_retract_speed", "11");
