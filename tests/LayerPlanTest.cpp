@@ -490,4 +490,26 @@ TEST_P(AddTravelTest, HopWhenRetracting)
     }
 }
 
+/*!
+ * Tests that we make a retraction if combing is enabled but fails to find a
+ * valid path.
+ */
+TEST_P(AddTravelTest, RetractIfCombingImpossible)
+{
+    const GCodePath result = run(GetParam());
+
+    if(parameters.retraction_enable != "true" || !parameters.is_long || parameters.combing == "off")
+    {
+        return; //Not interested if retraction is disabled, the move is too short to retract or it's not combing.
+    }
+    if(parameters.scene == AddTravelTestScene::OTHER_PART)
+    {
+        EXPECT_TRUE(result.retract) << "If traveling to another part, it should retract.";
+    }
+    else if(!parameters.is_long_combing)
+    {
+        EXPECT_FALSE(result.retract) << "If combing is possible, it should not retract (unless the travel move is too long).";
+    }
+}
+
 }
