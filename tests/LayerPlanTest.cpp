@@ -279,8 +279,43 @@ struct AddTravelParameters
 class AddTravelTest : public LayerPlanTest, public testing::WithParamInterface<std::tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>>
 {
 public:
+    //Parameters to test with.
     AddTravelParameters parameters;
-    AddTravelTest() : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN)) {}
+
+    //Some obstacles that can be placed in the scene.
+    Polygon around_start_end; //Around both the start and end position.
+    Polygon around_start; //Only around the start position.
+    Polygon around_end; //Only around the end position.
+    Polygon between; //Between the start and end position.
+    Polygon between_hole; //Negative polygon between the start and end position (a hole).
+
+    AddTravelTest() : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
+    {
+        around_start_end.add(Point(-100, -100));
+        around_start_end.add(Point(500100, -100));
+        around_start_end.add(Point(500100, 500100));
+        around_start_end.add(Point(-100, 500100));
+
+        around_start.add(Point(-100, -100));
+        around_start.add(Point(100, -100));
+        around_start.add(Point(100, 100));
+        around_start.add(Point(-100, 100));
+
+        around_end.add(Point(249900, 249900));
+        around_end.add(Point(250100, 249900));
+        around_end.add(Point(250100, 250100));
+        around_end.add(Point(249900, 249900));
+
+        between.add(Point(250000, 240000));
+        between.add(Point(260000, 240000));
+        between.add(Point(260000, 300000));
+        between.add(Point(250000, 300000));
+
+        between_hole.add(Point(250000, 240000));
+        between_hole.add(Point(250000, 300000));
+        between_hole.add(Point(260000, 300000));
+        between_hole.add(Point(260000, 240000));
+    }
 
     /*!
      * Runs the actual test, adding a travel move to the layer plan with the
@@ -299,54 +334,22 @@ public:
         settings->add("retraction_combing_max_distance", parameters.is_long_combing ? "1" : "10000");
 
         Polygons slice_data;
-        Polygon slice_poly1;
-        Polygon slice_poly2;
         switch(parameters.scene)
         {
             case OPEN: break; //Nothing to modify if the scene needs to be open.
             case INSIDE:
-                //Poly1 becomes a square around the start and end position.
-                slice_poly1.add(Point(-100, -100));
-                slice_poly1.add(Point(500100, -100));
-                slice_poly1.add(Point(500100, 500100));
-                slice_poly1.add(Point(-100, 500100));
-                slice_data.add(slice_poly1);
+                slice_data.add(around_start_end);
                 break;
             case OBSTRUCTION:
-                //Poly1 becomes a square in between the start and end position.
-                slice_poly1.add(Point(250000, 240000));
-                slice_poly1.add(Point(260000, 240000));
-                slice_poly1.add(Point(260000, 300000));
-                slice_poly1.add(Point(250000, 300000));
-                slice_data.add(slice_poly1);
+                slice_data.add(between);
                 break;
             case INSIDE_OBSTRUCTION:
-                //Poly1 becomes a square around the start and end position.
-                slice_poly1.add(Point(-100, -100));
-                slice_poly1.add(Point(500100, -100));
-                slice_poly1.add(Point(500100, 500100));
-                slice_poly1.add(Point(-100, 500100));
-                slice_data.add(slice_poly1);
-                //Poly2 becomes a square hole in between the start and end position.
-                slice_poly2.add(Point(250000, 240000));
-                slice_poly2.add(Point(250000, 300000));
-                slice_poly2.add(Point(260000, 300000));
-                slice_poly2.add(Point(260000, 240000));
-                slice_data.add(slice_poly2);
+                slice_data.add(around_start_end);
+                slice_data.add(between_hole);
                 break;
             case OTHER_PART:
-                //Poly1 becomes a square around the start position.
-                slice_poly1.add(Point(-100, -100));
-                slice_poly1.add(Point(100, -100));
-                slice_poly1.add(Point(100, 100));
-                slice_poly1.add(Point(-100, 100));
-                slice_data.add(slice_poly1);
-                //Poly2 becomes a square around the end position.
-                slice_poly2.add(Point(249900, 249900));
-                slice_poly2.add(Point(250100, 249900));
-                slice_poly2.add(Point(250100, 250100));
-                slice_poly2.add(Point(249900, 249900));
-                slice_data.add(slice_poly2);
+                slice_data.add(around_start);
+                slice_data.add(around_end);
                 break;
         }
         layer_plan.comb_boundary_inside1 = slice_data;
