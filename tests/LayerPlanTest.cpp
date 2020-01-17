@@ -266,6 +266,24 @@ struct AddTravelParameters
         is_long_combing = std::get<4>(parameters);
         scene = std::get<5>(parameters);
     }
+
+    /*!
+     * Return whether the travel move goes through open air (outside of parts).
+     * \return Whether the travel move goes through open air (outside of parts).
+     */
+    bool throughOutside() const
+    {
+        return scene == AddTravelTestScene::OPEN || scene == AddTravelTestScene::OBSTRUCTION || scene == AddTravelTestScene::OTHER_PART;
+    }
+
+    /*!
+     * Return whether the travel move is forced to penetrate any walls.
+     * \return Whether the travel move is forced to penetrate any walls.
+     */
+    bool throughWalls() const
+    {
+        return scene == AddTravelTestScene::OTHER_PART;
+    }
 };
 
 /*!
@@ -450,7 +468,7 @@ TEST_P(AddTravelTest, NoRetractionShortCombing)
 {
     const GCodePath result = run(GetParam());
 
-    if(parameters.combing != "off" && !parameters.is_long_combing)
+    if(parameters.combing != "off" && !parameters.is_long_combing && !parameters.throughOutside())
     {
         EXPECT_FALSE(result.retract) << "Combing move is shorter than the retraction_combing_max_distance, so it shouldn't retract.";
     }
