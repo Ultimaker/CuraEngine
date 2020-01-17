@@ -520,9 +520,9 @@ TEST_P(AddTravelTest, RetractIfCombingImpossible)
     {
         return; //Not interested if retraction is disabled, the move is too short to retract or it's not combing.
     }
-    if(parameters.scene == AddTravelTestScene::OTHER_PART)
+    if(parameters.throughOutside())
     {
-        EXPECT_TRUE(result.retract) << "If traveling to another part, it should retract.";
+        EXPECT_TRUE(result.retract) << "If traveling through air, it should retract.";
     }
     else if(!parameters.is_long_combing)
     {
