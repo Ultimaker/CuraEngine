@@ -497,7 +497,7 @@ TEST_P(AddTravelTest, HopWhenRetracting)
 
     if(result.retract)
     {
-        if(parameters.combing != "off" && parameters.is_long_combing && parameters.scene != AddTravelTestScene::OTHER_PART)
+        if(parameters.combing != "off" && parameters.is_long_combing && !parameters.throughWalls() && !parameters.throughOutside())
         {
             EXPECT_FALSE(result.perform_z_hop) << "If combing without hitting any walls, it should not hop, but if the combing move is long it might still retract.";
         }
