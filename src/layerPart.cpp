@@ -54,10 +54,37 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     {
         result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
     }
+    const coord_t hole_offset = settings.get<coord_t>("hole_xy_offset");
     for(unsigned int i=0; i<result.size(); i++)
     {
         storageLayer.parts.emplace_back();
-        storageLayer.parts[i].outline = result[i];
+        if (hole_offset != 0)
+        {
+            // holes are to be expanded or shrunk
+            PolygonsPart outline;
+            Polygons holes;
+            for (const PolygonRef poly : result[i])
+            {
+                if (poly.orientation())
+                {
+                    outline.add(poly);
+                }
+                else
+                {
+                    holes.add(poly.offset(hole_offset));
+                }
+            }
+            for (PolygonRef hole : holes.unionPolygons().intersection(outline))
+            {
+                hole.reverse();
+                outline.add(hole);
+            }
+            storageLayer.parts[i].outline = outline;
+        }
+        else
+        {
+            storageLayer.parts[i].outline = result[i];
+        }
         storageLayer.parts[i].boundaryBox.calculate(storageLayer.parts[i].outline);
     }
 }
