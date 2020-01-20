@@ -505,6 +505,10 @@ TEST_P(AddTravelTest, HopWhenRetracting)
         {
             EXPECT_TRUE(result.perform_z_hop) << "If hop is enabled and we retract, we must also hop.";
         }
+        else
+        {
+            EXPECT_FALSE(result.perform_z_hop) << "Hop is disabled so even though we retract we will not hop.";
+        }
     }
 }
 
