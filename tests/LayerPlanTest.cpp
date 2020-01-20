@@ -483,7 +483,7 @@ TEST_P(AddTravelTest, RetractionLongCombing)
 
     if(parameters.combing != "off" && parameters.is_long_combing && parameters.retraction_enable == "true")
     {
-        EXPECT_FALSE(result.retract) << "Combing move is longer than the retraction_combing_max_distance, so it should retract.";
+        EXPECT_TRUE(result.retract) << "Combing move is longer than the retraction_combing_max_distance, so it should retract.";
     }
 }
 
