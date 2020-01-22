@@ -40,6 +40,9 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         part->print_outline = part->outline;
         return;
     }
+    
+    const coord_t wall_collapse_0 = settings.get<coord_t>("wall_collapse_0");
+    const coord_t wall_collapse_x = settings.get<coord_t>("wall_collapse_x");
 
     const coord_t wall_0_inset = settings.get<coord_t>("wall_0_inset");
     coord_t line_width_0 = settings.get<coord_t>("wall_line_width_0");
@@ -58,15 +61,15 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         part->insets.push_back(Polygons());
         if (i == 0)
         {
-            part->insets[0] = part->outline.offset(-line_width_0 / 2 - wall_0_inset);
+            part->insets[0] = part->outline.offset(-line_width_0 / 2 - wall_0_inset - wall_collapse_0).offset(wall_collapse_0);
         }
         else if (i == 1)
         {
-            part->insets[1] = part->insets[0].offset(-line_width_0 / 2 + wall_0_inset - line_width_x / 2);
+            part->insets[1] = part->insets[0].offset(-line_width_0 / 2 + wall_0_inset - line_width_x / 2 - wall_collapse_x).offset(wall_collapse_x);
         }
         else
         {
-            part->insets[i] = part->insets[i - 1].offset(-line_width_x);
+            part->insets[i] = part->insets[i - 1].offset(-line_width_x - wall_collapse_x).offset(wall_collapse_x);
         }
 
         const size_t inset_part_count = part->insets[i].size();
