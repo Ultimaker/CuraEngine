@@ -54,7 +54,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         const ExtruderTrain& train_wall_x = settings.get<ExtruderTrain&>("wall_x_extruder_nr");
         line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
     }
-
+    
     const bool recompute_outline_based_on_outer_wall = (settings.get<bool>("support_enable") || settings.get<bool>("support_tree_enable")) && !settings.get<bool>("fill_outline_gaps");
     for(size_t i = 0; i < inset_count; i++)
     {
@@ -83,15 +83,15 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
             Polygons alternative_inset;
             if (i == 0)
             {
-                alternative_inset = part->outline.offset(-(line_width_0 - try_smaller) / 2 - wall_0_inset);
+                alternative_inset = part->outline.offset(-(line_width_0 - try_smaller) / 2 - wall_0_inset - wall_collapse_0).offset(wall_collapse_0);
             }
             else if (i == 1)
             {
-                alternative_inset = part->insets[0].offset(-(line_width_0 - try_smaller) / 2 + wall_0_inset - line_width_x / 2);
+                alternative_inset = part->insets[0].offset(-(line_width_0 - try_smaller) / 2 + wall_0_inset - line_width_x / 2 - wall_collapse_x).offset(wall_collapse_x);
             }
             else
             {
-                alternative_inset = part->insets[i - 1].offset(-(line_width_x - try_smaller));
+                alternative_inset = part->insets[i - 1].offset(-(line_width_x - try_smaller) - wall_collapse_x).offset(wall_collapse_x);
             }
             if (alternative_inset.size() < inset_part_count - minimum_part_saving) //Significantly fewer parts (saves more than 3 parts).
             {
