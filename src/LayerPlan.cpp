@@ -813,7 +813,9 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     const bool wall_min_flow_retract = mesh.settings.get<bool>("wall_min_flow_retract");
     const coord_t small_feature_max_length = mesh.settings.get<coord_t>("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && wall.shorterThan(small_feature_max_length);
-    const Ratio small_feature_speed_factor = mesh.settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
+    Ratio small_feature_speed_factor = mesh.settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
+    const Velocity min_speed = fan_speed_layer_time_settings_per_extruder[getLastPlannedExtruderTrain()->extruder_nr].cool_min_speed;
+    small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -1276,9 +1278,9 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         {
             if (path.isTravelPath())
                 continue;
-            double speed = path.config->getSpeed() * factor;
+            double speed = path.config->getSpeed() * path.speed_factor * factor;
             if (speed < minimalSpeed)
-                factor = minimalSpeed / path.config->getSpeed();
+                factor = minimalSpeed / (path.config->getSpeed() * path.speed_factor);
         }
 
         //Only slow down for the minimal time if that will be slower.
@@ -1356,7 +1358,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
             {
                 material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
             }
-            double thisTime = length / path.config->getSpeed();
+            double thisTime = length / (path.config->getSpeed() * path.speed_factor);
             *path_time_estimate += thisTime;
             p0 = p1;
         }
