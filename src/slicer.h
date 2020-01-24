@@ -508,13 +508,7 @@ private:
      * \param y1 The Y coordinate of the second end point of the line segment.
      * \return The Y coordinate of the point to find.
      */
-    static coord_t interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1)
-    {
-        const coord_t dx_01 = x1 - x0;
-        coord_t num = (y1 - y0) * (x - x0);
-        num += num > 0 ? dx_01 / 2 : -dx_01 / 2; // add in offset to round result
-        return y0 + num / dx_01;
-    }
+    static coord_t interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1);
 
     /*!
      * \brief Project a triangle onto a 2D layer.
@@ -530,19 +524,39 @@ private:
      */
     static SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z);;
 
-    /*! Create an array of "z bboxes" for each face. */
+    /*! Creates an array of "z bounding boxes" for each face. 
+    * \param[in] mesh The mesh which is analyzed.
+    * \return z heights aka z bounding boxes of the faces.
+    */
     static std::vector<std::pair<int32_t, int32_t>> buildZHeightsForFaces(const Mesh &mesh);
 
-    /*! Create the polygons in layers. */
-    static void makePolygons(Mesh &mesh, SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers);
+    /*! Creates the polygons in layers. 
+    * \param[in] mesh The mesh which is analyzed.
+    * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
+    * \param[in, out] layers The polygon are created here.
+    */
+    static void makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers);
 
-    /* Creates a vector of layers and set their z value. */
+    /*! Creates a vector of layers and set their z value. 
+    * \param[in] mesh The mesh which is analyzed.
+    * \param[in] slice_layer_count The amount of layers which shall be sliced.
+    * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
+    * \param[in] initial_layer_thickness Thickness of the first layer.
+    * \param[in] thickness Thickness of the layers (apart the first one).
+    * \param[in] use_variable_layer_heights Shall we use adaptive layer heights.
+    * \param[in] adaptive_layers Adaptive layers (if use_variable_layer_heights).
+    * \return layers with set z values.
+    */
     static std::vector<SlicerLayer> buildLayersWithHeight(size_t slice_layer_count, SlicingTolerance slicing_tolerance,
         coord_t initial_layer_thickness, coord_t thickness, bool use_variable_layer_heights,
-        const std::vector<AdaptiveLayer> *adaptive_layers);
+        const std::vector<AdaptiveLayer>* adaptive_layers);
 
-    /* Creates the segments and write them into the layers. */
-    static void buildSegments(const Mesh &mesh, const std::vector<std::pair<int32_t, int32_t>> &zbbox, 
+    /*! Creates the segments and write them into the layers. 
+    * \param[in] mesh The mesh which is analyzed.
+    * \param[in] zbboxes The z part of the bounding boxes of the faces of the mesh.
+    * \param[in, out] layers The segments are created here.
+    */
+    static void buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>> &zbboxes,
         std::vector<SlicerLayer>& layers);
 
 };

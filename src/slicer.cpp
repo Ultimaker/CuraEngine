@@ -814,12 +814,13 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
     log("slice make polygons took %.3f seconds\n", slice_timer.restart());
 }
 
-void Slicer::buildSegments(const Mesh &mesh, const std::vector<std::pair<int32_t, int32_t>> &zbbox,
+void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>> &zbbox,
     std::vector<SlicerLayer>& layers) 
 {
     // OpenMP
 #pragma omp parallel for default(none) shared(mesh, zbbox, layers)
-    for (int layer_nr = 0; layer_nr < layers.size(); layer_nr++)
+    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
+    for (int layer_nr = 0; layer_nr < static_cast<int>(layers.size()); layer_nr++)
     {
         int32_t z = layers[layer_nr].z;
         layers[layer_nr].segments.reserve(100);
@@ -906,7 +907,7 @@ void Slicer::buildSegments(const Mesh &mesh, const std::vector<std::pair<int32_t
 
 std::vector<SlicerLayer> Slicer::buildLayersWithHeight(size_t slice_layer_count, SlicingTolerance slicing_tolerance,
     coord_t initial_layer_thickness, coord_t thickness, bool use_variable_layer_heights,
-    const std::vector<AdaptiveLayer> *adaptive_layers)
+    const std::vector<AdaptiveLayer>* adaptive_layers)
 {
     std::vector<SlicerLayer> layers_res;
 
@@ -941,7 +942,7 @@ std::vector<SlicerLayer> Slicer::buildLayersWithHeight(size_t slice_layer_count,
     return layers_res;
 }
 
-void Slicer::makePolygons(Mesh &mesh, SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers)
+void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers)
 {
     std::vector<SlicerLayer>& layers_ref = layers; // force layers not to be copied into the threads
 
@@ -999,7 +1000,7 @@ void Slicer::makePolygons(Mesh &mesh, SlicingTolerance slicing_tolerance, std::v
 }
 
 
-std::vector<std::pair<int32_t, int32_t>> Slicer::buildZHeightsForFaces(const Mesh &mesh) 
+std::vector<std::pair<int32_t, int32_t>> Slicer::buildZHeightsForFaces(const Mesh& mesh) 
 {
     std::vector<std::pair<int32_t, int32_t>> zHeights;
     zHeights.reserve(mesh.faces.size());
@@ -1017,12 +1018,24 @@ std::vector<std::pair<int32_t, int32_t>> Slicer::buildZHeightsForFaces(const Mes
 
         // find the minimum and maximum z point		
         int32_t minZ = p0.z;
-        if (p1.z < minZ) minZ = p1.z;
-        if (p2.z < minZ) minZ = p2.z;
+        if (p1.z < minZ) 
+        {
+            minZ = p1.z;
+        }
+        if (p2.z < minZ) 
+        {
+            minZ = p2.z;
+        }
 
         int32_t maxZ = p0.z;
-        if (p1.z > maxZ) maxZ = p1.z;
-        if (p2.z > maxZ) maxZ = p2.z;
+        if (p1.z > maxZ) 
+        {
+            maxZ = p1.z;
+        }
+        if (p2.z > maxZ) 
+        {
+            maxZ = p2.z;
+        }
 
         zHeights.emplace_back(std::make_pair(minZ, maxZ));
     }
@@ -1042,6 +1055,13 @@ SlicerSegment Slicer::project2D(const Point3& p0, const Point3& p1, const Point3
     return seg;
 }
 
+coord_t Slicer::interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1)
+{
+    const coord_t dx_01 = x1 - x0;
+    coord_t num = (y1 - y0) * (x - x0);
+    num += num > 0 ? dx_01 / 2 : -dx_01 / 2; // add in offset to round result
+    return y0 + num / dx_01;
+}
 
 
 }//namespace cura
