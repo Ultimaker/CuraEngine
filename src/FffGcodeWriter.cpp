@@ -2105,7 +2105,7 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage, LayerPlan& 
     }
 
     const bool fill_perimeter_gaps =
-        mesh.settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+        mesh.settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") > FillPerimeterGapMode::ONLY_WALL_GAPS
         && !Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize");
 
     const EFillMethod pattern = mesh.settings.get<EFillMethod>("roofing_pattern");
@@ -2132,7 +2132,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
     const bool generate_perimeter_gaps =
-        mesh.settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+        mesh.settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") > FillPerimeterGapMode::ONLY_WALL_GAPS
         && !mesh_group_settings.get<bool>("magic_spiralize");
 
     const size_t layer_nr = gcode_layer.getLayerNr();
