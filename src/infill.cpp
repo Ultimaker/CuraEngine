@@ -278,6 +278,7 @@ void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons&
     while (prev_inset->size() > 0)
     {
         new_inset = prev_inset->offset(-inset_value);
+        new_inset.simplify();
         result.add(new_inset);
         if (perimeter_gaps)
         {
