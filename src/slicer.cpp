@@ -787,8 +787,9 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 }
 
-Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_count, 
+Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_count, 
                bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
+    : mesh(i_mesh)
 {
     const SlicingTolerance slicing_tolerance = mesh->settings.get<SlicingTolerance>("slicing_tolerance");
     const coord_t initial_layer_thickness = 
@@ -810,7 +811,7 @@ Slicer::Slicer(Mesh* mesh, const coord_t thickness, const size_t slice_layer_cou
 
     log("slice of mesh took %.3f seconds\n", slice_timer.restart());
 
-    makePolygons(*mesh, slicing_tolerance, layers);
+    makePolygons(*i_mesh, slicing_tolerance, layers);
     log("slice make polygons took %.3f seconds\n", slice_timer.restart());
 }
 
