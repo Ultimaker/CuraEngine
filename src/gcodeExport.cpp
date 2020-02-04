@@ -156,6 +156,8 @@ const std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor) const
             return "Repetier";
         case EGCodeFlavor::REPRAP:
             return "RepRap";
+        case EGCodeFlavor::SMOOTHIE:
+            return "Smoothie";
         case EGCodeFlavor::MARLIN:
         default:
             return "Marlin";
@@ -236,7 +238,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 
             prefix << ";NOZZLE_DIAMETER:" << Application::getInstance().current_slice->scene.extruders[0].settings.get<double>("machine_nozzle_size") << new_line;
         }
-        else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
+        else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC || flavor == EGCodeFlavor::SMOOTHIE)
         {
             prefix << ";Filament used: ";
             if (filament_used.size() > 0)
@@ -1233,6 +1235,11 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
     assert(temperature >= 0);
 #endif // ASSERT_INSANE_OUTPUT
     *output_stream << " S" << PrecisionedDouble{1, temperature} << new_line;
+    if (extruder != current_extruder && flavor == EGCodeFlavor::SMOOTHIE)
+    {
+        //Smoothie changes tools every time a "T" command is read - even on a M104 line, so we need to switch back to the active tool.
+        *output_stream << "T" << current_extruder << new_line;
+    }
     if (wait && flavor == EGCodeFlavor::MAKERBOT)
     {
         //Makerbot doesn't use M109 for heat-and-wait. Instead, use M104 and then wait using M116.

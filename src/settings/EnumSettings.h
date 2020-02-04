@@ -191,6 +191,15 @@ enum class EGCodeFlavor
  * Real RepRap GCode suitable for printers using RepRap firmware (e.g. Duet controllers)
  **/
     REPRAP = 8,
+/**
+ * Smoothie flavored GGode is suitable for printers running Smoothieware firmware.
+ *  Marlin based GCode with a few notable exceptions such toolchange behavior that changes tools whenever a "T" command is passed to adhere to NIST gcode spec (Smoothieware also runs CNC mills and lasers).
+ *  G0 for moves, G1 for extrusion.
+ *  E values give mm of filament extrusion.
+ *  Retraction is done on E values with G1. Start/end code is added.
+ *  M106 Sxxx and M107 are used to turn the fan on/off.
+  **/
+    SMOOTHIE = 9,
 };
 
 } //Cura namespace.
