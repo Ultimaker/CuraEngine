@@ -1383,7 +1383,7 @@ void GCodeExport::ResetLastEValueAfterWipe(size_t extruder)
 
 void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
 {
-    Point3 prev_position = currentPosition;
+    const Point3 prev_position = currentPosition;
     writeComment("WIPE_SCRIPT_BEGIN");
 
     if (wipe_config.retraction_enable)
