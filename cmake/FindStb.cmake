@@ -42,8 +42,10 @@ else()
         endif()
 
         include(ExternalProject)
+        # Stb's commits in early February seems to cause the engine to fail compilation on Mac.
         ExternalProject_Add(stb
             GIT_REPOSITORY "https://github.com/nothings/stb.git"
+            GIT_TAG d5d052c806eee2ca1f858cb58b2f062d9fa25b90
             UPDATE_DISCONNECTED TRUE
             CONFIGURE_COMMAND "" #We don't want to actually go and build/test/generate it. Just need to download the headers.
             BUILD_COMMAND ""
