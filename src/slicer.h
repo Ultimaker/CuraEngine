@@ -81,7 +81,7 @@ protected:
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      * \param[in] start_segment_idx The index into SlicerLayer::segments for the first segment from which to start the polygon loop
      */
-    void makeBasicPolygonLoop(Polygons& open_polylines, unsigned int start_segment_idx);
+    void makeBasicPolygonLoop(Polygons& open_polylines, const size_t start_segment_idx);
 
     /*!
      * Get the next segment connected to the end of \p segment.
@@ -91,7 +91,7 @@ protected:
      * \param[in] segment The segment from which to start looking for the next
      * \param[in] start_segment_idx The index to the segment which when conected to \p segment will immediately stop looking for further candidates.
      */
-    int getNextSegmentIdx(const SlicerSegment& segment, unsigned int start_segment_idx);
+    int getNextSegmentIdx(const SlicerSegment& segment, const size_t start_segment_idx) const;
 
     /*!
      * Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons.
@@ -399,7 +399,7 @@ private:
      * \param[in] start_segment_idx The index of the segment that started this polyline.
      */
     int tryFaceNextSegmentIdx(const SlicerSegment& segment,
-                              int face_idx, unsigned int start_segment_idx) const;
+                              const int face_idx, const size_t start_segment_idx) const;
 
     /*!
      * Find possible allowed stitches in goodness order.

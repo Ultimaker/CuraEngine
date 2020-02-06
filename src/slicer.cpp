@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stdio.h>
@@ -15,15 +15,16 @@
 #include "utils/SparsePointGridInclusive.h"
 
 
-namespace cura {
+namespace cura
+{
 
-int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance between two line segments regarded as connected
-int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
-int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
+constexpr int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance between two line segments regarded as connected
+constexpr int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
+constexpr int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
 void SlicerLayer::makeBasicPolygonLoops(Polygons& open_polylines)
 {
-    for(unsigned int start_segment_idx = 0; start_segment_idx < segments.size(); start_segment_idx++)
+    for(size_t start_segment_idx = 0; start_segment_idx < segments.size(); start_segment_idx++)
     {
         if (!segments[start_segment_idx].addedToPolygon)
         {
@@ -34,7 +35,7 @@ void SlicerLayer::makeBasicPolygonLoops(Polygons& open_polylines)
     segments.clear();
 }
 
-void SlicerLayer::makeBasicPolygonLoop(Polygons& open_polylines, unsigned int start_segment_idx)
+void SlicerLayer::makeBasicPolygonLoop(Polygons& open_polylines, const size_t start_segment_idx)
 {
 
     Polygon poly;
@@ -56,14 +57,14 @@ void SlicerLayer::makeBasicPolygonLoop(Polygons& open_polylines, unsigned int st
     open_polylines.add(poly);
 }
 
-int SlicerLayer::tryFaceNextSegmentIdx(const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const
+int SlicerLayer::tryFaceNextSegmentIdx(const SlicerSegment& segment, const int face_idx, const size_t start_segment_idx) const
 {
     decltype(face_idx_to_segment_idx.begin()) it;
     auto it_end = face_idx_to_segment_idx.end();
     it = face_idx_to_segment_idx.find(face_idx);
     if (it != it_end)
     {
-        int segment_idx = (*it).second;
+        const int segment_idx = (*it).second;
         Point p1 = segments[segment_idx].start;
         Point diff = segment.end - p1;
         if (shorterThen(diff, largest_neglected_gap_first_phase))
@@ -83,14 +84,14 @@ int SlicerLayer::tryFaceNextSegmentIdx(const SlicerSegment& segment, int face_id
     return -1;
 }
 
-int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, unsigned int start_segment_idx)
+int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, const size_t start_segment_idx) const
 {
     int next_segment_idx = -1;
 
-    bool segment_ended_at_edge = segment.endVertex == nullptr;
+    const bool segment_ended_at_edge = segment.endVertex == nullptr;
     if (segment_ended_at_edge)
     {
-        int face_to_try = segment.endOtherFaceIdx;
+        const int face_to_try = segment.endOtherFaceIdx;
         if (face_to_try == -1)
         {
             return -1;
@@ -104,7 +105,7 @@ int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, unsigned int st
         const std::vector<uint32_t> &faces_to_try = segment.endVertex->connected_faces;
         for (int face_to_try : faces_to_try)
         {
-            int result_segment_idx =
+            const int result_segment_idx =
                 tryFaceNextSegmentIdx(segment, face_to_try, start_segment_idx);
             if (result_segment_idx == static_cast<int>(start_segment_idx))
             {
@@ -123,10 +124,10 @@ int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, unsigned int st
 
 void SlicerLayer::connectOpenPolylines(Polygons& open_polylines)
 {
-    bool allow_reverse = false;
+    constexpr bool allow_reverse = false;
     // Search a bit fewer cells but at cost of covering more area.
     // Since acceptance area is small to start with, the extra is unlikely to hurt much.
-    coord_t cell_size = largest_neglected_gap_first_phase * 2;
+    constexpr coord_t cell_size = largest_neglected_gap_first_phase * 2;
     connectOpenPolylinesImpl(open_polylines, largest_neglected_gap_second_phase, cell_size, allow_reverse);
 }
 
