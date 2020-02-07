@@ -1145,7 +1145,7 @@ void GCodeExport::writeFanCommand(double speed)
     }
     if(flavor == EGCodeFlavor::MAKERBOT)
     {
-        if(speed > 50)
+        if(speed >= 50)
         {
             *output_stream << "M126 T0" << new_line; //Makerbot cannot PWM the fan speed...
         }
