@@ -31,7 +31,7 @@ bool GCodePath::isTravelPath() const
 
 double GCodePath::getExtrusionMM3perMM() const
 {
-    return flow * config->getExtrusionMM3perMM();
+    return flow * config->getExtrusionMM3perMM() * config->getFlowRatio();
 }
 
 coord_t GCodePath::getLineWidthForLayerView() const
