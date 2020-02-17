@@ -72,7 +72,7 @@ MergeInfillLines::MergeInfillLines(ExtruderPlan& plan)
         }
         else
         {
-            average_first_path += first_path_start;
+            average_first_path = first_path_start;
             for (const Point& point : first_path.points)
             {
                 average_first_path += point;
