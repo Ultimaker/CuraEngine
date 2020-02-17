@@ -1248,12 +1248,14 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     Polygons supportLayer_supportee = mesh.layers[layer_idx].getOutlines();
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
-    Polygons supportLayer_supporter = storage.getLayerOutlines(layer_idx-1, no_support, no_prime_tower);
+    const double min_supporting_model_area = mesh.settings.get<double>("min_supporting_model_area");
+    Polygons supportLayer_supporter = storage.getLayerOutlines(layer_idx-1, no_support, no_prime_tower, false, false, min_supporting_model_area);
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const AngleRadians support_angle = mesh.settings.get<AngleRadians>("support_angle");
     const double tan_angle = tan(support_angle) - 0.01;  //The X/Y component of the support angle. 0.01 to make 90 degrees work too.
     const coord_t max_dist_from_lower_layer = tan_angle * layer_height; //Maximum horizontal distance that can be bridged.
+
     Polygons supportLayer_supported =  supportLayer_supporter.offset(max_dist_from_lower_layer);
     Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
 

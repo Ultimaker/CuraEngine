@@ -165,18 +165,20 @@ public:
      * Get the all outlines of all layer parts in this layer.
      * 
      * \param external_polys_only Whether to only include the outermost outline of each layer part
+     * \param min_part_area The minimum area (mm^2) a part must have in order for it to be included in the result
      * \return A collection of all the outline polygons
      */
-    Polygons getOutlines(bool external_polys_only = false) const;
+    Polygons getOutlines(bool external_polys_only = false, double min_part_area = 0) const;
 
     /*!
      * Get the all outlines of all layer parts in this layer.
      * Add those polygons to @p result.
      * 
      * \param external_polys_only Whether to only include the outermost outline of each layer part
+     * \param min_part_area The minimum area (mm^2) a part must have in order for it to be included in the result
      * \param result The result: a collection of all the outline polygons
      */
-    void getOutlines(Polygons& result, bool external_polys_only = false) const;
+    void getOutlines(Polygons& result, bool external_polys_only = false, double min_part_area = 0) const;
 
     /*!
      * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
@@ -343,8 +345,9 @@ public:
      * outline.
      * \param external_polys_only Whether to disregard all hole polygons.
      * \param for_brim Whether the outline is to be used to construct the brim.
+     * \param min_part_area The minimum area (mm^2) a part must have in order for it to be included in the result
      */
-    Polygons getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false, const bool for_brim = false) const;
+    Polygons getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false, const bool for_brim = false, double min_part_area = 0) const;
 
     /*!
      * Get the extruders used.
