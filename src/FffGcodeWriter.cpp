@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
@@ -1631,18 +1631,27 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
+        std::optional<Point> near_start_location;
+        if (mesh.settings.get<bool>("infill_randomize_start_location"))
+        {
+            srand(gcode_layer.getLayerNr());
+            if(!infill_lines.empty())
+            {
+                near_start_location = infill_lines[rand() % infill_lines.size()][0];
+            }
+            else
+            {
+                PolygonRef start_poly = infill_polygons[rand() % infill_polygons.size()];
+                near_start_location = start_poly[rand() % start_poly.size()];
+                std::cout << "Near start location: " << near_start_location->X << "," << near_start_location->Y << std::endl;
+            }
+        }
         if (!infill_polygons.empty())
         {
             constexpr bool force_comb_retract = false;
             // start the infill polygons at the nearest vertex to the current location
             gcode_layer.addTravel(PolygonUtils::findNearestVert(gcode_layer.getLastPlannedPositionOrStartingPosition(), infill_polygons).p(), force_comb_retract);
-            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0]);
-        }
-        std::optional<Point> near_start_location;
-        if (mesh.settings.get<bool>("infill_randomize_start_location"))
-        {
-            srand(gcode_layer.getLayerNr());
-            near_start_location = infill_lines[rand() % infill_lines.size()][0];
+            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], nullptr, ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
         }
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
