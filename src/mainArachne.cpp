@@ -398,7 +398,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
     polys.simplify();
     polys = polys.unionPolygons();
     polys.processEvenOdd();
-    polys = polys.offset(-20).offset(40).offset(-20);
+//     polys = polys.offset(-20).offset(40).offset(-20);
 //     polys.removeSmallAreas(INT2MM(nozzle_size) * INT2MM(nozzle_size));
 //     polys = polys.offset(20);
 //     polys.simplify();
@@ -426,6 +426,8 @@ void test(std::string input_outline_filename, std::string output_prefix)
             }
         }
     }
+    polys.removeDegenerateVerts();
+    polys.simplify();
 
 #ifdef DEBUG
     {
