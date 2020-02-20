@@ -37,6 +37,8 @@ public:
     };
 
     coord_t optimal_width; //! optimal bead width
+    
+    coord_t default_transition_length; //! the length of the region to smoothly transfer between bead counts
 
     /*!
      * The maximum angle between outline segments smaller than which we are going to add transitions
@@ -44,8 +46,9 @@ public:
      */
     float transitioning_angle;
 
-    BeadingStrategy(coord_t optimal_width, float transitioning_angle = M_PI / 3)
+    BeadingStrategy(coord_t optimal_width, coord_t default_transition_length, float transitioning_angle = M_PI / 3)
     : optimal_width(optimal_width)
+    , default_transition_length(default_transition_length)
     , transitioning_angle(transitioning_angle)
     {
     }
@@ -88,7 +91,7 @@ public:
         {
             return 10;
         }
-        return optimal_width;
+        return default_transition_length;
     }
 
     /*!

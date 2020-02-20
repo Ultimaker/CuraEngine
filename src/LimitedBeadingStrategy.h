@@ -20,7 +20,7 @@ public:
     const coord_t max_bead_count;
     const BeadingStrategy* parent;
     LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategy* parent)
-    : BeadingStrategy(parent->optimal_width, parent->transitioning_angle)
+    : BeadingStrategy(parent->optimal_width, /*default_transition_length=*/-1, parent->transitioning_angle)
     , max_bead_count(max_bead_count)
     , parent(parent)
     {

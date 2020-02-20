@@ -23,6 +23,7 @@ namespace arachne
 
 extern double inward_distributed_center_size;
 extern int max_bead_count;
+extern coord_t default_transition_length;
 
 enum class StrategyType
 {

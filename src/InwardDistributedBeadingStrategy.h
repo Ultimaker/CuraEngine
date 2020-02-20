@@ -19,8 +19,8 @@ public:
     /*!
      * \param distribution_radius the radius (in number of beads) over which to distribute the discrepancy between the feature size and the optimal thickness
      */
-    InwardDistributedBeadingStrategy(const coord_t optimal_width, float transitioning_angle, float distribution_radius)
-    : DistributedBeadingStrategy(optimal_width, transitioning_angle)
+    InwardDistributedBeadingStrategy(const coord_t optimal_width, coord_t default_transition_length, float transitioning_angle, float distribution_radius)
+    : DistributedBeadingStrategy(optimal_width, default_transition_length, transitioning_angle)
     , one_over_distribution_radius_squared(1.0f / distribution_radius * 1.0f / distribution_radius)
     {
     }

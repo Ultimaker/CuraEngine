@@ -22,7 +22,7 @@ public:
      * Takes responsibility for deleting \param parent
      */
     WideningBeadingStrategy(BeadingStrategy* parent, const coord_t min_input_width, const coord_t min_output_width)
-    : BeadingStrategy(parent->optimal_width, parent->transitioning_angle)
+    : BeadingStrategy(parent->optimal_width, /*default_transition_length=*/-1, parent->transitioning_angle)
     , parent(parent)
     , min_input_width(min_input_width)
     , min_output_width(min_output_width)

@@ -7,6 +7,7 @@ namespace arachne
 
 double inward_distributed_center_size = 2;
 int max_bead_count = -1;
+coord_t default_transition_length = 400;
 
 StrategyType toStrategyType(char c)
 {
@@ -59,11 +60,11 @@ BeadingStrategy* BeadingStrategyHelper::makeStrategy(StrategyType type, coord_t 
             case StrategyType::NaiveStrategy:      ret = new NaiveBeadingStrategy(prefered_bead_width);                                      break;
             case StrategyType::Constant:           ret = new ConstantBeadingStrategy(prefered_bead_width, 4, .99 * M_PI);                    break;
             case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(prefered_bead_width, transitioning_angle);       break;
-            case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(prefered_bead_width, transitioning_angle);           break;
-            case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, transitioning_angle, inward_distributed_center_size);  break;
-            case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(prefered_bead_width, max_bead_count, transitioning_angle); break;
+            case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(prefered_bead_width, default_transition_length, transitioning_angle);           break;
+            case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, default_transition_length, transitioning_angle, inward_distributed_center_size);  break;
+            case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(prefered_bead_width, default_transition_length, max_bead_count, transitioning_angle); break;
             case StrategyType::SingleBead:         ret = new SingleBeadBeadingStrategy(prefered_bead_width, transitioning_angle);            break;
-            case StrategyType::OutlineAccuracy:    ret = new LimitedBeadingStrategy(max_bead_count, new OutlineAccuracyBeadingStrategy(prefered_bead_width, prefered_bead_width * 3 / 4, prefered_bead_width / 2, transitioning_angle)); break;
+            case StrategyType::OutlineAccuracy:    ret = new OutlineAccuracyBeadingStrategy(prefered_bead_width, default_transition_length, prefered_bead_width * 3 / 4, prefered_bead_width / 2, transitioning_angle); break;
             default:
                 logError("Cannot make strategy!\n");
                 return nullptr;

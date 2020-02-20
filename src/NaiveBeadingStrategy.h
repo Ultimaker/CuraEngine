@@ -16,7 +16,7 @@ class NaiveBeadingStrategy : public BeadingStrategy
 {
 public:
     NaiveBeadingStrategy(const coord_t bead_width)
-    : BeadingStrategy(bead_width, 0)
+    : BeadingStrategy(bead_width, /*default_transition_length=*/ 10, 0)
     {
     }
     virtual ~NaiveBeadingStrategy() override

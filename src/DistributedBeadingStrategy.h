@@ -15,8 +15,8 @@ namespace arachne
 class DistributedBeadingStrategy : public BeadingStrategy
 {
 public:
-    DistributedBeadingStrategy(const coord_t optimal_width, float transitioning_angle)
-    : BeadingStrategy(optimal_width, transitioning_angle)
+    DistributedBeadingStrategy(const coord_t optimal_width, coord_t default_transition_length, float transitioning_angle)
+    : BeadingStrategy(optimal_width, default_transition_length, transitioning_angle)
     {
     }
     virtual ~DistributedBeadingStrategy() override

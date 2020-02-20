@@ -19,8 +19,8 @@ class OutlineAccuracyBeadingStrategy : public BeadingStrategy
     const coord_t optimal_outer_width;
     const coord_t min_width;
 public:
-    OutlineAccuracyBeadingStrategy(const coord_t optimal_width, const coord_t optimal_outer_width, const coord_t min_width, float transitioning_angle)
-    : BeadingStrategy(optimal_width, transitioning_angle)
+    OutlineAccuracyBeadingStrategy(const coord_t optimal_width, coord_t default_transition_length, const coord_t optimal_outer_width, const coord_t min_width, float transitioning_angle)
+    : BeadingStrategy(optimal_width, default_transition_length, transitioning_angle)
     , optimal_outer_width(optimal_outer_width)
     , min_width(min_width)
     {

@@ -61,6 +61,7 @@ static TCLAP::ValueArg<std::string> cmd__strategy_set("s", "strat", "Set of stra
 static TCLAP::ValueArg<double> cmd__discretization_step_size("d", "discretization", "Discretization step size", /*req=*/ false, /*default=*/0.2, "mm");
 static TCLAP::ValueArg<double> cmd__transition_filter_dist("f", "transitionfilter", "Smallest distance between alternating bead counts", /*req=*/ false, /*default=*/1.0, "mm");
 static TCLAP::ValueArg<double> cmd__beading_propagation_transition_dist("t", "bptd", "Beading propagation transition distance", /*req=*/ false, /*default=*/0.4, "mm");
+static TCLAP::ValueArg<double> cmd__default_transition_length("l", "transitionlength", "Default bead transition length.", /*req=*/ false, /*default=*/0.4, "mm");
 static TCLAP::ValueArg<bool> cmd__reduce_extrusion_line_overlap("r", "reduce", "Cut off part of the ends of extrusion lines in order to reduce overlap", /*req=*/ false, /*default=*/true, "boolean");
 static TCLAP::SwitchArg cmd__filter_outermost_marked_edges("", "filterouter", "Unmark all outer edges of the Voronoi Diagram, so that marked edges never touch the outline", /*req=*/ false);
 static TCLAP::ValueArg<double> cmd__min_bead_width("", "minw", "Minimal toolpath bead width for geometry with a diameter smaller than the nozzle size", /*req=*/ false, /*default=*/0, "mm");
@@ -109,6 +110,7 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__discretization_step_size);
         gCmdLine.add(cmd__transition_filter_dist);
         gCmdLine.add(cmd__beading_propagation_transition_dist);
+        gCmdLine.add(cmd__default_transition_length);
         gCmdLine.add(cmd__reduce_extrusion_line_overlap);
         gCmdLine.add(cmd__filter_outermost_marked_edges);
         gCmdLine.add(cmd__min_bead_width);
@@ -137,6 +139,7 @@ bool readCommandLine(int argc, char **argv)
         discretization_step_size = MM2INT(cmd__discretization_step_size.getValue());
         transition_filter_dist = MM2INT(cmd__transition_filter_dist.getValue());
         beading_propagation_transition_dist = MM2INT(cmd__beading_propagation_transition_dist.getValue());
+        default_transition_length = MM2INT(cmd__default_transition_length.getValue());
         reduce_overlapping_segments = cmd__reduce_extrusion_line_overlap.getValue();
         filter_outermost_marked_edges = cmd__filter_outermost_marked_edges.getValue();
         if (cmd__min_bead_width.getValue() > 0.0) min_bead_width = MM2INT(cmd__min_bead_width.getValue());
