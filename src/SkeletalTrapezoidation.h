@@ -301,12 +301,12 @@ protected:
         Beading beading;
         coord_t dist_to_bottom_source;
         coord_t dist_from_top_source;
-        bool is_finished;
+        bool is_upward_propagated_only;
         BeadingPropagation(const Beading& beading)
         : beading(beading)
         , dist_to_bottom_source(0)
         , dist_from_top_source(0)
-        , is_finished(false)
+        , is_upward_propagated_only(false)
         {}
     };
 

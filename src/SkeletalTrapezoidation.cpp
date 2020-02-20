@@ -2010,6 +2010,7 @@ void SkeletalTrapezoidation::propagateBeadingsUpward(std::vector<edge_t*>& upwar
         coord_t length = vSize(upward_edge->to->p - upward_edge->from->p);
         BeadingPropagation upper_beading = lower_beading;
         upper_beading.dist_to_bottom_source += length;
+        upper_beading.is_upward_propagated_only = true;
         auto pair = node_to_beading.emplace(upward_edge->to, upper_beading);
         assert(upper_beading.beading.total_thickness <= upward_edge->to->data.distance_to_boundary * 2);
     }
@@ -2022,6 +2023,7 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(std::vector<edge_t*>& upw
         // transfer beading information to lower nodes
         if (!upward_quad_mid->data.isMarked())
         {
+            // for equidistant edge: propagate from known beading to node with unknown beading
             if (upward_quad_mid->from->data.distance_to_boundary == upward_quad_mid->to->data.distance_to_boundary
                 && node_to_beading.find(upward_quad_mid->from) != node_to_beading.end()
                 && node_to_beading.find(upward_quad_mid->to) == node_to_beading.end()
@@ -2042,8 +2044,8 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, std
     coord_t length = vSize(edge_to_peak->to->p - edge_to_peak->from->p);
     BeadingPropagation& top_beading = getBeading(edge_to_peak->to, node_to_beading, beading_strategy);
     assert(top_beading.beading.total_thickness >= edge_to_peak->to->data.distance_to_boundary * 2);
-    top_beading.is_finished = true;
-    
+    assert( ! top_beading.is_upward_propagated_only);
+
     auto it = node_to_beading.find(edge_to_peak->from);
     if (it == node_to_beading.end())
     { // set new beading if there is no beading associatied with the node yet
@@ -2075,6 +2077,7 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, std
         {
             Beading merged_beading = interpolate(top_beading.beading, ratio_of_top, bottom_beading.beading, edge_to_peak->from->data.distance_to_boundary);
             bottom_beading = BeadingPropagation(merged_beading);
+            bottom_beading.is_upward_propagated_only = false;
             assert(merged_beading.total_thickness >= edge_to_peak->from->data.distance_to_boundary * 2);
         }
 #ifdef DEBUG
