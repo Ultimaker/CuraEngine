@@ -262,7 +262,15 @@ protected:
     std::pair<Point, Point> getSource(const edge_t& edge);
     bool isEndOfMarking(const edge_t& edge) const;
 
-    bool isLocalMaximum(const node_t& node, bool equal_distance_result = false) const;
+    /*!
+     * Check whether this node has a locally maximal distance_to_boundary
+     */
+    bool isLocalMaximum(const node_t& node) const;
+
+    /*!
+     * Check (recursively) whether there is any upward edge from the distance_to_boundary of the from of the \param edge
+     */
+    bool canGoUp(const edge_t* edge) const;
 
     bool isMarked(const node_t* node) const;
 
