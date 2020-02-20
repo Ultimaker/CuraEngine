@@ -10,7 +10,7 @@
 
 #include <tclap/CmdLine.h> // command line argument parser
 
-#include <boost/version.hpp>
+#include "BoostInterface.hpp"
 
 #include <unordered_set>
 #include <unordered_map>
@@ -398,39 +398,53 @@ void test(std::string input_outline_filename, std::string output_prefix)
     
     // prevent any problem in the input polygon
     // prevent single polygon to be two areas connected only by a zero width channel, i.e. the polygon has two points at the same location
-    polys.simplify();
-    polys = polys.unionPolygons();
-    polys.processEvenOdd();
-//     polys = polys.offset(-20).offset(40).offset(-20);
-//     polys.removeSmallAreas(INT2MM(nozzle_size) * INT2MM(nozzle_size));
-//     polys = polys.offset(20);
-//     polys.simplify();
-//     polys.processEvenOdd();
-    polys.removeDegenerateVerts();
+//     boost::polygon::polygon_90_concept::
+    
+    bool boost_fixing = true;
+    if (boost_fixing)
     {
-        std::unordered_set<Point> poly_locations;
-        for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
+        CPolygonSet boost_polys = toBoostType(polys);
+        CPolygonSet fixed;
+        fixed = assign(fixed, boost_polys); // assigning does fixing according to documentation
+        polys = toPolygons(fixed);
+        polys.simplify();
+    }
+    else
+    {
+        polys.simplify();
+        polys = polys.unionPolygons();
+        polys.processEvenOdd();
+    //     polys = polys.offset(-20).offset(40).offset(-20);
+    //     polys.removeSmallAreas(INT2MM(nozzle_size) * INT2MM(nozzle_size));
+    //     polys = polys.offset(20);
+    //     polys.simplify();
+    //     polys.processEvenOdd();
+        polys.removeDegenerateVerts();
         {
-            PolygonRef poly = polys[poly_idx];
-            for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
+            std::unordered_set<Point> poly_locations;
+            for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
             {
-                Point p = poly[point_idx];
-                if (poly_locations.find(p) != poly_locations.end())
+                PolygonRef poly = polys[poly_idx];
+                for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
                 {
-                    PolygonsPointIndex here(&polys, poly_idx, point_idx);
-                    PolygonsPointIndex prev = here.prev();
-                    PolygonsPointIndex next = here.next();
-                    Point bit_back = here.p() + normal(prev.p() - here.p(), 5);
-                    Point bit_forward = here.p() + normal(next.p() - here.p(), 5);
-                    poly[point_idx] = bit_forward;
-                    poly.insert(point_idx, bit_back);
+                    Point p = poly[point_idx];
+                    if (poly_locations.find(p) != poly_locations.end())
+                    {
+                        PolygonsPointIndex here(&polys, poly_idx, point_idx);
+                        PolygonsPointIndex prev = here.prev();
+                        PolygonsPointIndex next = here.next();
+                        Point bit_back = here.p() + normal(prev.p() - here.p(), 5);
+                        Point bit_forward = here.p() + normal(next.p() - here.p(), 5);
+                        poly[point_idx] = bit_forward;
+                        poly.insert(point_idx, bit_back);
+                    }
+                    poly_locations.emplace(p);
                 }
-                poly_locations.emplace(p);
             }
         }
+        polys.removeDegenerateVerts();
+        polys.simplify();
     }
-    polys.removeDegenerateVerts();
-    polys.simplify();
 
 #ifdef DEBUG
     {
