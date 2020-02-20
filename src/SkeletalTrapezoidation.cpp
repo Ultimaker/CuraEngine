@@ -8,6 +8,8 @@
 #include <queue>
 #include <functional>
 
+#include "BoostInterface.hpp"
+
 #include "utils/VoronoiUtils.h"
 
 #include "utils/linearAlg2D.h"
@@ -17,47 +19,6 @@
 #include "utils/logoutput.h"
 
 #include "utils/macros.h"
-
-namespace boost {
-namespace polygon {
-
-template <>
-struct geometry_concept<arachne::Point>
-{
-    typedef point_concept type;
-};
-
-template <>
-struct point_traits<arachne::Point>
-{
-    typedef int coordinate_type;
-
-    static inline coordinate_type get(
-            const arachne::Point& point, orientation_2d orient)
-    {
-        return (orient == HORIZONTAL) ? point.X : point.Y;
-    }
-};
-
-template <>
-struct geometry_concept<arachne::SkeletalTrapezoidation::Segment>
-{
-    typedef segment_concept type;
-};
-
-template <>
-struct segment_traits<arachne::SkeletalTrapezoidation::Segment>
-{
-    typedef arachne::coord_t coordinate_type;
-    typedef arachne::Point point_type;
-    static inline point_type get(const arachne::SkeletalTrapezoidation::Segment& segment, direction_1d dir) {
-        return dir.to_int() ? segment.p() : segment.next().p();
-    }
-};
-}    // polygon
-}    // boost
-
-
 
 namespace arachne
 {
