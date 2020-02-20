@@ -76,7 +76,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
         for (auto poly_it = polys.begin(); poly_it != polys.end(); ++poly_it)
         {
             assert(poly_it->junctions.size() > 1);
-            if (poly_it->computeLength() > 10)
+            if (poly_it->computeLength() > snap_dist)
             {
                 for (bool front : { true, false })
                 {
@@ -177,6 +177,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
                     other_end.polyline->junctions.clear();
                     changed_side_is_front = 0;
                 }
+
                 if (changed_side_is_front != -1)
                 {
                     ExtrusionLineEndRef line_untouched_end(end_point.inset_idx, end_point.polyline, changed_side_is_front);
@@ -212,7 +213,8 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
     {
         for (auto poly_it = polys.begin(); poly_it != polys.end();)
         {
-            if (poly_it->junctions.empty())
+            if (poly_it->junctions.empty()
+                || poly_it->computeLength() < 2 * snap_dist) // too small segments might have been overlooked byecause of the fuzzy nature of matching end points to each other
             {
                 poly_it = polys.erase(poly_it);
             }
