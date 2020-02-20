@@ -1643,7 +1643,6 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             {
                 PolygonRef start_poly = infill_polygons[rand() % infill_polygons.size()];
                 near_start_location = start_poly[rand() % start_poly.size()];
-                std::cout << "Near start location: " << near_start_location->X << "," << near_start_location->Y << std::endl;
             }
         }
         if (!infill_polygons.empty())
