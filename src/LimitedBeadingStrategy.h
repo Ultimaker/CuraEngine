@@ -39,6 +39,14 @@ public:
     coord_t optimal_bead_count(coord_t thickness) const override;
     virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const override;
     virtual std::string toString() const override { return std::string("LimitedBeadingStrategy+") + parent->toString();}
+    coord_t getTransitioningLength(coord_t lower_bead_count) const override
+    {
+        return parent->getTransitioningLength(lower_bead_count);
+    }
+    float getTransitionAnchorPos(coord_t lower_bead_count) const override
+    {
+        return parent->getTransitionAnchorPos(lower_bead_count);
+    }
 };
 
 
