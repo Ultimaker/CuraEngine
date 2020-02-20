@@ -1886,11 +1886,27 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
     std::sort(upward_quad_mids.begin(), upward_quad_mids.end(), [this](edge_t* a, edge_t* b)
         {
             if (a->to->data.distance_to_boundary == b->to->data.distance_to_boundary)
-            { // special case
-                coord_t max = std::numeric_limits<coord_t>::max();
-                coord_t a_dist_from_up = std::min(distToGoUp(a).value_or(max), distToGoUp(a->twin).value_or(max)) - vSize(a->to->p - a->from->p);
-                coord_t b_dist_from_up = std::min(distToGoUp(b).value_or(max), distToGoUp(b->twin).value_or(max)) - vSize(b->to->p - b->from->p);
-                return a_dist_from_up > b_dist_from_up;
+            { // ordering between two 'upward' edges of the same distance is important when one of the edges is flat and connected to the other
+                if (a->from->data.distance_to_boundary == a->to->data.distance_to_boundary
+                    && b->from->data.distance_to_boundary == b->to->data.distance_to_boundary)
+                {
+                    coord_t max = std::numeric_limits<coord_t>::max();
+                    coord_t a_dist_from_up = std::min(distToGoUp(a).value_or(max), distToGoUp(a->twin).value_or(max)) - vSize(a->to->p - a->from->p);
+                    coord_t b_dist_from_up = std::min(distToGoUp(b).value_or(max), distToGoUp(b->twin).value_or(max)) - vSize(b->to->p - b->from->p);
+                    return a_dist_from_up < b_dist_from_up;
+                }
+                else if (a->from->data.distance_to_boundary == a->to->data.distance_to_boundary)
+                {
+                    return true; // edge a might be 'above' edge b
+                }
+                else if (b->from->data.distance_to_boundary == b->to->data.distance_to_boundary)
+                {
+                    return false; // edge b might be 'above' edge a
+                }
+                else
+                {
+                    // ordering is not important
+                }
             }
             return a->to->data.distance_to_boundary > b->to->data.distance_to_boundary;
         });
