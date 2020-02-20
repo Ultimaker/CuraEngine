@@ -280,6 +280,12 @@ protected:
      */
     std::optional<coord_t> distToGoUp(const edge_t* edge) const;
 
+    /*!
+     * Check whether the edge goes from a lower to a higher distance_to_boundary.
+     * Effectively deals with equidistant edges by looking beyond this edge.
+     */
+    bool isUpward(const edge_t* edge) const;
+
     bool isMarked(const node_t* node) const;
 
 

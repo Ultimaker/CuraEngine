@@ -1199,7 +1199,7 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         Point b = edge->to->p;
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
-        bool is_aligned = edge->from->data.distance_to_boundary < edge->to->data.distance_to_boundary;
+        bool is_aligned = isUpward(edge);
         edge_t* aligned_edge = is_aligned? edge : edge->twin;
         bool seen_transition_on_this_edge = false;
         auto edge_transitions_it = edge_to_transitions.find(aligned_edge);
@@ -1411,8 +1411,7 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
         std::list<TransitionEnd>* transitions = nullptr;
         coord_t pos = -1;
-        bool is_aligned = edge.from->data.distance_to_boundary < edge.to->data.distance_to_boundary;
-        if (is_aligned)
+        if (isUpward(&edge))
         {
             transitions = &edge_to_transition_ends[&edge];
             pos = end_pos;
@@ -1776,6 +1775,28 @@ std::optional<coord_t> SkeletalTrapezoidation::distToGoUp(const edge_t* edge) co
     return ret;
 }
 
+bool SkeletalTrapezoidation::isUpward(const edge_t* edge) const
+{
+    if (edge->to->data.distance_to_boundary > edge->from->data.distance_to_boundary)
+    {
+        return true;
+    }
+    if (edge->to->data.distance_to_boundary < edge->from->data.distance_to_boundary)
+    {
+        return false;
+    }
+    // equidistant edge case:
+    std::optional<coord_t> forward_up_dist = distToGoUp(edge);
+    std::optional<coord_t> backward_up_dist = distToGoUp(edge->twin);
+    if (forward_up_dist && backward_up_dist)
+    {
+        return forward_up_dist < backward_up_dist;
+    }
+    if (forward_up_dist) return true;
+    if (backward_up_dist) return false;
+    return edge->to->p < edge->from->p; // arbitrary ordering, which returns the opposite for the twin edge
+}
+
 bool SkeletalTrapezoidation::isMarked(const node_t* node) const
 {
     bool first = true;
@@ -1875,10 +1896,7 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
     std::vector<edge_t*> upward_quad_mids;
     for (edge_t& edge : graph.edges)
     {
-        if (edge.prev && edge.next && (
-            edge.from->data.distance_to_boundary < edge.to->data.distance_to_boundary
-            || (edge.from->data.distance_to_boundary == edge.to->data.distance_to_boundary && edge.from->p < edge.to->p)
-        ))
+        if (edge.prev && edge.next && isUpward(&edge))
         {
             upward_quad_mids.emplace_back(&edge);
         }
