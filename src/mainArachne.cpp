@@ -404,20 +404,20 @@ void test(std::string input_outline_filename, std::string output_prefix)
     // prevent single polygon to be two areas connected only by a zero width channel, i.e. the polygon has two points at the same location
 //     boost::polygon::polygon_90_concept::
     
+    polys.simplify();
+    polys = polys.processEvenOdd();
     bool boost_fixing = true;
     if (boost_fixing)
     {
-        CPolygonSet boost_polys = toBoostType(polys);
-        CPolygonSet fixed;
-        fixed = assign(fixed, boost_polys); // assigning does fixing according to documentation
-        polys = toPolygons(fixed);
+        CPolygonSet boost_polys = toBoostType(polys); // immediately automatically performs a manifoldness fix
+        polys = toPolygons(boost_polys);
         polys.simplify();
     }
     else
     {
         polys.simplify();
         polys = polys.unionPolygons();
-        polys.processEvenOdd();
+        polys = polys.processEvenOdd();
     //     polys = polys.offset(-20).offset(40).offset(-20);
     //     polys.removeSmallAreas(INT2MM(nozzle_size) * INT2MM(nozzle_size));
     //     polys = polys.offset(20);
