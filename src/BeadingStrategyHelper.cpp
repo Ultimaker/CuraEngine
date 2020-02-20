@@ -58,7 +58,7 @@ BeadingStrategy* BeadingStrategyHelper::makeStrategy(StrategyType type, coord_t 
         switch (type)
         {
             case StrategyType::NaiveStrategy:      ret = new NaiveBeadingStrategy(prefered_bead_width);                                      break;
-            case StrategyType::Constant:           ret = new ConstantBeadingStrategy(prefered_bead_width, 4, .99 * M_PI);                    break;
+            case StrategyType::Constant:           ret = new ConstantBeadingStrategy(prefered_bead_width, 4, .99999 * M_PI);                    break;
             case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(prefered_bead_width, transitioning_angle);       break;
             case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(prefered_bead_width, default_transition_length, transitioning_angle);           break;
             case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, default_transition_length, transitioning_angle, inward_distributed_center_size);  break;
