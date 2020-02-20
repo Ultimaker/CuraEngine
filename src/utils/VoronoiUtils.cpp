@@ -128,6 +128,8 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
     {
         svg.writePoint(p, show_coords, 0);
     }
+
+    svg.nextLayer();
     for (const Segment& s : segments)
     {
         svg.writeLine(s.from(), s.to(), SVG::Color::BLACK, 2);
@@ -135,7 +137,7 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
         if (draw_points) svg.writePoint(s.to(), show_coords, 2);
     }
     
-    
+    svg.nextLayer();
     for (const vd_t::edge_type& edge : vd.edges())
     {
         const vd_t::vertex_type* from = edge.vertex0();
@@ -199,6 +201,7 @@ void VoronoiUtils::debugOutput(SVG& svg, voronoi_diagram<voronoi_data_t>& vd, st
         }
     }
     
+    svg.nextLayer();
     if (show_coords)
     {
         for (const vd_t::vertex_type& vert : vd.vertices())
