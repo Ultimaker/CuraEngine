@@ -272,6 +272,14 @@ protected:
      */
     bool canGoUp(const edge_t* edge) const;
 
+    /*!
+     * Calculate the traversed distance until we meet an upward edge.
+     * Useful for calling on edges between equidistant points.
+     * 
+     * If we can go up then the distance includes the length of the \param edge
+     */
+    std::optional<coord_t> distToGoUp(const edge_t* edge) const;
+
     bool isMarked(const node_t* node) const;
 
 

@@ -1740,6 +1740,42 @@ bool SkeletalTrapezoidation::canGoUp(const edge_t* edge) const
     return false;
 }
 
+std::optional<coord_t> SkeletalTrapezoidation::distToGoUp(const edge_t* edge) const
+{
+    if (edge->to->data.distance_to_boundary > edge->from->data.distance_to_boundary)
+    {
+        return 0;
+    }
+    if (edge->to->data.distance_to_boundary < edge->from->data.distance_to_boundary)
+    {
+        return std::optional<coord_t>();
+    }
+    // edge is between equidistqant verts; recurse!
+    std::optional<coord_t> ret;
+    for (edge_t* outgoing = edge->next; outgoing != edge->twin; outgoing = outgoing->twin->next)
+    {
+        std::optional<coord_t> dist_to_up = distToGoUp(outgoing);
+        if (dist_to_up)
+        {
+            if (ret)
+            {
+                ret = std::min(*ret, *dist_to_up);
+            }
+            else
+            {
+                ret = dist_to_up;
+            }
+        }
+        assert(outgoing->twin); if (!outgoing->twin) return std::optional<coord_t>();
+        assert(outgoing->twin->next); if (!outgoing->twin->next) return 0; // This point is on the boundary?! Should never occur
+    }
+    if (ret)
+    {
+        ret =  *ret + vSize(edge->to->p - edge->from->p);
+    }
+    return ret;
+}
+
 bool SkeletalTrapezoidation::isMarked(const node_t* node) const
 {
     bool first = true;
@@ -1849,6 +1885,13 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
     }
     std::sort(upward_quad_mids.begin(), upward_quad_mids.end(), [this](edge_t* a, edge_t* b)
         {
+            if (a->to->data.distance_to_boundary == b->to->data.distance_to_boundary)
+            { // special case
+                coord_t max = std::numeric_limits<coord_t>::max();
+                coord_t a_dist_from_up = std::min(distToGoUp(a).value_or(max), distToGoUp(a->twin).value_or(max)) - vSize(a->to->p - a->from->p);
+                coord_t b_dist_from_up = std::min(distToGoUp(b).value_or(max), distToGoUp(b->twin).value_or(max)) - vSize(b->to->p - b->from->p);
+                return a_dist_from_up > b_dist_from_up;
+            }
             return a->to->data.distance_to_boundary > b->to->data.distance_to_boundary;
         });
     
