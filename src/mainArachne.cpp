@@ -50,7 +50,7 @@ static TCLAP::CmdLine gCmdLine(" Generate polygon inset toolpaths ", ' ', "0.1")
 
 static TCLAP::SwitchArg cmd__generate_gcodes("g", "gcode", "Generate gcode", false);
 static TCLAP::SwitchArg cmd__generate_toolpaths("", "toolpaths", "Generate toolpaths file", false);
-static TCLAP::SwitchArg cmd__analyse("a", "analyse", "Analyse output paths", false);
+static TCLAP::SwitchArg cmd__analyse("", "analyse", "Analyse output paths", false);
 static TCLAP::SwitchArg cmd__generate_MAT_STL("", "matstl", "Generate an stl corresponding to the medial axis transform", false);
 static TCLAP::ValueArg<std::string> cmd__input_outline_filename("p", "polygon", "Input file for polygon", false /* required? */, "-", "path to file");
 static TCLAP::ValueArg<std::string> cmd__output_prefix("o", "output", "Output file name prefix", false /* required? */, "TEST", "path to file");
@@ -64,6 +64,7 @@ static TCLAP::ValueArg<double> cmd__beading_propagation_transition_dist("t", "bp
 static TCLAP::ValueArg<double> cmd__default_transition_length("l", "transitionlength", "Default bead transition length.", /*req=*/ false, /*default=*/0.4, "mm");
 static TCLAP::ValueArg<bool> cmd__reduce_extrusion_line_overlap("r", "reduce", "Cut off part of the ends of extrusion lines in order to reduce overlap", /*req=*/ false, /*default=*/true, "boolean");
 static TCLAP::SwitchArg cmd__filter_outermost_marked_edges("", "filterouter", "Unmark all outer edges of the Voronoi Diagram, so that marked edges never touch the outline", /*req=*/ false);
+static TCLAP::ValueArg<double> cmd__transitioning_angle("a", "limit_bisector_angle", "Geometry angle for which we have to start introducing controlled beading", /*req=*/ false, /*default=*/45, "degree");
 static TCLAP::ValueArg<double> cmd__min_bead_width("", "minw", "Minimal toolpath bead width for geometry with a diameter smaller than the nozzle size", /*req=*/ false, /*default=*/0, "mm");
 static TCLAP::ValueArg<double> cmd__min_feature_size("", "mins", "Minimal geometry diameter for which to generate a bead", /*req=*/ false, /*default=*/0, "mm");
 static TCLAP::ValueArg<double> cmd__inward_distributed_center_size("n", "centersize", "(Half of ) the number of beads over which to distribute the discrepancy", /*req=*/ false, /*default=*/2, "");
@@ -89,6 +90,8 @@ coord_t beading_propagation_transition_dist = 400;
 bool reduce_overlapping_segments = true;
 bool filter_outermost_marked_edges = false;
 
+double transitioning_angle = M_PI / 4;
+
 std::optional<coord_t> min_bead_width; // for if we want to deal with geometry smaller than the nozzle size separately
 std::optional<coord_t> min_feature_size; // for if we want to deal with geometry smaller than the nozzle size separately
 
@@ -113,6 +116,7 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__default_transition_length);
         gCmdLine.add(cmd__reduce_extrusion_line_overlap);
         gCmdLine.add(cmd__filter_outermost_marked_edges);
+        gCmdLine.add(cmd__transitioning_angle);
         gCmdLine.add(cmd__min_bead_width);
         gCmdLine.add(cmd__min_feature_size);
         gCmdLine.add(cmd__inward_distributed_center_size);
@@ -142,6 +146,7 @@ bool readCommandLine(int argc, char **argv)
         default_transition_length = MM2INT(cmd__default_transition_length.getValue());
         reduce_overlapping_segments = cmd__reduce_extrusion_line_overlap.getValue();
         filter_outermost_marked_edges = cmd__filter_outermost_marked_edges.getValue();
+        transitioning_angle = cmd__transitioning_angle.getValue() / 180 * M_PI;
         if (cmd__min_bead_width.getValue() > 0.0) min_bead_width = MM2INT(cmd__min_bead_width.getValue());
         if (cmd__min_feature_size.getValue() > 0.0) min_feature_size = MM2INT(cmd__min_feature_size.getValue());
 
@@ -165,7 +170,6 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
 {
     std::string type_str = to_string(type);
     logAlways(">> Performing %s strategy...\n", type_str.c_str());
-    float transitioning_angle = M_PI / 4; // = 180 - the "limit bisector angle" from the paper
 
     BeadingStrategy* beading_strategy = BeadingStrategyHelper::makeStrategy(type, nozzle_size, transitioning_angle, min_bead_width, min_feature_size);
     if (!beading_strategy) return;
