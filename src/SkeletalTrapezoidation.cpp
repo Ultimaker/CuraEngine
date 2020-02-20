@@ -2400,6 +2400,8 @@ void SkeletalTrapezoidation::connectJunctions(std::unordered_map<edge_t*, std::v
         }
     };
     
+    std::unordered_set<edge_t*> passed_odd_edges;
+    
     for (auto pair : poly_domain_starts)
     {
         edge_t* poly_domain_start = pair.second;
@@ -2453,10 +2455,11 @@ void SkeletalTrapezoidation::connectJunctions(std::unordered_map<edge_t*, std::v
                     && junction_rev_idx == segment_count - 1 // is single bead segment
                     && shorterThen(from.p - quad_start->to->p, 5) && shorterThen(to.p - quad_end->from->p, 5);
                 if (is_odd_segment
-                    && from.p < to.p) // choose one
+                    && passed_odd_edges.count(quad_start->next->twin) > 0) // only generate toolpath for odd segments once
                 {
                     continue; // prevent duplication of single bead segments
                 }
+                passed_odd_edges.emplace(quad_start->next);
                 bool force_new_path = is_odd_segment && isMultiIntersection(quad_start->to);
                 addSegment(from, to, is_odd_segment, force_new_path);
             }
