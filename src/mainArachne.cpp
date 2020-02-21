@@ -193,6 +193,11 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
 
     std::vector<std::list<ExtrusionLine>> result_polylines_per_index = st.generateToolpaths(*beading_strategy, filter_outermost_marked_edges_now);
 
+    if (max_bead_count > 0)
+    { // throw away generated odd beads in the middle
+        result_polylines_per_index.resize(max_bead_count / 2);
+    }
+
     std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
     BeadingOrderOptimizer::optimize(result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments_now);
     double processing_time = tk.restart();
