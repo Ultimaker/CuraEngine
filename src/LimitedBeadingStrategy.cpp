@@ -13,7 +13,8 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
         return parent->compute(thickness, bead_count);
     }
 
-    Beading ret = parent->compute(parent->optimal_thickness(bead_count), bead_count);
+    coord_t optimal_thickness = parent->optimal_thickness(bead_count);
+    Beading ret = parent->compute(optimal_thickness, bead_count);
     ret.left_over += thickness - ret.total_thickness;
     ret.total_thickness = thickness;
     
@@ -22,7 +23,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
         ret.toolpath_locations[bead_count / 2] = thickness / 2;
     for (coord_t bead_idx = 0; bead_idx < (bead_count + 1) / 2; bead_idx++)
     {
-        ret.toolpath_locations[bead_count - 1 - bead_idx] = thickness - ret.toolpath_locations[bead_count];
+        ret.toolpath_locations[bead_count - 1 - bead_idx] = thickness - ret.toolpath_locations[bead_idx];
     }
     return ret;
 }
