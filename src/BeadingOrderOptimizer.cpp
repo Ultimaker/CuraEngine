@@ -76,12 +76,9 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
         for (auto poly_it = polys.begin(); poly_it != polys.end(); ++poly_it)
         {
             assert(poly_it->junctions.size() > 1);
-            if (poly_it->computeLength() > snap_dist)
+            for (bool front : { true, false })
             {
-                for (bool front : { true, false })
-                {
-                    end_points_to_check.emplace_back(poly_it->inset_idx, poly_it, front);
-                }
+                end_points_to_check.emplace_back(poly_it->inset_idx, poly_it, front);
             }
         }
     }
