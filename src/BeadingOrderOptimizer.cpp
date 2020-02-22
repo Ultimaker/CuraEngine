@@ -73,12 +73,19 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
 
     for (std::list<ExtrusionLine>& polys : polylines_per_index)
     {
-        for (auto poly_it = polys.begin(); poly_it != polys.end(); ++poly_it)
-        {
-            assert(poly_it->junctions.size() > 1);
-            for (bool front : { true, false })
+        for (bool odd_lines : { true, false })
+        { // try to combine odd lines into polygons first!
+            for (auto poly_it = polys.begin(); poly_it != polys.end(); ++poly_it)
             {
-                end_points_to_check.emplace_back(poly_it->inset_idx, poly_it, front);
+                if (poly_it->is_odd != odd_lines)
+                {
+                    continue;
+                }
+                assert(poly_it->junctions.size() > 1);
+                for (bool front : { true, false })
+                {
+                    end_points_to_check.emplace_back(poly_it->inset_idx, poly_it, front);
+                }
             }
         }
     }
