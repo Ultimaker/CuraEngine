@@ -65,6 +65,7 @@ static TCLAP::ValueArg<double> cmd__transition_filter_dist("f", "transitionfilte
 static TCLAP::ValueArg<double> cmd__beading_propagation_transition_dist("t", "bptd", "Beading propagation transition distance", /*req=*/ false, /*default=*/0.4, "mm");
 static TCLAP::ValueArg<double> cmd__default_transition_length("l", "transitionlength", "Default bead transition length.", /*req=*/ false, /*default=*/0.4, "mm");
 static TCLAP::ValueArg<bool> cmd__reduce_extrusion_line_overlap("r", "reduce", "Cut off part of the ends of extrusion lines in order to reduce overlap", /*req=*/ false, /*default=*/true, "boolean");
+static TCLAP::ValueArg<bool> cmd__connect_odd_lines_to_polygons("", "connect_odd", "Connect odd polyline toolpaths to normal toolpaths at 3-way intersections, rather than closing polygonal toolpaths", /*req=*/ false, /*default=*/true, "boolean");
 static TCLAP::SwitchArg cmd__filter_outermost_marked_edges("", "filterouter", "Unmark all outer edges of the Voronoi Diagram, so that marked edges never touch the outline", /*req=*/ false);
 static TCLAP::ValueArg<double> cmd__transitioning_angle("a", "limit_bisector_angle", "Geometry angle for which we have to start introducing controlled beading", /*req=*/ false, /*default=*/45, "degree");
 static TCLAP::ValueArg<double> cmd__min_bead_width("", "minw", "Minimal toolpath bead width for geometry with a diameter smaller than the nozzle size", /*req=*/ false, /*default=*/0, "mm");
@@ -91,6 +92,7 @@ coord_t discretization_step_size = 200;
 coord_t transition_filter_dist = 1000;
 coord_t beading_propagation_transition_dist = 400;
 bool reduce_overlapping_segments = true;
+bool connect_odd_lines_to_polygons = true;
 bool filter_outermost_marked_edges = false;
 
 double transitioning_angle = M_PI / 4;
@@ -119,6 +121,7 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__beading_propagation_transition_dist);
         gCmdLine.add(cmd__default_transition_length);
         gCmdLine.add(cmd__reduce_extrusion_line_overlap);
+        gCmdLine.add(cmd__connect_odd_lines_to_polygons);
         gCmdLine.add(cmd__filter_outermost_marked_edges);
         gCmdLine.add(cmd__transitioning_angle);
         gCmdLine.add(cmd__min_bead_width);
@@ -150,6 +153,7 @@ bool readCommandLine(int argc, char **argv)
         beading_propagation_transition_dist = MM2INT(cmd__beading_propagation_transition_dist.getValue());
         default_transition_length = MM2INT(cmd__default_transition_length.getValue());
         reduce_overlapping_segments = cmd__reduce_extrusion_line_overlap.getValue();
+        connect_odd_lines_to_polygons = cmd__connect_odd_lines_to_polygons.getValue();
         filter_outermost_marked_edges = cmd__filter_outermost_marked_edges.getValue();
         transitioning_angle = cmd__transitioning_angle.getValue() / 180 * M_PI;
         if (cmd__min_bead_width.getValue() > 0.0) min_bead_width = MM2INT(cmd__min_bead_width.getValue());
@@ -204,7 +208,7 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     }
 
     std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
-    BeadingOrderOptimizer::optimize(result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments_now);
+    BeadingOrderOptimizer::optimize(result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments_now, connect_odd_lines_to_polygons);
     double processing_time = tk.restart();
     logAlways("Processing took %fs\n", processing_time);
 

@@ -13,10 +13,10 @@
 namespace arachne
 {
 
-void BeadingOrderOptimizer::optimize(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, bool reduce_overlapping_segments)
+void BeadingOrderOptimizer::optimize(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
 {
     BeadingOrderOptimizer optimizer(polylines_per_index);
-    optimizer.fuzzyConnect(polygons_per_index, snap_dist, reduce_overlapping_segments);
+    optimizer.fuzzyConnect(polygons_per_index, snap_dist, reduce_overlapping_segments, connect_odd_lines_to_polygons);
 }
 
 BeadingOrderOptimizer::BeadingOrderOptimizer(std::vector<std::list<ExtrusionLine>>& polylines_per_index)
@@ -36,7 +36,7 @@ BeadingOrderOptimizer::BeadingOrderOptimizer(std::vector<std::list<ExtrusionLine
 }
 
 
-void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments)
+void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
 {
     struct Locator
     {
@@ -73,8 +73,8 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
 
     for (std::list<ExtrusionLine>& polys : polylines_per_index)
     {
-        for (bool odd_lines : { true, false })
-        { // try to combine odd lines into polygons first!
+        for (bool odd_lines : { connect_odd_lines_to_polygons, !connect_odd_lines_to_polygons })
+        { // try to combine odd lines into polygons first, if connect_odd_lines_to_polygons
             for (auto poly_it = polys.begin(); poly_it != polys.end(); ++poly_it)
             {
                 if (poly_it->is_odd != odd_lines)

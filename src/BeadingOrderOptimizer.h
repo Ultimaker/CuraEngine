@@ -24,8 +24,10 @@ public:
     /*!
      * \param[in,out] polygons_per_index the resulting polygons by connecting end poitns of polylines together into loops
      * \param[in,out] polylines_per_index The input polylines and the output connected polylines which are not combined into polygons
+     * 
+     * \param connect_odd_lines_to_polygons Whether to preferably connect an odd count segment to a polygon, rather than closing the polygonal toolpath
      */
-    static void optimize(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, bool reduce_overlapping_segments = true);
+    static void optimize(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, bool reduce_overlapping_segments = true, bool connect_odd_lines_to_polygons = true);
 private:
     BeadingOrderOptimizer(std::vector<std::list<ExtrusionLine>>& polylines_per_index);
 
@@ -63,7 +65,7 @@ private:
      * 
      * Reduce unconnected polylines away from the intersection locations as well
      */
-    void fuzzyConnect(std::vector<std::list<ExtrusionLine>>& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments);
+    void fuzzyConnect(std::vector<std::list<ExtrusionLine>>& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons);
 
     template<typename directional_iterator>
     void reduceIntersectionOverlap( ExtrusionLine& polyline, directional_iterator polyline_start_it, coord_t traveled_dist, coord_t reduction_length);
