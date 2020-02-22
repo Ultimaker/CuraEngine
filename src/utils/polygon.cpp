@@ -1,7 +1,8 @@
 //Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
-
 #include "polygon.h"
+
+#include <unordered_set>
 
 #include "linearAlg2D.h" // pointLiesOnTheRightOfLine
 
@@ -1288,5 +1289,37 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
 }
 
 
+void Polygons::ensureManifold()
+{
+    const Polygons& polys = *this;
+    std::vector<Point> duplicate_locations;
+    std::unordered_set<Point> poly_locations;
+    for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
+    {
+        ConstPolygonRef poly = polys[poly_idx];
+        for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
+        {
+            Point p = poly[point_idx];
+            if (poly_locations.find(p) != poly_locations.end())
+            {
+                duplicate_locations.push_back(p);
+            }
+            poly_locations.emplace(p);
+        }
+    }
+    Polygons removal_dots;
+    for (Point p : duplicate_locations)
+    {
+        PolygonRef dot = removal_dots.newPoly();
+        dot.add(p + Point(0,5));
+        dot.add(p + Point(5,0));
+        dot.add(p + Point(0,-5));
+        dot.add(p + Point(-5,0));
+    }
+    if ( ! removal_dots.empty())
+    {
+        *this = polys.difference(removal_dots);
+    }
+}
 
 }//namespace cura

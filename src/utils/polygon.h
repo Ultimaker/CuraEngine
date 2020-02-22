@@ -1114,6 +1114,17 @@ public:
         return ret;
     }
 
+    /*!
+     * Ensure the polygon is manifold, by removing small areas where the polygon touches itself.
+     *  ____                  ____
+     * |    |                |    |
+     * |    |____     ==>    |   / ____ 
+     *  """"|    |            """ /    |
+     *      |____|                |____|
+     * 
+     */
+    void ensureManifold();
+
     coord_t polygonLength() const
     {
         coord_t length = 0;

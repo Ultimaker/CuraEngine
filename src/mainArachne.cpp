@@ -462,38 +462,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
     CPolygonSet boost_polys = toBoostType(polys); // immediately automatically performs a manifoldness fix
     polys = toPolygons(boost_polys);
     polys.simplify();
-    
-    
-    { // ensure the polygon is manifold, by removing small areas where the polygon touches itself
-        std::vector<Point> duplicate_locations;
-        std::unordered_set<Point> poly_locations;
-        for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
-        {
-            PolygonRef poly = polys[poly_idx];
-            for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
-            {
-                Point p = poly[point_idx];
-                if (poly_locations.find(p) != poly_locations.end())
-                {
-                    duplicate_locations.push_back(p);
-                }
-                poly_locations.emplace(p);
-            }
-        }
-        Polygons removal_dots;
-        for (Point p : duplicate_locations)
-        {
-            PolygonRef dot = removal_dots.newPoly();
-            dot.add(p + Point(0,5));
-            dot.add(p + Point(5,0));
-            dot.add(p + Point(0,-5));
-            dot.add(p + Point(-5,0));
-        }
-        if ( ! removal_dots.empty())
-        {
-            polys = polys.difference(removal_dots);
-        }
-    }
+    polys.ensureManifold();
 
 #ifdef DEBUG
     {
