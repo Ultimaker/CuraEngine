@@ -19,6 +19,7 @@
 #include "utils/polygon.h"
 #include "utils/gettime.h"
 #include "utils/SVG.h"
+#include "utils/ToolpathVisualizer.h"
 
 #include "SkeletalTrapezoidation.h"
 
@@ -51,6 +52,7 @@ static TCLAP::CmdLine gCmdLine(" Generate polygon inset toolpaths ", ' ', "0.1")
 static TCLAP::SwitchArg cmd__generate_gcodes("g", "gcode", "Generate gcode", false);
 static TCLAP::SwitchArg cmd__generate_toolpaths("", "toolpaths", "Generate toolpaths file", false);
 static TCLAP::SwitchArg cmd__analyse("", "analyse", "Analyse output paths", false);
+static TCLAP::SwitchArg cmd__visualize("", "visualize", "Visualize output paths", false);
 static TCLAP::SwitchArg cmd__generate_MAT_STL("", "matstl", "Generate an stl corresponding to the medial axis transform", false);
 static TCLAP::ValueArg<std::string> cmd__input_outline_filename("p", "polygon", "Input file for polygon", false /* required? */, "-", "path to file");
 static TCLAP::ValueArg<std::string> cmd__output_prefix("o", "output", "Output file name prefix", false /* required? */, "TEST", "path to file");
@@ -74,6 +76,7 @@ static TCLAP::ValueArg<double> cmd__nozzle_size("w", "width", "Preferred bead wi
 bool generate_gcodes = true;
 bool generate_toolpaths = true;
 bool analyse = false;
+bool visualize = false;
 
 std::string input_outline_filename;
 std::string output_prefix;
@@ -103,6 +106,7 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__generate_gcodes);
         gCmdLine.add(cmd__generate_toolpaths);
         gCmdLine.add(cmd__analyse);
+        gCmdLine.add(cmd__visualize);
         gCmdLine.add(cmd__generate_MAT_STL);
         gCmdLine.add(cmd__input_outline_filename);
         gCmdLine.add(cmd__output_prefix);
@@ -128,6 +132,7 @@ bool readCommandLine(int argc, char **argv)
         generate_gcodes = cmd__generate_gcodes.getValue();
         generate_toolpaths = cmd__generate_toolpaths.getValue();
         analyse = cmd__analyse.getValue();
+        visualize = cmd__visualize.getValue();
         generate_MAT_STL = cmd__generate_MAT_STL.getValue();
         input_outline_filename = cmd__input_outline_filename.getValue();
         output_prefix = cmd__output_prefix.getValue();
@@ -251,7 +256,45 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
         stats.analyse(result_polygons_per_index, result_polylines_per_index, &st);
         logAlways("Analysis took %fs\n", tk.restart());
         stats.saveResultsCSV();
-        stats.visualize(nozzle_size, true);
+        if (visualize)
+        {
+            stats.visualize(nozzle_size, true);
+            logAlways("Visualization took %fs\n", tk.restart());
+        }
+    }
+    else if (visualize)
+    {
+        static std::vector<ExtrusionSegment> all_segments = Statistics::generateAllSegments(result_polygons_per_index, result_polylines_per_index);
+        AABB aabb(polys);
+        bool rounded_visualization = true;
+        {
+            std::ostringstream ss;
+            ss << "output/" << output_prefix << "_" << to_string(type) << "_viz.svg";
+            SVG svg(ss.str(), aabb);
+            ToolpathVisualizer viz(svg);
+            viz.outline(polys);
+            viz.toolpaths(all_segments, rounded_visualization);
+        }
+        bool include_legend = false;
+        bool output_widths = false;
+        if (output_widths)
+        {
+            std::ostringstream ss;
+            ss << "output/" << output_prefix << "_" << to_string(type) << "_widths.svg";
+            SVG svg(ss.str(), aabb);
+            ToolpathVisualizer viz(svg);
+            viz.outline(polys);
+
+            coord_t max_dev = nozzle_size / 2;
+            coord_t min_w = 30;
+
+            if (include_legend)
+            {
+                viz.width_legend(polys, nozzle_size, max_dev, min_w, rounded_visualization);
+            }
+
+            viz.widths(all_segments, nozzle_size, max_dev, min_w, rounded_visualization);
+        }
         logAlways("Visualization took %fs\n", tk.restart());
     }
 

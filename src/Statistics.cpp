@@ -18,7 +18,7 @@ void Statistics::analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_ind
     this->polygons_per_index = &polygons_per_index;
     this->polylines_per_index = &polylines_per_index;
 
-    generateAllSegments(polygons_per_index, polylines_per_index);
+    all_segments = generateAllSegments(polygons_per_index, polylines_per_index);
 
     
     for (size_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
@@ -136,8 +136,9 @@ void Statistics::savePrintTimeCSV(Duration print_time)
     csv << test_type << "," << output_prefix << "," << float(print_time) << "," << print_time << '\n';
 }
 
-void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index)
+std::vector<ExtrusionSegment> Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index)
 {
+    std::vector<ExtrusionSegment> all_segments;
     for (std::list<ExtrusionLine>& polygons : polygons_per_index)
     {
         for (ExtrusionLine& polygon : polygons)
@@ -166,6 +167,7 @@ void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& poly
             }
         }
     }
+    return all_segments;
 }
 
 void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_toolpaths, bool output_widths, bool include_legend, bool visualize_accuracy, bool exaggerate_widths, bool rounded_visualization)
