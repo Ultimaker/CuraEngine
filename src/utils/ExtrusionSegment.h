@@ -43,6 +43,8 @@ public:
      * Overrides class field is_reduced
      */
     Polygons toPolygons(bool reduced);
+
+    std::vector<ExtrusionSegment> discretize(coord_t step_size);
 };
 
 

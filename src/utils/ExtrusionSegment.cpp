@@ -91,4 +91,24 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
     return ret;
 }
 
+
+
+std::vector<ExtrusionSegment> ExtrusionSegment::discretize(coord_t step_size)
+{
+    Point a = from.p;
+    Point b = to.p;
+    Point ab = b - a;
+    coord_t ab_length = vSize(ab);
+    coord_t step_count = std::max(static_cast<coord_t>(1), (ab_length + step_size / 2) / step_size);
+    std::vector<ExtrusionSegment> discretized;
+    for (coord_t step = 0; step < step_count; step++)
+    {
+        ExtrusionJunction mid(a + ab * (step + 1) / step_count, from.w + (to.w - from.w) * (step + 1) / step_count, from.perimeter_index);
+        discretized.emplace_back(from, mid, is_odd, true);
+        from = mid;
+    }
+    discretized.back().is_reduced = is_reduced;
+    return discretized;
+}
+
 }//namespace cura

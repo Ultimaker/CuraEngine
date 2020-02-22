@@ -57,7 +57,6 @@ private:
 
     void generateAllSegments(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index);
 
-    std::vector<ExtrusionSegment> discretize(const ExtrusionSegment& ss, coord_t step_size);
 };
 
 
