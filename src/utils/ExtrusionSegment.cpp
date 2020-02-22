@@ -6,6 +6,10 @@
 namespace arachne
 {
     
+Polygons ExtrusionSegment::toPolygons()
+{
+    return toPolygons(is_reduced);
+}
 Polygons ExtrusionSegment::toPolygons(bool reduced)
 {
     Polygons ret;

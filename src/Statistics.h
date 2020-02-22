@@ -40,19 +40,6 @@ public:
     double total_target_area = -1;
     double total_target_area_length = -1;
 private:
-    struct Segment
-    {
-        ExtrusionSegment s;
-        bool is_full;
-        Segment(ExtrusionSegment s, bool is_full)
-        : s(s)
-        , is_full(is_full)
-        {}
-        Polygons toPolygons()
-        {
-            return s.toPolygons(!is_full);
-        }
-    };
     std::string test_type;
     std::string output_prefix;
     const Polygons& input;
@@ -60,7 +47,7 @@ private:
 
     std::vector<std::list<ExtrusionLine>>* polygons_per_index;
     std::vector<std::list<ExtrusionLine>>* polylines_per_index;
-    std::vector<Segment> all_segments;
+    std::vector<ExtrusionSegment> all_segments;
     Polygons area_covered;
     Polygons overlaps;
     Polygons underfills;
@@ -70,7 +57,7 @@ private:
 
     void generateAllSegments(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index);
 
-    std::vector<Segment> discretize(const Segment& ss, coord_t step_size);
+    std::vector<ExtrusionSegment> discretize(const ExtrusionSegment& ss, coord_t step_size);
 };
 
 

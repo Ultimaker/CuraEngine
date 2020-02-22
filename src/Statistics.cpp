@@ -22,8 +22,8 @@ void Statistics::analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_ind
     
     for (size_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
     {
-        Segment s = all_segments[segment_idx];
-        Polygons covered = s.s.toPolygons(false);
+        ExtrusionSegment s = all_segments[segment_idx];
+        Polygons covered = s.toPolygons(false);
         area_covered.add(covered);
         Polygons extruded = s.toPolygons();
         overlaps.add(extruded);
@@ -80,11 +80,11 @@ void Statistics::analyse(std::vector<std::list<ExtrusionLine>>& polygons_per_ind
 //     logAlways("Total target area: %f mm²\n", total_target_area);
 
     // initialize paths
-    for (Segment& segment : all_segments)
+    for (ExtrusionSegment& segment : all_segments)
     {
         PolygonRef poly = paths.newPoly();
-        poly.emplace_back(segment.s.from.p);
-        poly.emplace_back(segment.s.to.p);
+        poly.emplace_back(segment.from.p);
+        poly.emplace_back(segment.to.p);
     }
 
 }
@@ -97,14 +97,14 @@ void Statistics::saveResultsCSV()
         ss << "output/" << output_prefix << "_" << test_type << "_segments.csv";
         std::ofstream csv(ss.str(), std::ofstream::out | std::ofstream::trunc);
         csv << "from_x,from_y,from_width,to_x,to_y,to_width,filename_base,output_prefix,inset_index\n";
-        for (const Segment& segment : all_segments)
+        for (const ExtrusionSegment& segment : all_segments)
         {
-            if (segment.s.from.perimeter_index != segment.s.to.perimeter_index)
+            if (segment.from.perimeter_index != segment.to.perimeter_index)
                 std::cerr << "Inset index doesn't correspond!\n";
-            csv << segment.s.from.p.X << "," << segment.s.from.p.Y << "," << segment.s.from.w << ","
-                << segment.s.to.p.X << "," << segment.s.to.p.Y << "," << segment.s.to.w << ","
+            csv << segment.from.p.X << "," << segment.from.p.Y << "," << segment.from.w << ","
+                << segment.to.p.X << "," << segment.to.p.Y << "," << segment.to.w << ","
                 << test_type << "," << output_prefix << ","
-                << segment.s.from.perimeter_index << '\n';
+                << segment.from.perimeter_index << '\n';
         }
         csv.close();
     }
@@ -145,8 +145,8 @@ void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& poly
             for (auto junction_it = polygon.junctions.begin(); junction_it != polygon.junctions.end(); ++junction_it)
             {
                 ExtrusionJunction& junction = *junction_it;
-                ExtrusionSegment segment(*last_it, junction, false);
-                all_segments.emplace_back(segment, false);
+                ExtrusionSegment segment(*last_it, junction, false, true);
+                all_segments.emplace_back(segment);
                 last_it = junction_it;
             }
         }
@@ -159,8 +159,8 @@ void Statistics::generateAllSegments(std::vector<std::list<ExtrusionLine>>& poly
             for (auto junction_it = ++polyline.junctions.begin(); junction_it != polyline.junctions.end(); ++junction_it)
             {
                 ExtrusionJunction& junction = *junction_it;
-                ExtrusionSegment segment(*last_it, junction, false);
-                all_segments.emplace_back(segment, junction_it == --polyline.junctions.end());
+                ExtrusionSegment segment(*last_it, junction, false, junction_it != --polyline.junctions.end());
+                all_segments.emplace_back(segment);
                 last_it = junction_it;
             }
         }
@@ -237,10 +237,10 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
             Polygons polys;
             for (size_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
             {
-                Segment s = all_segments[segment_idx];
-                s.s.from.w *= w / .9;
-                s.s.to.w *= w / .9;
-                Polygons covered = s.s.toPolygons(false);
+                ExtrusionSegment s = all_segments[segment_idx];
+                s.from.w *= w / .9;
+                s.to.w *= w / .9;
+                Polygons covered = s.toPolygons(false);
                 polys.add(covered);
             }
             int c = 255 - 200 * (w - .25);
@@ -272,7 +272,7 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
         coord_t min_w = 30;
 
         // add legend
-        std::vector<Segment> all_segments_plus = all_segments;
+        std::vector<ExtrusionSegment> all_segments_plus = all_segments;
         if (include_legend)
         {
             auto to_string = [](float v)
@@ -287,9 +287,9 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
             ExtrusionJunction legend_mid((legend_top.p + legend_btm.p) / 2, (legend_top.w + legend_btm.w) / 2, 0);
             legend_btm.p += (legend_mid.p - legend_btm.p) / 4;
             legend_top.p += (legend_mid.p - legend_top.p) / 4;
-            ExtrusionSegment legend_segment(legend_btm, legend_top, true);
+            ExtrusionSegment legend_segment(legend_btm, legend_top, true, false);
             svg.writeAreas(legend_segment.toPolygons(false), SVG::ColorObject(200,200,200), SVG::Color::NONE); // real outline
-            all_segments_plus.emplace_back(legend_segment, true); // colored
+            all_segments_plus.emplace_back(legend_segment); // colored
             Point legend_text_offset(nozzle_size, 0);
             svg.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
             svg.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
@@ -314,12 +314,12 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
             int brightness = rounded_visualization? 255 - 200 * (w - .25) : 192;
             for (size_t segment_idx = 0; segment_idx < all_segments_plus.size(); segment_idx++)
             {
-                Segment ss = all_segments_plus[segment_idx];
-//                 ss.s.from.w *= w;
-//                 ss.s.to.w *= w;
-                for (Segment s : discretize(ss, MM2INT(0.1)))
+                ExtrusionSegment ss = all_segments_plus[segment_idx];
+//                 ss.from.w *= w;
+//                 ss.to.w *= w;
+                for (ExtrusionSegment s : discretize(ss, MM2INT(0.1)))
                 {
-                    coord_t avg_w = (s.s.from.w + s.s.to.w) / 2;
+                    coord_t avg_w = (s.from.w + s.to.w) / 2;
                     Point3 clr;
                     float color_ratio = std::min(1.0, double(std::abs(avg_w - nozzle_size)) / max_dev);
                     color_ratio = color_ratio * .5 + .5 * sqrt(color_ratio);
@@ -339,16 +339,16 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
     //                 clr.y = clr.y * (255 - 92 * clr.dot(green) / green.vSize() / 255) / 255;
                     if (exaggerate_widths)
                     {
-                        s.s.from.w = std::max(min_w, min_w + (s.s.from.w - (nozzle_size - max_dev)) * 5 / 4);
-                        s.s.to.w = std::max(min_w, min_w + (s.s.to.w - (nozzle_size - max_dev)) * 5 / 4);
+                        s.from.w = std::max(min_w, min_w + (s.from.w - (nozzle_size - max_dev)) * 5 / 4);
+                        s.to.w = std::max(min_w, min_w + (s.to.w - (nozzle_size - max_dev)) * 5 / 4);
                     }
 //                     else
 //                     {
-//                         s.s.from.w *= 0.9;
-//                         s.s.to.w *= 0.9;
+//                         s.from.w *= 0.9;
+//                         s.to.w *= 0.9;
 //                     }
-                    s.s.from.w *= w / .9;
-                    s.s.to.w *= w / .9;
+                    s.from.w *= w / .9;
+                    s.to.w *= w / .9;
                     Polygons covered = s.toPolygons();
                     svg.writeAreas(covered, SVG::ColorObject(clr.x, clr.y, clr.z), SVG::Color::NONE);
                 }
@@ -364,23 +364,22 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
     }
 }
 
-std::vector<Statistics::Segment> Statistics::discretize(const Segment& segment, coord_t step_size)
+std::vector<ExtrusionSegment> Statistics::discretize(const ExtrusionSegment& extrusion_segment, coord_t step_size)
 {
-    ExtrusionSegment extrusion_segment = segment.s;
     Point a = extrusion_segment.from.p;
     Point b = extrusion_segment.to.p;
     Point ab = b - a;
     coord_t ab_length = vSize(ab);
     coord_t step_count = std::max(static_cast<coord_t>(1), (ab_length + step_size / 2) / step_size);
-    std::vector<Segment> discretized;
+    std::vector<ExtrusionSegment> discretized;
     ExtrusionJunction from = extrusion_segment.from;
     for (coord_t step = 0; step < step_count; step++)
     {
         ExtrusionJunction mid(a + ab * (step + 1) / step_count, extrusion_segment.from.w + (extrusion_segment.to.w - extrusion_segment.from.w) * (step + 1) / step_count, extrusion_segment.from.perimeter_index);
-        discretized.emplace_back(ExtrusionSegment(from, mid, segment.s.is_odd), false);
+        discretized.emplace_back(from, mid, extrusion_segment.is_odd, true);
         from = mid;
     }
-    discretized.back().is_full = segment.is_full;
+    discretized.back().is_reduced = extrusion_segment.is_reduced;
     return discretized;
 }
 

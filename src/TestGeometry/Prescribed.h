@@ -30,8 +30,8 @@ public:
         {
             Point datum = height_data[datum_idx];
             ExtrusionJunction junction(Point(datum.X, y), datum.Y, 0);
-            ExtrusionSegment segment(prev, junction, true);
-            ret = ret.unionPolygons(segment.toPolygons(false));
+            ExtrusionSegment segment(prev, junction, true, false);
+            ret = ret.unionPolygons(segment.toPolygons());
             prev = junction;
         }
         return ret;

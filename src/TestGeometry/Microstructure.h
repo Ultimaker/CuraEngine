@@ -71,8 +71,8 @@ private:
         {
             Point p = from + vec * (step + 1) / step_count;
             ExtrusionJunction here(p, getW(p), 0);
-            ExtrusionSegment s(prev, here, true);
-            Polygons area = s.toPolygons(false);
+            ExtrusionSegment s(prev, here, true, false);
+            Polygons area = s.toPolygons();
             ret.add(area);
             prev = here;
         }
