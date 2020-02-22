@@ -458,48 +458,41 @@ void test(std::string input_outline_filename, std::string output_prefix)
     
     polys.simplify();
     polys = polys.processEvenOdd();
-    bool boost_fixing = true;
-    if (boost_fixing)
-    {
-        CPolygonSet boost_polys = toBoostType(polys); // immediately automatically performs a manifoldness fix
-        polys = toPolygons(boost_polys);
-        polys.simplify();
-    }
-    else
-    {
-        polys.simplify();
-        polys = polys.unionPolygons();
-        polys = polys.processEvenOdd();
-    //     polys = polys.offset(-20).offset(40).offset(-20);
-    //     polys.removeSmallAreas(INT2MM(nozzle_size) * INT2MM(nozzle_size));
-    //     polys = polys.offset(20);
-    //     polys.simplify();
-    //     polys.processEvenOdd();
-        polys.removeDegenerateVerts();
+    
+    CPolygonSet boost_polys = toBoostType(polys); // immediately automatically performs a manifoldness fix
+    polys = toPolygons(boost_polys);
+    polys.simplify();
+    
+    
+    { // ensure the polygon is manifold, by removing small areas where the polygon touches itself
+        std::vector<Point> duplicate_locations;
+        std::unordered_set<Point> poly_locations;
+        for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
         {
-            std::unordered_set<Point> poly_locations;
-            for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
+            PolygonRef poly = polys[poly_idx];
+            for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
             {
-                PolygonRef poly = polys[poly_idx];
-                for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
+                Point p = poly[point_idx];
+                if (poly_locations.find(p) != poly_locations.end())
                 {
-                    Point p = poly[point_idx];
-                    if (poly_locations.find(p) != poly_locations.end())
-                    {
-                        PolygonsPointIndex here(&polys, poly_idx, point_idx);
-                        PolygonsPointIndex prev = here.prev();
-                        PolygonsPointIndex next = here.next();
-                        Point bit_back = here.p() + normal(prev.p() - here.p(), 5);
-                        Point bit_forward = here.p() + normal(next.p() - here.p(), 5);
-                        poly[point_idx] = bit_forward;
-                        poly.insert(point_idx, bit_back);
-                    }
-                    poly_locations.emplace(p);
+                    duplicate_locations.push_back(p);
                 }
+                poly_locations.emplace(p);
             }
         }
-        polys.removeDegenerateVerts();
-        polys.simplify();
+        Polygons removal_dots;
+        for (Point p : duplicate_locations)
+        {
+            PolygonRef dot = removal_dots.newPoly();
+            dot.add(p + Point(0,5));
+            dot.add(p + Point(5,0));
+            dot.add(p + Point(0,-5));
+            dot.add(p + Point(-5,0));
+        }
+        if ( ! removal_dots.empty())
+        {
+            polys = polys.difference(removal_dots);
+        }
     }
 
 #ifdef DEBUG
