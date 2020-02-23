@@ -1704,7 +1704,7 @@ bool SkeletalTrapezoidation::isEndOfMarking(const edge_t& edge_to) const
     return true;
 }
 
-bool SkeletalTrapezoidation::isLocalMaximum(const node_t& node) const
+bool SkeletalTrapezoidation::isLocalMaximum(const node_t& node, bool strict) const
 {
     if (node.data.distance_to_boundary == 0)
     {
@@ -1713,7 +1713,7 @@ bool SkeletalTrapezoidation::isLocalMaximum(const node_t& node) const
     bool first = true;
     for (edge_t* edge = node.some_edge; first || edge != node.some_edge; edge = edge->twin->next)
     {
-        if (canGoUp(edge))
+        if (canGoUp(edge, strict))
         {
             return false;
         }
@@ -1727,13 +1727,15 @@ bool SkeletalTrapezoidation::isLocalMaximum(const node_t& node) const
     return true;
 }
 
-bool SkeletalTrapezoidation::canGoUp(const edge_t* edge) const
+bool SkeletalTrapezoidation::canGoUp(const edge_t* edge, bool strict) const
 {
     if (edge->to->data.distance_to_boundary > edge->from->data.distance_to_boundary)
     {
         return true;
     }
-    if (edge->to->data.distance_to_boundary < edge->from->data.distance_to_boundary)
+    if (edge->to->data.distance_to_boundary < edge->from->data.distance_to_boundary
+        || strict
+    )
     {
         return false;
     }
@@ -2469,7 +2471,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::unordered_map<n
         node_t* node = pair.first;
         Beading& beading = pair.second.beading;
         if (beading.bead_widths.size() % 2 == 1
-            && isLocalMaximum(*node)
+            && isLocalMaximum(*node, true)
             && !isMarked(node)
         )
         {

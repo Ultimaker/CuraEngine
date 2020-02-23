@@ -275,13 +275,17 @@ protected:
 
     /*!
      * Check whether this node has a locally maximal distance_to_boundary
+     * 
+     * \param strict Whether equidistant edges can count as a local maximum
      */
-    bool isLocalMaximum(const node_t& node) const;
+    bool isLocalMaximum(const node_t& node, bool strict = false) const;
 
     /*!
      * Check (recursively) whether there is any upward edge from the distance_to_boundary of the from of the \param edge
+     * 
+     * \param strict Whether equidistant edges can count as a local maximum
      */
-    bool canGoUp(const edge_t* edge) const;
+    bool canGoUp(const edge_t* edge, bool strict = false) const;
 
     /*!
      * Calculate the traversed distance until we meet an upward edge.
