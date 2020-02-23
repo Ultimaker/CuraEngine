@@ -2479,7 +2479,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::unordered_map<n
             result_polylines_per_index[inset_index].emplace_back(inset_index, is_odd);
             ExtrusionLine& line = result_polylines_per_index[inset_index].back();
             line.junctions.emplace_back(node->p, beading.bead_widths[inset_index], inset_index);
-            line.junctions.emplace_back(node->p + Point(10, 0), beading.bead_widths[inset_index], inset_index);
+            line.junctions.emplace_back(node->p + Point(50, 0), beading.bead_widths[inset_index], inset_index);
         }
     }
 }
