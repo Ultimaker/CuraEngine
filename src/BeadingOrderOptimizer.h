@@ -68,7 +68,7 @@ private:
     void fuzzyConnect(std::vector<std::list<ExtrusionLine>>& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons);
 
     template<typename directional_iterator>
-    void reduceIntersectionOverlap( ExtrusionLine& polyline, directional_iterator polyline_start_it, coord_t traveled_dist, coord_t reduction_length);
+    void reduceIntersectionOverlap( ExtrusionLine& polyline, directional_iterator polyline_start_it, coord_t traveled_dist, coord_t reduction_length, ExtrusionLineEndRef& reduction_source);
 
     template<typename directional_iterator>
     static std::list<ExtrusionJunction>::iterator getInsertPosIt(directional_iterator it);
