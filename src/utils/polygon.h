@@ -1105,12 +1105,12 @@ public:
         return result;
     }
 
-    Polygons processEvenOdd() const
+    Polygons processEvenOdd(ClipperLib::PolyFillType poly_fill_type = ClipperLib::PolyFillType::pftEvenOdd) const
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(paths, ClipperLib::ptSubject, true);
-        clipper.Execute(ClipperLib::ctUnion, ret.paths);
+        clipper.Execute(ClipperLib::ctUnion, ret.paths, poly_fill_type);
         return ret;
     }
 
