@@ -116,7 +116,18 @@ protected:
      * Otherwise if node.some_edge = quad_start you couldnt reach quad_end.twin by normal iteration (i.e. it = it.twin.next)
      */
     void separatePointyQuadEndNodes();
-    void removeZeroLengthSegments();
+
+    /*!
+     * If an edge is too small, collapse it and its twin and fix the surrounding edges to ensure a consistent graph.
+     * 
+     * Don't collapse support edges, unless we can collapse the whole quad.
+     * 
+     * o-,
+     * |  "-o
+     * |    | > Don't collapse this edge only.
+     * o    o
+     */
+    void collapseSmallEdges(coord_t snap_dist = 5);
     void fixNodeDuplication();
 
     // ^ init | v transitioning

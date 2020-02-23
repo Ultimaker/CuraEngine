@@ -502,7 +502,7 @@ void SkeletalTrapezoidation::init()
     debugCheckGraphExistance();
     debugCheckEndpointUniqueness();
     
-    removeZeroLengthSegments();
+    collapseSmallEdges();
 
 
     debugCheckGraphCompleteness();
@@ -586,7 +586,7 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
     debugCheckEndpointUniqueness();
 }
 
-void SkeletalTrapezoidation::removeZeroLengthSegments()
+void SkeletalTrapezoidation::collapseSmallEdges(coord_t snap_dist)
 {
     std::unordered_map<edge_t*, std::list<edge_t>::iterator> edge_locator;
     std::unordered_map<node_t*, std::list<node_t>::iterator> node_locator;
@@ -608,6 +608,8 @@ void SkeletalTrapezoidation::removeZeroLengthSegments()
             }
         };
 
+    auto should_collapse = [snap_dist](node_t* a, node_t* b) { return shorterThen(a->p - b->p, snap_dist); };
+        
     for (auto edge_it = graph.edges.begin(); edge_it != graph.edges.end();)
     {
         if (edge_it->prev)
@@ -621,7 +623,7 @@ void SkeletalTrapezoidation::removeZeroLengthSegments()
 
         bool edge_it_is_updated = false;
         bool quad_mid_is_removed = false;
-        if (quad_mid && quad_mid->from->p == quad_mid->to->p)
+        if (quad_mid && should_collapse(quad_mid->from, quad_mid->to))
         {
             assert(quad_mid->twin);
             int count = 0;
@@ -636,6 +638,12 @@ void SkeletalTrapezoidation::removeZeroLengthSegments()
                 assert(++count < 100);
                 if (count > 1000) break;
             }
+
+            // o-o > collapse top
+            // | |
+            // | |
+            // | |
+            // o o
             if (quad_mid->from->some_edge == quad_mid)
             {
                 if (quad_mid->twin->next)
@@ -663,8 +671,11 @@ void SkeletalTrapezoidation::removeZeroLengthSegments()
             quad_mid_is_removed = true;
         }
 
-        if (quad_start->from->p == quad_end->to->p
-            && quad_start->to->p == quad_end->from->p)
+        //  o-o
+        //  | | > collapse sides
+        //  o o
+        if ( should_collapse(quad_start->from, quad_end->to)
+            && should_collapse(quad_start->to, quad_end->from))
         { // collapse start and end edges and remove whole cell
             assert(!quad_mid || quad_mid_is_removed);
 
@@ -688,7 +699,7 @@ void SkeletalTrapezoidation::removeZeroLengthSegments()
             safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
             safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
         }
-        // if only one side had zero length then the cell on the other side of that edge has to collapse
+        // if only one side had collapsable length then the cell on the other side of that edge has to collapse
         // if we would collapse that one edge then that would change the quad_start and/or quad_end of neighboring cells
         // this is to do with the constraint that !prev == !twin.next
 
