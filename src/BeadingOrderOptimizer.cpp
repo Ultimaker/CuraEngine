@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 
 
 #include "BeadingOrderOptimizer.h"
@@ -27,8 +27,11 @@ BeadingOrderOptimizer::BeadingOrderOptimizer(std::vector<std::list<ExtrusionLine
         for (std::list<ExtrusionLine>::iterator polyline_it = polylines.begin(); polyline_it != polylines.end(); ++polyline_it)
         {
             ExtrusionLine& polyline = *polyline_it;
-            assert(polyline.junctions.size() >= 2); // otherwise the front and back ExtrusionLineEndRef would be mapped to from the same location
-            if (polyline.junctions.empty()) continue; // shouldn't happen
+            assert(polyline.junctions.size() >= 2); // Otherwise the front and back ExtrusionLineEndRef would be mapped to from the same location
+            if (polyline.junctions.empty()) 
+            {
+                continue; // Shouldn't happen 
+            }
             polyline_end_points.emplace(polyline.junctions.front().p, ExtrusionLineEndRef(polyline.inset_idx, polyline_it, true));
             polyline_end_points.emplace(polyline.junctions.back().p, ExtrusionLineEndRef(polyline.inset_idx, polyline_it, false));
         }
@@ -45,7 +48,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
             return it.p();
         }
     };
-    SparsePointGridInclusive<ExtrusionLineEndRef> polyline_grid(snap_dist); // inclusive because iterators might get invalidated
+    SparsePointGridInclusive<ExtrusionLineEndRef> polyline_grid(snap_dist); // Inclusive because iterators might get invalidated
     for (std::list<ExtrusionLine>& polys : polylines_per_index)
     {
         for (auto poly_it = polys.begin(); poly_it != polys.end(); ++poly_it)
@@ -57,30 +60,41 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
             }
         }
     }
+    
     struct PointLocator
     {
-        Point operator()(const Point& p) { return p; }
+        Point operator()(const Point& p) 
+        { 
+            return p; 
+        }
     };
-    SparsePointGrid<Point, PointLocator> polygon_grid(snap_dist); // inclusive because iterators might get invalidated
+    SparsePointGrid<Point, PointLocator> polygon_grid(snap_dist); // Inclusive because iterators might get invalidated
     for (auto polygons : polygons_per_index)
+    {
         for (auto polygon : polygons)
+        {
             for (ExtrusionJunction& junction : polygon.junctions)
+            {
                 polygon_grid.insert(junction.p);
+            }
+        }
+    }
 
-    // order of end_points_to_check and nearby_end_points determines which ends are connected together
+    // Order of end_points_to_check and nearby_end_points determines which ends are connected together
     // TODO: decide on the best way to connect polylines at 3-way intersections
     std::list<ExtrusionLineEndRef> end_points_to_check;
 
     for (std::list<ExtrusionLine>& polys : polylines_per_index)
     {
         for (bool odd_lines : { connect_odd_lines_to_polygons, !connect_odd_lines_to_polygons })
-        { // try to combine odd lines into polygons first, if connect_odd_lines_to_polygons
+        { // Try to combine odd lines into polygons first, if connect_odd_lines_to_polygons
             for (auto poly_it = polys.begin(); poly_it != polys.end(); ++poly_it)
             {
                 if (poly_it->is_odd != odd_lines)
                 {
                     continue;
                 }
+                
                 assert(poly_it->junctions.size() > 1);
                 for (bool front : { true, false })
                 {
@@ -89,21 +103,22 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
             }
         }
     }
+    
     for (auto it = end_points_to_check.begin(); it != end_points_to_check.end(); ++it)
     {
         ExtrusionLineEndRef& end_point = *it;
         if (end_point.polyline->junctions.empty())
-        { // there is no line. We cannot do anything because we don't know where this ghost line initially was
+        { // There is no line. We cannot do anything because we don't know where this ghost line initially was
             continue;
         }
 
         Point p = end_point.p();
 
         bool end_point_has_changed = false; // Whether the end_point ref now points to a new end compared to where it was initially pointing to
-        bool has_connected = polygon_grid.getAnyNearby(p, snap_dist) != nullptr; // we check whether polygons were already connected together here
+        bool has_connected = polygon_grid.getAnyNearby(p, snap_dist) != nullptr; // We check whether polygons were already connected together here
 
         if (has_connected && !reduce_overlapping_segments)
-        { // don't process nearby polyline endpoints
+        { // Don't process nearby polyline endpoints
             continue;
         }
         if (has_connected)
@@ -128,35 +143,37 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
             {
                 continue;
             }
-            if (end_point == other_end)
-                if ((!has_connected || !end_point_has_changed) // only reduce overlap if the end point ref hasn't changed because of connecting
-                // NOTE: connecting might change the junctions in polyline and therefore the ExtrusionLineRef [end_point] might now refer to a new end point!
-            )
+            
+            if (end_point == other_end && (!has_connected || !end_point_has_changed))
             {
+                // Only reduce overlap if the end point ref hasn't changed because of connecting
+                // NOTE: connecting might change the junctions in polyline and therefore the ExtrusionLineRef [end_point] might now refer to a new end point!
                 continue;
             }
-            if (!shorterThen(p - other_end.p(), snap_dist)
-            )
-            { // the other end is not really a nearby other end
+
+            if (!shorterThen(p - other_end.p(), snap_dist))
+            { // The other end is not really a nearby other end
                 continue;
             }
+            
             coord_t other_end_polyline_length = other_end.polyline->computeLength();
             if (&*end_point.polyline == &*other_end.polyline
-                && (other_end.polyline->junctions.size() <= 2 || other_end_polyline_length < snap_dist * 2)
-            )
-            { // the other end is of the same really short polyline
+                && (other_end.polyline->junctions.size() <= 2 || other_end_polyline_length < snap_dist * 2))
+            { // The other end is of the same really short polyline
                 continue;
             }
 
             if (!has_connected)
             {
-                int_fast8_t changed_side_is_front = -1; // unset bool; whether we have changed what the front of the polyline of [end_point] is rather than the back (stays -1 if we don't need to reinsert any list change because it is now a closed polygon)
+                int_fast8_t changed_side_is_front = -1; // Unset bool; whether we have changed what the front of the polyline of [end_point] is rather than the back (stays -1 if we don't need to reinsert any list change because it is now a closed polygon)
                 if (&*end_point.polyline == &*other_end.polyline)
-                { // we can close this polyline into a polygon
+                { // We can close this polyline into a polygon
                     polygons_per_index.resize(std::max(polygons_per_index.size(), static_cast<size_t>(end_point.inset_idx + 1)));
                     polygons_per_index[end_point.inset_idx].emplace_back(*end_point.polyline);
                     for (ExtrusionJunction& junction : end_point.polyline->junctions)
+                    {
                         polygon_grid.insert(junction.p);
+                    }
                     end_point.polyline->junctions.clear();
                 }
                 else if (!end_point.front && other_end.front)
@@ -192,7 +209,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
                 }
                 has_connected = true;
                 if (!reduce_overlapping_segments)
-                { // don't continue going over nearby polyline ends
+                { // Don't continue going over nearby polyline ends
                     break;
                 }
             }
@@ -211,14 +228,14 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
         }
     }
 
-    // remove emptied lists
-    // afterwards, because otherwise iterators would be invalid during the connecting algorithm
+    // Remove emptied lists
+    // This is done afterwards, because otherwise iterators would be invalid during the connecting algorithm
     for (std::list<ExtrusionLine>& polys : polylines_per_index)
     {
         for (auto poly_it = polys.begin(); poly_it != polys.end();)
         {
-            if (poly_it->junctions.empty()
-                || poly_it->computeLength() < 2 * snap_dist) // too small segments might have been overlooked byecause of the fuzzy nature of matching end points to each other
+            if (poly_it->junctions.empty() || poly_it->computeLength() < 2 * snap_dist) 
+            // Too small segments might have been overlooked byecause of the fuzzy nature of matching end points to each other
             {
                 poly_it = polys.erase(poly_it);
             }
@@ -239,8 +256,9 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(ExtrusionLine& polyline, d
     {
         return;
     }
+    
     if (&*reduction_source.polyline == &polyline && polyline.junctions.size() <= 2)
-    { // don't throw away small segments overlapping with themselves
+    { // Don't throw away small segments overlapping with themselves
         return;
     }
     ExtrusionJunction& next_junction = *next_junction_it;
@@ -313,8 +331,6 @@ std::list<ExtrusionJunction>::iterator BeadingOrderOptimizer::getSelfPosIt(std::
     return (++it).base();
 }
 
-
-
 void BeadingOrderOptimizer::debugCheck()
 {
 #ifdef DEBUG
@@ -332,6 +348,4 @@ void BeadingOrderOptimizer::debugCheck()
     }
 #endif
 };
-
-
 } // namespace arachne

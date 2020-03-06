@@ -41,10 +41,12 @@ private:
         , polyline(polyline)
         , front(front)
         {}
+        
         Point p() const
         {
             return front? polyline->junctions.front().p : polyline->junctions.back().p;
         }
+        
         bool operator==(const ExtrusionLineEndRef& other)
         {
             return inset_idx == other.inset_idx
@@ -81,9 +83,6 @@ private:
     
     void debugCheck();
 };
-
-
-
 
 } // namespace arachne
 #endif // BEADING_ORDER_OPTIMIZER_H
