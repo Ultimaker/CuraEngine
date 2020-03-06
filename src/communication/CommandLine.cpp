@@ -356,7 +356,7 @@ std::unordered_set<std::string> CommandLine::defaultSearchDirectories()
 #else
         char delims[] = ";"; //Semicolon for Windows.
 #endif
-        char paths[32 * 1024]; //Maximum length of environment variable.
+        char paths[128 * 1024]; //Maximum length of environment variable.
         strcpy(paths, search_path_env); //Necessary because strtok actually modifies the original string, and we don't want to modify the environment variable itself.
         char* path = strtok(paths, delims);
         while (path != nullptr)

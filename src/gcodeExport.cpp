@@ -1143,33 +1143,34 @@ void GCodeExport::writeFanCommand(double speed)
     {
         return;
     }
-    if (speed > 0)
+    if(flavor == EGCodeFlavor::MAKERBOT)
     {
-        if (flavor == EGCodeFlavor::MAKERBOT)
-            *output_stream << "M126 T0" << new_line; //value = speed * 255 / 100 // Makerbot cannot set fan speed...;
+        if(speed >= 50)
+        {
+            *output_stream << "M126 T0" << new_line; //Makerbot cannot PWM the fan speed...
+        }
         else
         {
-            *output_stream << "M106 S" << PrecisionedDouble{1, speed * 255 / 100};
-            if (fan_number)
-            {
-                *output_stream << " P" << fan_number;
-            }
-            *output_stream << new_line;
+            *output_stream << "M127 T0" << new_line;
         }
+    }
+    else if (speed > 0)
+    {
+        *output_stream << "M106 S" << PrecisionedDouble{1, speed * 255 / 100};
+        if (fan_number)
+        {
+            *output_stream << " P" << fan_number;
+        }
+        *output_stream << new_line;
     }
     else
     {
-        if (flavor == EGCodeFlavor::MAKERBOT)
-            *output_stream << "M127 T0" << new_line;
-        else
+        *output_stream << "M107";
+        if (fan_number)
         {
-            *output_stream << "M107";
-            if (fan_number)
-            {
-                *output_stream << " P" << fan_number;
-            }
-            *output_stream << new_line;
+            *output_stream << " P" << fan_number;
         }
+        *output_stream << new_line;
     }
 
     current_fan_speed = speed;
@@ -1383,7 +1384,7 @@ void GCodeExport::ResetLastEValueAfterWipe(size_t extruder)
 
 void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
 {
-    Point3 prev_position = currentPosition;
+    const Point3 prev_position = currentPosition;
     writeComment("WIPE_SCRIPT_BEGIN");
 
     if (wipe_config.retraction_enable)

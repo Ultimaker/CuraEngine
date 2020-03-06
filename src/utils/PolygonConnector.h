@@ -150,7 +150,7 @@ protected:
      * It cannot be used as a general purpose function for any two ClosestPolygonPoint
      * For large distances between \p from and \p to the output direction might be 'incorrect'.
      */
-    char getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to);
+    int16_t getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to);
 
     /*!
      * Get the bridge to cross between two polygons.

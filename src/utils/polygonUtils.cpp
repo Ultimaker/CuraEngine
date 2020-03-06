@@ -1145,7 +1145,7 @@ std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(con
             const Point segment_vector = next_vert - prev_vert;
             const coord_t segment_length = vSize(segment_vector);
             const coord_t projected_segment_length = std::abs(projected - prev_projected);
-            const char sign = (projected > 0) ? 1 : -1;
+            const int16_t sign = (projected > 0) ? 1 : -1;
             const coord_t projected_inter_segment_length = dist - sign * prev_projected; // add the prev_projected to dist if it is projected to the other side of the input line than where the intersection occurs.
             const coord_t inter_segment_length = segment_length * projected_inter_segment_length / projected_segment_length;
             const Point intersection = prev_vert + normal(next_vert - prev_vert, inter_segment_length);

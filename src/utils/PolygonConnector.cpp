@@ -81,7 +81,7 @@ void PolygonConnector::addPolygonSegment(const ClosestPolygonPoint& start, const
     // >>>>>>>.end.....start.>>>>>>>
     assert(start.poly == end.poly && "We can only bridge from one polygon from the other if both connections depart from the one polygon!");
     ConstPolygonRef poly = *end.poly;
-    char dir = getPolygonDirection(end, start); // we get the direction of the polygon in between the bridge connections, while we add the segment of the polygon not in between the segments
+    int16_t dir = getPolygonDirection(end, start); // we get the direction of the polygon in between the bridge connections, while we add the segment of the polygon not in between the segments
 
     result.add(start.p());
     bool first_iter = true;
@@ -102,7 +102,7 @@ void PolygonConnector::addPolygonSegment(const ClosestPolygonPoint& start, const
     result.add(end.p());
 }
 
-char PolygonConnector::getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to)
+int16_t PolygonConnector::getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to)
 {
     assert(from.poly == to.poly && "We can only bridge from one polygon from the other if both connections depart from the one polygon!");
     ConstPolygonRef poly = *from.poly;

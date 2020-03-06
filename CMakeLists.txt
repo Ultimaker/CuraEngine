@@ -219,6 +219,7 @@ set(engine_SRCS # Except main.cpp.
 set(engine_TEST
     GCodeExportTest
     InfillTest
+    LayerPlanTest
     MergeInfillLinesTest
     TimeEstimateCalculatorTest
 )
