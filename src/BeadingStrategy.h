@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 
 
 #ifndef BEADING_STRATEGY_H
@@ -13,7 +13,7 @@ namespace arachne
 {
 
 /*!
- * Pure virtual base class template.
+ * Mostly virtual base class template.
  * 
  * Strategy for covering a given (constant) horizontal model thickness with a number of beads.
  * 
@@ -36,9 +36,9 @@ public:
         coord_t left_over; //! The distance not covered by any bead; gap area.
     };
 
-    coord_t optimal_width; //! optimal bead width
+    coord_t optimal_width; //! Optimal bead width
     
-    coord_t default_transition_length; //! the length of the region to smoothly transfer between bead counts
+    coord_t default_transition_length; //! The length of the region to smoothly transfer between bead counts
 
     /*!
      * The maximum angle between outline segments smaller than which we are going to add transitions
@@ -50,8 +50,7 @@ public:
     : optimal_width(optimal_width)
     , default_transition_length(default_transition_length)
     , transitioning_angle(transitioning_angle)
-    {
-    }
+    {}
 
     virtual ~BeadingStrategy()
     {}
@@ -85,27 +84,14 @@ public:
      * 
      * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps with some incline defined by their length.
      */
-    virtual coord_t getTransitioningLength(coord_t lower_bead_count) const
-    {
-        if (lower_bead_count == 0)
-        {
-            return 10;
-        }
-        return default_transition_length;
-    }
+    virtual coord_t getTransitioningLength(coord_t lower_bead_count) const;
 
     /*!
      * The fraction of the transition length to put between the lower end of the transition and the point where the unsmoothed bead count jumps.
      * 
      * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps which could be positioned relative to the jump location.
      */
-    virtual float getTransitionAnchorPos(coord_t lower_bead_count) const
-    {
-        coord_t lower_optimum = optimal_thickness(lower_bead_count);
-        coord_t transition_point = transition_thickness(lower_bead_count);
-        coord_t upper_optimum = optimal_thickness(lower_bead_count + 1);
-        return 1.0 - float(transition_point - lower_optimum) / float(upper_optimum - lower_optimum);
-    }
+    virtual float getTransitionAnchorPos(coord_t lower_bead_count) const;
 
     /*!
      * Get the locations in a bead count region where \ref BeadingStrategy::compute exhibits a bend in the widths.
@@ -113,11 +99,8 @@ public:
      * 
      * This is used to insert extra support bones into the skeleton, so that the resulting beads in long trapezoids don't linearly change between the two ends.
      */
-    virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const
-    {
-        return std::vector<coord_t>();
-    }
-
+    virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const;
+    
     static bool checkTranisionThicknessConsistency(const BeadingStrategy* strategy);
 
     virtual std::string toString() const = 0;
