@@ -22,7 +22,7 @@ When the height of the cross section is determined, all triangles are intersecte
 
 ![Triangle Line Intersection](assets/slice_triangle.svg)
 
-For performance reasons, we figure out the "z bounding box" of each face at first which endows us with a fast precheck (layer height vs face). Then we parallize over the layer heights and perfrom the layer height vs face intersection test (including the precheck).
+For performance reasons, we figure out the "z bounding box" of each face at first which endows us with a fast precheck (layer height vs face). Then we parallize over the layer heights and perform the layer height vs face intersection test (including the precheck).
 
 To find the intersection of a plane and a triangle, we simply interpolate all three line segments of the triangle. At least two of these interpolations should span the plane. We take the two coordinates where the interpolations have the same Z coordinate as the plane and those will become the two endpoints of the line segment.
 
