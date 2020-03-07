@@ -343,7 +343,7 @@ TEST_F(PolygonTest, simplifySineLimitedError)
     
     constexpr coord_t length = 10000;
     constexpr coord_t deviation = 500;
-    constexpr size_t period_count = 2;
+    constexpr size_t bulge_count = 5;
     
     sine.emplace_back(length, 0);
     sine.emplace_back(length, length);
@@ -352,12 +352,13 @@ TEST_F(PolygonTest, simplifySineLimitedError)
 
     for (coord_t x = 100; x < length; x += 100)
     {
-        sine.emplace_back(x, std::sin(INT2MM(x) / INT2MM(length) * M_PI * 2 * period_count) * deviation);
+        sine.emplace_back(x, std::sin(INT2MM(x) / INT2MM(length) * M_PI * bulge_count ) * deviation);
     }
     Polygon sine_before = sine;
 
     sine_polygons.simplify(length / 2, 2 * deviation);
-    EXPECT_THAT(sine.size(), testing::AllOf(testing::Ge(4), testing::Le(4 + period_count * 2 + 1))) << "Should simplify each outward and each inward bulge.";
+    const size_t max_simplified_sine_segments = bulge_count * 2; // * 2 because simplify() is not precise and might not optimally simplify
+    EXPECT_THAT(sine.size(), testing::AllOf(testing::Ge(4), testing::Le(4 + max_simplified_sine_segments))) << "Should simplify each outward and each inward bulge.";
 }
 
 TEST_F(PolygonTest, simplifyCircleLimitedError)
