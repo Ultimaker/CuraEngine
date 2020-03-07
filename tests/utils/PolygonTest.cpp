@@ -338,6 +338,11 @@ TEST_F(PolygonTest, simplifySineLimitedError)
 {
     // Generate a straight line with sinusoidal errors which should be simplified back into a more straight line
     
+    // Hypothetically simplify() might replace each half period of the sine with a straight segment,
+    // but because simplify() is heuristic it introduces more segments.
+    // The function signature doesn't provide any guarantee about how much simplification will occur,
+    // but in practice it should at least simplify up to double the minimal segment count.
+    
     Polygons sine_polygons;
     PolygonRef sine = sine_polygons.newPoly();
     
