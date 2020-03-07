@@ -337,13 +337,17 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             break; //New polygon also doesn't have any vertices yet, meaning we've completed the loop without adding any vertices. The entire polygon is too small to be significant.
         }
-        accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
 
+        const coord_t removed_area_current = current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
+        const coord_t removed_area_next = next.X * previous.Y - next.Y * previous.X;
+        accumulated_area_removed += removed_area_current;
+        
         const coord_t length2 = vSize2(current - previous);
         const coord_t next_length2 = vSize2(current - next);
 
-        const coord_t area_removed_so_far = accumulated_area_removed + next.X * previous.Y - next.Y * previous.X; //Close the polygon.
+        const coord_t area_removed_so_far = accumulated_area_removed + removed_area_next;
         const coord_t base_length_2 = vSize2(next - previous);
+
         if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
         {
             continue; //Remove the vertex.
@@ -362,8 +366,10 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             continue; //Remove the vertex.
         }
-        else if (length2 >= smallest_line_segment_squared && new_path.size() > 2 &&
-                (vSize2(new_path[new_path.size() - 2] - new_path.back()) == 0 || LinearAlg2D::getDist2FromLine(current, new_path[new_path.size() - 2], new_path.back()) <= 25)) //Almost exactly straight (barring rounding errors).
+        else if (length2 >= smallest_line_segment_squared // prevent escalation of removal of colinear segments due to extremely high poly models
+            && new_path.size() > 2
+            && (vSize2(new_path[new_path.size() - 2] - new_path.back()) == 0 // duplicate vertices
+                 || LinearAlg2D::getDist2FromLine(current, new_path[new_path.size() - 2], new_path.back()) <= 25)) //Almost exactly straight (barring rounding errors).
         {
             new_path.pop_back(); //Remove the previous vertex but still add the new one.
         }
