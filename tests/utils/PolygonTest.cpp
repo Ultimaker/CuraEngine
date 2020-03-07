@@ -379,7 +379,7 @@ TEST_F(PolygonTest, simplifySineHighPoly)
     sine.emplace_back(0, length);
     sine.emplace_back(0, 0);
 
-    for (coord_t x = 3; x < length; x += 3)
+    for (coord_t x = 3; x < length; x += 1)
     {
         sine.emplace_back(x, std::sin(INT2MM(x) / INT2MM(length) * M_PI * bulge_count ) * deviation);
     }
