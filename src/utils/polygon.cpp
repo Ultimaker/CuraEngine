@@ -338,14 +338,14 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
             break; //New polygon also doesn't have any vertices yet, meaning we've completed the loop without adding any vertices. The entire polygon is too small to be significant.
         }
 
-        const coord_t removed_area_current = current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
-        const coord_t removed_area_next = next.X * previous.Y - next.Y * previous.X;
-        accumulated_area_removed += removed_area_current;
+        const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Shoelace formula for area of polygon per line segment.
+        const coord_t negative_area_closing = next.X * previous.Y - next.Y * previous.X; // area between the origin and the shurtcutting segment
+        accumulated_area_removed += removed_area_next;
         
         const coord_t length2 = vSize2(current - previous);
         const coord_t next_length2 = vSize2(current - next);
 
-        const coord_t area_removed_so_far = accumulated_area_removed + removed_area_next;
+        const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shurtcut area polygon
         const coord_t base_length_2 = vSize2(next - previous);
 
         if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
