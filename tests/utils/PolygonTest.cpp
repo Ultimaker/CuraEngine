@@ -5,6 +5,8 @@
 #include <gmock/gmock.h>
 
 #include <../src/utils/polygon.h> //The class under test.
+#include <../src/utils/polygonUtils.h> // helper functions
+#include <../src/utils/SVG.h> // helper functions
 
 namespace cura
 {
@@ -317,6 +319,43 @@ TEST_F(PolygonTest, simplifyLimitedError)
     spiral_polygons.simplify(999999999, height - 10);
 
     EXPECT_THAT(spiral.size(), testing::AllOf(testing::Ge(11 - 5), testing::Le(11 - 4))) << "Should merge segments of length 1000 through 1400 and (optionally) first with last.";
+}
+
+TEST_F(PolygonTest, simplifyCircleLimitedError)
+{
+    //Generate a circle with increasing 
+    Polygons circle_polygons;
+    PolygonRef circle = circle_polygons.newPoly();
+
+    coord_t radius = 20000;
+    coord_t segment_length = 100;
+    for (double angle = 0; angle < 2 * M_PI; )
+    {
+        const coord_t dx = std::cos(angle) * radius;
+        const coord_t dy = std::sin(angle) * radius;
+        Point new_point(dx, dy);
+        assert(circle.empty() || std::abs( vSize(circle.back() - new_point) - segment_length) < 10); // we should now add a segment of the prescribed length
+        circle.add(new_point);
+        segment_length += 100;
+        angle += 2.0 * std::asin(0.5 * INT2MM(segment_length) / INT2MM(radius));
+    }
+
+    Polygon circle_before = circle;
+
+    coord_t allowed_simplification_height = 1000;
+    Polygons circle_polygons_before = circle_polygons;
+    
+    circle_polygons.simplify(9999999, allowed_simplification_height);
+
+    // find largest height deviation
+    coord_t largest_dist = 0;
+    for (Point from : circle_before)
+    {
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(from, circle_polygons);
+        coord_t dist_between_polys = vSize(from - cpp.p());
+        largest_dist = std::max(largest_dist, dist_between_polys);
+    }
+    EXPECT_THAT( largest_dist, testing::Le(allowed_simplification_height + 10)) << "Shouldn't exceed maximum error distance";
 }
 
 TEST_F(PolygonTest, simplifyColinear)
