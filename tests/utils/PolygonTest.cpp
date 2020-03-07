@@ -303,28 +303,18 @@ TEST_F(PolygonTest, simplifyLimitedError)
     coord_t segment_length = 1000;
     Point last_position(0, 0);
     double angle = 0;
-    coord_t max_height = 0;
     for (size_t i = 0; i < 10; i++)
     {
         const coord_t dx = std::cos(angle) * segment_length;
         const coord_t dy = std::sin(angle) * segment_length;
         last_position += Point(dx, dy);
         spiral.add(last_position);
-
-        const coord_t ab = segment_length;
-
         segment_length += 100;
         angle += M_PI / 2;
-
-        const coord_t bc = segment_length;
-        const coord_t area = ab * bc / 2;
-        const coord_t diagonal_length = std::sqrt(ab * ab + bc * bc); //Pythagoras.
-        const coord_t height_here = 2 * area / diagonal_length;
-        max_height = std::max(max_height, height_here);
     }
     Polygon spiral_before = spiral;
 
-    max_height *= 1.5; // because the simplification might intermediately cause a different route which has a higher height
+    coord_t max_height = segment_length * std::sqrt(2.0); // the diameter of the circle along the diagonal
 
     for (auto it : spiral_before)
     {
