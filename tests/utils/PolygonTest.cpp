@@ -321,6 +321,7 @@ TEST_F(PolygonTest, simplifyLimitedError)
         // apply simplify iteratively for each point until nothing is simplifiable any more
         spiral_polygons.simplify(10000, max_height);
     }
+
     EXPECT_THAT(spiral.size(), testing::Eq(4)) << "Should simplify all spiral points except those connected to far away geometry.";
 }
 
@@ -358,7 +359,7 @@ TEST_F(PolygonTest, simplifySineLimitedError)
 
 TEST_F(PolygonTest, simplifyCircleLimitedError)
 {
-    //Generate a circle with increasing 
+    //Generate a circle with increasing resolution
     Polygons circle_polygons;
     PolygonRef circle = circle_polygons.newPoly();
 
@@ -378,6 +379,41 @@ TEST_F(PolygonTest, simplifyCircleLimitedError)
     Polygon circle_before = circle;
 
     coord_t allowed_simplification_height = 1000;
+    Polygons circle_polygons_before = circle_polygons;
+    
+    circle_polygons.simplify(9999999, allowed_simplification_height);
+
+    // find largest height deviation
+    coord_t largest_dist = 0;
+    for (Point from : circle_before)
+    {
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(from, circle_polygons);
+        coord_t dist_between_polys = vSize(from - cpp.p());
+        largest_dist = std::max(largest_dist, dist_between_polys);
+    }
+    EXPECT_THAT( largest_dist, testing::Le(allowed_simplification_height + 10)) << "Shouldn't exceed maximum error distance";
+}
+
+TEST_F(PolygonTest, simplifyHighPoly)
+{
+    //Generate a circle with extremely high point count, such that all segments are within rounding distance 
+    Polygons circle_polygons;
+    PolygonRef circle = circle_polygons.newPoly();
+
+    coord_t radius = 1000;
+    coord_t segment_length = 3;
+    for (double angle = 0; angle < 2 * M_PI; )
+    {
+        const coord_t dx = std::cos(angle) * radius;
+        const coord_t dy = std::sin(angle) * radius;
+        Point new_point(dx, dy);
+        circle.add(new_point);
+        angle += 2.0 * std::asin(0.5 * INT2MM(segment_length) / INT2MM(radius));
+    }
+
+    Polygon circle_before = circle;
+
+    coord_t allowed_simplification_height = 50;
     Polygons circle_polygons_before = circle_polygons;
     
     circle_polygons.simplify(9999999, allowed_simplification_height);
