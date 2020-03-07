@@ -357,6 +357,47 @@ TEST_F(PolygonTest, simplifySineLimitedError)
     EXPECT_THAT(sine.size(), testing::AllOf(testing::Ge(4), testing::Le(4 + max_simplified_sine_segments))) << "Should simplify each outward and each inward bulge.";
 }
 
+TEST_F(PolygonTest, simplifySineHighPoly)
+{
+    // Generate a straight line with sinusoidal errors which should be simplified back into a more straight line
+    
+    // Hypothetically simplify() might replace each half period of the sine with a straight segment,
+    // but because simplify() is heuristic it introduces more segments.
+    // The function signature doesn't provide any guarantee about how much simplification will occur,
+    // but in practice it should at least simplify up to double the minimal segment count.
+    
+    Polygons sine_polygons;
+    PolygonRef sine = sine_polygons.newPoly();
+    
+    constexpr coord_t length = 1000;
+    constexpr coord_t deviation = 50;
+    constexpr size_t bulge_count = 7;
+    constexpr coord_t allowed_simplification_height = 30;
+    
+    sine.emplace_back(length, 0);
+    sine.emplace_back(length, length);
+    sine.emplace_back(0, length);
+    sine.emplace_back(0, 0);
+
+    for (coord_t x = 3; x < length; x += 3)
+    {
+        sine.emplace_back(x, std::sin(INT2MM(x) / INT2MM(length) * M_PI * bulge_count ) * deviation);
+    }
+    Polygon sine_before = sine;
+
+    sine_polygons.simplify(length / 2, allowed_simplification_height);
+    
+    // find largest height deviation
+    coord_t largest_dist = 0;
+    for (Point from : sine_before)
+    {
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(from, sine_polygons);
+        coord_t dist_between_polys = vSize(from - cpp.p());
+        largest_dist = std::max(largest_dist, dist_between_polys);
+    }
+    EXPECT_THAT( largest_dist, testing::Le(allowed_simplification_height + 10)) << "Shouldn't exceed maximum error distance";
+}
+
 TEST_F(PolygonTest, simplifyCircleLimitedError)
 {
     //Generate a circle with increasing resolution
