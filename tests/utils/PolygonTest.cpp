@@ -289,36 +289,49 @@ TEST_F(PolygonTest, simplifyLimitedLength)
 
 TEST_F(PolygonTest, simplifyLimitedError)
 {
-    //Generate a square spiral with increasingly large corners until the area exceeds the limit.
+    // Generate a large polygon with a small region with arbitrary simplifiable geometry
+    // We choose a spiral for that arbitrary geometry
+    
+    //Generate a square spiral with increasingly large corners
     Polygons spiral_polygons;
     PolygonRef spiral = spiral_polygons.newPoly();
-    spiral.add(Point());
+    spiral.emplace_back(-15000, 11000); // introduce points that may never be simplified so that we know the simplification should start at 0,0
+    spiral.emplace_back(-15000, 1000);
+    spiral.emplace_back(0, 0);
 
     //Generate a square spiral, 90 degree corners to make it easy to compute the area loss while retaining a positive area per corner.
     coord_t segment_length = 1000;
-    Point last_position;
+    Point last_position(0, 0);
     double angle = 0;
+    coord_t max_height = 0;
     for (size_t i = 0; i < 10; i++)
     {
         const coord_t dx = std::cos(angle) * segment_length;
         const coord_t dy = std::sin(angle) * segment_length;
         last_position += Point(dx, dy);
         spiral.add(last_position);
+
+        const coord_t ab = segment_length;
+
         segment_length += 100;
         angle += M_PI / 2;
+
+        const coord_t bc = segment_length;
+        const coord_t area = ab * bc / 2;
+        const coord_t diagonal_length = std::sqrt(ab * ab + bc * bc); //Pythagoras.
+        const coord_t height_here = 2 * area / diagonal_length;
+        max_height = std::max(max_height, height_here);
     }
+    Polygon spiral_before = spiral;
 
-    //We want it to not merge the lines 1400 and 1500 any more, but do merge all lines before it.
-    //Take the area of the 1400 by 1500 and plug it into the formula for the height to get at the baseline height, which is our allowed error.
-    constexpr coord_t area = 1400 * 1500 / 2;
-    const coord_t diagonal_length = std::sqrt(1400 * 1400 + 1500 * 1500); //Pythagoras.
-    //A = 0.5 * b * h. diagonal_length is the base line in this case.
-    //2A = b * h
-    //2A / b = h
-    const coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
-    spiral_polygons.simplify(999999999, height - 10);
+    max_height *= 1.5; // because the simplification might intermediately cause a different route which has a higher height
 
-    EXPECT_THAT(spiral.size(), testing::AllOf(testing::Ge(11 - 5), testing::Le(11 - 4))) << "Should merge segments of length 1000 through 1400 and (optionally) first with last.";
+    for (auto it : spiral_before)
+    {
+        // apply simplify iteratively for each point until nothing is simplifiable any more
+        spiral_polygons.simplify(10000, max_height);
+    }
+    EXPECT_THAT(spiral.size(), testing::Eq(4)) << "Should simplify all spiral points except those connected to far away geometry.";
 }
 
 TEST_F(PolygonTest, simplifyCircleLimitedError)
