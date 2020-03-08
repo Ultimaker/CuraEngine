@@ -22,6 +22,8 @@ public:
     Polygon clockwise_small;
     Polygons clockwise_donut;
     Polygon line;
+    
+    static constexpr bool visualize = false;
 
     void SetUp()
     {
@@ -368,6 +370,13 @@ TEST_F(PolygonTest, simplifyIncreasingLimitedError)
 
     zigzag_polygons.simplify(non_simplifiable_bound, max_height);
 
+    if (visualize)
+    {
+        SVG svg("output/simplifyIncreasingLimitedError.svg", AABB(zigzag_before));
+        svg.writePolygon(zigzag_before);
+        svg.nextLayer();
+        svg.writePolygon(zigzag, SVG::Color::RED);
+    }
     EXPECT_THAT(zigzag.size(), testing::Eq(zigzag_before.size() - simplifiable_bend_count)) << "Should simplify bends with height 100 up to 500";
 }
 
@@ -399,6 +408,13 @@ TEST_F(PolygonTest, simplifySineLimitedError)
     Polygon sine_before = sine;
 
     sine_polygons.simplify(length / 2, 2 * deviation);
+    if (visualize)
+    {
+        SVG svg("output/simplifySineLimitedError.svg", AABB(sine_before));
+        svg.writePolygon(sine_before);
+        svg.nextLayer();
+        svg.writePolygon(sine, SVG::Color::RED);
+    }
     const size_t max_simplified_sine_segments = bulge_count * 2; // * 2 because simplify() is not precise and might not optimally simplify
     EXPECT_THAT(sine.size(), testing::AllOf(testing::Ge(4), testing::Le(4 + max_simplified_sine_segments))) << "Should simplify each outward and each inward bulge.";
 }
@@ -453,6 +469,13 @@ TEST_F(PolygonTest, simplifySineHighPoly)
         ClosestPolygonPoint cpp = PolygonUtils::findClosest(from, sine_polygons);
         coord_t dist_between_polys = vSize(from - cpp.p());
         largest_dist = std::max(largest_dist, dist_between_polys);
+    }
+    if (visualize)
+    {
+        SVG svg("output/simplifySineHighPoly.svg", AABB(sine_before));
+        svg.writePolygon(sine_before);
+        svg.nextLayer();
+        svg.writePolygon(sine, SVG::Color::RED);
     }
     EXPECT_THAT( largest_dist, testing::Le(allowed_simplification_height + 10)) << "Shouldn't exceed maximum error distance";
 }
@@ -539,7 +562,14 @@ TEST_F(PolygonTest, simplifyCircleHighPoly)
         coord_t dist_between_polys = vSize(from - cpp.p());
         largest_dist = std::max(largest_dist, dist_between_polys);
     }
-    EXPECT_THAT( largest_dist, testing::Le(allowed_simplification_height + 10)) << "Shouldn't exceed maximum error distance";
+    if (visualize)
+    {
+        SVG svg("output/simplifyCircleHighPoly.svg", AABB(circle_before));
+        svg.writePolygon(circle_before);
+        svg.nextLayer();
+        svg.writePolygon(circle, SVG::Color::RED);
+    }
+    EXPECT_THAT( largest_dist, testing::Le(allowed_simplification_height + 5)) << "Shouldn't exceed maximum error distance";
 }
 
 TEST_F(PolygonTest, simplifyColinear)
@@ -554,7 +584,16 @@ TEST_F(PolygonTest, simplifyColinear)
     }
     colinear.add(Point(spacing * 9, 0)); //Make it a triangle so that the area is not 0 or anything.
 
+    Polygon colinear_before = colinear;
+
     colinear_polygons.simplify(20, 20); //Regardless of parameters, it should always remove vertices with less than 5 micron deviation.
+    if (visualize)
+    {
+        SVG svg("output/simplifyColinear.svg", AABB(colinear_before));
+        svg.writePolygon(colinear_before);
+        svg.nextLayer();
+        svg.writePolygon(colinear, SVG::Color::RED);
+    }
     ASSERT_EQ(colinear_polygons[0].size(), 3) << "Only the first vertex of the colinear segments, the last vertex of the colinear segments, and the extra triangle vertex should remain.";
     size_t start_point = 0;
     for(; start_point < 3; start_point++) //Find where in the new polygon it starts with (-1, -1).
