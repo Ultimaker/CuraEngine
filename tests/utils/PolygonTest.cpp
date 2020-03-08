@@ -491,29 +491,42 @@ TEST_F(PolygonTest, simplifyCircleLimitedError)
         coord_t dist_between_polys = vSize(from - cpp.p());
         largest_dist = std::max(largest_dist, dist_between_polys);
     }
+    if (visualize)
+    {
+        SVG svg("output/simplifyCircleLimitedError.svg", AABB(circle_before));
+        svg.writePolygon(circle_before);
+        svg.nextLayer();
+        svg.writePolygon(circle, SVG::Color::RED);
+    }
     EXPECT_THAT( largest_dist, testing::Le(allowed_simplification_height + 10)) << "Shouldn't exceed maximum error distance";
 }
 
-TEST_F(PolygonTest, simplifyHighPoly)
+TEST_F(PolygonTest, simplifyCircleHighPoly)
 {
     //Generate a circle with extremely high point count, such that all segments are within rounding distance 
     Polygons circle_polygons;
     PolygonRef circle = circle_polygons.newPoly();
 
-    coord_t radius = 1000;
-    coord_t segment_length = 3;
+    coord_t radius = 2000;
+    coord_t segment_length = 1;
+    coord_t allowed_simplification_height = 50;
+
     for (double angle = 0; angle < 2 * M_PI; )
     {
-        const coord_t dx = std::cos(angle) * radius;
-        const coord_t dy = std::sin(angle) * radius;
-        Point new_point(dx, dy);
+        const coord_t x = std::cos(angle) * radius;
+        const coord_t y = std::sin(angle) * radius;
+        Point new_point(x, y);
         circle.add(new_point);
-        angle += 2.0 * std::asin(0.5 * INT2MM(segment_length) / INT2MM(radius));
+        coord_t segment_length_here = segment_length;
+        if ( (x + y) % 5 == 0 )
+        {
+            segment_length_here = 500;
+        }
+        angle += 2.0 * std::asin(0.5 * INT2MM(segment_length_here) / INT2MM(radius));
     }
 
     Polygon circle_before = circle;
 
-    coord_t allowed_simplification_height = 50;
     Polygons circle_polygons_before = circle_polygons;
     
     circle_polygons.simplify(9999999, allowed_simplification_height);
