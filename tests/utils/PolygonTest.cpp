@@ -416,22 +416,35 @@ TEST_F(PolygonTest, simplifySineHighPoly)
     PolygonRef sine = sine_polygons.newPoly();
     
     constexpr coord_t length = 1000;
-    constexpr coord_t deviation = 50;
-    constexpr size_t bulge_count = 7;
+    constexpr coord_t deviation = 100;
+    constexpr size_t bulge_count = 17;
     constexpr coord_t allowed_simplification_height = 30;
+    constexpr coord_t allowed_segment_length = 100;
     
     sine.emplace_back(length, 0);
     sine.emplace_back(length, length);
     sine.emplace_back(0, length);
     sine.emplace_back(0, 0);
 
-    for (coord_t x = 3; x < length; x += 1)
+    for (coord_t x = 1; x < length; x += 1)
     {
-        sine.emplace_back(x, std::sin(INT2MM(x) / INT2MM(length) * M_PI * bulge_count ) * deviation);
+        coord_t y = std::sin(INT2MM(x) / INT2MM(length) * M_PI * bulge_count) * deviation;
+        if ( ! sine.empty())
+        {
+            coord_t y_mid = (y + sine.back().Y) / 2;
+            if (y_mid != y && y_mid != sine.back().Y
+                && sine.back().X == x - 1
+            )
+            {
+                sine.emplace_back(x, y_mid);
+            }
+        }
+        sine.emplace_back(x, y);
+        if (x % (allowed_segment_length * 3) == 0) x += allowed_segment_length + 5;
     }
     Polygon sine_before = sine;
 
-    sine_polygons.simplify(length / 2, allowed_simplification_height);
+    sine_polygons.simplify(allowed_segment_length, allowed_simplification_height);
     
     // find largest height deviation
     coord_t largest_dist = 0;
