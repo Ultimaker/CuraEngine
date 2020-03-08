@@ -325,6 +325,52 @@ TEST_F(PolygonTest, simplifyLimitedError)
     EXPECT_THAT(spiral.size(), testing::Eq(4)) << "Should simplify all spiral points except those connected to far away geometry.";
 }
 
+
+TEST_F(PolygonTest, simplifyIncreasingLimitedError)
+{
+    // Generate a zigzag with bends in the outer ends with increasing height
+    //   _   /\                        .
+    //  | | | |
+    //  | | | |
+    //  | | | |
+    //  | | | |
+    //     v   \/
+    
+    Polygons zigzag_polygons;
+    PolygonRef zigzag = zigzag_polygons.newPoly();
+    
+    constexpr coord_t non_simplifiable_bound = 10000;
+    constexpr coord_t max_height = 562;
+    
+    coord_t long_segment = non_simplifiable_bound + 100;
+    
+    constexpr coord_t width = 1000;
+    
+    zigzag.emplace_back(0, 0);
+
+    size_t simplifiable_bend_count = 0;
+    
+    for (coord_t height = 100; height < 1000 || (height == 1000 && long_segment < 0); height += 25)
+    {
+        Point last_position = zigzag.back();
+        zigzag.emplace_back(last_position + Point(width / 2, height));
+        zigzag.emplace_back(last_position + Point(width, 0));
+        zigzag.emplace_back(last_position + Point(width, long_segment));
+        long_segment *= -1;
+        if (height < max_height)
+        {
+            simplifiable_bend_count++;
+        }
+    }
+    zigzag.emplace_back(zigzag.back() + Point(-non_simplifiable_bound, -non_simplifiable_bound)); // complete polygon with a point which enforces non-simplification to both its segments
+
+    Polygon zigzag_before = zigzag;
+
+    zigzag_polygons.simplify(non_simplifiable_bound, max_height);
+
+    EXPECT_THAT(zigzag.size(), testing::Eq(zigzag_before.size() - simplifiable_bend_count)) << "Should simplify bends with height 100 up to 500";
+}
+
 TEST_F(PolygonTest, simplifySineLimitedError)
 {
     // Generate a straight line with sinusoidal errors which should be simplified back into a more straight line
