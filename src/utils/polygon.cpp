@@ -317,7 +317,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
      * those vertices results in too much area being removed. So we accumulate
      * the area that is going to be removed by a streak of consecutive vertices
      * and don't allow that to exceed allowed_error_distance_squared. */
-    coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; //Shoelace formula for area of polygon per line segment.
+    coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; // Twice the Shoelace formula for area of polygon per line segment.
 
     for (size_t point_idx = 1; point_idx <= size(); point_idx++)
     {
@@ -338,7 +338,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
             break; //New polygon also doesn't have any vertices yet, meaning we've completed the loop without adding any vertices. The entire polygon is too small to be significant.
         }
 
-        const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Shoelace formula for area of polygon per line segment.
+        const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Twice the Shoelace formula for area of polygon per line segment.
         const coord_t negative_area_closing = next.X * previous.Y - next.Y * previous.X; // area between the origin and the shurtcutting segment
         accumulated_area_removed += removed_area_next;
         
@@ -353,13 +353,13 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
             continue; //Remove the vertex.
         }
         //We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
+        //1/2 L = A           [actual area is half of the computed shoelace value] // Shoelace formula is .5*(...) , but we simplify the computation and take out the .5
         //A = 1/2 * b * h     [triangle area formula]
-        //2A = b * h          [multiply by 2]
-        //h = 2A / b          [divide by b]
-        //h^2 = (2A / b)^2    [square it]
-        //h^2 = (2A)^2 / b^2  [factor the divisor]
-        //h^2 = 4A^2 / b^2    [remove brackets of (2A)^2]
-        const coord_t height_2 = (4 * area_removed_so_far * area_removed_so_far) / base_length_2;
+        //L = b * h           [apply above two and take out the 1/2]
+        //h = L / b           [divide by b]
+        //h^2 = (L / b)^2     [square it]
+        //h^2 = L^2 / b^2     [factor the divisor]
+        const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
         if (length2 < smallest_line_segment_squared
             && next_length2 < smallest_line_segment_squared // Segments are small
             && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.
@@ -373,6 +373,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             new_path.pop_back(); //Remove the previous vertex but still add the new one.
         }
+
         //Don't remove the vertex.
 
         accumulated_area_removed = current.X * next.Y - current.Y * next.X;
