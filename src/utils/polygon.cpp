@@ -310,13 +310,21 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
     ClipperLib::Path new_path;
     Point previous = path->at(0);
     Point current = path->at(1);
-    /* When removing a vertex, we'll check if the delta area of the polygon
-     * remains below allowed_error_distance_squared. However when removing
-     * multiple consecutive vertices, each individual vertex may result in a
-     * delta area below the threshold, while the total effect of removing all of
-     * those vertices results in too much area being removed. So we accumulate
-     * the area that is going to be removed by a streak of consecutive vertices
-     * and don't allow that to exceed allowed_error_distance_squared. */
+    /* When removing a vertex, we check the height of the triangle of the area
+     being removed from the original polygon by the simplification. However,
+     when consecutively removing multiple vertices the height of the previously
+     removed vertices w.r.t. the shortcut path changes.
+     In order to not recompute the new height value of previously removed
+     vertices we compute the height of a representative triangle, which covers
+     the same amount of area as the area being cut off. We use the Shoelace
+     formula to accumulate the area under the removed segments. This works by
+     computing the area in a 'fan' where each of the blades of the fan go from
+     the origin to one of the segments. While removing vertices the area in
+     this fan accumulates. By subtracting the area of the blade connected to
+     the shortcutting segment we obtain the total area of the cutoff region.
+     From this area we compute the height of the represenatative triangle
+     using the standard formula for a triangle area: A = .5*b*h
+     */
     coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; // Twice the Shoelace formula for area of polygon per line segment.
 
     for (size_t point_idx = 1; point_idx <= size(); point_idx++)
