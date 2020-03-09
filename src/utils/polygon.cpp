@@ -310,6 +310,11 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
     ClipperLib::Path new_path;
     Point previous = path->at(0);
     Point current = path->at(1);
+
+    // end points of the reference line against which other line segments are compared for co-linearity
+    Point last_non_colinear_line_start = previous;
+    Point last_non_colinear_line_end = current;
+
     /* When removing a vertex, we check the height of the triangle of the area
      being removed from the original polygon by the simplification. However,
      when consecutively removing multiple vertices the height of the previously
@@ -374,12 +379,20 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             continue; //Remove the vertex.
         }
-        else if (length2 >= smallest_line_segment_squared // prevent escalation of removal of colinear segments due to extremely high poly models
-            && new_path.size() > 2
+        else if ( // ignore smallest_line_segment criterion if error is less than 5 micron
+            new_path.size() > 2
+            && height_2 <= 25
             && (vSize2(new_path[new_path.size() - 2] - new_path.back()) == 0 // duplicate vertices
-                 || LinearAlg2D::getDist2FromLine(current, new_path[new_path.size() - 2], new_path.back()) <= 25)) //Almost exactly straight (barring rounding errors).
+                 || LinearAlg2D::getDist2FromLine(current, last_non_colinear_line_start, last_non_colinear_line_end ) <= 25)) //Almost exactly straight (barring rounding errors).
         {
             new_path.pop_back(); //Remove the previous vertex but still add the new one.
+        }
+        else
+        {
+            // update the reference line only when we haven't removed the last point
+            // prevent escalation of removal of colinear segments in extremely high poly models
+            last_non_colinear_line_start = previous;
+            last_non_colinear_line_end = current;
         }
 
         //Don't remove the vertex.
