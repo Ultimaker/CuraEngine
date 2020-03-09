@@ -332,6 +332,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         Point next = path->at((point_idx + 1) % size());
 
         const coord_t length2 = vSize2(current - previous);
+        const coord_t next_length2 = vSize2(current - next);
 
         //Check if the accumulated area doesn't exceed the maximum.
         accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
@@ -350,7 +351,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = (2A)^2 / b^2  [factor the divisor]
         //h^2 = 4A^2 / b^2    [remove brackets of (2A)^2]
         const coord_t height_2 = (4 * area_removed_so_far * area_removed_so_far) / base_length_2;
-        if (length2 < smallest_line_segment_squared && height_2 <= allowed_error_distance_squared) //Line is small and removing it doesn't introduce too much error.
+        if (length2 < smallest_line_segment_squared && next_length2 < smallest_line_segment_squared && height_2 <= allowed_error_distance_squared) //Line is small and removing it doesn't introduce too much error.
         {
             continue; //Remove the vertex.
         }
@@ -373,7 +374,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
     }
 
     //For the last/first vertex, we didn't check the connection that closes the polygon yet. Remove it if it's too short.
-    if(new_path.size() > 2 && (vSize2(new_path.back() - new_path[0]) < smallest_line_segment_squared || vSize2(new_path.back() - new_path[new_path.size() - 2]) < smallest_line_segment_squared))
+    if(new_path.size() > 2 && vSize2(new_path.back() - new_path[0]) < smallest_line_segment_squared && vSize2(new_path.back() - new_path[new_path.size() - 2]) < smallest_line_segment_squared)
     {
         if (LinearAlg2D::getDist2FromLine(new_path.back(), new_path[new_path.size() - 2], new_path[0]) < allowed_error_distance_squared)
         {
