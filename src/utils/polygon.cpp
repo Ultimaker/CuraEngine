@@ -311,10 +311,6 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
     Point previous = path->at(0);
     Point current = path->at(1);
 
-    // end points of the reference line against which other line segments are compared for co-linearity
-    Point last_non_colinear_line_start = previous;
-    Point last_non_colinear_line_end = current;
-
     /* When removing a vertex, we check the height of the triangle of the area
      being removed from the original polygon by the simplification. However,
      when consecutively removing multiple vertices the height of the previously
@@ -373,26 +369,14 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = (L / b)^2     [square it]
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
-        if (length2 < smallest_line_segment_squared
-            && next_length2 < smallest_line_segment_squared // Segments are small
-            && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.
+        if ((height_2 <= 25 //Almost exactly colinear (barring rounding errors).
+            && LinearAlg2D::getDist2FromLine(current, previous, next) <= 25) // make sure that height_2 is not small because of cancellation of positive and negative areas
+            || (length2 < smallest_line_segment_squared
+                && next_length2 < smallest_line_segment_squared // Segments are small
+                && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.
+        )
         {
             continue; //Remove the vertex.
-        }
-        else if ( // ignore smallest_line_segment criterion if error is less than 5 micron
-            new_path.size() > 2
-            && height_2 <= 25
-            && (vSize2(new_path[new_path.size() - 2] - new_path.back()) == 0 // duplicate vertices
-                 || LinearAlg2D::getDist2FromLine(current, last_non_colinear_line_start, last_non_colinear_line_end ) <= 25)) //Almost exactly straight (barring rounding errors).
-        {
-            new_path.pop_back(); //Remove the previous vertex but still add the new one.
-        }
-        else
-        {
-            // update the reference line only when we haven't removed the last point
-            // prevent escalation of removal of colinear segments in extremely high poly models
-            last_non_colinear_line_start = previous;
-            last_non_colinear_line_end = current;
         }
 
         //Don't remove the vertex.
@@ -401,34 +385,6 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         previous = current; //Note that "previous" is only updated if we don't remove the vertex.
         new_path.push_back(current);
     }
-
-    //For the last/first vertex, we didn't check the connection that closes the polygon yet. Add the first vertex back if this connection is too long, or remove it if it's too short.
-    if (new_path.size() > 2
-        && vSize2(new_path.back() - new_path[0]) > smallest_line_segment_squared
-        && vSize2(new_path.back() - path->at(0)) >= smallest_line_segment_squared
-        && vSize2(new_path[0] - path->at(0)) >= smallest_line_segment_squared)
-    {
-        new_path.push_back(path->at(0));
-    }
-    if (new_path.size() > 2
-        && ! shorterThen(new_path.back() - new_path[0], smallest_line_segment_squared)
-        && ! shorterThen(new_path.back() - new_path[new_path.size() - 2], smallest_line_segment_squared)
-        && LinearAlg2D::getDist2FromLine(new_path.back(), new_path[new_path.size() - 2], new_path[0]) < allowed_error_distance_squared
-    )
-    {
-        new_path.pop_back();
-    }
-    for (size_t i = 0; i < 2; i++) //For the first two points we haven't checked yet if they are almost exactly straight.
-    {
-        if (new_path.size() > 2
-            && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 25
-            // for really small errors the smallest_line_segment_squared criterion is ignored
-        )
-        {
-            new_path.erase(new_path.begin());
-        }
-    }
-
     *path = new_path;
 }
 
