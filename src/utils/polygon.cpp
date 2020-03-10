@@ -381,7 +381,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
 
         //Don't remove the vertex.
 
-        accumulated_area_removed = current.X * next.Y - current.Y * next.X;
+        accumulated_area_removed = removed_area_next; // so that in the next iteration it's the area between the origin, [previous] and [current]
         previous = current; //Note that "previous" is only updated if we don't remove the vertex.
         new_path.push_back(current);
     }
