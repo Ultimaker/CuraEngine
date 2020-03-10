@@ -250,17 +250,29 @@ TEST_F(PolygonTest, simplifyZigzag)
     constexpr coord_t segment_length = 1000;
     const coord_t y_increment = segment_length / std::sqrt(2);
     coord_t x = y_increment / 2;
+    size_t zigzag_count = 100;
 
-    for (size_t i = 0; i < 100; i++)
+    for (size_t i = 0; i < zigzag_count; i++)
     {
         zigzag.add(Point(x, i * y_increment));
         x = 0 - x;
     }
 
-    constexpr coord_t maximum_error = 2 * segment_length * segment_length + 100; //Squared offset from baseline (and some margin for rounding).
-    zigzag_polygons.simplify(segment_length + 10, maximum_error);
+    Polygon zigzag_before = zigzag;
 
-    ASSERT_LE(zigzag.size(), 5) << "Zigzag should be removed since the total error compensates with each zag.";
+    // we make the smallest_line_segment just smaller than the line from the start to the second to last point
+    // so that we ensure the polygon does not get removed altogether
+    zigzag_polygons.simplify(y_increment * (zigzag_count - 2) - 100, y_increment);
+
+    if (visualize)
+    {
+        SVG svg("output/simplifyZigzag.svg", AABB(zigzag_before));
+        svg.writePolygon(zigzag_before);
+        svg.nextLayer();
+        svg.writePolygon(zigzag, SVG::Color::RED);
+    }
+    
+    EXPECT_THAT(zigzag.size(), testing::AllOf(testing::Ge(3), testing::Le(5))) << "All but the last zigzag should be removed.";
 }
 
 TEST_F(PolygonTest, simplifyLimitedLength)
