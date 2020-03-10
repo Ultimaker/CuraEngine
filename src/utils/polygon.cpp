@@ -308,8 +308,8 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
     }
 
     ClipperLib::Path new_path;
-    Point previous = path->at(0);
-    Point current = path->at(1);
+    Point previous = path->back();
+    Point current = path->at(0);
 
     /* When removing a vertex, we check the height of the triangle of the area
      being removed from the original polygon by the simplification. However,
@@ -328,7 +328,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
      */
     coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; // Twice the Shoelace formula for area of polygon per line segment.
 
-    for (size_t point_idx = 1; point_idx <= size(); point_idx++)
+    for (size_t point_idx = 0; point_idx < size(); point_idx++)
     {
         current = path->at(point_idx % size());
 
@@ -338,13 +338,13 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             next = path->at(point_idx + 1);
         }
-        else if (!new_path.empty())
-        {
+        else if (point_idx + 1 == size() && new_path.size() > 1)
+        { // don't spill over if the [next] vertex will then be equal to [previous]
             next = new_path[0]; //Spill over to new polygon for checking removed area.
         }
         else
         {
-            break; //New polygon also doesn't have any vertices yet, meaning we've completed the loop without adding any vertices. The entire polygon is too small to be significant.
+            next = path->at((point_idx + 1) % size());
         }
 
         const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Twice the Shoelace formula for area of polygon per line segment.
