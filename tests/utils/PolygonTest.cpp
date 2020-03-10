@@ -392,6 +392,7 @@ TEST_F(PolygonTest, simplifyIncreasingLimitedError)
     EXPECT_THAT(zigzag.size(), testing::Eq(zigzag_before.size() - simplifiable_bend_count)) << "Should simplify bends with height 100 up to 500";
 }
 
+
 TEST_F(PolygonTest, simplifySineLimitedError)
 {
     // Generate a straight line with sinusoidal errors which should be simplified back into a more straight line
@@ -606,7 +607,34 @@ TEST_F(PolygonTest, simplifyColinear)
         svg.nextLayer();
         svg.writePolygon(colinear, SVG::Color::RED);
     }
+    ASSERT_EQ(colinear_polygons.size(), 1) << "Polygon shouldn't have gotten removed altogether";
     ASSERT_LE(colinear_polygons[0].size(), 8) << "At least half of the colinear points should have been removed";
+}
+
+TEST_F(PolygonTest, simplifyDegenerateVertex)
+{
+    //Generate a line with several vertices halfway.
+    constexpr coord_t spacing = 100;
+    Polygons colinear_polygons;
+    PolygonRef colinear = colinear_polygons.newPoly();
+    colinear.emplace_back(0, 0);
+    colinear.emplace_back(spacing, 0);
+    colinear.emplace_back(spacing, spacing);
+    colinear.emplace_back(0, spacing);
+    colinear.emplace_back(0, -spacing); // degenerate vertex
+    
+    Polygon colinear_before = colinear;
+
+    colinear_polygons.simplify(20, 5); //Regardless of parameters, it should always remove the one vertex
+    if (visualize)
+    {
+        SVG svg("output/simplifyDegenerateVertex.svg", AABB(colinear_before));
+        svg.writePolygon(colinear_before);
+        svg.nextLayer();
+        svg.writePolygon(colinear, SVG::Color::RED);
+    }
+    ASSERT_EQ(colinear_polygons.size(), 1) << "Polygon shouldn't have gotten removed altogether";
+    ASSERT_EQ(colinear_polygons[0].size(), 4) << "The one colinear vertex should have gotten removed.";
 }
 
 /*
