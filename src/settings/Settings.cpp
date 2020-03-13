@@ -577,10 +577,13 @@ const std::string Settings::getAllSettingsString() const
 {
     std::stringstream sstream;
     for (const std::pair<std::string, std::string> pair : settings)
-    {
-        char buffer[4096];
-        snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{pair.second.c_str()}.str);
+    {        
+        char buffer[4096*10];
+        snprintf(buffer, 4096*10, "%s: \"%s\"\n", pair.first.c_str(), Escaped{pair.second.c_str()}.str);
         sstream << buffer;
+    }
+    if (parent != nullptr) {
+        sstream << "parent: ( "<< parent->getAllSettingsString() << " )";
     }
     return sstream.str();
 }

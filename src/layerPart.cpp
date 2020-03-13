@@ -10,6 +10,9 @@
 
 #include "utils/SVG.h" // debug output
 
+#include <iostream>
+using namespace std;
+
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
 It takes the result of the Slice step, which is an unordered list of polygons, and makes groups of polygons,
@@ -24,11 +27,14 @@ It's also the first step that stores the result in the "data storage" so all oth
 
 namespace cura {
 
-void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
+void createLayerWithParts(const Settings& settings, int layer_nr, SliceLayer& storageLayer, SlicerLayer* layer)
 {
+    cout << "createLayerWithParts for " << layer_nr << endl;
+
     storageLayer.openPolyLines = layer->openPolylines;
 
     const bool union_all_remove_holes = settings.get<bool>("meshfix_union_all_remove_holes");
+    cout << "union_all_remove_holes: " << union_all_remove_holes << endl;
     if (union_all_remove_holes)
     {
         for(unsigned int i=0; i<layer->polygons.size(); i++)
@@ -40,9 +46,27 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
 
     std::vector<PolygonsPart> result;
     const bool union_layers = settings.get<bool>("meshfix_union_all");
+    cout << "union_layers: " << union_layers << endl;
     const ESurfaceMode surface_only = settings.get<ESurfaceMode>("magic_mesh_surface_mode");
+    
+    switch (surface_only)
+    {
+    case ESurfaceMode::SURFACE:
+        cout << "surface_only: SURFACE" << endl;
+        break;
+    case ESurfaceMode::NORMAL:
+        cout << "surface_only: NORMAL" << endl;
+        break;
+    case ESurfaceMode::BOTH:
+        cout << "surface_only: BOTH" << endl;
+        break;    
+    default:
+        cout << "surface_only: UNKNOWN" << endl;
+    }
+
     if (surface_only == ESurfaceMode::SURFACE && !union_layers)
     { // Don't do anything with overlapping areas; no union nor xor
+        cout << "don't do anything with overlapping areas" << endl;
         result.reserve(layer->polygons.size());
         for (const PolygonRef poly : layer->polygons)
         {
@@ -52,9 +76,12 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     }
     else
     {
+        cout << "splitIntoParts(" << union_layers << " || " << union_all_remove_holes << ")" << endl;
         result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
     }
+    cout << "result size is " << result.size() << endl;
     const coord_t hole_offset = settings.get<coord_t>("hole_xy_offset");
+    cout << "hole_offset: " << hole_offset << endl;
     for(unsigned int i=0; i<result.size(); i++)
     {
         storageLayer.parts.emplace_back();
@@ -105,7 +132,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
         SlicerLayer& slice_layer = slicer->layers[layer_nr];
-        createLayerWithParts(mesh.settings, layer_storage, &slice_layer);
+        createLayerWithParts(mesh.settings, layer_nr, layer_storage, &slice_layer);
     }
 
     for (LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
