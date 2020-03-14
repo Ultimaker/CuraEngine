@@ -342,7 +342,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     log("Layer count: %i\n", storage.print_layer_count);
 
-    layerparts2HTML(storage, "output/output.html");
+    layerparts2HTML(storage, "/root/svgs");
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
 

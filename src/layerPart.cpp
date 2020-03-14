@@ -7,10 +7,12 @@
 #include "settings/EnumSettings.h" //For ESurfaceMode.
 #include "settings/Settings.h"
 #include "progress/Progress.h"
-
 #include "utils/SVG.h" // debug output
-
-#include <iostream>
+#include <memory> // for unique_ptr
+#include <sys/stat.h> // for mkdir
+#include <iostream> // for cout
+#include "utils/logoutput.h" // for log
+#include <fstream> // for ofstream
 using namespace std;
 
 /*
@@ -146,45 +148,79 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     }
 }
 
-void layerparts2HTML(SliceDataStorage& storage, const char* filename, bool all_layers, int layer_nr)
+const int numColors = 7;
+SVG::Color colors[numColors] = {
+    SVG::Color::GRAY,
+    SVG::Color::RED,
+    SVG::Color::BLUE,
+    SVG::Color::GREEN,
+    SVG::Color::ORANGE,
+    SVG::Color::MAGENTA,
+    SVG::Color::YELLOW,
+};
+
+void layerparts2HTML(SliceDataStorage& storage, const char* dir)
 {
-    
-    FILE* out = fopen(filename, "w");
-    fprintf(out, "<!DOCTYPE html><html><body>");
     Point3 modelSize = storage.model_size;
     Point3 modelMin = storage.model_min;
-    
     Point model_min_2d = Point(modelMin.x, modelMin.y);
     Point model_max_2d = Point(modelSize.x, modelSize.y) + model_min_2d;
     AABB aabb(model_min_2d, model_max_2d);
+    char path [50];
     
-    SVG svg(filename, aabb);
-    
-    for(SliceMeshStorage& mesh : storage.meshes)
+    mkdir(dir, 0777);
+    sprintf(path, "%s/svgs", dir);
+    mkdir(path, 0777);
+
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
+        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         for(unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
         {
-            if (!(all_layers || int(layer_idx) == layer_nr)) { continue; }
             SliceLayer& layer = mesh.layers[layer_idx];
-//             fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 500px; height:500px\">\n");
-            for(SliceLayerPart& part : layer.parts)
+            sprintf(path, "%s/svgs/%04d-%04d.svg", dir, mesh_idx, layer_idx);
+            unique_ptr<SVG> svg(new SVG(path, aabb));
+            
+            for(unsigned int part_idx = layer.parts.size(); part_idx > 0; part_idx--)
             {
-                svg.writeAreas(part.outline);
-                svg.writePoints(part.outline);
-//                 for(unsigned int j=0;j<part.outline.size();j++)
-//                 {
-//                     fprintf(out, "<polygon points=\"");
-//                     for(unsigned int k=0;k<part.outline[j].size();k++)
-//                         fprintf(out, "%f,%f ", float(part.outline[j][k].X - modelMin.x)/modelSize.x*500, float(part.outline[j][k].Y - modelMin.y)/modelSize.y*500);
-//                     if (j == 0)
-//                         fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
-//                     else
-//                         fprintf(out, "\" style=\"fill:red; stroke:black;stroke-width:1\" />\n");
-//                 }
+                SliceLayerPart& part = layer.parts[part_idx-1];
+                svg->writeAreas(part.outline, colors[part_idx % numColors]);
             }
-//             fprintf(out, "</svg>\n");
         }
     }
+
+    sprintf(path, "%s/index.html", dir);
+    ofstream f(path);
+
+    f << "<!DOCTYPE html>" << endl;
+    f << "<html>" << endl;
+    f << "<head>" << endl;
+    f << "    <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>" << endl;
+    f << "    <script>" << endl;
+    f << "        svgs = [" << endl;
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+    {
+        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        for(unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
+        {
+            sprintf(path, "svgs/%04d-%04d.svg", mesh_idx, layer_idx);
+            f << "'" << path << "'," << endl;
+        }
+    }
+    f << "        ];" << endl;
+    f << "        $(document).ready(function(){" << endl;
+    f << "            $('#layer').on('input', function(){" << endl;
+    f << "                $('#span').text(this.value);" << endl;
+    f << "                $('#img').attr({'src': svgs[this.value-1]});" << endl;
+    f << "            });" << endl;
+    f << "            $('#layer').attr({'max': svgs.length, 'min': 1, 'value': 0}).trigger('input');" << endl;
+    f << "        });" << endl;
+    f << "    </script>" << endl;
+    f << "</head>" << endl;
+    f << "<body>" << endl;
+    f << "<h3>Layer <span id='span'>0</span></h3>" << endl;
+    f << "<input type='range' id='layer' name='layer' min='0' max='50'>" << endl;
+    f << "<hr><img id='img'></html>" << endl;
 }
 
 }//namespace cura

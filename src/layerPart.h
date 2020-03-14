@@ -24,6 +24,7 @@ class SliceLayer;
 class Slicer;
 class SlicerLayer;
 class SliceMeshStorage;
+class SliceDataStorage;
 
 /*!
  * \brief Split a layer into parts.
@@ -41,7 +42,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
  */
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
 
-void layerparts2HTML(SliceDataStorage& mesh, const char* filename, bool all_layers = true, int layer_nr = -1);
+void layerparts2HTML(SliceDataStorage& mesh, const char* dir);
 
 }//namespace cura
 
