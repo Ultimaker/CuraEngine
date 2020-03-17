@@ -128,42 +128,61 @@ endif()
 
 set(engine_SRCS # Except main.cpp.
     src/Application.cpp
+	src/BeadingOrderOptimizer.cpp
+	src/BeadingStrategy.cpp
+	src/BeadingStrategyHelper.cpp
     src/bridge.cpp
+	src/CenterDeviationBeadingStrategy.cpp
     src/ConicalOverhang.cpp
+	src/ConstantBeadingStrategy.cpp
+	src/DistributedBeadingStrategy.cpp
     src/ExtruderTrain.cpp
     src/FffGcodeWriter.cpp
     src/FffPolygonGenerator.cpp
     src/FffProcessor.cpp
     src/gcodeExport.cpp
     src/GCodePathConfig.cpp
+	src/GcodeWriter.cpp
     src/infill.cpp
     src/InsetOrderOptimizer.cpp
+	src/InwardDistributedBeadingStrategy.cpp
     src/layerPart.cpp
     src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
+	src/LimitedBeadingStrategy.cpp
+	src/LimitedDistributedBeadingStrategy.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
     src/Mold.cpp
     src/multiVolumes.cpp
+	src/NaiveBeadingStrategy.cpp
+	src/OrderOptimizer.cpp
+	src/OutlineAccuracyBeadingStrategy.cpp
     src/pathOrderOptimizer.cpp
     src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp
     src/Scene.cpp
+	src/SingleBeadBeadingStrategy.cpp
+	src/SkeletalTrapezoidation.cpp
     src/skin.cpp
     src/SkirtBrim.cpp
+	src/Statistics.cpp
     src/SupportInfillPart.cpp
     src/Slice.cpp
     src/sliceDataStorage.cpp
     src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
+	src/ToolpathWriter.cpp
     src/TopSurface.cpp
     src/TreeSupport.cpp
+	src/voronoi_visualizer.cpp
     src/WallsComputation.cpp
     src/wallOverlap.cpp
     src/Weaver.cpp
+	src/WideningBeadingStrategy.cpp
     src/Wireframe2gcode.cpp
 
     src/communication/ArcusCommunication.cpp
@@ -198,6 +217,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
     src/utils/Date.cpp
+	src/utils/ExtrusionSegment.cpp
     src/utils/gettime.cpp
     src/utils/getpath.cpp
     src/utils/LinearAlg2D.cpp
@@ -211,8 +231,11 @@ set(engine_SRCS # Except main.cpp.
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
+	src/utils/STLwriter.cpp
     src/utils/SVG.cpp
     src/utils/socket.cpp
+	src/utils/ToolpathVisualizer.cpp
+	src/utils/VoronoiUtils.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp.
