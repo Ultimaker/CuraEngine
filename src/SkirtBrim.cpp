@@ -152,7 +152,8 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     if (allow_helpers && support_infill_extruder.settings.get<bool>("support_brim_enable"))
     {
-        generateSupportBrim(storage);
+        const bool merge_with_model_skirtbrim = !is_skirt;
+        generateSupportBrim(storage, merge_with_model_skirtbrim);
     }
 
     // generate brim for ooze shield and draft shield
@@ -226,7 +227,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
     }
 }
 
-void SkirtBrim::generateSupportBrim(SliceDataStorage& storage)
+void SkirtBrim::generateSupportBrim(SliceDataStorage& storage, const bool merge_with_model_skirtbrim)
 {
     constexpr coord_t brim_area_minimum_hole_size_multiplier = 100;
 
@@ -287,11 +288,19 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage)
 
     if (support_brim.size())
     {
-        // to ensure that the skirt brim is printed from outside to inside, the support brim lines must
-        // come before the skirt brim lines in the Polygon object so that the outermost skirt brim line
-        // is at the back of the list
-        support_brim.add(skirt_brim);
-        skirt_brim = support_brim;
+        if (merge_with_model_skirtbrim)
+        {
+            // to ensure that the skirt brim is printed from outside to inside, the support brim lines must
+            // come before the skirt brim lines in the Polygon object so that the outermost skirt brim line
+            // is at the back of the list
+            support_brim.add(skirt_brim);
+            skirt_brim = support_brim;
+        }
+        else
+        {
+            // OTOH, if we use a skirt instead of a brim for the polygon, the skirt line(s) should _always_ come first.
+            skirt_brim.add(support_brim);
+        }
     }
 }
 
