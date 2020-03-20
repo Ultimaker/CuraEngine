@@ -380,6 +380,8 @@ SliceDataStorage::SliceDataStorage()
     }
     machine_size.include(machine_min);
     machine_size.include(machine_max);
+
+    std::fill(skirt_brim_max_locked_part_order, skirt_brim_max_locked_part_order + MAX_EXTRUDERS, 0);
 }
 
 Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const bool for_brim) const
