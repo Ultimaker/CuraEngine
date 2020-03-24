@@ -631,7 +631,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0") != 0)
     {
-        constexpr bool wait = true;
+        const bool wait = mesh_group_settings.get<bool>("material_bed_temp_wait");
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0"), wait);
     }
 
