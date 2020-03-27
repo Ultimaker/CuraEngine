@@ -148,8 +148,9 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     }
 }
 
+int nextColorIdx = 0;
 const int numColors = 7;
-SVG::Color colors[numColors] = {
+const SVG::Color colors[numColors] = {
     SVG::Color::GRAY,
     SVG::Color::RED,
     SVG::Color::BLUE,
@@ -158,7 +159,7 @@ SVG::Color colors[numColors] = {
     SVG::Color::MAGENTA,
     SVG::Color::YELLOW,
 };
-
+    
 void layerparts2HTML(SliceDataStorage& storage, const char* dir)
 {
     Point3 modelSize = storage.model_size;
@@ -180,11 +181,32 @@ void layerparts2HTML(SliceDataStorage& storage, const char* dir)
             SliceLayer& layer = mesh.layers[layer_idx];
             sprintf(path, "%s/svgs/%04d-%04d.svg", dir, mesh_idx, layer_idx);
             unique_ptr<SVG> svg(new SVG(path, aabb));
+            nextColorIdx=0;
             
             for(unsigned int part_idx = layer.parts.size(); part_idx > 0; part_idx--)
             {
                 SliceLayerPart& part = layer.parts[part_idx-1];
-                svg->writeAreas(part.outline, colors[part_idx % numColors]);
+                // for (unsigned int skin_idx = 0; skin_idx < part.skin_parts.size(); skin_idx++)
+                // {
+                //     SkinPart& skin = part.skin_parts[skin_idx];
+                //     cout << "skin part index " << skin_idx << endl;
+                // }
+
+                cout << "HELLO!!!!!!!" << endl;
+
+                svg->writeComment("part.outline");
+                svg->writeAreas(part.outline, colors[nextColorIdx++]);                
+                svg->writeComment("part.infill_area");
+                svg->writeAreas(part.infill_area, colors[nextColorIdx++]);
+                svg->writeComment("part.print_outline");
+                svg->writeAreas(part.print_outline, colors[nextColorIdx++]);
+                svg->writeComment("part.getOwnInfillArea");
+                svg->writeAreas(part.getOwnInfillArea(), colors[nextColorIdx++]);                
+                for (unsigned int i = 0; i < part.spaghetti_infill_volumes.size(); i++)
+                {
+                    svg->writeComment("part.spaghetti_infill_volumes");
+                    svg->writeAreas(part.spaghetti_infill_volumes[i].first, colors[nextColorIdx++]);
+                }
             }
         }
     }

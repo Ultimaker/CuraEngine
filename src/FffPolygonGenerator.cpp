@@ -61,7 +61,6 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
     {
         return false;
     }
-
     slices2polygons(storage, timeKeeper);
 
     return true;
@@ -158,6 +157,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         Mesh& mesh = meshgroup->meshes[mesh_idx];
         Slicer* slicer = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values);
 
+        cout << "adding one more slicer" << endl;
         slicerList.push_back(slicer);
 
         /*
@@ -183,6 +183,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
         if (mesh.settings.get<bool>("conical_overhang_enabled") && !mesh.settings.get<bool>("anti_overhang_mesh"))
         {
+            cout << "applying conical overhang on mesh " << mesh_idx << endl;
             ConicalOverhang::apply(slicerList[mesh_idx], mesh);
         }
     }
