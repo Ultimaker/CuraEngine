@@ -28,7 +28,7 @@ public:
      * \param primary_line_count Number of offsets / brim lines of the primary extruder.
      * \param set to false to force not doing brim generation for helper-structures (support and ooze/draft shields)
      */
-    static void generate(SliceDataStorage& storage, Polygons first_layer_outline, const coord_t distance, const size_t primary_line_count, const bool allow_helpers = true);
+    static void generate(SliceDataStorage& storage, Polygons first_layer_outline, const coord_t distance, size_t primary_line_count, const bool allow_helpers = true);
 
     /*!
      * \brief Get the reference outline of the first layer around which to
@@ -47,7 +47,7 @@ public:
     static void getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline);
 
 private:
-    static void generateSupportBrim(SliceDataStorage& storage);
+    static void generateSupportBrim(SliceDataStorage& storage, const bool merge_with_model_skirtbrim);
 
     /*!
      * \brief Generate the skirt/brim lines around the model.
@@ -65,7 +65,7 @@ private:
      * \return The offset of the last brim/skirt line from the reference polygon
      * \p first_layer_outline.
      */
-    static coord_t generatePrimarySkirtBrimLines(const coord_t start_distance, size_t primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder);
+    static coord_t generatePrimarySkirtBrimLines(const coord_t start_distance, size_t& primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder);
 };
 }//namespace cura
 

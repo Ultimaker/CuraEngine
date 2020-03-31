@@ -631,7 +631,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0") != 0)
     {
-        constexpr bool wait = true;
+        const bool wait = mesh_group_settings.get<bool>("material_bed_temp_wait");
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0"), wait);
     }
 
@@ -1008,9 +1008,9 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         return;
     }
-    const Polygons& skirt_brim = storage.skirt_brim[extruder_nr];
+    const Polygons& original_skirt_brim = storage.skirt_brim[extruder_nr];
     gcode_layer.setSkirtBrimIsPlanned(extruder_nr);
-    if (skirt_brim.size() == 0)
+    if (original_skirt_brim.size() == 0)
     {
         return;
     }
@@ -1027,7 +1027,26 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
-    
+
+    Polygons skirt_brim;
+    // Plan parts that need to be printed first: for example, skirt needs to be printed before support-brim.
+    for (size_t i_part = 0; i_part < original_skirt_brim.size(); ++i_part)
+    {
+        if (i_part < storage.skirt_brim_max_locked_part_order[extruder_nr])
+        {
+            gcode_layer.addPolygon(original_skirt_brim[i_part], 0, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+        }
+        else
+        {
+            skirt_brim.add(original_skirt_brim[i_part]);
+        }
+    }
+
+    if (skirt_brim.empty())
+    {
+        return;
+    }
+
     if (train.settings.get<bool>("brim_outside_only"))
     {
         gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
@@ -1048,16 +1067,23 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
                 inner_brim.add(polygon);
             }
         }
-        gcode_layer.addTravel(outer_brim.back().closestPointTo(start_close_to));
-        gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
-        
-        //Add polygon in reverse order
-        const coord_t wall_0_wipe_dist = 0;
-        const bool spiralize = false;
-        const float flow_ratio = 1.0;
-        const bool always_retract = false;
-        const bool reverse_order = true;
-        gcode_layer.addPolygonsByOptimizer(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], nullptr, ZSeamConfig(), wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_order);
+
+        if (! outer_brim.empty())
+        {
+            gcode_layer.addTravel(outer_brim.back().closestPointTo(start_close_to));
+            gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+        }
+
+        if (! inner_brim.empty())
+        {
+            //Add polygon in reverse order
+            const coord_t wall_0_wipe_dist = 0;
+            const bool spiralize = false;
+            const float flow_ratio = 1.0;
+            const bool always_retract = false;
+            const bool reverse_order = true;
+            gcode_layer.addPolygonsByOptimizer(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], nullptr, ZSeamConfig(), wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_order);
+        }
     }
 }
 
