@@ -330,7 +330,7 @@ TEST_F(PolygonTest, simplifyLimitedError)
 
     coord_t max_height = segment_length * std::sqrt(2.0); // the diameter of the circle along the diagonal
 
-    for (auto it : spiral_before)
+    for (size_t i = 0; i < spiral_before.size(); ++i)
     {
         // apply simplify iteratively for each point until nothing is simplifiable any more
         spiral_polygons.simplify(10000, max_height);
