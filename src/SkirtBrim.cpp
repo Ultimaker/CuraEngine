@@ -147,7 +147,10 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
     }
 
     coord_t offset_distance = generatePrimarySkirtBrimLines(gap, primary_line_count, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
-    storage.skirt_brim_max_locked_part_order[adhesion_extruder_nr] = is_skirt ? primary_line_count : 0;
+
+    // Skirt needs to be 'locked' first, otherwise the optimizer can change to order, which can cause undesirable outcomes w.r.t combo w. support-brim or prime-tower brim.
+    // If this method is called multiple times, the max order shouldn't reset to 0, so the maximum is taken.
+    storage.skirt_brim_max_locked_part_order[adhesion_extruder_nr] = std::max(is_skirt ? primary_line_count : 0, storage.skirt_brim_max_locked_part_order[adhesion_extruder_nr]);
 
     // handle support-brim
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
