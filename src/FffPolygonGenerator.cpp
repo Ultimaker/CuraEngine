@@ -1032,7 +1032,6 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
     EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
-    // The switch statement is not used here, since if brim for the prime tower is needed, it should go after any skirt, but before any brim.
     if (adhesion_type == EPlatformAdhesion::SKIRT)
     {
         primary_line_count = train.settings.get<size_t>("skirt_line_count");
