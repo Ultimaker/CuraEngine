@@ -1028,18 +1028,25 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
+    Polygons first_skirt_brim;
     Polygons skirt_brim;
     // Plan parts that need to be printed first: for example, skirt needs to be printed before support-brim.
     for (size_t i_part = 0; i_part < original_skirt_brim.size(); ++i_part)
     {
         if (i_part < storage.skirt_brim_max_locked_part_order[extruder_nr])
         {
-            gcode_layer.addPolygon(original_skirt_brim[i_part], 0, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+            first_skirt_brim.add(original_skirt_brim[i_part]);
         }
         else
         {
             skirt_brim.add(original_skirt_brim[i_part]);
         }
+    }
+
+    if (!first_skirt_brim.empty())
+    {
+        gcode_layer.addTravel(first_skirt_brim.back().closestPointTo(start_close_to));
+        gcode_layer.addPolygonsByOptimizer(first_skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
     }
 
     if (skirt_brim.empty())
