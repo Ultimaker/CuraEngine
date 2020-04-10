@@ -70,8 +70,10 @@ constexpr Duration operator "" _s(const long double seconds)
 
 inline std::ostream& operator<< (std::ostream& out, const Duration seconds)
 {
+    constexpr bool pretty_print = false;
+
     double s = seconds;
-    if (seconds > 60)
+    if (pretty_print && seconds > 60)
     {
         int min = seconds / 60;
         s -= min * 60;
@@ -83,7 +85,7 @@ inline std::ostream& operator<< (std::ostream& out, const Duration seconds)
         }
         out << min << "min ";
     }
-    out << s << "s";
+    out << s << (pretty_print ? "s" : "");
     return out;
 }
 
