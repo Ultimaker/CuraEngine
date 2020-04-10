@@ -8,7 +8,7 @@
 #include "pathOrderOptimizer.h" // for ZSeamConfig
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
-#include "utils/types/EnumSettings.h"
+#include "settings/EnumSettings.h"
 
 namespace arachne {
 

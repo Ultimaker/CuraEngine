@@ -13,6 +13,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 /*!
  * extrusion bead

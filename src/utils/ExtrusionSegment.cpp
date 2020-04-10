@@ -5,7 +5,9 @@
 
 namespace arachne
 {
-    
+
+    using namespace cura;
+
 Polygons ExtrusionSegment::toPolygons()
 {
     return toPolygons(is_reduced);
