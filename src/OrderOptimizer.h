@@ -12,6 +12,8 @@
 
 namespace arachne {
 
+    using namespace cura;
+
 /*!
  * Parts order optimization class.
  * 

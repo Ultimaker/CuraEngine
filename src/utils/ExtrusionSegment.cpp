@@ -1,7 +1,7 @@
 /** Copyright (C) 2019 Ultimaker */
 #include "ExtrusionSegment.h"
 
-#include "utils/logoutput.h"
+#include "logoutput.h"
 
 namespace arachne
 {

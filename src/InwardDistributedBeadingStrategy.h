@@ -8,6 +8,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 /*!
  * Beading strategy which divides the discrepancy between the current thickness and optimal thickness mainly to the inner beads.

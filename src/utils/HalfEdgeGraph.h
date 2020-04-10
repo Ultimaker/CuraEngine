@@ -16,6 +16,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 template<class node_data_t, class edge_data_t> // types of data contained in nodes and edges
 class HalfEdgeGraph

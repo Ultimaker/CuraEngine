@@ -16,6 +16,7 @@ using boost::polygon::voronoi_diagram;
 
 namespace arachne 
 {
+    using namespace cura;
 
 /*!
  */

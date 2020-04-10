@@ -10,6 +10,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 /*!
  * Beading strategy which evenly subdivides the thickness and tries to stay close to the optimal width.

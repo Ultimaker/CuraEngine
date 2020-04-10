@@ -8,6 +8,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 /*!
  * Get statistics of the resulting toolpaths

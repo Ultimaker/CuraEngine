@@ -10,6 +10,7 @@
 
 namespace arachne 
 {
+    using namespace cura;
 
 /*!
  * A class for iterating over the points in one of the polygons in a \ref Polygons object

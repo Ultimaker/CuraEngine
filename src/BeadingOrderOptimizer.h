@@ -11,6 +11,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 /*!
  * Connecting ExtrusionSegments together into chains / polygons

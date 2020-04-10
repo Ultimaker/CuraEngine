@@ -60,6 +60,7 @@ struct segment_traits<CSegment>
 
 namespace arachne
 {
+    using namespace cura;
 
 static CPolygonSet toBoostType(const Polygons& polys)
 {

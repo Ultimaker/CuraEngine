@@ -174,6 +174,24 @@ public:
     }
 };
 
+/* from https://en.cppreference.com/w/cpp/utility/optional/operator_cmp :
+Compares two optional objects, lhs and rhs. The contained values are compared (using the corresponding operator of T) only if both lhs and rhs contain values. Otherwise,
+lhs is considered equal to rhs if, and only if, both lhs and rhs do not contain a value.
+lhs is considered less than rhs if, and only if, rhs contains a value and lhs does not.
+ */
+
+template<class T, class U>
+constexpr bool operator<(const optional<T>& lhs, const optional<U>& rhs)
+{
+    return lhs ? (rhs ? lhs.value() < rhs.value() : false) : rhs ? true : false;
+}
+
+template<class T, class U>
+constexpr bool operator>(const optional<T>& lhs, const optional<U>& rhs)
+{
+    return lhs ? (rhs ? lhs.value() > rhs.value() : false) : rhs ? false : true;
+}
+
 }//namespace std
 #endif//UTILS_OPTIONAL_H
 

@@ -7,6 +7,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 class SkeletalTrapezoidationEdge
 {

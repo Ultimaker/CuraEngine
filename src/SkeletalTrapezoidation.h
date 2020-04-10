@@ -22,6 +22,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 extern bool generate_MAT_STL;
 

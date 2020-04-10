@@ -8,11 +8,12 @@
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionSegment.h"
 #include "utils/ExtrusionLine.h"
-#include "utils/types/Duration.h"
+#include "settings/types/Duration.h"
 #include "SkeletalTrapezoidation.h"
 
 namespace arachne
 {
+    using namespace cura;
 
 /*!
  * Get statistics of the resulting toolpaths
