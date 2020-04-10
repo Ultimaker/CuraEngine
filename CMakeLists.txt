@@ -28,6 +28,10 @@ endif()
 find_package(Stb REQUIRED)
 include_directories(${Stb_INCLUDE_DIRS})
 
+#arachne needs boost polygon/voronoi
+find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIR})
+
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 if(USE_SYSTEM_LIBS)
     find_package(RapidJSON CONFIG REQUIRED)
