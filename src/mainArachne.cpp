@@ -43,7 +43,6 @@
 
 #include "TestGeometry/VariableWidthGcodeTester.h"
 
-//using arachne::Point;
 using namespace cura;
 using namespace arachne;
 
