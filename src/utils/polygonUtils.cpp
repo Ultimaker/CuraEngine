@@ -367,7 +367,7 @@ unsigned int PolygonUtils::moveInside(const ConstPolygonRef polygon, Point& from
         Point ab = b - a;
         Point ap = p - a;
         int64_t ab_length2 = vSize2(ab);
-        if(ab_length <= 0) //A = B, i.e. the input polygon had two adjacent points on top of each other.
+        if(ab_length2 <= 0) //A = B, i.e. the input polygon had two adjacent points on top of each other.
         {
             p1 = p2; //Skip only one of the points.
             continue;
