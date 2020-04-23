@@ -7,12 +7,6 @@
 namespace arachne
 {
 
-bool BeadingStrategy::checkTranisionThicknessConsistency(const BeadingStrategy* strategy)
-{
-    // LA-TODO: can this work check
-    return false;
-}
-
 coord_t BeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 {
     if (lower_bead_count == 0)

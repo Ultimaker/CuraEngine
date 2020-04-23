@@ -103,8 +103,6 @@ public:
      */
     virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const;
     
-    static bool checkTranisionThicknessConsistency(const BeadingStrategy* strategy);
-
     virtual std::string toString() const = 0;
 };
 

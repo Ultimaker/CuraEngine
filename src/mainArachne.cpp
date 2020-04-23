@@ -183,8 +183,6 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     BeadingStrategy* beading_strategy = BeadingStrategyHelper::makeStrategy(type, nozzle_size, transitioning_angle, min_bead_width, min_feature_size);
     if (!beading_strategy) return;
 
-    BeadingStrategy::checkTranisionThicknessConsistency(beading_strategy);
-
     TimeKeeper tk;
 
     bool reduce_overlapping_segments_now = reduce_overlapping_segments;
