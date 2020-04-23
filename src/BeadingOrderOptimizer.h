@@ -81,8 +81,6 @@ private:
 
     template<typename directional_iterator>
     bool isEnd(directional_iterator it, ExtrusionLine& polyline);
-    
-    void debugCheck();
 };
 
 } // namespace arachne

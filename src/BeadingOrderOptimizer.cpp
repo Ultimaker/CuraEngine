@@ -331,21 +331,4 @@ std::list<ExtrusionJunction>::iterator BeadingOrderOptimizer::getSelfPosIt(std::
     return (++it).base();
 }
 
-void BeadingOrderOptimizer::debugCheck()
-{
-#ifdef DEBUG
-    for (auto& polylines : polylines_per_index)
-    {
-        for (ExtrusionLine& polyline : polylines)
-        {
-            for (ExtrusionJunction& junction : polyline.junctions)
-            {
-                assert(junction.perimeter_index == polyline.inset_idx);
-                assert(junction.p.X < 1000000 && junction.p.Y < 1000000);
-                assert(junction.p.X > -1000000 && junction.p.Y > -1000000);
-            }
-        }
-    }
-#endif
-};
 } // namespace arachne
