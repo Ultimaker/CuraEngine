@@ -569,7 +569,10 @@ void SkeletalTrapezoidation::collapseSmallEdges(coord_t snap_dist)
                 {
                     std::cerr << edge_from_3->from->p << " - " << edge_from_3->to->p << '\n';
                 }
-                if (++count > 1000) break;
+                if (++count > 1000) 
+                {
+                    break;
+                }
             }
 
             // o-o > collapse top
