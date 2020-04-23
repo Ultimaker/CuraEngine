@@ -34,7 +34,7 @@ SubDivCube::~SubDivCube()
     }
 }
 
-void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
+void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point& infill_origin)
 {
     radius_addition = mesh.settings.get<coord_t>("sub_div_rad_add");
     AngleRadians infill_angle = 45;
@@ -58,7 +58,7 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
             curr_recursion_depth++;
         }
     }
-    Point3 center(0, 0, 0);
+    Point3 center(infill_origin.X, infill_origin.Y, 0);
 
     Point3Matrix tilt; // rotation matrix to get from axis aligned cubes to cubes standing on their tip
     // The Z axis is transformed to go in positive Y direction
