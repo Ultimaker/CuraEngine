@@ -96,8 +96,7 @@ void SkeletalTrapezoidation::transfer_edge(Point from, Point to, vd_t::edge_type
         assert(discretized.size() >= 2);
         
         assert(!prev_edge || prev_edge->to);
-//         assert(!prev_edge || prev_edge->to == &make_node(*vd_edge.vertex0(), from)); // TODO: investigate whether boost:voronoi can produce multiple verts and violates consistency
-        node_t* v0 = (prev_edge)? prev_edge->to : &make_node(*vd_edge.vertex0(), from);
+        node_t* v0 = (prev_edge)? prev_edge->to : &make_node(*vd_edge.vertex0(), from); // TODO: investigate whether boost:voronoi can produce multiple verts and violates consistency
         Point p0 = discretized.front();
         for (size_t p1_idx = 1; p1_idx < discretized.size(); p1_idx++)
         {
@@ -570,8 +569,7 @@ void SkeletalTrapezoidation::collapseSmallEdges(coord_t snap_dist)
                 {
                     std::cerr << edge_from_3->from->p << " - " << edge_from_3->to->p << '\n';
                 }
-                assert(++count < 100);
-                if (count > 1000) break;
+                if (++count > 1000) break;
             }
 
             // o-o > collapse top
@@ -1275,8 +1273,6 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
     }
     else // end_pos < ab_size
     { // add transition end point here
-//         assert(edge.data.isMarked() && "we should only be adding transition ends in marked regions");
-        
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
         std::list<TransitionEnd>* transitions = nullptr;
         coord_t pos = -1;
@@ -2087,7 +2083,6 @@ SkeletalTrapezoidation::BeadingPropagation& SkeletalTrapezoidation::getBeading(n
                 first = false;
             }
             RUN_ONCE(logError("Unknown beading for unmarked node!\n"));
-//             assert(false);
             assert(dist != std::numeric_limits<coord_t>::max());
             node->data.bead_count = beading_strategy.optimal_bead_count(dist * 2);
         }
