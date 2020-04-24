@@ -24,8 +24,6 @@ namespace arachne
 {
     using namespace cura;
 
-extern bool generate_MAT_STL;
-
 /*!
  * Main class of this library.
  * 

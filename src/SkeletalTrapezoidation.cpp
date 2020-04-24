@@ -23,8 +23,6 @@
 namespace arachne
 {
 
-bool generate_MAT_STL = false;
-
 SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::make_node(vd_t::vertex_type& vd_node, Point p)
 {
     auto he_node_it = vd_node_to_he_node.find(&vd_node);
