@@ -3,7 +3,7 @@
 #ifndef BEADING_STRATEGY_HELPER_H
 #define BEADING_STRATEGY_HELPER_H
 
-#include <optional>
+#include "utils/optional.h"  // until the move to C++17
 
 #include "BeadingStrategy.h"
 #include "InwardDistributedBeadingStrategy.h"
@@ -19,6 +19,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 extern double inward_distributed_center_size;
 extern int max_bead_count;

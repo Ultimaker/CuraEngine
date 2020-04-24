@@ -23,8 +23,6 @@
 namespace arachne
 {
 
-bool generate_MAT_STL = false;
-
 SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::make_node(vd_t::vertex_type& vd_node, Point p)
 {
     auto he_node_it = vd_node_to_he_node.find(&vd_node);
@@ -96,8 +94,7 @@ void SkeletalTrapezoidation::transfer_edge(Point from, Point to, vd_t::edge_type
         assert(discretized.size() >= 2);
         
         assert(!prev_edge || prev_edge->to);
-//         assert(!prev_edge || prev_edge->to == &make_node(*vd_edge.vertex0(), from)); // TODO: investigate whether boost:voronoi can produce multiple verts and violates consistency
-        node_t* v0 = (prev_edge)? prev_edge->to : &make_node(*vd_edge.vertex0(), from);
+        node_t* v0 = (prev_edge)? prev_edge->to : &make_node(*vd_edge.vertex0(), from); // TODO: investigate whether boost:voronoi can produce multiple verts and violates consistency
         Point p0 = discretized.front();
         for (size_t p1_idx = 1; p1_idx < discretized.size(); p1_idx++)
         {
@@ -413,10 +410,6 @@ void SkeletalTrapezoidation::init()
                                         segments.begin(), segments.end(),
                                         &vd);
 
-#ifdef DEBUG
-    VoronoiUtils::debugOutput("output/vd.svg", vd, points, segments);
-#endif
-
     for (const vd_t::edge_type& edge : vd.edges())
     {
         assert(edge.vertex0() == edge.twin()->vertex1());
@@ -480,34 +473,13 @@ void SkeletalTrapezoidation::init()
         transfer_edge(VoronoiUtils::p(ending_vd_edge->vertex0()), end_source_point, *ending_vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
         // ending_edge->next = nullptr;
         prev_edge->to->data.distance_to_boundary = 0;
-
-        debugCheckGraphConsistency(true);
     }
-
-    
-    debugCheckGraphCompleteness();
-    debugCheckGraphConsistency();
-    debugCheckGraphExistance();
 
     separatePointyQuadEndNodes();
 
-    debugCheckGraphCompleteness();
-    debugCheckGraphConsistency();
-    debugCheckGraphExistance();
-
     fixNodeDuplication();
-
-    debugCheckGraphCompleteness();
-    debugCheckGraphConsistency();
-    debugCheckGraphExistance();
-    debugCheckEndpointUniqueness();
     
     collapseSmallEdges();
-
-
-    debugCheckGraphCompleteness();
-    debugCheckGraphConsistency();
-    debugCheckGraphExistance();
 
     { // set [some_edge] the the first possible edge
         // that way we can iterate over all reachable edges from node.some_edge without needing to iterate backward
@@ -519,44 +491,6 @@ void SkeletalTrapezoidation::init()
             }
         }
     }
-
-
-    debugCheckGraphCompleteness();
-    debugCheckGraphConsistency();
-    debugCheckGraphStructure();
-    debugCheckGraphReachability();
-    debugCheckGraphExistance();
-    
-#ifdef DEBUG
-    {
-        AABB aabb(polys);
-        SVG svg("output/vq.svg", aabb);
-        debugOutput(svg, false, false);
-    }
-    {
-        AABB aabb(polys);
-        SVG svg("output/radial_dists.svg", aabb);
-        debugOutput(svg, false, true);
-    }
-    {
-        AABB aabb(polys);
-        SVG svg("output/bead_counts.svg", aabb);
-        debugOutput(svg, false, false, true);
-    }
-    {
-        AABB aabb(polys);
-        SVG svg("output/locations.svg", aabb);
-        debugOutput(svg, false, false, false, true);
-    }
-    debugCheckGraphCompleteness();
-    debugCheckGraphConsistency();
-
-    if (generate_MAT_STL)
-    {
-        STLwriter stl("output/mat.stl");
-        debugOutput(stl);
-    }
-#endif
 
     vd_edge_to_he_edge.clear();
     vd_node_to_he_node.clear();
@@ -582,8 +516,6 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
             quad_start->twin->to = new_node;
         }
     }
-
-    debugCheckEndpointUniqueness();
 }
 
 void SkeletalTrapezoidation::collapseSmallEdges(coord_t snap_dist)
@@ -635,8 +567,10 @@ void SkeletalTrapezoidation::collapseSmallEdges(coord_t snap_dist)
                 {
                     std::cerr << edge_from_3->from->p << " - " << edge_from_3->to->p << '\n';
                 }
-                assert(++count < 100);
-                if (count > 1000) break;
+                if (++count > 1000) 
+                {
+                    break;
+                }
             }
 
             // o-o > collapse top
@@ -764,52 +698,13 @@ std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(
         filterOuterMarking();
     }
 
-        debugCheckGraphCompleteness();
-        debugCheckGraphConsistency();
-
     setBeadCount(beading_strategy);
 
-#ifdef DEBUG
-    {
-        SVG svg("output/unfiltered.svg", AABB(polys));
-        debugOutput(svg, false, false, true, false);
-    }
-#endif
-
     filterUnmarkedRegions(beading_strategy);
-
-    debugCheckDecorationConsistency(false);
-
-#ifdef DEBUG
-    {
-        SVG svg("output/filtered.svg", AABB(polys));
-        debugOutput(svg, false, false, true, false);
-    }
-#endif
 
     generateTransitioningRibs(beading_strategy);
 
     generateExtraRibs(beading_strategy);
-
-#ifdef DEBUG
-    {
-        AABB aabb(polys);
-        SVG svg("output/radial_dists.svg", aabb);
-        debugOutput(svg, false, true);
-    }
-    {
-        AABB aabb(polys);
-        SVG svg("output/bead_counts.svg", aabb);
-        debugOutput(svg, false, false, true);
-    }
-    {
-        AABB aabb(polys);
-        SVG svg("output/locations.svg", aabb);
-        debugOutput(svg, false, false, false, true);
-    }
-#endif // DEBUG
-
-    debugCheckDecorationConsistency(true);
 
     std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
     generateSegments(result_polylines_per_index, beading_strategy);
@@ -996,8 +891,6 @@ bool SkeletalTrapezoidation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead
 
 void SkeletalTrapezoidation::generateTransitioningRibs(const BeadingStrategy& beading_strategy)
 {
-        debugCheckGraphCompleteness();
-
     std::unordered_map<edge_t*, std::list<TransitionMiddle>> edge_to_transitions; // maps the upward edge to the transitions. WE only map the halfedge for which the distance_to_boundary is higher at the end than at the beginning
     generateTransitionMids(beading_strategy, edge_to_transitions);
 
@@ -1007,40 +900,11 @@ void SkeletalTrapezoidation::generateTransitioningRibs(const BeadingStrategy& be
             assert(edge_to_transitions.find(&edge) != edge_to_transitions.end()
                 || edge_to_transitions.find(edge.twin) != edge_to_transitions.end() );
     }
-    
-        debugCheckGraphCompleteness();
-        debugCheckGraphConsistency();
-
-#ifdef DEBUG
-    {
-        SVG svg("output/transition_mids_unfiltered.svg", AABB(polys));
-        debugOutput(svg, false, false, true, false);
-        debugOutput(svg, &edge_to_transitions);
-    }
-#endif
-
+ 
     filterTransitionMids(edge_to_transitions, beading_strategy);
-
-#ifdef DEBUG
-    {
-        SVG svg("output/transition_mids.svg", AABB(polys));
-        debugOutput(svg, false, false, true, false);
-        debugOutput(svg, &edge_to_transitions);
-    }
-#endif
-
-    debugCheckTransitionMids(edge_to_transitions);
 
     std::unordered_map<edge_t*, std::list<TransitionEnd>> edge_to_transition_ends; // we only map the half edge in the upward direction. mapped items are not sorted
     generateTransitionEnds(beading_strategy, edge_to_transitions, edge_to_transition_ends);
-
-#ifdef DEBUG
-    {
-        SVG svg("output/transition_ends.svg", AABB(polys));
-        debugOutput(svg, false, false, true, false);
-        debugOutput(svg, &edge_to_transitions, &edge_to_transition_ends);
-    }
-#endif
 
     applyTransitions(edge_to_transition_ends);
 }
@@ -1331,17 +1195,13 @@ void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, c
     float mid_rest = transition_mid_position * inner_bead_width_ratio_after_transition;
     float end_rest = inner_bead_width_ratio_after_transition;
 
-    
-        debugCheckGraphCompleteness();
-        debugCheckGraphConsistency();
-
     { // lower bead count transition end
         coord_t start_pos = ab_size - mid_pos;
         coord_t transition_half_length = transition_mid_position * transition_length;
         coord_t end_pos = start_pos + transition_half_length;
         generateTransitionEnd(*edge.twin, start_pos, end_pos, transition_half_length, mid_rest, start_rest, lower_bead_count, edge_to_transition_mids, edge_to_transition_ends);
     }
-    debugCheckGraphConsistency();
+
     { // upper bead count transition end
         coord_t start_pos = mid_pos;
         coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
@@ -1349,9 +1209,6 @@ void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, c
         bool is_going_down_everywhere = generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_to_transition_mids, edge_to_transition_ends);
         assert(!is_going_down_everywhere && "There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");
     }
-
-        debugCheckGraphCompleteness();
-        debugCheckGraphConsistency();
 }
 
 bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
@@ -1417,8 +1274,6 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
     }
     else // end_pos < ab_size
     { // add transition end point here
-//         assert(edge.data.isMarked() && "we should only be adding transition ends in marked regions");
-        
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
         std::list<TransitionEnd>* transitions = nullptr;
         coord_t pos = -1;
@@ -1554,20 +1409,11 @@ void SkeletalTrapezoidation::applyTransitions(std::unordered_map<edge_t*, std::l
             }
             Point mid = a + normal(ab, end_pos);
             
-            debugCheckGraphCompleteness();
-            debugCheckGraphConsistency();
-
-            debugCheckDecorationConsistency(false);
-
             assert(last_edge_replacing_input->data.isMarked());
             assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
             last_edge_replacing_input = insertNode(last_edge_replacing_input, mid, new_node_bead_count);
             assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
             assert(last_edge_replacing_input->data.isMarked());
-
-
-            debugCheckGraphCompleteness();
-            debugCheckGraphConsistency();
         }
     }
 }
@@ -1603,7 +1449,6 @@ SkeletalTrapezoidation::edge_t* SkeletalTrapezoidation::insertNode(edge_t* edge,
 
 std::pair<SkeletalTrapezoidation::edge_t*, SkeletalTrapezoidation::edge_t*> SkeletalTrapezoidation::insertRib(edge_t& edge, node_t* mid_node)
 {
-    debugCheckGraphConsistency();
     edge_t* edge_before = edge.prev;
     edge_t* edge_after = edge.next;
     node_t* node_before = edge.from;
@@ -1669,8 +1514,6 @@ std::pair<SkeletalTrapezoidation::edge_t*, SkeletalTrapezoidation::edge_t*> Skel
     second->twin = nullptr;
 
     assert(second->prev->from->data.distance_to_boundary == 0);
-
-    debugCheckGraphConsistency();
 
     return std::make_pair(first, second);
 }
@@ -1876,20 +1719,11 @@ void SkeletalTrapezoidation::generateExtraRibs(const BeadingStrategy& beading_st
             }
             Point mid = a + normal(ab, end_pos);
             
-            debugCheckGraphCompleteness();
-            debugCheckGraphConsistency();
-
-            debugCheckDecorationConsistency(false);
-
             assert(last_edge_replacing_input->data.isMarked());
             assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
             last_edge_replacing_input = insertNode(last_edge_replacing_input, mid, new_node_bead_count);
             assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
             assert(last_edge_replacing_input->data.isMarked());
-
-
-            debugCheckGraphCompleteness();
-            debugCheckGraphConsistency();
         }
     }
 }
@@ -1972,21 +1806,6 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
     
     std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions; // junctions ordered high R to low R
     generateJunctions(node_to_beading, edge_to_junctions, beading_strategy);
-
-
-#ifdef DEBUG
-    {
-        SVG svg("output/junctions.svg", AABB(polys));
-//         debugOutput(svg, false, false, true, false);
-        svg.writePolygons(polys);
-        debugOutput(svg, edge_to_junctions);
-    }
-    if (generate_MAT_STL)
-    {
-        STLwriter stl("output/vq.stl");
-        debugOutput(stl, edge_to_junctions, node_to_beading);
-    }
-#endif
 
     connectJunctions(edge_to_junctions, result_polylines_per_index);
     
@@ -2085,13 +1904,6 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, std
         auto pair = node_to_beading.emplace(edge_to_peak->from, propagated_beading);
         assert(propagated_beading.beading.total_thickness >= edge_to_peak->from->data.distance_to_boundary * 2);
         assert(pair.second && "we emplaced something");
-#ifdef DEBUG
-    {
-        auto it = node_to_beading.find(edge_to_peak->from);
-        assert(it != node_to_beading.end());
-        assert(it->second.beading.total_thickness >= edge_to_peak->to->data.distance_to_boundary * 2);
-    }
-#endif
     }
     else // if (!it->second.is_finished)
     {
@@ -2111,13 +1923,6 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, std
             bottom_beading.is_upward_propagated_only = false;
             assert(merged_beading.total_thickness >= edge_to_peak->from->data.distance_to_boundary * 2);
         }
-#ifdef DEBUG
-    {
-        auto it = node_to_beading.find(edge_to_peak->from);
-        assert(it != node_to_beading.end());
-        assert(it->second.beading.total_thickness >= edge_to_peak->from->data.distance_to_boundary * 2);
-    }
-#endif
     }
 }
 
@@ -2279,7 +2084,6 @@ SkeletalTrapezoidation::BeadingPropagation& SkeletalTrapezoidation::getBeading(n
                 first = false;
             }
             RUN_ONCE(logError("Unknown beading for unmarked node!\n"));
-//             assert(false);
             assert(dist != std::numeric_limits<coord_t>::max());
             node->data.bead_count = beading_strategy.optimal_bead_count(dist * 2);
         }
@@ -2491,593 +2295,5 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::unordered_map<n
 //  TOOLPATH GENERATION
 // =====================
 //
-// =====================
-//       HELPERS
-// vvvvvvvvvvvvvvvvvvvvv
-//
-
-
-void SkeletalTrapezoidation::debugCheckGraphCompleteness()
-{
-#ifdef DEBUG
-    for (const node_t& node : graph.nodes)
-    {
-        if (!node.some_edge)
-        {
-            assert(false);
-        }
-    }
-    for (const edge_t& edge : graph.edges)
-    {
-        if (!edge.twin || !edge.from || !edge.to)
-        {
-            assert(false);
-        }
-        assert((edge.next == nullptr) == (edge.twin->prev == nullptr));
-        assert((edge.prev == nullptr) == (edge.twin->next == nullptr));
-        assert(edge.next || edge.to->data.distance_to_boundary == 0);
-        assert(edge.prev || edge.from->data.distance_to_boundary == 0);
-    }
-#endif
-}
-
-void SkeletalTrapezoidation::debugCheckEndpointUniqueness()
-{
-#ifdef DEBUG
-    for (edge_t& edge : graph.edges)
-    {
-        if (edge.prev) continue;
-        for (edge_t& e2 : graph.edges)
-        {
-            assert(e2.from != edge.from || edge == e2);
-        }
-    }
-#endif
-}
-
-void SkeletalTrapezoidation::debugCheckGraphExistance()
-{
-#ifdef DEBUG
-    std::unordered_set<edge_t*> all_edges;
-    std::unordered_set<node_t*> all_nodes;
-    for (node_t& node : graph.nodes)
-    {
-        all_nodes.emplace(&node);
-    }
-    for (edge_t& edge : graph.edges)
-    {
-        all_edges.emplace(&edge);
-    }
-    
-    auto edge_exists = [&all_edges](edge_t* edge)
-        {
-            assert(edge == nullptr ||
-                all_edges.find(edge) != all_edges.end());
-        };
-    auto node_exists = [&all_nodes](node_t* node)
-        {
-            assert(node == nullptr ||
-                all_nodes.find(node) != all_nodes.end());
-        };
-    for (node_t& node : graph.nodes)
-    {
-        edge_exists(node.some_edge);
-    }
-    for (edge_t& edge : graph.edges)
-    {
-        edge_t* edge_ = &edge;
-        edge_exists(edge.prev);
-        edge_exists(edge.next);
-        edge_exists(edge.twin);
-        node_exists(edge.from);
-        node_exists(edge.to);
-    }
-#endif
-}
-
-void SkeletalTrapezoidation::debugCheckGraphStructure()
-{
-#ifdef DEBUG
-    for (edge_t& edge : graph.edges)
-    {
-        node_t* node = edge.from;
-        bool first = true;
-        coord_t count = 0;
-        bool seen_edge = false;
-        for (const edge_t* outgoing = node->some_edge; outgoing && (first || outgoing != node->some_edge); outgoing = outgoing->twin->next)
-        {
-            assert(++count < 100);
-            if (outgoing == &edge) seen_edge = true;
-            first = false;
-            if (!outgoing->twin) break;
-        }
-        assert(seen_edge);
-    }
-#endif
-}
-
-void SkeletalTrapezoidation::debugCheckGraphReachability()
-{
-#ifdef DEBUG
-    std::unordered_set<node_t*> reachable_nodes;
-    for (edge_t& edge : graph.edges)
-    {
-        reachable_nodes.emplace(edge.from);
-        reachable_nodes.emplace(edge.to);
-    }
-    for (node_t& node : graph.nodes)
-    {
-        assert(reachable_nodes.find(&node) != reachable_nodes.end());
-    }
-
-    std::unordered_set<edge_t*> reachable_edges;
-    for (node_t& node : graph.nodes)
-    {
-        bool first = true;
-        for (edge_t* outgoing = node.some_edge; outgoing && (first || outgoing != node.some_edge); outgoing = outgoing->twin->next)
-        {
-            reachable_edges.emplace(outgoing);
-            first = false;
-            if (!outgoing->twin) break;
-        }
-    }
-    for (edge_t& edge : graph.edges)
-    {
-        edge_t* edge_ = &edge;
-        if (reachable_edges.find(&edge) == reachable_edges.end())
-        {
-            std::cerr << "Cannot find " << edge.from->p << " - " << edge.to->p << " among edges around former!\n";
-            bool seen = false;
-            bool first = true;
-            for (edge_t* outgoing = edge.from->some_edge; outgoing && (first || outgoing != edge.from->some_edge); outgoing = outgoing->twin->next)
-            {
-                std::cerr << outgoing->to->p << "\n";
-                if (outgoing == edge_)
-                {
-                    seen = true;
-                }
-                first = false;
-                if (!outgoing->twin) break;
-            }
-            assert(seen);
-            assert(std::find(graph.nodes.begin(), graph.nodes.end(), *edge.from) != graph.nodes.end());
-        }
-        assert(reachable_edges.find(&edge) != reachable_edges.end());
-    }
-#endif
-}
-
-void SkeletalTrapezoidation::debugCheckGraphConsistency(bool ignore_duplication)
-{
-#ifdef DEBUG
-    auto vert_assert = [ignore_duplication](const node_t* first, const node_t* second)
-    {
-        if (first != second)
-        {
-            if (first->p == second->p)
-            {
-                RUN_ONCE(logWarning("Unneccesary duplicatation of SkeletalTrapezoidation nodes!\n"));
-                assert(ignore_duplication);
-            }
-            else
-            {
-                assert(false && "connected edges don't refer to the same node!");
-            }
-        }
-    };
-    
-    for (const edge_t& edge : graph.edges)
-    {
-        const edge_t* edge_p = &edge;
-        if (edge_p->twin)
-        {
-            if (!edge_p->to)
-            {
-                assert(!edge_p->twin->from);
-                vert_assert(edge_p->twin->from, edge_p->to);
-            }
-            if (!edge_p->from)
-            {
-                assert(!edge_p->twin->to);
-                vert_assert(edge_p->twin->to, edge_p->from);
-            }
-            assert((edge_p->from == nullptr) == (edge_p->twin->to == nullptr));
-            assert((edge_p->to == nullptr) == (edge_p->twin->from == nullptr));
-            assert(edge_p->twin->twin == &edge);
-            assert(edge_p->twin != edge_p);
-        }
-        if (edge_p->next)
-        {
-            vert_assert(edge_p->next->from, edge_p->to);
-        }
-        if (edge_p->prev)
-        {
-            vert_assert(edge_p->prev->to, edge_p->from);
-        }
-    }
-    for (const node_t& node : graph.nodes)
-    {
-        if (node.some_edge)
-        {
-            const node_t* node_ = &node;
-            vert_assert(node.some_edge->from, &node);
-            if (node.some_edge->twin)
-            {
-                for (const edge_t* outgoing = node.some_edge->twin->next; outgoing && outgoing->twin && outgoing != node.some_edge; outgoing = outgoing->twin->next)
-                {
-                    vert_assert(outgoing->from, &node);
-                }
-            }
-        }
-    }
-
-    for (const edge_t& edge : graph.edges)
-    {
-        int i = 0;
-        for (const edge_t* e = &edge; e; e = e->next) assert(++i < 10);
-        for (const edge_t* e = &edge; e; e = e->prev) assert(++i < 10);
-    }
-#endif // DEBUG
-}
-
-void SkeletalTrapezoidation::debugCheckDecorationConsistency(bool transitioned)
-{
-#ifdef DEBUG
-    for (const edge_t& edge : graph.edges)
-    {
-        const edge_t* edge_p = &edge;
-        assert(edge.data.type >= SkeletalTrapezoidationEdge::NORMAL);
-        if (edge.data.type != SkeletalTrapezoidationEdge::NORMAL)
-        {
-            if (edge.from->data.distance_to_boundary != -1 && edge.to->data.distance_to_boundary != -1)
-            {
-                assert(edge.from->data.distance_to_boundary == 0 || edge.to->data.distance_to_boundary == 0);
-            }
-            assert(!edge.data.isMarked());
-        }
-        assert(edge.data.isMarked() == edge.twin->data.isMarked());
-        if (edge.data.isMarked())
-        {
-            if (transitioned && edge.from->data.bead_count != -1 && edge.to->data.bead_count != -1)
-            {
-                assert(!edge.data.isMarked() || std::abs(edge.from->data.bead_count - edge.to->data.bead_count) <= 1);
-            }
-        }
-    }
-#endif // DEBUG
-}
-
-void SkeletalTrapezoidation::debugCheckTransitionMids(const std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions) const
-{
-#ifdef DEBUG
-    for (std::pair<edge_t*, std::list<TransitionMiddle>> pair : edge_to_transitions)
-    {
-        const edge_t* edge = pair.first;
-        const std::list<TransitionMiddle>& transition_positions = pair.second;
-        
-        assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary);
-        
-        const TransitionMiddle* prev = nullptr;
-        for (const TransitionMiddle& here : transition_positions)
-        {
-            if (prev)
-            {
-                assert(here.pos > prev->pos);
-                assert(here.lower_bead_count > prev->lower_bead_count);
-                assert(std::abs(here.lower_bead_count - prev->lower_bead_count) == 1);
-            }
-            prev = &here;
-        }
-        
-    }
-#endif // DEBUG
-}
-
-SVG::ColorObject SkeletalTrapezoidation::getColor(edge_t& edge)
-{
-    switch (edge.data.type)
-    {
-        case SkeletalTrapezoidationEdge::TRANSITION_END:
-            return SVG::Color::MAGENTA;
-        case SkeletalTrapezoidationEdge::NORMAL:
-        case SkeletalTrapezoidationEdge::EXTRA_VD:
-        default:
-            return SVG::ColorObject(100, 100, 100);
-    }
-}
-
-void SkeletalTrapezoidation::debugOutput(SVG& svg, bool draw_arrows, bool draw_dists, bool draw_bead_counts, bool draw_locations)
-{
-    svg.writeAreas(polys, SVG::Color::NONE, SVG::Color::BLACK, 3);
-    for (edge_t& edge : graph.edges)
-    {
-        Point a = edge.from->p;
-        Point b = edge.to->p;
-        SVG::ColorObject clr = getColor(edge);
-        float stroke_width = 1;
-        if (edge.data.markingIsSet() && edge.data.isMarked())
-        {
-            continue;
-        }
-        if (draw_arrows)
-        {
-            constexpr coord_t spacing_dist = 10;
-            svg.writeArrow(a + normal(b - a, spacing_dist * 3), b - normal(b - a, spacing_dist), clr, stroke_width, 10, spacing_dist);
-        }
-        else
-        {
-            if (edge.to->p < edge.from->p)
-            {
-                svg.writeLine(a, b, clr, stroke_width);
-            }
-        }
-    }
-    svg.nextLayer();
-    for (edge_t& edge : graph.edges)
-    {
-        Point a = edge.from->p;
-        Point b = edge.to->p;
-        SVG::ColorObject clr = SVG::Color::BLUE;
-        float stroke_width = 2;
-        if ( ! edge.data.markingIsSet() || ! edge.data.isMarked())
-        {
-            continue;
-        }
-        if (draw_arrows)
-        {
-            constexpr coord_t spacing_dist = 10;
-            svg.writeArrow(a + normal(b - a, spacing_dist * 3), b - normal(b - a, spacing_dist), clr, stroke_width, 10, spacing_dist);
-        }
-        else
-        {
-            if (edge.to->p < edge.from->p)
-            {
-                svg.writeLine(a, b, clr, stroke_width);
-            }
-        }
-    }
-    for (node_t& node : graph.nodes)
-    {
-        if (draw_arrows)
-        {
-            svg.writePoint(node.p);
-        }
-        if (draw_dists && node.data.distance_to_boundary > 0)
-        {
-            svg.writeText(node.p, std::to_string(node.data.distance_to_boundary));
-        }
-        if (draw_bead_counts && node.data.bead_count >= 0)
-        {
-            if (node.data.transition_ratio != 0)
-            {
-                std::ostringstream ss;
-                ss.precision(2);
-                ss << (node.data.transition_ratio + node.data.bead_count);
-                svg.writeText(node.p, ss.str());
-            }
-            else
-            {
-                svg.writeText(node.p, std::to_string(node.data.bead_count));
-            }
-        }
-        if (draw_locations)
-        {
-            svg.writePoint(node.p, false, 1);
-            std::ostringstream ss;
-            ss << node.p.X << "," << node.p.Y;
-            svg.writeText(node.p, ss.str(), SVG::Color::BLACK, 4);
-        }
-    }
-}
-
-void SkeletalTrapezoidation::debugOutput(SVG& svg, std::unordered_map<edge_t*, std::list<TransitionMiddle>>* edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>* edge_to_transition_ends)
-{
-    coord_t font_size = 20;
-    SVG::ColorObject up_clr(255, 0, 150);
-    SVG::ColorObject mid_clr(150, 0, 150);
-    SVG::ColorObject down_clr(150, 0, 255);
-
-    if (edge_to_transition_mids)
-    {
-        for (auto& pair : *edge_to_transition_mids)
-        {
-            edge_t* edge = pair.first;
-            Point a = edge->from->p;
-            Point b = edge->to->p;
-            Point ab = b - a;
-            coord_t ab_length = vSize(ab);
-            for (TransitionMiddle& transition : pair.second)
-            {
-                Point p = a + ab * transition.pos / ab_length;
-                svg.writePoint(p, false, 3, mid_clr);
-                std::ostringstream ss;
-                ss << transition.lower_bead_count << ">" << (transition.lower_bead_count + 1);
-                svg.writeText(p, ss.str(), mid_clr, font_size);
-            }
-        }
-    }
-    if (edge_to_transition_ends)
-    {
-        for (auto& pair : *edge_to_transition_ends)
-        {
-            edge_t* edge = pair.first;
-            Point a = edge->from->p;
-            Point b = edge->to->p;
-            Point ab = b - a;
-            coord_t ab_length = vSize(ab);
-            for (TransitionEnd& transition : pair.second)
-            {
-                Point p = a + ab * transition.pos / ab_length;
-                SVG::ColorObject clr = transition.is_lower_end? down_clr : up_clr;
-                svg.writePoint(p, false, 3, clr);
-                coord_t end_bead_count = transition.lower_bead_count + (transition.is_lower_end? 0 : 1);
-                std::ostringstream ss;
-                ss << end_bead_count;
-                svg.writeText(p, ss.str(), clr, font_size);
-            }
-        }
-    }
-}
-
-void SkeletalTrapezoidation::debugOutput(SVG& svg, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions)
-{
-    for (auto& pair : edge_to_junctions)
-        for (ExtrusionJunction& junction : pair.second)
-        {
-            svg.writePoint(junction.p, false, svg.getScale() * junction.w / 2, SVG::Color::BLACK);
-            
-            for (double w = .95; w > .25; w = 1.0 - (1.0 - w) * 1.2)
-            {
-                int c = std::min(255.0, 255 - 300 * w);
-                SVG::ColorObject clr(c, c, c);
-                svg.writePoint(junction.p, false, svg.getScale() * junction.w / 2 * w, clr);
-            }
-        }
-    for (auto& pair : edge_to_junctions)
-        for (ExtrusionJunction& junction : pair.second)
-            svg.writePoint(junction.p, false, 2, SVG::Color::YELLOW);
-}
-
-void SkeletalTrapezoidation::debugOutput(STLwriter& stl, bool use_bead_count)
-{
-    auto toPoint3 = [use_bead_count](node_t* node)
-        {
-            coord_t h = use_bead_count? std::max(float(0), node->data.bead_count + node->data.transition_ratio) * 200 : node->data.distance_to_boundary;
-            return Point3(node->p.X, node->p.Y, h);
-        };
-    for (edge_t& edge : graph.edges)
-    {
-        if (edge.prev)
-        {
-            continue;
-        }
-        
-        assert(edge.next);
-        if (edge.next->next)
-        {
-            stl.writeQuad(toPoint3(edge.next->next->to), toPoint3(edge.next->to), toPoint3(edge.from), toPoint3(edge.to));
-//             stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.next->to), toPoint3(edge.next->next->to));
-//             stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.to), toPoint3(edge.next->to));
-        }
-        else
-        {
-            stl.writeTriangle(toPoint3(edge.from), toPoint3(edge.to), toPoint3(edge.next->to));
-        }
-    }
-}
-
-void SkeletalTrapezoidation::debugOutput(STLwriter& stl, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
-{
-    auto toPoint3 = [](Point p, float h)
-    {
-        return Point3(p.X, p.Y, h * 200);
-    };
-    auto getHeight = [&node_to_beading](node_t* node)
-    {
-        auto found = node_to_beading.find(node);
-        if (found == node_to_beading.end())
-            return 0.0f;
-        BeadingPropagation& beading = found->second;
-        coord_t r = node->data.distance_to_boundary;
-        size_t upper_inset_idx = 0;
-        while (upper_inset_idx < beading.beading.toolpath_locations.size() && beading.beading.toolpath_locations[upper_inset_idx] < r)
-            upper_inset_idx++;
-        if (upper_inset_idx >= beading.beading.toolpath_locations.size())
-        {
-            return static_cast<float>(std::max(size_t(1), beading.beading.toolpath_locations.size()));
-        }
-        coord_t upper_inset_r = beading.beading.toolpath_locations[upper_inset_idx];
-        if (upper_inset_idx <= 0)
-        {
-            return static_cast<float>(r) / upper_inset_r ;
-        }
-        coord_t lower_inset_r = beading.beading.toolpath_locations[upper_inset_idx - 1];
-        return (upper_inset_idx - 1) * 2 + 1 + 2 * static_cast<float>(r - lower_inset_r) / (upper_inset_r - lower_inset_r);
-    };
-    auto getPoint = [](float h, std::vector<ExtrusionJunction>& junctions)
-    {
-        float inset_ifx_f = (h - 1) / 2;
-        size_t lower_inset_idx = std::floor(inset_ifx_f);
-        float rest = inset_ifx_f - lower_inset_idx;
-        if (lower_inset_idx >= junctions.size()
-            || lower_inset_idx + 1 >= junctions.size())
-            return junctions.back().p;
-        Point lower = junctions[lower_inset_idx].p;
-        Point upper = junctions[lower_inset_idx + 1].p;
-        coord_t scaler = 1000;
-        return (lower * scaler * rest + upper * scaler * (1.0 - rest)) / scaler;
-    };
-    for (edge_t& edge : graph.edges)
-    {
-        if (edge.prev)
-        {
-            continue;
-        }
-        edge_t* quad_start = &edge;
-        edge_t* quad_end = quad_start; while (quad_end->next) quad_end = quad_end->next;
-        std::vector<ExtrusionJunction>* start_junctions = &edge_to_junctions[quad_start];
-        std::vector<ExtrusionJunction>* end_junctions = &edge_to_junctions[quad_end->twin];
-        coord_t start_junction_index = start_junctions->size() - 1;
-        coord_t end_junction_index = end_junctions->size() - 1;
-        
-        Point3 start_prev = toPoint3(quad_start->from->p, getHeight(quad_start->from));
-        Point3 end_prev = toPoint3(quad_end->to->p, getHeight(quad_end->to));
-        while (true)
-        {
-            std::vector<ExtrusionJunction>& ss = *start_junctions;
-            std::vector<ExtrusionJunction>& ee = *end_junctions;
-            if (end_junction_index < 0 && start_junction_index < 0)
-            {
-                break;
-            }
-            else if (end_junction_index < 0)
-            {
-                if (quad_end->prev == quad_start)
-                {
-                    break;
-                }
-                Point3 end = toPoint3(quad_end->from->p, getHeight(quad_end->from));
-                Point3 start_focus_point = toPoint3(quad_start->to->p, getHeight(quad_start->to));
-                Point3 start = start_prev + (start_focus_point - start_prev) * (end.z - end_prev.z) / (start_focus_point.z - start_prev.z);
-                stl.writeQuad(start_prev, start, end_prev, end);
-                start_prev = start;
-                end_prev = end;
-                quad_end = quad_end->prev;
-                end_junctions = &edge_to_junctions[quad_end->twin];
-                if (end_junctions->empty()) break;
-                end_junction_index = end_junctions->size() - 1;
-            }
-            else if (start_junction_index < 0)
-            {
-                if (quad_end == quad_start->next)
-                {
-                    break;
-                }
-                Point3 start = toPoint3(quad_start->to->p, getHeight(quad_start->to));
-                Point3 end_focus_point = toPoint3(quad_end->from->p, getHeight(quad_end->from));
-                Point3 end = end_prev + (end_focus_point - end_prev) * (start.z - start_prev.z) / (end_focus_point.z - end_prev.z);
-                stl.writeQuad(start_prev, start, end_prev, end);
-                start_prev = start;
-                end_prev = end;
-                quad_start = quad_start->next;
-                start_junctions = &edge_to_junctions[quad_start];
-                if (start_junctions->empty()) break;
-                start_junction_index = start_junctions->size() - 1;
-            }
-            Point3 start = toPoint3((*start_junctions)[start_junction_index].p, (*start_junctions)[start_junction_index].perimeter_index * 2 + 1);
-            Point3 end = toPoint3((*end_junctions)[end_junction_index].p, (*end_junctions)[end_junction_index].perimeter_index * 2 + 1);
-            
-            stl.writeQuad(start_prev, start, end_prev, end);
-            start_prev = start;
-            end_prev = end;
-            start_junction_index--;
-            end_junction_index--;
-        }
-
-        Point3 start = toPoint3(quad_start->to->p, getHeight(quad_start->to));
-        Point3 end = toPoint3(quad_end->from->p, getHeight(quad_end->from));
-        stl.writeQuad(start_prev, start, end_prev, end);
-    }
-}
 
 } // namespace arachne

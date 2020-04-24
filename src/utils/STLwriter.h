@@ -13,7 +13,7 @@
 
 namespace arachne
 {
-
+    using namespace cura;
 
 class STLwriter : NoCopy
 {

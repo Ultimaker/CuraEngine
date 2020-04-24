@@ -2,12 +2,16 @@
 
 
 #include "GcodeWriter.h"
+
+#include "Application.h"
 #include "pathOrderOptimizer.h"
 #include "OrderOptimizer.h"
+#include "Slice.h"
 #include "utils/logoutput.h"
 
 namespace arachne
 {
+
 GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness, float print_speed, float travel_speed, float extrusion_multiplier)
 : file(filename.c_str())
 , type(type)
@@ -62,7 +66,7 @@ GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness
     cur_pos = build_plate_middle;
     
     
-    time_estimates.setFirmwareDefaults();
+    time_estimates.setFirmwareDefaults(Application::getInstance().current_slice->scene.settings);
     time_estimates.setPosition(TimeEstimateCalculator::Position(INT2MM(cur_pos.X), INT2MM(cur_pos.Y), /*Z=*/0, /*E=*/0));
 }
 
@@ -373,7 +377,7 @@ void GcodeWriter::move(Point p)
             break;
     }
     cur_pos = p;
-    time_estimates.plan(TimeEstimateCalculator::Position(INT2MM(cur_pos.X), INT2MM(cur_pos.Y), /*Z=*/0, last_E), travel_speed / 60.0);
+    time_estimates.plan(TimeEstimateCalculator::Position(INT2MM(cur_pos.X), INT2MM(cur_pos.Y), /*Z=*/0, last_E), travel_speed / 60.0, PrintFeatureType::NoneType);
 }
 
 void GcodeWriter::print(ExtrusionJunction from, ExtrusionJunction to)
@@ -439,7 +443,7 @@ void GcodeWriter::printSingleExtrusionMove(ExtrusionJunction& from, ExtrusionJun
     }
     
     cur_pos = to.p;
-    time_estimates.plan(TimeEstimateCalculator::Position(INT2MM(cur_pos.X), INT2MM(cur_pos.Y), /*Z=*/0, last_E), print_speed / 60.0);
+    time_estimates.plan(TimeEstimateCalculator::Position(INT2MM(cur_pos.X), INT2MM(cur_pos.Y), /*Z=*/0, last_E), print_speed / 60.0, PrintFeatureType::NoneType);
 }
 
 void GcodeWriter::extrude(float amount)
@@ -470,7 +474,10 @@ float GcodeWriter::getExtrusionFilamentMmPerMmMove(coord_t width)
 
 Duration GcodeWriter::getPrintTime()
 {
-    return time_estimates.calculate();
+    Duration result;
+    const std::vector<Duration> durations = time_estimates.calculate();
+    std::for_each(durations.begin(), durations.end(), [&result](const Duration& next) { result += next; });
+    return result;
 }
 void GcodeWriter::resetPrintTime()
 {

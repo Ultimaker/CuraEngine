@@ -6,13 +6,14 @@
 
 #include <utility>
 
-#include "utils/IntPoint.h"
-#include "utils/polygon.h"
-#include "utils/polygonUtils.h"
-#include "utils/ExtrusionJunction.h"
+#include "IntPoint.h"
+#include "polygon.h"
+#include "polygonUtils.h"
+#include "ExtrusionJunction.h"
 
 namespace arachne
 {
+    using namespace cura;
 
 /*!
  * extrusion bead

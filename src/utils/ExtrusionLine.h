@@ -8,6 +8,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 struct ExtrusionLine
 {

@@ -10,6 +10,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 template<typename node_data_t, typename edge_data_t>
 class HalfEdge;

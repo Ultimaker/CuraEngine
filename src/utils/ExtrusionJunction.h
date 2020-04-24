@@ -8,6 +8,7 @@
 
 namespace arachne
 {
+    using namespace cura;
 
 struct ExtrusionJunction
 {
@@ -23,8 +24,6 @@ struct ExtrusionJunction
             && perimeter_index == other.perimeter_index;
     }
 };
-
-
 
 
 } // namespace arachne

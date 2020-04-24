@@ -174,39 +174,6 @@ void Statistics::visualize(coord_t nozzle_size, bool output_st, bool output_tool
 {
     AABB aabb(input);
 
-#ifdef DEBUG
-    if (output_st && st)
-    {
-        std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << test_type << "_after.svg";
-        SVG svg(ss.str(), aabb);
-        st->debugOutput(svg, false, false, true);
-        svg.writePolylines(paths, SVG::Color::BLACK, 2);
-        
-        if (false)
-        for (auto polys : *polylines_per_index)
-        {
-            for (auto poly : polys)
-            {
-                Point prev = poly.junctions.front().p;
-                for (ExtrusionJunction& j : poly.junctions)
-                {
-                    svg.writeLine(prev, j.p, SVG::Color::RED, 2);
-                    prev = j.p;
-                }
-            }
-        }
-        for (auto polylines : *polylines_per_index)
-        {
-            for (ExtrusionLine& polyline : polylines)
-            {
-                svg.writePoint(polyline.junctions.front().p, false, 2, SVG::Color::GREEN);
-                svg.writePoint(polyline.junctions.back().p, false, 2, SVG::Color::BLUE);
-            }
-        }
-    }
-#endif // DEBUG
-
     if (output_toolpaths)
     {
         std::ostringstream ss;

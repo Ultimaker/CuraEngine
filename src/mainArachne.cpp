@@ -43,8 +43,7 @@
 
 #include "TestGeometry/VariableWidthGcodeTester.h"
 
-using arachne::Point;
-
+using namespace cura;
 using namespace arachne;
 
 static TCLAP::CmdLine gCmdLine(" Generate polygon inset toolpaths ", ' ', "0.1");
@@ -53,7 +52,6 @@ static TCLAP::SwitchArg cmd__generate_gcodes("g", "gcode", "Generate gcode", fal
 static TCLAP::SwitchArg cmd__generate_toolpaths("", "toolpaths", "Generate toolpaths file", false);
 static TCLAP::SwitchArg cmd__analyse("", "analyse", "Analyse output paths", false);
 static TCLAP::SwitchArg cmd__visualize("", "visualize", "Visualize output paths", false);
-static TCLAP::SwitchArg cmd__generate_MAT_STL("", "matstl", "Generate an stl corresponding to the medial axis transform", false);
 static TCLAP::ValueArg<std::string> cmd__input_outline_filename("p", "polygon", "Input file for polygon", false /* required? */, "-", "path to file");
 static TCLAP::ValueArg<std::string> cmd__output_prefix("o", "output", "Output file name prefix", false /* required? */, "TEST", "path to file");
 static TCLAP::ValueArg<double> cmd__scale_amount("", "scale", "Input polygon scaler", false /* required? */, 1.0, "floating number");
@@ -109,7 +107,6 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.add(cmd__generate_toolpaths);
         gCmdLine.add(cmd__analyse);
         gCmdLine.add(cmd__visualize);
-        gCmdLine.add(cmd__generate_MAT_STL);
         gCmdLine.add(cmd__input_outline_filename);
         gCmdLine.add(cmd__output_prefix);
         gCmdLine.add(cmd__scale_amount);
@@ -136,7 +133,6 @@ bool readCommandLine(int argc, char **argv)
         generate_toolpaths = cmd__generate_toolpaths.getValue();
         analyse = cmd__analyse.getValue();
         visualize = cmd__visualize.getValue();
-        generate_MAT_STL = cmd__generate_MAT_STL.getValue();
         input_outline_filename = cmd__input_outline_filename.getValue();
         output_prefix = cmd__output_prefix.getValue();
         scale_amount = cmd__scale_amount.getValue();
@@ -175,15 +171,13 @@ bool readCommandLine(int argc, char **argv)
 
 
 
-void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, StrategyType type, bool generate_gcodes = true, bool analyse = false, bool generate_MAT_STL = false)
+void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, StrategyType type, bool generate_gcodes = true, bool analyse = false)
 {
     std::string type_str = to_string(type);
     logAlways(">> Performing %s strategy...\n", type_str.c_str());
 
     BeadingStrategy* beading_strategy = BeadingStrategyHelper::makeStrategy(type, nozzle_size, transitioning_angle, min_bead_width, min_feature_size);
     if (!beading_strategy) return;
-
-    BeadingStrategy::checkTranisionThicknessConsistency(beading_strategy);
 
     TimeKeeper tk;
 
@@ -243,15 +237,6 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
         ss << "output/" << output_prefix << "_" << to_string(type) << "_toolpaths.txt";
         ToolpathWriter toolpather(ss.str());
         toolpather.write(result_polygons_per_index, result_polylines_per_index);
-    }
-
-    if (generate_MAT_STL)
-    {
-        {
-            STLwriter stl("output/st_bead_count.stl");
-            st.debugOutput(stl, true);
-        }
-        logAlways("Writing MAT STL took %fs\n", tk.restart());
     }
 
     if (analyse)
@@ -499,7 +484,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
         }
         else
         {
-            test(polys, nozzle_size, output_prefix, type, generate_gcodes, analyse, generate_MAT_STL);
+            test(polys, nozzle_size, output_prefix, type, generate_gcodes, analyse);
         }
     }
 }
