@@ -170,7 +170,6 @@ set(engine_SRCS # Except main.cpp.
     src/ToolpathWriter.cpp
     src/TopSurface.cpp
     src/TreeSupport.cpp
-    src/voronoi_visualizer.cpp
     src/WallsComputation.cpp
     src/wallOverlap.cpp
     src/Weaver.cpp
