@@ -8,7 +8,7 @@
 #include <vector>
 #include <list>
 
-#include "utils/SparsePointGridInclusive.h"
+#include "../utils/SparsePointGridInclusive.h"
 
 namespace arachne
 {

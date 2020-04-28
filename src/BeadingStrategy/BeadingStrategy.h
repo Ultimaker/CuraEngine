@@ -6,9 +6,9 @@
 
 #include <utility>
 
-#include "utils/IntPoint.h"
-#include "utils/logoutput.h"
-#include "utils/optional.h"  // until the move to C++17
+#include "../utils/IntPoint.h"
+#include "../utils/logoutput.h"
+#include "../utils/optional.h"  // until the move to C++17
 
 namespace arachne
 {

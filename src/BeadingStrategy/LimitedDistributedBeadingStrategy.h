@@ -5,8 +5,8 @@
 #define LIMITED_DISTRIBUTED_BEADING_STRATEGY_H
 
 #include "DistributedBeadingStrategy.h"
-#include "utils/logoutput.h"
-#include "utils/macros.h"
+#include "../utils/logoutput.h"
+#include "../utils/macros.h"
 
 namespace arachne
 {

@@ -3,7 +3,7 @@
 #ifndef BEADING_STRATEGY_HELPER_H
 #define BEADING_STRATEGY_HELPER_H
 
-#include "utils/optional.h"  // until the move to C++17
+#include "../utils/optional.h"  // until the move to C++17
 
 #include "BeadingStrategy.h"
 #include "InwardDistributedBeadingStrategy.h"

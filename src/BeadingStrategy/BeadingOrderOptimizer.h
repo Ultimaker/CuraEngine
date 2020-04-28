@@ -4,10 +4,10 @@
 #ifndef BEADING_ORDER_OPTIMIZER_H
 #define BEADING_ORDER_OPTIMIZER_H
 
-#include "utils/polygon.h"
-#include "utils/ExtrusionSegment.h"
-#include "utils/ExtrusionJunction.h"
-#include "utils/ExtrusionLine.h"
+#include "../utils/polygon.h"
+#include "../utils/ExtrusionSegment.h"
+#include "../utils/ExtrusionJunction.h"
+#include "../utils/ExtrusionLine.h"
 
 namespace arachne
 {

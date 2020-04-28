@@ -132,14 +132,8 @@ endif()
 
 set(engine_SRCS # Except main.cpp.
     src/Application.cpp
-    src/BeadingOrderOptimizer.cpp
-    src/BeadingStrategy.cpp
-    src/BeadingStrategyHelper.cpp
     src/bridge.cpp
-    src/CenterDeviationBeadingStrategy.cpp
     src/ConicalOverhang.cpp
-    src/ConstantBeadingStrategy.cpp
-    src/DistributedBeadingStrategy.cpp
     src/ExtruderTrain.cpp
     src/FffGcodeWriter.cpp
     src/FffPolygonGenerator.cpp
@@ -149,26 +143,20 @@ set(engine_SRCS # Except main.cpp.
     src/GcodeWriter.cpp
     src/infill.cpp
     src/InsetOrderOptimizer.cpp
-    src/InwardDistributedBeadingStrategy.cpp
     src/layerPart.cpp
     src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
-    src/LimitedBeadingStrategy.cpp
-    src/LimitedDistributedBeadingStrategy.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
     src/Mold.cpp
     src/multiVolumes.cpp
-    src/NaiveBeadingStrategy.cpp
     src/OrderOptimizer.cpp
-    src/OutlineAccuracyBeadingStrategy.cpp
     src/pathOrderOptimizer.cpp
     src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp
     src/Scene.cpp
-    src/SingleBeadBeadingStrategy.cpp
     src/SkeletalTrapezoidation.cpp
     src/skin.cpp
     src/SkirtBrim.cpp
@@ -186,9 +174,22 @@ set(engine_SRCS # Except main.cpp.
     src/WallsComputation.cpp
     src/wallOverlap.cpp
     src/Weaver.cpp
-    src/WideningBeadingStrategy.cpp
     src/Wireframe2gcode.cpp
-
+    
+    src/BeadingStrategy/BeadingOrderOptimizer.cpp
+    src/BeadingStrategy/BeadingStrategy.cpp
+    src/BeadingStrategy/BeadingStrategyHelper.cpp
+    src/BeadingStrategy/CenterDeviationBeadingStrategy.cpp
+    src/BeadingStrategy/ConstantBeadingStrategy.cpp
+    src/BeadingStrategy/DistributedBeadingStrategy.cpp
+    src/BeadingStrategy/InwardDistributedBeadingStrategy.cpp
+    src/BeadingStrategy/LimitedBeadingStrategy.cpp
+    src/BeadingStrategy/LimitedDistributedBeadingStrategy.cpp
+    src/BeadingStrategy/NaiveBeadingStrategy.cpp
+    src/BeadingStrategy/OutlineAccuracyBeadingStrategy.cpp
+    src/BeadingStrategy/SingleBeadBeadingStrategy.cpp
+    src/BeadingStrategy/WideningBeadingStrategy.cpp
+    
     src/communication/ArcusCommunication.cpp
     src/communication/ArcusCommunicationPrivate.cpp
     src/communication/CommandLine.cpp
