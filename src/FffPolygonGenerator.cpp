@@ -741,7 +741,9 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         if (mesh.settings.get<coord_t>("infill_line_distance") > 0
             && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
         {
-            SubDivCube::precomputeOctree(mesh);
+            const Point3 mesh_middle = mesh.bounding_box.getMiddle();
+            const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
+            SubDivCube::precomputeOctree(mesh, infill_origin);
         }
 
         // Pre-compute Cross Fractal
