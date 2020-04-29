@@ -93,8 +93,12 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
                         layer1_lines.applyMatrix(rotation_matrix.inverse());
                     }
 
-                    layer2.polygons = layer2.polygons.difference(layer1_lines);
-                    layer1.polygons = layer1.polygons.difference(layer2.polygons);
+                    coord_t half_min_width = MM2INT(0.6) / 2;
+                    layer1_lines = layer1_lines.offset(-half_min_width).offset(half_min_width);
+                    Polygons layer2_safe_polygons = layer2.polygons.difference(layer1_lines);
+                    layer2_safe_polygons = layer2_safe_polygons.offset(-half_min_width).offset(half_min_width);
+                    layer1.polygons = layer1.polygons.difference(layer2_safe_polygons);
+                    layer2.polygons = layer2.polygons.difference(layer1.polygons);
                 }
                 else if (alternate_carve_order && layerNr % 2 == 0 && volume_1.mesh->settings.get<int>("infill_mesh_order") == volume_2.mesh->settings.get<int>("infill_mesh_order"))
                 {
