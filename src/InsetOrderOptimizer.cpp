@@ -357,7 +357,6 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
 
     ConstPolygonRef outer_wall = *inset_polys[0][0];
     Polygons part_inner_walls;
-    int num_level_1_insets = 0;
 
     if (include_inners)
     {
@@ -367,7 +366,6 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
             ConstPolygonRef inner = *inset_polys[1][level_1_wall_idx];
             if (PolygonUtils::polygonsIntersect(inner, outer_wall))
             {
-                ++num_level_1_insets;
                 part_inner_walls.add(inner);
                 // consume the level 1 inset
                 inset_polys[1].erase(inset_polys[1].begin() + level_1_wall_idx);
@@ -413,35 +411,39 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         const unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(*inset_polys[0][0], order_optimizer.polyStart[0]);
         const Point z_seam_location = (*inset_polys[0][0])[outer_poly_start_idx];
 
+        auto addInnerWalls = [this, part_inner_walls, outer_inset_first, z_seam_location]()
+        {
+            Polygons boundary(*gcode_layer.getCombBoundaryInside());
+            boundary.simplify(100, 100);
+            ZSeamConfig inner_walls_z_seam_config;
+            PathOrderOptimizer orderOptimizer(z_seam_location, inner_walls_z_seam_config, &boundary);
+            orderOptimizer.addPolygons(part_inner_walls);
+            orderOptimizer.optimize();
+            if (!outer_inset_first)
+            {
+                // reverse the optimized order so we end up as near to the outline z-seam as possible
+                std::reverse(orderOptimizer.polyOrder.begin(), orderOptimizer.polyOrder.end());
+            }
+            for (unsigned int wall_idx : orderOptimizer.polyOrder)
+            {
+                const coord_t wall_0_wipe_dist = 0;
+                const float flow_ratio = 1.0;
+                const bool always_retract = false;
+                gcode_layer.addWall(part_inner_walls[wall_idx], orderOptimizer.polyStart[wall_idx], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x, wall_0_wipe_dist, flow_ratio, always_retract);
+            }
+        };
+
         if (outer_inset_first)
         {
             if (include_outer && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
             {
                 gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
             }
-            else
-            {
-                // as we may have been printing holes after the outer inset was printed, add this move to the start point of the inner wall we want to be printed first
-                const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location, part_inner_walls[0])];
-                gcode_layer.addTravel(dest);
-            }
-            gcode_layer.addWalls(part_inner_walls, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
+            addInnerWalls();
         }
         else
         {
-            // reverse order of inner walls to increase chance of them being printed from inside to outside
-            std::reverse(part_inner_walls.begin(), part_inner_walls.end());
-
-            // just like we did for the holes, ensure that a single outer wall inset is started close to the z seam position
-            // but if there is more than one outer wall level 1 inset, don't bother to move as it may actually be a waste of time because
-            // there may not be an inset immediately inside of where the z seam is located so we would end up moving again anyway
-            if (num_level_1_insets == 1)
-            {
-                // move to the location of the vertex in the innermost inset that's closest to the z seam location
-                const Point dest = part_inner_walls[0][PolygonUtils::findNearestVert(z_seam_location, part_inner_walls[0])];
-                gcode_layer.addTravel(dest);
-            }
-            gcode_layer.addWalls(part_inner_walls, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
+            addInnerWalls();
             if (include_outer && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
             {
                 gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
