@@ -196,6 +196,13 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
     Point center1 = islands[idx1].centerOfMass();
     Point center2 = islands[idx2].centerOfMass();
 
+    if (vSize(center2 - center1) < 10)
+    {
+        // the centres of the islands are very close together so the direction
+        // of the line that joins the centres cannot be reliably determined
+        return -1;
+    }
+
     return angle(center2 - center1);
 }
 
