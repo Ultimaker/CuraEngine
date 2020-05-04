@@ -57,6 +57,8 @@ class SkeletalTrapezoidation
     coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
     coord_t marking_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
     coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
+    
+    BeadingStrategy* beading_strategy;
 
 public:
     using Segment = PolygonsSegmentIndex;
@@ -66,7 +68,9 @@ public:
     , coord_t beading_propagation_transition_dist = 400);
     
     HalfEdgeGraph<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge> graph;
-    std::vector<std::list<ExtrusionLine>> generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges = false);
+    std::vector<std::list<ExtrusionLine>> generateToolpaths(bool filter_outermost_marked_edges = false);
+    
+    void setBeadingStrategy(BeadingStrategy* beading_strategy);
 
 protected:
 
@@ -92,6 +96,7 @@ protected:
     std::unordered_map<vd_t::edge_type*, edge_t*> vd_edge_to_he_edge;
     std::unordered_map<vd_t::vertex_type*, node_t*> vd_node_to_he_node;
     node_t& makeNode(vd_t::vertex_type& vd_node, Point p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
+    
     
     /*!
      * Transfer an edge vrom the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
@@ -131,7 +136,7 @@ protected:
 
     // ^ init | v transitioning
 
-    void setMarking(const BeadingStrategy& beading_strategy); //!< set the is_marked flag for each edge based on the transitioning_angle
+    void setMarking(); //!< set the is_marked flag for each edge based on the transitioning_angle
 
     /*!
      * Filter out small marked areas.
@@ -159,19 +164,19 @@ protected:
     /*!
      * Set bead count in marked regions based on the optimal_bead_count of the beading strategy.
      */
-    void setBeadCount(const BeadingStrategy& beading_strategy);
+    void setBeadCount();
 
     /*!
      * Add marked regions and set bead counts
      * where there is an end of marking and when traveling upward we get to another region with the same bead count
      */
-    void filterUnmarkedRegions(const BeadingStrategy& beading_strategy);
+    void filterUnmarkedRegions();
 
     /*!
      * 
      * \return Whether to set the bead count on the way back
      */
-    bool filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist, const BeadingStrategy& beading_strategy);
+    bool filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist);
 
     /*!
      * Representing the location along an edge where the anchor position of a transition should be placed.
@@ -211,9 +216,9 @@ protected:
         {}
     };
 
-    void generateTransitionMids(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
+    void generateTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
 
-    void filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, const BeadingStrategy& beading_strategy);
+    void filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
 
     /*!
      * 
@@ -223,13 +228,13 @@ protected:
      * \param going_up Whether we are traveling in the upward direction as seen from the \p origin_transition. If this doesn't align with the direction according to the R diff on a consecutive edge we know there was a local optimum
      * \return whether the origin transition should be dissolved
      */
-    std::list<TransitionMidRef> dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, const BeadingStrategy& beading_strategy);
+    std::list<TransitionMidRef> dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
 
     void dissolveBeadCountRegion(edge_t* edge_to_start, coord_t from_bead_count, coord_t to_bead_count);
 
-    bool filterEndOfMarkingTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count, const BeadingStrategy& beading_strategy);
+    bool filterEndOfMarkingTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count);
 
-    void generateTransitionEnds(const BeadingStrategy& beading_strategy, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
+    void generateTransitionEnds(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
     /*!
      * Also set the rest values at nodes in between the transition ends
@@ -243,14 +248,14 @@ protected:
      */
     edge_t* insertNode(edge_t* edge, Point mid, coord_t mide_node_bead_count);
 
-    void filterMarkedLocalOptima(const BeadingStrategy& beading_strategy);
+    void filterMarkedLocalOptima();
 
-    void generateTransitioningRibs(const BeadingStrategy& beading_strategy);
+    void generateTransitioningRibs();
 
     /*!
      * \param edge_to_transition_mids From the upward halfedges to their trnsitions mids
      */
-    void generateTransition(edge_t& edge, coord_t mid_R, const BeadingStrategy& beading_strategy, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
+    void generateTransition(edge_t& edge, coord_t mid_R, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
     /*!
      * \p start_rest and \p end_rest refer to gap distances at the start and end pos in terms of ratios w.r.t. the inner bead width at the high end of the transition
@@ -302,14 +307,14 @@ protected:
 
     bool isMarked(const node_t* node) const;
 
-    void generateExtraRibs(const BeadingStrategy& beading_strategy);
+    void generateExtraRibs();
 
     // ^ transitioning | v toolpath generation
 
     /*!
      * \param[out] segments the generated segments
      */
-    void generateSegments(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index, const BeadingStrategy& beading_strategy);
+    void generateSegments(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
 
     edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
 
@@ -338,7 +343,7 @@ protected:
      * 
      * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist first.
      */
-    void propagateBeadingsUpward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
+    void propagateBeadingsUpward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
 
     /*!
      * propagate beading info from higher R nodes to lower R nodes
@@ -351,9 +356,9 @@ protected:
      * 
      * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist first.
      */
-    void propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
+    void propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
     
-    void propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
+    void propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
 
     /*!
      * \param switching_radius The radius at which we switch from the left beading to the merged
@@ -361,7 +366,7 @@ protected:
     Beading interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right, coord_t switching_radius) const;
     Beading interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right) const;
 
-    BeadingPropagation& getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
+    BeadingPropagation& getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
 
     /*!
      * In case we cannot find the beading of a node, get a beading from the nearest node
@@ -372,7 +377,7 @@ protected:
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
      */
-    void generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, const BeadingStrategy& beading_strategy);
+    void generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions);
 
     /*!
      * connect junctions in each quad

@@ -192,8 +192,10 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
         filter_outermost_marked_edges_now = true;
     }
     SkeletalTrapezoidation st(polys, transitioning_angle, discretization_step_size, transition_filter_dist, beading_propagation_transition_dist);
-
-    std::vector<std::list<ExtrusionLine>> result_polylines_per_index = st.generateToolpaths(*beading_strategy, filter_outermost_marked_edges_now);
+    
+    st.setBeadingStrategy(beading_strategy);
+    
+    std::vector<std::list<ExtrusionLine>> result_polylines_per_index = st.generateToolpaths(filter_outermost_marked_edges_now);
 
     if (max_bead_count > 0)
     { // throw away generated odd beads in the middle
