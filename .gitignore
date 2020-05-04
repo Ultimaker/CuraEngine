@@ -1,14 +1,3 @@
-## my dirs
-input/*
-backup/*
-output/*
-old_output/*
-output_dataset_v1/*
-output_dataset_v2/*
-output_applications/*
-test_geometry/*
-
-
 ## ignore such files
 *.tar.bz2
 *.tar.gz
