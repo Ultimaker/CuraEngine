@@ -18,7 +18,6 @@
 #include "SkeletalTrapezoidationJoint.h"
 #include "BeadingStrategy/BeadingStrategy.h"
 
-#include "utils/STLwriter.h"
 
 namespace arachne
 {
