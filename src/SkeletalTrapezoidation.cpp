@@ -382,14 +382,6 @@ void SkeletalTrapezoidation::init()
 
     vd_t vd;
     construct_voronoi(points.begin(), points.end(),segments.begin(), segments.end(), &vd);
-
-    for (const vd_t::edge_type& edge : vd.edges())
-    {
-        assert(edge.vertex0() == edge.twin()->vertex1());
-        assert(edge.vertex1() == edge.twin()->vertex0());
-        assert(edge.vertex1() == edge.next()->vertex0());
-        assert(edge.vertex0() == edge.prev()->vertex1());
-    }
     
     for (vd_t::cell_type cell : vd.cells())
     {
@@ -1687,9 +1679,14 @@ void SkeletalTrapezoidation::generateExtraRibs()
     for (auto edge_it = graph.edges.begin(); std::prev(edge_it) != end_edge_it; ++edge_it)
     {
         edge_t& edge = *edge_it;
-        if ( ! edge.data.isMarked()) continue;
-        if (shorterThen(edge.to->p - edge.from->p, discretization_step_size)) continue;
-        if (edge.from->data.distance_to_boundary >= edge.to->data.distance_to_boundary) continue;
+        
+        if (!edge.data.isMarked() 
+            || shorterThen(edge.to->p - edge.from->p, discretization_step_size) 
+            || edge.from->data.distance_to_boundary >= edge.to->data.distance_to_boundary) 
+        {
+            continue;
+        }
+
 
         std::vector<coord_t> rib_thicknesses = beading_strategy->getNonlinearThicknesses(edge.from->data.bead_count);
 
@@ -1912,7 +1909,7 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, std
 
     auto it = node_to_beading.find(edge_to_peak->from);
     if (it == node_to_beading.end())
-    { // set new beading if there is no beading associatied with the node yet
+    { // Set new beading if there is no beading associatied with the node yet
         BeadingPropagation propagated_beading = top_beading;
         propagated_beading.dist_from_top_source += length;
         auto pair = node_to_beading.emplace(edge_to_peak->from, propagated_beading);
@@ -2082,8 +2079,13 @@ SkeletalTrapezoidation::BeadingPropagation& SkeletalTrapezoidation::getBeading(n
         { // This bug is due to too small marked edges
             constexpr coord_t nearby_dist = 100; // TODO
             BeadingPropagation* nearest_beading = getNearestBeading(node, nearby_dist, node_to_beading);
-            if (nearest_beading) return *nearest_beading;
-            // else make a new beading:
+            
+            if (nearest_beading)
+            {
+                return *nearest_beading;
+            }
+            
+            // Else make a new beading:
             bool has_marked_edge = false;
             bool first = true;
             coord_t dist = std::numeric_limits<coord_t>::max();
