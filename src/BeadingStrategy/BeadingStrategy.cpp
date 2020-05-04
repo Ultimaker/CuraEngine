@@ -29,4 +29,9 @@ std::vector<coord_t> BeadingStrategy::getNonlinearThicknesses(coord_t lower_bead
     return std::vector<coord_t>();
 }
 
+std::string BeadingStrategy::toString() const
+{
+    return name;
+}
+
 } // namespace arachne

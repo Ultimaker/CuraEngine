@@ -40,6 +40,8 @@ public:
 
     coord_t optimal_width; //! Optimal bead width
     
+    std::string name;
+    
     coord_t default_transition_length; //! The length of the region to smoothly transfer between bead counts
 
     /*!
@@ -52,7 +54,9 @@ public:
     : optimal_width(optimal_width)
     , default_transition_length(default_transition_length)
     , transitioning_angle(transitioning_angle)
-    {}
+    {
+        name = "Unknown";
+    }
 
     virtual ~BeadingStrategy()
     {}
@@ -103,7 +107,7 @@ public:
      */
     virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const;
     
-    virtual std::string toString() const = 0;
+    virtual std::string toString() const;
 };
 
 

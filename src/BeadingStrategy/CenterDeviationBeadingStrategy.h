@@ -21,8 +21,9 @@ public:
     CenterDeviationBeadingStrategy(const coord_t pref_bead_width, float transitioning_angle, float min_diameter = 0.8, float max_diameter = 1.25)
     : BeadingStrategy(pref_bead_width, pref_bead_width / 2, transitioning_angle)
     , overfill_bound(pref_bead_width - min_diameter * pref_bead_width)
-    , underfill_bound(max_diameter * pref_bead_width - pref_bead_width)
+    , underfill_bound(max_diameter * pref_bead_width - pref_bead_width) 
     {
+        name = "CenterDeviationBeadingStrategy";
     }
     virtual ~CenterDeviationBeadingStrategy() override
     {}
@@ -30,7 +31,6 @@ public:
     coord_t optimal_thickness(coord_t bead_count) const override;
     coord_t transition_thickness(coord_t lower_bead_count) const override;
     coord_t optimal_bead_count(coord_t thickness) const override;
-    virtual std::string toString() const override { return "CenterDeviationBeadingStrategy";}
 };
 
 

@@ -19,6 +19,7 @@ public:
     DistributedBeadingStrategy(const coord_t optimal_width, coord_t default_transition_length, float transitioning_angle)
     : BeadingStrategy(optimal_width, default_transition_length, transitioning_angle)
     {
+        name = "DistributedBeadingStrategy";
     }
     virtual ~DistributedBeadingStrategy() override
     {}
@@ -26,7 +27,6 @@ public:
     coord_t optimal_thickness(coord_t bead_count) const override;
     coord_t transition_thickness(coord_t lower_bead_count) const override;
     coord_t optimal_bead_count(coord_t thickness) const override;
-    virtual std::string toString() const override { return "DistributedBeadingStrategy";}
 };
 
 

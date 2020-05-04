@@ -24,11 +24,11 @@ public:
     : DistributedBeadingStrategy(optimal_width, default_transition_length, transitioning_angle)
     , one_over_distribution_radius_squared(1.0f / distribution_radius * 1.0f / distribution_radius)
     {
+        name = "InwardDistributedBeadingStrategy";
     }
     virtual ~InwardDistributedBeadingStrategy() override
     {}
     Beading compute(coord_t thickness, coord_t bead_count) const override;
-    virtual std::string toString() const override { return "InwardDistributedBeadingStrategy";}
 private:
     float one_over_distribution_radius_squared; // (1 / distribution_radius)^2
 };
