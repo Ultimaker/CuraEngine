@@ -343,26 +343,6 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
             ending_vd_edge = edge;
             check_secondary_edge = false;
         }
-        if (false && check_secondary_edge && edge->is_secondary()
-               != LinearAlg2D::pointLiesOnTheRightOfLine(v1, from, to)
-            &&    LinearAlg2D::pointLiesOnTheRightOfLine(v0, from, to)
-            && (LinearAlg2D::getDist2FromLineSegment(v0, from, v1) <= 5 // TODO: magic value
-                || LinearAlg2D::getDist2FromLineSegment(v0, to, v1) <= 5)
-        )
-        { // Edge crosses source segment
-            // TODO: handle the case where two consecutive line segments are collinear!
-            // that's the only case where a voronoi segment doesn't end in a polygon vertex, but goes though it
-            if (LinearAlg2D::pointLiesOnTheRightOfLine(VoronoiUtils::p(edge->vertex1()), source_segment.from(), source_segment.to()))
-            {
-                ending_vd_edge = edge;
-            }
-            else
-            {
-                starting_vd_edge = edge;
-            }
-            first = false;
-            continue;
-        }
         first = false;
     }
     
