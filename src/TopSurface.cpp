@@ -37,7 +37,6 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     constexpr bool connect_polygons = false; // midway connections can make the surface less smooth
     const coord_t line_spacing = mesh.settings.get<coord_t>("ironing_line_spacing");
-    const coord_t outline_offset = -mesh.settings.get<coord_t>("ironing_inset");
     const coord_t line_width = line_config.getLineWidth();
     const std::vector<AngleDegrees>& top_most_skin_angles = (mesh.settings.get<size_t>("roofing_layer_count") > 0) ? mesh.roofing_angles : mesh.skin_angles;
     assert(top_most_skin_angles.size() > 0);
@@ -45,6 +44,16 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     constexpr coord_t infill_overlap = 0;
     constexpr int infill_multiplier = 1;
     constexpr coord_t shift = 0;
+
+    coord_t ironing_inset = -mesh.settings.get<coord_t>("ironing_inset");
+    if (pattern == EFillMethod::ZIG_ZAG && ironing_inset == 0)
+    {
+        //Compensate for the outline_offset decrease that takes place when infill is generated for the zigzag pattern
+        const float width_scale = (float)mesh.settings.get<coord_t>("layer_height") / mesh.settings.get<coord_t>("infill_sparse_thickness");
+        ironing_inset += width_scale * line_width / 2;
+    }
+    const coord_t outline_offset = ironing_inset;
+
     Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, outline_offset, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift);
     Polygons ironing_polygons;
     Polygons ironing_lines;
