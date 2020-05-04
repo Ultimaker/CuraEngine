@@ -1,8 +1,8 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 
 
-#ifndef VORONOI_QUADRILATERALIZATION_H
-#define VORONOI_QUADRILATERALIZATION_H
+#ifndef SKELETAL_TRAPEZOIDATION_H
+#define SKELETAL_TRAPEZOIDATION_H
 
 #include <boost/polygon/voronoi.hpp>
 
@@ -24,7 +24,7 @@ namespace arachne
     using namespace cura;
 
 /*!
- * Main class of this library.
+ * Main class of the dynamic beading strategies.
  * 
  * The input polygon region is decomposed into trapezoids and represented as a half-edge data-structure.
  * 
@@ -49,22 +49,22 @@ class SkeletalTrapezoidation
     using node_t = HalfEdgeNode<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
     using Beading = BeadingStrategy::Beading;
 
-    const Polygons& polys; //!< input outline boundary shape
+    const Polygons& polys; //!< Input outline boundary shape
 
     float transitioning_angle; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
     coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
-    coord_t transition_filter_dist; //!< filter transition mids (i.e. anchors) closer together than this
+    coord_t transition_filter_dist; //!< Filter transition mids (i.e. anchors) closer together than this
     coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
-    coord_t marking_filter_dist = 20; //!< filter areas marked as 'central' smaller than this
-    coord_t snap_dist = 20; //!< generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
+    coord_t marking_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
+    coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
 
 public:
     using Segment = PolygonsSegmentIndex;
     SkeletalTrapezoidation(const Polygons& polys, float transitioning_angle
     , coord_t discretization_step_size = 200
     , coord_t transition_filter_dist = 1000
-    , coord_t beading_propagation_transition_dist = 400
-    );
+    , coord_t beading_propagation_transition_dist = 400);
+    
     HalfEdgeGraph<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge> graph;
     std::vector<std::list<ExtrusionLine>> generateToolpaths(const BeadingStrategy& beading_strategy, bool filter_outermost_marked_edges = false);
 
@@ -92,6 +92,7 @@ protected:
     std::unordered_map<vd_t::edge_type*, edge_t*> vd_edge_to_he_edge;
     std::unordered_map<vd_t::vertex_type*, node_t*> vd_node_to_he_node;
     node_t& makeNode(vd_t::vertex_type& vd_node, Point p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
+    
     /*!
      * Transfer an edge vrom the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
      * \p prev_edge serves as input and output. May be null as input.
@@ -301,12 +302,9 @@ protected:
 
     bool isMarked(const node_t* node) const;
 
-
     void generateExtraRibs(const BeadingStrategy& beading_strategy);
 
     // ^ transitioning | v toolpath generation
-
-
 
     /*!
      * \param[out] segments the generated segments
@@ -354,6 +352,7 @@ protected:
      * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist first.
      */
     void propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
+    
     void propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, const BeadingStrategy& beading_strategy);
 
     /*!
@@ -396,12 +395,7 @@ protected:
      * \param include_odd_start_junction Whether to leave out the first junction if it coincides with \p edge.from->p
      */
     const std::vector<ExtrusionJunction>& getJunctions(edge_t* edge, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions);
-    
-    // ^ toolpath generation
 };
-
-
-
 
 } // namespace arachne
 #endif // VORONOI_QUADRILATERALIZATION_H
