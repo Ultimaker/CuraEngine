@@ -265,7 +265,7 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell, Point&
 {
     if (cell.incident_edge()->is_infinite())
     {
-        return false;
+        return false; //Infinite edges only occur outside of the polygon. Don't copy any part of this cell.
     }
     // Check if any point of the cell is inside or outside polygon
     // Copy whole cell into graph or not at all
