@@ -30,7 +30,6 @@
 #include "BeadingOrderOptimizer.h"
 #include "GcodeWriter.h"
 #include "ToolpathWriter.h"
-#include "Statistics.h"
 
 #include "TestGeometry/TestPolys.h"
 #include "TestGeometry/Pika.h"
@@ -226,8 +225,6 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
             gcode.printBrim(aabb, 3, nozzle_size, nozzle_size * 1.5);
             gcode.resetPrintTime();
             gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
-            Statistics stats(to_string(type), output_prefix, polys, processing_time);
-            stats.savePrintTimeCSV(gcode.getPrintTime());
             logAlways("Writing gcode took %fs\n", tk.restart());
         }
     }
@@ -237,54 +234,6 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
         ss << "output/" << output_prefix << "_" << to_string(type) << "_toolpaths.txt";
         ToolpathWriter toolpather(ss.str());
         toolpather.write(result_polygons_per_index, result_polylines_per_index);
-    }
-
-    if (analyse)
-    {
-        Statistics stats(to_string(type), output_prefix, polys, processing_time);
-        stats.analyse(result_polygons_per_index, result_polylines_per_index, &st);
-        logAlways("Analysis took %fs\n", tk.restart());
-        stats.saveResultsCSV();
-        if (visualize)
-        {
-            stats.visualize(nozzle_size, true);
-            logAlways("Visualization took %fs\n", tk.restart());
-        }
-    }
-    else if (visualize)
-    {
-        static std::vector<ExtrusionSegment> all_segments = Statistics::generateAllSegments(result_polygons_per_index, result_polylines_per_index);
-        AABB aabb(polys);
-        bool rounded_visualization = true;
-        {
-            std::ostringstream ss;
-            ss << "output/" << output_prefix << "_" << to_string(type) << "_viz.svg";
-            SVG svg(ss.str(), aabb);
-            ToolpathVisualizer viz(svg);
-            viz.outline(polys);
-            viz.toolpaths(all_segments, rounded_visualization);
-        }
-        bool include_legend = false;
-        bool output_widths = false;
-        if (output_widths)
-        {
-            std::ostringstream ss;
-            ss << "output/" << output_prefix << "_" << to_string(type) << "_widths.svg";
-            SVG svg(ss.str(), aabb);
-            ToolpathVisualizer viz(svg);
-            viz.outline(polys);
-
-            coord_t max_dev = nozzle_size / 2;
-            coord_t min_w = 30;
-
-            if (include_legend)
-            {
-                viz.width_legend(polys, nozzle_size, max_dev, min_w, rounded_visualization);
-            }
-
-            viz.widths(all_segments, nozzle_size, max_dev, min_w, rounded_visualization);
-        }
-        logAlways("Visualization took %fs\n", tk.restart());
     }
 
     delete beading_strategy;
@@ -344,8 +293,6 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
             gcode.printBrim(aabb, 3, nozzle_size, nozzle_size * 1.5);
             gcode.resetPrintTime();
             gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
-            Statistics stats("naive", output_prefix, polys, processing_time);
-            stats.savePrintTimeCSV(gcode.getPrintTime());
             logAlways("Writing gcodes took %fs\n", tk.restart());
         }
     }
@@ -355,17 +302,6 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
         ss << "output/" << output_prefix << "_naive_toolpaths.txt";
         ToolpathWriter toolpather(ss.str());
         toolpather.write(result_polygons_per_index, result_polylines_per_index);
-    }
-
-    
-    if (analyse)
-    {
-        Statistics stats("naive", output_prefix, polys, processing_time);
-        stats.analyse(result_polygons_per_index, result_polylines_per_index);
-        stats.saveResultsCSV();
-        logAlways("Analysis took %fs\n", tk.restart());
-        stats.visualize(nozzle_size);
-        logAlways("Visualization took %fs\n", tk.restart());
     }
     
 }
@@ -401,13 +337,7 @@ void writeVarWidthTest()
         gcode.printBrim(aabb, 3);
         gcode.resetPrintTime();
         gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
-        Statistics stats("var_width", "test", fake_outline, 1.0);
-        stats.savePrintTimeCSV(gcode.getPrintTime());
     }
-    
-    Statistics stats("var_width", "test", fake_outline, 1.0);
-    stats.analyse(result_polygons_per_index, result_polylines_per_index);
-    stats.visualize(400, false, true, true, false, false);
 }
 
 void test(std::string input_outline_filename, std::string output_prefix)

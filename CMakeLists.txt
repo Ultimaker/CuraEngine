@@ -160,7 +160,6 @@ set(engine_SRCS # Except main.cpp.
     src/SkeletalTrapezoidation.cpp
     src/skin.cpp
     src/SkirtBrim.cpp
-    src/Statistics.cpp
     src/SupportInfillPart.cpp
     src/Slice.cpp
     src/sliceDataStorage.cpp
