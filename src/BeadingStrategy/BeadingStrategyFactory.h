@@ -1,7 +1,7 @@
 //Copyright (c) 2020 Ultimaker B.V.
 
-#ifndef BEADING_STRATEGY_HELPER_H
-#define BEADING_STRATEGY_HELPER_H
+#ifndef BEADING_STRATEGY_FACTORY_H
+#define BEADING_STRATEGY_FACTORY_H
 
 #include "../utils/optional.h"  // until the move to C++17
 
@@ -38,11 +38,11 @@ StrategyType toStrategyType(char c);
 
 std::string to_string(StrategyType type);
 
-class BeadingStrategyHelper
+class BeadingStrategyFactory
 {
 public:
     static BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = MM2INT(0.5), float transitioning_angle = M_PI / 4, std::optional<coord_t> min_bead_width = NULL, std::optional<coord_t> min_feature_size = NULL);
 };
 
 } // namespace arachne
-#endif // BEADING_STRATEGY_HELPER_H
+#endif // BEADING_STRATEGY_FACTORY_H

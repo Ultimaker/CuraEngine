@@ -177,7 +177,7 @@ set(engine_SRCS # Except main.cpp.
     
     src/BeadingStrategy/BeadingOrderOptimizer.cpp
     src/BeadingStrategy/BeadingStrategy.cpp
-    src/BeadingStrategy/BeadingStrategyHelper.cpp
+    src/BeadingStrategy/BeadingStrategyFactory.cpp
     src/BeadingStrategy/CenterDeviationBeadingStrategy.cpp
     src/BeadingStrategy/DistributedBeadingStrategy.cpp
     src/BeadingStrategy/InwardDistributedBeadingStrategy.cpp

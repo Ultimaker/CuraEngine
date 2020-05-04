@@ -1,6 +1,6 @@
 //Copyright (c) 2020 Ultimaker B.V.
 
-#include "BeadingStrategyHelper.h"
+#include "BeadingStrategyFactory.h"
 
 namespace arachne
 {
@@ -43,7 +43,7 @@ std::string to_string(StrategyType type)
     }
 }
 
-BeadingStrategy* BeadingStrategyHelper::makeStrategy(StrategyType type, coord_t prefered_bead_width, float transitioning_angle, std::optional<coord_t> min_bead_width, std::optional<coord_t> min_feature_size)
+BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t prefered_bead_width, float transitioning_angle, std::optional<coord_t> min_bead_width, std::optional<coord_t> min_feature_size)
 {
     BeadingStrategy* ret = nullptr;
     switch (type)
