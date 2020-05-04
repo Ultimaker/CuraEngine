@@ -20,16 +20,14 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
         auto getWeight = [middle, this](coord_t bead_idx)
         {
             float dev_from_middle = bead_idx - middle;
-//             if (dev_from_middle > 3) return 0.0f;
             return std::max(0.0f, 1.0f - one_over_distribution_radius_squared * dev_from_middle * dev_from_middle);
-//             return 1.0f / (1.0 + .5*dev_from_middle * dev_from_middle * dev_from_middle * dev_from_middle);
-//             return 1.0f / (.6 + sqrt(std::abs(dev_from_middle * dev_from_middle * dev_from_middle)));
-//             return 1.0f / (.5 + sqrt(std::abs(dev_from_middle * dev_from_middle * dev_from_middle)));
         };
+        
         for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
         {
             total_weight += getWeight(bead_idx);
         }
+        
         for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
         {
             coord_t width = optimal_width + to_be_divided * getWeight(bead_idx) / total_weight;
@@ -52,7 +50,5 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
 
     return ret;
 }
-
-
 
 } // namespace arachne

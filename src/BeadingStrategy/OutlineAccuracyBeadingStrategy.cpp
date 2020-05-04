@@ -41,6 +41,7 @@ OutlineAccuracyBeadingStrategy::Beading OutlineAccuracyBeadingStrategy::compute(
                 ret.bead_widths[bead_idx] = thickness / bead_count;
             }
         }
+        
         // Derive toolpath_locations
         ret.toolpath_locations.resize(bead_count);
         for (coord_t bead_idx = 0; bead_idx < (bead_count + 1) / 2; bead_idx++)
@@ -56,6 +57,7 @@ OutlineAccuracyBeadingStrategy::Beading OutlineAccuracyBeadingStrategy::compute(
         {
             ret.toolpath_locations[bead_count / 2] = thickness / 2;
         }
+        
         // Apply symmetry
         for (coord_t bead_idx = (bead_count + 1) / 2; bead_idx < bead_count; bead_idx++)
         {

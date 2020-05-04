@@ -37,8 +37,5 @@ public:
     coord_t optimal_bead_count(coord_t thickness) const override;
 };
 
-
-
-
 } // namespace arachne
 #endif // LIMITED_DISTRIBUTED_BEADING_STRATEGY_H

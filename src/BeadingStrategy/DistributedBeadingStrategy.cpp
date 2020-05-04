@@ -43,5 +43,4 @@ coord_t DistributedBeadingStrategy::optimal_bead_count(coord_t thickness) const
     return (thickness + optimal_width / 2) / optimal_width;
 }
 
-
 } // namespace arachne

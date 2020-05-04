@@ -19,7 +19,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
     ret.left_over += thickness - ret.total_thickness;
     ret.total_thickness = thickness;
     
-    // enforece symmetry
+    // Enforece symmetry
     if (bead_count % 2 == 1)
     {
         ret.toolpath_locations[bead_count / 2] = thickness / 2;

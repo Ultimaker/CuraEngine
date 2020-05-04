@@ -50,7 +50,5 @@ public:
 };
 
 
-
-
 } // namespace arachne
 #endif // LIMITED_DISTRIBUTED_BEADING_STRATEGY_H
