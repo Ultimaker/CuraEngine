@@ -2264,26 +2264,11 @@ void SkeletalTrapezoidation::connectJunctions(std::unordered_map<edge_t*, std::v
                 }
                 
                 passed_odd_edges.emplace(quad_start->next);
-                bool force_new_path = is_odd_segment && isMultiIntersection(quad_start->to);
+                bool force_new_path = is_odd_segment && quad_start->to->isMultiIntersection();
                 addSegment(from, to, is_odd_segment, force_new_path);
             }
         }
     }
-}
-
-bool SkeletalTrapezoidation::isMultiIntersection(node_t* node)
-{
-    int odd_path_count = 0;
-    bool first = true;
-    for (edge_t* outgoing = node->some_edge; first || outgoing != node->some_edge; outgoing = outgoing->twin->next)
-    {
-        first = false;
-        if (outgoing->data.isMarked())
-        {
-            odd_path_count++;
-        }
-    }
-    return odd_path_count > 2;
 }
 
 void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)

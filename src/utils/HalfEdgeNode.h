@@ -28,9 +28,25 @@ public:
     : data(data)
     , p(p)
     {}
+    
     bool operator==(const HalfEdgeNode& other)
     {
         return this == &other;
+    }
+    
+    bool isMultiIntersection()
+    {
+        int odd_path_count = 0;
+        bool first = true;
+        for (edge_t* outgoing = this->some_edge; first || outgoing != this->some_edge; outgoing = outgoing->twin->next)
+        {
+            first = false;
+            if (outgoing->data.isMarked())
+            {
+                odd_path_count++;
+            }
+        }
+        return odd_path_count > 2;
     }
 };
 
