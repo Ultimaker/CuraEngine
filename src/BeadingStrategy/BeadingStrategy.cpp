@@ -18,9 +18,9 @@ coord_t BeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 
 float BeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
 {
-    coord_t lower_optimum = optimal_thickness(lower_bead_count);
-    coord_t transition_point = transition_thickness(lower_bead_count);
-    coord_t upper_optimum = optimal_thickness(lower_bead_count + 1);
+    coord_t lower_optimum = getOptimalThickness(lower_bead_count);
+    coord_t transition_point = getTransitionThickness(lower_bead_count);
+    coord_t upper_optimum = getOptimalThickness(lower_bead_count + 1);
     return 1.0 - float(transition_point - lower_optimum) / float(upper_optimum - lower_optimum);
 }
 

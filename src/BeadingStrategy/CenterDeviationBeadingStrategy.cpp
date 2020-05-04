@@ -41,12 +41,12 @@ CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(
     return ret;
 }
 
-coord_t CenterDeviationBeadingStrategy::optimal_thickness(coord_t bead_count) const
+coord_t CenterDeviationBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
     return bead_count * optimal_width;
 }
 
-coord_t CenterDeviationBeadingStrategy::transition_thickness(coord_t lower_bead_count) const
+coord_t CenterDeviationBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
     if (lower_bead_count % 2 == 0)
     { // when we add the extra bead in the middle
@@ -58,7 +58,7 @@ coord_t CenterDeviationBeadingStrategy::transition_thickness(coord_t lower_bead_
     }
 }
 
-coord_t CenterDeviationBeadingStrategy::optimal_bead_count(coord_t thickness) const
+coord_t CenterDeviationBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
     coord_t naive_count = (thickness / 2 + optimal_width / 2) / optimal_width * 2;
     coord_t optimal_thickness = naive_count * optimal_width;

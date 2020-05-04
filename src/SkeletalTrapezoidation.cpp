@@ -696,7 +696,7 @@ void SkeletalTrapezoidation::setMarking()
     //              `^'-._                                    .
     //                             sin a = dR / dD            .
 
-    coord_t outer_edge_filter_length = beading_strategy->transition_thickness(0) / 2;
+    coord_t outer_edge_filter_length = beading_strategy->getTransitionThickness(0) / 2;
 
     float cap = sin(beading_strategy->transitioning_angle * 0.5); // = cos(bisector_angle / 2)
     for (edge_t& edge: graph.edges)
@@ -782,7 +782,7 @@ void SkeletalTrapezoidation::setBeadCount()
     {
         if (edge.data.isMarked())
         {
-            edge.to->data.bead_count = beading_strategy->optimal_bead_count(edge.to->data.distance_to_boundary * 2);
+            edge.to->data.bead_count = beading_strategy->getOptimalBeadCount(edge.to->data.distance_to_boundary * 2);
         }
     }
 
@@ -801,7 +801,7 @@ void SkeletalTrapezoidation::setBeadCount()
                     node.data.distance_to_boundary = std::min(node.data.distance_to_boundary, edge->to->data.distance_to_boundary + vSize(edge->from->p - edge->to->p));
                 }
             }
-            coord_t bead_count = beading_strategy->optimal_bead_count(node.data.distance_to_boundary * 2);
+            coord_t bead_count = beading_strategy->getOptimalBeadCount(node.data.distance_to_boundary * 2);
             node.data.bead_count = bead_count;
         }
     }
@@ -849,7 +849,7 @@ bool SkeletalTrapezoidation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead
         {
             next_edge->data.setMarked(true);
             next_edge->twin->data.setMarked(true);
-            next_edge->to->data.bead_count = beading_strategy->optimal_bead_count(next_edge->to->data.distance_to_boundary * 2);
+            next_edge->to->data.bead_count = beading_strategy->getOptimalBeadCount(next_edge->to->data.distance_to_boundary * 2);
             next_edge->to->data.transition_ratio = 0;
         }
         return dissolve; // Dissolving only depend on the one edge going upward. There cannot be multiple edges going upward.
@@ -912,8 +912,8 @@ void SkeletalTrapezoidation::generateTransitionMids(std::unordered_map<edge_t*, 
             continue;
         }
 
-        if (start_bead_count > beading_strategy->optimal_bead_count(start_R * 2)
-            || end_bead_count > beading_strategy->optimal_bead_count(end_R * 2))
+        if (start_bead_count > beading_strategy->getOptimalBeadCount(start_R * 2)
+            || end_bead_count > beading_strategy->getOptimalBeadCount(end_R * 2))
         { // Wasn't the case earlier in this function because of already introduced transitions
             RUN_ONCE(logError("transitioning segment overlap! (?)\n"));
         }
@@ -921,7 +921,7 @@ void SkeletalTrapezoidation::generateTransitionMids(std::unordered_map<edge_t*, 
         coord_t edge_size = vSize(edge.from->p - edge.to->p);
         for (coord_t transition_lower_bead_count = start_bead_count; transition_lower_bead_count < end_bead_count; transition_lower_bead_count++)
         {
-            coord_t mid_R = beading_strategy->transition_thickness(transition_lower_bead_count) / 2;
+            coord_t mid_R = beading_strategy->getTransitionThickness(transition_lower_bead_count) / 2;
             if (mid_R > end_R)
             {
                 RUN_ONCE(logError("transition on segment lies outside of segment!\n"));
@@ -2101,7 +2101,7 @@ SkeletalTrapezoidation::BeadingPropagation& SkeletalTrapezoidation::getBeading(n
             }
             RUN_ONCE(logError("Unknown beading for unmarked node!\n"));
             assert(dist != std::numeric_limits<coord_t>::max());
-            node->data.bead_count = beading_strategy->optimal_bead_count(dist * 2);
+            node->data.bead_count = beading_strategy->getOptimalBeadCount(dist * 2);
         }
         assert(node->data.bead_count != -1);
         beading_it = node_to_beading.emplace(node, beading_strategy->compute(node->data.distance_to_boundary * 2, node->data.bead_count)).first;

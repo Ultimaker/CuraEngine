@@ -33,19 +33,19 @@ SingleBeadBeadingStrategy::Beading SingleBeadBeadingStrategy::compute(coord_t th
     return ret;
 }
 
-coord_t SingleBeadBeadingStrategy::optimal_thickness(coord_t bead_count) const
+coord_t SingleBeadBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
     return bead_count * optimal_width - 10;
 }
 
-coord_t SingleBeadBeadingStrategy::transition_thickness(coord_t lower_bead_count) const
+coord_t SingleBeadBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
     if (lower_bead_count <= 0) return 0;
     else if (lower_bead_count == 1) return optimal_width;
     else return 9999999;
 }
 
-coord_t SingleBeadBeadingStrategy::optimal_bead_count(coord_t thickness) const
+coord_t SingleBeadBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
     if (thickness <= optimal_width) return 1;
     else return 2;

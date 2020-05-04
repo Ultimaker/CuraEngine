@@ -28,17 +28,17 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
     return ret;
 }
 
-coord_t DistributedBeadingStrategy::optimal_thickness(coord_t bead_count) const
+coord_t DistributedBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
     return bead_count * optimal_width;
 }
 
-coord_t DistributedBeadingStrategy::transition_thickness(coord_t lower_bead_count) const
+coord_t DistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
     return lower_bead_count * optimal_width + optimal_width / 2; // TODO: doesnt take min and max width into account
 }
 
-coord_t DistributedBeadingStrategy::optimal_bead_count(coord_t thickness) const
+coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
     return (thickness + optimal_width / 2) / optimal_width;
 }

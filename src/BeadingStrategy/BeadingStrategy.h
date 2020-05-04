@@ -73,17 +73,17 @@ public:
     /*!
      * The ideal thickness for a given \param bead_count
      */
-    virtual coord_t optimal_thickness(coord_t bead_count) const = 0;
+    virtual coord_t getOptimalThickness(coord_t bead_count) const = 0;
 
     /*!
      * The model thickness at which \ref BeadingStrategy::optimal_bead_count transitions from \p lower_bead_count to \p lower_bead_count + 1
      */
-    virtual coord_t transition_thickness(coord_t lower_bead_count) const = 0;
+    virtual coord_t getTransitionThickness(coord_t lower_bead_count) const = 0;
 
     /*!
      * The number of beads should we ideally usefor a given model thickness
      */
-    virtual coord_t optimal_bead_count(coord_t thickness) const = 0;
+    virtual coord_t getOptimalBeadCount(coord_t thickness) const = 0;
 
     /*!
      * The length of the transitioning region along the marked / significant regions of the skeleton.

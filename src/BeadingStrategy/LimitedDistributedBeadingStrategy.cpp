@@ -8,7 +8,7 @@ namespace arachne
 
 LimitedDistributedBeadingStrategy::Beading LimitedDistributedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
-    if (thickness < DistributedBeadingStrategy::transition_thickness(max_bead_count))
+    if (thickness < DistributedBeadingStrategy::getTransitionThickness(max_bead_count))
     {
         return DistributedBeadingStrategy::compute(thickness, bead_count);
     }
@@ -36,29 +36,29 @@ LimitedDistributedBeadingStrategy::Beading LimitedDistributedBeadingStrategy::co
     return ret;
 }
 
-coord_t LimitedDistributedBeadingStrategy::optimal_thickness(coord_t bead_count) const
+coord_t LimitedDistributedBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
     if (bead_count <= max_bead_count)
     {
-        return DistributedBeadingStrategy::optimal_thickness(bead_count);
+        return DistributedBeadingStrategy::getOptimalThickness(bead_count);
     }
     return 10000000; // 10 meter
 }
 
-coord_t LimitedDistributedBeadingStrategy::transition_thickness(coord_t lower_bead_count) const
+coord_t LimitedDistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
     if (lower_bead_count < max_bead_count)
     {
-        return DistributedBeadingStrategy::transition_thickness(lower_bead_count);
+        return DistributedBeadingStrategy::getTransitionThickness(lower_bead_count);
     }
     return 9000000; // 9 meter
 }
 
-coord_t LimitedDistributedBeadingStrategy::optimal_bead_count(coord_t thickness) const
+coord_t LimitedDistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    if (thickness < DistributedBeadingStrategy::optimal_thickness(max_bead_count))
+    if (thickness < DistributedBeadingStrategy::getOptimalThickness(max_bead_count))
     {
-        return DistributedBeadingStrategy::optimal_bead_count(thickness);
+        return DistributedBeadingStrategy::getOptimalBeadCount(thickness);
     }
     return max_bead_count;
 }
