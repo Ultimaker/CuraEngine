@@ -11,6 +11,7 @@ namespace cura
 
 class SliceLayer;
 class SliceLayerPart;
+class SliceMeshStorage;
 
 /*!
  * Function container for computing the outer walls / insets / perimeters polygons of a layer
@@ -36,6 +37,15 @@ public:
      * \param layer The layer for which to generate the insets.
      */ 
     void generateInsets(SliceLayer* layer);
+
+    /*!
+     * Alternate the winding order of the walls each layer and from the outer wall inward.
+     * So from outer wall to inner wall we go CW,CCW,CW,etc
+     * And the outer wall (and the rest) also change direction each layer CW,CCW,CW,etc
+     * 
+     * \param mesh The mesh for which to change the winding direction of half of all walls
+     */
+    static void alternateWallDirections(SliceMeshStorage& mesh);
 
 private:
     /*!

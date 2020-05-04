@@ -768,6 +768,14 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     {
         processFuzzyWalls(mesh);
     }
+
+    // alternate wall printing direction
+    //   perform this last so that other features which might use the winding order of the polygons have
+    //   correctly assumed the relation between winding order and outer poly / hole poly
+    if (mesh.settings.get<bool>("alternate_wall_direction"))
+    {
+        WallsComputation::alternateWallDirections(mesh);
+    }
 }
 
 /*
