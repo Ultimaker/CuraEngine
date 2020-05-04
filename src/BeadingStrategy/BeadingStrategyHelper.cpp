@@ -13,12 +13,6 @@ StrategyType toStrategyType(char c)
 {
     switch (c)
     {
-        case 'n':
-            return StrategyType::Naive;
-        case 'N':
-            return StrategyType::NaiveStrategy;
-        case 'c':
-            return StrategyType::Constant;
         case 'r':
             return StrategyType::Center;
         case 'd':
@@ -39,9 +33,6 @@ std::string to_string(StrategyType type)
 {
     switch (type)
     {
-        case StrategyType::Naive: return "Naive";
-        case StrategyType::NaiveStrategy: return "NaiveStrategy";
-        case StrategyType::Constant: return "Constant";
         case StrategyType::Center: return "Center";
         case StrategyType::Distributed: return "Distributed";
         case StrategyType::InwardDistributed: return "InwardDistributed";
@@ -57,8 +48,6 @@ BeadingStrategy* BeadingStrategyHelper::makeStrategy(StrategyType type, coord_t 
     BeadingStrategy* ret = nullptr;
     switch (type)
     {
-        case StrategyType::NaiveStrategy:      ret = new NaiveBeadingStrategy(prefered_bead_width);                                      break;
-        case StrategyType::Constant:           ret = new ConstantBeadingStrategy(prefered_bead_width, 4, .99999 * M_PI);                    break;
         case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(prefered_bead_width, transitioning_angle);       break;
         case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(prefered_bead_width, default_transition_length, transitioning_angle);     break;
         case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, default_transition_length, transitioning_angle, inward_distributed_center_size);  break;
@@ -70,11 +59,11 @@ BeadingStrategy* BeadingStrategyHelper::makeStrategy(StrategyType type, coord_t 
             return nullptr;
     }
     
-    if ((min_bead_width || min_feature_size) && type != StrategyType::Constant)
+    if ((min_bead_width || min_feature_size))
     {
         ret = new WideningBeadingStrategy(ret, min_feature_size.value_or(*min_bead_width), min_bead_width.value_or(*min_feature_size));
     }
-    if ((max_bead_count > 0) && type != StrategyType::Constant)
+    if ((max_bead_count > 0))
     {
         ret = new LimitedBeadingStrategy(max_bead_count, ret);
     }
