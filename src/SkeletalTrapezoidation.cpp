@@ -13,10 +13,6 @@
 #include "utils/VoronoiUtils.h"
 
 #include "utils/linearAlg2D.h"
-#include "utils/IntPoint.h"
-#include "utils/polygonUtils.h" // only used in svg output for now
-
-#include "utils/logoutput.h"
 
 #include "utils/macros.h"
 
