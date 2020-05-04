@@ -1,5 +1,5 @@
-//Copyright (c) 2019 Ultimaker B.V.
-
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef WIDENING_BEADING_STRATEGY_H
 #define WIDENING_BEADING_STRATEGY_H
@@ -11,7 +11,12 @@ namespace arachne
     using namespace cura;
 
 /*!
- * Beading strategy which evenly subdivides the thickness and tries to stay close to the optimal width.
+ * This is a meta-strategy that can be applied on any other beading strategy. If
+ * the part is thinner than a single line, this strategy adjusts the part so
+ * that it becomes the minimum thickness of one line.
+ *
+ * This way, tiny pieces that are smaller than a single line will still be
+ * printed.
  */
 class WideningBeadingStrategy : public BeadingStrategy
 {

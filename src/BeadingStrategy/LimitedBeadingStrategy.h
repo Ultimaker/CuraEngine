@@ -1,5 +1,5 @@
-//Copyright (c) 2019 Ultimaker B.V.
-
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef LIMITED_BEADING_STRATEGY_H
 #define LIMITED_BEADING_STRATEGY_H
@@ -13,7 +13,12 @@ namespace arachne
     using namespace cura;
 
 /*!
- * Beading strategy which evenly subdivides the thickness and tries to stay close to the optimal width.
+ * This is a meta-strategy that can be applied on top of any other beading
+ * strategy, which limits the thickness of the walls to the thickness that the
+ * lines can reasonably print.
+ *
+ * The width of the wall is limited to the maximum number of contours times the
+ * maximum width of each of these contours.
  */
 class LimitedBeadingStrategy : public BeadingStrategy
 {

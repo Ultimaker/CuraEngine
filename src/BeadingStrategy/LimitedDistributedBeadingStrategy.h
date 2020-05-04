@@ -1,5 +1,5 @@
-//Copyright (c) 2019 Ultimaker B.V.
-
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef LIMITED_DISTRIBUTED_BEADING_STRATEGY_H
 #define LIMITED_DISTRIBUTED_BEADING_STRATEGY_H
@@ -13,7 +13,14 @@ namespace arachne
     using namespace cura;
 
 /*!
- * Beading strategy which evenly subdivides the thickness and tries to stay close to the optimal width.
+ * This is a meta-strategy that can be applied on top of any other beading
+ * strategy, which limits the thickness of the walls to the summed ideal width
+ * of the wall lines.
+ *
+ * The wall thickness can never be such that the maximum number of lines is used
+ * and the thickness of these lines is greater than the ideal width. There will
+ * always be a thinner-than-ideal line or a line less than the maximum, unless
+ * the maximum thickness is reached; then all lines are ideal width.
  */
 class LimitedDistributedBeadingStrategy : public DistributedBeadingStrategy
 {

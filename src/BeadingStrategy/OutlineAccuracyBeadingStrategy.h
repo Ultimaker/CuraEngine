@@ -1,4 +1,5 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
 #ifndef OUTLINE_ACCURACY_BEADING_STRATEGY_H
@@ -13,7 +14,9 @@ namespace arachne
     using namespace cura;
 
 /*!
- * Beading strategy which evenly subdivides the thickness and tries to stay close to the optimal width.
+ * This beading strategy makes the outer wall have the optimal width if possible
+ * (but a lower width if necessary) and evenly divides the inner walls among the
+ * remaining thickness available.
  */
 class OutlineAccuracyBeadingStrategy : public BeadingStrategy
 {

@@ -1,5 +1,5 @@
-//Copyright (c) 2019 Ultimaker B.V.
-
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef DISTRIBUTED_BEADING_STRATEGY_H
 #define DISTRIBUTED_BEADING_STRATEGY_H
@@ -11,7 +11,9 @@ namespace arachne
     using namespace cura;
 
 /*!
- * Beading strategy which evenly subdivides the thickness and tries to stay close to the optimal width.
+ * This beading strategy chooses a wall count that would make the line width
+ * deviate the least from the optimal line width, and then distributes the lines
+ * evenly among the thickness available.
  */
 class DistributedBeadingStrategy : public BeadingStrategy
 {

@@ -1,4 +1,5 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
 #ifndef CENTER_DEVIATION_BEADING_STRATEGY_H
@@ -11,7 +12,10 @@ namespace arachne
     using namespace cura;
 
 /*!
- * Beading strategy which evenly subdivides the thickness and tries to stay close to the optimal width.
+ * This beading strategy makes the deviation in the thickness of the part
+ * entirely compensated by the innermost wall.
+ *
+ * The outermost walls all use the ideal width, as far as possible.
  */
 class CenterDeviationBeadingStrategy : public BeadingStrategy
 {

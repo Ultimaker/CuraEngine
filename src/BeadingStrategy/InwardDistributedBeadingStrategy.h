@@ -1,4 +1,5 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
 #ifndef INWARD_DISTRIBUTED_BEADING_STRATEGY_H
@@ -11,7 +12,12 @@ namespace arachne
     using namespace cura;
 
 /*!
- * Beading strategy which divides the discrepancy between the current thickness and optimal thickness mainly to the inner beads.
+ * A beading strategy which divides the discrepancy between the current and
+ * optimal thickness mainly to the inner beads.
+ * 
+ * The number of countours is optimised to reduce the discrepancy as much as
+ * possible.
+ * 
  * This causes the outer inset to be constant width almost everywhere.
  */
 class InwardDistributedBeadingStrategy : public DistributedBeadingStrategy
