@@ -17,6 +17,7 @@
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 #include "BeadingStrategy/BeadingStrategy.h"
+#include "SkeletalTrapezoidationGraph.h"
 
 
 namespace arachne
@@ -46,7 +47,7 @@ class SkeletalTrapezoidation
 {
     using pos_t = double;
     using vd_t = boost::polygon::voronoi_diagram<pos_t>;
-    using graph_t = HalfEdgeGraph<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
+    using graph_t = SkeletalTrapezoidationGraph;
     using edge_t = HalfEdge<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
     using node_t = HalfEdgeNode<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
     using Beading = BeadingStrategy::Beading;
@@ -154,7 +155,6 @@ protected:
      * \p prev_edge serves as input and output. May be null as input.
      */
     void transferEdge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments);
-    void makeRib(edge_t*& prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end);
     std::vector<Point> discretize(const vd_t::edge_type& segment, const std::vector<Point>& points, const std::vector<Segment>& segments);
 
     /*!
@@ -172,18 +172,6 @@ protected:
      */
     void separatePointyQuadEndNodes();
 
-    /*!
-     * If an edge is too small, collapse it and its twin and fix the surrounding edges to ensure a consistent graph.
-     * 
-     * Don't collapse support edges, unless we can collapse the whole quad.
-     * 
-     * o-,
-     * |  "-o
-     * |    | > Don't collapse this edge only.
-     * o    o
-     */
-    void collapseSmallEdges(coord_t snap_dist = 5);
-    void fixNodeDuplication();
 
     // ^ init | v transitioning
 

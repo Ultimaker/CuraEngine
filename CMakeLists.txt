@@ -158,6 +158,7 @@ set(engine_SRCS # Except main.cpp.
     src/raft.cpp
     src/Scene.cpp
     src/SkeletalTrapezoidation.cpp
+    src/SkeletalTrapezoidationGraph.cpp
     src/skin.cpp
     src/SkirtBrim.cpp
     src/SupportInfillPart.cpp
