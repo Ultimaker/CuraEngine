@@ -318,8 +318,6 @@ protected:
      */
     bool isUpward(const edge_t* edge) const;
 
-    bool isMarked(const node_t* node) const;
-
     void generateExtraRibs();
 
     // ^ transitioning | v toolpath generation

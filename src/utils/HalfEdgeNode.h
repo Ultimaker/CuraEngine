@@ -48,6 +48,21 @@ public:
         }
         return odd_path_count > 2;
     }
+    
+    bool isMarked() const
+    {
+        bool first = true;
+        for (edge_t* edge = some_edge; first || edge != some_edge; edge = edge->twin->next)
+        {
+            if (edge->data.isMarked())
+            {
+                return true;
+            }
+            first = false;
+            assert(edge->twin); if (!edge->twin) return false;
+        }
+        return false;
+    }
 };
 
 

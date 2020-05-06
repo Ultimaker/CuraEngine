@@ -1501,6 +1501,7 @@ std::pair<SkeletalTrapezoidation::edge_t*, SkeletalTrapezoidation::edge_t*> Skel
 
     return std::make_pair(first, second);
 }
+
 std::pair<Point, Point> SkeletalTrapezoidation::getSource(const edge_t& edge)
 {
     const edge_t* from_edge;
@@ -1657,20 +1658,6 @@ bool SkeletalTrapezoidation::isUpward(const edge_t* edge) const
     return edge->to->p < edge->from->p; // Arbitrary ordering, which returns the opposite for the twin edge
 }
 
-bool SkeletalTrapezoidation::isMarked(const node_t* node) const
-{
-    bool first = true;
-    for (edge_t* edge = node->some_edge; first || edge != node->some_edge; edge = edge->twin->next)
-    {
-        if (edge->data.isMarked())
-        {
-            return true;
-        }
-        first = false;
-        assert(edge->twin); if (!edge->twin) return false;
-    }
-    return false;
-}
 
 void SkeletalTrapezoidation::generateExtraRibs()
 {
@@ -2276,7 +2263,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::unordered_map<n
     {
         node_t* node = pair.first;
         Beading& beading = pair.second.beading;
-        if (beading.bead_widths.size() % 2 == 1 && isLocalMaximum(*node, true) && !isMarked(node))
+        if (beading.bead_widths.size() % 2 == 1 && isLocalMaximum(*node, true) && !node->isMarked())
         {
             size_t inset_index = beading.bead_widths.size() / 2;
             bool is_odd = true;
