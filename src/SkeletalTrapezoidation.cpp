@@ -355,10 +355,10 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
 
 SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys, float transitioning_angle
     , coord_t discretization_step_size, coord_t transition_filter_dist, coord_t beading_propagation_transition_dist
-    ): polys(polys), transitioning_angle(transitioning_angle), discretization_step_size(discretization_step_size)
+    ): transitioning_angle(transitioning_angle), discretization_step_size(discretization_step_size)
         , transition_filter_dist(transition_filter_dist), beading_propagation_transition_dist(beading_propagation_transition_dist)
 {
-    init();
+    constructFromPolygons(polys);
 }
 
 void SkeletalTrapezoidation::setBeadingStrategy(BeadingStrategy* beading_strategy)
@@ -366,7 +366,7 @@ void SkeletalTrapezoidation::setBeadingStrategy(BeadingStrategy* beading_strateg
     this->beading_strategy = beading_strategy;
 }
 
-void SkeletalTrapezoidation::init()
+void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 {
     std::vector<Point> points; // Remains empty
 

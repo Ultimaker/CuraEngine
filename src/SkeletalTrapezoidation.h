@@ -51,8 +51,6 @@ class SkeletalTrapezoidation
     using node_t = HalfEdgeNode<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
     using Beading = BeadingStrategy::Beading;
 
-    const Polygons& polys; //!< Input outline boundary shape
-
     float transitioning_angle; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
     coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
     coord_t transition_filter_dist; //!< Filter transition mids (i.e. anchors) closer together than this
@@ -89,7 +87,7 @@ protected:
      * Another complication arises because the VD uses floating logic, which can result in zero-length segments after rounding to integers.
      * We therefore collapse edges and their whole cells afterwards.
      */
-    void init();
+    void constructFromPolygons(const Polygons& polys);
 
     /*!
      * mapping each voronoi VD edge to the corresponding halfedge HE edge
