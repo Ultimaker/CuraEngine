@@ -95,6 +95,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     machine_buildplate_type = mesh_group->settings.get<std::string>("machine_buildplate_type");
 
     relative_extrusion = mesh_group->settings.get<bool>("relative_extrusion");
+    always_write_active_tool = mesh_group->settings.get<bool>("machine_always_write_active_tool");
 
     if (flavor == EGCodeFlavor::BFB)
     {
@@ -156,8 +157,6 @@ const std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor) const
             return "Repetier";
         case EGCodeFlavor::REPRAP:
             return "RepRap";
-        case EGCodeFlavor::SMOOTHIE:
-            return "Smoothie";
         case EGCodeFlavor::MARLIN:
         default:
             return "Marlin";
@@ -238,7 +237,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 
             prefix << ";NOZZLE_DIAMETER:" << Application::getInstance().current_slice->scene.extruders[0].settings.get<double>("machine_nozzle_size") << new_line;
         }
-        else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC || flavor == EGCodeFlavor::SMOOTHIE)
+        else if (flavor == EGCodeFlavor::REPRAP || flavor == EGCodeFlavor::MARLIN || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
         {
             prefix << ";Filament used: ";
             if (filament_used.size() > 0)
@@ -1235,9 +1234,9 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
     assert(temperature >= 0);
 #endif // ASSERT_INSANE_OUTPUT
     *output_stream << " S" << PrecisionedDouble{1, temperature} << new_line;
-    if (extruder != current_extruder && flavor == EGCodeFlavor::SMOOTHIE)
+    if (extruder != current_extruder && always_write_active_tool)
     {
-        //Smoothie changes tools every time a "T" command is read - even on a M104 line, so we need to switch back to the active tool.
+        //Some firmwares (ie Smoothieware) change tools every time a "T" command is read - even on a M104 line, so we need to switch back to the active tool.
         *output_stream << "T" << current_extruder << new_line;
     }
     if (wait && flavor == EGCodeFlavor::MAKERBOT)
