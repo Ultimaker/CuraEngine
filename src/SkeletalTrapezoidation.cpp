@@ -380,10 +380,10 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         }
     }
 
-    vd_t vd;
-    construct_voronoi(points.begin(), points.end(),segments.begin(), segments.end(), &vd);
+    vd_t vonoroi_diagram;
+    construct_voronoi(points.begin(), points.end(),segments.begin(), segments.end(), &vonoroi_diagram);
     
-    for (vd_t::cell_type cell : vd.cells())
+    for (vd_t::cell_type cell : vonoroi_diagram.cells())
     {
         if (!cell.incident_edge())
         { // There is no spoon
@@ -391,13 +391,13 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         }
         Point start_source_point;
         Point end_source_point;
-        vd_t::edge_type* starting_vd_edge = nullptr;
-        vd_t::edge_type* ending_vd_edge = nullptr;
+        vd_t::edge_type* starting_vonoroi_edge = nullptr;
+        vd_t::edge_type* ending_vonoroi_edge = nullptr;
         // Compute and store result in above variables
         
         if (cell.contains_point())
         {
-            bool keep_going = computePointCellRange(cell, start_source_point, end_source_point, starting_vd_edge, ending_vd_edge, points, segments);
+            bool keep_going = computePointCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
             if (!keep_going)
             {
                 continue;
@@ -405,10 +405,10 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         }
         else
         {
-            computeSegmentCellRange(cell, start_source_point, end_source_point, starting_vd_edge, ending_vd_edge, points, segments);
+            computeSegmentCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
         }
         
-        if (!starting_vd_edge || !ending_vd_edge)
+        if (!starting_vonoroi_edge || !ending_vonoroi_edge)
         {
             assert(false && "Each cell should start / end in a polygon vertex");
             continue;
@@ -416,22 +416,22 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         
         // Copy start to end edge to graph
         edge_t* prev_edge = nullptr;
-        transferEdge(start_source_point, VoronoiUtils::p(starting_vd_edge->vertex1()), *starting_vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
-        node_t* starting_node = vd_node_to_he_node[starting_vd_edge->vertex0()];
+        transferEdge(start_source_point, VoronoiUtils::p(starting_vonoroi_edge->vertex1()), *starting_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
+        node_t* starting_node = vd_node_to_he_node[starting_vonoroi_edge->vertex0()];
         starting_node->data.distance_to_boundary = 0;
 
         makeRib(prev_edge, start_source_point, end_source_point, true);
-        for (vd_t::edge_type* vd_edge = starting_vd_edge->next(); vd_edge != ending_vd_edge; vd_edge = vd_edge->next())
+        for (vd_t::edge_type* vd_edge = starting_vonoroi_edge->next(); vd_edge != ending_vonoroi_edge; vd_edge = vd_edge->next())
         {
             assert(vd_edge->is_finite());
             Point v1 = VoronoiUtils::p(vd_edge->vertex0());
             Point v2 = VoronoiUtils::p(vd_edge->vertex1());
             transferEdge(v1, v2, *vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
 
-            makeRib(prev_edge, start_source_point, end_source_point, vd_edge->next() == ending_vd_edge);
+            makeRib(prev_edge, start_source_point, end_source_point, vd_edge->next() == ending_vonoroi_edge);
         }
 
-        transferEdge(VoronoiUtils::p(ending_vd_edge->vertex0()), end_source_point, *ending_vd_edge, prev_edge, start_source_point, end_source_point, points, segments);
+        transferEdge(VoronoiUtils::p(ending_vonoroi_edge->vertex0()), end_source_point, *ending_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
         prev_edge->to->data.distance_to_boundary = 0;
     }
 
@@ -441,14 +441,13 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     
     collapseSmallEdges();
 
-    { // Set [some_edge] the the first possible edge that way we can iterate over all reachable edges from node.some_edge,
-      // without needing to iterate backward
-        for (edge_t& edge : graph.edges)
+    // Set [some_edge] the the first possible edge that way we can iterate over all reachable edges from node.some_edge,
+    // without needing to iterate backward
+    for (edge_t& edge : graph.edges)
+    {
+        if (!edge.prev)
         {
-            if (!edge.prev)
-            {
-                edge.from->some_edge = &edge;
-            }
+            edge.from->some_edge = &edge;
         }
     }
 
