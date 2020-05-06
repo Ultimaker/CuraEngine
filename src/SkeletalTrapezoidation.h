@@ -149,7 +149,6 @@ protected:
     std::unordered_map<vd_t::vertex_type*, node_t*> vd_node_to_he_node;
     node_t& makeNode(vd_t::vertex_type& vd_node, Point p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
     
-    
     /*!
      * Transfer an edge vrom the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
      * \p prev_edge serves as input and output. May be null as input.
@@ -188,7 +187,7 @@ protected:
 
     // ^ init | v transitioning
 
-    void setMarking(); //!< set the is_marked flag for each edge based on the transitioning_angle
+    void updateMarking(); // Update the "is_marked" flag for each edge based on the transitioning_angle
 
     /*!
      * Filter out small marked areas.
@@ -216,7 +215,7 @@ protected:
     /*!
      * Set bead count in marked regions based on the optimal_bead_count of the beading strategy.
      */
-    void setBeadCount();
+    void updateBeadCount();
 
     /*!
      * Add marked regions and set bead counts
@@ -331,8 +330,6 @@ protected:
     void generateSegments(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
 
     edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
-
-    
 
     /*!
      * propagate beading info from lower R nodes to higher R nodes

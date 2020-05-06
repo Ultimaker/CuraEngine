@@ -657,7 +657,7 @@ void SkeletalTrapezoidation::fixNodeDuplication()
 
 std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(bool filter_outermost_marked_edges)
 {
-    setMarking();
+    updateMarking();
 
     filterMarking(marking_filter_dist);
 
@@ -666,7 +666,7 @@ std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(
         filterOuterMarking();
     }
 
-    setBeadCount();
+    updateBeadCount();
 
     filterUnmarkedRegions();
 
@@ -680,7 +680,7 @@ std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(
     return result_polylines_per_index;
 }
 
-void SkeletalTrapezoidation::setMarking()
+void SkeletalTrapezoidation::updateMarking()
 {
     //                                            _.-'^`      .
     //                                      _.-'^`            .
@@ -775,7 +775,7 @@ void SkeletalTrapezoidation::filterOuterMarking()
     }
 }
 
-void SkeletalTrapezoidation::setBeadCount()
+void SkeletalTrapezoidation::updateBeadCount()
 {
     for (edge_t& edge : graph.edges)
     {
