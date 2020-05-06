@@ -67,7 +67,7 @@ public:
     , coord_t transition_filter_dist = 1000
     , coord_t beading_propagation_transition_dist = 400);
     
-    HalfEdgeGraph<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge> graph;
+    graph_t graph;
     std::vector<std::list<ExtrusionLine>> generateToolpaths(bool filter_outermost_marked_edges = false);
     
     void setBeadingStrategy(BeadingStrategy* beading_strategy);
