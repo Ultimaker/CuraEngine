@@ -29,12 +29,12 @@ WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(coord_t thickn
     }
 }
 
-coord_t WideningBeadingStrategy::optimal_thickness(coord_t bead_count) const
+coord_t WideningBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
-    return parent->optimal_thickness(bead_count);
+    return parent->getOptimalThickness(bead_count);
 }
 
-coord_t WideningBeadingStrategy::transition_thickness(coord_t lower_bead_count) const
+coord_t WideningBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
     if (lower_bead_count == 0)
     {
@@ -42,14 +42,14 @@ coord_t WideningBeadingStrategy::transition_thickness(coord_t lower_bead_count) 
     }
     else
     {
-        return parent->transition_thickness(lower_bead_count);
+        return parent->getTransitionThickness(lower_bead_count);
     }
 }
 
-coord_t WideningBeadingStrategy::optimal_bead_count(coord_t thickness) const
+coord_t WideningBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
     if (thickness < min_input_width) return 0;
-    coord_t ret = parent->optimal_bead_count(thickness);
+    coord_t ret = parent->getOptimalBeadCount(thickness);
     if (thickness >= min_input_width && ret < 1) return 1;
     return ret;
 }

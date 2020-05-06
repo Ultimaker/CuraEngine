@@ -32,7 +32,9 @@ namespace arachne
  * and determine the bead count for these central regions and apply them outward when generating toolpaths. [oversimplified]
  * 
  * The method can be visually explained as generating the 3D union of cones surface on the outline polygons,
- * and changing the heights along central regions of that surface so that they are flat. (See paper)
+ * and changing the heights along central regions of that surface so that they are flat. 
+ * For more info, please consult the paper "A framework for adaptive width control of dense contour-parallel toolpaths in fused
+deposition modeling" by Kuipers et al. 
  * This visual explanation aid explains the use of "upward", "lower" etc,
  * i.e. the radial distance and/or the bead count are used as heights of this visualization, there is no coordinate called 'Z'.
  * 
