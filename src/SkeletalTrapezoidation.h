@@ -73,6 +73,58 @@ public:
     void setBeadingStrategy(BeadingStrategy* beading_strategy);
 
 protected:
+    
+    struct BeadingPropagation
+    {
+        Beading beading;
+        coord_t dist_to_bottom_source;
+        coord_t dist_from_top_source;
+        bool is_upward_propagated_only;
+        BeadingPropagation(const Beading& beading)
+        : beading(beading)
+        , dist_to_bottom_source(0)
+        , dist_from_top_source(0)
+        , is_upward_propagated_only(false)
+        {}
+    };
+    
+    /*!
+     * Representing the location along an edge where the anchor position of a transition should be placed.
+     */
+    struct TransitionMiddle
+    {
+        coord_t pos; // Position along edge as measure from edge.from.p
+        coord_t lower_bead_count;
+        TransitionMiddle(coord_t pos, coord_t lower_bead_count)
+        : pos(pos), lower_bead_count(lower_bead_count)
+        {}
+    };
+
+    /*!
+     * Auxiliary for referencing one transition along an edge which may contain multiple transitions
+     */
+    struct TransitionMidRef
+    {
+        std::unordered_map<edge_t*, std::list<TransitionMiddle>>::iterator pair_it;
+        std::list<TransitionMiddle>::iterator transition_it;
+        TransitionMidRef(std::unordered_map<edge_t*, std::list<TransitionMiddle>>::iterator pair_it, std::list<TransitionMiddle>::iterator transition_it)
+        : pair_it(pair_it)
+        , transition_it(transition_it)
+        {}
+    };
+
+    /*!
+     * Represents the location along an edge where the lower or upper end of a transition should be placed.
+     */
+    struct TransitionEnd
+    {
+        coord_t pos; // Position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R
+        coord_t lower_bead_count;
+        bool is_lower_end; // Whether this is the ed of the transition with lower bead count
+        TransitionEnd(coord_t pos, coord_t lower_bead_count, bool is_lower_end)
+        : pos(pos), lower_bead_count(lower_bead_count), is_lower_end(is_lower_end)
+        {}
+    };
 
     /*!
      * Compute the skeletal trapezoidation decomposition of the input shape.
@@ -178,44 +230,6 @@ protected:
      */
     bool filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist);
 
-    /*!
-     * Representing the location along an edge where the anchor position of a transition should be placed.
-     */
-    struct TransitionMiddle
-    {
-        coord_t pos; //! position along edge as measure from edge.from.p
-        coord_t lower_bead_count;
-        TransitionMiddle(coord_t pos, coord_t lower_bead_count)
-        : pos(pos), lower_bead_count(lower_bead_count)
-        {}
-    };
-
-    /*!
-     * Auxiliary for referencing one transition along an edge which may contain multiple transitions
-     */
-    struct TransitionMidRef
-    {
-        std::unordered_map<edge_t*, std::list<TransitionMiddle>>::iterator pair_it;
-        std::list<TransitionMiddle>::iterator transition_it;
-        TransitionMidRef(std::unordered_map<edge_t*, std::list<TransitionMiddle>>::iterator pair_it, std::list<TransitionMiddle>::iterator transition_it)
-        : pair_it(pair_it)
-        , transition_it(transition_it)
-        {}
-    };
-
-    /*!
-     * Represents the location along an edge where the lower or upper end of a transition should be placed.
-     */
-    struct TransitionEnd
-    {
-        coord_t pos; //!< position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R
-        coord_t lower_bead_count;
-        bool is_lower_end; //!< whether this is the ed of the transition with lower bead count
-        TransitionEnd(coord_t pos, coord_t lower_bead_count, bool is_lower_end)
-        : pos(pos), lower_bead_count(lower_bead_count), is_lower_end(is_lower_end)
-        {}
-    };
-
     void generateTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
 
     void filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
@@ -318,19 +332,7 @@ protected:
 
     edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
 
-    struct BeadingPropagation
-    {
-        Beading beading;
-        coord_t dist_to_bottom_source;
-        coord_t dist_from_top_source;
-        bool is_upward_propagated_only;
-        BeadingPropagation(const Beading& beading)
-        : beading(beading)
-        , dist_to_bottom_source(0)
-        , dist_from_top_source(0)
-        , is_upward_propagated_only(false)
-        {}
-    };
+    
 
     /*!
      * propagate beading info from lower R nodes to higher R nodes
