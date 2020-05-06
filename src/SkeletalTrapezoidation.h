@@ -266,7 +266,7 @@ protected:
     void generateTransitioningRibs();
 
     /*!
-     * \param edge_to_transition_mids From the upward halfedges to their trnsitions mids
+     * \param edge_to_transition_mids From the upward halfedges to their transitions mids
      */
     void generateTransition(edge_t& edge, coord_t mid_R, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
