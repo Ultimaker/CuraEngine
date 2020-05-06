@@ -411,10 +411,9 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         const unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(*inset_polys[0][0], order_optimizer.polyStart[0]);
         const Point z_seam_location = (*inset_polys[0][0])[outer_poly_start_idx];
 
-        auto addInnerWalls = [this, part_inner_walls, outer_inset_first, z_seam_location]()
+        std::function<void(void)> addInnerWalls = [this, part_inner_walls, outer_inset_first, z_seam_location]()
         {
             Polygons boundary(*gcode_layer.getCombBoundaryInside());
-            boundary.simplify(100, 100);
             ZSeamConfig inner_walls_z_seam_config;
             PathOrderOptimizer orderOptimizer(z_seam_location, inner_walls_z_seam_config, &boundary);
             orderOptimizer.addPolygons(part_inner_walls);
@@ -424,11 +423,11 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
                 // reverse the optimized order so we end up as near to the outline z-seam as possible
                 std::reverse(orderOptimizer.polyOrder.begin(), orderOptimizer.polyOrder.end());
             }
+            constexpr coord_t wall_0_wipe_dist = 0;
+            constexpr float flow_ratio = 1.0;
+            constexpr bool always_retract = false;
             for (unsigned int wall_idx : orderOptimizer.polyOrder)
             {
-                const coord_t wall_0_wipe_dist = 0;
-                const float flow_ratio = 1.0;
-                const bool always_retract = false;
                 gcode_layer.addWall(part_inner_walls[wall_idx], orderOptimizer.polyStart[wall_idx], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x, wall_0_wipe_dist, flow_ratio, always_retract);
             }
         };
