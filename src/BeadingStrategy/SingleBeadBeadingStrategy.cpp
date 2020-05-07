@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 
 
 #include "SingleBeadBeadingStrategy.h"
@@ -40,15 +40,30 @@ coord_t SingleBeadBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 
 coord_t SingleBeadBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
-    if (lower_bead_count <= 0) return 0;
-    else if (lower_bead_count == 1) return optimal_width;
-    else return 9999999;
+    if (lower_bead_count <= 0) 
+    {
+        return 0;
+    }
+    else if (lower_bead_count == 1) 
+    {
+        return optimal_width;
+    }
+    else
+    {
+        return 9999999;
+    }
 }
 
 coord_t SingleBeadBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    if (thickness <= optimal_width) return 1;
-    else return 2;
+    if (thickness <= optimal_width) 
+    {
+        return 1;
+    }
+    else 
+    {
+        return 2;
+    }
 }
 
 coord_t SingleBeadBeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
