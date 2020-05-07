@@ -63,6 +63,37 @@ public:
         }
         return false;
     }
+    
+    /*!
+     * Check whether this node has a locally maximal distance_to_boundary
+     * 
+     * \param strict Whether equidistant edges can count as a local maximum
+     */
+    bool isLocalMaximum(bool strict = false) const
+    {
+        if (data.distance_to_boundary == 0)
+        {
+            return false;
+        }
+        
+        bool first = true;
+        for (edge_t* edge = some_edge; first || edge != some_edge; edge = edge->twin->next)
+        {
+            if (edge->canGoUp(strict))
+            {
+                return false;
+            }
+            first = false;
+            assert(edge->twin); if (!edge->twin) return false;
+            
+            if (!edge->twin->next)
+            { // This point is on the boundary
+                return false;
+            }
+        }
+        return true;
+    }
+
 };
 
 

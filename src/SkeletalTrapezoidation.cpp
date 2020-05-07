@@ -535,13 +535,12 @@ void SkeletalTrapezoidation::filterMarking(coord_t max_length)
 {
     for (edge_t& edge : graph.edges)
     {
-        if (isEndOfMarking(edge) && !isLocalMaximum(*edge.to) && !isLocalMaximum(*edge.to))
+        if (isEndOfMarking(edge) && edge.to->isLocalMaximum() && !edge.to->isLocalMaximum())
         {
             filterMarking(edge.twin, 0, max_length);
         }
     }
 }
-
 
 bool SkeletalTrapezoidation::filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length)
 {
@@ -560,7 +559,7 @@ bool SkeletalTrapezoidation::filterMarking(edge_t* starting_edge, coord_t travel
         }
     }
 
-    should_dissolve &= !isLocalMaximum(*starting_edge->to); // Don't filter marked regions with a local maximum!
+    should_dissolve &= !starting_edge->to->isLocalMaximum(); // Don't filter marked regions with a local maximum!
     if (should_dissolve)
     {
         starting_edge->data.setMarked(false);
@@ -594,7 +593,7 @@ void SkeletalTrapezoidation::updateBeadCount()
     // Fix bead count at locally maximal R, also for marked regions!! See TODO s in generateTransitionEnd(.)
     for (node_t& node : graph.nodes)
     {
-        if (isLocalMaximum(node))
+        if (node.isLocalMaximum())
         {
             if (node.data.distance_to_boundary < 0)
             {
@@ -857,7 +856,7 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         Point b = edge->to->p;
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
-        bool is_aligned = isUpward(edge);
+        bool is_aligned = edge->isUpward();
         edge_t* aligned_edge = is_aligned? edge : edge->twin;
         bool seen_transition_on_this_edge = false;
         auto edge_transitions_it = edge_to_transitions.find(aligned_edge);
@@ -1067,7 +1066,7 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
         std::list<TransitionEnd>* transitions = nullptr;
         coord_t pos = -1;
-        if (isUpward(&edge))
+        if (edge.isUpward())
         {
             transitions = &edge_to_transition_ends[&edge];
             pos = end_pos;
@@ -1229,125 +1228,6 @@ bool SkeletalTrapezoidation::isEndOfMarking(const edge_t& edge_to) const
     return true;
 }
 
-bool SkeletalTrapezoidation::isLocalMaximum(const node_t& node, bool strict) const
-{
-    if (node.data.distance_to_boundary == 0)
-    {
-        return false;
-    }
-    
-    bool first = true;
-    for (edge_t* edge = node.some_edge; first || edge != node.some_edge; edge = edge->twin->next)
-    {
-        if (canGoUp(edge, strict))
-        {
-            return false;
-        }
-        first = false;
-        assert(edge->twin); if (!edge->twin) return false;
-        
-        if (!edge->twin->next)
-        { // This point is on the boundary
-            return false;
-        }
-    }
-    return true;
-}
-
-bool SkeletalTrapezoidation::canGoUp(const edge_t* edge, bool strict) const
-{
-    if (edge->to->data.distance_to_boundary > edge->from->data.distance_to_boundary)
-    {
-        return true;
-    }
-    if (edge->to->data.distance_to_boundary < edge->from->data.distance_to_boundary
-        || strict
-    )
-    {
-        return false;
-    }
-    
-    // Edge is between equidistqant verts; recurse!
-    for (edge_t* outgoing = edge->next; outgoing != edge->twin; outgoing = outgoing->twin->next)
-    {
-        if (canGoUp(outgoing))
-        {
-            return true;
-        }
-        assert(outgoing->twin); if (!outgoing->twin) return false;
-        assert(outgoing->twin->next); if (!outgoing->twin->next) return true; // This point is on the boundary?! Should never occur
-    }
-    return false;
-}
-
-std::optional<coord_t> SkeletalTrapezoidation::distToGoUp(const edge_t* edge) const
-{
-    if (edge->to->data.distance_to_boundary > edge->from->data.distance_to_boundary)
-    {
-        return 0;
-    }
-    if (edge->to->data.distance_to_boundary < edge->from->data.distance_to_boundary)
-    {
-        return std::optional<coord_t>();
-    }
-    
-    // Edge is between equidistqant verts; recurse!
-    std::optional<coord_t> ret;
-    for (edge_t* outgoing = edge->next; outgoing != edge->twin; outgoing = outgoing->twin->next)
-    {
-        std::optional<coord_t> dist_to_up = distToGoUp(outgoing);
-        if (dist_to_up)
-        {
-            if (ret)
-            {
-                ret = std::min(*ret, *dist_to_up);
-            }
-            else
-            {
-                ret = dist_to_up;
-            }
-        }
-        assert(outgoing->twin); if (!outgoing->twin) return std::optional<coord_t>();
-        assert(outgoing->twin->next); if (!outgoing->twin->next) return 0; // This point is on the boundary?! Should never occur
-    }
-    if (ret)
-    {
-        ret =  *ret + vSize(edge->to->p - edge->from->p);
-    }
-    return ret;
-}
-
-bool SkeletalTrapezoidation::isUpward(const edge_t* edge) const
-{
-    if (edge->to->data.distance_to_boundary > edge->from->data.distance_to_boundary)
-    {
-        return true;
-    }
-    if (edge->to->data.distance_to_boundary < edge->from->data.distance_to_boundary)
-    {
-        return false;
-    }
-    // Equidistant edge case:
-    std::optional<coord_t> forward_up_dist = distToGoUp(edge);
-    std::optional<coord_t> backward_up_dist = distToGoUp(edge->twin);
-    if (forward_up_dist && backward_up_dist)
-    {
-        return forward_up_dist < backward_up_dist;
-    }
-    
-    if (forward_up_dist) 
-    {
-        return true;
-    }
-    
-    if (backward_up_dist)
-    {
-        return false;
-    }
-    return edge->to->p < edge->from->p; // Arbitrary ordering, which returns the opposite for the twin edge
-}
-
-
 void SkeletalTrapezoidation::generateExtraRibs()
 {
     auto end_edge_it = --graph.edges.end(); // Don't check newly introduced edges
@@ -1428,7 +1308,7 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
     std::vector<edge_t*> upward_quad_mids;
     for (edge_t& edge : graph.edges)
     {
-        if (edge.prev && edge.next && isUpward(&edge))
+        if (edge.prev && edge.next && edge.isUpward())
         {
             upward_quad_mids.emplace_back(&edge);
         }
@@ -1442,8 +1322,8 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
                 && b->from->data.distance_to_boundary == b->to->data.distance_to_boundary)
             {
                 coord_t max = std::numeric_limits<coord_t>::max();
-                coord_t a_dist_from_up = std::min(distToGoUp(a).value_or(max), distToGoUp(a->twin).value_or(max)) - vSize(a->to->p - a->from->p);
-                coord_t b_dist_from_up = std::min(distToGoUp(b).value_or(max), distToGoUp(b->twin).value_or(max)) - vSize(b->to->p - b->from->p);
+                coord_t a_dist_from_up = std::min(a->distToGoUp().value_or(max), a->twin->distToGoUp().value_or(max)) - vSize(a->to->p - a->from->p);
+                coord_t b_dist_from_up = std::min(b->distToGoUp().value_or(max), b->twin->distToGoUp().value_or(max)) - vSize(b->to->p - b->from->p);
                 return a_dist_from_up < b_dist_from_up;
             }
             else if (a->from->data.distance_to_boundary == a->to->data.distance_to_boundary)
@@ -1952,7 +1832,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::unordered_map<n
     {
         node_t* node = pair.first;
         Beading& beading = pair.second.beading;
-        if (beading.bead_widths.size() % 2 == 1 && isLocalMaximum(*node, true) && !node->isMarked())
+        if (beading.bead_widths.size() % 2 == 1 && node->isLocalMaximum(true) && !node->isMarked())
         {
             size_t inset_index = beading.bead_widths.size() / 2;
             bool is_odd = true;
