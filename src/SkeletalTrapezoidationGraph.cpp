@@ -86,7 +86,6 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         edge_t* quad_mid = (quad_start->next == quad_end)? nullptr : quad_start->next;
 
         bool edge_it_is_updated = false;
-        bool quad_mid_is_removed = false;
         if (quad_mid && should_collapse(quad_mid->from, quad_mid->to))
         {
             assert(quad_mid->twin);
@@ -131,7 +130,6 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 
             safelyRemoveEdge(quad_mid->twin, edge_it, edge_it_is_updated);
             safelyRemoveEdge(quad_mid, edge_it, edge_it_is_updated);
-            quad_mid_is_removed = true;
         }
 
         //  o-o
@@ -139,7 +137,6 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         //  o o
         if ( should_collapse(quad_start->from, quad_end->to) && should_collapse(quad_start->to, quad_end->from))
         { // Collapse start and end edges and remove whole cell
-            assert(!quad_mid || quad_mid_is_removed);
 
             quad_start->twin->to = quad_end->to;
             quad_end->to->some_edge = quad_end->twin;
