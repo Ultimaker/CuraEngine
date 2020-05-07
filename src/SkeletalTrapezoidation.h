@@ -242,13 +242,6 @@ protected:
      */
     void applyTransitions(std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
 
-    /*!
-     * Insert a node into the graph and connect it to the input polygon using ribs
-     * 
-     * \return the last edge which replaced [edge], which points to the same [to] node
-     */
-    edge_t* insertNode(edge_t* edge, Point mid, coord_t mide_node_bead_count);
-
     void filterMarkedLocalOptima();
 
     void generateTransitioningRibs();
@@ -270,12 +263,6 @@ protected:
 
     bool isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t transition_half_length, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids) const;
 
-    /*!
-     * Return the first and last edge of the edges replacing \p edge pointing to the same node
-     */
-    std::pair<SkeletalTrapezoidation::edge_t*, SkeletalTrapezoidation::edge_t*> insertRib(edge_t& edge, node_t* mid_node);
-
-    std::pair<Point, Point> getSource(const edge_t& edge);
     bool isEndOfMarking(const edge_t& edge) const;
 
     /*!
