@@ -274,10 +274,6 @@ template<> EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) cons
     {
         return EGCodeFlavor::REPRAP;
     }
-    else if (value == "Smoothie")
-    {
-        return EGCodeFlavor::SMOOTHIE;
-    }
     //Default:
     return EGCodeFlavor::MARLIN;
 }
