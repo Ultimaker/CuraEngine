@@ -151,7 +151,7 @@ protected:
     node_t& makeNode(vd_t::vertex_type& vd_node, Point p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
     
     /*!
-     * Transfer an edge vrom the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
+     * Transfer an edge from the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
      * \p prev_edge serves as input and output. May be null as input.
      */
     void transferEdge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments);
