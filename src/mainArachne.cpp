@@ -29,7 +29,6 @@
 #include "NaiveBeadingStrategy.h"
 #include "BeadingOrderOptimizer.h"
 #include "GcodeWriter.h"
-#include "ToolpathWriter.h"
 
 #include "TestGeometry/TestPolys.h"
 #include "TestGeometry/Pika.h"
@@ -48,7 +47,6 @@ using namespace arachne;
 static TCLAP::CmdLine gCmdLine(" Generate polygon inset toolpaths ", ' ', "0.1");
 
 static TCLAP::SwitchArg cmd__generate_gcodes("g", "gcode", "Generate gcode", false);
-static TCLAP::SwitchArg cmd__generate_toolpaths("", "toolpaths", "Generate toolpaths file", false);
 static TCLAP::SwitchArg cmd__analyse("", "analyse", "Analyse output paths", false);
 static TCLAP::SwitchArg cmd__visualize("", "visualize", "Visualize output paths", false);
 static TCLAP::ValueArg<std::string> cmd__input_outline_filename("p", "polygon", "Input file for polygon", false /* required? */, "-", "path to file");
@@ -72,7 +70,6 @@ static TCLAP::ValueArg<int> cmd__max_bead_count("b", "beadcount", "Number of bea
 static TCLAP::ValueArg<double> cmd__nozzle_size("w", "width", "Preferred bead width, middle of range of possible widths", /*req=*/ false, /*default=*/0.5, "");
 
 bool generate_gcodes = true;
-bool generate_toolpaths = true;
 bool analyse = false;
 bool visualize = false;
 
@@ -103,7 +100,6 @@ bool readCommandLine(int argc, char **argv)
 {
     try {
         gCmdLine.add(cmd__generate_gcodes);
-        gCmdLine.add(cmd__generate_toolpaths);
         gCmdLine.add(cmd__analyse);
         gCmdLine.add(cmd__visualize);
         gCmdLine.add(cmd__input_outline_filename);
@@ -129,7 +125,6 @@ bool readCommandLine(int argc, char **argv)
         gCmdLine.parse(argc, argv);
 
         generate_gcodes = cmd__generate_gcodes.getValue();
-        generate_toolpaths = cmd__generate_toolpaths.getValue();
         analyse = cmd__analyse.getValue();
         visualize = cmd__visualize.getValue();
         input_outline_filename = cmd__input_outline_filename.getValue();
@@ -230,13 +225,6 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
             logAlways("Writing gcode took %fs\n", tk.restart());
         }
     }
-    if (generate_toolpaths)
-    {
-        std::ostringstream ss;
-        ss << "output/" << output_prefix << "_" << to_string(type) << "_toolpaths.txt";
-        ToolpathWriter toolpather(ss.str());
-        toolpather.write(result_polygons_per_index, result_polylines_per_index);
-    }
 
     delete beading_strategy;
 
@@ -297,13 +285,6 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
             gcode.print(result_polygons_per_index, result_polylines_per_index, aabb);
             logAlways("Writing gcodes took %fs\n", tk.restart());
         }
-    }
-    if (generate_toolpaths)
-    {
-        std::ostringstream ss;
-        ss << "output/" << output_prefix << "_naive_toolpaths.txt";
-        ToolpathWriter toolpather(ss.str());
-        toolpather.write(result_polygons_per_index, result_polylines_per_index);
     }
     
 }

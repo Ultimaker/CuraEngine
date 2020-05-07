@@ -167,7 +167,6 @@ set(engine_SRCS # Except main.cpp.
     src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
-    src/ToolpathWriter.cpp
     src/TopSurface.cpp
     src/TreeSupport.cpp
     src/WallsComputation.cpp
