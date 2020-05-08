@@ -96,6 +96,9 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
             }
         }
 
+        // Closing operation and epsilon to prevent rounding errors from merging hole polygons to early:
+        part->insets[i] = part->insets[i].offset(line_width_x / 2).offset(1 - line_width_x / 2);
+
         //Finally optimize all the polygons. Every point removed saves time in the long run.
         part->insets[i].simplify();
         part->insets[i].removeDegenerateVerts();
