@@ -1654,7 +1654,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
 
             bool spiralize = path.spiralize;
-            if (!spiralize) // normal (extrusion) move (with coasting
+            if (!spiralize) // normal (extrusion) move (with coasting)
             {
                 // if path provides a valid (in range 0-100) fan speed, use it
                 const double path_fan_speed = path.getFanSpeed();
