@@ -59,19 +59,19 @@ class SkeletalTrapezoidation
     coord_t marking_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
     coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
     
-    BeadingStrategy* beading_strategy;
+    const BeadingStrategy& beading_strategy;
 
 public:
     using Segment = PolygonsSegmentIndex;
-    SkeletalTrapezoidation(const Polygons& polys, float transitioning_angle
+    SkeletalTrapezoidation(const Polygons& polys, 
+                           const BeadingStrategy& beading_strategy,
+                           float transitioning_angle
     , coord_t discretization_step_size = 200
     , coord_t transition_filter_dist = 1000
     , coord_t beading_propagation_transition_dist = 400);
     
     graph_t graph;
     std::vector<std::list<ExtrusionLine>> generateToolpaths(bool filter_outermost_marked_edges = false);
-    
-    void setBeadingStrategy(BeadingStrategy* beading_strategy);
 
 protected:
     
