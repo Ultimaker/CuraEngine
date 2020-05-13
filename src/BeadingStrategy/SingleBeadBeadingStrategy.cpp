@@ -50,7 +50,7 @@ coord_t SingleBeadBeadingStrategy::getTransitionThickness(coord_t lower_bead_cou
     }
     else
     {
-        return 9999999;
+        return std::numeric_limits<coord_t>::max();
     }
 }
 
