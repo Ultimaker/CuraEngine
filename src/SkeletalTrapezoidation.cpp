@@ -142,7 +142,7 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
     
     bool point_left = left_cell->contains_point();
     bool point_right = right_cell->contains_point();
-    if ((!point_left && !point_right)|| vd_edge.is_secondary()) // Source vert is directly connected to source segment
+    if ((!point_left && !point_right) || vd_edge.is_secondary()) // Source vert is directly connected to source segment
     {
         return std::vector<Point>({ start, end });
     }
