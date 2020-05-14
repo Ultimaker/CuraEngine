@@ -44,18 +44,23 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     constexpr coord_t infill_overlap = 0;
     constexpr int infill_multiplier = 1;
     constexpr coord_t shift = 0;
+    const Ratio ironing_flow = mesh.settings.get<Ratio>("ironing_flow");
 
     coord_t ironing_inset = -mesh.settings.get<coord_t>("ironing_inset");
     if (pattern == EFillMethod::ZIG_ZAG && ironing_inset == 0)
     {
         //Compensate for the outline_offset decrease that takes place when using the infill generator to generate ironing with the zigzag pattern
-        const float width_scale = (float)mesh.settings.get<coord_t>("layer_height") / mesh.settings.get<coord_t>("infill_sparse_thickness");
+        const Ratio width_scale = (float)mesh.settings.get<coord_t>("layer_height") / mesh.settings.get<coord_t>("infill_sparse_thickness");
         ironing_inset += width_scale * line_width / 2;
+        //Align the edge of the ironing line with the edge of the outer wall
+        ironing_inset -= ironing_flow * line_width / 2;
     }
     else if (pattern == EFillMethod::CONCENTRIC)
     {
         //Counteract the outline_offset increase that takes place when using the infill generator to generate ironing with the concentric pattern
-        ironing_inset -= line_width / 2;
+        ironing_inset += line_spacing - line_width / 2;
+        //Align the edge of the ironing line with the edge of the outer wall
+        ironing_inset -= ironing_flow * line_width / 2;
     }
     const coord_t outline_offset = ironing_inset;
 
