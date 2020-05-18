@@ -23,8 +23,6 @@ StrategyType toStrategyType(char c)
             return StrategyType::Distributed;
         case 'i':
             return StrategyType::InwardDistributed;
-        case 's':
-            return StrategyType::SingleBead;
         case 'l':
             return StrategyType::LimitedDistributed;
     }
@@ -41,7 +39,6 @@ std::string to_string(StrategyType type)
         case StrategyType::Distributed: return "Distributed";
         case StrategyType::InwardDistributed: return "InwardDistributed";
         case StrategyType::LimitedDistributed: return "LimitedDistributed";
-        case StrategyType::SingleBead: return "SingleBead";
         default: return "unknown_strategy";
     }
 }
@@ -56,7 +53,6 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t
         case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(prefered_bead_width, default_transition_length, transitioning_angle);     break;
         case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, default_transition_length, transitioning_angle, inward_distributed_center_size);  break;
         case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(prefered_bead_width, default_transition_length, max_bead_count, transitioning_angle); break;
-        case StrategyType::SingleBead:         ret = new SingleBeadBeadingStrategy(prefered_bead_width, transitioning_angle);            break;
         default:
             logError("Cannot make strategy!\n");
             return nullptr;

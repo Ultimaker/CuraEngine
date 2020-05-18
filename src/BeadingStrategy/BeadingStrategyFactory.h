@@ -9,7 +9,6 @@
 #include "InwardDistributedBeadingStrategy.h"
 #include "LimitedDistributedBeadingStrategy.h"
 #include "LimitedBeadingStrategy.h"
-#include "SingleBeadBeadingStrategy.h"
 #include "CenterDeviationBeadingStrategy.h"
 #include "WideningBeadingStrategy.h"
 #include "NaiveBeadingStrategy.h"
@@ -31,7 +30,6 @@ enum class StrategyType
     Distributed,
     InwardDistributed,
     LimitedDistributed,
-    SingleBead,
     COUNT
 };
 
