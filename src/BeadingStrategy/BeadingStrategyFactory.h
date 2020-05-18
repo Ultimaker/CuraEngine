@@ -13,6 +13,8 @@
 #include "CenterDeviationBeadingStrategy.h"
 #include "OutlineAccuracyBeadingStrategy.h"
 #include "WideningBeadingStrategy.h"
+#include "ConstantBeadingStrategy.h"
+#include "NaiveBeadingStrategy.h"
 #include "DistributedBeadingStrategy.h"
 
 namespace arachne
@@ -25,6 +27,9 @@ extern coord_t default_transition_length;
 
 enum class StrategyType
 {
+    Naive,
+    NaiveStrategy,
+    Constant,
     Center,
     Distributed,
     InwardDistributed,
