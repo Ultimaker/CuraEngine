@@ -182,10 +182,6 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
         transition_filter_dist = 50;
         reduce_overlapping_segments_now = false;
     }
-    else if (type == StrategyType::Constant)
-    {
-        filter_outermost_marked_edges_now = true;
-    }
     
     SkeletalTrapezoidation st(polys, *beading_strategy, transitioning_angle, discretization_step_size, transition_filter_dist, beading_propagation_transition_dist);
     

@@ -13,7 +13,6 @@
 #include "CenterDeviationBeadingStrategy.h"
 #include "OutlineAccuracyBeadingStrategy.h"
 #include "WideningBeadingStrategy.h"
-#include "ConstantBeadingStrategy.h"
 #include "NaiveBeadingStrategy.h"
 #include "DistributedBeadingStrategy.h"
 
@@ -29,7 +28,6 @@ enum class StrategyType
 {
     Naive,
     NaiveStrategy,
-    Constant,
     Center,
     Distributed,
     InwardDistributed,
