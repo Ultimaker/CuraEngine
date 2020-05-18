@@ -658,31 +658,31 @@ bool SkeletalTrapezoidation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead
 
 void SkeletalTrapezoidation::generateTransitioningRibs()
 {
-    // Maps the upward edge to the transitions.
-    // We only map the halfedge for which the distance_to_boundary is higher at the end than at the beginning
-    std::unordered_map<edge_t*, std::list<TransitionMiddle>> edge_to_transitions;  
-    
-    generateTransitionMids(edge_to_transitions);
+    // Store the upward edges to the transitions.
+    // We only store the halfedge for which the distance_to_boundary is higher at the end than at the beginning.
+    temp_data_t<std::list<TransitionMiddle>> edge_transitions;
+
+    generateTransitionMids(edge_transitions);
 
     for (edge_t& edge : graph.edges)
     { // Check if there is a transition in between nodes with different bead counts
         if (edge.data.isMarked() && edge.from->data.bead_count != edge.to->data.bead_count)
         {
-            assert(edge_to_transitions.find(&edge) != edge_to_transitions.end()
-                    || edge_to_transitions.find(edge.twin) != edge_to_transitions.end());
+            assert(edge.data.hasTransitions() || edge.twin.data.hasTransitions());
         }
     }
  
-    filterTransitionMids(edge_to_transitions);
+    filterTransitionMids();
 
-    std::unordered_map<edge_t*, std::list<TransitionEnd>> edge_to_transition_ends; // We only map the half edge in the upward direction. mapped items are not sorted
-    generateTransitionEnds(edge_to_transitions, edge_to_transition_ends);
+    temp_data_t<std::list<TransitionEnd>> edge_transition_ends; // We only map the half edge in the upward direction. mapped items are not sorted
+    generateTransitionEnds(edge_transition_ends);
 
-    applyTransitions(edge_to_transition_ends);
+    applyTransitions();
+    // Note that the shared pointer lists will be out of scope and thus destroyed here, since the remaining refs are weak_ptr.
 }
 
 
-void SkeletalTrapezoidation::generateTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions)
+void SkeletalTrapezoidation::generateTransitionMids(temp_data_t<std::list<TransitionMiddle>>& edge_transitions)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -734,57 +734,55 @@ void SkeletalTrapezoidation::generateTransitionMids(std::unordered_map<edge_t*, 
             coord_t mid_pos = edge_size * (mid_R - start_R) / (end_R - start_R);
             assert(mid_pos >= 0);
             assert(mid_pos <= edge_size);
-            assert(edge_to_transitions[&edge].empty() || mid_pos >= edge_to_transitions[&edge].back().pos);
-            edge_to_transitions[&edge].emplace_back(mid_pos, transition_lower_bead_count);
+            auto& transitions = *edge.data.transitions();
+            constexpr bool ignore_empty = true;
+            assert((! edge.data.hasTransitions(ignore_empty)) || mid_pos >= transitions.back().pos);
+            if (! edge.data.hasTransitions(ignore_empty))
+            {
+                edge_transitions.emplace_back();
+                edge.data.initTransitions(edge_transitions.back());
+            }
+            transitions.emplace_back(mid_pos, transition_lower_bead_count);
         }
         if (edge.from->data.bead_count != edge.to->data.bead_count)
         {
-            assert(edge_to_transitions[&edge].size() >= 1);
+            assert(edge.data.hasTransitions());
         }
     }
 }
 
-void SkeletalTrapezoidation::filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions)
+void SkeletalTrapezoidation::filterTransitionMids()
 {
-    for (auto pair_it = edge_to_transitions.begin(); pair_it != edge_to_transitions.end();)
+    for (edge_t& edge : graph.edges)
     {
-        std::pair<edge_t* const, std::list<TransitionMiddle>>& pair = *pair_it;
-        edge_t* edge = pair.first;
-        std::list<TransitionMiddle>& transitions = pair.second;
-        if (transitions.empty())
+        if (! edge.data.hasTransitions())
         {
-            pair_it = edge_to_transitions.erase(pair_it);
             continue;
         }
-        // This is how stuff should be stored in edge_to_transitions
-        assert(transitions.front().lower_bead_count <= transitions.back().lower_bead_count); 
+        auto& transitions = *edge.data.transitions();
+
+        // This is how stuff should be stored in transitions
+        assert(transitions.front().lower_bead_count <= transitions.back().lower_bead_count);
         assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary); 
         
-        Point a = edge->from->p;
-        Point b = edge->to->p;
+        const Point a = edge.from->p;
+        const Point b = edge.to->p;
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
 
         bool going_up = true;
-        std::list<TransitionMidRef> to_be_dissolved_back = dissolveNearbyTransitions(edge, transitions.back(), ab_size - transitions.back().pos, transition_filter_dist, going_up, edge_to_transitions);
+        std::list<TransitionMidRef> to_be_dissolved_back = dissolveNearbyTransitions(&edge, transitions.back(), ab_size - transitions.back().pos, transition_filter_dist, going_up);
         bool should_dissolve_back = !to_be_dissolved_back.empty();
         for (TransitionMidRef& ref : to_be_dissolved_back)
         {
-            dissolveBeadCountRegion(edge, transitions.back().lower_bead_count + 1, transitions.back().lower_bead_count);
-            if (ref.pair_it->second.size() <= 1)
-            {
-                edge_to_transitions.erase(ref.pair_it);
-            }
-            else
-            {
-                ref.pair_it->second.erase(ref.transition_it);
-            }
+            dissolveBeadCountRegion(&edge, transitions.back().lower_bead_count + 1, transitions.back().lower_bead_count);
+            ref.edge->data.transitions()->erase(ref.transition_it);
         }
 
         {
             coord_t trans_bead_count = transitions.back().lower_bead_count;
             coord_t upper_transition_half_length = (1.0 - beading_strategy.getTransitionAnchorPos(trans_bead_count)) * beading_strategy.getTransitioningLength(trans_bead_count);
-            should_dissolve_back |= filterEndOfMarkingTransition(edge, ab_size - transitions.back().pos, upper_transition_half_length, trans_bead_count);
+            should_dissolve_back |= filterEndOfMarkingTransition(&edge, ab_size - transitions.back().pos, upper_transition_half_length, trans_bead_count);
         }
         
         if (should_dissolve_back)
@@ -793,30 +791,22 @@ void SkeletalTrapezoidation::filterTransitionMids(std::unordered_map<edge_t*, st
         }
         if (transitions.empty())
         { // FilterEndOfMarkingTransition gives inconsistent new bead count when executing for the same transition in two directions.
-            pair_it = edge_to_transitions.erase(pair_it);
             continue;
         }
 
         going_up = false;
-        std::list<TransitionMidRef> to_be_dissolved_front = dissolveNearbyTransitions(edge->twin, transitions.front(), transitions.front().pos, transition_filter_dist, going_up, edge_to_transitions);
+        std::list<TransitionMidRef> to_be_dissolved_front = dissolveNearbyTransitions(edge.twin, transitions.front(), transitions.front().pos, transition_filter_dist, going_up);
         bool should_dissolve_front = !to_be_dissolved_front.empty();
         for (TransitionMidRef& ref : to_be_dissolved_front)
         {
-            dissolveBeadCountRegion(edge->twin, transitions.front().lower_bead_count, transitions.front().lower_bead_count + 1);
-            if (ref.pair_it->second.size() <= 1)
-            {
-                edge_to_transitions.erase(ref.pair_it);
-            }
-            else
-            {
-                ref.pair_it->second.erase(ref.transition_it);
-            }
+            dissolveBeadCountRegion(edge.twin, transitions.front().lower_bead_count, transitions.front().lower_bead_count + 1);
+            ref.edge->data.transitions()->erase(ref.transition_it);
         }
 
         {
             coord_t trans_bead_count = transitions.front().lower_bead_count;
             coord_t lower_transition_half_length = beading_strategy.getTransitionAnchorPos(trans_bead_count) * beading_strategy.getTransitioningLength(trans_bead_count);
-            should_dissolve_front |= filterEndOfMarkingTransition(edge->twin, transitions.front().pos, lower_transition_half_length, trans_bead_count + 1);
+            should_dissolve_front |= filterEndOfMarkingTransition(edge.twin, transitions.front().pos, lower_transition_half_length, trans_bead_count + 1);
         }
         
         if (should_dissolve_front)
@@ -825,14 +815,12 @@ void SkeletalTrapezoidation::filterTransitionMids(std::unordered_map<edge_t*, st
         }
         if (transitions.empty())
         { // FilterEndOfMarkingTransition gives inconsistent new bead count when executing for the same transition in two directions.
-            pair_it = edge_to_transitions.erase(pair_it);
             continue;
         }
-        ++pair_it; // Normal update of loop
     }
 }
 
-std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions)
+std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up)
 {
     std::list<TransitionMidRef> to_be_dissolved;
     if (traveled_dist > max_dist)
@@ -854,11 +842,10 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         bool is_aligned = edge->isUpward();
         edge_t* aligned_edge = is_aligned? edge : edge->twin;
         bool seen_transition_on_this_edge = false;
-        auto edge_transitions_it = edge_to_transitions.find(aligned_edge);
         
-        if (edge_transitions_it != edge_to_transitions.end())
+        if (aligned_edge->data.hasTransitions())
         {
-            std::list<TransitionMiddle>& transitions = edge_transitions_it->second;
+            auto& transitions = *aligned_edge->data.transitions();
             for (auto transition_it = transitions.begin(); transition_it != transitions.end(); ++ transition_it)
             { // Note: this is not neccesarily iterating in the traveling direction!
                 // Check whether we should dissolve
@@ -871,14 +858,14 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
                         // Consecutive transitions both in/decreasing in bead count should never be closer together than the transition distance
                         assert(going_up != is_aligned || transition_it->lower_bead_count == 0); 
                     }
-                    to_be_dissolved.emplace_back(edge_transitions_it, transition_it);
+                    to_be_dissolved.emplace_back(aligned_edge, transition_it);
                     seen_transition_on_this_edge = true;
                 }
             }
         }
         if (!seen_transition_on_this_edge)
         {
-            std::list<SkeletalTrapezoidation::TransitionMidRef> to_be_dissolved_here = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up, edge_to_transitions);
+            std::list<SkeletalTrapezoidation::TransitionMidRef> to_be_dissolved_here = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up);
             if (to_be_dissolved_here.empty())
             { // The region is too long to be dissolved in this direction, so it cannot be dissolved in any direction.
                 to_be_dissolved.clear();
@@ -947,24 +934,27 @@ bool SkeletalTrapezoidation::filterEndOfMarkingTransition(edge_t* edge_to_start,
     return should_dissolve;
 }
 
-void SkeletalTrapezoidation::generateTransitionEnds(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
+void SkeletalTrapezoidation::generateTransitionEnds(temp_data_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
-    for (std::pair<edge_t*, std::list<TransitionMiddle>> pair : edge_to_transitions)
+    for (edge_t& edge : graph.edges)
     {
-        edge_t* edge = pair.first;
-        std::list<TransitionMiddle>& transition_positions = pair.second;
+        if (! edge.data.hasTransitions())
+        {
+            continue;
+        }
+        auto& transition_positions = *edge.data.transitions();
 
         assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary);
         for (TransitionMiddle& transition_middle : transition_positions)
         {
             assert(transition_positions.front().pos <= transition_middle.pos);
             assert(transition_middle.pos <= transition_positions.back().pos);
-            generateTransition(*edge, transition_middle.pos, transition_middle.lower_bead_count, edge_to_transitions, edge_to_transition_ends);
+            generateTransition(edge, transition_middle.pos, transition_middle.lower_bead_count, edge_transition_ends);
         }
     }
 }
 
-void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
+void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, coord_t lower_bead_count, temp_data_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -983,19 +973,19 @@ void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, c
         coord_t start_pos = ab_size - mid_pos;
         coord_t transition_half_length = transition_mid_position * transition_length;
         coord_t end_pos = start_pos + transition_half_length;
-        generateTransitionEnd(*edge.twin, start_pos, end_pos, transition_half_length, mid_rest, start_rest, lower_bead_count, edge_to_transition_mids, edge_to_transition_ends);
+        generateTransitionEnd(*edge.twin, start_pos, end_pos, transition_half_length, mid_rest, start_rest, lower_bead_count, edge_transition_ends);
     }
 
     { // Upper bead count transition end
         coord_t start_pos = mid_pos;
         coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
         coord_t end_pos = mid_pos +  transition_half_length;
-        bool is_going_down_everywhere = generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_to_transition_mids, edge_to_transition_ends);
+        bool is_going_down_everywhere = generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends);
         assert(!is_going_down_everywhere && "There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");
     }
 }
 
-bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
+bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t lower_bead_count, temp_data_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -1037,14 +1027,14 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
                 outgoing = next;
                 continue; // Don't put transition ends in non-marked regions
             }
-            if (marked_edge_count > 1 && going_up && isGoingDown(outgoing, 0, end_pos - ab_size + transition_half_length, lower_bead_count, edge_to_transition_mids))
+            if (marked_edge_count > 1 && going_up && isGoingDown(outgoing, 0, end_pos - ab_size + transition_half_length, lower_bead_count))
             { // We're after a 3-way_all-marked_junction-node and going in the direction of lower bead count
                 // don't introduce a transition end along this marked direction, because this direction is the downward direction
                 // while we are supposed to be [going_up]
                 outgoing = next;
                 continue;
             }
-            bool is_going_down = generateTransitionEnd(*outgoing, 0, end_pos - ab_size, transition_half_length, rest, end_rest, lower_bead_count, edge_to_transition_mids, edge_to_transition_ends);
+            bool is_going_down = generateTransitionEnd(*outgoing, 0, end_pos - ab_size, transition_half_length, rest, end_rest, lower_bead_count, edge_transition_ends);
             is_only_going_down &= is_going_down;
             outgoing = next;
             has_recursed = true;
@@ -1059,18 +1049,23 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
     else // end_pos < ab_size
     { // Add transition end point here
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
-        std::list<TransitionEnd>* transitions = nullptr;
         coord_t pos = -1;
+
+        edge_transition_ends.emplace_back();
+        edge_t* upward_edge = nullptr;
         if (edge.isUpward())
         {
-            transitions = &edge_to_transition_ends[&edge];
+            upward_edge = &edge;
             pos = end_pos;
         }
         else
         {
-            transitions = &edge_to_transition_ends[edge.twin];
+            upward_edge = edge.twin;
             pos = ab_size - end_pos;
         }
+        upward_edge->data.initTransitionEnds(edge_transition_ends.back());
+        auto transitions = upward_edge->data.transition_ends();
+
         assert(ab_size == vSize(edge.twin->from->p - edge.twin->to->p));
         assert(pos <= ab_size);
         if (transitions->empty() || pos < transitions->front().pos)
@@ -1086,7 +1081,7 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
 }
 
 
-bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t max_dist, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids) const
+bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t max_dist, coord_t lower_bead_count) const
 {
     // NOTE: the logic below is not fully thought through.
     // TODO: take transition mids into account
@@ -1098,25 +1093,21 @@ bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
     edge_t* upward_edge = is_upward? outgoing : outgoing->twin;
     if (outgoing->to->data.bead_count > lower_bead_count + 1)
     {
-        assert(edge_to_transition_mids.find(upward_edge) != edge_to_transition_mids.end() && "If the bead count is going down there has to be a transition mid!");
+        assert(upward_edge->data.hasTransitions() && "If the bead count is going down there has to be a transition mid!");
         return false;
     }
     coord_t length = vSize(outgoing->to->p - outgoing->from->p);
-    auto transition_mids_it = edge_to_transition_mids.find(upward_edge);
-    if (transition_mids_it != edge_to_transition_mids.end())
+    if (upward_edge->data.hasTransitions())
     {
-        std::list<TransitionMiddle>& transition_mids = transition_mids_it->second;
-        if (!transition_mids.empty())
+        auto& transition_mids = *upward_edge->data.transitions();
+        TransitionMiddle& mid = is_upward? transition_mids.front() : transition_mids.back();
+        if (
+            mid.lower_bead_count == lower_bead_count &&
+            ((is_upward && mid.pos + traveled_dist < max_dist)
+                || (!is_upward && length - mid.pos + traveled_dist < max_dist))
+        )
         {
-            TransitionMiddle& mid = is_upward? transition_mids.front() : transition_mids.back();
-            if (
-                mid.lower_bead_count == lower_bead_count &&
-                ((is_upward && mid.pos + traveled_dist < max_dist)
-                 || (!is_upward && length - mid.pos + traveled_dist < max_dist))
-            )
-            {
-                return true;
-            }
+            return true;
         }
     }
     if (traveled_dist + length > max_dist)
@@ -1137,47 +1128,50 @@ bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
         {
             continue;
         }
-        bool is_going_down = isGoingDown(next, traveled_dist + length, max_dist, lower_bead_count, edge_to_transition_mids);
+        bool is_going_down = isGoingDown(next, traveled_dist + length, max_dist, lower_bead_count);
         is_only_going_down &= is_going_down;
         has_recursed = true;
     }
     return has_recursed && is_only_going_down;
 }
 
-void SkeletalTrapezoidation::applyTransitions(std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends)
+void SkeletalTrapezoidation::applyTransitions()
 {
-    for (std::pair<edge_t* const, std::list<TransitionEnd>>& pair : edge_to_transition_ends)
+    for (edge_t& edge : graph.edges)
     {
-        edge_t* edge = pair.first;
-        auto twin_ends_it = edge_to_transition_ends.find(edge->twin);
-        if (twin_ends_it != edge_to_transition_ends.end())
+        if (edge.twin->data.hasTransitionEnds())
         {
-            coord_t length = vSize(edge->from->p - edge->to->p);
-            for (TransitionEnd& end : twin_ends_it->second)
+            coord_t length = vSize(edge.from->p - edge.to->p);
+            auto& twin_transition_ends = *edge.twin->data.transition_ends();
+            auto& transition_ends = *edge.data.transition_ends();
+            for (TransitionEnd& end : twin_transition_ends)
             {
-                pair.second.emplace_back(length - end.pos, end.lower_bead_count, end.is_lower_end);
+                transition_ends.emplace_back(length - end.pos, end.lower_bead_count, end.is_lower_end);
             }
-            edge_to_transition_ends.erase(twin_ends_it);
+            twin_transition_ends.clear();
         }
     }
     
-    for (std::pair<edge_t* const, std::list<TransitionEnd>>& pair : edge_to_transition_ends)
+    for (edge_t& edge : graph.edges)
     {
-        edge_t* edge = pair.first;
-        assert(edge->data.isMarked());
+        if (! edge.data.hasTransitionEnds())
+        {
+            continue;
+        }
 
-        std::list<TransitionEnd>& transitions = pair.second;
+        assert(edge.data.isMarked());
 
+        auto& transitions = *edge.data.transition_ends();
         transitions.sort([](const TransitionEnd& a, const TransitionEnd& b) { return a.pos < b.pos; } );
 
-        node_t* from = edge->from;
-        node_t* to = edge->to;
+        node_t* from = edge.from;
+        node_t* to = edge.to;
         Point a = from->p;
         Point b = to->p;
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
 
-        edge_t* last_edge_replacing_input = edge;
+        edge_t* last_edge_replacing_input = &edge;
         for (TransitionEnd& transition_end : transitions)
         {
             coord_t new_node_bead_count = transition_end.is_lower_end? transition_end.lower_bead_count : transition_end.lower_bead_count + 1;

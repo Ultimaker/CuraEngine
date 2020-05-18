@@ -6,6 +6,7 @@
 
 #include <boost/polygon/voronoi.hpp>
 
+#include <memory> // smart pointers
 #include <unordered_map>
 #include <utility> // pair
 
@@ -51,6 +52,11 @@ class SkeletalTrapezoidation
     using edge_t = HalfEdge<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
     using node_t = HalfEdgeNode<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
     using Beading = BeadingStrategy::Beading;
+    using TransitionMiddle = SkeletalTrapezoidationEdge::TransitionMiddle;
+    using TransitionEnd = SkeletalTrapezoidationEdge::TransitionEnd;
+
+    template<typename T>
+    using temp_data_t = std::vector<std::shared_ptr<T>>;
 
     float transitioning_angle; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
     coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
@@ -88,42 +94,17 @@ protected:
         , is_upward_propagated_only(false)
         {}
     };
-    
-    /*!
-     * Representing the location along an edge where the anchor position of a transition should be placed.
-     */
-    struct TransitionMiddle
-    {
-        coord_t pos; // Position along edge as measure from edge.from.p
-        coord_t lower_bead_count;
-        TransitionMiddle(coord_t pos, coord_t lower_bead_count)
-        : pos(pos), lower_bead_count(lower_bead_count)
-        {}
-    };
 
     /*!
      * Auxiliary for referencing one transition along an edge which may contain multiple transitions
      */
     struct TransitionMidRef
     {
-        std::unordered_map<edge_t*, std::list<TransitionMiddle>>::iterator pair_it;
+        edge_t* edge;
         std::list<TransitionMiddle>::iterator transition_it;
-        TransitionMidRef(std::unordered_map<edge_t*, std::list<TransitionMiddle>>::iterator pair_it, std::list<TransitionMiddle>::iterator transition_it)
-        : pair_it(pair_it)
-        , transition_it(transition_it)
-        {}
-    };
-
-    /*!
-     * Represents the location along an edge where the lower or upper end of a transition should be placed.
-     */
-    struct TransitionEnd
-    {
-        coord_t pos; // Position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R
-        coord_t lower_bead_count;
-        bool is_lower_end; // Whether this is the ed of the transition with lower bead count
-        TransitionEnd(coord_t pos, coord_t lower_bead_count, bool is_lower_end)
-        : pos(pos), lower_bead_count(lower_bead_count), is_lower_end(is_lower_end)
+        TransitionMidRef(edge_t* edge, std::list<TransitionMiddle>::iterator transition_it)
+            : edge(edge)
+            , transition_it(transition_it)
         {}
     };
 
@@ -217,9 +198,9 @@ protected:
      */
     bool filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist);
 
-    void generateTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
+    void generateTransitionMids(temp_data_t<std::list<TransitionMiddle>>& edge_transitions);
 
-    void filterTransitionMids(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
+    void filterTransitionMids();
 
     /*!
      * 
@@ -229,27 +210,27 @@ protected:
      * \param going_up Whether we are traveling in the upward direction as seen from the \p origin_transition. If this doesn't align with the direction according to the R diff on a consecutive edge we know there was a local optimum
      * \return whether the origin transition should be dissolved
      */
-    std::list<TransitionMidRef> dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions);
+    std::list<TransitionMidRef> dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up);
 
     void dissolveBeadCountRegion(edge_t* edge_to_start, coord_t from_bead_count, coord_t to_bead_count);
 
     bool filterEndOfMarkingTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count);
 
-    void generateTransitionEnds(std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transitions, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
+    void generateTransitionEnds(temp_data_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
      * Also set the rest values at nodes in between the transition ends
      */
-    void applyTransitions(std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
+    void applyTransitions();
 
-    void filterMarkedLocalOptima();
+    //void filterMarkedLocalOptima(); // < -- function missing?
 
     void generateTransitioningRibs();
 
     /*!
      * \param edge_to_transition_mids From the upward halfedges to their transitions mids
      */
-    void generateTransition(edge_t& edge, coord_t mid_R, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
+    void generateTransition(edge_t& edge, coord_t mid_R, coord_t transition_lower_bead_count, temp_data_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
      * \p start_rest and \p end_rest refer to gap distances at the start and end pos in terms of ratios w.r.t. the inner bead width at the high end of the transition
@@ -259,9 +240,9 @@ protected:
      * 
      * \return whether the subgraph is going downward
      */
-    bool generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t transition_lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids, std::unordered_map<edge_t*, std::list<TransitionEnd>>& edge_to_transition_ends);
+    bool generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t transition_lower_bead_count, temp_data_t<std::list<TransitionEnd>>& edge_transition_ends);
 
-    bool isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t transition_half_length, coord_t lower_bead_count, std::unordered_map<edge_t*, std::list<TransitionMiddle>>& edge_to_transition_mids) const;
+    bool isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t transition_half_length, coord_t lower_bead_count) const;
 
     bool isEndOfMarking(const edge_t& edge) const;
 
