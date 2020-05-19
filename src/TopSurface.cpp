@@ -47,7 +47,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     const Ratio ironing_flow = mesh.settings.get<Ratio>("ironing_flow");
 
     coord_t ironing_inset = -mesh.settings.get<coord_t>("ironing_inset");
-    if (pattern == EFillMethod::ZIG_ZAG && ironing_inset == 0)
+    if (pattern == EFillMethod::ZIG_ZAG)
     {
         //Compensate for the outline_offset decrease that takes place when using the infill generator to generate ironing with the zigzag pattern
         const Ratio width_scale = (float)mesh.settings.get<coord_t>("layer_height") / mesh.settings.get<coord_t>("infill_sparse_thickness");
