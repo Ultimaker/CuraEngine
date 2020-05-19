@@ -9,10 +9,9 @@
 #include "InwardDistributedBeadingStrategy.h"
 #include "LimitedDistributedBeadingStrategy.h"
 #include "LimitedBeadingStrategy.h"
-#include "SingleBeadBeadingStrategy.h"
 #include "CenterDeviationBeadingStrategy.h"
-#include "OutlineAccuracyBeadingStrategy.h"
 #include "WideningBeadingStrategy.h"
+#include "NaiveBeadingStrategy.h"
 #include "DistributedBeadingStrategy.h"
 
 namespace arachne
@@ -25,12 +24,12 @@ extern coord_t default_transition_length;
 
 enum class StrategyType
 {
+    Naive,
+    NaiveStrategy,
     Center,
     Distributed,
     InwardDistributed,
     LimitedDistributed,
-    SingleBead,
-    OutlineAccuracy,
     COUNT
 };
 
