@@ -6,6 +6,9 @@
 
 #include <memory> // smart pointers
 #include <list>
+#include <vector>
+
+#include "utils/ExtrusionJunction.h"
 
 namespace arachne
 {
@@ -94,11 +97,25 @@ public:
         return transition_ends_.lock();
     }
 
+    bool hasExtrusionJunctions(bool ignore_empty = false) const
+    {
+        return extrusion_juntions_.use_count() > 0 && (ignore_empty || ! extrusion_juntions_.lock()->empty());
+    }
+    void initExtrusionJunctions(std::shared_ptr<std::vector<ExtrusionJunction>> storage)
+    {
+        extrusion_juntions_ = storage;
+    }
+    std::shared_ptr<std::vector<ExtrusionJunction>> extrusion_juntions()
+    {
+        return extrusion_juntions_.lock();
+    }
+
 private:
     int_least8_t is_marked; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown
 
     std::weak_ptr<std::list<TransitionMiddle>> transitions_;
     std::weak_ptr<std::list<TransitionEnd>> transition_ends_;
+    std::weak_ptr<std::vector<ExtrusionJunction>> extrusion_juntions_;
 };
 
 

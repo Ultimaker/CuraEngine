@@ -1359,10 +1359,10 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
 
     propagateBeadingsDownward(upward_quad_mids, node_to_beading);
     
-    std::unordered_map<edge_t*, std::vector<ExtrusionJunction>> edge_to_junctions; // junctions ordered high R to low R
-    generateJunctions(node_to_beading, edge_to_junctions);
+    temp_data_t<std::vector<ExtrusionJunction>> edge_junctions; // junctions ordered high R to low R
+    generateJunctions(node_to_beading, edge_junctions);
 
-    connectJunctions(edge_to_junctions, result_polylines_per_index);
+    connectJunctions(result_polylines_per_index);
     
     generateLocalMaximaSingleBeads(node_to_beading, result_polylines_per_index);
 }
@@ -1539,7 +1539,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     return ret;
 }
 
-void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions)
+void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, temp_data_t<std::vector<ExtrusionJunction>>& edge_junctions)
 {
     for (edge_t& edge_ : graph.edges)
     {
@@ -1552,13 +1552,16 @@ void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, Beadi
         coord_t start_R = edge->to->data.distance_to_boundary; // higher R
         coord_t end_R = edge->from->data.distance_to_boundary; // lower R
 
-        Beading* beading = &getBeading(edge->to, node_to_beading).beading;
-        std::vector<ExtrusionJunction>& ret = edge_to_junctions[edge]; // Emplace a new vector
         if ((edge->from->data.bead_count == edge->to->data.bead_count && edge->from->data.bead_count >= 0)
             || end_R >= start_R)
         { // No beads to generate
             continue;
         }
+
+        Beading* beading = &getBeading(edge->to, node_to_beading).beading;
+        edge_junctions.emplace_back();
+        edge_.data.initExtrusionJunctions(edge_junctions.back());
+        std::vector<ExtrusionJunction>& ret = *edge_junctions.back();
 
         assert(beading->total_thickness >= edge->to->data.distance_to_boundary * 2);
 
@@ -1603,14 +1606,6 @@ void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, Beadi
             ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx);
         }
     }
-}
-
-const std::vector<ExtrusionJunction>& SkeletalTrapezoidation::getJunctions(edge_t* edge, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions)
-{
-    assert(edge->to->data.distance_to_boundary >= edge->from->data.distance_to_boundary);
-    auto ret_it = edge_to_junctions.find(edge);
-    assert(ret_it != edge_to_junctions.end());
-    return ret_it->second;
 }
 
 
@@ -1696,7 +1691,7 @@ SkeletalTrapezoidation::BeadingPropagation* SkeletalTrapezoidation::getNearestBe
     return nullptr;
 }
 
-void SkeletalTrapezoidation::connectJunctions(std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
+void SkeletalTrapezoidation::connectJunctions(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
 {   
     auto getNextQuad = [](edge_t* quad_start)
     {
@@ -1763,11 +1758,11 @@ void SkeletalTrapezoidation::connectJunctions(std::unordered_map<edge_t*, std::v
             
             unprocessed_quad_starts.erase(quad_start);
             
-            std::vector<ExtrusionJunction> from_junctions = getJunctions(edge_to_peak, edge_to_junctions);
-            std::vector<ExtrusionJunction> to_junctions = getJunctions(edge_from_peak->twin, edge_to_junctions);
+            std::vector<ExtrusionJunction> from_junctions = *edge_to_peak->data.extrusion_juntions();
+            std::vector<ExtrusionJunction> to_junctions = *edge_from_peak->twin->data.extrusion_juntions();
             if (edge_to_peak->prev)
             {
-                std::vector<ExtrusionJunction> from_prev_junctions = getJunctions(edge_to_peak->prev, edge_to_junctions);
+                std::vector<ExtrusionJunction> from_prev_junctions = *edge_to_peak->prev->data.extrusion_juntions();
                 if (!from_junctions.empty() && !from_prev_junctions.empty() && from_junctions.back().perimeter_index == from_prev_junctions.front().perimeter_index)
                 {
                     from_junctions.pop_back();
@@ -1778,7 +1773,7 @@ void SkeletalTrapezoidation::connectJunctions(std::unordered_map<edge_t*, std::v
             }
             if (edge_from_peak->next)
             {
-                std::vector<ExtrusionJunction> to_next_junctions = getJunctions(edge_from_peak->next->twin, edge_to_junctions);
+                std::vector<ExtrusionJunction> to_next_junctions = *edge_from_peak->next->twin->data.extrusion_juntions();
                 if (!to_junctions.empty() && !to_next_junctions.empty() && to_junctions.back().perimeter_index == to_next_junctions.front().perimeter_index)
                 {
                     to_junctions.pop_back();

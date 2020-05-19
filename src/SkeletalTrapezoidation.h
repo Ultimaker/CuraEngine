@@ -303,27 +303,20 @@ protected:
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
      */
-    void generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions);
+    void generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, temp_data_t<std::vector<ExtrusionJunction>>& edge_junctions);
 
     /*!
      * connect junctions in each quad
      * \param edge_to_junctions junctions ordered high R to low R
      * \param[out] segments the generated segments
      */
-    void connectJunctions(std::unordered_map< arachne::SkeletalTrapezoidation::edge_t*, std::vector< arachne::ExtrusionJunction > >& edge_to_junctions, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
+    void connectJunctions(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
 
     /*!
      * Genrate small segments for local maxima where the beading would only result in a single bead
      * \param[out] segments the generated segments
      */
     void generateLocalMaximaSingleBeads(std::unordered_map< arachne::SkeletalTrapezoidation::node_t*, arachne::SkeletalTrapezoidation::BeadingPropagation >& node_to_beading, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
-
-    /*!
-     * \p edge is assumed to point upward to higher R; otherwise take its twin
-     * 
-     * \param include_odd_start_junction Whether to leave out the first junction if it coincides with \p edge.from->p
-     */
-    const std::vector<ExtrusionJunction>& getJunctions(edge_t* edge, std::unordered_map<edge_t*, std::vector<ExtrusionJunction>>& edge_to_junctions);
 };
 
 } // namespace arachne
