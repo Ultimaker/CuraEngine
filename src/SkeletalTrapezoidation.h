@@ -223,8 +223,6 @@ protected:
      */
     void applyTransitions();
 
-    //void filterMarkedLocalOptima(); // < -- function missing?
-
     void generateTransitioningRibs();
 
     /*!

@@ -1,8 +1,8 @@
 //Copyright (c) 2020 Ultimaker B.V.
 
 
-#ifndef VORONOI_QUADRILATERALIZATION_EDGE_H
-#define VORONOI_QUADRILATERALIZATION_EDGE_H
+#ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
+#define SKELETAL_TRAPEZOIDATION_EDGE_H
 
 #include <memory> // smart pointers
 #include <list>
@@ -73,51 +73,51 @@ public:
 
     bool hasTransitions(bool ignore_empty = false) const
     {
-        return transitions_.use_count() > 0 && (ignore_empty || ! transitions_.lock()->empty());
+        return transitions.use_count() > 0 && (ignore_empty || ! transitions.lock()->empty());
     }
-    void initTransitions(std::shared_ptr<std::list<TransitionMiddle>> storage)
+    void setTransitions(std::shared_ptr<std::list<TransitionMiddle>> storage)
     {
-        transitions_ = storage;
+        transitions = storage;
     }
-    std::shared_ptr<std::list<TransitionMiddle>> transitions()
+    std::shared_ptr<std::list<TransitionMiddle>> getTransitions()
     {
-        return transitions_.lock();
+        return transitions.lock();
     }
 
     bool hasTransitionEnds(bool ignore_empty = false) const
     {
-        return transition_ends_.use_count() > 0 && (ignore_empty || ! transition_ends_.lock()->empty());
+        return transition_ends.use_count() > 0 && (ignore_empty || ! transition_ends.lock()->empty());
     }
-    void initTransitionEnds(std::shared_ptr<std::list<TransitionEnd>> storage)
+    void setTransitionEnds(std::shared_ptr<std::list<TransitionEnd>> storage)
     {
-        transition_ends_ = storage;
+        transition_ends = storage;
     }
-    std::shared_ptr<std::list<TransitionEnd>> transition_ends()
+    std::shared_ptr<std::list<TransitionEnd>> getTransitionEnds()
     {
-        return transition_ends_.lock();
+        return transition_ends.lock();
     }
 
     bool hasExtrusionJunctions(bool ignore_empty = false) const
     {
-        return extrusion_juntions_.use_count() > 0 && (ignore_empty || ! extrusion_juntions_.lock()->empty());
+        return extrusion_junctions.use_count() > 0 && (ignore_empty || ! extrusion_junctions.lock()->empty());
     }
-    void initExtrusionJunctions(std::shared_ptr<std::vector<ExtrusionJunction>> storage)
+    void setExtrusionJunctions(std::shared_ptr<std::vector<ExtrusionJunction>> storage)
     {
-        extrusion_juntions_ = storage;
+        extrusion_junctions = storage;
     }
-    std::shared_ptr<std::vector<ExtrusionJunction>> extrusion_juntions()
+    std::shared_ptr<std::vector<ExtrusionJunction>> getExtrusionJunctions()
     {
-        return extrusion_juntions_.lock();
+        return extrusion_junctions.lock();
     }
 
 private:
     int_least8_t is_marked; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown
 
-    std::weak_ptr<std::list<TransitionMiddle>> transitions_;
-    std::weak_ptr<std::list<TransitionEnd>> transition_ends_;
-    std::weak_ptr<std::vector<ExtrusionJunction>> extrusion_juntions_;
+    std::weak_ptr<std::list<TransitionMiddle>> transitions;
+    std::weak_ptr<std::list<TransitionEnd>> transition_ends;
+    std::weak_ptr<std::vector<ExtrusionJunction>> extrusion_junctions;
 };
 
 
 } // namespace arachne
-#endif // VORONOI_QUADRILATERALIZATION_EDGE_H
+#endif // SKELETAL_TRAPEZOIDATION_EDGE_H

@@ -734,13 +734,13 @@ void SkeletalTrapezoidation::generateTransitionMids(temp_data_t<std::list<Transi
             coord_t mid_pos = edge_size * (mid_R - start_R) / (end_R - start_R);
             assert(mid_pos >= 0);
             assert(mid_pos <= edge_size);
-            auto& transitions = *edge.data.transitions();
+            auto& transitions = *edge.data.getTransitions();
             constexpr bool ignore_empty = true;
             assert((! edge.data.hasTransitions(ignore_empty)) || mid_pos >= transitions.back().pos);
             if (! edge.data.hasTransitions(ignore_empty))
             {
                 edge_transitions.emplace_back();
-                edge.data.initTransitions(edge_transitions.back());
+                edge.data.setTransitions(edge_transitions.back());  // initialization
             }
             transitions.emplace_back(mid_pos, transition_lower_bead_count);
         }
@@ -759,7 +759,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
         {
             continue;
         }
-        auto& transitions = *edge.data.transitions();
+        auto& transitions = *edge.data.getTransitions();
 
         // This is how stuff should be stored in transitions
         assert(transitions.front().lower_bead_count <= transitions.back().lower_bead_count);
@@ -776,7 +776,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
         for (TransitionMidRef& ref : to_be_dissolved_back)
         {
             dissolveBeadCountRegion(&edge, transitions.back().lower_bead_count + 1, transitions.back().lower_bead_count);
-            ref.edge->data.transitions()->erase(ref.transition_it);
+            ref.edge->data.getTransitions()->erase(ref.transition_it);
         }
 
         {
@@ -800,7 +800,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
         for (TransitionMidRef& ref : to_be_dissolved_front)
         {
             dissolveBeadCountRegion(edge.twin, transitions.front().lower_bead_count, transitions.front().lower_bead_count + 1);
-            ref.edge->data.transitions()->erase(ref.transition_it);
+            ref.edge->data.getTransitions()->erase(ref.transition_it);
         }
 
         {
@@ -845,7 +845,7 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         
         if (aligned_edge->data.hasTransitions())
         {
-            auto& transitions = *aligned_edge->data.transitions();
+            auto& transitions = *aligned_edge->data.getTransitions();
             for (auto transition_it = transitions.begin(); transition_it != transitions.end(); ++ transition_it)
             { // Note: this is not neccesarily iterating in the traveling direction!
                 // Check whether we should dissolve
@@ -942,7 +942,7 @@ void SkeletalTrapezoidation::generateTransitionEnds(temp_data_t<std::list<Transi
         {
             continue;
         }
-        auto& transition_positions = *edge.data.transitions();
+        auto& transition_positions = *edge.data.getTransitions();
 
         assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary);
         for (TransitionMiddle& transition_middle : transition_positions)
@@ -1063,8 +1063,8 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
             upward_edge = edge.twin;
             pos = ab_size - end_pos;
         }
-        upward_edge->data.initTransitionEnds(edge_transition_ends.back());
-        auto transitions = upward_edge->data.transition_ends();
+        upward_edge->data.setTransitionEnds(edge_transition_ends.back());  // initialization
+        auto transitions = upward_edge->data.getTransitionEnds();
 
         assert(ab_size == vSize(edge.twin->from->p - edge.twin->to->p));
         assert(pos <= ab_size);
@@ -1099,7 +1099,7 @@ bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
     coord_t length = vSize(outgoing->to->p - outgoing->from->p);
     if (upward_edge->data.hasTransitions())
     {
-        auto& transition_mids = *upward_edge->data.transitions();
+        auto& transition_mids = *upward_edge->data.getTransitions();
         TransitionMiddle& mid = is_upward? transition_mids.front() : transition_mids.back();
         if (
             mid.lower_bead_count == lower_bead_count &&
@@ -1142,8 +1142,8 @@ void SkeletalTrapezoidation::applyTransitions()
         if (edge.twin->data.hasTransitionEnds())
         {
             coord_t length = vSize(edge.from->p - edge.to->p);
-            auto& twin_transition_ends = *edge.twin->data.transition_ends();
-            auto& transition_ends = *edge.data.transition_ends();
+            auto& twin_transition_ends = *edge.twin->data.getTransitionEnds();
+            auto& transition_ends = *edge.data.getTransitionEnds();
             for (TransitionEnd& end : twin_transition_ends)
             {
                 transition_ends.emplace_back(length - end.pos, end.lower_bead_count, end.is_lower_end);
@@ -1161,7 +1161,7 @@ void SkeletalTrapezoidation::applyTransitions()
 
         assert(edge.data.isMarked());
 
-        auto& transitions = *edge.data.transition_ends();
+        auto& transitions = *edge.data.getTransitionEnds();
         transitions.sort([](const TransitionEnd& a, const TransitionEnd& b) { return a.pos < b.pos; } );
 
         node_t* from = edge.from;
@@ -1560,7 +1560,7 @@ void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, Beadi
 
         Beading* beading = &getBeading(edge->to, node_to_beading).beading;
         edge_junctions.emplace_back();
-        edge_.data.initExtrusionJunctions(edge_junctions.back());
+        edge_.data.setExtrusionJunctions(edge_junctions.back());  // initialization
         std::vector<ExtrusionJunction>& ret = *edge_junctions.back();
 
         assert(beading->total_thickness >= edge->to->data.distance_to_boundary * 2);
@@ -1758,11 +1758,11 @@ void SkeletalTrapezoidation::connectJunctions(std::vector<std::list<ExtrusionLin
             
             unprocessed_quad_starts.erase(quad_start);
             
-            std::vector<ExtrusionJunction> from_junctions = *edge_to_peak->data.extrusion_juntions();
-            std::vector<ExtrusionJunction> to_junctions = *edge_from_peak->twin->data.extrusion_juntions();
+            std::vector<ExtrusionJunction> from_junctions = *edge_to_peak->data.getExtrusionJunctions();
+            std::vector<ExtrusionJunction> to_junctions = *edge_from_peak->twin->data.getExtrusionJunctions();
             if (edge_to_peak->prev)
             {
-                std::vector<ExtrusionJunction> from_prev_junctions = *edge_to_peak->prev->data.extrusion_juntions();
+                std::vector<ExtrusionJunction> from_prev_junctions = *edge_to_peak->prev->data.getExtrusionJunctions();
                 if (!from_junctions.empty() && !from_prev_junctions.empty() && from_junctions.back().perimeter_index == from_prev_junctions.front().perimeter_index)
                 {
                     from_junctions.pop_back();
@@ -1773,7 +1773,7 @@ void SkeletalTrapezoidation::connectJunctions(std::vector<std::list<ExtrusionLin
             }
             if (edge_from_peak->next)
             {
-                std::vector<ExtrusionJunction> to_next_junctions = *edge_from_peak->next->twin->data.extrusion_juntions();
+                std::vector<ExtrusionJunction> to_next_junctions = *edge_from_peak->next->twin->data.getExtrusionJunctions();
                 if (!to_junctions.empty() && !to_next_junctions.empty() && to_junctions.back().perimeter_index == to_next_junctions.front().perimeter_index)
                 {
                     to_junctions.pop_back();
