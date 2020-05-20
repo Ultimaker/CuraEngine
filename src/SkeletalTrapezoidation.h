@@ -56,7 +56,7 @@ class SkeletalTrapezoidation
     using TransitionEnd = SkeletalTrapezoidationEdge::TransitionEnd;
 
     template<typename T>
-    using temp_data_t = std::vector<std::shared_ptr<T>>;
+    using ptr_vector_t = std::vector<std::shared_ptr<T>>;
 
     float transitioning_angle; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
     coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
@@ -198,7 +198,7 @@ protected:
      */
     bool filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist);
 
-    void generateTransitionMids(temp_data_t<std::list<TransitionMiddle>>& edge_transitions);
+    void generateTransitionMids(ptr_vector_t<std::list<TransitionMiddle>>& edge_transitions);
 
     void filterTransitionMids();
 
@@ -216,7 +216,7 @@ protected:
 
     bool filterEndOfMarkingTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count);
 
-    void generateTransitionEnds(temp_data_t<std::list<TransitionEnd>>& edge_transition_ends);
+    void generateTransitionEnds(ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
      * Also set the rest values at nodes in between the transition ends
@@ -228,7 +228,7 @@ protected:
     /*!
      * \param edge_to_transition_mids From the upward halfedges to their transitions mids
      */
-    void generateTransition(edge_t& edge, coord_t mid_R, coord_t transition_lower_bead_count, temp_data_t<std::list<TransitionEnd>>& edge_transition_ends);
+    void generateTransition(edge_t& edge, coord_t mid_R, coord_t transition_lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
      * \p start_rest and \p end_rest refer to gap distances at the start and end pos in terms of ratios w.r.t. the inner bead width at the high end of the transition
@@ -238,7 +238,7 @@ protected:
      * 
      * \return whether the subgraph is going downward
      */
-    bool generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t transition_lower_bead_count, temp_data_t<std::list<TransitionEnd>>& edge_transition_ends);
+    bool generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t transition_lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     bool isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t transition_half_length, coord_t lower_bead_count) const;
 
@@ -301,7 +301,7 @@ protected:
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
      */
-    void generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, temp_data_t<std::vector<ExtrusionJunction>>& edge_junctions);
+    void generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions);
 
     /*!
      * connect junctions in each quad

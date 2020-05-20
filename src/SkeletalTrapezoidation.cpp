@@ -660,7 +660,7 @@ void SkeletalTrapezoidation::generateTransitioningRibs()
 {
     // Store the upward edges to the transitions.
     // We only store the halfedge for which the distance_to_boundary is higher at the end than at the beginning.
-    temp_data_t<std::list<TransitionMiddle>> edge_transitions;
+    ptr_vector_t<std::list<TransitionMiddle>> edge_transitions;
 
     generateTransitionMids(edge_transitions);
 
@@ -674,7 +674,7 @@ void SkeletalTrapezoidation::generateTransitioningRibs()
  
     filterTransitionMids();
 
-    temp_data_t<std::list<TransitionEnd>> edge_transition_ends; // We only map the half edge in the upward direction. mapped items are not sorted
+    ptr_vector_t<std::list<TransitionEnd>> edge_transition_ends; // We only map the half edge in the upward direction. mapped items are not sorted
     generateTransitionEnds(edge_transition_ends);
 
     applyTransitions();
@@ -682,7 +682,7 @@ void SkeletalTrapezoidation::generateTransitioningRibs()
 }
 
 
-void SkeletalTrapezoidation::generateTransitionMids(temp_data_t<std::list<TransitionMiddle>>& edge_transitions)
+void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<TransitionMiddle>>& edge_transitions)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -934,7 +934,7 @@ bool SkeletalTrapezoidation::filterEndOfMarkingTransition(edge_t* edge_to_start,
     return should_dissolve;
 }
 
-void SkeletalTrapezoidation::generateTransitionEnds(temp_data_t<std::list<TransitionEnd>>& edge_transition_ends)
+void SkeletalTrapezoidation::generateTransitionEnds(ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -954,7 +954,7 @@ void SkeletalTrapezoidation::generateTransitionEnds(temp_data_t<std::list<Transi
     }
 }
 
-void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, coord_t lower_bead_count, temp_data_t<std::list<TransitionEnd>>& edge_transition_ends)
+void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, coord_t lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -985,7 +985,7 @@ void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, c
     }
 }
 
-bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t lower_bead_count, temp_data_t<std::list<TransitionEnd>>& edge_transition_ends)
+bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -1359,7 +1359,7 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
 
     propagateBeadingsDownward(upward_quad_mids, node_to_beading);
     
-    temp_data_t<std::vector<ExtrusionJunction>> edge_junctions; // junctions ordered high R to low R
+    ptr_vector_t<std::vector<ExtrusionJunction>> edge_junctions; // junctions ordered high R to low R
     generateJunctions(node_to_beading, edge_junctions);
 
     connectJunctions(result_polylines_per_index);
@@ -1539,7 +1539,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     return ret;
 }
 
-void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, temp_data_t<std::vector<ExtrusionJunction>>& edge_junctions)
+void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions)
 {
     for (edge_t& edge_ : graph.edges)
     {
