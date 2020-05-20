@@ -227,11 +227,55 @@ protected:
     std::vector<Point> discretize(const vd_t::edge_type& segment, const std::vector<Point>& points, const std::vector<Segment>& segments);
 
     /*!
-     * 
-     * \param[out] start_source_point output the start point of the source segment of this cell
-     * \param[out] end_source_point output the end point of the source segment of this cell
+     * Compute the range of line segments that surround a cell of the skeletal
+	 * graph that belongs to a point on the medial axis.
+	 *
+	 * This should only be used on cells that belong to a corner in the skeletal
+	 * graph, e.g. triangular cells, not trapezoid cells.
+	 *
+	 * The resulting line segments is just the first and the last segment. They
+	 * are linked to the neighboring segments, so you can iterate over the
+	 * segments until you reach the last segment.
+	 * \param cell The cell to compute the range of line segments for.
+     * \param[out] start_source_point The start point of the source segment of
+	 * this cell.
+     * \param[out] end_source_point The end point of the source segment of this
+	 * cell.
+	 * \param[out] starting_vd_edge The edge of the Voronoi diagram where the
+	 * loop around the cell starts.
+	 * \param[out] ending_vd_edge The edge of the Voronoi diagram where the loop
+	 * around the cell ends.
+	 * \param points All vertices of the input Polygons.
+	 * \param segments All edges of the input Polygons.
+	 * /return Whether the cell is inside of the polygon. If it's outside of the
+	 * polygon we should skip processing it altogether.
      */
     bool computePointCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments);
+
+	/*!
+	 * Compute the range of line segments that surround a cell of the skeletal
+	 * graph that belongs to a line segment of the medial axis.
+	 *
+	 * This should only be used on cells that belong to a central line segment
+	 * of the skeletal graph, e.g. trapezoid cells, not triangular cells.
+	 *
+	 * The resulting line segments is just the first and the last segment. They
+	 * are linked to the neighboring segments, so you can iterate over the
+	 * segments until you reach the last segment.
+	 * \param cell The cell to compute the range of line segments for.
+     * \param[out] start_source_point The start point of the source segment of
+	 * this cell.
+     * \param[out] end_source_point The end point of the source segment of this
+	 * cell.
+	 * \param[out] starting_vd_edge The edge of the Voronoi diagram where the
+	 * loop around the cell starts.
+	 * \param[out] ending_vd_edge The edge of the Voronoi diagram where the loop
+	 * around the cell ends.
+	 * \param points All vertices of the input Polygons.
+	 * \param segments All edges of the input Polygons.
+	 * /return Whether the cell is inside of the polygon. If it's outside of the
+	 * polygon we should skip processing it altogether.
+	 */
     void computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments);
 
     /*!
