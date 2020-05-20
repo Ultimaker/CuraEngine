@@ -52,6 +52,7 @@ class SkeletalTrapezoidation
     using edge_t = HalfEdge<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
     using node_t = HalfEdgeNode<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
     using Beading = BeadingStrategy::Beading;
+    using BeadingPropagation = SkeletalTrapezoidationJoint::BeadingPropagation;
     using TransitionMiddle = SkeletalTrapezoidationEdge::TransitionMiddle;
     using TransitionEnd = SkeletalTrapezoidationEdge::TransitionEnd;
 
@@ -80,21 +81,6 @@ public:
     std::vector<std::list<ExtrusionLine>> generateToolpaths(bool filter_outermost_marked_edges = false);
 
 protected:
-    
-    struct BeadingPropagation
-    {
-        Beading beading;
-        coord_t dist_to_bottom_source;
-        coord_t dist_from_top_source;
-        bool is_upward_propagated_only;
-        BeadingPropagation(const Beading& beading)
-        : beading(beading)
-        , dist_to_bottom_source(0)
-        , dist_from_top_source(0)
-        , is_upward_propagated_only(false)
-        {}
-    };
-
     /*!
      * Auxiliary for referencing one transition along an edge which may contain multiple transitions
      */
@@ -267,7 +253,7 @@ protected:
      * 
      * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist first.
      */
-    void propagateBeadingsUpward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
+    void propagateBeadingsUpward(std::vector<edge_t*>& upward_quad_mids, ptr_vector_t<BeadingPropagation>& node_beadings);
 
     /*!
      * propagate beading info from higher R nodes to lower R nodes
@@ -280,9 +266,9 @@ protected:
      * 
      * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist first.
      */
-    void propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
+    void propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, ptr_vector_t<BeadingPropagation>& node_beadings);
     
-    void propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
+    void propagateBeadingsDownward(edge_t* edge_to_peak, ptr_vector_t<BeadingPropagation>& node_beadings);
 
     /*!
      * \param switching_radius The radius at which we switch from the left beading to the merged
@@ -290,18 +276,18 @@ protected:
     Beading interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right, coord_t switching_radius) const;
     Beading interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right) const;
 
-    BeadingPropagation& getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
+    std::shared_ptr<BeadingPropagation> getOrCreateBeading(node_t* node, ptr_vector_t<BeadingPropagation>& node_beadings);
 
     /*!
      * In case we cannot find the beading of a node, get a beading from the nearest node
      */
-    BeadingPropagation* getNearestBeading(node_t* node, coord_t max_dist, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading);
+    std::shared_ptr<BeadingPropagation> getNearestBeading(node_t* node, coord_t max_dist);
 
     /*!
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
      */
-    void generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions);
+    void generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions);
 
     /*!
      * connect junctions in each quad
@@ -314,7 +300,7 @@ protected:
      * Genrate small segments for local maxima where the beading would only result in a single bead
      * \param[out] segments the generated segments
      */
-    void generateLocalMaximaSingleBeads(std::unordered_map< arachne::SkeletalTrapezoidation::node_t*, arachne::SkeletalTrapezoidation::BeadingPropagation >& node_to_beading, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
+    void generateLocalMaximaSingleBeads(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
 };
 
 } // namespace arachne

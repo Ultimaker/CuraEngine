@@ -1330,8 +1330,8 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
         }
         return a->to->data.distance_to_boundary > b->to->data.distance_to_boundary;
     });
-    
-    std::unordered_map<node_t*, BeadingPropagation> node_to_beading;
+
+    ptr_vector_t<BeadingPropagation> node_beadings;
     { // Store beading
         for (node_t& node : graph.nodes)
         {
@@ -1341,30 +1341,32 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
             }
             if (node.data.transition_ratio == 0)
             {
-                auto pair = node_to_beading.emplace(&node, beading_strategy.compute(node.data.distance_to_boundary * 2, node.data.bead_count));
-                assert(pair.first->second.beading.total_thickness == node.data.distance_to_boundary * 2);
+                node_beadings.emplace_back(new BeadingPropagation(beading_strategy.compute(node.data.distance_to_boundary * 2, node.data.bead_count)));
+                node.data.setBeading(node_beadings.back());
+                assert(node_beadings.back()->beading.total_thickness == node.data.distance_to_boundary * 2);
             }
             else
             {
                 Beading low_count_beading = beading_strategy.compute(node.data.distance_to_boundary * 2, node.data.bead_count);
                 Beading high_count_beading = beading_strategy.compute(node.data.distance_to_boundary * 2, node.data.bead_count + 1);
                 Beading merged = interpolate(low_count_beading, 1.0 - node.data.transition_ratio, high_count_beading);
-                node_to_beading.emplace(&node, merged);
+                node_beadings.emplace_back(new BeadingPropagation(merged));
+                node.data.setBeading(node_beadings.back());
                 assert(merged.total_thickness == node.data.distance_to_boundary * 2);
             }
         }
     }
     
-    propagateBeadingsUpward(upward_quad_mids, node_to_beading);
+    propagateBeadingsUpward(upward_quad_mids, node_beadings);
 
-    propagateBeadingsDownward(upward_quad_mids, node_to_beading);
+    propagateBeadingsDownward(upward_quad_mids, node_beadings);
     
     ptr_vector_t<std::vector<ExtrusionJunction>> edge_junctions; // junctions ordered high R to low R
-    generateJunctions(node_to_beading, edge_junctions);
+    generateJunctions(node_beadings, edge_junctions);
 
     connectJunctions(result_polylines_per_index);
     
-    generateLocalMaximaSingleBeads(node_to_beading, result_polylines_per_index);
+    generateLocalMaximaSingleBeads(result_polylines_per_index);
 }
 
 SkeletalTrapezoidation::edge_t* SkeletalTrapezoidation::getQuadMaxRedgeTo(edge_t* quad_start_edge)
@@ -1391,7 +1393,7 @@ SkeletalTrapezoidation::edge_t* SkeletalTrapezoidation::getQuadMaxRedgeTo(edge_t
     return ret;
 }
 
-void SkeletalTrapezoidation::propagateBeadingsUpward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
+void SkeletalTrapezoidation::propagateBeadingsUpward(std::vector<edge_t*>& upward_quad_mids, ptr_vector_t<BeadingPropagation>& node_beadings)
 {
     for (auto upward_quad_mids_it = upward_quad_mids.rbegin(); upward_quad_mids_it != upward_quad_mids.rend(); ++upward_quad_mids_it)
     {
@@ -1400,28 +1402,27 @@ void SkeletalTrapezoidation::propagateBeadingsUpward(std::vector<edge_t*>& upwar
         { // Don't override local beading
             continue;
         }
-        auto lower_beading_it = node_to_beading.find(upward_edge->from);
-        if (lower_beading_it == node_to_beading.end())
+        if (! upward_edge->from->data.hasBeading())
         { // Only propagate if we have something to propagate
             continue;
         }
-        auto upper_beading_it = node_to_beading.find(upward_edge->to);
-        if (upper_beading_it != node_to_beading.end())
+        BeadingPropagation& lower_beading = *upward_edge->from->data.getBeading();
+        if (upward_edge->to->data.hasBeading())
         { // Only propagate to places where there is place
             continue;
         }
         assert((upward_edge->from->data.distance_to_boundary != upward_edge->to->data.distance_to_boundary || shorterThen(upward_edge->to->p - upward_edge->from->p, marking_filter_dist)) && "zero difference R edges should always be marked");
-        BeadingPropagation& lower_beading = lower_beading_it->second;
         coord_t length = vSize(upward_edge->to->p - upward_edge->from->p);
         BeadingPropagation upper_beading = lower_beading;
         upper_beading.dist_to_bottom_source += length;
         upper_beading.is_upward_propagated_only = true;
-        auto pair = node_to_beading.emplace(upward_edge->to, upper_beading);
+        node_beadings.emplace_back(new BeadingPropagation(upper_beading));
+        upward_edge->to->data.setBeading(node_beadings.back());
         assert(upper_beading.beading.total_thickness <= upward_edge->to->data.distance_to_boundary * 2);
     }
 }
 
-void SkeletalTrapezoidation::propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
+void SkeletalTrapezoidation::propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, ptr_vector_t<BeadingPropagation>& node_beadings)
 {
     for (edge_t* upward_quad_mid : upward_quad_mids)
     {
@@ -1430,39 +1431,39 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(std::vector<edge_t*>& upw
         {
             // for equidistant edge: propagate from known beading to node with unknown beading
             if (upward_quad_mid->from->data.distance_to_boundary == upward_quad_mid->to->data.distance_to_boundary
-                && node_to_beading.find(upward_quad_mid->from) != node_to_beading.end()
-                && node_to_beading.find(upward_quad_mid->to) == node_to_beading.end()
+                && upward_quad_mid->from->data.hasBeading()
+                && ! upward_quad_mid->to->data.hasBeading()
             )
             {
-                propagateBeadingsDownward(upward_quad_mid->twin, node_to_beading);
+                propagateBeadingsDownward(upward_quad_mid->twin, node_beadings);
             }
             else
             {
-                propagateBeadingsDownward(upward_quad_mid, node_to_beading);
+                propagateBeadingsDownward(upward_quad_mid, node_beadings);
             }
         }
     }
 }
 
-void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
+void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, ptr_vector_t<BeadingPropagation>& node_beadings)
 {
     coord_t length = vSize(edge_to_peak->to->p - edge_to_peak->from->p);
-    BeadingPropagation& top_beading = getBeading(edge_to_peak->to, node_to_beading);
+    BeadingPropagation& top_beading = *getOrCreateBeading(edge_to_peak->to, node_beadings);
     assert(top_beading.beading.total_thickness >= edge_to_peak->to->data.distance_to_boundary * 2);
     assert( ! top_beading.is_upward_propagated_only);
 
-    auto it = node_to_beading.find(edge_to_peak->from);
-    if (it == node_to_beading.end())
-    { // Set new beading if there is no beading associatied with the node yet
+    if (! edge_to_peak->from->data.hasBeading())
+    { // Set new beading if there is no beading associated with the node yet
         BeadingPropagation propagated_beading = top_beading;
         propagated_beading.dist_from_top_source += length;
-        auto pair = node_to_beading.emplace(edge_to_peak->from, propagated_beading);
+        node_beadings.emplace_back(new BeadingPropagation(propagated_beading));
+        edge_to_peak->from->data.setBeading(node_beadings.back());
         assert(propagated_beading.beading.total_thickness >= edge_to_peak->from->data.distance_to_boundary * 2);
         assert(pair.second && "we emplaced something");
     }
-    else // if (!it->second.is_finished)
+    else
     {
-        BeadingPropagation& bottom_beading = it->second;
+        BeadingPropagation& bottom_beading = *edge_to_peak->from->data.getBeading();
         coord_t total_dist = top_beading.dist_from_top_source + length + bottom_beading.dist_to_bottom_source;
         float ratio_of_top = static_cast<float>(bottom_beading.dist_to_bottom_source) / std::min(total_dist, beading_propagation_transition_dist);
         ratio_of_top = std::max(0.0f, ratio_of_top);
@@ -1539,7 +1540,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     return ret;
 }
 
-void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions)
+void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions)
 {
     for (edge_t& edge_ : graph.edges)
     {
@@ -1558,7 +1559,7 @@ void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, Beadi
             continue;
         }
 
-        Beading* beading = &getBeading(edge->to, node_to_beading).beading;
+        Beading* beading = &getOrCreateBeading(edge->to, node_beadings)->beading;
         edge_junctions.emplace_back();
         edge_.data.setExtrusionJunctions(edge_junctions.back());  // initialization
         std::vector<ExtrusionJunction>& ret = *edge_junctions.back();
@@ -1609,19 +1610,17 @@ void SkeletalTrapezoidation::generateJunctions(std::unordered_map<node_t*, Beadi
 }
 
 
-SkeletalTrapezoidation::BeadingPropagation& SkeletalTrapezoidation::getBeading(node_t* node, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
+std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezoidation::getOrCreateBeading(node_t* node, ptr_vector_t<BeadingPropagation>& node_beadings)
 {
-    auto beading_it = node_to_beading.find(node);
-    if (beading_it == node_to_beading.end())
+    if (! node->data.hasBeading())
     {
         if (node->data.bead_count == -1)
         { // This bug is due to too small marked edges
             constexpr coord_t nearby_dist = 100; // TODO
-            BeadingPropagation* nearest_beading = getNearestBeading(node, nearby_dist, node_to_beading);
-            
+            auto nearest_beading = getNearestBeading(node, nearby_dist);
             if (nearest_beading)
             {
-                return *nearest_beading;
+                return nearest_beading;
             }
             
             // Else make a new beading:
@@ -1643,13 +1642,14 @@ SkeletalTrapezoidation::BeadingPropagation& SkeletalTrapezoidation::getBeading(n
             node->data.bead_count = beading_strategy.getOptimalBeadCount(dist * 2);
         }
         assert(node->data.bead_count != -1);
-        beading_it = node_to_beading.emplace(node, beading_strategy.compute(node->data.distance_to_boundary * 2, node->data.bead_count)).first;
+        node_beadings.emplace_back(new BeadingPropagation(beading_strategy.compute(node->data.distance_to_boundary * 2, node->data.bead_count)));
+        node->data.setBeading(node_beadings.back());
     }
-    assert(beading_it != node_to_beading.end());
-    return beading_it->second;
+    assert(node->data.hasBeading());
+    return node->data.getBeading();
 }
 
-SkeletalTrapezoidation::BeadingPropagation* SkeletalTrapezoidation::getNearestBeading(node_t* node, coord_t max_dist, std::unordered_map<node_t*, BeadingPropagation>& node_to_beading)
+std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezoidation::getNearestBeading(node_t* node, coord_t max_dist)
 {
     struct DistEdge
     {
@@ -1675,10 +1675,9 @@ SkeletalTrapezoidation::BeadingPropagation* SkeletalTrapezoidation::getNearestBe
         DistEdge here = further_edges.top();
         further_edges.pop();
         if (here.dist > max_dist) return nullptr;
-        auto it = node_to_beading.find(here.edge_to->to);
-        if (it != node_to_beading.end())
+        if (here.edge_to->to->data.hasBeading())
         {
-            return &it->second;
+            return here.edge_to->to->data.getBeading();
         }
         else
         { // recurse
@@ -1810,21 +1809,25 @@ void SkeletalTrapezoidation::connectJunctions(std::vector<std::list<ExtrusionLin
     }
 }
 
-void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::unordered_map<node_t*, BeadingPropagation>& node_to_beading, std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
+void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
 {
-    for (auto pair : node_to_beading)
+    for (auto& node : graph.nodes)
     {
-        node_t* node = pair.first;
-        Beading& beading = pair.second.beading;
-        if (beading.bead_widths.size() % 2 == 1 && node->isLocalMaximum(true) && !node->isMarked())
+        if (! node.data.hasBeading())
+        {
+            continue;
+        }
+        Beading& beading = node.data.getBeading()->beading;
+        if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true) && !node.isMarked())
         {
             size_t inset_index = beading.bead_widths.size() / 2;
             bool is_odd = true;
             if (inset_index >= result_polylines_per_index.size()) result_polylines_per_index.resize(inset_index + 1);
             result_polylines_per_index[inset_index].emplace_back(inset_index, is_odd);
             ExtrusionLine& line = result_polylines_per_index[inset_index].back();
-            line.junctions.emplace_back(node->p, beading.bead_widths[inset_index], inset_index);
-            line.junctions.emplace_back(node->p + Point(50, 0), beading.bead_widths[inset_index], inset_index);
+            line.junctions.emplace_back(node.p, beading.bead_widths[inset_index], inset_index);
+            line.junctions.emplace_back(node.p + Point(50, 0), beading.bead_widths[inset_index], inset_index);
+            // TODO: ^^^ magic value ... + Point(50, 0) ^^^
         }
     }
 }
