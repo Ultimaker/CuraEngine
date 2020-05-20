@@ -135,6 +135,10 @@ void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type&
 
 std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
+	/*Terminology in this function assumes that the edge moves horizontally from
+	left to right. This is not necessarily the case; the edge can go in any
+	direction, but it helps to picture it in a certain direction in your head.*/
+
     const vd_t::cell_type* left_cell = vd_edge.cell();
     const vd_t::cell_type* right_cell = vd_edge.twin()->cell();
     Point start = VoronoiUtils::p(vd_edge.vertex0());
@@ -146,7 +150,7 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
     {
         return std::vector<Point>({ start, end });
     }
-    else if (point_left == !point_right)
+    else if (point_left == !point_right) //This is a parabolic edge between a point and a line.
     {
         const vd_t::cell_type* point_cell = left_cell;
         const vd_t::cell_type* segment_cell = right_cell;
@@ -158,7 +162,7 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         const Segment& s = VoronoiUtils::getSourceSegment(*segment_cell, points, segments);
         return VoronoiUtils::discretizeParabola(p, s, start, end, discretization_step_size, transitioning_angle);
     }
-    else
+    else //This is a straight edge between two points.
     {
         Point left_point = VoronoiUtils::getSourcePoint(*left_cell, points, segments);
         Point right_point = VoronoiUtils::getSourcePoint(*right_cell, points, segments);
@@ -182,7 +186,7 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         coord_t marking_end_x = d * bound;
         Point marking_start = middle + x_axis_dir * marking_start_x / x_axis_length;
         Point marking_end = middle + x_axis_dir * marking_end_x / x_axis_length;
-        coord_t direction = 1;
+        int direction = 1;
         
         if (start_x > end_x)
         {
