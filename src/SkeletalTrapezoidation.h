@@ -52,7 +52,7 @@ class SkeletalTrapezoidation
     using node_t = HalfEdgeNode<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
     using Beading = BeadingStrategy::Beading;
 
-    float transitioning_angle; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
+    AngleRadians transitioning_angle; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
     coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
     coord_t transition_filter_dist; //!< Filter transition mids (i.e. anchors) closer together than this
     coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
@@ -85,8 +85,9 @@ public:
 	 * be.
 	 * \param transition_filter_dist The minimum length of transitions.
 	 * Transitions shorter than this will be considered for dissolution.
-	 * \param beading_propagation_transition_dist How far to propagate known
-	 * beadings down towards the leaves of the skeletal tree.
+	 * \param beading_propagation_transition_dist When there are different
+	 * beadings propagated from below and from above, use this transitioning
+	 * distance.
 	 */
     SkeletalTrapezoidation(const Polygons& polys, 
                            const BeadingStrategy& beading_strategy,
@@ -94,8 +95,25 @@ public:
     , coord_t discretization_step_size = 200
     , coord_t transition_filter_dist = 1000
     , coord_t beading_propagation_transition_dist = 400);
-    
+
+	/*!
+	 * A skeletal graph through the polygons that we need to fill with beads.
+	 *
+	 * The skeletal graph represents the medial axes through each part of the
+	 * polygons, and the lines from these medial axes towards each vertex of the
+	 * polygons. The graph can be used to see what the width is of a polygon in
+	 * each place and where the width transitions.
+	 */
     graph_t graph;
+
+	/*!
+	 * Generate the paths that the printer must extrude, to print the outlines
+	 * in the input polygons.
+	 * \param filter_outermost_marked_edges Some edges are "central" but still
+	 * touch the outside of the polygon. If enabled, don't treat these as
+	 * "central" but as if it's a obtuse corner. As a result, sharp corners will
+	 * no longer end in a single line but will just loop.
+	 */
     std::vector<std::list<ExtrusionLine>> generateToolpaths(bool filter_outermost_marked_edges = false);
 
 protected:
