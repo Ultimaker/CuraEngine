@@ -198,6 +198,32 @@ protected:
      * \p prev_edge serves as input and output. May be null as input.
      */
     void transferEdge(Point from, Point to, vd_t::edge_type& vd_edge, edge_t*& prev_edge, Point& start_source_point, Point& end_source_point, const std::vector<Point>& points, const std::vector<Segment>& segments);
+
+	/*!
+	 * Discretize a Voronoi edge that represents the medial axis of a vertex-
+	 * line region or vertex-vertex region into small segments that can be
+	 * considered to have a straight medial axis and a linear line width
+	 * transition.
+	 *
+	 * The medial axis between a point and a line is a parabola. The rest of the
+	 * algorithm doesn't want to have to deal with parabola, so this discretises
+	 * the parabola into straight line segments. This is necessary if there is a
+	 * sharp inner corner (acts as a point) that comes close to a straight edge.
+	 *
+	 * The medial axis between a point and a point is a straight line segment.
+	 * However the distance from the medial axis to either of those points draws
+	 * a parabola as you go along the medial axis. That means that the resulting
+	 * line width along the medial axis would not be linearly increasing or
+	 * linearly decreasing, but needs to take the shape of a parabola. Instead,
+	 * we'll break this edge up into tiny line segments that can approximate the
+	 * parabola with tiny linear increases or decreases in line width.
+	 * \param segment The variable-width Voronoi edge to discretize.
+	 * \param points All vertices of the original Polygons to fill with beads.
+	 * \param segments All line segments of the original Polygons to fill with
+	 * beads.
+	 * \return A number of coordinates along the edge where the edge is broken
+	 * up into discrete pieces.
+	 */
     std::vector<Point> discretize(const vd_t::edge_type& segment, const std::vector<Point>& points, const std::vector<Segment>& segments);
 
     /*!
