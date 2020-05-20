@@ -135,9 +135,9 @@ void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type&
 
 std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
-	/*Terminology in this function assumes that the edge moves horizontally from
-	left to right. This is not necessarily the case; the edge can go in any
-	direction, but it helps to picture it in a certain direction in your head.*/
+    /*Terminology in this function assumes that the edge moves horizontally from
+    left to right. This is not necessarily the case; the edge can go in any
+    direction, but it helps to picture it in a certain direction in your head.*/
 
     const vd_t::cell_type* left_cell = vd_edge.cell();
     const vd_t::cell_type* right_cell = vd_edge.twin()->cell();
@@ -269,7 +269,9 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell, Point&
             ending_vd_edge = vd_edge;
         }
         else
+        {
             assert((VoronoiUtils::p(vd_edge->vertex0()) == source_point || !vd_edge->is_secondary()) && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
+        }
         first = false;
     }
     assert(starting_vd_edge && ending_vd_edge);
