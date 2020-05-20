@@ -58,14 +58,39 @@ class SkeletalTrapezoidation
     coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
     coord_t marking_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
     coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
-    
+
+	/*!
+	 * The strategy to use to fill a certain shape with lines.
+	 *
+	 * Various BeadingStrategies are available that differ in which lines get to
+	 * print at their optimal width, where the play is being compensated, and
+	 * how the joints are handled where we transition to different numbers of
+	 * lines.
+	 */
     const BeadingStrategy& beading_strategy;
 
 public:
     using Segment = PolygonsSegmentIndex;
+
+	/*!
+	 * Construct a new trapezoidation problem to solve.
+	 * \param polys The shapes to fill with walls.
+	 * \param beading_strategy The strategy to use to fill these shapes.
+	 * \param transitioning_angle Where we transition to a different number of
+	 * walls, how steep should this transition be? A lower angle means that the
+	 * transition will be longer.
+	 * \param discretization_step_size Since g-code can't represent smooth
+	 * transitions in line width, the line width must change with discretized
+	 * steps. This indicates how long the line segments between those steps will
+	 * be.
+	 * \param transition_filter_dist The minimum length of transitions.
+	 * Transitions shorter than this will be considered for dissolution.
+	 * \param beading_propagation_transition_dist How far to propagate known
+	 * beadings down towards the leaves of the skeletal tree.
+	 */
     SkeletalTrapezoidation(const Polygons& polys, 
                            const BeadingStrategy& beading_strategy,
-                           float transitioning_angle
+                           AngleRadians transitioning_angle
     , coord_t discretization_step_size = 200
     , coord_t transition_filter_dist = 1000
     , coord_t beading_propagation_transition_dist = 400);

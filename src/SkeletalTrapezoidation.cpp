@@ -1470,8 +1470,8 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, std
     {
         BeadingPropagation& bottom_beading = it->second;
         coord_t total_dist = top_beading.dist_from_top_source + length + bottom_beading.dist_to_bottom_source;
-        float ratio_of_top = static_cast<float>(bottom_beading.dist_to_bottom_source) / std::min(total_dist, beading_propagation_transition_dist);
-        ratio_of_top = std::max(0.0f, ratio_of_top);
+        Ratio ratio_of_top = static_cast<float>(bottom_beading.dist_to_bottom_source) / std::min(total_dist, beading_propagation_transition_dist);
+        ratio_of_top = std::max(0.0_r, ratio_of_top);
         if (ratio_of_top >= 1.0)
         {
             bottom_beading = top_beading;
