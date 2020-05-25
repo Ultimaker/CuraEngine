@@ -1569,6 +1569,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             Polygons skin_above;        // skin regions on the immediate layer above
             Polygons skin_above_upper;  // skin regions on the 2nd and subsequent layers above
 
+            constexpr coord_t tiny_infill_offset = 10;
+
             for (size_t i = 1; i <= skin_edge_support_layers; ++i)
             {
                 const size_t skin_layer_nr = gcode_layer.getLayerNr() + i;
@@ -1584,7 +1586,9 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                             }
                             else
                             {
-                                skin_above_upper.add(skin_part.outline);
+                                // combine the regions of skin on all the layers from 2 upwards but don't let the regions merge together
+                                // otherwise "terraced" skin regions on separate layers will look like a single region of unbroken skin
+                                skin_above_upper.add(skin_part.outline.difference(skin_above_upper.offset(tiny_infill_offset)));
                             }
                         }
                     }
@@ -1598,8 +1602,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             infill_below_skin.removeSmallAreas(min_area);
 
             // combine the skin regions with a small gap between them
-            constexpr coord_t tiny_infill_offset = 10;
-            infill_below_skin.add(skin_above_upper.unionPolygons().intersection(in_outline).difference(infill_below_skin.offset(tiny_infill_offset)));
+            infill_below_skin.add(skin_above_upper.intersection(in_outline).difference(infill_below_skin.offset(tiny_infill_offset)));
             infill_below_skin.removeSmallAreas(min_area);
 
             if (infill_below_skin.size())
