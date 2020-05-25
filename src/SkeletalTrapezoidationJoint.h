@@ -1,9 +1,12 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 
 
-#ifndef VORONOI_QUADRILATERALIZATION_JOINT_H
-#define VORONOI_QUADRILATERALIZATION_JOINT_H
+#ifndef SKELETAL_TRAPEZOIDATION_JOINT_H
+#define SKELETAL_TRAPEZOIDATION_JOINT_H
 
+#include <memory> // smart pointers
+
+#include "BeadingStrategy/BeadingStrategy.h"
 #include "utils/IntPoint.h"
 
 namespace arachne
@@ -12,7 +15,22 @@ namespace arachne
 
 class SkeletalTrapezoidationJoint
 {
+    using Beading = BeadingStrategy::Beading;
 public:
+    struct BeadingPropagation
+    {
+        Beading beading;
+        coord_t dist_to_bottom_source;
+        coord_t dist_from_top_source;
+        bool is_upward_propagated_only;
+        BeadingPropagation(const Beading& beading)
+            : beading(beading)
+            , dist_to_bottom_source(0)
+            , dist_from_top_source(0)
+            , is_upward_propagated_only(false)
+        {}
+    };
+
     coord_t distance_to_boundary;
     coord_t bead_count;
     float transition_ratio; //! The distance near the skeleton to leave free because this joint is in the middle of a transition, as a fraction of the inner bead width of the bead at the higher transition.
@@ -21,10 +39,24 @@ public:
     , bead_count(-1)
     , transition_ratio(0)
     {}
+
+    bool hasBeading() const
+    {
+        return beading.use_count() > 0;
+    }
+    void setBeading(std::shared_ptr<BeadingPropagation> storage)
+    {
+        beading = storage;
+    }
+    std::shared_ptr<BeadingPropagation> getBeading()
+    {
+        return beading.lock();
+    }
+
+private:
+
+    std::weak_ptr<BeadingPropagation> beading;
 };
 
-
-
-
 } // namespace arachne
-#endif // VORONOI_QUADRILATERALIZATION_JOINT_H
+#endif // SKELETAL_TRAPEZOIDATION_JOINT_H
