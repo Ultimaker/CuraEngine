@@ -251,8 +251,8 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell, Point&
     { // Cell is outside of polygon
         return false; // Don't copy any part of this cell
     }
-    bool first = true;
-    for (vd_t::edge_type* vd_edge = cell.incident_edge(); vd_edge != cell.incident_edge() || first; vd_edge = vd_edge->next())
+    vd_t::edge_type* vd_edge = cell.incident_edge();
+    do
     {
         assert(vd_edge->is_finite());
         Point p1 = VoronoiUtils::p(vd_edge->vertex1());
@@ -267,8 +267,8 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell, Point&
         {
             assert((VoronoiUtils::p(vd_edge->vertex0()) == source_point || !vd_edge->is_secondary()) && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
         }
-        first = false;
     }
+    while (vd_edge = vd_edge->next(), vd_edge != cell.incident_edge());
     assert(starting_vd_edge && ending_vd_edge);
     assert(starting_vd_edge != ending_vd_edge);
     return true;
