@@ -19,12 +19,12 @@ struct ExtrusionLine
     : inset_idx(inset_idx)
     , is_odd(is_odd)
     {}
-    coord_t computeLength()
+    coord_t getLength() const
     {
         if (junctions.size() <= 1) return 0;
         coord_t len = 0;
         ExtrusionJunction prev = junctions.front();
-        for (ExtrusionJunction& next : junctions)
+        for (const ExtrusionJunction& next : junctions)
         {
             len += vSize(next.p - prev.p);
             prev = next;
