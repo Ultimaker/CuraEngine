@@ -106,23 +106,23 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
     std::vector<Point> discretized;
     // x is distance of point projected on the segment ab
     // xx is point projected on the segment ab
-    Point a = segment.from();
-    Point b = segment.to();
-    Point ab = b - a;
-    Point as = s - a;
-    Point ae = e - a;
-    coord_t ab_size = vSize(ab);
-    coord_t sx = dot(as, ab) / ab_size;
-    coord_t ex = dot(ae, ab) / ab_size;
-    coord_t sxex = ex - sx;
+    const Point a = segment.from();
+    const Point b = segment.to();
+    const Point ab = b - a;
+    const Point as = s - a;
+    const Point ae = e - a;
+    const coord_t ab_size = vSize(ab);
+    const coord_t sx = dot(as, ab) / ab_size;
+    const coord_t ex = dot(ae, ab) / ab_size;
+    const coord_t sxex = ex - sx;
     
-    Point ap = p - a;
-    coord_t px = dot(ap, ab) / ab_size;
+    const Point ap = p - a;
+    const coord_t px = dot(ap, ab) / ab_size;
     
-    Point pxx = LinearAlg2D::getClosestOnLine(p, a, b);
-    Point ppxx = pxx - p;
-    coord_t d = vSize(ppxx);
-    PointMatrix rot = PointMatrix(turn90CCW(ppxx));
+    const Point pxx = LinearAlg2D::getClosestOnLine(p, a, b);
+    const Point ppxx = pxx - p;
+    const coord_t d = vSize(ppxx);
+    const PointMatrix rot = PointMatrix(turn90CCW(ppxx));
     
     if (d == 0)
     {
@@ -131,16 +131,15 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
         return discretized;
     }
     
-    float marking_bound = atan(transitioning_angle * 0.5);
+    const float marking_bound = atan(transitioning_angle * 0.5);
     coord_t msx = - marking_bound * d; // projected marking_start
     coord_t mex = marking_bound * d; // projected marking_end
-    coord_t marking_start_end_h = msx * msx / (2 * d) + d / 2;
+    const coord_t marking_start_end_h = msx * msx / (2 * d) + d / 2;
     Point marking_start = rot.unapply(Point(msx, marking_start_end_h)) + pxx;
     Point marking_end = rot.unapply(Point(mex, marking_start_end_h)) + pxx;
-    coord_t dir = 1;
-    if (sx > ex)
+    const int dir = (sx > ex) ? -1 : 1;
+    if (dir < 0)
     {
-        dir = -1;
         std::swap(marking_start, marking_end);
         std::swap(msx, mex);
     }
@@ -148,19 +147,18 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
     bool add_marking_start = msx * dir > (sx - px) * dir && msx * dir < (ex - px) * dir;
     bool add_marking_end = mex * dir > (sx - px) * dir && mex * dir < (ex - px) * dir;
 
-    Point apex = rot.unapply(Point(0, d / 2)) + pxx;
+    const Point apex = rot.unapply(Point(0, d / 2)) + pxx;
     bool add_apex = (sx - px) * dir < 0 && (ex - px) * dir > 0;
 
     assert(!(add_marking_start && add_marking_end) || add_apex);
     
-    coord_t step_count = static_cast<coord_t>(static_cast<float>(std::abs(ex - sx)) / approximate_step_size + 0.5);
+    const coord_t step_count = static_cast<coord_t>(static_cast<float>(std::abs(ex - sx)) / approximate_step_size + 0.5);
     
     discretized.emplace_back(s);
     for (coord_t step = 1; step < step_count; step++)
     {
-        
-        coord_t x = sx + sxex * step / step_count - px;
-        coord_t y = x * x / (2 * d) + d / 2;
+        const coord_t x = sx + sxex * step / step_count - px;
+        const coord_t y = x * x / (2 * d) + d / 2;
         
         if (add_marking_start && msx * dir < x * dir)
         {
@@ -177,7 +175,7 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
             discretized.emplace_back(marking_end);
             add_marking_end = false;
         }
-        Point result = rot.unapply(Point(x, y)) + pxx;
+        const Point result = rot.unapply(Point(x, y)) + pxx;
         discretized.emplace_back(result);
     }
     if (add_apex)
