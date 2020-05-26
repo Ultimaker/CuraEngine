@@ -82,14 +82,14 @@ bool mirroring;
 bool shuffle_strategies;
 std::vector<StrategyType> strategies;
 
-coord_t discretization_step_size = 200;
-coord_t transition_filter_dist = 1000;
-coord_t beading_propagation_transition_dist = 400;
-bool reduce_overlapping_segments = true;
-bool connect_odd_lines_to_polygons = true;
-bool filter_outermost_marked_edges = false;
+constexpr coord_t discretization_step_size = 200;
+constexpr coord_t transition_filter_dist = 1000;
+constexpr coord_t beading_propagation_transition_dist = 400;
+constexpr bool reduce_overlapping_segments = true;
+constexpr bool connect_odd_lines_to_polygons = true;
+constexpr bool filter_outermost_marked_edges = false;
 
-double transitioning_angle = M_PI / 4;
+constexpr double transitioning_angle = M_PI / 4;
 
 std::optional<coord_t> min_bead_width; // for if we want to deal with geometry smaller than the nozzle size separately
 std::optional<coord_t> min_feature_size; // for if we want to deal with geometry smaller than the nozzle size separately

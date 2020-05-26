@@ -63,8 +63,8 @@ class SkeletalTrapezoidation
     coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
     coord_t transition_filter_dist; //!< Filter transition mids (i.e. anchors) closer together than this
     coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
-    coord_t marking_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
-    coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
+    static constexpr coord_t marking_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
+    static constexpr coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
 
     /*!
      * The strategy to use to fill a certain shape with lines.

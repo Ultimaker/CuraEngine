@@ -9,6 +9,7 @@
 #include "../utils/IntPoint.h"
 #include "../utils/logoutput.h"
 #include "../utils/optional.h"  // until the move to C++17
+#include "../settings/types/AngleRadians.h"
 
 namespace arachne
 {
@@ -48,7 +49,7 @@ public:
      * The maximum angle between outline segments smaller than which we are going to add transitions
      * Equals 180 - the "limit bisector angle" from the paper
      */
-    float transitioning_angle;
+    AngleRadians transitioning_angle;
 
     BeadingStrategy(coord_t optimal_width, coord_t default_transition_length, float transitioning_angle = M_PI / 3)
     : optimal_width(optimal_width)
