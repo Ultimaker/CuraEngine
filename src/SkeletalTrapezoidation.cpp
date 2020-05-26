@@ -282,15 +282,14 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
 
     // Find starting edge
     // Find end edge
-    bool first = true;
     bool seen_possible_start = false;
     bool after_start = false;
     bool ending_edge_is_set_before_start = false;
-    for (vd_t::edge_type* edge = cell.incident_edge(); edge != cell.incident_edge() || first; edge = edge->next())
+    vd_t::edge_type* edge = cell.incident_edge();
+    do
     {
         if (edge->is_infinite())
         {
-            first = false;
             continue;
         }
         bool check_secondary_edge = true;
@@ -315,8 +314,7 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
             ending_vd_edge = edge;
             check_secondary_edge = false;
         }
-        first = false;
-    }
+    } while (edge = edge->next(), edge != cell.incident_edge());
     
     assert(starting_vd_edge && ending_vd_edge);
     assert(starting_vd_edge != ending_vd_edge);
