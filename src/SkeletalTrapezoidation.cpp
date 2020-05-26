@@ -151,16 +151,10 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
     {
         return std::vector<Point>({ start, end });
     }
-    else if (point_left == !point_right) //This is a parabolic edge between a point and a line.
+    else if (point_left != point_right) //This is a parabolic edge between a point and a line.
     {
-        const vd_t::cell_type* point_cell = left_cell;
-        const vd_t::cell_type* segment_cell = right_cell;
-        if (!point_left)
-        {
-            std::swap(point_cell, segment_cell);
-        }
-        Point p = VoronoiUtils::getSourcePoint(*point_cell, points, segments);
-        const Segment& s = VoronoiUtils::getSourceSegment(*segment_cell, points, segments);
+        Point p = VoronoiUtils::getSourcePoint(*(point_left ? left_cell : right_cell), points, segments);
+        const Segment& s = VoronoiUtils::getSourceSegment(*(point_left ? right_cell : left_cell), points, segments);
         return VoronoiUtils::discretizeParabola(p, s, start, end, discretization_step_size, transitioning_angle);
     }
     else //This is a straight edge between two points.
