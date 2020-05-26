@@ -509,7 +509,7 @@ void SkeletalTrapezoidation::updateMarking()
         {
             edge.data.setMarked(edge.twin->data.isMarked());
         }
-        else if (edge.data.type == SkeletalTrapezoidationEdge::EXTRA_VD)
+        else if (edge.data.type == SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD)
         {
             edge.data.setMarked(false);
         }
@@ -1191,9 +1191,9 @@ void SkeletalTrapezoidation::applyTransitions()
             Point mid = a + normal(ab, end_pos);
             
             assert(last_edge_replacing_input->data.isMarked());
-            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
+            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
             last_edge_replacing_input = graph.insertNode(last_edge_replacing_input, mid, new_node_bead_count);
-            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
+            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
             assert(last_edge_replacing_input->data.isMarked());
         }
     }
@@ -1277,9 +1277,9 @@ void SkeletalTrapezoidation::generateExtraRibs()
             Point mid = a + normal(ab, end_pos);
             
             assert(last_edge_replacing_input->data.isMarked());
-            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
+            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
             last_edge_replacing_input = graph.insertNode(last_edge_replacing_input, mid, new_node_bead_count);
-            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EXTRA_VD);
+            assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
             assert(last_edge_replacing_input->data.isMarked());
         }
     }

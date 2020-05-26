@@ -16,8 +16,10 @@ namespace arachne
 
 class SkeletalTrapezoidationEdge
 {
-    using type_t = int_least16_t;
+private:
     using edge_t = SkeletalTrapezoidationEdge;
+    enum class Marked { UNKNOWN = -1, NO, YES };
+
 public:
     /*!
      * Representing the location along an edge where the anchor position of a transition should be placed.
@@ -44,31 +46,34 @@ public:
         {}
     };
 
-    type_t type;
-    static constexpr type_t NORMAL = 0; // from voronoi diagram
-    static constexpr type_t EXTRA_VD = 1; // introduced to voronoi diagram in order to make the gMAT
-    static constexpr type_t TRANSITION_END = 2; // introduced to voronoi diagram in order to make the gMAT
+    enum class EdgeType
+    {
+        NORMAL = 0, // from voronoi diagram
+        EXTRA_VD = 1, // introduced to voronoi diagram in order to make the gMAT
+        TRANSITION_END = 2 // introduced to voronoi diagram in order to make the gMAT
+    };
+    EdgeType type;
 
     SkeletalTrapezoidationEdge()
-    : SkeletalTrapezoidationEdge(NORMAL)
+    : SkeletalTrapezoidationEdge(EdgeType::NORMAL)
     {}
-    SkeletalTrapezoidationEdge(type_t type)
+    SkeletalTrapezoidationEdge(const EdgeType& type)
     : type(type)
-    , is_marked(-1)
+    , is_marked(Marked::UNKNOWN)
     {}
 
     bool isMarked() const
     {
-        assert(is_marked != -1);
-        return is_marked;
+        assert(is_marked != Marked::UNKNOWN);
+        return is_marked == Marked::YES;
     }
     void setMarked(bool b)
     {
-        is_marked = b;
+        is_marked = b ? Marked::YES : Marked::NO;
     }
     bool markingIsSet() const
     {
-        return is_marked >= 0;
+        return is_marked != Marked::UNKNOWN;
     }
 
     bool hasTransitions(bool ignore_empty = false) const
@@ -111,7 +116,7 @@ public:
     }
 
 private:
-    int_least8_t is_marked; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown
+    Marked is_marked; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown
 
     std::weak_ptr<std::list<TransitionMiddle>> transitions;
     std::weak_ptr<std::list<TransitionEnd>> transition_ends;
