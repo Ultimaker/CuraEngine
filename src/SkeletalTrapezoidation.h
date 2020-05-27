@@ -161,6 +161,11 @@ protected:
     node_t& makeNode(vd_t::vertex_type& vd_node, Point p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
     
     /*!
+     * (Eventual) returned 'polylines per index' result (from generateToolpaths):
+     */
+    std::vector<std::list<ExtrusionLine>> generated_toolpaths;
+
+    /*!
      * Transfer an edge from the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
      * \p prev_edge serves as input and output. May be null as input.
      */
@@ -351,7 +356,7 @@ protected:
     /*!
      * \param[out] segments the generated segments
      */
-    void generateSegments(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
+    void generateSegments();
 
     edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
 
@@ -403,17 +408,19 @@ protected:
     void generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions);
 
     /*!
-     * connect junctions in each quad
-     * \param edge_to_junctions junctions ordered high R to low R
-     * \param[out] segments the generated segments
+     * add a new toolpath segment, defined between two extrusion-juntions
      */
-    void connectJunctions(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
+    void addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path);
+
+    /*!
+     * connect junctions in each quad
+     */
+    void connectJunctions();
 
     /*!
      * Genrate small segments for local maxima where the beading would only result in a single bead
-     * \param[out] segments the generated segments
      */
-    void generateLocalMaximaSingleBeads(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index);
+    void generateLocalMaximaSingleBeads();
 };
 
 } // namespace arachne

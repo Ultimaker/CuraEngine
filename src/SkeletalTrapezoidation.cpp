@@ -462,6 +462,8 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 
 std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(bool filter_outermost_marked_edges)
 {
+    generated_toolpaths.clear();
+
     updateMarking();
 
     filterMarking(marking_filter_dist);
@@ -479,10 +481,9 @@ std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(
 
     generateExtraRibs();
 
-    std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
-    generateSegments(result_polylines_per_index);
+    generateSegments();
 
-    return result_polylines_per_index;
+    return generated_toolpaths;
 }
 
 void SkeletalTrapezoidation::updateMarking()
@@ -1304,7 +1305,7 @@ void SkeletalTrapezoidation::generateExtraRibs()
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
-void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
+void SkeletalTrapezoidation::generateSegments()
 {
     std::vector<edge_t*> upward_quad_mids;
     for (edge_t& edge : graph.edges)
@@ -1376,9 +1377,9 @@ void SkeletalTrapezoidation::generateSegments(std::vector<std::list<ExtrusionLin
     ptr_vector_t<std::vector<ExtrusionJunction>> edge_junctions; // junctions ordered high R to low R
     generateJunctions(node_beadings, edge_junctions);
 
-    connectJunctions(result_polylines_per_index);
+    connectJunctions();
     
-    generateLocalMaximaSingleBeads(result_polylines_per_index);
+    generateLocalMaximaSingleBeads();
 }
 
 SkeletalTrapezoidation::edge_t* SkeletalTrapezoidation::getQuadMaxRedgeTo(edge_t* quad_start_edge)
@@ -1702,7 +1703,43 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
     return nullptr;
 }
 
-void SkeletalTrapezoidation::connectJunctions(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
+void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path)
+{
+    if (from == to) return;
+
+    size_t inset_idx = from.perimeter_index;
+    if (inset_idx >= generated_toolpaths.size())
+    {
+        generated_toolpaths.resize(inset_idx + 1);
+    }
+    assert((generated_toolpaths[inset_idx].empty() || !generated_toolpaths[inset_idx].back().junctions.empty()) && "empty extrusion lines should never have been generated");
+    if (!force_new_path
+        && !generated_toolpaths[inset_idx].empty()
+        && generated_toolpaths[inset_idx].back().is_odd == is_odd
+        && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - to.p, 10)
+        && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - to.w) < 10
+        )
+    {
+        generated_toolpaths[inset_idx].back().junctions.push_back(from);
+    }
+    else if (!force_new_path
+        && !generated_toolpaths[inset_idx].empty()
+        && generated_toolpaths[inset_idx].back().is_odd == is_odd
+        && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - from.p, 10)
+        && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - from.w) < 10
+        )
+    {
+        generated_toolpaths[inset_idx].back().junctions.push_back(to);
+    }
+    else
+    {
+        generated_toolpaths[inset_idx].emplace_back(inset_idx, is_odd);
+        generated_toolpaths[inset_idx].back().junctions.push_back(from);
+        generated_toolpaths[inset_idx].back().junctions.push_back(to);
+    }
+};
+
+void SkeletalTrapezoidation::connectJunctions()
 {   
     auto getNextQuad = [](edge_t* quad_start)
     {
@@ -1710,40 +1747,7 @@ void SkeletalTrapezoidation::connectJunctions(std::vector<std::list<ExtrusionLin
         while (quad_end->next) quad_end = quad_end->next;
         return quad_end->twin;
     };
-    
-    auto addSegment = [&result_polylines_per_index](ExtrusionJunction& from, ExtrusionJunction& to, bool is_odd, bool force_new_path)
-    {
-        if (from == to) return;
 
-        size_t inset_idx = from.perimeter_index;
-        if (inset_idx >= result_polylines_per_index.size()) result_polylines_per_index.resize(inset_idx + 1);
-        assert((result_polylines_per_index[inset_idx].empty() || !result_polylines_per_index[inset_idx].back().junctions.empty()) && "empty extrusion lines should never have been generated");
-        if ( ! force_new_path
-            && ! result_polylines_per_index[inset_idx].empty()
-            && result_polylines_per_index[inset_idx].back().is_odd == is_odd
-            && shorterThen(result_polylines_per_index[inset_idx].back().junctions.back().p - to.p, 10)
-            && std::abs(result_polylines_per_index[inset_idx].back().junctions.back().w - to.w) < 10
-            )
-        {
-            result_polylines_per_index[inset_idx].back().junctions.push_back(from);
-        }
-        else if ( ! force_new_path
-            && ! result_polylines_per_index[inset_idx].empty()
-            && result_polylines_per_index[inset_idx].back().is_odd == is_odd
-            && shorterThen(result_polylines_per_index[inset_idx].back().junctions.back().p - from.p, 10)
-            && std::abs(result_polylines_per_index[inset_idx].back().junctions.back().w - from.w) < 10
-            )
-        {
-            result_polylines_per_index[inset_idx].back().junctions.push_back(to);
-        }
-        else
-        {
-            result_polylines_per_index[inset_idx].emplace_back(inset_idx, is_odd);
-            result_polylines_per_index[inset_idx].back().junctions.push_back(from);
-            result_polylines_per_index[inset_idx].back().junctions.push_back(to);
-        }
-    };
-    
     std::unordered_set<edge_t*> unprocessed_quad_starts(graph.edges.size() * 5 / 2);
     for (edge_t& edge : graph.edges)
     {
@@ -1819,14 +1823,14 @@ void SkeletalTrapezoidation::connectJunctions(std::vector<std::list<ExtrusionLin
                 
                 passed_odd_edges.emplace(quad_start->next);
                 const bool force_new_path = is_odd_segment && quad_start->to->isMultiIntersection();
-                addSegment(from, to, is_odd_segment, force_new_path);
+                addToolpathSegment(from, to, is_odd_segment, force_new_path);
             }
         }
         while(quad_start = getNextQuad(quad_start), quad_start != poly_domain_start);
     }
 }
 
-void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::vector<std::list<ExtrusionLine>>& result_polylines_per_index)
+void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 {
     for (auto& node : graph.nodes)
     {
@@ -1839,9 +1843,12 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads(std::vector<std::lis
         {
             size_t inset_index = beading.bead_widths.size() / 2;
             bool is_odd = true;
-            if (inset_index >= result_polylines_per_index.size()) result_polylines_per_index.resize(inset_index + 1);
-            result_polylines_per_index[inset_index].emplace_back(inset_index, is_odd);
-            ExtrusionLine& line = result_polylines_per_index[inset_index].back();
+            if (inset_index >= generated_toolpaths.size())
+            {
+                generated_toolpaths.resize(inset_index + 1);
+            }
+            generated_toolpaths[inset_index].emplace_back(inset_index, is_odd);
+            ExtrusionLine& line = generated_toolpaths[inset_index].back();
             line.junctions.emplace_back(node.p, beading.bead_widths[inset_index], inset_index);
             line.junctions.emplace_back(node.p + Point(50, 0), beading.bead_widths[inset_index], inset_index);
             // TODO: ^^^ magic value ... + Point(50, 0) ^^^
