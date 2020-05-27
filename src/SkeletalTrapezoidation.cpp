@@ -1741,13 +1741,6 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
 
 void SkeletalTrapezoidation::connectJunctions()
 {   
-    auto getNextQuad = [](edge_t* quad_start)
-    {
-        edge_t* quad_end = quad_start;
-        while (quad_end->next) quad_end = quad_end->next;
-        return quad_end->twin;
-    };
-
     std::unordered_set<edge_t*> unprocessed_quad_starts(graph.edges.size() * 5 / 2);
     for (edge_t& edge : graph.edges)
     {
@@ -1826,7 +1819,7 @@ void SkeletalTrapezoidation::connectJunctions()
                 addToolpathSegment(from, to, is_odd_segment, force_new_path);
             }
         }
-        while(quad_start = getNextQuad(quad_start), quad_start != poly_domain_start);
+        while(quad_start = quad_start->getNextUnconnected(), quad_start != poly_domain_start);
     }
 }
 

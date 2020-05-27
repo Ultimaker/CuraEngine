@@ -143,6 +143,21 @@ public:
         }
         return ret;
     }
+
+    // Unconnected or null if complete face-loop.
+    edge_t* getNextUnconnected()
+    {
+        edge_t* result = this;
+        while (result->next)
+        {
+            result = result->next;
+            if (result == this)
+            {
+                return nullptr;
+            }
+        }
+        return result->twin;
+    }
 };
 
 
