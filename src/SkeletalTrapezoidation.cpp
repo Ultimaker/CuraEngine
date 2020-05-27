@@ -80,8 +80,8 @@ void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type&
             assert(twin->prev->twin); // Back rib
             assert(twin->prev->twin->prev); // Prev segment along parabola
             
-            bool is_next_to_start_or_end = false; // Only ribs at the end of a cell should be skipped
-            graph.makeRib(prev_edge, start_source_point, end_source_point, is_next_to_start_or_end);
+            constexpr bool is_not_next_to_start_or_end = false; // Only ribs at the end of a cell should be skipped
+            graph.makeRib(prev_edge, start_source_point, end_source_point, is_not_next_to_start_or_end);
         }
         assert(prev_edge);
     }
@@ -125,8 +125,8 @@ void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type&
             
             if (p1_idx < discretized.size() - 1)
             { // Rib for last segment gets introduced outside this function!
-                bool is_next_to_start_or_end = false; // Only ribs at the end of a cell should be skipped
-                graph.makeRib(prev_edge, start_source_point, end_source_point, is_next_to_start_or_end);
+                constexpr bool is_not_next_to_start_or_end = false; // Only ribs at the end of a cell should be skipped
+                graph.makeRib(prev_edge, start_source_point, end_source_point, is_not_next_to_start_or_end);
             }
         }
         assert(prev_edge);
@@ -389,7 +389,8 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         node_t* starting_node = vd_node_to_he_node[starting_vonoroi_edge->vertex0()];
         starting_node->data.distance_to_boundary = 0;
 
-        graph.makeRib(prev_edge, start_source_point, end_source_point, true);
+        constexpr bool is_next_to_start_or_end = true;
+        graph.makeRib(prev_edge, start_source_point, end_source_point, is_next_to_start_or_end);
         for (vd_t::edge_type* vd_edge = starting_vonoroi_edge->next(); vd_edge != ending_vonoroi_edge; vd_edge = vd_edge->next())
         {
             assert(vd_edge->is_finite());
