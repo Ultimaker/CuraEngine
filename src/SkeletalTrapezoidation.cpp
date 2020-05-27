@@ -337,6 +337,9 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys, const Bead
 
 void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 {
+    vd_edge_to_he_edge.clear();
+    vd_node_to_he_node.clear();
+
     std::vector<Point> points; // Remains empty
 
     std::vector<Segment> segments;
@@ -420,9 +423,6 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
             edge.from->incident_edge = &edge;
         }
     }
-
-    vd_edge_to_he_edge.clear();
-    vd_node_to_he_node.clear();
 }
 
 void SkeletalTrapezoidation::separatePointyQuadEndNodes()
