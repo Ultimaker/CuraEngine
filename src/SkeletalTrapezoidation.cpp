@@ -627,37 +627,45 @@ void SkeletalTrapezoidation:: filterUnmarkedRegions()
 bool SkeletalTrapezoidation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist)
 {
     coord_t r = to_edge->to->data.distance_to_boundary;
-    bool dissolve = false;
-    for (edge_t* next_edge = to_edge->next; next_edge && next_edge != to_edge->twin; next_edge = next_edge->twin->next)
+
+    edge_t* next_edge = to_edge->next;
+    for (; next_edge && next_edge != to_edge->twin; next_edge = next_edge->twin->next)
     {
-        coord_t length = vSize(next_edge->to->p - next_edge->from->p);
-        if (next_edge->to->data.distance_to_boundary < r && !shorterThen(next_edge->to->p - next_edge->from->p, 10))
-        { // Only walk upward
-            continue;
-        }
-        if (next_edge->to->data.bead_count == bead_count)
+        if (next_edge->to->data.distance_to_boundary >= r || shorterThen(next_edge->to->p - next_edge->from->p, 10))
         {
-            dissolve = true;
+            break; // Only walk upward
         }
-        else if (next_edge->to->data.bead_count < 0)
-        {
-            dissolve = filterUnmarkedRegions(next_edge, bead_count, traveled_dist + length, max_dist);
-        }
-        else // Upward bead count is different
-        {
-            // Dissolve if two marked regions with different bead count are closer together than the max_dist (= transition distance)
-            dissolve = (traveled_dist + length < max_dist) && std::abs(next_edge->to->data.bead_count - bead_count) == 1;
-        }
-        if (dissolve)
-        {
-            next_edge->data.setMarked(true);
-            next_edge->twin->data.setMarked(true);
-            next_edge->to->data.bead_count = beading_strategy.getOptimalBeadCount(next_edge->to->data.distance_to_boundary * 2);
-            next_edge->to->data.transition_ratio = 0;
-        }
-        return dissolve; // Dissolving only depend on the one edge going upward. There cannot be multiple edges going upward.
     }
-    return dissolve;
+    if (next_edge == to_edge->twin)
+    {
+        return false;
+    }
+
+    const coord_t length = vSize(next_edge->to->p - next_edge->from->p);
+
+    bool dissolve = false;
+    if (next_edge->to->data.bead_count == bead_count)
+    {
+        dissolve = true;
+    }
+    else if (next_edge->to->data.bead_count < 0)
+    {
+        dissolve = filterUnmarkedRegions(next_edge, bead_count, traveled_dist + length, max_dist);
+    }
+    else // Upward bead count is different
+    {
+        // Dissolve if two marked regions with different bead count are closer together than the max_dist (= transition distance)
+        dissolve = (traveled_dist + length < max_dist) && std::abs(next_edge->to->data.bead_count - bead_count) == 1;
+    }
+
+    if (dissolve)
+    {
+        next_edge->data.setMarked(true);
+        next_edge->twin->data.setMarked(true);
+        next_edge->to->data.bead_count = beading_strategy.getOptimalBeadCount(next_edge->to->data.distance_to_boundary * 2);
+        next_edge->to->data.transition_ratio = 0;
+    }
+    return dissolve; // Dissolving only depend on the one edge going upward. There cannot be multiple edges going upward.
 }
 
 void SkeletalTrapezoidation::generateTransitioningRibs()
