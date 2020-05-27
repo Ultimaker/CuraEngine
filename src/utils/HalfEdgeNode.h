@@ -37,30 +37,30 @@ public:
     bool isMultiIntersection()
     {
         int odd_path_count = 0;
-        bool first = true;
-        for (edge_t* outgoing = this->incident_edge; first || outgoing != this->incident_edge; outgoing = outgoing->twin->next)
+        edge_t* outgoing = this->incident_edge;
+        do
         {
-            first = false;
             if (outgoing->data.isMarked())
             {
                 odd_path_count++;
             }
         }
+        while(outgoing = outgoing->twin->next, outgoing != this->incident_edge);
         return odd_path_count > 2;
     }
     
     bool isMarked() const
     {
-        bool first = true;
-        for (edge_t* edge = incident_edge; first || edge != incident_edge; edge = edge->twin->next)
+        edge_t* edge = incident_edge;
+        do
         {
             if (edge->data.isMarked())
             {
                 return true;
             }
-            first = false;
             assert(edge->twin); if (!edge->twin) return false;
         }
+        while(edge = edge->twin->next, edge != incident_edge);
         return false;
     }
     
@@ -76,14 +76,13 @@ public:
             return false;
         }
         
-        bool first = true;
-        for (edge_t* edge = incident_edge; first || edge != incident_edge; edge = edge->twin->next)
+        edge_t* edge = incident_edge;
+        do
         {
             if (edge->canGoUp(strict))
             {
                 return false;
             }
-            first = false;
             assert(edge->twin); if (!edge->twin) return false;
             
             if (!edge->twin->next)
@@ -91,6 +90,7 @@ public:
                 return false;
             }
         }
+        while (edge = edge->twin->next, edge != incident_edge);
         return true;
     }
 

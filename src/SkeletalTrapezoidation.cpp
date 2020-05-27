@@ -1758,11 +1758,15 @@ void SkeletalTrapezoidation::connectJunctions(std::vector<std::list<ExtrusionLin
     while (!unprocessed_quad_starts.empty())
     {
         edge_t* poly_domain_start = *unprocessed_quad_starts.begin();
-        bool first = true;
-        for (edge_t* quad_start = poly_domain_start; first || quad_start != poly_domain_start; quad_start = getNextQuad(quad_start))
+        edge_t* quad_start = poly_domain_start;
+        do
         {
-            first = false;
-            edge_t* quad_end = quad_start; while (quad_end->next) quad_end = quad_end->next;
+            edge_t* quad_end = quad_start;
+            while (quad_end->next)
+            {
+                quad_end = quad_end->next;
+            }
+
             edge_t* edge_to_peak = getQuadMaxRedgeTo(quad_start);
             // walk down on both sides and connect junctions
             edge_t* edge_from_peak = edge_to_peak->next; assert(edge_from_peak);
@@ -1818,6 +1822,7 @@ void SkeletalTrapezoidation::connectJunctions(std::vector<std::list<ExtrusionLin
                 addSegment(from, to, is_odd_segment, force_new_path);
             }
         }
+        while(quad_start = getNextQuad(quad_start), quad_start != poly_domain_start);
     }
 }
 
