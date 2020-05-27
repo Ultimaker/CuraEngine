@@ -619,7 +619,7 @@ void SkeletalTrapezoidation:: filterUnmarkedRegions()
             continue;
         }
         assert(edge.to->data.bead_count >= 0 || edge.to->data.distance_to_boundary == 0);
-        coord_t max_dist = 400;
+        constexpr coord_t max_dist = 400;
         filterUnmarkedRegions(&edge, edge.to->data.bead_count, 0, max_dist);
     }
 }
@@ -1814,7 +1814,7 @@ void SkeletalTrapezoidation::connectJunctions(std::vector<std::list<ExtrusionLin
                 }
                 
                 passed_odd_edges.emplace(quad_start->next);
-                bool force_new_path = is_odd_segment && quad_start->to->isMultiIntersection();
+                const bool force_new_path = is_odd_segment && quad_start->to->isMultiIntersection();
                 addSegment(from, to, is_odd_segment, force_new_path);
             }
         }
