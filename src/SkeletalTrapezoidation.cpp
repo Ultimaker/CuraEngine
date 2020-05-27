@@ -1495,7 +1495,7 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, ptr
 }
 
 
-SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right, coord_t switching_radius) const
+SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, Ratio ratio_left_to_whole, const Beading& right, coord_t switching_radius) const
 {
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     Beading ret = interpolate(left, ratio_left_to_whole, right);
@@ -1538,7 +1538,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
 }
 
 
-SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right) const
+SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, Ratio ratio_left_to_whole, const Beading& right) const
 {
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     float ratio_right_to_whole = 1.0 - ratio_left_to_whole;

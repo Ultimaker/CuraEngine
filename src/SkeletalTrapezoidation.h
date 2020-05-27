@@ -15,11 +15,11 @@
 #include "utils/PolygonsSegmentIndex.h"
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionLine.h"
+#include "settings/types/Ratio.h"
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 #include "BeadingStrategy/BeadingStrategy.h"
 #include "SkeletalTrapezoidationGraph.h"
-
 
 namespace arachne
 {
@@ -386,8 +386,8 @@ protected:
     /*!
      * \param switching_radius The radius at which we switch from the left beading to the merged
      */
-    Beading interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right, coord_t switching_radius) const;
-    Beading interpolate(const Beading& left, float ratio_left_to_whole, const Beading& right) const;
+    Beading interpolate(const Beading& left, Ratio ratio_left_to_whole, const Beading& right, coord_t switching_radius) const;
+    Beading interpolate(const Beading& left, Ratio ratio_left_to_whole, const Beading& right) const;
 
     std::shared_ptr<BeadingPropagation> getOrCreateBeading(node_t* node, ptr_vector_t<BeadingPropagation>& node_beadings);
 
