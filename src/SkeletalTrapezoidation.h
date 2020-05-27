@@ -49,8 +49,8 @@ class SkeletalTrapezoidation
     using pos_t = double;
     using vd_t = boost::polygon::voronoi_diagram<pos_t>;
     using graph_t = SkeletalTrapezoidationGraph;
-    using edge_t = HalfEdge<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
-    using node_t = HalfEdgeNode<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
+    using edge_t = STHalfEdge;
+    using node_t = STHalfEdgeNode;
     using Beading = BeadingStrategy::Beading;
     using BeadingPropagation = SkeletalTrapezoidationJoint::BeadingPropagation;
     using TransitionMiddle = SkeletalTrapezoidationEdge::TransitionMiddle;

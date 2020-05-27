@@ -8,14 +8,67 @@
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 
+#include <optional>
+
 namespace arachne
 {
     using namespace cura;
 
-class SkeletalTrapezoidationGraph: public HalfEdgeGraph<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>
+class STHalfEdgeNode;
+class STHalfEdge : public HalfEdge<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge, STHalfEdgeNode, STHalfEdge>
 {
-    using edge_t = HalfEdge<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;
-    using node_t = HalfEdgeNode<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge>;    
+    using edge_t = STHalfEdge;
+    using node_t = STHalfEdgeNode;
+public:
+    STHalfEdge(SkeletalTrapezoidationEdge data);
+
+    /*!
+        * Check (recursively) whether there is any upward edge from the distance_to_boundary of the from of the \param edge
+        *
+        * \param strict Whether equidistant edges can count as a local maximum
+        */
+    bool canGoUp(bool strict = false) const;
+
+    /*!
+        * Check whether the edge goes from a lower to a higher distance_to_boundary.
+        * Effectively deals with equidistant edges by looking beyond this edge.
+        */
+    bool isUpward() const;
+
+    /*!
+        * Calculate the traversed distance until we meet an upward edge.
+        * Useful for calling on edges between equidistant points.
+        *
+        * If we can go up then the distance includes the length of the \param edge
+        */
+    std::optional<cura::coord_t> distToGoUp() const;
+
+    STHalfEdge* getNextUnconnected();
+};
+
+class STHalfEdgeNode : public HalfEdgeNode<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge, STHalfEdgeNode, STHalfEdge>
+{
+    using edge_t = STHalfEdge;
+    using node_t = STHalfEdgeNode;
+public:
+    STHalfEdgeNode(SkeletalTrapezoidationJoint data, Point p);
+
+    bool isMultiIntersection();
+
+    bool isMarked() const;
+
+    /*!
+        * Check whether this node has a locally maximal distance_to_boundary
+        *
+        * \param strict Whether equidistant edges can count as a local maximum
+        */
+    bool isLocalMaximum(bool strict = false) const;
+};
+
+class SkeletalTrapezoidationGraph: public HalfEdgeGraph<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge, STHalfEdgeNode, STHalfEdge>
+{
+    using edge_t = STHalfEdge;
+    using node_t = STHalfEdgeNode;
 public:
     void fixNodeDuplication();
     

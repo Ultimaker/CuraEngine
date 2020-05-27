@@ -6,6 +6,168 @@
 namespace arachne
 {
 
+STHalfEdge::STHalfEdge(SkeletalTrapezoidationEdge data) : HalfEdge(data) {}
+
+bool STHalfEdge::canGoUp(bool strict) const
+{
+    if (to->data.distance_to_boundary > from->data.distance_to_boundary)
+    {
+        return true;
+    }
+    if (to->data.distance_to_boundary < from->data.distance_to_boundary || strict)
+    {
+        return false;
+    }
+
+    // Edge is between equidistqant verts; recurse!
+    for (edge_t* outgoing = next; outgoing != twin; outgoing = outgoing->twin->next)
+    {
+        if (outgoing->canGoUp())
+        {
+            return true;
+        }
+        assert(outgoing->twin); if (!outgoing->twin) return false;
+        assert(outgoing->twin->next); if (!outgoing->twin->next) return true; // This point is on the boundary?! Should never occur
+    }
+    return false;
+}
+
+bool STHalfEdge::isUpward() const
+{
+    if (to->data.distance_to_boundary > from->data.distance_to_boundary)
+    {
+        return true;
+    }
+    if (to->data.distance_to_boundary < from->data.distance_to_boundary)
+    {
+        return false;
+    }
+
+    // Equidistant edge case:
+    std::optional<cura::coord_t> forward_up_dist = this->distToGoUp();
+    std::optional<cura::coord_t> backward_up_dist = twin->distToGoUp();
+    if (forward_up_dist && backward_up_dist)
+    {
+        return forward_up_dist < backward_up_dist;
+    }
+
+    if (forward_up_dist)
+    {
+        return true;
+    }
+
+    if (backward_up_dist)
+    {
+        return false;
+    }
+    return to->p < from->p; // Arbitrary ordering, which returns the opposite for the twin edge
+}
+
+std::optional<cura::coord_t> STHalfEdge::distToGoUp() const
+{
+    if (to->data.distance_to_boundary > from->data.distance_to_boundary)
+    {
+        return 0;
+    }
+    if (to->data.distance_to_boundary < from->data.distance_to_boundary)
+    {
+        return std::optional<cura::coord_t>();
+    }
+
+    // Edge is between equidistqant verts; recurse!
+    std::optional<cura::coord_t> ret;
+    for (edge_t* outgoing = next; outgoing != twin; outgoing = outgoing->twin->next)
+    {
+        std::optional<cura::coord_t> dist_to_up = outgoing->distToGoUp();
+        if (dist_to_up)
+        {
+            if (ret)
+            {
+                ret = std::min(*ret, *dist_to_up);
+            }
+            else
+            {
+                ret = dist_to_up;
+            }
+        }
+        assert(outgoing->twin); if (!outgoing->twin) return std::optional<cura::coord_t>();
+        assert(outgoing->twin->next); if (!outgoing->twin->next) return 0; // This point is on the boundary?! Should never occur
+    }
+    if (ret)
+    {
+        ret = *ret + cura::vSize(to->p - from->p);
+    }
+    return ret;
+}
+
+STHalfEdge* STHalfEdge::getNextUnconnected()
+{
+    edge_t* result = static_cast<STHalfEdge*>(this);
+    while (result->next)
+    {
+        result = result->next;
+        if (result == this)
+        {
+            return nullptr;
+        }
+    }
+    return result->twin;
+}
+
+STHalfEdgeNode::STHalfEdgeNode(SkeletalTrapezoidationJoint data, Point p) : HalfEdgeNode(data, p) {}
+
+bool STHalfEdgeNode::isMultiIntersection()
+{
+    int odd_path_count = 0;
+    edge_t* outgoing = this->incident_edge;
+    do
+    {
+        if (outgoing->data.isMarked())
+        {
+            odd_path_count++;
+        }
+    } while (outgoing = outgoing->twin->next, outgoing != this->incident_edge);
+    return odd_path_count > 2;
+}
+
+bool STHalfEdgeNode::isMarked() const
+{
+    edge_t* edge = incident_edge;
+    do
+    {
+        if (edge->data.isMarked())
+        {
+            return true;
+        }
+        assert(edge->twin); if (!edge->twin) return false;
+    } while (edge = edge->twin->next, edge != incident_edge);
+    return false;
+}
+
+bool STHalfEdgeNode::isLocalMaximum(bool strict) const
+{
+    if (data.distance_to_boundary == 0)
+    {
+        return false;
+    }
+
+    edge_t* edge = incident_edge;
+    do
+    {
+        if (edge->canGoUp(strict))
+        {
+            return false;
+        }
+        assert(edge->twin); if (!edge->twin) return false;
+
+        if (!edge->twin->next)
+        { // This point is on the boundary
+            return false;
+        }
+    } while (edge = edge->twin->next, edge != incident_edge);
+    return true;
+}
+
 void SkeletalTrapezoidationGraph::fixNodeDuplication()
 {
     for (auto node_it = nodes.begin(); node_it != nodes.end();)
