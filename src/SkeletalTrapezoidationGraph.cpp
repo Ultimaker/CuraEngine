@@ -11,7 +11,7 @@ void SkeletalTrapezoidationGraph::fixNodeDuplication()
     for (auto node_it = nodes.begin(); node_it != nodes.end();)
     {
         node_t* replacing_node = nullptr;
-        for (edge_t* outgoing = node_it->some_edge; outgoing != node_it->some_edge; outgoing = outgoing->twin->next)
+        for (edge_t* outgoing = node_it->incident_edge; outgoing != node_it->incident_edge; outgoing = outgoing->twin->next)
         {
             assert(outgoing);
             if (outgoing->from != &*node_it)
@@ -25,7 +25,7 @@ void SkeletalTrapezoidationGraph::fixNodeDuplication()
         }
         if (replacing_node)
         {
-            for (edge_t* outgoing = node_it->some_edge; outgoing != node_it->some_edge; outgoing = outgoing->twin->next)
+            for (edge_t* outgoing = node_it->incident_edge; outgoing != node_it->incident_edge; outgoing = outgoing->twin->next)
             {
                 outgoing->twin->to = replacing_node;
                 outgoing->from = replacing_node;
@@ -109,15 +109,15 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
             // | |
             // | |
             // o o
-            if (quad_mid->from->some_edge == quad_mid)
+            if (quad_mid->from->incident_edge == quad_mid)
             {
                 if (quad_mid->twin->next)
                 {
-                    quad_mid->from->some_edge = quad_mid->twin->next;
+                    quad_mid->from->incident_edge = quad_mid->twin->next;
                 }
                 else
                 {
-                    quad_mid->from->some_edge = quad_mid->prev->twin;
+                    quad_mid->from->incident_edge = quad_mid->prev->twin;
                 }
             }
             
@@ -139,16 +139,16 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         { // Collapse start and end edges and remove whole cell
 
             quad_start->twin->to = quad_end->to;
-            quad_end->to->some_edge = quad_end->twin;
-            if (quad_end->from->some_edge == quad_end)
+            quad_end->to->incident_edge = quad_end->twin;
+            if (quad_end->from->incident_edge == quad_end)
             {
                 if (quad_end->twin->next)
                 {
-                    quad_end->from->some_edge = quad_end->twin->next;
+                    quad_end->from->incident_edge = quad_end->twin->next;
                 }
                 else
                 {
-                    quad_end->from->some_edge = quad_end->prev->twin;
+                    quad_end->from->incident_edge = quad_end->prev->twin;
                 }
             }
             nodes.erase(node_locator[quad_start->from]);
@@ -193,7 +193,7 @@ void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point start_source
     back_edge->twin = forth_edge;
     back_edge->from = node;
     back_edge->to = prev_edge->to;
-    node->some_edge = back_edge;
+    node->incident_edge = back_edge;
     
     prev_edge = back_edge;
 }
@@ -254,12 +254,12 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
     inward_edge->from = source_node;
     second->from = mid_node;
 
-    node_before->some_edge = first;
-    mid_node->some_edge = outward_edge;
-    source_node->some_edge = inward_edge;
+    node_before->incident_edge = first;
+    mid_node->incident_edge = outward_edge;
+    source_node->incident_edge = inward_edge;
     if (edge_after) 
     {
-        node_after->some_edge = edge_after;
+        node_after->incident_edge = edge_after;
     }
 
     first->data.setMarked(true);

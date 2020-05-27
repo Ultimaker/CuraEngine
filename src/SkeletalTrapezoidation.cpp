@@ -55,7 +55,7 @@ void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type&
             edge->to = twin->from;
             edge->twin = twin;
             twin->twin = edge;
-            edge->from->some_edge = edge;
+            edge->from->incident_edge = edge;
             
             if (prev_edge)
             {
@@ -111,7 +111,7 @@ void SkeletalTrapezoidation::transferEdge(Point from, Point to, vd_t::edge_type&
             edge_t* edge = &graph.edges.front();
             edge->from = v0;
             edge->to = v1;
-            edge->from->some_edge = edge;
+            edge->from->incident_edge = edge;
             
             if (prev_edge)
             {
@@ -411,13 +411,13 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     
     graph.collapseSmallEdges();
 
-    // Set [some_edge] the the first possible edge that way we can iterate over all reachable edges from node.some_edge,
+    // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,
     // without needing to iterate backward
     for (edge_t& edge : graph.edges)
     {
         if (!edge.prev)
         {
-            edge.from->some_edge = &edge;
+            edge.from->incident_edge = &edge;
         }
     }
 
@@ -443,7 +443,7 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
         { // Needs to be duplicated
             graph.nodes.emplace_back(*quad_start->from);
             node_t* new_node = &graph.nodes.back();
-            new_node->some_edge = quad_start;
+            new_node->incident_edge = quad_start;
             quad_start->from = new_node;
             quad_start->twin->to = new_node;
         }
@@ -598,11 +598,11 @@ void SkeletalTrapezoidation::updateBeadCount()
             {
                 RUN_ONCE(logWarning("Distance to boundary not yet computed for local maximum!\n"));
                 node.data.distance_to_boundary = std::numeric_limits<coord_t>::max();
-                edge_t* edge = node.some_edge;
+                edge_t* edge = node.incident_edge;
                 do
                 {
                     node.data.distance_to_boundary = std::min(node.data.distance_to_boundary, edge->to->data.distance_to_boundary + vSize(edge->from->p - edge->to->p));
-                } while (edge = edge->twin->next, edge != node.some_edge);
+                } while (edge = edge->twin->next, edge != node.incident_edge);
             }
             coord_t bead_count = beading_strategy.getOptimalBeadCount(node.data.distance_to_boundary * 2);
             node.data.bead_count = bead_count;
@@ -1639,7 +1639,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
             bool has_marked_edge = false;
             bool first = true;
             coord_t dist = std::numeric_limits<coord_t>::max();
-            for (edge_t* edge = node->some_edge; edge && (first || edge != node->some_edge); edge = edge->twin->next)
+            for (edge_t* edge = node->incident_edge; edge && (first || edge != node->incident_edge); edge = edge->twin->next)
             {
                 if (edge->data.isMarked())
                 {
@@ -1675,7 +1675,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
     auto compare = [](const DistEdge& l, const DistEdge& r) -> bool { return l.dist > r.dist; };
     std::priority_queue<DistEdge, std::vector<DistEdge>, decltype(compare)> further_edges(compare);
     bool first = true;
-    for (edge_t* outgoing = node->some_edge; outgoing && (first || outgoing != node->some_edge); outgoing = outgoing->twin->next)
+    for (edge_t* outgoing = node->incident_edge; outgoing && (first || outgoing != node->incident_edge); outgoing = outgoing->twin->next)
     {
         further_edges.emplace(outgoing, vSize(outgoing->to->p - outgoing->from->p));
         first = false;

@@ -23,7 +23,7 @@ class HalfEdgeNode
 public:
     node_data_t data;
     Point p;
-    edge_t* some_edge = nullptr;
+    edge_t* incident_edge = nullptr;
     HalfEdgeNode(node_data_t data, Point p)
     : data(data)
     , p(p)
@@ -38,7 +38,7 @@ public:
     {
         int odd_path_count = 0;
         bool first = true;
-        for (edge_t* outgoing = this->some_edge; first || outgoing != this->some_edge; outgoing = outgoing->twin->next)
+        for (edge_t* outgoing = this->incident_edge; first || outgoing != this->incident_edge; outgoing = outgoing->twin->next)
         {
             first = false;
             if (outgoing->data.isMarked())
@@ -52,7 +52,7 @@ public:
     bool isMarked() const
     {
         bool first = true;
-        for (edge_t* edge = some_edge; first || edge != some_edge; edge = edge->twin->next)
+        for (edge_t* edge = incident_edge; first || edge != incident_edge; edge = edge->twin->next)
         {
             if (edge->data.isMarked())
             {
@@ -77,7 +77,7 @@ public:
         }
         
         bool first = true;
-        for (edge_t* edge = some_edge; first || edge != some_edge; edge = edge->twin->next)
+        for (edge_t* edge = incident_edge; first || edge != incident_edge; edge = edge->twin->next)
         {
             if (edge->canGoUp(strict))
             {

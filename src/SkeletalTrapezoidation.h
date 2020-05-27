@@ -247,8 +247,8 @@ protected:
 
     /*!
      * For VD cells associated with an input polygon vertex, we need to separate the node at the end and start of the cell into two
-     * That way we can reach both the quad_start and the quad_end from the [some_edge] of the two new nodes
-     * Otherwise if node.some_edge = quad_start you couldnt reach quad_end.twin by normal iteration (i.e. it = it.twin.next)
+     * That way we can reach both the quad_start and the quad_end from the [incident_edge] of the two new nodes
+     * Otherwise if node.incident_edge = quad_start you couldnt reach quad_end.twin by normal iteration (i.e. it = it.twin.next)
      */
     void separatePointyQuadEndNodes();
 
