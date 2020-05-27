@@ -598,11 +598,11 @@ void SkeletalTrapezoidation::updateBeadCount()
             {
                 RUN_ONCE(logWarning("Distance to boundary not yet computed for local maximum!\n"));
                 node.data.distance_to_boundary = std::numeric_limits<coord_t>::max();
-                bool first = true;
-                for (edge_t* edge = node.some_edge; first || edge != node.some_edge; edge = edge->twin->next)
+                edge_t* edge = node.some_edge;
+                do
                 {
                     node.data.distance_to_boundary = std::min(node.data.distance_to_boundary, edge->to->data.distance_to_boundary + vSize(edge->from->p - edge->to->p));
-                }
+                } while (edge = edge->twin->next, edge != node.some_edge);
             }
             coord_t bead_count = beading_strategy.getOptimalBeadCount(node.data.distance_to_boundary * 2);
             node.data.bead_count = bead_count;
