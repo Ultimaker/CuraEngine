@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt, round
@@ -1248,8 +1248,10 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     Polygons supportLayer_supportee = mesh.layers[layer_idx].getOutlines();
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
+    constexpr bool external_polys_only = false;
+    constexpr bool for_brim = false;
     const double min_supporting_model_area = mesh.settings.get<double>("min_supporting_model_area");
-    Polygons supportLayer_supporter = storage.getLayerOutlines(layer_idx-1, no_support, no_prime_tower, false, false, min_supporting_model_area);
+    Polygons supportLayer_supporter = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower, external_polys_only, for_brim, min_supporting_model_area);
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const AngleRadians support_angle = mesh.settings.get<AngleRadians>("support_angle");
