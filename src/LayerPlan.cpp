@@ -1464,7 +1464,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     gcode.setFlowRateExtrusionSettings(mesh_group_settings.get<double>("flow_rate_max_extrusion_offset"), mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); //Offset is in mm.
 
-    if (layer_nr == 1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()) && mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature") != 0)
+    static LayerIndex layer_1 {1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers())};
+    if (layer_nr == layer_1 && mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature") != mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0"))
     {
         constexpr bool wait = false;
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature"), wait);
