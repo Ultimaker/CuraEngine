@@ -63,7 +63,7 @@ class SkeletalTrapezoidation
     coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
     coord_t transition_filter_dist; //!< Filter transition mids (i.e. anchors) closer together than this
     coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
-    static constexpr coord_t marking_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
+    static constexpr coord_t central_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
     static constexpr coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
 
     /*!
@@ -116,12 +116,12 @@ public:
     /*!
      * Generate the paths that the printer must extrude, to print the outlines
      * in the input polygons.
-     * \param filter_outermost_marked_edges Some edges are "central" but still
+     * \param filter_outermost_central_edges Some edges are "central" but still
      * touch the outside of the polygon. If enabled, don't treat these as
      * "central" but as if it's a obtuse corner. As a result, sharp corners will
      * no longer end in a single line but will just loop.
      */
-    std::vector<std::list<ExtrusionLine>> generateToolpaths(bool filter_outermost_marked_edges = false);
+    std::vector<std::list<ExtrusionLine>> generateToolpaths(bool filter_outermost_central_edges = false);
 
 protected:
     /*!
@@ -260,47 +260,51 @@ protected:
 
     // ^ init | v transitioning
 
-    void updateMarking(); // Update the "is_marked" flag for each edge based on the transitioning_angle
+    void updateIsCentral(); // Update the "is_central" flag for each edge based on the transitioning_angle
 
     /*!
-     * Filter out small marked areas.
+     * Filter out small central areas.
      * 
-     * Only used to get rid of small edges which get marked because of rounding errors because hte region is so small.
+     * Only used to get rid of small edges which get marked as central because
+     * of rounding errors because the region is so small.
      */
-    void filterMarking(coord_t max_length);
+    void filterCentral(coord_t max_length);
 
     /*!
-     * Filter markings connected to starting_edge recursively.
-     * 
-     * \return Whether we should unmark this marked section on the way back out of the recursion
+     * Filter central areas connected to starting_edge recursively.
+     * \return Whether we should unmark this section marked as central, on the
+     * way back out of the recursion.
      */
-    bool filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length);
+    bool filterCentral(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length);
 
     /*!
-     * Unmark the outermost edges directly connected to the outline.
+     * Unmark the outermost edges directly connected to the outline, as not
+     * being central.
      * 
      * Only used to emulate some related literature.
      * 
      * The paper shows that this function is bad for the stability of the framework.
      */
-    void filterOuterMarking();
+    void filterOuterCentral();
 
     /*!
-     * Set bead count in marked regions based on the optimal_bead_count of the beading strategy.
+     * Set bead count in central regions based on the optimal_bead_count of the
+     * beading strategy.
      */
     void updateBeadCount();
 
     /*!
-     * Add marked regions and set bead counts
-     * where there is an end of marking and when traveling upward we get to another region with the same bead count
+     * Add central regions and set bead counts where there is an end of the
+     * central area and when traveling upward we get to another region with the
+     * same bead count.
      */
-    void filterUnmarkedRegions();
+    void filterNoncentralRegions();
 
     /*!
      * 
      * \return Whether to set the bead count on the way back
      */
-    bool filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist);
+    bool filterNoncentralRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist);
 
     void generateTransitionMids(ptr_vector_t<std::list<TransitionMiddle>>& edge_transitions);
 
@@ -318,7 +322,7 @@ protected:
 
     void dissolveBeadCountRegion(edge_t* edge_to_start, coord_t from_bead_count, coord_t to_bead_count);
 
-    bool filterEndOfMarkingTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count);
+    bool filterEndOfCentralTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count);
 
     void generateTransitionEnds(ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
@@ -346,7 +350,7 @@ protected:
 
     bool isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t transition_half_length, coord_t lower_bead_count) const;
 
-    bool isEndOfMarking(const edge_t& edge) const;
+    bool isEndOfCentral(const edge_t& edge) const;
 
 
     void generateExtraRibs();

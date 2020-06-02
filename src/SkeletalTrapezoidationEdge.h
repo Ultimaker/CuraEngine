@@ -18,7 +18,7 @@ class SkeletalTrapezoidationEdge
 {
 private:
     using edge_t = SkeletalTrapezoidationEdge;
-    enum class Marked { UNKNOWN = -1, NO, YES };
+    enum class Central { UNKNOWN = -1, NO, YES };
 
 public:
     /*!
@@ -59,21 +59,21 @@ public:
     {}
     SkeletalTrapezoidationEdge(const EdgeType& type)
     : type(type)
-    , is_marked(Marked::UNKNOWN)
+    , is_central(Central::UNKNOWN)
     {}
 
-    bool isMarked() const
+    bool isCentral() const
     {
-        assert(is_marked != Marked::UNKNOWN);
-        return is_marked == Marked::YES;
+        assert(is_central != Central::UNKNOWN);
+        return is_central == Central::YES;
     }
-    void setMarked(bool b)
+    void setIsCentral(bool b)
     {
-        is_marked = b ? Marked::YES : Marked::NO;
+        is_central = b ? Central::YES : Central::NO;
     }
-    bool markingIsSet() const
+    bool centralIsSet() const
     {
-        return is_marked != Marked::UNKNOWN;
+        return is_central != Central::UNKNOWN;
     }
 
     bool hasTransitions(bool ignore_empty = false) const
@@ -116,7 +116,7 @@ public:
     }
 
 private:
-    Marked is_marked; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown
+    Central is_central; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown
 
     std::weak_ptr<std::list<TransitionMiddle>> transitions;
     std::weak_ptr<std::list<TransitionEnd>> transition_ends;

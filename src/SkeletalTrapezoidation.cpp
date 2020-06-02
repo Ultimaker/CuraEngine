@@ -460,22 +460,22 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
-std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(bool filter_outermost_marked_edges)
+std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(bool filter_outermost_central_edges)
 {
     generated_toolpaths.clear();
 
-    updateMarking();
+    updateIsCentral();
 
-    filterMarking(marking_filter_dist);
+    filterCentral(central_filter_dist);
 
-    if (filter_outermost_marked_edges)
+    if (filter_outermost_central_edges)
     {
-        filterOuterMarking();
+        filterOuterCentral();
     }
 
     updateBeadCount();
 
-    filterUnmarkedRegions();
+    filterNoncentralRegions();
 
     generateTransitioningRibs();
 
@@ -486,7 +486,7 @@ std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(
     return generated_toolpaths;
 }
 
-void SkeletalTrapezoidation::updateMarking()
+void SkeletalTrapezoidation::updateIsCentral()
 {
     //                                            _.-'^`      .
     //                                      _.-'^`            .
@@ -507,17 +507,17 @@ void SkeletalTrapezoidation::updateMarking()
     for (edge_t& edge: graph.edges)
     {
         assert(edge.twin);
-        if (edge.twin->data.markingIsSet())
+        if (edge.twin->data.centralIsSet())
         {
-            edge.data.setMarked(edge.twin->data.isMarked());
+            edge.data.setIsCentral(edge.twin->data.isCentral());
         }
         else if (edge.data.type == SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD)
         {
-            edge.data.setMarked(false);
+            edge.data.setIsCentral(false);
         }
         else if (std::max(edge.from->data.distance_to_boundary, edge.to->data.distance_to_boundary) < outer_edge_filter_length)
         {
-            edge.data.setMarked(false);
+            edge.data.setIsCentral(false);
         }
         else
         {
@@ -526,23 +526,23 @@ void SkeletalTrapezoidation::updateMarking()
             Point ab = b - a;
             coord_t dR = std::abs(edge.to->data.distance_to_boundary - edge.from->data.distance_to_boundary);
             coord_t dD = vSize(ab);
-            edge.data.setMarked(dR < dD * cap);
+            edge.data.setIsCentral(dR < dD * cap);
         }
     }
 }
 
-void SkeletalTrapezoidation::filterMarking(coord_t max_length)
+void SkeletalTrapezoidation::filterCentral(coord_t max_length)
 {
     for (edge_t& edge : graph.edges)
     {
-        if (isEndOfMarking(edge) && edge.to->isLocalMaximum() && !edge.to->isLocalMaximum())
+        if (isEndOfCentral(edge) && edge.to->isLocalMaximum() && !edge.to->isLocalMaximum())
         {
-            filterMarking(edge.twin, 0, max_length);
+            filterCentral(edge.twin, 0, max_length);
         }
     }
 }
 
-bool SkeletalTrapezoidation::filterMarking(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length)
+bool SkeletalTrapezoidation::filterCentral(edge_t* starting_edge, coord_t traveled_dist, coord_t max_length)
 {
     coord_t length = vSize(starting_edge->from->p - starting_edge->to->p);
     if (traveled_dist + length > max_length)
@@ -553,29 +553,29 @@ bool SkeletalTrapezoidation::filterMarking(edge_t* starting_edge, coord_t travel
     bool should_dissolve = true;
     for (edge_t* next_edge = starting_edge->next; next_edge && next_edge != starting_edge->twin; next_edge = next_edge->twin->next)
     {
-        if (next_edge->data.isMarked())
+        if (next_edge->data.isCentral())
         {
-            should_dissolve &= filterMarking(next_edge, traveled_dist + length, max_length);
+            should_dissolve &= filterCentral(next_edge, traveled_dist + length, max_length);
         }
     }
 
-    should_dissolve &= !starting_edge->to->isLocalMaximum(); // Don't filter marked regions with a local maximum!
+    should_dissolve &= !starting_edge->to->isLocalMaximum(); // Don't filter central regions with a local maximum!
     if (should_dissolve)
     {
-        starting_edge->data.setMarked(false);
-        starting_edge->twin->data.setMarked(false);
+        starting_edge->data.setIsCentral(false);
+        starting_edge->twin->data.setIsCentral(false);
     }
     return should_dissolve;
 }
 
-void SkeletalTrapezoidation::filterOuterMarking()
+void SkeletalTrapezoidation::filterOuterCentral()
 {
     for (edge_t& edge : graph.edges)
     {
         if (!edge.prev)
         {
-            edge.data.setMarked(false);
-            edge.twin->data.setMarked(false);
+            edge.data.setIsCentral(false);
+            edge.twin->data.setIsCentral(false);
         }
     }
 }
@@ -584,13 +584,13 @@ void SkeletalTrapezoidation::updateBeadCount()
 {
     for (edge_t& edge : graph.edges)
     {
-        if (edge.data.isMarked())
+        if (edge.data.isCentral())
         {
             edge.to->data.bead_count = beading_strategy.getOptimalBeadCount(edge.to->data.distance_to_boundary * 2);
         }
     }
 
-    // Fix bead count at locally maximal R, also for marked regions!! See TODO s in generateTransitionEnd(.)
+    // Fix bead count at locally maximal R, also for central regions!! See TODO s in generateTransitionEnd(.)
     for (node_t& node : graph.nodes)
     {
         if (node.isLocalMaximum())
@@ -611,21 +611,21 @@ void SkeletalTrapezoidation::updateBeadCount()
     }
 }
 
-void SkeletalTrapezoidation:: filterUnmarkedRegions()
+void SkeletalTrapezoidation:: filterNoncentralRegions()
 {
     for (edge_t& edge : graph.edges)
     {
-        if (!isEndOfMarking(edge))
+        if (!isEndOfCentral(edge))
         {
             continue;
         }
         assert(edge.to->data.bead_count >= 0 || edge.to->data.distance_to_boundary == 0);
         constexpr coord_t max_dist = 400;
-        filterUnmarkedRegions(&edge, edge.to->data.bead_count, 0, max_dist);
+        filterNoncentralRegions(&edge, edge.to->data.bead_count, 0, max_dist);
     }
 }
 
-bool SkeletalTrapezoidation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist)
+bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist)
 {
     coord_t r = to_edge->to->data.distance_to_boundary;
 
@@ -651,18 +651,18 @@ bool SkeletalTrapezoidation::filterUnmarkedRegions(edge_t* to_edge, coord_t bead
     }
     else if (next_edge->to->data.bead_count < 0)
     {
-        dissolve = filterUnmarkedRegions(next_edge, bead_count, traveled_dist + length, max_dist);
+        dissolve = filterNoncentralRegions(next_edge, bead_count, traveled_dist + length, max_dist);
     }
     else // Upward bead count is different
     {
-        // Dissolve if two marked regions with different bead count are closer together than the max_dist (= transition distance)
+        // Dissolve if two central regions with different bead count are closer together than the max_dist (= transition distance)
         dissolve = (traveled_dist + length < max_dist) && std::abs(next_edge->to->data.bead_count - bead_count) == 1;
     }
 
     if (dissolve)
     {
-        next_edge->data.setMarked(true);
-        next_edge->twin->data.setMarked(true);
+        next_edge->data.setIsCentral(true);
+        next_edge->twin->data.setIsCentral(true);
         next_edge->to->data.bead_count = beading_strategy.getOptimalBeadCount(next_edge->to->data.distance_to_boundary * 2);
         next_edge->to->data.transition_ratio = 0;
     }
@@ -679,7 +679,7 @@ void SkeletalTrapezoidation::generateTransitioningRibs()
 
     for (edge_t& edge : graph.edges)
     { // Check if there is a transition in between nodes with different bead counts
-        if (edge.data.isMarked() && edge.from->data.bead_count != edge.to->data.bead_count)
+        if (edge.data.isCentral() && edge.from->data.bead_count != edge.to->data.bead_count)
         {
             assert(edge.data.hasTransitions() || edge.twin.data.hasTransitions());
         }
@@ -699,9 +699,9 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
 {
     for (edge_t& edge : graph.edges)
     {
-        assert(edge.data.markingIsSet());
-        if (!edge.data.isMarked())
-        { // Only marked regions introduce transitions
+        assert(edge.data.centralIsSet());
+        if (!edge.data.isCentral())
+        { // Only central regions introduce transitions
             continue;
         }
         coord_t start_R = edge.from->data.distance_to_boundary;
@@ -795,7 +795,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
         {
             coord_t trans_bead_count = transitions.back().lower_bead_count;
             coord_t upper_transition_half_length = (1.0 - beading_strategy.getTransitionAnchorPos(trans_bead_count)) * beading_strategy.getTransitioningLength(trans_bead_count);
-            should_dissolve_back |= filterEndOfMarkingTransition(&edge, ab_size - transitions.back().pos, upper_transition_half_length, trans_bead_count);
+            should_dissolve_back |= filterEndOfCentralTransition(&edge, ab_size - transitions.back().pos, upper_transition_half_length, trans_bead_count);
         }
         
         if (should_dissolve_back)
@@ -803,7 +803,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
             transitions.pop_back();
         }
         if (transitions.empty())
-        { // FilterEndOfMarkingTransition gives inconsistent new bead count when executing for the same transition in two directions.
+        { // FilterEndOfCentralTransition gives inconsistent new bead count when executing for the same transition in two directions.
             continue;
         }
 
@@ -819,7 +819,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
         {
             coord_t trans_bead_count = transitions.front().lower_bead_count;
             coord_t lower_transition_half_length = beading_strategy.getTransitionAnchorPos(trans_bead_count) * beading_strategy.getTransitioningLength(trans_bead_count);
-            should_dissolve_front |= filterEndOfMarkingTransition(edge.twin, transitions.front().pos, lower_transition_half_length, trans_bead_count + 1);
+            should_dissolve_front |= filterEndOfCentralTransition(edge.twin, transitions.front().pos, lower_transition_half_length, trans_bead_count + 1);
         }
         
         if (should_dissolve_front)
@@ -827,7 +827,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
             transitions.pop_front();
         }
         if (transitions.empty())
-        { // FilterEndOfMarkingTransition gives inconsistent new bead count when executing for the same transition in two directions.
+        { // FilterEndOfCentralTransition gives inconsistent new bead count when executing for the same transition in two directions.
             continue;
         }
     }
@@ -843,7 +843,7 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
     bool should_dissolve = true;
     for (edge_t* edge = edge_to_start->next; edge && edge != edge_to_start->twin; edge = edge->twin->next)
     {
-        if (!edge->data.isMarked())
+        if (!edge->data.isCentral())
         {
             continue;
         }
@@ -909,7 +909,7 @@ void SkeletalTrapezoidation::dissolveBeadCountRegion(edge_t* edge_to_start, coor
     edge_to_start->to->data.bead_count = to_bead_count;
     for (edge_t* edge = edge_to_start->next; edge && edge != edge_to_start->twin; edge = edge->twin->next)
     {
-        if (!edge->data.isMarked())
+        if (!edge->data.isCentral())
         {
             continue;
         }
@@ -917,25 +917,25 @@ void SkeletalTrapezoidation::dissolveBeadCountRegion(edge_t* edge_to_start, coor
     }
 }
 
-bool SkeletalTrapezoidation::filterEndOfMarkingTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count)
+bool SkeletalTrapezoidation::filterEndOfCentralTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count)
 {
     if (traveled_dist > max_dist)
     {
         return false;
     }
     
-    bool is_end_of_marking = true;
+    bool is_end_of_central = true;
     bool should_dissolve = false;
     for (edge_t* next_edge = edge_to_start->next; next_edge && next_edge != edge_to_start->twin; next_edge = next_edge->twin->next)
     {
-        if (next_edge->data.isMarked())
+        if (next_edge->data.isCentral())
         {
             coord_t length = vSize(next_edge->to->p - next_edge->from->p);
-            should_dissolve |= filterEndOfMarkingTransition(next_edge, traveled_dist + length, max_dist, replacing_bead_count);
-            is_end_of_marking = false;
+            should_dissolve |= filterEndOfCentralTransition(next_edge, traveled_dist + length, max_dist, replacing_bead_count);
+            is_end_of_central = false;
         }
     }
-    if (is_end_of_marking && traveled_dist < max_dist)
+    if (is_end_of_central && traveled_dist < max_dist)
     {
         should_dissolve = true;
     }
@@ -1009,9 +1009,9 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
 
     bool going_up = end_rest > start_rest;
 
-    assert(edge.data.isMarked());
-    if (!edge.data.isMarked())
-    { // This function shouldn't generate ends in or beyond unmarked regions
+    assert(edge.data.isCentral());
+    if (!edge.data.isCentral())
+    { // This function shouldn't generate ends in or beyond non-central regions
         return false;
     }
 
@@ -1023,11 +1023,11 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
         assert(rest <= std::max(end_rest, start_rest));
         assert(rest >= std::min(end_rest, start_rest));
 
-        coord_t marked_edge_count = 0;
+        coord_t central_edge_count = 0;
         for (edge_t* outgoing = edge.next; outgoing && outgoing != edge.twin; outgoing = outgoing->twin->next)
         {
-            if (!outgoing->data.isMarked()) continue;
-            marked_edge_count++;
+            if (!outgoing->data.isCentral()) continue;
+            central_edge_count++;
         }
 
         bool is_only_going_down = true;
@@ -1035,14 +1035,14 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
         for (edge_t* outgoing = edge.next; outgoing && outgoing != edge.twin;)
         {
             edge_t* next = outgoing->twin->next; // Before we change the outgoing edge itself
-            if (!outgoing->data.isMarked())
+            if (!outgoing->data.isCentral())
             {
                 outgoing = next;
-                continue; // Don't put transition ends in non-marked regions
+                continue; // Don't put transition ends in non-central regions
             }
-            if (marked_edge_count > 1 && going_up && isGoingDown(outgoing, 0, end_pos - ab_size + transition_half_length, lower_bead_count))
-            { // We're after a 3-way_all-marked_junction-node and going in the direction of lower bead count
-                // don't introduce a transition end along this marked direction, because this direction is the downward direction
+            if (central_edge_count > 1 && going_up && isGoingDown(outgoing, 0, end_pos - ab_size + transition_half_length, lower_bead_count))
+            { // We're after a 3-way_all-central_junction-node and going in the direction of lower bead count
+                // don't introduce a transition end along this central direction, because this direction is the downward direction
                 // while we are supposed to be [going_up]
                 outgoing = next;
                 continue;
@@ -1137,7 +1137,7 @@ bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
     bool has_recursed = false;
     for (edge_t* next = outgoing->next; next && next != outgoing->twin; next = next->twin->next)
     {
-        if (!next->data.isMarked())
+        if (!next->data.isCentral())
         {
             continue;
         }
@@ -1172,7 +1172,7 @@ void SkeletalTrapezoidation::applyTransitions()
             continue;
         }
 
-        assert(edge.data.isMarked());
+        assert(edge.data.isCentral());
 
         auto& transitions = *edge.data.getTransitionEnds();
         transitions.sort([](const TransitionEnd& a, const TransitionEnd& b) { return a.pos < b.pos; } );
@@ -1200,18 +1200,18 @@ void SkeletalTrapezoidation::applyTransitions()
             }
             Point mid = a + normal(ab, end_pos);
             
-            assert(last_edge_replacing_input->data.isMarked());
+            assert(last_edge_replacing_input->data.isCentral());
             assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
             last_edge_replacing_input = graph.insertNode(last_edge_replacing_input, mid, new_node_bead_count);
             assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
-            assert(last_edge_replacing_input->data.isMarked());
+            assert(last_edge_replacing_input->data.isCentral());
         }
     }
 }
 
-bool SkeletalTrapezoidation::isEndOfMarking(const edge_t& edge_to) const
+bool SkeletalTrapezoidation::isEndOfCentral(const edge_t& edge_to) const
 {
-    if (!edge_to.data.isMarked())
+    if (!edge_to.data.isCentral())
     {
         return false;
     }
@@ -1221,7 +1221,7 @@ bool SkeletalTrapezoidation::isEndOfMarking(const edge_t& edge_to) const
     }
     for (const edge_t* edge = edge_to.next; edge && edge != edge_to.twin; edge = edge->twin->next)
     {
-        if (edge->data.isMarked())
+        if (edge->data.isCentral())
         {
             return false;
         }
@@ -1237,7 +1237,7 @@ void SkeletalTrapezoidation::generateExtraRibs()
     {
         edge_t& edge = *edge_it;
         
-        if (!edge.data.isMarked() 
+        if (!edge.data.isCentral() 
             || shorterThen(edge.to->p - edge.from->p, discretization_step_size) 
             || edge.from->data.distance_to_boundary >= edge.to->data.distance_to_boundary) 
         {
@@ -1286,11 +1286,11 @@ void SkeletalTrapezoidation::generateExtraRibs()
             }
             Point mid = a + normal(ab, end_pos);
             
-            assert(last_edge_replacing_input->data.isMarked());
+            assert(last_edge_replacing_input->data.isCentral());
             assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
             last_edge_replacing_input = graph.insertNode(last_edge_replacing_input, mid, new_node_bead_count);
             assert(last_edge_replacing_input->data.type != SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD);
-            assert(last_edge_replacing_input->data.isMarked());
+            assert(last_edge_replacing_input->data.isCentral());
         }
     }
 }
@@ -1424,7 +1424,7 @@ void SkeletalTrapezoidation::propagateBeadingsUpward(std::vector<edge_t*>& upwar
         { // Only propagate to places where there is place
             continue;
         }
-        assert((upward_edge->from->data.distance_to_boundary != upward_edge->to->data.distance_to_boundary || shorterThen(upward_edge->to->p - upward_edge->from->p, marking_filter_dist)) && "zero difference R edges should always be marked");
+        assert((upward_edge->from->data.distance_to_boundary != upward_edge->to->data.distance_to_boundary || shorterThen(upward_edge->to->p - upward_edge->from->p, central_filter_dist)) && "zero difference R edges should always be central");
         coord_t length = vSize(upward_edge->to->p - upward_edge->from->p);
         BeadingPropagation upper_beading = lower_beading;
         upper_beading.dist_to_bottom_source += length;
@@ -1440,7 +1440,7 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(std::vector<edge_t*>& upw
     for (edge_t* upward_quad_mid : upward_quad_mids)
     {
         // Transfer beading information to lower nodes
-        if (!upward_quad_mid->data.isMarked())
+        if (!upward_quad_mid->data.isCentral())
         {
             // for equidistant edge: propagate from known beading to node with unknown beading
             if (upward_quad_mid->from->data.distance_to_boundary == upward_quad_mid->to->data.distance_to_boundary
@@ -1628,7 +1628,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
     if (! node->data.hasBeading())
     {
         if (node->data.bead_count == -1)
-        { // This bug is due to too small marked edges
+        { // This bug is due to too small central edges
             constexpr coord_t nearby_dist = 100; // TODO
             auto nearest_beading = getNearestBeading(node, nearby_dist);
             if (nearest_beading)
@@ -1637,20 +1637,20 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
             }
             
             // Else make a new beading:
-            bool has_marked_edge = false;
+            bool has_central_edge = false;
             bool first = true;
             coord_t dist = std::numeric_limits<coord_t>::max();
             for (edge_t* edge = node->incident_edge; edge && (first || edge != node->incident_edge); edge = edge->twin->next)
             {
-                if (edge->data.isMarked())
+                if (edge->data.isCentral())
                 {
-                    has_marked_edge = true;
+                    has_central_edge = true;
                 }
                 assert(edge->to->data.distance_to_boundary >= 0);
                 dist = std::min(dist, edge->to->data.distance_to_boundary + vSize(edge->to->p - edge->from->p));
                 first = false;
             }
-            RUN_ONCE(logError("Unknown beading for unmarked node!\n"));
+            RUN_ONCE(logError("Unknown beading for non-central node!\n"));
             assert(dist != std::numeric_limits<coord_t>::max());
             node->data.bead_count = beading_strategy.getOptimalBeadCount(dist * 2);
         }
@@ -1832,7 +1832,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             continue;
         }
         Beading& beading = node.data.getBeading()->beading;
-        if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true) && !node.isMarked())
+        if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true) && !node.isCentral())
         {
             size_t inset_index = beading.bead_widths.size() / 2;
             bool is_odd = true;

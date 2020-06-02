@@ -55,7 +55,7 @@ public:
 
     bool isMultiIntersection();
 
-    bool isMarked() const;
+    bool isCentral() const;
 
     /*!
         * Check whether this node has a locally maximal distance_to_boundary

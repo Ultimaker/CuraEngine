@@ -122,7 +122,7 @@ bool STHalfEdgeNode::isMultiIntersection()
     edge_t* outgoing = this->incident_edge;
     do
     {
-        if (outgoing->data.isMarked())
+        if (outgoing->data.isCentral())
         {
             odd_path_count++;
         }
@@ -130,12 +130,12 @@ bool STHalfEdgeNode::isMultiIntersection()
     return odd_path_count > 2;
 }
 
-bool STHalfEdgeNode::isMarked() const
+bool STHalfEdgeNode::isCentral() const
 {
     edge_t* edge = incident_edge;
     do
     {
-        if (edge->data.isMarked())
+        if (edge->data.isCentral())
         {
             return true;
         }
@@ -424,10 +424,10 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
         node_after->incident_edge = edge_after;
     }
 
-    first->data.setMarked(true);
-    outward_edge->data.setMarked(false); // TODO verify this is always the case.
-    inward_edge->data.setMarked(false);
-    second->data.setMarked(true);
+    first->data.setIsCentral(true);
+    outward_edge->data.setIsCentral(false); // TODO verify this is always the case.
+    inward_edge->data.setIsCentral(false);
+    second->data.setIsCentral(true);
 
     outward_edge->twin = inward_edge;
     inward_edge->twin = outward_edge;
