@@ -989,8 +989,12 @@ void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, c
         coord_t start_pos = mid_pos;
         coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
         coord_t end_pos = mid_pos +  transition_half_length;
+#ifdef DEBUG
         bool is_going_down_everywhere = generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends);
         assert(!is_going_down_everywhere && "There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");
+#else
+        generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends);
+#endif
     }
 }
 
