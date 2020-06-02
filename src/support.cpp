@@ -865,6 +865,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     //Compute the areas that are disallowed by the X/Y distance.
     std::vector<Polygons> xy_disallowed_per_layer;
     xy_disallowed_per_layer.resize(layer_count);
+    std::vector<Polygons> sloped_areas_per_layer;
+    sloped_areas_per_layer.resize(layer_count);
     // simplified processing for bottom layer - just ensure support clears part by XY distance
     const coord_t xy_distance = infill_settings.get<coord_t>("support_xy_distance");
     const coord_t xy_distance_overhang = infill_settings.get<coord_t>("support_xy_distance_overhang");
@@ -879,10 +881,10 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
     // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
 #if defined(__GNUC__) && __GNUC__ <= 8
-    #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, storage, mesh) schedule(dynamic)
+    #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, sloped_areas_per_layer, storage, mesh) schedule(dynamic)
 #else
     #pragma omp parallel for default(none) \
-        shared(xy_disallowed_per_layer, storage, mesh, layer_count, is_support_mesh_place_holder,  \
+        shared(xy_disallowed_per_layer, sloped_areas_per_layer, storage, mesh, layer_count, is_support_mesh_place_holder,  \
                use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang, layer_thickness, support_line_width) \
         schedule(dynamic)
 #endif // defined(__GNUC__) && __GNUC__ <= 8
@@ -891,7 +893,12 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_idx = 1; layer_idx < static_cast<int>(layer_count); layer_idx++)
     {
-        Polygons outlines = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
+        const Polygons outlines = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
+
+        sloped_areas_per_layer[layer_idx] =
+            storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower).tubeShape(support_line_width, 10)
+                .intersection(outlines.tubeShape(10, support_line_width)).offset(-10).offset(support_line_width);
+
         if (!is_support_mesh_place_holder)
         { // don't compute overhang for support meshes
             if (use_xy_distance_overhang) //Z overrides XY distance.
@@ -976,6 +983,14 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const coord_t bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_height"));
     const size_t bottom_stair_step_layer_count = bottom_stair_step_height / layer_thickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
 
+    for (int layer_idx = 1; layer_idx < static_cast<int>(layer_count); ++layer_idx)
+    {
+        if (layer_idx % bottom_stair_step_layer_count != 1)
+        {
+            sloped_areas_per_layer[layer_idx] = sloped_areas_per_layer[layer_idx].unionPolygons(sloped_areas_per_layer[layer_idx - 1]);
+        }
+    }
+
     for (size_t layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != static_cast<size_t>(-1); layer_idx--)
     {
         Polygons layer_this = mesh.full_overhang_areas[layer_idx + layer_z_distance_top];
@@ -1038,8 +1053,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh_drop_down);
         }
 
-        // Move up from model, while taking the (post-processed) x/y-disallowed area into account.
-        moveUpFromModel(storage, stair_removal, layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
+        // Move up from model, handle stair-stepping.
+        moveUpFromModel(storage, stair_removal, sloped_areas_per_layer[layer_idx], layer_this, layer_idx, bottom_empty_layer_count, bottom_stair_step_layer_count, bottom_stair_step_width);
 
         support_areas[layer_idx] = layer_this;
         Progress::messageProgress(Progress::Stage::SUPPORT, layer_count * (mesh_idx + 1) - layer_idx, layer_count * storage.meshes.size());
@@ -1143,7 +1158,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     storage.support.generated = true;
 }
 
-void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& stair_removal, Polygons& support_areas, const size_t layer_idx, const size_t bottom_empty_layer_count, const size_t bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
+void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& stair_removal, Polygons& sloped_areas, Polygons& support_areas, const size_t layer_idx, const size_t bottom_empty_layer_count, const size_t bottom_stair_step_layer_count, const coord_t support_bottom_stair_step_width)
 {
 // The idea behind support bottom stairs:
 //
@@ -1214,7 +1229,7 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sta
         if (layer_idx % bottom_stair_step_layer_count == 0)
         { // update stairs for next step
             const Polygons supporting_bottom = storage.getLayerOutlines(bottom_layer_nr - 1, no_support, no_prime_tower);
-            const Polygons allowed_step_width = support_areas.intersection(supporting_bottom).offset(support_bottom_stair_step_width);
+            const Polygons allowed_step_width = supporting_bottom.offset(support_bottom_stair_step_width).intersection(sloped_areas);
 
             const int64_t step_bottom_layer_nr = bottom_layer_nr - bottom_stair_step_layer_count + 1;
             if (step_bottom_layer_nr >= 0)
