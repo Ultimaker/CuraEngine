@@ -292,27 +292,23 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
         {
             continue;
         }
-        bool check_secondary_edge = true;
         Point v0 = VoronoiUtils::p(edge->vertex0());
         Point v1 = VoronoiUtils::p(edge->vertex1());
         assert(!(v0 == to && v1 == from));
-        if (v0 == to
-            && !after_start // Use the last edge which starts in source_segment.to
-        )
+        if (v0 == to && !after_start) // Use the last edge which starts in source_segment.to
         {
             starting_vd_edge = edge;
             seen_possible_start = true;
-            check_secondary_edge = false;
         }
         else if (seen_possible_start)
+        {
             after_start = true;
-        if (v1 == from
-            && (!ending_vd_edge || ending_edge_is_set_before_start)
-        )
+        }
+
+        if (v1 == from && (!ending_vd_edge || ending_edge_is_set_before_start))
         {
             ending_edge_is_set_before_start = !after_start;
             ending_vd_edge = edge;
-            check_secondary_edge = false;
         }
     } while (edge = edge->next(), edge != cell.incident_edge());
     
