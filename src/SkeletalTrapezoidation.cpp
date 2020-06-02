@@ -670,7 +670,6 @@ void SkeletalTrapezoidation::generateTransitioningRibs()
     // Store the upward edges to the transitions.
     // We only store the halfedge for which the distance_to_boundary is higher at the end than at the beginning.
     ptr_vector_t<std::list<TransitionMiddle>> edge_transitions;
-
     generateTransitionMids(edge_transitions);
 
     for (edge_t& edge : graph.edges)

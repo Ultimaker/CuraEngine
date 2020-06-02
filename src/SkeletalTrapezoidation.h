@@ -301,22 +301,45 @@ protected:
     void filterNoncentralRegions();
 
     /*!
-     * 
+     * Add central regions and set bead counts for a particular edge and all of
+     * its adjacent edges.
+     *
+     * Recursive subroutine for \ref filterNoncentralRegions().
      * \return Whether to set the bead count on the way back
      */
     bool filterNoncentralRegions(edge_t* to_edge, coord_t bead_count, coord_t traveled_dist, coord_t max_dist);
 
+    /*!
+     * Generate middle points of all transitions on edges.
+     *
+     * The transition middle points are saved in the graph itself. They are also
+     * returned via the output parameter.
+     * \param[out] edge_transitions A list of transitions that were generated.
+     */
     void generateTransitionMids(ptr_vector_t<std::list<TransitionMiddle>>& edge_transitions);
 
+    /*!
+     * Removes some transition middle points.
+     *
+     * Transitions can be removed if there are multiple intersecting transitions
+     * that are too close together. If transitions have opposite effects, both
+     * are removed.
+     */
     void filterTransitionMids();
 
     /*!
-     * 
-     * \param edge_to_start edge pointing to the node from which to start traveling in all directions except along \p edge_to_start
-     * \param origin_transition The transition for which we are checking nearby transitions
-     * \param traveled_dist the distance traveled before we came to \p edge_to_start.to
-     * \param going_up Whether we are traveling in the upward direction as seen from the \p origin_transition. If this doesn't align with the direction according to the R diff on a consecutive edge we know there was a local optimum
-     * \return whether the origin transition should be dissolved
+     * Merge transitions that are too close together.
+     * \param edge_to_start Edge pointing to the node from which to start
+     * traveling in all directions except along \p edge_to_start .
+     * \param origin_transition The transition for which we are checking nearby
+     * transitions.
+     * \param traveled_dist The distance traveled before we came to
+     * \p edge_to_start.to .
+     * \param going_up Whether we are traveling in the upward direction as seen
+     * from the \p origin_transition. If this doesn't align with the direction
+     * according to the R diff on a consecutive edge we know there was a local
+     * optimum.
+     * \return Whether the origin transition should be dissolved.
      */
     std::list<TransitionMidRef> dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up);
 
