@@ -343,11 +343,34 @@ protected:
      */
     std::list<TransitionMidRef> dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, coord_t traveled_dist, coord_t max_dist, bool going_up);
 
+    /*!
+     * Spread a certain bead count over a region in the graph.
+     * \param edge_to_start One edge of the region to spread the bead count in.
+     * \param from_bead_count All edges with this bead count will be changed.
+     * \param to_bead_count The new bead count for those edges.
+     */
     void dissolveBeadCountRegion(edge_t* edge_to_start, coord_t from_bead_count, coord_t to_bead_count);
 
+    /*!
+     * Change the bead count if the given edge is at the end of a central
+     * region.
+     *
+     * This is necessary to provide a transitioning bead count to the edges of a
+     * central region to transition more smoothly from a high bead count in the
+     * central region to a lower bead count at the edge.
+     * \param edge_to_start One edge from a zone that needs to be filtered.
+     * \param traveled_dist The distance along the edges we've traveled so far.
+     * \param max_distance Don't filter beyond this range.
+     * \param replacing_bead_count The new bead count for this region.
+     * \return ``true`` if the bead count of this edge was changed.
+     */
     bool filterEndOfCentralTransition(edge_t* edge_to_start, coord_t traveled_dist, coord_t max_dist, coord_t replacing_bead_count);
 
-    void generateTransitionEnds(ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
+    /*!
+     * Generate the endpoints of all transitions for all edges in the graph.
+     * \param[out] edge_transition_ends The resulting transition endpoints.
+     */
+    void generateAllTransitionEnds(ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
      * Also set the rest values at nodes in between the transition ends
@@ -357,19 +380,37 @@ protected:
     void generateTransitioningRibs();
 
     /*!
-     * \param edge_to_transition_mids From the upward halfedges to their transitions mids
+     * Generate the endpoints of a specific transition midpoint.
+     * \param edge The edge to create transitions on.
+     * \param mid_R The radius of the transition middle point.
+     * \param transition_lower_bead_count The bead count at the lower end of the
+     * transition.
+     * \param[out] edge_transition_ends A list of endpoints to add the new
+     * endpoints to.
      */
-    void generateTransition(edge_t& edge, coord_t mid_R, coord_t transition_lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
+    void generateTransitionEnds(edge_t& edge, coord_t mid_R, coord_t transition_lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
-     * \p start_rest and \p end_rest refer to gap distances at the start and end pos in terms of ratios w.r.t. the inner bead width at the high end of the transition
-     * 
-     * \p end_pos_along_edge may be beyond this edge!
-     * In this case we need to interpolate the rest value at the locations in between
-     * 
-     * \return whether the subgraph is going downward
+     * Compute a single endpoint of a transition.
+     * \param edge The edge to generate the endpoint for.
+     * \param start_pos The position where the transition starts.
+     * \param end_pos The position where the transition ends on the other side.
+     * \param transition_half_length The distance to the transition middle
+     * point.
+     * \param start_rest The gap between the start of the transition and the
+     * starting endpoint, as ratio of the inner bead width at the high end of
+     * the transition.
+     * \param end_rest The gap between the end of the transition and the ending
+     * endpoint, as ratio of the inner bead width at the high end of the
+     * transition.
+     * \param transition_lower_bead_count The bead count at the lower end of the
+     * transition.
+     * \param[out] edge_transition_ends The list to put the resulting endpoints
+     * in.
+     * \return Whether the given edge is going downward (i.e. towards a thinner
+     * region of the polygon).
      */
-    bool generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t transition_lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
+    bool generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, Ratio start_rest, Ratio end_rest, coord_t transition_lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     bool isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t transition_half_length, coord_t lower_bead_count) const;
 

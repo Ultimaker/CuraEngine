@@ -683,7 +683,7 @@ void SkeletalTrapezoidation::generateTransitioningRibs()
     filterTransitionMids();
 
     ptr_vector_t<std::list<TransitionEnd>> edge_transition_ends; // We only map the half edge in the upward direction. mapped items are not sorted
-    generateTransitionEnds(edge_transition_ends);
+    generateAllTransitionEnds(edge_transition_ends);
 
     applyTransitions();
     // Note that the shared pointer lists will be out of scope and thus destroyed here, since the remaining refs are weak_ptr.
@@ -942,7 +942,7 @@ bool SkeletalTrapezoidation::filterEndOfCentralTransition(edge_t* edge_to_start,
     return should_dissolve;
 }
 
-void SkeletalTrapezoidation::generateTransitionEnds(ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
+void SkeletalTrapezoidation::generateAllTransitionEnds(ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -957,12 +957,12 @@ void SkeletalTrapezoidation::generateTransitionEnds(ptr_vector_t<std::list<Trans
         {
             assert(transition_positions.front().pos <= transition_middle.pos);
             assert(transition_middle.pos <= transition_positions.back().pos);
-            generateTransition(edge, transition_middle.pos, transition_middle.lower_bead_count, edge_transition_ends);
+            generateTransitionEnds(edge, transition_middle.pos, transition_middle.lower_bead_count, edge_transition_ends);
         }
     }
 }
 
-void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, coord_t lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
+void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_pos, coord_t lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
@@ -997,7 +997,7 @@ void SkeletalTrapezoidation::generateTransition(edge_t& edge, coord_t mid_pos, c
     }
 }
 
-bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, float start_rest, float end_rest, coord_t lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
+bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, Ratio start_rest, Ratio end_rest, coord_t lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
     Point a = edge.from->p;
     Point b = edge.to->p;
