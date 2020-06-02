@@ -1017,7 +1017,6 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
 
     if (end_pos > ab_size)
     { // Recurse on all further edges
-        coord_t R = edge.to->data.distance_to_boundary;
         float rest = end_rest - (start_rest - end_rest) * (end_pos - ab_size) / (start_pos - end_pos);
         assert(rest >= 0);
         assert(rest <= std::max(end_rest, start_rest));
@@ -1650,7 +1649,10 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
                 dist = std::min(dist, edge->to->data.distance_to_boundary + vSize(edge->to->p - edge->from->p));
                 first = false;
             }
-            RUN_ONCE(logError("Unknown beading for non-central node!\n"));
+            if (!has_central_edge)
+            {
+                RUN_ONCE(logError("Unknown beading for non-central node!\n"));
+            }
             assert(dist != std::numeric_limits<coord_t>::max());
             node->data.bead_count = beading_strategy.getOptimalBeadCount(dist * 2);
         }
