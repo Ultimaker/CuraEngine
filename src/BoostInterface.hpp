@@ -58,36 +58,4 @@ struct segment_traits<CSegment>
 }    // polygon
 }    // boost
 
-namespace arachne
-{
-    using namespace cura;
-
-static CPolygonSet toBoostType(const Polygons& polys)
-{
-    CPolygonSet ret;
-    for (ConstPolygonRef poly : polys)
-    {
-        CPolygon boost_poly;
-        boost::polygon::set_points(boost_poly, poly.begin(), poly.end());
-        ret.push_back(boost_poly);
-    }
-    return ret;
-}
-
-static Polygons toPolygons(const CPolygonSet& boost_polys)
-{
-    Polygons ret;
-    for (const CPolygon& boost_poly : boost_polys)
-    {
-        PolygonRef poly = ret.newPoly();
-        for (auto& boost_point : boost_poly)
-        {
-            poly.emplace_back(boost_point.x(), boost_point.y());
-        }
-    }
-    return ret;
-}
-
-} // namespace arachne
-
 #endif // BOOST_INTERFACE_HPP
