@@ -466,6 +466,12 @@ protected:
      */
     void generateSegments();
 
+    /*!
+     * From a quad (a group of linked edges in one cell of the Voronoi), find
+     * the edge that is furthest away from the border of the polygon.
+     * \param quad_start_edge The first edge of the quad.
+     * \return The edge of the quad that is furthest away from the border.
+     */
     edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
 
     /*!
@@ -493,19 +499,63 @@ protected:
      * \param upward_quad_mids all upward halfedges of the inner skeletal edges (not directly connected to the outline) sorted on their highest [distance_to_boundary]. Higher dist first.
      */
     void propagateBeadingsDownward(std::vector<edge_t*>& upward_quad_mids, ptr_vector_t<BeadingPropagation>& node_beadings);
-    
+
+    /*!
+     * Subroutine of \ref propagateBeadingsDownward(std::vector<edge_t*>&, ptr_vector_t<BeadingPropagation>&)
+     */
     void propagateBeadingsDownward(edge_t* edge_to_peak, ptr_vector_t<BeadingPropagation>& node_beadings);
 
     /*!
-     * \param switching_radius The radius at which we switch from the left beading to the merged
+     * Find a beading in between two other beadings.
+     *
+     * This creates a new beading. With this we can find the coordinates of the
+     * endpoints of the actual line segments to draw.
+     *
+     * The parameters \p left and \p right are not actually always left or right
+     * but just arbitrary directions to visually indicate the difference.
+     * \param left One of the beadings to interpolate between.
+     * \param ratio_left_to_whole The position within the two beadings to sample
+     * an interpolation. Should be a ratio between 0 and 1.
+     * \param right One of the beadings to interpolate between.
+     * \param switching_radius The bead radius at which we switch from the left
+     * beading to the merged beading, if the beadings have a different number of
+     * beads.
+     * \return The beading at the interpolated location.
      */
     Beading interpolate(const Beading& left, Ratio ratio_left_to_whole, const Beading& right, coord_t switching_radius) const;
+
+    /*!
+     * Subroutine of \ref interpolate(const Beading&, Ratio, const Beading&, coord_t)
+     *
+     * This creates a new Beading between two beadings, assuming that both have
+     * the same number of beads.
+     * \param left One of the beadings to interpolate between.
+     * \param ratio_left_to_whole The position within the two beadings to sample
+     * an interpolation. Should be a ratio between 0 and 1.
+     * \param right One of the beadings to interpolate between.
+     * \return The beading at the interpolated location.
+     */
     Beading interpolate(const Beading& left, Ratio ratio_left_to_whole, const Beading& right) const;
 
+    /*!
+     * Get the beading at a certain node of the skeletal graph, or create one if
+     * it doesn't have one yet.
+     *
+     * This is a lazy get.
+     * \param node The node to get the beading from.
+     * \param node_beadings A list of all beadings for nodes.
+     * \return The beading of that node.
+     */
     std::shared_ptr<BeadingPropagation> getOrCreateBeading(node_t* node, ptr_vector_t<BeadingPropagation>& node_beadings);
 
     /*!
-     * In case we cannot find the beading of a node, get a beading from the nearest node
+     * In case we cannot find the beading of a node, get a beading from the
+     * nearest node.
+     * \param node The node to attempt to get a beading from. The actual node
+     * that the returned beading is from may be a different, nearby node.
+     * \param max_dist The maximum distance to search for.
+     * \return A beading for the node, or ``nullptr`` if there is no node nearby
+     * with a beading.
      */
     std::shared_ptr<BeadingPropagation> getNearestBeading(node_t* node, coord_t max_dist);
 
