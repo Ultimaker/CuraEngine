@@ -377,6 +377,16 @@ protected:
      */
     void applyTransitions();
 
+    /*!
+     * Create extra edges along all edges, where it needs to transition from one
+     * bead count to another.
+     *
+     * For example, if an edge of the graph goes from a bead count of 6 to a
+     * bead count of 1, it needs to generate 5 places where the beads around
+     * this line transition to a lower bead count. These are the "ribs". They
+     * reach from the edge to the border of the polygon. Where the beads hit
+     * those ribs the beads know to make a transition.
+     */
     void generateTransitioningRibs();
 
     /*!
@@ -412,11 +422,41 @@ protected:
      */
     bool generateTransitionEnd(edge_t& edge, coord_t start_pos, coord_t end_pos, coord_t transition_half_length, Ratio start_rest, Ratio end_rest, coord_t transition_lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
+    /*!
+     * Determines whether an edge is going downwards or upwards in the graph.
+     *
+     * An edge is said to go "downwards" if it's going towards a narrower part
+     * of the polygon. The notion of "downwards" comes from the conical
+     * representation of the graph, where the polygon is filled with a cone of
+     * maximum radius.
+     *
+     * This function works by recursively checking adjacent edges until the edge
+     * is reached.
+     * \param outgoing The edge to check.
+     * \param traveled_dist The distance traversed so far.
+     * \param transition_half_length The radius of the transition width.
+     * \param lower_bead_count The bead count at the lower end of the edge.
+     * \return ``true`` if this edge is going down, or ``false`` if it's going
+     * up.
+     */
     bool isGoingDown(edge_t* outgoing, coord_t traveled_dist, coord_t transition_half_length, coord_t lower_bead_count) const;
 
+    /*!
+     * Determines whether this edge marks the end of the central region.
+     * \param edge The edge to check.
+     * \return ``true`` if this edge goes from a central region to a non-central
+     * region, or ``false`` in every other case (central to central, non-central
+     * to non-central, non-central to central, or end-of-the-line).
+     */
     bool isEndOfCentral(const edge_t& edge) const;
 
-
+    /*!
+     * Create extra ribs in the graph where the graph contains a parabolic arc
+     * or a straight between two inner corners.
+     *
+     * There might be transitions there as the beads go through a narrow
+     * bottleneck in the polygon.
+     */
     void generateExtraRibs();
 
     // ^ transitioning | v toolpath generation
