@@ -151,6 +151,7 @@ private:
 
     bool is_volumetric;
     bool relative_extrusion; //!< whether to use relative extrusion distances rather than absolute
+    bool always_write_active_tool; //!< whether to write the active tool after sending commands to inactive tool
 
     Temperature initial_bed_temp; //!< bed temperature at the beginning of the print.
     Temperature build_volume_temperature;  //!< build volume temperature
