@@ -51,21 +51,22 @@ Point VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::vecto
     assert(cell.contains_point());
     switch (cell.source_category())
     {
-    case boost::polygon::SOURCE_CATEGORY_SINGLE_POINT:
-        return points[cell.source_index()];
-        break;
-    case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
-        assert(cell.source_index() - points.size() < segments.size());
-        return segments[cell.source_index() - points.size()].to();
-        break;
-    case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
-        assert(cell.source_index() - points.size() < segments.size());
-        return segments[cell.source_index() - points.size()].from();
-        break;
-    default:
-        assert(false && "getSourcePoint should only be called on point cells!\n");
-        break;
+		case boost::polygon::SOURCE_CATEGORY_SINGLE_POINT:
+			return points[cell.source_index()];
+			break;
+		case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
+			assert(cell.source_index() - points.size() < segments.size());
+			return segments[cell.source_index() - points.size()].to();
+			break;
+		case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
+			assert(cell.source_index() - points.size() < segments.size());
+			return segments[cell.source_index() - points.size()].from();
+			break;
+		default:
+			assert(false && "getSourcePoint should only be called on point cells!\n");
+			break;
     }
+	return points[cell.source_index()];
 }
 
 PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
@@ -74,24 +75,26 @@ PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell
     assert(cell.source_category() != boost::polygon::SOURCE_CATEGORY_SINGLE_POINT);
     switch (cell.source_category())
     {
-    case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
-    {
-        assert(cell.source_index() - points.size() < segments.size());
-        PolygonsPointIndex ret = segments[cell.source_index() - points.size()];
-        ++ret;
-        return ret;
-        break;
+		case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
+		{
+			assert(cell.source_index() - points.size() < segments.size());
+			PolygonsPointIndex ret = segments[cell.source_index() - points.size()];
+			++ret;
+			return ret;
+			break;
+		}
+		case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
+		{
+			assert(cell.source_index() - points.size() < segments.size());
+			return segments[cell.source_index() - points.size()];
+			break;
+		}
+		default:
+			assert(false && "getSourcePoint should only be called on point cells!\n");
+			break;
     }
-    case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
-    {
-        assert(cell.source_index() - points.size() < segments.size());
-        return segments[cell.source_index() - points.size()];
-        break;
-    }
-    default:
-        assert(false && "getSourcePoint should only be called on point cells!\n");
-        break;
-    }
+	PolygonsPointIndex ret = segments[cell.source_index() - points.size()];
+	return ++ret;
 }
 
 const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
