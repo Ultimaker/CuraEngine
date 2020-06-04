@@ -123,7 +123,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
         }
         if (has_connected)
         {
-            coord_t extrusion_width = end_point.front? end_point.polyline->junctions.front().w : end_point.polyline->junctions.back().w;
+            coord_t extrusion_width = end_point.front ? end_point.polyline->junctions.front().w : end_point.polyline->junctions.back().w;
             if (end_point.front)
             {
                 reduceIntersectionOverlap(*end_point.polyline, end_point.polyline->junctions.begin(), 0, extrusion_width / 2, end_point);
@@ -215,7 +215,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
             }
             else
             {
-                coord_t extrusion_width = other_end.front? other_end.polyline->junctions.front().w : other_end.polyline->junctions.back().w;
+                coord_t extrusion_width = other_end.front ? other_end.polyline->junctions.front().w : other_end.polyline->junctions.back().w;
                 if (other_end.front)
                 {
                     reduceIntersectionOverlap(*other_end.polyline, other_end.polyline->junctions.begin(), 0, extrusion_width / 2, end_point);
