@@ -38,7 +38,7 @@ public:
      * \param connect_odd_lines_to_polygons Whether to preferably connect an odd
      * count segment to a polygon, rather than closing the polygonal toolpath.
      */
-    static void optimize(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, bool reduce_overlapping_segments = true, bool connect_odd_lines_to_polygons = true);
+    static void optimize(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, const bool reduce_overlapping_segments = true, const bool connect_odd_lines_to_polygons = true);
 private:
     /*!
      * This private constructor is called by \ref optimize. It creates one
@@ -76,7 +76,7 @@ private:
          */
         bool front;
 
-        ExtrusionLineEndRef(coord_t inset_idx, std::list<ExtrusionLine>::iterator polyline, bool front)
+        ExtrusionLineEndRef(const coord_t inset_idx, const std::list<ExtrusionLine>::iterator polyline, const bool front)
         : inset_idx(inset_idx)
         , polyline(polyline)
         , front(front)
@@ -142,7 +142,7 @@ private:
      * polygons? If so, this might open those polygons, creating a seam, but it
      * will remove another seam where the polyline is adjacent to a polygon.
      */
-    void fuzzyConnect(std::vector<std::list<ExtrusionLine>>& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons);
+    void fuzzyConnect(std::vector<std::list<ExtrusionLine>>& polygons_per_index, const coord_t snap_dist, const bool reduce_overlapping_segments, const bool connect_odd_lines_to_polygons);
 
     /*!
      * Compensate for overlaps between intersecting lines.
@@ -164,25 +164,25 @@ private:
      * makes us reduce these line segments to compensate for their overlap.
      */
     template<typename directional_iterator>
-    void reduceIntersectionOverlap(ExtrusionLine& polyline, directional_iterator polyline_start_it, coord_t traveled_dist, coord_t reduction_length, ExtrusionLineEndRef& reduction_source);
+    void reduceIntersectionOverlap(ExtrusionLine& polyline, const directional_iterator polyline_start_it, const coord_t traveled_dist, const coord_t reduction_length, const ExtrusionLineEndRef& reduction_source);
 
     /*!
      * Get an iterator where we can insert new junctions.
      */
     template<typename directional_iterator>
-    static std::list<ExtrusionJunction>::iterator getInsertPosIt(directional_iterator it);
+    static std::list<ExtrusionJunction>::iterator getInsertPosIt(const directional_iterator it);
 
     /*!
      * Get an iterator pointing to a certain junction.
      */
     template<typename directional_iterator>
-    static std::list<ExtrusionJunction>::iterator getSelfPosIt(directional_iterator it);
+    static std::list<ExtrusionJunction>::iterator getSelfPosIt(const directional_iterator it);
 
     /*!
      * Test if an iterator points to the end of a polyline.
      */
     template<typename directional_iterator>
-    bool isEnd(directional_iterator it, ExtrusionLine& polyline);
+    bool isEnd(const directional_iterator it, const ExtrusionLine& polyline) const;
 };
 
 } // namespace arachne
