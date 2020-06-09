@@ -719,7 +719,7 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
 
         if (start_R == end_R)
         { // No transitions occur when both end points have the same distance_to_boundary
-            assert(edge.from->data.bead_count == edge.to->data.bead_count);// TODO: what to do in this case?
+            assert(edge.from->data.bead_count == edge.to->data.bead_count);
             continue;
         }
         else if (start_R > end_R)
