@@ -896,6 +896,13 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     {
         const Polygons outlines = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
 
+        // Build sloped areas by:
+        //  - Take the (inwards) outer edges of the previous layer.
+        //  - Take the (outwards) outer edges of the current layer.
+        //  - The intersection between them is where a slope
+        //    (we accept the more than occasional wall) can be said to happen _between those two layers_.
+        //  - Do an opening (and offset) operation on them to loose tiny patches, merge small patches together,
+        //    and have it ready for the combinatorial process (see the other parallel loop below).
         sloped_areas_per_layer[layer_idx] =
             storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower).tubeShape(support_line_width, 10)
                 .intersection(outlines.tubeShape(10, support_line_width)).offset(-10).offset(support_line_width);
@@ -995,9 +1002,11 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 #endif // defined(__GNUC__) && __GNUC__ <= 8
         for (int base_layer_idx = 1; base_layer_idx < static_cast<int>(layer_count); base_layer_idx += bottom_stair_step_layer_count)
         {
+            // Add the sloped areas together for each stair of the stair stepping.
             const int max_layer_stair_step = std::min(base_layer_idx + bottom_stair_step_layer_count, layer_count);
             for (int layer_idx = base_layer_idx; layer_idx < max_layer_stair_step; ++layer_idx)
             {
+                // Start a new stair every modulo bottom_stair_step_layer_count steps.
                 if (layer_idx % bottom_stair_step_layer_count != 1)
                 {
                     sloped_areas_per_layer[layer_idx] = sloped_areas_per_layer[layer_idx].unionPolygons(sloped_areas_per_layer[layer_idx - 1]);
