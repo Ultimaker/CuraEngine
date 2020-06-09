@@ -17,6 +17,8 @@
 
 #include "utils/macros.h"
 
+#define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX 1000 //A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing performance).
+
 namespace arachne
 {
 
@@ -1683,7 +1685,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
         first = false;
     }
 
-    for (coord_t counter = 0; counter < 1000; counter++)
+    for (coord_t counter = 0; counter < SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX; counter++)
     { // Prevent endless recursion
         if (further_edges.empty()) return nullptr;
         DistEdge here = further_edges.top();
