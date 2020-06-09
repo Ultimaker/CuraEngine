@@ -867,6 +867,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     xy_disallowed_per_layer.resize(layer_count);
     std::vector<Polygons> sloped_areas_per_layer;
     sloped_areas_per_layer.resize(layer_count);
+    sloped_areas_per_layer[0] = Polygons();
     // simplified processing for bottom layer - just ensure support clears part by XY distance
     const coord_t xy_distance = infill_settings.get<coord_t>("support_xy_distance");
     const coord_t xy_distance_overhang = infill_settings.get<coord_t>("support_xy_distance_overhang");
@@ -983,11 +984,25 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const coord_t bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_height"));
     const size_t bottom_stair_step_layer_count = bottom_stair_step_height / layer_thickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
 
-    for (int layer_idx = 1; layer_idx < static_cast<int>(layer_count); ++layer_idx)
+    if (bottom_stair_step_layer_count > 0)
     {
-        if (layer_idx % bottom_stair_step_layer_count != 1)
+        // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
+        // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
+#if defined(__GNUC__) && __GNUC__ <= 8
+#pragma omp parallel for default(none) shared(sloped_areas_per_layer) schedule(dynamic)
+#else
+#pragma omp parallel for default(none) shared(sloped_areas_per_layer, layer_count, bottom_stair_step_layer_count) schedule(dynamic)
+#endif // defined(__GNUC__) && __GNUC__ <= 8
+        for (int base_layer_idx = 1; base_layer_idx < static_cast<int>(layer_count); base_layer_idx += bottom_stair_step_layer_count)
         {
-            sloped_areas_per_layer[layer_idx] = sloped_areas_per_layer[layer_idx].unionPolygons(sloped_areas_per_layer[layer_idx - 1]);
+            const int max_layer_stair_step = std::min(base_layer_idx + bottom_stair_step_layer_count, layer_count);
+            for (int layer_idx = base_layer_idx; layer_idx < max_layer_stair_step; ++layer_idx)
+            {
+                if (layer_idx % bottom_stair_step_layer_count != 1)
+                {
+                    sloped_areas_per_layer[layer_idx] = sloped_areas_per_layer[layer_idx].unionPolygons(sloped_areas_per_layer[layer_idx - 1]);
+                }
+            }
         }
     }
 
