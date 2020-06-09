@@ -469,14 +469,16 @@ SkeletalTrapezoidationGraph::edge_t* SkeletalTrapezoidationGraph::insertNode(edg
 
 std::pair<Point, Point> SkeletalTrapezoidationGraph::getSource(const edge_t& edge)
 {
-    const edge_t* from_edge;
-    for (from_edge = &edge; from_edge->prev; from_edge = from_edge->prev) 
+    const edge_t* from_edge = &edge;
+    while(from_edge->prev)
     {
+        from_edge = from_edge->prev;
     }
-    
-    const edge_t* to_edge;
-    for (to_edge = &edge; to_edge->next; to_edge = to_edge->next) 
+
+    const edge_t* to_edge = &edge;
+    while(to_edge->next)
     {
+        to_edge = to_edge->next;
     }
     
     return std::make_pair(from_edge->from->p, to_edge->to->p);
