@@ -161,6 +161,9 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
     }
     else //This is a straight edge between two points.
     {
+        /*While the edge is straight, it is still discretized since the part
+        becomes narrower between the two points. As such it may need different
+        beadings along the way.*/
         Point left_point = VoronoiUtils::getSourcePoint(*left_cell, points, segments);
         Point right_point = VoronoiUtils::getSourcePoint(*right_cell, points, segments);
         coord_t d = vSize(right_point - left_point);
@@ -168,7 +171,7 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         Point x_axis_dir = turn90CCW(right_point - left_point);
         coord_t x_axis_length = vSize(x_axis_dir);
 
-        const auto projected_x = [x_axis_dir, x_axis_length, middle](Point from)
+        const auto projected_x = [x_axis_dir, x_axis_length, middle](Point from) //Project a point on the edge.
         {
             Point vec = from - middle;
             coord_t x = dot(vec, x_axis_dir) / x_axis_length;
@@ -178,6 +181,7 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         coord_t start_x = projected_x(start);
         coord_t end_x = projected_x(end);
 
+        //Part of the edge will be bound to the markings on the endpoints of the edge. Calculate how far that is.
         float bound = 0.5 / tan((M_PI - transitioning_angle) * 0.5);
         coord_t marking_start_x = - d * bound;
         coord_t marking_end_x = d * bound;
@@ -185,21 +189,24 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         Point marking_end = middle + x_axis_dir * marking_end_x / x_axis_length;
         int direction = 1;
         
-        if (start_x > end_x)
+        if (start_x > end_x) //Oops, the Voronoi edge is the other way around.
         {
             direction = -1;
             std::swap(marking_start, marking_end);
             std::swap(marking_start_x, marking_end_x);
         }
 
+        //Start generating points along the edge.
         Point a = start;
         Point b = end;
         std::vector<Point> ret;
         ret.emplace_back(a);
-        
+
+        //Introduce an extra edge at the borders of the markings?
         bool add_marking_start = marking_start_x * direction > start_x * direction;
         bool add_marking_end = marking_end_x * direction > start_x * direction;
-        
+
+        //The edge's length may not be divisible by the step size, so calculate an integer step count and evenly distribute the vertices among those.
         Point ab = b - a;
         coord_t ab_size = vSize(ab);
         coord_t step_count = (ab_size + discretization_step_size / 2) / discretization_step_size;
@@ -209,8 +216,8 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         }
         for (coord_t step = 1; step < step_count; step++)
         {
-            Point here = a + ab * step / step_count;
-            coord_t x_here = projected_x(here);
+            Point here = a + ab * step / step_count; //Now simply interpolate the coordinates to get the new vertices!
+            coord_t x_here = projected_x(here); //If we've surpassed the position of the extra markings, we may need to insert them first.
             if (add_marking_start && marking_start_x * direction < x_here * direction)
             {
                 ret.emplace_back(marking_start);
