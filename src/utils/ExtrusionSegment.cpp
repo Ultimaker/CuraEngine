@@ -83,12 +83,14 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
         }
         poly.emplace_back(to.p + Point(to.w / 2 * cos(alpha + dir), to.w / 2 * sin(alpha + dir)));
     }
-    
+
+#ifdef DEBUG
     for (Point p : poly)
     {
         assert(p.X < 0x3FFFFFFFFFFFFFFFLL);
         assert(p.Y < 0x3FFFFFFFFFFFFFFFLL);
     }
+#endif //DEBUG
 
     return ret;
 }
