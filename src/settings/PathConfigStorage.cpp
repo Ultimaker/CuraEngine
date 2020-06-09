@@ -141,9 +141,9 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     {
         infill_config.emplace_back(
                 PrintFeatureType::Infill
-                , mesh.settings.get<coord_t>("infill_line_width") * (combine_idx + 1) * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr]
+                , mesh.settings.get<coord_t>("infill_line_width") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr]
                 , layer_thickness
-                , mesh.settings.get<Ratio>("infill_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
+                , mesh.settings.get<Ratio>("infill_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)) * (combine_idx + 1)
                 , GCodePathConfig::SpeedDerivatives{mesh.settings.get<Velocity>("speed_infill"), mesh.settings.get<Acceleration>("acceleration_infill"), mesh.settings.get<Velocity>("jerk_infill")}
             );
     }
