@@ -1,4 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
 #ifndef UTILS_VORONOI_UTILS_H
@@ -8,7 +9,6 @@
 
 
 #include <boost/polygon/voronoi.hpp>
-using boost::polygon::voronoi_diagram;
 
 #include "SVG.h"
 #include "PolygonsSegmentIndex.h"
@@ -25,7 +25,7 @@ class VoronoiUtils
 public:
     using Segment = PolygonsSegmentIndex;
     using voronoi_data_t = double;
-    using vd_t = voronoi_diagram<voronoi_data_t>;
+    using vd_t = boost::polygon::voronoi_diagram<voronoi_data_t>;
 
     static Point getSourcePoint(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments);
     static const Segment& getSourceSegment(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments);

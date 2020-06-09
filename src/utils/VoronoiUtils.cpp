@@ -1,4 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <optional>
 #include <stack>
@@ -8,9 +9,6 @@
 
 #include "linearAlg2D.h"
 #include "SVG.h"
-
-using boost::polygon::low;
-using boost::polygon::high;
 
 namespace arachne 
 {
