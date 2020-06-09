@@ -475,11 +475,13 @@ protected:
     edge_t* getQuadMaxRedgeTo(edge_t* quad_start_edge);
 
     /*!
-     * propagate beading info from lower R nodes to higher R nodes
+     * Propagate beading information from nodes that are closer to the edge
+     * (low radius R) to nodes that are farther from the edge (high R).
      * 
      * only propagate from nodes with beading info upward to nodes without beading info
      * 
-     * edges are sorted so that we can do a depth-first walk without employing a recursive algorithm
+     * Edges are sorted by their radius, so that we can do a depth-first walk
+     * without employing a recursive algorithm.
      * 
      * In upward propagated beadings we store the distance traveled, so that we can merge these beadings with the downward propagated beadings in \ref propagateBeadingsDownward(.)
      * 
