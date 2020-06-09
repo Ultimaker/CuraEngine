@@ -27,7 +27,7 @@ struct geometry_concept<cura::Point>
 template <>
 struct point_traits<cura::Point>
 {
-    typedef int coordinate_type;
+    typedef cura::coord_t coordinate_type;
 
     static inline coordinate_type get(
             const cura::Point& point, orientation_2d orient)
