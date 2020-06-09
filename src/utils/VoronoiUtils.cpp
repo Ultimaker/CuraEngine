@@ -228,7 +228,8 @@ void VoronoiUtils::discretize(
 
     // Adjust max_dist parameter in the transformed space.
     const coord_t max_dist_transformed = max_dist * max_dist * sqr_segment_length;
-    while (!point_stack.empty()) {
+    while (!point_stack.empty()) 
+    {
         Point new_(point_stack.top(), parabola_y(point_stack.top(), rot_x, rot_y));
         Point new_vec = new_ - cur;
 
@@ -261,7 +262,8 @@ void VoronoiUtils::discretize(
 }
 
 // adapted from boost::polygon::voronoi_visual_utils.cpp
-coord_t VoronoiUtils::parabola_y(coord_t x, coord_t a, coord_t b) {
+coord_t VoronoiUtils::parabola_y(coord_t x, coord_t a, coord_t b) 
+{
     return ((x - a) * (x - a) + b * b) / (b + b);
 }
 
