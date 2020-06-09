@@ -68,7 +68,7 @@ constexpr Duration operator "" _s(const long double seconds)
 }
 
 
-inline std::ostream& operator<< (std::ostream& out, const Duration seconds)
+std::ostream& operator<< (std::ostream& out, const Duration seconds)
 {
     constexpr bool pretty_print = false;
 
