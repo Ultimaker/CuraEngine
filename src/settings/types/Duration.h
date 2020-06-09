@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef DURATION_H
@@ -68,7 +68,7 @@ constexpr Duration operator "" _s(const long double seconds)
 }
 
 
-std::ostream& operator<< (std::ostream& out, const Duration seconds)
+inline std::ostream& operator<< (std::ostream& out, const Duration seconds)
 {
     constexpr bool pretty_print = false;
 

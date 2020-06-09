@@ -18,23 +18,12 @@ namespace arachne
 class PolygonsSegmentIndex : public PolygonsPointIndex
 {
 public:
-    PolygonsSegmentIndex()
-    : PolygonsPointIndex()
-    {
-    }
-    PolygonsSegmentIndex(const Polygons* polygons, unsigned int poly_idx, unsigned int point_idx)
-    : PolygonsPointIndex(polygons, poly_idx, point_idx)
-    {}
+    PolygonsSegmentIndex();
+    PolygonsSegmentIndex(const Polygons* polygons, unsigned int poly_idx, unsigned int point_idx);
 
-    Point from() const
-    {
-        return PolygonsPointIndex::p();
-    }
-    
-    Point to() const
-    {
-        return PolygonsSegmentIndex::next().p();
-    }
+    Point from() const;
+
+    Point to() const;
 };
 
 
