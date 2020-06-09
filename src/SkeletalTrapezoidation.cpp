@@ -559,7 +559,7 @@ bool SkeletalTrapezoidation::filterCentral(edge_t* starting_edge, coord_t travel
         return false;
     }
     
-    bool should_dissolve = true;
+    bool should_dissolve = true; //Should we unmark this as central and propagate that?
     for (edge_t* next_edge = starting_edge->next; next_edge && next_edge != starting_edge->twin; next_edge = next_edge->twin->next)
     {
         if (next_edge->data.isCentral())
