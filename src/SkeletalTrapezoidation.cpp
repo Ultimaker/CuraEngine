@@ -497,18 +497,18 @@ std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(
 
 void SkeletalTrapezoidation::updateIsCentral()
 {
-    //                                            _.-'^`      .
-    //                                      _.-'^`            .
-    //                                _.-'^` \                .
-    //                          _.-'^`        \               .
-    //                    _.-'^`               \ R2           .
-    //              _.-'^` \              _.-'\`\             .
-    //        _.-'^`        \R1     _.-'^`     '`\ dR         .
-    //  _.-'^`a/2            \_.-'^`a             \           .
-    //  `^'-._````````````````A```````````v````````B```````   .
-    //        `^'-._                     dD = |AB|            .
-    //              `^'-._                                    .
-    //                             sin a = dR / dD            .
+    //                                            _.-'^`      A and B are the endpoints of an edge we're checking.
+    //                                      _.-'^`            Part of the line AB will be used as a cap,
+    //                                _.-'^` \                because the polygon is too narrow there.
+    //                          _.-'^`        \               If |AB| minus the cap is still bigger than dR,
+    //                    _.-'^`               \ R2           the edge AB is considered central. It's then
+    //              _.-'^` \              _.-'\`\             significant compared to the edges around it.
+    //        _.-'^`        \R1     _.-'^`     '`\ dR
+    //  _.-'^`a/2            \_.-'^`a             \           Line AR2 is parallel to the polygon contour.
+    //  `^'-._````````````````A```````````v````````B```````   dR is the remaining diameter at B.
+    //        `^'-._                     dD = |AB|            As a result, AB is less often central if the polygon
+    //              `^'-._                                    corner is obtuse.
+    //                             sin a = dR / dD
 
     coord_t outer_edge_filter_length = beading_strategy.getTransitionThickness(0) / 2;
 
