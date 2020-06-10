@@ -4,6 +4,7 @@
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
+#include <optional>
 #include <vector>
 
 #include "FanSpeedLayerTime.h"
@@ -15,7 +16,6 @@
 #include "pathPlanning/TimeMaterialEstimates.h"
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/optional.h"
 #include "utils/polygon.h"
 
 namespace cura 

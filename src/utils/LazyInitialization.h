@@ -3,8 +3,7 @@
 #define UTILS_LAZY_INITIALIZATION_H
 
 #include <functional> // bind, function
-
-#include "optional.h"
+#include <optional>
 
 namespace cura
 {
@@ -92,18 +91,18 @@ public:
      */
     T& operator*()
     {
-        if (!std::optional<T>::instance)
+        if (!std::optional<T>::has_value())
         {
-            std::optional<T>::instance = constructor();
+            std::optional<T>::operator=(*constructor());
         }
         return std::optional<T>::operator*();
     }
 
     T* operator->() const
     {
-        if (!std::optional<T>::instance)
+        if (!std::optional<T>::has_value())
         {
-            std::optional<T>::instance = constructor();
+            std::optional<T>::operator=(*constructor());
         }
         return std::optional<T>::operator->();
     }
