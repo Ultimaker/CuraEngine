@@ -896,16 +896,19 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     {
         const Polygons outlines = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
 
-        // Build sloped areas by:
-        //  - Take the (inwards) outer edges of the previous layer.
-        //  - Take the (outwards) outer edges of the current layer.
-        //  - The intersection between them is where a slope
-        //    (we accept the more than occasional wall) can be said to happen _between those two layers_.
-        //  - Do an opening (and offset) operation on them to loose tiny patches, merge small patches together,
-        //    and have it ready for the combinatorial process (see the other parallel loop below).
+        // Build sloped areas. We need this for the stair-stepping later on.
+        // Specifically, sloped areass are used in 'moveUpFromModel' to prevent a stair step happening over an area where there isn't a slope.
+        // This part here only concerns the slope between two layers. This will be post-processed later on (see the other parallel loop below).
         sloped_areas_per_layer[layer_idx] =
+            // Take the outer areas of the previous layer, where the outer areas are (mostly) just _inside_ the shape.
             storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower).tubeShape(support_line_width, 10)
-                .intersection(outlines.tubeShape(10, support_line_width)).offset(-10).offset(support_line_width);
+            // Intersect those with the outer areas of the current layer, where the outer areas are (mostly) _outside_ the shape.
+            // This will detect every slope (and some/most vertical walls) between those two layers.
+            .intersection(outlines.tubeShape(10, support_line_width))
+            // Do an opening operation so we're not stuck with tiny patches.
+            // The later offset is extended with the line-width, so all patches are merged together if there's less than a line-width between them.
+            .offset(-10).offset(10 + support_line_width);
+        // The sloped areas are now ready to be post-processed.
 
         if (!is_support_mesh_place_holder)
         { // don't compute overhang for support meshes
@@ -991,8 +994,16 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const coord_t bottom_stair_step_height = std::max(static_cast<coord_t>(0), mesh.settings.get<coord_t>("support_bottom_stair_step_height"));
     const size_t bottom_stair_step_layer_count = bottom_stair_step_height / layer_thickness + 1; // the difference in layers between two stair steps. One is normal support (not stair-like)
 
+    // Post-process the sloped areas's. (Skip if no stair-stepping anyway.)
+    // The idea here is to 'add up' all the sloped 'areas' so they form actual areas per each stair-step height.
+    // (Only the 'top' sloped area for each step is actually used in the end, see 'moveUpFromModel'.)
     if (bottom_stair_step_layer_count > 0)
     {
+        // We can parallelize this part, which is needed since these are potentially expensive operations,
+        // but only in chunks of `bottom_stair_step_layer_count` steps, since, within such a chunk,
+        // the order of execution is important.
+        // Unless thinking about optimization & threading, you can just think of this as a single for-loop.
+
         // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
         // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
 #if defined(__GNUC__) && __GNUC__ <= 8
