@@ -877,6 +877,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     constexpr bool no_support = false;
     constexpr bool no_prime_tower = false;
     const coord_t support_line_width = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings.get<coord_t>("support_line_width");
+    const double sloped_areas_angle = mesh.settings.get<AngleRadians>("support_bottom_stair_step_min_slope");
+    const coord_t sloped_area_detection_width = 10 + static_cast<coord_t>(layer_thickness / std::tan(sloped_areas_angle)) / 2;
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
 
     // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
@@ -901,13 +903,13 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         // This part here only concerns the slope between two layers. This will be post-processed later on (see the other parallel loop below).
         sloped_areas_per_layer[layer_idx] =
             // Take the outer areas of the previous layer, where the outer areas are (mostly) just _inside_ the shape.
-            storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower).tubeShape(support_line_width, 10)
+            storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower).tubeShape(sloped_area_detection_width, 10)
             // Intersect those with the outer areas of the current layer, where the outer areas are (mostly) _outside_ the shape.
             // This will detect every slope (and some/most vertical walls) between those two layers.
-            .intersection(outlines.tubeShape(10, support_line_width))
+            .intersection(outlines.tubeShape(10, sloped_area_detection_width))
             // Do an opening operation so we're not stuck with tiny patches.
             // The later offset is extended with the line-width, so all patches are merged together if there's less than a line-width between them.
-            .offset(-10).offset(10 + support_line_width);
+            .offset(-10).offset(10 + sloped_area_detection_width);
         // The sloped areas are now ready to be post-processed.
 
         if (!is_support_mesh_place_holder)
