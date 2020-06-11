@@ -43,7 +43,7 @@ struct ExtrusionLine
      */
     std::list<ExtrusionJunction> junctions;
 
-    ExtrusionLine(coord_t inset_idx, bool is_odd)
+    ExtrusionLine(const coord_t inset_idx, const bool is_odd)
     : inset_idx(inset_idx)
     , is_odd(is_odd)
     {}

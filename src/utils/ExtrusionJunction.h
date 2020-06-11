@@ -38,7 +38,7 @@ struct ExtrusionJunction
 	 */
     size_t perimeter_index;
 
-    ExtrusionJunction(Point p, coord_t w, coord_t perimeter_index)
+    ExtrusionJunction(const Point p, const coord_t w, const coord_t perimeter_index)
     : p(p), w(w), perimeter_index(perimeter_index) {}
 
     bool operator==(const ExtrusionJunction& other) const
