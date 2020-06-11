@@ -41,12 +41,7 @@ struct ExtrusionJunction
     ExtrusionJunction(const Point p, const coord_t w, const coord_t perimeter_index)
     : p(p), w(w), perimeter_index(perimeter_index) {}
 
-    bool operator==(const ExtrusionJunction& other) const
-    {
-        return p == other.p
-            && w == other.w
-            && perimeter_index == other.perimeter_index;
-    }
+    bool operator==(const ExtrusionJunction& other) const;
 };
 
 

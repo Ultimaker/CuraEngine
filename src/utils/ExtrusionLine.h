@@ -51,21 +51,7 @@ struct ExtrusionLine
     /*!
      * Sum the total length of this path.
      */
-    coord_t getLength() const
-    {
-        if (junctions.empty())
-        {
-            return 0;
-        }
-        coord_t len = 0;
-        ExtrusionJunction prev = junctions.front();
-        for (const ExtrusionJunction& next : junctions)
-        {
-            len += vSize(next.p - prev.p);
-            prev = next;
-        }
-        return len;
-    }
+    coord_t getLength() const;
 };
 
 
