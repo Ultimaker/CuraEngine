@@ -25,7 +25,7 @@ struct ExtrusionLine
      *
      * The outer wall has index 0.
      */
-    coord_t inset_idx;
+    size_t inset_idx;
 
     /*!
      * If a thin piece needs to be printed with an odd number of walls (e.g. 5
@@ -43,7 +43,7 @@ struct ExtrusionLine
      */
     std::list<ExtrusionJunction> junctions;
 
-    ExtrusionLine(const coord_t inset_idx, const bool is_odd)
+    ExtrusionLine(const size_t inset_idx, const bool is_odd)
     : inset_idx(inset_idx)
     , is_odd(is_odd)
     {}

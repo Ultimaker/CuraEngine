@@ -141,15 +141,19 @@ void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_p
 
     std::vector<std::vector<ExtrusionLine>> polygons_per_index_vector;
     polygons_per_index_vector.resize(polygons_per_index.size());
-    for (coord_t inset_idx = 0; inset_idx < polygons_per_index.size(); inset_idx++)
+    for (size_t inset_idx = 0; inset_idx < polygons_per_index.size(); inset_idx++)
+    {
         polygons_per_index_vector[inset_idx].insert(polygons_per_index_vector[inset_idx].end(), polygons_per_index[inset_idx].begin(), polygons_per_index[inset_idx].end());
+    }
 
     std::vector<std::vector<ExtrusionLine>> polylines_per_index_vector;
     polylines_per_index_vector.resize(polylines_per_index.size());
-    for (coord_t inset_idx = 0; inset_idx < polylines_per_index.size(); inset_idx++)
+    for (size_t inset_idx = 0; inset_idx < polylines_per_index.size(); inset_idx++)
+    {
         polylines_per_index_vector[inset_idx].insert(polylines_per_index_vector[inset_idx].end(), polylines_per_index[inset_idx].begin(), polylines_per_index[inset_idx].end());
+    }
 
-    for (int inset_idx = 0; inset_idx < std::max(polygons_per_index_vector.size(), polylines_per_index_vector.size()); inset_idx++)
+    for (size_t inset_idx = 0; inset_idx < std::max(polygons_per_index_vector.size(), polylines_per_index_vector.size()); inset_idx++)
     {
         if (inset_idx < polylines_per_index_vector.size())
         {
@@ -257,7 +261,7 @@ void GcodeWriter::printUnordered(std::vector<std::list<ExtrusionLine>>& polygons
             }
     }
     OrderOptimizer order_optimizer(cur_pos);
-    for (coord_t path_idx = 0; path_idx < paths.size(); path_idx++)
+    for (size_t path_idx = 0; path_idx < paths.size(); path_idx++)
     {
         order_optimizer.addPoly(recreated[path_idx], paths[path_idx].is_closed);
     }
