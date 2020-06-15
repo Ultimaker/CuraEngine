@@ -430,8 +430,7 @@ public:
 
     void insert(size_t index, Point p)
     {
-        POLY_ASSERT(index < size() && index <= std::numeric_limits<int>::max());
-        POLY_ASSERT(index >= 0);
+        POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<int>::max()));
         path->insert(path->begin() + index, p);
     }
 
