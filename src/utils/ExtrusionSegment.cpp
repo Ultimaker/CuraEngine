@@ -37,7 +37,7 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
     assert(alpha > - M_PI - 0.0001);
     assert(alpha < M_PI + 0.0001);
     
-    const float dir = std::atan(vec.Y / static_cast<float>(vec.X));
+    float dir = std::atan(vec.Y / static_cast<float>(vec.X));
     if (vec.X < 0)
     {
         dir += M_PI;

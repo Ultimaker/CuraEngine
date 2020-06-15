@@ -29,8 +29,19 @@ public:
     ExtrusionJunction from;
     ExtrusionJunction to;
 
-    bool is_odd; //!< Whether this is a polyline segment rather than a polygonal segment
-    bool is_reduced; //!< Whether to remove the circle from the to-location because it will be included in the next extrusion move
+    /*!
+     * Whether this is a polyline segment rather than a polygonal segment.
+     */
+    bool is_odd;
+
+    /*!
+     * In the \ref toPolygons function, should the endcap at the to-location be
+     * included or not?
+     *
+     * If the segment is reduced, a circle is removed from the to-location
+     * because it will be included in the next extrusion move's covered area.
+     */
+    bool is_reduced;
 
     ExtrusionSegment(ExtrusionJunction from, ExtrusionJunction to, bool is_odd, bool is_reduced)
     : from(from)
