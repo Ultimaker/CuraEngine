@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "linearAlg2D.h"
@@ -210,24 +210,44 @@ coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Poin
     return px_size2;
 }
 
-bool LinearAlg2D::isInsideCorner(const Point a, const Point b, const Point c, const Point q)
+bool LinearAlg2D::isInsideCorner(const Point a, const Point b, const Point c, const Point query_point)
 {
-    constexpr coord_t normal_length = 10000;
-    Point ba = normal(a - b, normal_length);
-    Point bc = normal(c - b, normal_length);
-    Point bq = q - b;
-    Point n = turn90CCW(bq);
-    coord_t anx = dot(ba, n);
-    coord_t cnx = dot(bc, n);
-    if ((anx > 0) != (cnx > 0))
+    /*
+     Visualisation for the algorithm below:
+
+                 query
+                   |
+                   |
+                   |
+    perp-----------b
+                  / \       (note that the lines
+                 /   \      AB and AC are normalized
+                /     \     to 10000 units length)
+               a       c
+     */
+
+
+
+    constexpr coord_t normal_length = 10000; //Create a normal vector of reasonable length in order to reduce rounding error.
+    const Point ba = normal(a - b, normal_length);
+    const Point bc = normal(c - b, normal_length);
+    const Point bq = query_point - b;
+    const Point perpendicular = turn90CCW(bq); //The query projects to this perpendicular to coordinate 0.
+    const coord_t project_a_perpendicular = dot(ba, perpendicular); //Project vertex A on the perpendicular line.
+    const coord_t project_c_perpendicular = dot(bc, perpendicular); //Project vertex C on the perpendicular line.
+    if ((project_a_perpendicular > 0) != (project_c_perpendicular > 0)) //Query is between A and C on the projection.
     {
-        return anx > 0;
+        return project_a_perpendicular > 0; //Due to the winding order of corner ABC, this means that the query is inside.
     }
-    else
+    else //Beyond either A or C, but it could still be inside of the polygon.
     {
-        coord_t ax = dot(ba, bq);
-        coord_t cx = dot(bc, bq);
-        return (cx < ax) == (anx > 0);
+        const coord_t project_a_parallel = dot(ba, bq); //Project not on the perpendicular, but on the original.
+        const coord_t project_c_parallel = dot(bc, bq);
+
+        //Either:
+        // * A is to the right of B (project_a_perpendicular > 0) and C is below A (project_c_parallel < project_a_parallel), or
+        // * A is to the left of B (project_a_perpendicular < 0) and C is above A (project_c_parallel > project_a_parallel).
+        return (project_c_parallel < project_a_parallel) == (project_a_perpendicular > 0);
     }
 }
 
