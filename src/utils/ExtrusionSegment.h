@@ -24,7 +24,7 @@ namespace arachne
  */
 class ExtrusionSegment
 {
-    static constexpr float a_step = 15 / 180.0 * M_PI;
+    static constexpr float a_step = 15 / 180.0 * M_PI; //!< In the calculation of the area covered by this line, the angle between line segments of the round endcaps.
 public:
     ExtrusionJunction from;
     ExtrusionJunction to;
