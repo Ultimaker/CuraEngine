@@ -621,10 +621,10 @@ public:
      * This creates a regular polygon that is supposed to approximate a circle.
      * \param mid The center of the circle.
      * \param radius The radius of the circle.
-     * \param[out] result A Polygons to add the circle to.
      * \param a_step The angle between segments of the circle.
+     * \return A new Polygon containing the circle.
      */
-    static void makeCircle(const Point mid, const coord_t radius, Polygons& result, const AngleRadians a_step = M_PI / 8);
+    static Polygon makeCircle(const Point mid, const coord_t radius, const AngleRadians a_step = M_PI / 8);
 
     /*!
      * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
