@@ -192,67 +192,63 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
 }
 
 // adapted from boost::polygon::voronoi_visual_utils.cpp
-void VoronoiUtils::discretize(
-        const Point& point,
-        const Segment& segment,
-        const coord_t max_dist,
-        std::vector<Point>* discretization) {
+void VoronoiUtils::discretize(const Point& point, const Segment& segment, const coord_t max_dist, std::vector<Point>* discretization)
+{
     // Apply the linear transformation to move start point of the segment to
     // the point with coordinates (0, 0) and the direction of the segment to
     // coincide the positive direction of the x-axis.
-    Point segm_vec = segment.to() - segment.from();
-    coord_t sqr_segment_length = vSize2(segm_vec);
+    const Point segm_vec = segment.to() - segment.from();
+    const coord_t segment_length2 = vSize2(segm_vec);
 
     // Compute x-coordinates of the endpoints of the edge
     // in the transformed space.
-    coord_t projection_start = sqr_segment_length *
-            get_point_projection((*discretization)[0], segment);
-    coord_t projection_end = sqr_segment_length *
-            get_point_projection((*discretization)[1], segment);
+    const coord_t projection_start = segment_length2 * getPointProjection((*discretization)[0], segment);
+    const coord_t projection_end = segment_length2 * getPointProjection((*discretization)[1], segment);
 
     // Compute parabola parameters in the transformed space.
     // Parabola has next representation:
     // f(x) = ((x-rot_x)^2 + rot_y^2) / (2.0*rot_y).
-    Point point_vec = point - segment.from();
-    coord_t rot_x = dot(segm_vec, point_vec);
-    coord_t rot_y = cross(segm_vec, point_vec);
+    const Point point_vec = point - segment.from();
+    const coord_t rot_x = dot(segm_vec, point_vec);
+    const coord_t rot_y = cross(segm_vec, point_vec);
 
     // Save the last point.
-    Point last_point = (*discretization)[1];
+    const Point last_point = (*discretization)[1];
     discretization->pop_back();
 
     // Use stack to avoid recursion.
     std::stack<coord_t> point_stack;
     point_stack.push(projection_end);
-    Point cur(projection_start, parabola_y(projection_start, rot_x, rot_y));
+    Point cur(projection_start, parabolaY(projection_start, rot_x, rot_y));
 
     // Adjust max_dist parameter in the transformed space.
-    const coord_t max_dist_transformed = max_dist * max_dist * sqr_segment_length;
+    const coord_t max_dist_transformed = max_dist * max_dist * segment_length2;
     while (!point_stack.empty()) 
     {
-        Point new_(point_stack.top(), parabola_y(point_stack.top(), rot_x, rot_y));
-        Point new_vec = new_ - cur;
+        const Point new_(point_stack.top(), parabolaY(point_stack.top(), rot_x, rot_y));
+        const Point new_vec = new_ - cur;
 
         // Compute coordinates of the point of the parabola that is
         // furthest from the current line segment.
-        coord_t mid_x = new_vec.Y * rot_y / new_vec.X + rot_x;
-        coord_t mid_y = parabola_y(mid_x, rot_x, rot_y);
+        const coord_t mid_x = new_vec.Y * rot_y / new_vec.X + rot_x;
+        const coord_t mid_y = parabolaY(mid_x, rot_x, rot_y);
         Point mid_vec = Point(mid_x, mid_y) - cur;
 
         // Compute maximum distance between the given parabolic arc
         // and line segment that discretize it.
-        __int128 dist = cross(mid_vec, new_vec);
+        coord_t dist = cross(mid_vec, new_vec);
         dist = dist * dist / vSize2(new_vec); // TODO overflows!!!
-        if (dist <= max_dist_transformed) {
+        if (dist <= max_dist_transformed)
+        {
             // Distance between parabola and line segment is less than max_dist.
             point_stack.pop();
-            coord_t inter_x = (segm_vec.X * new_.X - segm_vec.Y * new_.Y) /
-                    sqr_segment_length + segment.from().X;
-            coord_t inter_y = (segm_vec.X * new_.Y + segm_vec.Y * new_.X) /
-                    sqr_segment_length + segment.from().Y;
+            const coord_t inter_x = (segm_vec.X * new_.X - segm_vec.Y * new_.Y) / segment_length2 + segment.from().X;
+            const coord_t inter_y = (segm_vec.X * new_.Y + segm_vec.Y * new_.X) / segment_length2 + segment.from().Y;
             discretization->push_back(Point(inter_x, inter_y));
             cur = new_;
-        } else {
+        }
+        else
+        {
             point_stack.push(mid_x);
         }
     }
@@ -262,14 +258,14 @@ void VoronoiUtils::discretize(
 }
 
 // adapted from boost::polygon::voronoi_visual_utils.cpp
-coord_t VoronoiUtils::parabola_y(coord_t x, coord_t a, coord_t b) 
+coord_t VoronoiUtils::parabolaY(coord_t x, coord_t a, coord_t b)
 {
     return ((x - a) * (x - a) + b * b) / (b + b);
 }
 
 // adapted from boost::polygon::voronoi_visual_utils.cpp
-double VoronoiUtils::get_point_projection(
-        const Point& point, const Segment& segment) {
+double VoronoiUtils::getPointProjection(const Point& point, const Segment& segment)
+{
     Point segment_vec = segment.to() - segment.from();
     Point point_vec = point - segment.from();
     coord_t sqr_segment_length = vSize2(segment_vec);
