@@ -1,5 +1,5 @@
 //Copyright (c) 2016 Scott Lenser
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_SPARSE_POINT_GRID_H
@@ -42,6 +42,14 @@ public:
      */
     void insert(const Elem &elem);
 
+    /*!
+     * Get just any element that's within a certain radius of a point.
+     *
+     * Rather than giving a vector of nearby elements, this function just gives
+     * a single element, any element, in no particular order.
+     * \param query_pt The point to query for an object nearby.
+     * \param radius The radius of what is considered "nearby".
+     */
     const ElemT* getAnyNearby(const Point& query_pt, coord_t radius);
 
 protected:
