@@ -615,7 +615,16 @@ public:
      */
     static double relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b);
 
-    static void makeCircle(Point mid, coord_t radius, Polygons& result, float a_step = M_PI / 8);
+    /*!
+     * Create an approximation of a circle.
+     *
+     * This creates a regular polygon that is supposed to approximate a circle.
+     * \param mid The center of the circle.
+     * \param radius The radius of the circle.
+     * \param[out] result A Polygons to add the circle to.
+     * \param a_step The angle between segments of the circle.
+     */
+    static void makeCircle(const Point mid, const coord_t radius, Polygons& result, const AngleRadians a_step = M_PI / 8);
 
     /*!
      * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together

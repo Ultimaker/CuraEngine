@@ -1347,7 +1347,7 @@ double PolygonUtils::relativeHammingDistance(const Polygons& poly_a, const Polyg
     return hamming_distance / total_area;
 }
 
-void PolygonUtils::makeCircle(Point mid, coord_t radius, Polygons& ret, float a_step)
+void PolygonUtils::makeCircle(const Point mid, const coord_t radius, Polygons& ret, const AngleRadians a_step)
 {
     PolygonRef circle = ret.newPoly();
     for (float a = 0; a < 2 * M_PI; a += a_step)
