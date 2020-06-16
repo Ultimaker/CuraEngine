@@ -114,13 +114,8 @@ void Polygons::makeConvex()
             const Point& c = poly[(i + 1) % poly.size()];
             if (LinearAlg2D::pointIsLeftOfLine(b, a, c) < 0)
             {
-                poly.remove(i);
-            }
-            else
-            {
                 convexified.path->push_back(b);
                 a = b;
-                i++;
             }
         }
         poly.path->swap(*convexified.path); //Due to vector's implementation, this is constant time.
