@@ -1,5 +1,6 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "polygon.h"
 
 #include <unordered_set>
@@ -105,21 +106,19 @@ void Polygons::makeConvex()
 {
     for (PolygonRef poly : *this)
     {
+        Polygon convexified;
         Point a = poly.back();
-        for (int i = 0; i < poly.size();)
+        for (size_t i = 0; i < poly.size(); ++i)
         {
-            Point b = poly[i];
-            Point c = poly[(i + 1) % poly.size()];
-            if (LinearAlg2D::pointIsLeftOfLine(b, a, c) >= 0)
+            const Point& b = poly[i];
+            const Point& c = poly[(i + 1) % poly.size()];
+            if (LinearAlg2D::pointIsLeftOfLine(b, a, c) < 0)
             {
-                poly.remove(i);
-            }
-            else
-            {
+                convexified.path->push_back(b);
                 a = b;
-                i++;
             }
         }
+        poly.path->swap(*convexified.path); //Due to vector's implementation, this is constant time.
     }
 }
 

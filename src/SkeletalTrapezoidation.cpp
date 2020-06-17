@@ -689,7 +689,7 @@ void SkeletalTrapezoidation::generateTransitioningRibs()
     { // Check if there is a transition in between nodes with different bead counts
         if (edge.data.isCentral() && edge.from->data.bead_count != edge.to->data.bead_count)
         {
-            assert(edge.data.hasTransitions() || edge.twin.data.hasTransitions());
+            assert(edge.data.hasTransitions() || edge.twin->data.hasTransitions());
         }
     }
  
@@ -784,7 +784,7 @@ void SkeletalTrapezoidation::filterTransitionMids()
 
         // This is how stuff should be stored in transitions
         assert(transitions.front().lower_bead_count <= transitions.back().lower_bead_count);
-        assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary); 
+        assert(edge.from->data.distance_to_boundary <= edge.to->data.distance_to_boundary);
         
         const Point a = edge.from->p;
         const Point b = edge.to->p;
@@ -965,7 +965,7 @@ void SkeletalTrapezoidation::generateAllTransitionEnds(ptr_vector_t<std::list<Tr
         }
         auto& transition_positions = *edge.data.getTransitions();
 
-        assert(edge->from->data.distance_to_boundary <= edge->to->data.distance_to_boundary);
+        assert(edge.from->data.distance_to_boundary <= edge.to->data.distance_to_boundary);
         for (TransitionMiddle& transition_middle : transition_positions)
         {
             assert(transition_positions.front().pos <= transition_middle.pos);
@@ -1483,7 +1483,6 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, ptr
         node_beadings.emplace_back(new BeadingPropagation(propagated_beading));
         edge_to_peak->from->data.setBeading(node_beadings.back());
         assert(propagated_beading.beading.total_thickness >= edge_to_peak->from->data.distance_to_boundary * 2);
-        assert(pair.second && "we emplaced something");
     }
     else
     {

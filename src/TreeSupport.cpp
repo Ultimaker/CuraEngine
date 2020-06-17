@@ -89,12 +89,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t branch_radius = mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2;
     const size_t wall_count = mesh_group_settings.get<size_t>("support_wall_count");
-    Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
-    for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
-    {
-        const AngleRadians angle = static_cast<double>(i) / CIRCLE_RESOLUTION * TAU;
-        branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
-    }
+    Polygon branch_circle = PolygonUtils::makeCircle(Point(0, 0), branch_radius, TAU / CIRCLE_RESOLUTION); //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
     const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
     const coord_t z_distance_bottom = mesh_group_settings.get<coord_t>("support_bottom_distance");
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");

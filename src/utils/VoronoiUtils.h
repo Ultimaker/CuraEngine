@@ -77,7 +77,8 @@ protected:
      * adapted from boost::polygon::voronoi_visual_utils.cpp
      * Compute y(x) = ((x - a) * (x - a) + b * b) / (2 * b).
      */
-    static coord_t parabola_y(coord_t x, coord_t a, coord_t b);
+    static coord_t parabolaY(coord_t x, coord_t a, coord_t b);
+
     /*!
      * adapted from boost::polygon::voronoi_visual_utils.cpp
      * Get normalized length of the distance between:
@@ -88,7 +89,7 @@ protected:
      * transformed one and vice versa. The assumption is made that projection of
      * the point lies between the start-point and endpoint of the segment.
      */
-    static double get_point_projection(const Point& point, const Segment& segment);
+    static double getPointProjection(const Point& point, const Segment& segment);
 
 };
 

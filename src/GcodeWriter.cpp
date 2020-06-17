@@ -141,15 +141,19 @@ void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_p
 
     std::vector<std::vector<ExtrusionLine>> polygons_per_index_vector;
     polygons_per_index_vector.resize(polygons_per_index.size());
-    for (coord_t inset_idx = 0; inset_idx < polygons_per_index.size(); inset_idx++)
+    for (size_t inset_idx = 0; inset_idx < polygons_per_index.size(); inset_idx++)
+    {
         polygons_per_index_vector[inset_idx].insert(polygons_per_index_vector[inset_idx].end(), polygons_per_index[inset_idx].begin(), polygons_per_index[inset_idx].end());
+    }
 
     std::vector<std::vector<ExtrusionLine>> polylines_per_index_vector;
     polylines_per_index_vector.resize(polylines_per_index.size());
-    for (coord_t inset_idx = 0; inset_idx < polylines_per_index.size(); inset_idx++)
+    for (size_t inset_idx = 0; inset_idx < polylines_per_index.size(); inset_idx++)
+    {
         polylines_per_index_vector[inset_idx].insert(polylines_per_index_vector[inset_idx].end(), polylines_per_index[inset_idx].begin(), polylines_per_index[inset_idx].end());
+    }
 
-    for (int inset_idx = 0; inset_idx < std::max(polygons_per_index_vector.size(), polylines_per_index_vector.size()); inset_idx++)
+    for (size_t inset_idx = 0; inset_idx < std::max(polygons_per_index_vector.size(), polylines_per_index_vector.size()); inset_idx++)
     {
         if (inset_idx < polylines_per_index_vector.size())
         {
@@ -167,7 +171,7 @@ void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_p
             {
                 ExtrusionLine& polyline = polylines_per_index_vector[inset_idx][poly_idx];
                 int start_idx = order_optimizer.polyStart[poly_idx];
-                assert(start_idx < polyline.junctions.size());
+                assert(start_idx < static_cast<int>(polyline.junctions.size()));
                 if (start_idx == 0)
                 {
                     auto last = polyline.junctions.begin();
@@ -212,7 +216,7 @@ void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_p
             {
                 ExtrusionLine& polygon = polygons_per_index_vector[inset_idx][poly_idx];
                 int start_idx = order_optimizer.polyStart[poly_idx];
-                assert(start_idx < polygon.junctions.size());
+                assert(static_cast<size_t>(start_idx) < polygon.junctions.size());
                 auto first = polygon.junctions.begin();
                 std::advance(first, start_idx);
                 move(first->p);
@@ -257,7 +261,7 @@ void GcodeWriter::printUnordered(std::vector<std::list<ExtrusionLine>>& polygons
             }
     }
     OrderOptimizer order_optimizer(cur_pos);
-    for (coord_t path_idx = 0; path_idx < paths.size(); path_idx++)
+    for (size_t path_idx = 0; path_idx < paths.size(); path_idx++)
     {
         order_optimizer.addPoly(recreated[path_idx], paths[path_idx].is_closed);
     }
@@ -268,7 +272,7 @@ void GcodeWriter::printUnordered(std::vector<std::list<ExtrusionLine>>& polygons
     {
         Path& poly = paths[poly_idx];
         int start_idx = order_optimizer.polyStart[poly_idx];
-        assert(start_idx < poly.junctions.size());
+        assert(static_cast<size_t>(start_idx) < poly.junctions.size());
         if (poly.is_closed)
         {
             printPolygon(poly, start_idx);
