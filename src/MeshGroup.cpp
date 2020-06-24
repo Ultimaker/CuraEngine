@@ -195,7 +195,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix3x3& matr
 
 bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
 {
-    FILE* f = fopen(filename, "r");
+    FILE* f = fopen(filename, "rb");
     if (f == nullptr)
     {
         return false;
