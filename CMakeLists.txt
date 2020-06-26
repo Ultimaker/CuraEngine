@@ -24,6 +24,16 @@ if(ENABLE_ARCUS)
     add_definitions(-DARCUS)
 endif()
 
+option (ENABLE_SLICE_DATA
+    "Enable import/export of slice data in Protocol Buffers format" OFF)
+
+if (ENABLE_SLICE_DATA)
+    message(STATUS "Building with ProtoBuf")
+    find_package(Protobuf REQUIRED)
+    include_directories(${PROTOBUF_INCLUDE_DIRS})
+endif ()
+
+
 #For reading image files.
 find_package(Stb REQUIRED)
 include_directories(${Stb_INCLUDE_DIRS})
@@ -156,6 +166,7 @@ set(engine_SRCS # Except main.cpp.
     src/SupportInfillPart.cpp
     src/Slice.cpp
     src/sliceDataStorage.cpp
+    src/SliceDataProcessor.cpp
     src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
@@ -213,6 +224,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/ProximityPointLink.cpp
     src/utils/SVG.cpp
     src/utils/socket.cpp
+    src/utils/serialization.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp.
@@ -264,8 +276,12 @@ if (ENABLE_ARCUS)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
+if (ENABLE_SLICE_DATA)
+    protobuf_generate_cpp(slice_data_PB_SRCS slice_data_PB_HEADERS SliceData.proto)
+endif ()
+
 # Compiling CuraEngine itself.
-add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
+add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS} ${slice_data_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
 
 if (CuraEngine_Download_Stb)
     add_dependencies(_CuraEngine stb)
@@ -278,6 +294,10 @@ endif()
 
 if (ENABLE_ARCUS)
     target_link_libraries(_CuraEngine Arcus)
+endif ()
+
+if (ENABLE_SLICE_DATA)
+    target_link_libraries(_CuraEngine ${PROTOBUF_LIBRARIES})
 endif ()
 
 set_target_properties(_CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")

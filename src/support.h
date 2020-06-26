@@ -174,8 +174,10 @@ private:
      * where to output the new support bottom areas.
      * \param mesh The mesh to generate support for.
      * \param global_support_areas_per_layer the global support areas on each layer.
+     * \param[out] support_bottoms The generated support bottom areas for given mesh
+     * \param[in/out] support_areas Generated supports for a given mesh
      */
-    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer);
+    static void generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer, std::vector<Polygons>& support_bottoms, std::vector<Polygons>& support_areas);
 
     /*!
      * Generate support roof areas for a given mesh.
@@ -188,8 +190,10 @@ private:
      * where to output the new support roof areas.
      * \param mesh The mesh to generate support roof for.
      * \param global_support_areas_per_layer the global support areas on each layer.
+     * \param[out] support_roofs The generated support roof areas for given mesh
+     * \param[in/out] support_areas Generated supports for a given mesh
      */
-    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer);
+    static void generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer, std::vector<Polygons>& support_roofs, std::vector<Polygons>& support_areas);
 
     /*!
      * \brief Generate a single layer of support interface.

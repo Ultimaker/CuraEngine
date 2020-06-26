@@ -5,6 +5,24 @@
 #include "utils/floatpoint.h"
 #include "utils/logoutput.h"
 
+namespace
+{
+
+void doOffset(std::vector<cura::Polygons>& polygons, cura::Point3 offset)
+{
+    for (cura::Polygons& layer: polygons )
+    {
+        for(ClipperLib::Path& path : layer)
+            for(ClipperLib::IntPoint& point : path)
+            {
+                point.X += offset.x;
+                point.Y += offset.y;
+            }
+    }
+}
+
+}
+
 namespace cura
 {
 
@@ -93,6 +111,56 @@ void Mesh::expandXY(int64_t offset)
     }
 }
 
+void Mesh::offset(Point3 offset)
+{
+    if (offset == Point3(0,0,0)) { return; }
+    for(MeshVertex& v : vertices)
+        v.p += offset;
+    aabb.offset(offset);
+
+    for (SlicerLayer& layer: layers)
+    {
+        layer.z += offset.z;
+        for(ClipperLib::Path& path : layer.polygons)
+            for(ClipperLib::IntPoint& point : path)
+            {
+                point.X += offset.x;
+                point.Y += offset.y;
+            }
+    }
+
+    doOffset(support, offset);
+    doOffset(support_roofs, offset);
+    doOffset(support_bottoms, offset);
+}
+
+void Mesh::addPath(ConstPolygonRef path, geometry::proto::Path_Type type, size_t layer)
+{
+    switch (type)
+    {
+    case geometry::proto::Path_Type::Path_Type_PART:
+        for (const auto& point : path)
+        {
+            aabb.include(Point3(static_cast<int32_t>(point.X), static_cast<int32_t>(point.Y), layers[layer].z));
+        }
+        layers[layer].polygons.add(path);
+        break;
+    case geometry::proto::Path_Type::Path_Type_SUPPORT:
+        support.resize(layers.size());
+        support[layer].add(path);
+        break;
+    case geometry::proto::Path_Type::Path_Type_SUPPORT_ROOF:
+        support_roofs.resize(layers.size());
+        support_roofs[layer].add(path);
+        break;
+    case geometry::proto::Path_Type::Path_Type_SUPPORT_BOTTOM:
+        support_bottoms.resize(layers.size());
+        support_bottoms[layer].add(path);
+        break;
+    default:
+        assert(false);
+    }
+}
 
 int Mesh::findIndexOfVertex(const Point3& v)
 {

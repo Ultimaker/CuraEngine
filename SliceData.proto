@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package geometry.proto;
+
+message Path {
+    repeated int64 points = 1;
+    string meshName = 2;
+    enum Type {
+        PART = 0;
+        RAFT = 1;
+        SUPPORT = 2;
+        SUPPORT_ROOF = 3;
+        SUPPORT_BOTTOM = 4;
+    }
+    Type type = 3;
+    int64 area = 4;
+}
+
+message Layer {
+    repeated Path paths = 1;
+}
+
+message Slices {
+    repeated Layer layers = 1;
+    repeated int64 zValues = 2;
+}

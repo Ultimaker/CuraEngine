@@ -13,6 +13,8 @@
 
 namespace cura {
 
+class SliceDataStorage;
+
 //FusedFilamentFabrication processor. Singleton class
 class FffProcessor : public NoCopy
 {
@@ -50,14 +52,33 @@ public:
 
     /*!
      * Set the target to write gcode to: to a file.
-     * 
+     * Alternatively, set the target to export support slices, if export mode was turned on.
+     *
      * Used when CuraEngine is used as command line tool.
      * 
      * \param filename The filename of the file to which to write the gcode.
      */
     bool setTargetFile(const char* filename)
     {
-        return gcode_writer.setTargetFile(filename);
+        target_file = filename;
+        if (!slice_data_export_enable)
+        {
+            return gcode_writer.setTargetFile(filename);
+        }
+        return true;
+    }
+
+    /*!
+     * Set the target to write part slices.
+     * Used only when export mode was turned on.
+     *
+     * Used when CuraEngine is used as command line tool.
+     *
+     * \param filename The filename of the file to which to write the gcode.
+     */
+    void setSliceFile(const char* filename)
+    {
+        part_slice_file = filename;
     }
 
     /*!
@@ -96,12 +117,41 @@ public:
     }
 
     /*!
+     * Export part and support slices.
+     */
+    void exportSlices(const SliceDataStorage&);
+
+    /*!
      * Add the end gcode and set all temperatures to zero.
      */
     void finalize()
     {
-        gcode_writer.finalize();
+        if (!slice_data_export_enable)
+        {
+            gcode_writer.finalize();
+        }
     }
+
+    /*!
+     * Turn on export mode.
+     */
+    void enableSliceDataExport()
+    {
+        slice_data_export_enable = true;
+    }
+
+    /*!
+     * Check whether export mode was turned on.
+     */
+    bool sliceDataExportEnabled() const
+    {
+        return slice_data_export_enable;
+    }
+
+private:
+    bool slice_data_export_enable = false;
+    std::string target_file;
+    std::string part_slice_file;
 };
 
 }//namespace cura

@@ -29,7 +29,7 @@ public:
 
     void clear();
 
-    void finalize();
+    void finalize(bool is_slice_data = false);
 };
 
 /*!

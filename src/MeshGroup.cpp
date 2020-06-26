@@ -82,11 +82,14 @@ void MeshGroup::clear()
     }
 }
 
-void MeshGroup::finalize()
+void MeshGroup::finalize(bool is_slice_data/*= false*/)
 {
     //If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
     Point3 meshgroup_offset(0, 0, 0);
-    if (!settings.get<bool>("machine_center_is_zero"))
+
+    // Do not apply machine_center_is_zero offset when import slice data,
+    // since slice data most likely was already shifted during its export.
+    if (!is_slice_data && !settings.get<bool>("machine_center_is_zero"))
     {
         meshgroup_offset.x = settings.get<coord_t>("machine_width") / 2;
         meshgroup_offset.y = settings.get<coord_t>("machine_depth") / 2;

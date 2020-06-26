@@ -25,6 +25,28 @@
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 #include "utils/math.h"
+#include "FffProcessor.h"
+
+namespace
+{
+
+// update layer_nr_max_filled_layer of given support_storage
+void updateNrMaxFilledLayer(const std::vector<cura::Polygons>& support_areas, cura::SupportStorage& support_storage)
+{
+    if (support_areas.empty())
+        return;
+
+    for (unsigned int layer_idx = support_areas.size() - 1; layer_idx != (unsigned int) std::max(-1, support_storage.layer_nr_max_filled_layer) ; layer_idx--)
+    {
+        if (support_areas[layer_idx].size() > 0)
+        {
+            support_storage.layer_nr_max_filled_layer = layer_idx;
+            break;
+        }
+    }
+}
+
+}
 
 namespace cura
 {
@@ -609,8 +631,15 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
 
 void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
 {
-    for (SliceMeshStorage& mesh : storage.meshes)
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
+        Mesh& meshgroup_mesh = Application::getInstance().current_slice->scene.current_mesh_group->meshes[mesh_idx];
+        if (meshgroup_mesh.predefined_support_slices)
+        {
+            continue;
+        }
+
+        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
@@ -685,7 +714,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
                 support_meshes_handled = true;
             }
         }
-        std::vector<Polygons> mesh_support_areas_per_layer;
+
+        Mesh& meshgroup_mesh = Application::getInstance().current_slice->scene.current_mesh_group->meshes[mesh_idx];
+        std::vector<Polygons>& mesh_support_areas_per_layer = meshgroup_mesh.support;
         mesh_support_areas_per_layer.resize(storage.print_layer_count, Polygons());
 
         generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
@@ -715,14 +746,43 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
             continue;
         }
 
+        Mesh& meshgroup_mesh = Application::getInstance().current_slice->scene.current_mesh_group->meshes[mesh_idx];
+        std::vector<Polygons>& support_roofs = meshgroup_mesh.support_roofs;
+        std::vector<Polygons>& support_bottoms = meshgroup_mesh.support_bottoms;
+        support_roofs.resize(storage.print_layer_count);
+        support_bottoms.resize(storage.print_layer_count);
+
         if (mesh.settings.get<bool>("support_roof_enable"))
         {
-            generateSupportRoof(storage, mesh, global_support_areas_per_layer);
+            if (meshgroup_mesh.predefined_support_slices)
+            {
+                for (size_t layer = 0; layer < support_roofs.size() ; ++layer)
+                    storage.support.supportLayers[layer].support_roof.add(support_roofs[layer]);
+                updateNrMaxFilledLayer(support_roofs, storage.support);
+            }
+            else
+            {
+                generateSupportRoof(storage, mesh, global_support_areas_per_layer, support_roofs, meshgroup_mesh.support);
+            }
         }
         if (mesh.settings.get<bool>("support_bottom_enable"))
         {
-            generateSupportBottom(storage, mesh, global_support_areas_per_layer);
+            if (meshgroup_mesh.predefined_support_slices)
+            {
+                for (size_t layer = 0; layer < support_bottoms.size() ; ++layer)
+                    storage.support.supportLayers[layer].support_bottom.add(support_bottoms[layer]);
+                updateNrMaxFilledLayer(support_bottoms, storage.support);
+            }
+            else
+            {
+                generateSupportBottom(storage, mesh, global_support_areas_per_layer, support_bottoms, meshgroup_mesh.support);
+            }
         }
+    }
+
+    if (FffProcessor::getInstance()->sliceDataExportEnabled())
+    { // support slices already computed, no need to compute supports infill
+        return;
     }
 
     // split the global support areas into parts for later gradual support infill generation
@@ -840,6 +900,14 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
 void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const Settings& infill_settings, const Settings& roof_settings, const Settings& bottom_settings, const size_t mesh_idx, const size_t layer_count, std::vector<Polygons>& support_areas)
 {
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+
+    Mesh& meshgroup_mesh = Application::getInstance().current_slice->scene.current_mesh_group->meshes[mesh_idx];
+    if (meshgroup_mesh.predefined_support_slices)
+    {
+        updateNrMaxFilledLayer(support_areas, storage.support);
+        storage.support.generated = true;
+        return;
+    }
 
     const bool is_support_mesh_place_holder = mesh.settings.get<bool>("support_mesh"); // whether this mesh has empty SliceMeshStorage and this function is now called to only generate support for all support meshes
     if (!mesh.settings.get<bool>("support_enable") && !is_support_mesh_place_holder)
@@ -1183,15 +1251,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         }
     }
 
-    for (size_t layer_idx = support_areas.size() - 1; layer_idx != static_cast<size_t>(std::max(-1, storage.support.layer_nr_max_filled_layer)); layer_idx--)
-    {
-        if (support_areas[layer_idx].size() > 0)
-        {
-            storage.support.layer_nr_max_filled_layer = layer_idx;
-            break;
-        }
-    }
-
+    updateNrMaxFilledLayer(support_areas, storage.support);
     storage.support.generated = true;
 }
 
@@ -1488,7 +1548,7 @@ void AreaSupport::handleWallStruts(const Settings& settings, Polygons& supportLa
     }
 }
 
-void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer)
+void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer, std::vector<Polygons>& support_bottoms, std::vector<Polygons>& support_areas)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
@@ -1518,10 +1578,12 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         Polygons bottoms;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, bottom_line_width, bottom_outline_offset, minimum_bottom_area, bottoms);
         support_layers[layer_idx].support_bottom.add(bottoms);
+        support_bottoms[layer_idx] = bottoms;
+        support_areas[layer_idx] = support_areas[layer_idx].difference(bottoms);
     }
 }
 
-void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer)
+void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& global_support_areas_per_layer, std::vector<Polygons>& support_roofs, std::vector<Polygons>& support_areas)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
@@ -1551,6 +1613,8 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
         support_layers[layer_idx].support_roof.add(roofs);
+        support_roofs[layer_idx] = roofs;
+        support_areas[layer_idx] = support_areas[layer_idx].difference(roofs);
     }
 }
 
