@@ -32,7 +32,6 @@
 #include "infill/DensityProvider.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/SierpinskiFillProvider.h"
-#include "infill/SpaghettiInfill.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
@@ -722,50 +721,42 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
 
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 {
-    // generate spaghetti infill filling areas and volumes
-    if (mesh.settings.get<bool>("spaghetti_infill_enabled"))
-    {
-        SpaghettiInfill::generateSpaghettiInfill(mesh);
+    if (mesh.settings.get<bool>("infill_support_enabled"))
+    {// create gradual infill areas
+        SkinInfillAreaComputation::generateInfillSupport(mesh);
     }
-    else
+
+    // create gradual infill areas
+    SkinInfillAreaComputation::generateGradualInfill(mesh);
+
+    //SubDivCube Pre-compute Octree
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0
+        && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
     {
-        if (mesh.settings.get<bool>("infill_support_enabled"))
-        {// create gradual infill areas
-            SkinInfillAreaComputation::generateInfillSupport(mesh);
-        }
+        const Point3 mesh_middle = mesh.bounding_box.getMiddle();
+        const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
+        SubDivCube::precomputeOctree(mesh, infill_origin);
+    }
 
-        // create gradual infill areas
-        SkinInfillAreaComputation::generateGradualInfill(mesh);
-
-        //SubDivCube Pre-compute Octree
-        if (mesh.settings.get<coord_t>("infill_line_distance") > 0
-            && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
+    // Pre-compute Cross Fractal
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0
+        && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS
+            || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D)
+    )
+    {
+        const std::string cross_subdisivion_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
+        std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
+        if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
         {
-            const Point3 mesh_middle = mesh.bounding_box.getMiddle();
-            const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
-            SubDivCube::precomputeOctree(mesh, infill_origin);
+            mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"), cross_subdisivion_spec_image_file);
         }
-
-        // Pre-compute Cross Fractal
-        if (mesh.settings.get<coord_t>("infill_line_distance") > 0
-            && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS
-                || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D)
-        )
+        else
         {
-            const std::string cross_subdisivion_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
-            std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
-            if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
+            if (cross_subdisivion_spec_image_file != "" && cross_subdisivion_spec_image_file != " ")
             {
-                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"), cross_subdisivion_spec_image_file);
+                logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
             }
-            else
-            {
-                if (cross_subdisivion_spec_image_file != "" && cross_subdisivion_spec_image_file != " ")
-                {
-                    logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
-                }
-                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
-            }
+            mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
         }
 
         // combine infill

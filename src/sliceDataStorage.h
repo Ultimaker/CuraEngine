@@ -136,8 +136,6 @@ public:
      * \return the own infill area
      */
     const Polygons& getOwnInfillArea() const;
-
-    std::vector<std::pair<Polygons, double>> spaghetti_infill_volumes; //!< For each filling volume on this layer, the area within which to fill and the total volume (in mm3) to fill over the area
 };
 
 /*!
