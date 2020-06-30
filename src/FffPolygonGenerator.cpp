@@ -744,17 +744,17 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
             || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D)
     )
     {
-        const std::string cross_subdisivion_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
-        std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
-        if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
+        const std::string cross_subdivision_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
+        std::ifstream cross_fs(cross_subdivision_spec_image_file.c_str());
+        if (cross_subdivision_spec_image_file != "" && cross_fs.good())
         {
-            mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"), cross_subdisivion_spec_image_file);
+            mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"), cross_subdivision_spec_image_file);
         }
         else
         {
-            if (cross_subdisivion_spec_image_file != "" && cross_subdisivion_spec_image_file != " ")
+            if (cross_subdivision_spec_image_file != "" && cross_subdivision_spec_image_file != " ")
             {
-                logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
+                logError("Cannot find density image \'%s\'.", cross_subdivision_spec_image_file.c_str());
             }
             mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
         }
