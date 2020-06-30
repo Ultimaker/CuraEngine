@@ -378,7 +378,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         
         if (cell.contains_point())
         {
-            bool keep_going = computePointCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
+            const bool keep_going = computePointCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
             if (!keep_going)
             {
                 continue;
@@ -698,7 +698,7 @@ void SkeletalTrapezoidation::generateTransitioningRibs()
     ptr_vector_t<std::list<TransitionEnd>> edge_transition_ends; // We only map the half edge in the upward direction. mapped items are not sorted
     generateAllTransitionEnds(edge_transition_ends);
 
-    applyTransitions();
+    applyTransitions(edge_transition_ends);
     // Note that the shared pointer lists will be out of scope and thus destroyed here, since the remaining refs are weak_ptr.
 }
 
@@ -755,15 +755,16 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
             coord_t mid_pos = edge_size * (mid_R - start_R) / (end_R - start_R);
             assert(mid_pos >= 0);
             assert(mid_pos <= edge_size);
-            auto& transitions = *edge.data.getTransitions();
+            auto transitions = edge.data.getTransitions();
             constexpr bool ignore_empty = true;
-            assert((! edge.data.hasTransitions(ignore_empty)) || mid_pos >= transitions.back().pos);
+            assert((! edge.data.hasTransitions(ignore_empty)) || mid_pos >= transitions->back().pos);
             if (! edge.data.hasTransitions(ignore_empty))
             {
-                edge_transitions.emplace_back();
+                edge_transitions.emplace_back(std::make_shared<std::list<TransitionMiddle>>());
                 edge.data.setTransitions(edge_transitions.back());  // initialization
+                transitions = edge.data.getTransitions();
             }
-            transitions.emplace_back(mid_pos, transition_lower_bead_count);
+            transitions->emplace_back(mid_pos, transition_lower_bead_count);
         }
         if (edge.from->data.bead_count != edge.to->data.bead_count)
         {
@@ -1075,7 +1076,7 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
         coord_t pos = -1;
 
-        edge_transition_ends.emplace_back();
+        edge_transition_ends.emplace_back(std::make_shared<std::list<TransitionEnd>>());
         edge_t* upward_edge = nullptr;
         if (edge.isUpward())
         {
@@ -1159,7 +1160,7 @@ bool SkeletalTrapezoidation::isGoingDown(edge_t* outgoing, coord_t traveled_dist
     return has_recursed && is_only_going_down;
 }
 
-void SkeletalTrapezoidation::applyTransitions()
+void SkeletalTrapezoidation::applyTransitions(ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
     for (edge_t& edge : graph.edges)
     {
@@ -1167,6 +1168,11 @@ void SkeletalTrapezoidation::applyTransitions()
         {
             coord_t length = vSize(edge.from->p - edge.to->p);
             auto& twin_transition_ends = *edge.twin->data.getTransitionEnds();
+            if (! edge.data.hasTransitionEnds())
+            {
+                edge_transition_ends.emplace_back(std::make_shared<std::list<TransitionEnd>>());
+                edge.data.setTransitionEnds(edge_transition_ends.back());
+            }
             auto& transition_ends = *edge.data.getTransitionEnds();
             for (TransitionEnd& end : twin_transition_ends)
             {
@@ -1388,7 +1394,7 @@ void SkeletalTrapezoidation::generateSegments()
     ptr_vector_t<std::vector<ExtrusionJunction>> edge_junctions; // junctions ordered high R to low R
     generateJunctions(node_beadings, edge_junctions);
 
-    connectJunctions();
+    connectJunctions(edge_junctions);
     
     generateLocalMaximaSingleBeads();
 }
@@ -1583,7 +1589,7 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
         }
 
         Beading* beading = &getOrCreateBeading(edge->to, node_beadings)->beading;
-        edge_junctions.emplace_back();
+        edge_junctions.emplace_back(std::make_shared<std::vector<ExtrusionJunction>>());
         edge_.data.setExtrusionJunctions(edge_junctions.back());  // initialization
         std::vector<ExtrusionJunction>& ret = *edge_junctions.back();
 
@@ -1752,7 +1758,7 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
     }
 };
 
-void SkeletalTrapezoidation::connectJunctions()
+void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions)
 {   
     std::unordered_set<edge_t*> unprocessed_quad_starts(graph.edges.size() * 5 / 2);
     for (edge_t& edge : graph.edges)
@@ -1783,7 +1789,17 @@ void SkeletalTrapezoidation::connectJunctions()
             
             unprocessed_quad_starts.erase(quad_start);
             
+            if (! edge_to_peak->data.hasExtrusionJunctions())
+            {
+                edge_junctions.emplace_back(std::make_shared<std::vector<ExtrusionJunction>>());
+                edge_to_peak->data.setExtrusionJunctions(edge_junctions.back());
+            }
             std::vector<ExtrusionJunction> from_junctions = *edge_to_peak->data.getExtrusionJunctions();
+            if (! edge_from_peak->twin->data.hasExtrusionJunctions())
+            {
+                edge_junctions.emplace_back(std::make_shared<std::vector<ExtrusionJunction>>());
+                edge_from_peak->twin->data.setExtrusionJunctions(edge_junctions.back());
+            }
             std::vector<ExtrusionJunction> to_junctions = *edge_from_peak->twin->data.getExtrusionJunctions();
             if (edge_to_peak->prev)
             {

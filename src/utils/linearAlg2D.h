@@ -134,6 +134,8 @@ public:
     */
     static Point getClosestOnLine(const Point& from, const Point& p0, const Point& p1)
     {
+        if (p1 == p0) { return p0; }
+
         const Point direction = p1 - p0;
         const Point to_from = from - p0;
         const coord_t projected_x = dot(to_from, direction);

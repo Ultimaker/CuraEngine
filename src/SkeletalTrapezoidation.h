@@ -375,7 +375,7 @@ protected:
     /*!
      * Also set the rest values at nodes in between the transition ends
      */
-    void applyTransitions();
+    void applyTransitions(ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
      * Create extra edges along all edges, where it needs to transition from one
@@ -575,7 +575,7 @@ protected:
     /*!
      * connect junctions in each quad
      */
-    void connectJunctions();
+    void connectJunctions(ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions);
 
     /*!
      * Genrate small segments for local maxima where the beading would only result in a single bead
