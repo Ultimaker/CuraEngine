@@ -176,12 +176,12 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
             support_layer = support_layer.difference(floor_layer.offset(10)); //Subtract the support floor from the normal support.
         }
 
-        for (PolygonRef part : support_layer) //Convert every part into a PolygonsPart for the support.
+        std::vector<PolygonsPart> support_layer_parts = support_layer.splitIntoParts();
+        for (PolygonsPart& part : support_layer_parts) //Convert every part into a PolygonsPart for the support.
         {
-            PolygonsPart outline;
-            outline.add(part);
-            storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(outline, line_width, wall_count);
+            storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(part, line_width, wall_count);
         }
+
 #pragma omp critical (support_max_layer_nr)
         {
             if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
