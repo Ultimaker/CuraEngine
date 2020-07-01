@@ -34,7 +34,6 @@ private:
     double extrusion_mm3_per_mm_flat;
     bool update_extrusion_offset;
     coord_t nozzle_outer_diameter;
-    coord_t nozzle_head_distance;
     AngleRadians nozzle_expansion_angle;
     coord_t nozzle_clearance;
     coord_t nozzle_top_diameter;

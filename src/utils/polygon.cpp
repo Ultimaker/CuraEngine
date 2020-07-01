@@ -330,22 +330,29 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
     }
 
     ClipperLib::Path new_path;
-    Point previous = path->at(0);
-    Point current = path->at(1);
-    /* When removing a vertex, we'll check if the delta area of the polygon
-     * remains below allowed_error_distance_squared. However when removing
-     * multiple consecutive vertices, each individual vertex may result in a
-     * delta area below the threshold, while the total effect of removing all of
-     * those vertices results in too much area being removed. So we accumulate
-     * the area that is going to be removed by a streak of consecutive vertices
-     * and don't allow that to exceed allowed_error_distance_squared. */
-    coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; //Shoelace formula for area of polygon per line segment.
+    Point previous = path->back();
+    Point current = path->at(0);
 
-    for (size_t point_idx = 1; point_idx <= size(); point_idx++)
+    /* When removing a vertex, we check the height of the triangle of the area
+     being removed from the original polygon by the simplification. However,
+     when consecutively removing multiple vertices the height of the previously
+     removed vertices w.r.t. the shortcut path changes.
+     In order to not recompute the new height value of previously removed
+     vertices we compute the height of a representative triangle, which covers
+     the same amount of area as the area being cut off. We use the Shoelace
+     formula to accumulate the area under the removed segments. This works by
+     computing the area in a 'fan' where each of the blades of the fan go from
+     the origin to one of the segments. While removing vertices the area in
+     this fan accumulates. By subtracting the area of the blade connected to
+     the shortcutting segment we obtain the total area of the cutoff region.
+     From this area we compute the height of the represenatative triangle
+     using the standard formula for a triangle area: A = .5*b*h
+     */
+    coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; // Twice the Shoelace formula for area of polygon per line segment.
+
+    for (size_t point_idx = 0; point_idx < size(); point_idx++)
     {
         current = path->at(point_idx % size());
-
-        const coord_t length2 = vSize2(current - previous);
 
         //Check if the accumulated area doesn't exceed the maximum.
         Point next;
@@ -353,68 +360,53 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             next = path->at(point_idx + 1);
         }
-        else if (!new_path.empty())
-        {
+        else if (point_idx + 1 == size() && new_path.size() > 1)
+        { // don't spill over if the [next] vertex will then be equal to [previous]
             next = new_path[0]; //Spill over to new polygon for checking removed area.
         }
         else
         {
-            break; //New polygon also doesn't have any vertices yet, meaning we've completed the loop without adding any vertices. The entire polygon is too small to be significant.
+            next = path->at((point_idx + 1) % size());
         }
-        accumulated_area_removed += current.X * next.Y - current.Y * next.X; //Shoelace formula for area of polygon per line segment.
 
-        const coord_t area_removed_so_far = accumulated_area_removed + next.X * previous.Y - next.Y * previous.X; //Close the polygon.
+        const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Twice the Shoelace formula for area of polygon per line segment.
+        const coord_t negative_area_closing = next.X * previous.Y - next.Y * previous.X; // area between the origin and the shurtcutting segment
+        accumulated_area_removed += removed_area_next;
+        
+        const coord_t length2 = vSize2(current - previous);
+        const coord_t next_length2 = vSize2(current - next);
+
+        const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shurtcut area polygon
         const coord_t base_length_2 = vSize2(next - previous);
+
         if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
         {
             continue; //Remove the vertex.
         }
         //We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
+        //1/2 L = A           [actual area is half of the computed shoelace value] // Shoelace formula is .5*(...) , but we simplify the computation and take out the .5
         //A = 1/2 * b * h     [triangle area formula]
-        //2A = b * h          [multiply by 2]
-        //h = 2A / b          [divide by b]
-        //h^2 = (2A / b)^2    [square it]
-        //h^2 = (2A)^2 / b^2  [factor the divisor]
-        //h^2 = 4A^2 / b^2    [remove brackets of (2A)^2]
-        const coord_t height_2 = (4 * area_removed_so_far * area_removed_so_far) / base_length_2;
-        if (length2 < smallest_line_segment_squared && height_2 <= allowed_error_distance_squared) //Line is small and removing it doesn't introduce too much error.
+        //L = b * h           [apply above two and take out the 1/2]
+        //h = L / b           [divide by b]
+        //h^2 = (L / b)^2     [square it]
+        //h^2 = L^2 / b^2     [factor the divisor]
+        const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
+        if ((height_2 <= 25 //Almost exactly colinear (barring rounding errors).
+            && LinearAlg2D::getDist2FromLine(current, previous, next) <= 25) // make sure that height_2 is not small because of cancellation of positive and negative areas
+            || (length2 < smallest_line_segment_squared
+                && next_length2 < smallest_line_segment_squared // Segments are small
+                && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.
+        )
         {
             continue; //Remove the vertex.
         }
-        else if (length2 >= smallest_line_segment_squared && new_path.size() > 2 &&
-                (vSize2(new_path[new_path.size() - 2] - new_path.back()) == 0 || LinearAlg2D::getDist2FromLine(current, new_path[new_path.size() - 2], new_path.back()) <= 25)) //Almost exactly straight (barring rounding errors).
-        {
-            new_path.pop_back(); //Remove the previous vertex but still add the new one.
-        }
+
         //Don't remove the vertex.
 
-        accumulated_area_removed = current.X * next.Y - current.Y * next.X;
+        accumulated_area_removed = removed_area_next; // so that in the next iteration it's the area between the origin, [previous] and [current]
         previous = current; //Note that "previous" is only updated if we don't remove the vertex.
         new_path.push_back(current);
     }
-
-    //For the last/first vertex, we didn't check the connection that closes the polygon yet. Add the first vertex back if this connection is too long, or remove it if it's too short.
-    if(!new_path.empty() && vSize2(new_path.back() - new_path[0]) > smallest_line_segment_squared
-        && vSize2(new_path.back() - path->at(0)) >= smallest_line_segment_squared
-        && vSize2(new_path[0] - path->at(0)) >= smallest_line_segment_squared)
-    {
-        new_path.push_back(path->at(0));
-    }
-    if(new_path.size() > 2 && (vSize2(new_path.back() - new_path[0]) < smallest_line_segment_squared || vSize2(new_path.back() - new_path[new_path.size() - 2]) < smallest_line_segment_squared))
-    {
-        if (LinearAlg2D::getDist2FromLine(new_path.back(), new_path[new_path.size() - 2], new_path[0]) < allowed_error_distance_squared)
-        {
-            new_path.pop_back();
-        }
-    }
-    for(size_t i = 0; i < 2; i++) //For the first two points we haven't checked yet if they are almost exactly straight.
-    {
-        if(new_path.size() > 2 && LinearAlg2D::getDist2FromLine(new_path[0], new_path.back(), new_path[1]) <= 25)
-        {
-            new_path.erase(new_path.begin());
-        }
-    }
-
     *path = new_path;
 }
 

@@ -309,6 +309,7 @@ public:
     SupportStorage support;
 
     Polygons skirt_brim[MAX_EXTRUDERS]; //!< Skirt and brim polygons per extruder, ordered from inner to outer polygons.
+    size_t skirt_brim_max_locked_part_order[MAX_EXTRUDERS]; //!< Some parts (like skirt) always need to be printed before parts like support-brim, so lock 0..n for each extruder, where n is the value saved in this array.
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
 
     int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
