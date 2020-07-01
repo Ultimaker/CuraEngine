@@ -1201,6 +1201,11 @@ void Polygons::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, st
     }
 }
 
+Polygons Polygons::tubeShape(const coord_t inner_offset, const coord_t outer_offset) const
+{
+    return this->offset(outer_offset).difference(this->offset(-inner_offset));
+}
+
 unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) const
 {
     const PartsView& partsView = *this;
