@@ -18,6 +18,8 @@
 #include "utils/optional.h"
 #include "utils/polygon.h"
 
+#include "utils/ExtrusionJunction.h"
+
 namespace cura 
 {
 
@@ -578,7 +580,8 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the wall (used for outer walls)
      */
-    void addWall(ConstPolygonRef polygon, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
+    void addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
+    void addWall(const std::vector<arachne::ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.
@@ -632,7 +635,39 @@ public:
      * \param start_idx The index of the starting vertex of \p wall
      * \return The index of the first supported vertex - if no vertices are supported, start_idx is returned
      */
-    unsigned locateFirstSupportedVertex(ConstPolygonRef wall, const unsigned start_idx) const;
+    template<typename T>
+    unsigned locateFirstSupportedVertex(const T& wall, const unsigned start_idx) const
+    {
+        if (bridge_wall_mask.empty() && overhang_mask.empty())
+        {
+            return start_idx;
+        }
+
+        Polygons air_below(bridge_wall_mask.unionPolygons(overhang_mask));
+
+        unsigned curr_idx = start_idx;
+
+        while (true)
+        {
+            const Point& vertex = cura::make_point(wall[curr_idx]);
+            if (!air_below.inside(vertex, true))
+            {
+                // vertex isn't above air so it's OK to use
+                return curr_idx;
+            }
+
+            if (++curr_idx >= wall.size())
+            {
+                curr_idx = 0;
+            }
+
+            if (curr_idx == start_idx)
+            {
+                // no vertices are supported so just return the original index
+                return start_idx;
+            }
+        }
+    }
 
     /*!
      * Write the planned paths to gcode

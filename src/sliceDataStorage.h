@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICE_DATA_STORAGE_H
@@ -19,6 +19,9 @@
 #include "utils/optional.h"
 #include "utils/polygon.h"
 #include "WipeScriptConfig.h"
+
+// libArachne
+#include "utils/ExtrusionLine.h"
 
 namespace cura 
 {
@@ -57,6 +60,8 @@ public:
     Polygons perimeter_gaps; //!< The gaps between consecutive walls and between the inner wall and outer skin inset
     Polygons outline_gaps; //!< The gaps between the outline of the mesh and the first wall. a.k.a. thin walls.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
+
+    std::vector<std::list<arachne::ExtrusionLine>> wall_toolpaths;  //!< 'new style' toolpaths for walls, will replace(?) the insets
 
     /*!
      * The areas inside of the mesh.

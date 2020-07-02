@@ -1,5 +1,5 @@
 //Copyright (c) 2020 Ultimaker B.V.
-
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
 #define SKELETAL_TRAPEZOIDATION_EDGE_H

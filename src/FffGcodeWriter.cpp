@@ -22,6 +22,10 @@
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
 
+// libArachne
+#include "utils/ExtrusionJunction.h"
+#include "utils/ExtrusionLine.h"
+
 #define OMP_MAX_ACTIVE_LAYERS_PROCESSED 30 // TODO: hardcoded-value for the max number of layers being in the pipeline while writing away and destroying layers in a multi-threaded context
 
 namespace cura
@@ -1899,63 +1903,40 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 processSpiralizedWall(storage, gcode_layer, mesh_config, part, mesh);
             }
         }
-        else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
+        else if (false /* TODO! insetorderoptimizer will have to be rewritten! */ && InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
         {
             InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
             return ioo.processInsetsWithOptimizedOrdering();
         }
         else
         {
-            const bool outer_inset_first = mesh.settings.get<bool>("outer_inset_first")
-                || (gcode_layer.getLayerNr() == 0 && mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM);
-            int processed_inset_number = -1;
-            for (int inset_number = part.insets.size() - 1; inset_number > -1; inset_number--)
+            // TODO: - re-enable use of 'outer inset first'
+            //       - what to do with: compensate overlaps (0 and x)
+
+            constexpr float flow = 1.0;
+
+            for (const auto& toolpath : part.wall_toolpaths)
             {
-                processed_inset_number = inset_number;
-                if (outer_inset_first)
-                {
-                    processed_inset_number = part.insets.size() - 1 - inset_number;
-                }
-                // Outer wall is processed
-                if (processed_inset_number == 0)
-                {
-                    constexpr float flow = 1.0;
-                    if (part.insets[0].size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
-                    {
-                        added_something = true;
-                        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                        gcode_layer.setIsInside(true); // going to print stuff inside print object
-                        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-                        Polygons outer_wall = part.insets[0];
-                        if (!compensate_overlap_0)
-                        {
-                            WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addWalls(outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, z_seam_config, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
-                        }
-                        else
-                        {
-                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh_config.inset0_config.getLineWidth());
-                            gcode_layer.addWalls(outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, &wall_overlap_computation, z_seam_config, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
-                        }
-                    }
-                }
-                // Inner walls are processed
-                else if (!part.insets[processed_inset_number].empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
+                for (const auto& extrusion : toolpath)
                 {
                     added_something = true;
+
+                    std::vector<arachne::ExtrusionJunction> junctions;
+                    extrusion.appendJunctionsTo(junctions);
+
                     setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                     gcode_layer.setIsInside(true); // going to print stuff inside print object
                     ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-                    Polygons inner_wall = part.insets[processed_inset_number];
-                    if (!compensate_overlap_x)
+
+                    WallOverlapComputation* wall_overlap_computation = nullptr; // TODO??: not sure if used for arachne .. probably not?
+
+                    if (extrusion.inset_idx <= 0)
                     {
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addWalls(part.insets[processed_inset_number], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config);
+                        gcode_layer.addWall(junctions, 0, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
                     }
                     else
                     {
-                        WallOverlapComputation wall_overlap_computation(inner_wall, mesh_config.insetX_config.getLineWidth());
-                        gcode_layer.addWalls(inner_wall, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, &wall_overlap_computation, z_seam_config);
+                        gcode_layer.addWall(junctions, 0, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, 0, 1.0, false);
                     }
                 }
             }

@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_H
@@ -28,6 +28,22 @@
 
 namespace cura {
 
+template<typename T>
+bool shorterThan(const T& shape, const coord_t check_length)
+{
+    const auto* p0 = &shape.back();
+    int64_t length = 0;
+    for (const auto& p1 : shape)
+    {
+        length += vSize(*p0 - p1);
+        if (length >= check_length)
+        {
+            return false;
+        }
+        p0 = &p1;
+    }
+    return true;
+}
 
 class PartsView;
 class Polygons;
@@ -381,6 +397,12 @@ public:
     }
 
     Point& operator[] (unsigned int index)
+    {
+        POLY_ASSERT(index < size());
+        return (*path)[index];
+    }
+
+    const Point& operator[] (unsigned int index) const
     {
         POLY_ASSERT(index < size());
         return (*path)[index];

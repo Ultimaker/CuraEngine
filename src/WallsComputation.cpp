@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ExtruderTrain.h"
@@ -6,6 +6,10 @@
 #include "WallsComputation.h"
 #include "settings/types/Ratio.h"
 #include "utils/polygonUtils.h"
+
+// libArachne
+#include "BeadingStrategy/DistributedBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
+#include "SkeletalTrapezoidation.h"
 
 namespace cura {
 
@@ -115,6 +119,23 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
             part->insets.pop_back();
             break;
         }
+    }
+
+    // Call on libArachne:
+    // TODO: Using line_width_0 here _even_ though it's also making the other walls! (that is, while line_width_x is adhered to when creating the area, it's ignored otherwise)
+
+    constexpr float transitioning_angle = 0.5;
+
+    Polygons tubeshape = part->outline.tubeShape(line_width_0 + line_width_x * (inset_count - 1), 0).offset(-10).offset(10);
+    tubeshape.simplify();
+    tubeshape.removeEmptyHoles();
+    tubeshape.removeSmallAreas(INT2MM(line_width_0/2) * INT2MM(line_width_0/2), false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
+    if (tubeshape.area() > 0)
+    {
+        const arachne::DistributedBeadingStrategy beading_strat(line_width_0, line_width_0 * 2, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
+
+        arachne::SkeletalTrapezoidation wall_maker(tubeshape, beading_strat, beading_strat.transitioning_angle);
+        wall_maker.generateToolpaths(part->wall_toolpaths);
     }
 }
 

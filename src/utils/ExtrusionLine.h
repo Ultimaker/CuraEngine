@@ -52,8 +52,12 @@ struct ExtrusionLine
      * Sum the total length of this path.
      */
     coord_t getLength() const;
-};
 
+    /*!
+     * Export the included junctions as vector.
+     */
+    void appendJunctionsTo(std::vector<ExtrusionJunction>& result) const;
+};
 
 } // namespace arachne
 #endif // UTILS_EXTRUSION_LINE_H

@@ -1,4 +1,6 @@
 //Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "SkeletalTrapezoidation.h"
 
 #include <stack>
@@ -469,9 +471,9 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
-std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(bool filter_outermost_central_edges)
+void SkeletalTrapezoidation::generateToolpaths(std::vector<std::list<ExtrusionLine>>& generated_toolpaths, bool filter_outermost_central_edges)
 {
-    generated_toolpaths.clear();
+    p_generated_toolpaths = &generated_toolpaths;
 
     updateIsCentral();
 
@@ -491,8 +493,6 @@ std::vector<std::list<ExtrusionLine>> SkeletalTrapezoidation::generateToolpaths(
     generateExtraRibs();
 
     generateSegments();
-
-    return generated_toolpaths;
 }
 
 void SkeletalTrapezoidation::updateIsCentral()
@@ -1003,8 +1003,10 @@ void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_po
         coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
         coord_t end_pos = mid_pos +  transition_half_length;
 #ifdef DEBUG
-        bool is_going_down_everywhere = generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends);
-        assert(!is_going_down_everywhere && "There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");
+        if (! generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends))
+        {
+            logWarning("There must have been at least one direction in which the bead count is increasing enough for the transition to happen!\n");
+        }
 #else
         generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends);
 #endif
@@ -1726,6 +1728,8 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
 {
     if (from == to) return;
 
+    std::vector<std::list<ExtrusionLine>>& generated_toolpaths = *p_generated_toolpaths;
+
     size_t inset_idx = from.perimeter_index;
     if (inset_idx >= generated_toolpaths.size())
     {
@@ -1854,6 +1858,8 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<std::vector<Extrusion
 
 void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 {
+    std::vector<std::list<ExtrusionLine>>& generated_toolpaths = *p_generated_toolpaths;
+
     for (auto& node : graph.nodes)
     {
         if (! node.data.hasBeading())

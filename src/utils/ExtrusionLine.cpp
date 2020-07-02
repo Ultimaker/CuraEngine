@@ -22,4 +22,9 @@ coord_t ExtrusionLine::getLength() const
     return len;
 }
 
+void ExtrusionLine::appendJunctionsTo(std::vector<ExtrusionJunction>& result) const
+{
+    result.insert(result.end(), junctions.begin(), junctions.end());
+}
+
 }

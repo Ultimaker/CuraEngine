@@ -583,7 +583,7 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     }
 }
 
-void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, const Ratio flow_ratio, bool always_retract, bool reverse_order, std::optional<Point> start_near_location)
+void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, const Ratio flow_ratio, bool always_retract, bool reverse_order, const std::optional<Point> start_near_location)
 {
     if (polygons.size() == 0)
     {
@@ -801,6 +801,26 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
 
 void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
+    if (wall.size() < 3)
+    {
+        logWarning("WARNING: point, or line added as (polygon) wall sequence! (LayerPlan)\n");
+    }
+
+    constexpr size_t dummy_perimeter_id = 0;  // <-- Here, don't care about which perimeter any more.
+    const coord_t nominal_line_width = non_bridge_config.getLineWidth();  // <-- The line width which it's 'supposed to' be will be used to adjust the flow ratio each time, this'll give a flow-ratio-multiplier of 1.
+
+    std::vector<arachne::ExtrusionJunction> ewall;
+    std::for_each(wall.begin(), wall.end(), [&dummy_perimeter_id, &nominal_line_width, &ewall](const Point& p)
+    {
+        ewall.emplace_back(p, nominal_line_width, dummy_perimeter_id);
+    });
+    ewall.emplace_back(*wall.begin(), nominal_line_width, dummy_perimeter_id);
+
+    addWall(ewall, start_idx, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+}
+
+void LayerPlan::addWall(const std::vector<arachne::ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+{
     // make sure wall start point is not above air!
     start_idx = locateFirstSupportedVertex(wall, start_idx);
 
@@ -812,10 +832,12 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     const Ratio wall_min_flow = mesh.settings.get<Ratio>("wall_min_flow");
     const bool wall_min_flow_retract = mesh.settings.get<bool>("wall_min_flow_retract");
     const coord_t small_feature_max_length = mesh.settings.get<coord_t>("small_feature_max_length");
-    const bool is_small_feature = (small_feature_max_length > 0) && wall.shorterThan(small_feature_max_length);
+    const bool is_small_feature = (small_feature_max_length > 0) && cura::shorterThan(wall, small_feature_max_length);
     Ratio small_feature_speed_factor = mesh.settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder[getLastPlannedExtruderTrain()->extruder_nr].cool_min_speed;
     small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
+
+    const Ratio nominal_line_width_multiplier = 1.0 / Ratio(non_bridge_config.getLineWidth()); // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -828,18 +850,18 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
             // there is air below the part so iterate through the lines that have not yet been output accumulating the total distance to the first bridge segment
             for (unsigned point_idx = current_index; point_idx < wall.size(); ++point_idx)
             {
-                const Point& p0 = wall[point_idx];
-                const Point& p1 = wall[(point_idx + 1) % wall.size()];
+                const arachne::ExtrusionJunction& p0 = wall[point_idx];
+                const arachne::ExtrusionJunction& p1 = wall[(point_idx + 1) % wall.size()];
 
-                if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask, p0, p1))
+                if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask, p0.p, p1.p))
                 {
                     // the line crosses the boundary between supported and non-supported regions so it will contain one or more bridge segments
 
                     // determine which segments of the line are bridges
 
                     Polygon line_poly;
-                    line_poly.add(p0);
-                    line_poly.add(p1);
+                    line_poly.add(p0.p);
+                    line_poly.add(p1.p);
                     Polygons line_polys;
                     line_polys.add(line_poly);
                     line_polys = bridge_wall_mask.intersectionPolyLines(line_polys);
@@ -848,10 +870,10 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
                     {
                         // find the bridge line segment that's nearest to p0
                         int nearest = 0;
-                        float smallest_dist2 = vSize2f(p0 - line_polys[0][0]);
+                        float smallest_dist2 = vSize2f(p0.p - line_polys[0][0]);
                         for(unsigned i = 1; i < line_polys.size(); ++i)
                         {
-                            float dist2 = vSize2f(p0 - line_polys[i][0]);
+                            float dist2 = vSize2f(p0.p - line_polys[i][0]);
                             if (dist2 < smallest_dist2)
                             {
                                 nearest = i;
@@ -864,14 +886,14 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
                         Point b0 = bridge[0];
                         Point b1 = bridge[1];
 
-                        if (vSize2f(p0 - b1) < vSize2f(p0 - b0))
+                        if (vSize2f(p0.p - b1) < vSize2f(p0.p - b0))
                         {
                             // swap vertex order
                             b0 = bridge[1];
                             b1 = bridge[0];
                         }
 
-                        distance_to_bridge_start += vSize(b0 - p0);
+                        distance_to_bridge_start += vSize(b0 - p0.p);
 
                         const double bridge_line_len = vSize(b1 - b0);
 
@@ -887,10 +909,10 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
                         line_polys.remove(nearest);
                     }
                 }
-                else if (!bridge_wall_mask.inside(p0, true))
+                else if (!bridge_wall_mask.inside(p0.p, true))
                 {
                     // none of the line is over air
-                    distance_to_bridge_start += vSize(p1 - p0);
+                    distance_to_bridge_start += vSize(p1.p - p0.p);
                 }
             }
 
@@ -904,12 +926,12 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
 
     bool first_line = true;
 
-    Point p0 = wall[start_idx];
+    arachne::ExtrusionJunction p0 = wall[start_idx];
 
     for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
     {
-        const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
-        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        const arachne::ExtrusionJunction& p1 = wall[(start_idx + point_idx) % wall.size()];
+        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0.p, p1.p) : flow_ratio;
 
         if (!bridge_wall_mask.empty())
         {
@@ -920,18 +942,18 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
         {
             if (first_line || travel_required)
             {
-                addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
+                addTravel(p0.p, (first_line) ? always_retract : wall_min_flow_retract);
                 first_line = false;
                 travel_required = false;
             }
             if (is_small_feature)
             {
                 constexpr bool spiralize = false;
-                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+                addExtrusionMove(p1.p, non_bridge_config, SpaceFillType::Polygons, flow* (p1.w * nominal_line_width_multiplier), spiralize, small_feature_speed_factor);
             }
             else
             {
-                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                addWallLine(p0.p, p1.p, mesh, non_bridge_config, bridge_config, flow * (p1.w * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
             }
         }
         else
@@ -942,10 +964,15 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
         p0 = p1;
     }
 
-    if (wall.size() > 2)
+    if (travel_required)
     {
-        const Point& p1 = wall[start_idx];
-        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        addTravel(p0.p, wall_min_flow_retract);
+    }
+
+    if (wall.size() >= 2)
+    {
+        const arachne::ExtrusionJunction& p1 = wall[start_idx];
+        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0.p, p1.p) : flow_ratio;
 
         if (!bridge_wall_mask.empty())
         {
@@ -954,38 +981,24 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
 
         if (flow >= wall_min_flow)
         {
-            if (travel_required)
-            {
-                addTravel(p0, wall_min_flow_retract);
-            }
-            if (is_small_feature)
-            {
-                constexpr bool spiralize = false;
-                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
-            }
-            else
-            {
-                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
-            }
-
             if (wall_0_wipe_dist > 0)
             { // apply outer wall wipe
                 p0 = wall[start_idx];
                 int distance_traversed = 0;
                 for (unsigned int point_idx = 1; ; point_idx++)
                 {
-                    Point p1 = wall[(start_idx + point_idx) % wall.size()];
+                    arachne::ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
                     int p0p1_dist = vSize(p1 - p0);
                     if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
                     {
-                        Point vector = p1 - p0;
-                        Point half_way = p0 + normal(vector, wall_0_wipe_dist - distance_traversed);
+                        Point vector = p1.p - p0.p;
+                        Point half_way = p0.p + normal(vector, wall_0_wipe_dist - distance_traversed);
                         addTravel_simple(half_way);
                         break;
                     }
                     else
                     {
-                        addTravel_simple(p1);
+                        addTravel_simple(p1.p);
                         distance_traversed += p0p1_dist;
                     }
                     p0 = p1;
@@ -996,7 +1009,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     }
     else
     {
-        logWarning("WARNING: line added as polygon! (LayerPlan)\n");
+        logWarning("WARNING: point added as wall sequence! (LayerPlan)\n");
     }
 }
 
@@ -1011,39 +1024,6 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
         addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
-    }
-}
-
-unsigned LayerPlan::locateFirstSupportedVertex(ConstPolygonRef wall, const unsigned start_idx) const
-{
-    if (bridge_wall_mask.empty() && overhang_mask.empty())
-    {
-        return start_idx;
-    }
-
-    Polygons air_below(bridge_wall_mask.unionPolygons(overhang_mask));
-
-    unsigned curr_idx = start_idx;
-
-    while(true)
-    {
-        const Point& vertex = wall[curr_idx];
-        if (!air_below.inside(vertex, true))
-        {
-            // vertex isn't above air so it's OK to use
-            return curr_idx;
-        }
-
-        if (++curr_idx >= wall.size())
-        {
-            curr_idx = 0;
-        }
-
-        if (curr_idx == start_idx)
-        {
-            // no vertices are supported so just return the original index
-            return start_idx;
-        }
     }
 }
 

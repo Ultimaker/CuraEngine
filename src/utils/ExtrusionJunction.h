@@ -46,4 +46,18 @@ struct ExtrusionJunction
 
 
 } // namespace arachne
+
+namespace cura
+{
+    inline Point operator-(const arachne::ExtrusionJunction& a, const arachne::ExtrusionJunction& b)
+    {
+        return a.p - b.p;
+    }
+
+    // Identity function, used to be able to make templated algorithms that do their operations on 'point-like' input.
+    inline const Point& make_point(const arachne::ExtrusionJunction& ej)
+    {
+        return ej.p;
+    }
+}
 #endif // UTILS_EXTRUSION_JUNCTION_H

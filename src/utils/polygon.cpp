@@ -24,19 +24,7 @@ bool ConstPolygonRef::empty() const
 
 bool ConstPolygonRef::shorterThan(const coord_t check_length) const
 {
-    const ConstPolygonRef& polygon = *this;
-    const Point* p0 = &polygon.back();
-    int64_t length = 0;
-    for (const Point& p1 : polygon)
-    {
-        length += vSize(*p0 - p1);
-        if (length >= check_length)
-        {
-            return false;
-        }
-        p0 = &p1;
-    }
-    return true;
+    return cura::shorterThan(*this, check_length);
 }
 
 bool ConstPolygonRef::_inside(Point p, bool border_result) const
