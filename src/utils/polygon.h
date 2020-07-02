@@ -765,6 +765,9 @@ public:
      */
     Polygons intersectionPolyLines(const Polygons& polylines) const;
 
+    Polygons differencePolyLines(const Polygons& polylines) const;
+
+
     /*!
      * Clips input line segments by this Polygons.
      * \param other Input line segments to be cropped
@@ -796,6 +799,20 @@ public:
         ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
         clipper.AddPaths(paths, joinType, ClipperLib::etOpenSquare);
         clipper.MiterLimit = miterLimit;
+        clipper.Execute(ret.paths, distance);
+        return ret;
+    }
+    
+        Polygons offsetPolyLineRound(int distance, ClipperLib::JoinType join_type, double miter_limit=1.2) const
+    {
+        if (distance == 0)
+        {
+            return *this;
+        }
+        Polygons ret;
+        ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+        clipper.AddPaths(paths, join_type, ClipperLib::etOpenRound);
+        clipper.MiterLimit = miter_limit;
         clipper.Execute(ret.paths, distance);
         return ret;
     }

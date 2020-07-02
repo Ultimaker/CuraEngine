@@ -249,6 +249,18 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines) const
     return ret;
 }
 
+Polygons Polygons::differencePolyLines(const Polygons& polylines) const
+{
+    ClipperLib::PolyTree result;
+    ClipperLib::Clipper clipper(clipper_init);
+    clipper.AddPaths(polylines.paths, ClipperLib::ptSubject, false);
+    clipper.AddPaths(paths, ClipperLib::ptClip, true);
+    clipper.Execute(ClipperLib::ctDifference, result);
+    Polygons ret;
+    ret.addPolyTreeNodeRecursive(result);
+    return ret;
+}
+
 coord_t Polygons::polyLineLength() const
 {
     coord_t length = 0;
