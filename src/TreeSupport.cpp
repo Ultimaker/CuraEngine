@@ -20,7 +20,7 @@
 #include <chrono>
 #include <omp.h>
 #include "infill.h"
-#include "utils/LinearAlg2D.h"
+#include "utils/linearAlg2D.h"
 
 #include <string>
 #include <numeric>
