@@ -2517,10 +2517,10 @@ void ModelVolumes::precalculateAvoidance(const size_t maxLayer,const coord_t bra
 				double layers_handled_by_rad_before=(radius_before-branch_radius)/(branch_radius*scaleFactor);
 				maxReqLayer-=layers_handled_by_rad_before-2; // -2 to avoid off by one problems and i dont care about a few layers more
 			}
-			if(maxReqLayer>maxLayer) maxReqLayer=maxLayer;
 		}
 		if(maxReqLayer<min_max_height) maxReqLayer=min_max_height;
 		if(maxReqLayer>model_height) maxReqLayer=model_height;
+		if(maxReqLayer>maxLayer) maxReqLayer=maxLayer;
 
 		return maxReqLayer;
 	};
