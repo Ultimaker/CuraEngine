@@ -452,7 +452,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     }
     Polygons infill = part.insets.back().offset(offset_from_inner_wall);
 
-    infill = infill.difference(skin);
+    infill = infill.difference(skin.offset(infill_skin_overlap));
     infill.removeSmallAreas(MIN_AREA_SIZE);
 
     part.infill_area = infill.offset(infill_skin_overlap);
