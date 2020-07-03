@@ -616,7 +616,7 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement,Polygons>& new
 					 if(!elem.to_model_gracious){
 						 if(newLayerDataToModel.area()>=1){
 							 elem.to_model_gracious=true;
-							 logWarning("Corrected to model taint on layer %lld targeting %lld with radius %lld",layer_nr-1,elem.target_height,radius);
+							 logWarning("Corrected to model taint on layer %lld targeting %lld with radius %lld\n",layer_nr-1,elem.target_height,radius);
 
 						 }
 						 else{
@@ -626,7 +626,7 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement,Polygons>& new
 				}
 				if(newLayerData.area()>1&& !elem.to_buildplate){ //mostly happening in the tip, but with merges ...
 					elem.to_buildplate=true; // sometimes nodes that can reach the buildplate are marked as cant reach, taining subtrees. this fixes this
-					logWarning("Corrected to buildplate taint on layer %lld targeting %lld with radius %lld",layer_nr-1,elem.target_height,radius);
+					logWarning("Corrected to buildplate taint on layer %lld targeting %lld with radius %lld\n",layer_nr-1,elem.target_height,radius);
 				}
 				checkLayerData=elem.to_buildplate ? newLayerData : newLayerDataToModel;
 				if(increaseRadius&&checkLayerData.area()>1){
@@ -1719,9 +1719,13 @@ Polygons projectInwardsFromOutline(Polygons outline,const coord_t distance,const
 	constexpr double accumulate_place_angle=M_PI_2; // todo change to LIFO buffer of old angle by distance
 	const Polygons outline_inset=outline.offset(-length);
 	//svg.writeAreas(outline_inset,SVG::Color::NONE, SVG::Color::BLUE, 2);
+
+	//svg.nextLayer();
+	//svg.nextLayer();
 	Polygons resultingLines;
 	//printf("%s\n",getPolygonAsString(outline).c_str());
 	for(ClipperLib::Path part : outline){
+
 		Polygons part_lines;
 
 		std::function<Point(Point,Point,bool)> getNormal=[&](Point a,Point b,bool inDirection){
@@ -1774,7 +1778,7 @@ Polygons projectInwardsFromOutline(Polygons outline,const coord_t distance,const
 			}
 
 			part_lines.addLine(ins, result);
-			//svg.writeLine(ins, result,debug?SVG::Color::GREEN: SVG::Color::RED, 2);
+			//svg.writeLine(ins, result,SVG::Color::RED, 2);
 			//svg.nextLayer();
 			insertedPoints++;
 			accumulatedAngle=0;
@@ -1864,17 +1868,18 @@ Polygons projectInwardsFromOutline(Polygons outline,const coord_t distance,const
 			if(part.size()<3)
 				continue;
 			part_lines.clear();
-			if(inDirectionInside){ //if true than we have a hole
+			Point testNormal = getNormal(part[1],part[0],inDirectionInside);
+			testNormal=testNormal*(10.0/vSize(testNormal));
+			Point testPoint=(part[0]+part[1])/2+testNormal;
+			if(!Polygon(part).inside(testPoint, false)){ //if true than we have a hole
 				to_small.add(part);
 			}
 			else{
-
-				coord_t sideEnlarged=sqrt((length*length)/2);
-				resultingLines.addLine(Point(minX-sideEnlarged,maxY+sideEnlarged),Point(maxX+sideEnlarged,minY-sideEnlarged));
-				resultingLines.addLine(Point(minX-sideEnlarged,minY-sideEnlarged),Point(maxX+sideEnlarged,maxY+sideEnlarged));
+				resultingLines.addLine(Point(minX,maxY),Point(maxX,minY));
+				resultingLines.addLine(Point(minX,minY),Point(maxX,maxY));
 				// added twice as enlarge only enlarges the begin of a line
-				resultingLines.addLine(Point(maxX+sideEnlarged,minY-sideEnlarged),Point(minX-sideEnlarged,maxY+sideEnlarged));
-				resultingLines.addLine(Point(maxX+sideEnlarged,maxY+sideEnlarged),Point(minX-sideEnlarged,minY-sideEnlarged));
+				resultingLines.addLine(Point(maxX,minY),Point(minX,maxY));
+				resultingLines.addLine(Point(maxX,maxY),Point(minX,minY));
 			}
 
 		}
@@ -2072,7 +2077,7 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage &mesh,std::vector<s
 		Polygons normalLines;
 		if(use_smart_wall){
 			normalLines=projectInwardsFromOutline(outline, step_length, (walls+infill_walls)*line_width+1.25*line_width,layer_nr);//outset
-			normalLines=overhangOutset.intersectionPolyLines(normalLines);
+			normalLines=overhang.intersectionPolyLines(normalLines); //todo overhang intersect instead ?
 			normalLines=enlarge2PointPolylines(normalLines, outset);
 
 			for(PolygonsPart part:skin.offset(-line_width).splitIntoParts(false)){ // we simulate the top lines if line skin is used to correctly pace support where the lines begin

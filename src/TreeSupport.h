@@ -275,16 +275,11 @@ public:
 #ifdef DEBUG // Clear the delete node's data so if there's invalid access after, we may get a clue by inspecting that node.
         ~Node()
         {
-        	delete nextTarget; // TODO KEEP ALWAYS
             parent = nullptr;
             merged_neighbours.clear();
         }
 #endif // DEBUG
 
-        size_t target_height=0;
-
-        // where to move next
-        Polygons* nextTarget=new Polygons();
 
         /*!
          * \brief The number of layers to go to the top of this branch.
@@ -363,7 +358,6 @@ public:
 			increased_ddt(0),
 			to_model_gracious(to_model_gracious),
 			elephant_foot_increases(0)
-
     	{
 
     	}
@@ -697,7 +691,6 @@ private:
     bool setToModelContact(std::vector<std::map<SupportElement*,Polygons*>>& moveBounds, SupportElement* firstElem ,const size_t layer_nr);
 
     void createNodesFromArea(std::vector<std::map<SupportElement*,Polygons*>>& moveBounds);
-    void saveSliceAsSvg(std::vector<std::map<SupportElement*,Polygons*>>& moveBounds,const SliceDataStorage &storage);
 
     void drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& moveBounds,SliceDataStorage &storage);
 
@@ -722,6 +715,7 @@ private:
      * If a node is already at that position in the layer, the nodes are merged.
      */
     void insertDroppedNode(std::unordered_set<Node*>& nodes_layer, Node* node);
+
 };
 
 
