@@ -31,7 +31,7 @@ public:
      * \param radius_sample_resolution Sample size used to round requested node radii.
      */
     ModelVolumes(const SliceDataStorage& storage, coord_t xy_distance, coord_t max_move,coord_t max_move_slow ,coord_t radius_sample_resolution,
-    		coord_t z_distance_bottom_layers,coord_t z_distance_top_layers,bool support_rests_on_model,bool avoid_support_blocker,bool use_legacy_tree_support,bool use_exponential_collision_resolution,coord_t exponential_threashold,double exponential_factor);
+    		coord_t z_distance_bottom_layers,coord_t z_distance_top_layers,bool support_rests_on_model,bool avoid_support_blocker,bool use_exponential_collision_resolution,coord_t exponential_threashold,double exponential_factor);
 
     ModelVolumes(ModelVolumes&&) = default;
     ModelVolumes& operator=(ModelVolumes&&) = default;
@@ -79,7 +79,6 @@ public:
      * \param layer The layer of interest
      * \return Polygons object
      */
-    const Polygons& getInternalModel(coord_t radius, LayerIndex layer_idx) const;
     const Polygons& getPlaceableAreas(coord_t radius, LayerIndex layer_idx) const;
 
     void precalculateAvoidance(const size_t maxLayer,const coord_t branch_radius, const double scaleFactor ,const coord_t min_max_radius,const double scale_foot ); //__attribute__((optimize("-O3")))
@@ -119,14 +118,6 @@ private:
      * \param key The radius and layer of the node of interest
      */
     const Polygons& calculateAvoidance(const RadiusLayerPair& key) const;
-
-    /*!
-     * \brief Calculate the internal model areas at the radius and layer
-     * indicated by \p key.
-     *
-     * \param key The radius and layer of the node of interest
-     */
-    const Polygons& calculateInternalModel(const RadiusLayerPair& key) const;
 
     /*!
      * \brief Calculate the collision area around the printable area of the machine.
@@ -177,7 +168,6 @@ private:
 
 
     bool avoid_support_blocker;
-    bool use_legacy_tree_support;
     bool use_exponential_collision_resolution;
     coord_t exponential_threashold;
     double exponential_factor;
@@ -246,101 +236,6 @@ public:
 
     coord_t precalculate(SliceDataStorage &storage);
 
-
-    /*!
-     * \brief Represents the metadata of a node in the tree.
-     */
-    struct Node
-    {
-        static constexpr Node* NO_PARENT = nullptr;
-
-        Node()
-         : distance_to_top(0)
-         , position(Point(0, 0))
-         , skin_direction(false)
-         , support_roof_layers_below(0)
-         , to_buildplate(true)
-         , parent(nullptr)
-        {}
-
-        Node(const Point position, const size_t distance_to_top, const bool skin_direction, const int support_roof_layers_below, const bool to_buildplate, Node* const parent)
-         : distance_to_top(distance_to_top)
-         , position(position)
-         , skin_direction(skin_direction)
-         , support_roof_layers_below(support_roof_layers_below)
-         , to_buildplate(to_buildplate)
-         , parent(parent)
-        {}
-
-#ifdef DEBUG // Clear the delete node's data so if there's invalid access after, we may get a clue by inspecting that node.
-        ~Node()
-        {
-            parent = nullptr;
-            merged_neighbours.clear();
-        }
-#endif // DEBUG
-
-
-        /*!
-         * \brief The number of layers to go to the top of this branch.
-         */
-        size_t distance_to_top;
-
-        /*!
-         * \brief The position of this node on the layer.
-         */
-        Point position;
-
-        /*!
-         * \brief The direction of the skin lines above the tip of the branch.
-         *
-         * This determines in which direction we should reduce the width of the
-         * branch.
-         */
-        bool skin_direction;
-
-        /*!
-         * \brief The number of support roof layers below this one.
-         *
-         * When a contact point is created, it is determined whether the mesh
-         * needs to be supported with support roof or not, since that is a
-         * per-mesh setting. This is stored in this variable in order to track
-         * how far we need to extend that support roof downwards.
-         */
-        int support_roof_layers_below;
-
-        /*!
-         * \brief Whether to try to go towards the build plate.
-         *
-         * If the node is inside the collision areas, it has no choice but to go
-         * towards the model. If it is not inside the collision areas, it must
-         * go towards the build plate to prevent a scar on the surface.
-         */
-        bool to_buildplate;
-
-        /*!
-         * \brief The originating node for this one, one layer higher.
-         *
-         * In order to prune branches that can't have any support (because they
-         * can't be on the model and the path to the buildplate isn't clear),
-         * the entire branch needs to be known.
-         */
-        Node *parent;
-
-        /*!
-        * \brief All neighbours (on the same layer) that where merged into this node.
-        *
-        * In order to prune branches that can't have any support (because they
-        * can't be on the model and the path to the buildplate isn't clear),
-        * the entire branch needs to be known.
-        */
-        std::forward_list<Node*> merged_neighbours;
-
-        bool operator==(const Node& other) const
-        {
-            return position == other.position;
-        }
-    };
     struct TreeSupportSettings; // forward declaration as we need some config values in the merge case
 
 
@@ -507,6 +402,8 @@ public:
 
     struct TreeSupportSettings{
 
+		#define INCREASE_RADIUS_UNTIL mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2
+
     	TreeSupportSettings()=default;
 
     	TreeSupportSettings(const Settings& mesh_group_settings):branch_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
@@ -520,7 +417,7 @@ public:
     	diameter_angle_scale_factor(sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius),
     	max_ddt_increase(diameter_angle_scale_factor<=0?std::numeric_limits<coord_t>::max():(mesh_group_settings.get<coord_t>("support_tree_max_radius_increase_by_merges_when_support_to_model"))/(diameter_angle_scale_factor*branch_radius)),
     	min_ddt_to_model(round_up_divide(mesh_group_settings.get<coord_t>("support_tree_min_height_to_model"), layer_height)),
-    	increase_radius_until_radius(mesh_group_settings.get<coord_t>("support_tree_increase_radius_until_radius")),
+    	increase_radius_until_radius(2000),
     	increase_radius_until_layer(increase_radius_until_radius<=branch_radius?tip_layers*(increase_radius_until_radius/branch_radius):(increase_radius_until_radius - branch_radius)/(branch_radius*diameter_angle_scale_factor)),
 		dont_move_until_ddt(round_up_divide(mesh_group_settings.get<coord_t>("support_tree_dont_move_distance"), layer_height)),
 		support_rests_on_model(mesh_group_settings.get<ESupportType>("support_type") == ESupportType::EVERYWHERE),
@@ -607,33 +504,6 @@ private:
 
     TreeSupportSettings config;
 
-
-    /*!
-     * \brief Draws circles around each node of the tree into the final support.
-     *
-     * This also handles the areas that have to become support roof, support
-     * bottom, the Z distances, etc.
-     *
-     * \param storage[in, out] The settings storage to get settings from and to
-     * save the resulting support polygons to.
-     * \param contact_nodes The nodes to draw as support.
-     */
-    void drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node*>>& contact_nodes);
-
-    /*!
-     * \brief Drops down the nodes of the tree support towards the build plate.
-     *
-     * This is where the cleverness of tree support comes in: The nodes stay on
-     * their 2D layers but on the next layer they are slightly shifted. This
-     * causes them to move towards each other as they are copied to lower layers
-     * which ultimately results in a 3D tree.
-     *
-     * \param contact_nodes[in, out] The nodes in the space that need to be
-     * dropped down. The nodes are dropped to lower layers inside the same
-     * vector of layers.
-     */
-    void dropNodes(std::vector<std::unordered_set<Node*>>& contact_nodes);
-
     std::vector<LineInformation> convertLinesToInternal(Polygons polylines,coord_t layer_nr);
     Polygons convertInternalToLines(std::vector<TreeSupport::LineInformation> lines);
 
@@ -694,27 +564,6 @@ private:
 
     void drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& moveBounds,SliceDataStorage &storage);
 
-    /*!
-     * \brief Creates points where support contacts the model.
-     *
-     * A set of points is created for each layer.
-     * \param mesh The mesh to get the overhang areas to support of.
-     * \param contact_nodes[out] A vector of mappings from contact points to
-     * their tree nodes.
-     * \param collision_areas For every layer, the areas where a generated
-     * contact point would immediately collide with the model due to the X/Y
-     * distance.
-     * \return For each layer, a list of points where the tree should connect
-     * with the model.
-     */
-    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Node*>>& contact_nodes);
-
-    /*!
-     * \brief Add a node to the next layer.
-     *
-     * If a node is already at that position in the layer, the nodes are merged.
-     */
-    void insertDroppedNode(std::unordered_set<Node*>& nodes_layer, Node* node);
 
 };
 
@@ -723,13 +572,6 @@ private:
 
 namespace std
 {
-    template<> struct hash<cura::TreeSupport::Node>
-    {
-        size_t operator()(const cura::TreeSupport::Node& node) const
-        {
-            return hash<cura::Point>()(node.position);
-        }
-    };
     template<> struct hash<cura::TreeSupport::SupportElement>
     {
         size_t operator()(const cura::TreeSupport::SupportElement& node) const
