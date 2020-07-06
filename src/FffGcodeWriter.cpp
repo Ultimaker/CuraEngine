@@ -1255,7 +1255,10 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
     Polygons polygons;
     for (const SliceLayerPart& part : layer->parts)
     {
-        polygons.add(part.outline);
+        for (const Polygons inset : part.insets)
+        {
+            polygons.add(inset);
+        }
     }
 
     ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
