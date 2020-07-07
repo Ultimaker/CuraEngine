@@ -195,8 +195,6 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessor.cpp
     src/infill/SierpinskiFill.cpp
     src/infill/SierpinskiFillProvider.cpp
-    src/infill/SpaghettiInfill.cpp
-    src/infill/SpaghettiInfillPathGenerator.cpp
     src/infill/SubDivCube.cpp
     src/infill/GyroidInfill.cpp
 
