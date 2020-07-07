@@ -45,7 +45,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, con
 
 bool InsetOrderOptimizer::optimize()
 {
-    if (InsetOrderOptimizer::optimizingInsetsIsWorthWhile(mesh, part))
+    if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
     {
         return processInsetsWithOptimizedOrdering();
     }
@@ -53,6 +53,70 @@ bool InsetOrderOptimizer::optimize()
     {
         return processInsetsIndexedOrdering();
     }
+}
+
+bool InsetOrderOptimizer::processInsetsIndexedOrdering()
+{
+    //If printing the outer inset first, insets are sorted from outside to inside.
+    //Otherwise they are sorted from inside to outside.
+    //Sort them here.
+    std::vector<std::list<arachne::ExtrusionLine>> ordered_insets = part.wall_toolpaths; //Make a copy that we can modify.
+    std::function<bool(const std::list<arachne::ExtrusionLine>&, const std::list<arachne::ExtrusionLine>&)> comparator;
+    if(mesh.settings.get<bool>("outer_inset_first"))
+    {
+        comparator = [](const std::list<arachne::ExtrusionLine>& left, const std::list<arachne::ExtrusionLine>& right)
+        {
+            if(left.empty() || right.empty())
+            {
+                return true; //One of the two is empty, so the order doesn't matter. We can place the empty one wherever in the order.
+            }
+            return left.front().inset_idx < right.front().inset_idx;
+        };
+    }
+    else
+    {
+        comparator = [](const std::list<arachne::ExtrusionLine>& left, const std::list<arachne::ExtrusionLine>& right)
+        {
+            if(left.empty() || right.empty())
+            {
+                return true; //One of the two is empty, so the order doesn't matter. We can place the empty one wherever in the order.
+            }
+            return left.front().inset_idx > right.front().inset_idx;
+        };
+    }
+    std::sort(ordered_insets.begin(), ordered_insets.end(), comparator);
+
+    //TODO: what to do with "compensate overlaps" (0 and x)
+
+    constexpr float flow = 1.0;
+    const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
+
+    for (const std::list<arachne::ExtrusionLine>& toolpath : ordered_insets)
+    {
+        for (const arachne::ExtrusionLine& extrusion : toolpath)
+        {
+            added_something = true;
+
+            std::vector<arachne::ExtrusionJunction> junctions;
+            extrusion.appendJunctionsTo(junctions);
+
+            gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+            ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
+
+            WallOverlapComputation* wall_overlap_computation = nullptr; // TODO??: not sure if used for arachne .. probably not?
+
+            if (extrusion.inset_idx <= 0)
+            {
+                gcode_layer.addWall(junctions, 0, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
+            }
+            else
+            {
+                gcode_layer.addWall(junctions, 0, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, 0, flow, false);
+            }
+        }
+    }
+    return added_something;
 }
 
 void InsetOrderOptimizer::moveInside()

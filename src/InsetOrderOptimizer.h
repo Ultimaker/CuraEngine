@@ -64,6 +64,16 @@ private:
     Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
 
     /*!
+     * Print the insets in an order based on their inset index.
+     *
+     * For instance, it will first print all insets with index 0, then all
+     * insets with index 1, and so on. Which index to start from depends on the
+     * ``outer_inset_first`` setting.
+     * \return Whether this added anything to the layer plan or not.
+     */
+    bool processInsetsIndexedOrdering();
+
+    /*!
      * Generate the insets for the holes of a given layer part after optimizing the ordering.
      */
     void processHoleInsets();
