@@ -60,28 +60,33 @@ bool InsetOrderOptimizer::processInsetsIndexedOrdering()
     //If printing the outer inset first, insets are sorted from outside to inside.
     //Otherwise they are sorted from inside to outside.
     //Sort them here.
-    std::vector<std::list<arachne::ExtrusionLine>> ordered_insets = part.wall_toolpaths; //Make a copy that we can modify.
-    std::function<bool(const std::list<arachne::ExtrusionLine>&, const std::list<arachne::ExtrusionLine>&)> comparator;
+    std::vector<const std::list<arachne::ExtrusionLine>*> ordered_insets;
+    for(const std::list<arachne::ExtrusionLine>& path : part.wall_toolpaths)
+    {
+        //Make a vector of pointers to the original paths, so that we can modify the order without modifying the original.
+        ordered_insets.push_back(&path);
+    }
+    std::function<bool(const std::list<arachne::ExtrusionLine>*, const std::list<arachne::ExtrusionLine>*)> comparator;
     if(mesh.settings.get<bool>("outer_inset_first"))
     {
-        comparator = [](const std::list<arachne::ExtrusionLine>& left, const std::list<arachne::ExtrusionLine>& right)
+        comparator = [](const std::list<arachne::ExtrusionLine>* left, const std::list<arachne::ExtrusionLine>* right)
         {
-            if(left.empty() || right.empty())
+            if(left->empty() || right->empty())
             {
                 return true; //One of the two is empty, so the order doesn't matter. We can place the empty one wherever in the order.
             }
-            return left.front().inset_idx < right.front().inset_idx;
+            return left->front().inset_idx < right->front().inset_idx;
         };
     }
     else
     {
-        comparator = [](const std::list<arachne::ExtrusionLine>& left, const std::list<arachne::ExtrusionLine>& right)
+        comparator = [](const std::list<arachne::ExtrusionLine>* left, const std::list<arachne::ExtrusionLine>* right)
         {
-            if(left.empty() || right.empty())
+            if(left->empty() || right->empty())
             {
                 return true; //One of the two is empty, so the order doesn't matter. We can place the empty one wherever in the order.
             }
-            return left.front().inset_idx > right.front().inset_idx;
+            return left->front().inset_idx > right->front().inset_idx;
         };
     }
     std::sort(ordered_insets.begin(), ordered_insets.end(), comparator);
@@ -91,9 +96,9 @@ bool InsetOrderOptimizer::processInsetsIndexedOrdering()
     constexpr float flow = 1.0;
     const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
 
-    for (const std::list<arachne::ExtrusionLine>& toolpath : ordered_insets)
+    for(const std::list<arachne::ExtrusionLine>* toolpath : ordered_insets)
     {
-        for (const arachne::ExtrusionLine& extrusion : toolpath)
+        for(const arachne::ExtrusionLine& extrusion : *toolpath)
         {
             added_something = true;
 
@@ -106,7 +111,7 @@ bool InsetOrderOptimizer::processInsetsIndexedOrdering()
 
             WallOverlapComputation* wall_overlap_computation = nullptr; // TODO??: not sure if used for arachne .. probably not?
 
-            if (extrusion.inset_idx <= 0)
+            if(extrusion.inset_idx <= 0)
             {
                 gcode_layer.addWall(junctions, 0, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
             }
