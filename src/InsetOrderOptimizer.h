@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INSET_ORDER_OPTIMIZER_H
@@ -18,32 +18,23 @@ class InsetOrderOptimizer
 {
 public:
     /*!
-     * Constructor for inset ordering optimizer
-     * \param gcode_writer The gcode_writer on whose behalf the inset order is being optimized
-     * \param storage where the slice data is stored
-     * \param gcode_layer The initial planning of the gcode of the layer
-     * \param mesh The mesh to be added to the layer plan
-     * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
-     * \param mesh_config the line config with which to print a print feature
-     * \param part The part for which to create gcode
-     * \param layer_nr The current layer number
+     * Constructor for inset ordering optimizer.
+     *
+     * This constructor gets basically all of the locals passed when it needs to
+     * optimise the order of insets.
+     * \param gcode_writer The FffGcodeWriter on whose behalf the inset order is
+     * being optimized.
+     * \param storage Read slice data from this storage.
+     * \param gcode_layer The layer where the resulting insets must be planned.
+     * \param mesh The mesh that these insets are part of.
+     * \param extruder_nr Which extruder to process. If an inset is not printed
+     * with this extruder, it will not be added to the plan.
+     * \param mesh_config The path configs for a single mesh, indicating the
+     * line widths, flows, speeds, etc to print this mesh with.
+     * \param part The part from which to read the previously generated insets.
+     * \param layer_nr The current layer number.
      */
-    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) :
-    gcode_writer(gcode_writer),
-    storage(storage),
-    gcode_layer(gcode_layer),
-    mesh(mesh),
-    extruder_nr(extruder_nr),
-    mesh_config(mesh_config),
-    part(part),
-    layer_nr(layer_nr),
-    z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
-    added_something(false),
-    retraction_region_calculated(false),
-    wall_overlapper_0(nullptr),
-    wall_overlapper_x(nullptr)
-    {
-    }
+    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr);
 private:
 
     const FffGcodeWriter& gcode_writer;

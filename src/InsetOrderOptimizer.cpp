@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ExtruderTrain.h"
@@ -24,6 +24,23 @@ static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, cons
         }
     }
     return -1;
+}
+
+InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) :
+    gcode_writer(gcode_writer),
+    storage(storage),
+    gcode_layer(gcode_layer),
+    mesh(mesh),
+    extruder_nr(extruder_nr),
+    mesh_config(mesh_config),
+    part(part),
+    layer_nr(layer_nr),
+    z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
+    added_something(false),
+    retraction_region_calculated(false),
+    wall_overlapper_0(nullptr),
+    wall_overlapper_x(nullptr)
+{
 }
 
 void InsetOrderOptimizer::moveInside()
