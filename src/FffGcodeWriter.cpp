@@ -1737,7 +1737,6 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     }
     const bool compensate_overlap_0 = mesh.settings.get<bool>("travel_compensate_overlapping_walls_0_enabled");
     const bool compensate_overlap_x = mesh.settings.get<bool>("travel_compensate_overlapping_walls_x_enabled");
-    const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
 
     bool spiralize = false;
     if(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
