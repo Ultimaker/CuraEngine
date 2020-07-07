@@ -646,7 +646,7 @@ bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, coord_t be
             break; // Only walk upward
         }
     }
-    if (next_edge == to_edge->twin)
+    if (next_edge == to_edge->twin || ! next_edge)
     {
         return false;
     }
