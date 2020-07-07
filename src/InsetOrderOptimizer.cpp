@@ -685,6 +685,8 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
 
 bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part)
 {
+    return false; //TODO: The optimized inset order is broken due to libArachne.
+
     if (!mesh.settings.get<bool>("optimize_wall_printing_order"))
     {
         // optimization disabled
