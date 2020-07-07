@@ -1738,6 +1738,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     const bool compensate_overlap_0 = mesh.settings.get<bool>("travel_compensate_overlapping_walls_0_enabled");
     const bool compensate_overlap_x = mesh.settings.get<bool>("travel_compensate_overlapping_walls_x_enabled");
     const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
+
     bool spiralize = false;
     if(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
@@ -1904,14 +1905,41 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     }
     else
     {
-        // TODO: - re-enable use of 'outer inset first'
+        //If printing the outer inset first, insets are sorted from outside to inside.
+        //Otherwise they are sorted from inside to outside.
+        std::vector<std::list<arachne::ExtrusionLine>> ordered_insets = part.wall_toolpaths; //Make a copy that we can modify.
+        std::function<bool(const std::list<arachne::ExtrusionLine>&, const std::list<arachne::ExtrusionLine>&)> comparator;
+        if(mesh.settings.get<bool>("outer_inset_first"))
+        {
+            comparator = [](const std::list<arachne::ExtrusionLine>& left, const std::list<arachne::ExtrusionLine>& right)
+            {
+                if(left.empty() || right.empty())
+                {
+                    return true; //One of the two is empty, so the order doesn't matter. We can place the empty one wherever in the order.
+                }
+                return left.front().inset_idx < right.front().inset_idx;
+            };
+        }
+        else
+        {
+            comparator = [](const std::list<arachne::ExtrusionLine>& left, const std::list<arachne::ExtrusionLine>& right)
+            {
+                if(left.empty() || right.empty())
+                {
+                    return true; //One of the two is empty, so the order doesn't matter. We can place the empty one wherever in the order.
+                }
+                return left.front().inset_idx > right.front().inset_idx;
+            };
+        }
+        std::sort(ordered_insets.begin(), ordered_insets.end(), comparator);
+
         //       - what to do with: compensate overlaps (0 and x)
 
         constexpr float flow = 1.0;
 
-        for (const auto& toolpath : part.wall_toolpaths)
+        for (const std::list<arachne::ExtrusionLine>& toolpath : ordered_insets)
         {
-            for (const auto& extrusion : toolpath)
+            for (const arachne::ExtrusionLine& extrusion : toolpath)
             {
                 added_something = true;
 
