@@ -1898,7 +1898,12 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             processSpiralizedWall(storage, gcode_layer, mesh_config, part, mesh);
         }
     }
-    else if (false /* TODO! insetorderoptimizer will have to be rewritten! */ && InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
+    else
+    {
+        InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
+        return inset_order_optimizer.optimize();
+    }
+    if (false /* TODO! insetorderoptimizer will have to be rewritten! */ && InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
     {
         InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
         return ioo.processInsetsWithOptimizedOrdering();
@@ -1933,7 +1938,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         }
         std::sort(ordered_insets.begin(), ordered_insets.end(), comparator);
 
-        //       - what to do with: compensate overlaps (0 and x)
+        //TODO: what to do with "compensate overlaps" (0 and x)
 
         constexpr float flow = 1.0;
 

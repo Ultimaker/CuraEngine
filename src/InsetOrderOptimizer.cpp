@@ -43,6 +43,18 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, con
 {
 }
 
+bool InsetOrderOptimizer::optimize()
+{
+    if (InsetOrderOptimizer::optimizingInsetsIsWorthWhile(mesh, part))
+    {
+        return processInsetsWithOptimizedOrdering();
+    }
+    else
+    {
+        return processInsetsIndexedOrdering();
+    }
+}
+
 void InsetOrderOptimizer::moveInside()
 {
     const coord_t outer_wall_line_width = mesh_config.inset0_config.getLineWidth();

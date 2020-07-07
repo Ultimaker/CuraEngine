@@ -35,6 +35,16 @@ public:
      * \param layer_nr The current layer number.
      */
     InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr);
+
+    /*!
+     * Adds the insets to the given layer plan.
+     *
+     * The insets and the layer plan are passed to the constructor of this
+     * class, so this optimize function needs no additional information.
+     * \return Whether anything was added to the layer plan.
+     */
+    bool optimize();
+
 private:
 
     const FffGcodeWriter& gcode_writer;
