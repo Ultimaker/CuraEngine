@@ -1899,8 +1899,9 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     }
     else
     {
+        //Main case: Optimize the insets with the InsetOrderOptimizer.
         InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
-        return inset_order_optimizer.optimize() || added_something;
+        added_something |= inset_order_optimizer.optimize();
     }
     return added_something;
 }
