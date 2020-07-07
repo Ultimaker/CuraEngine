@@ -1726,210 +1726,211 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
 
 bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const
 {
+    bool added_something = false;
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr && extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
     {
-        return false;
+        return added_something;
     }
-    bool added_something = false;
+    if (mesh.settings.get<size_t>("wall_line_count") <= 0)
+    {
+        return added_something;
+    }
     const bool compensate_overlap_0 = mesh.settings.get<bool>("travel_compensate_overlapping_walls_0_enabled");
     const bool compensate_overlap_x = mesh.settings.get<bool>("travel_compensate_overlapping_walls_x_enabled");
     const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
-    if (mesh.settings.get<size_t>("wall_line_count") > 0)
+    bool spiralize = false;
+    if(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
-        bool spiralize = false;
-        if(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
+        if (part.insets.size() == 0)
         {
-            if (part.insets.size() == 0)
+            // nothing to do
+            return false;
+        }
+        const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
+        if (gcode_layer.getLayerNr() >= static_cast<LayerIndex>(initial_bottom_layers))
+        {
+            spiralize = true;
+        }
+        if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers) && !part.insets.empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
+        { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+            if (part.insets[0].size() > 0)
             {
-                // nothing to do
-                return false;
-            }
-            const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
-            if (gcode_layer.getLayerNr() >= static_cast<LayerIndex>(initial_bottom_layers))
-            {
-                spiralize = true;
-            }
-            if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers) && !part.insets.empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
-            { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
-                added_something = true;
-                setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                gcode_layer.setIsInside(true); // going to print stuff inside print object
-                if (part.insets[0].size() > 0)
+                // start this first wall at the same vertex the spiral starts
+                ConstPolygonRef spiral_inset = part.insets[0][0];
+                const unsigned spiral_start_vertex = storage.spiralize_seam_vertex_indices[initial_bottom_layers];
+                if (spiral_start_vertex < spiral_inset.size())
                 {
-                    // start this first wall at the same vertex the spiral starts
-                    ConstPolygonRef spiral_inset = part.insets[0][0];
-                    const unsigned spiral_start_vertex = storage.spiralize_seam_vertex_indices[initial_bottom_layers];
-                    if (spiral_start_vertex < spiral_inset.size())
+                    gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
+                }
+                WallOverlapComputation* wall_overlap_computation(nullptr);
+                int wall_0_wipe_dist(0);
+                gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
+            }
+        }
+    }
+    // for non-spiralized layers, determine the shape of the unsupported areas below this part
+    if (!spiralize && gcode_layer.getLayerNr() > 0)
+    {
+        // accumulate the outlines of all of the parts that are on the layer below
+
+        Polygons outlines_below;
+        AABB boundaryBox(part.outline);
+        for (const SliceMeshStorage& m : storage.meshes)
+        {
+            if (m.isPrinted())
+            {
+                for (const SliceLayerPart& prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)
+                {
+                    if (boundaryBox.hit(prevLayerPart.boundaryBox))
                     {
-                        gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
+                        outlines_below.add(prevLayerPart.outline);
                     }
-                    WallOverlapComputation* wall_overlap_computation(nullptr);
-                    int wall_0_wipe_dist(0);
-                    gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
                 }
             }
         }
-        // for non-spiralized layers, determine the shape of the unsupported areas below this part
-        if (!spiralize && gcode_layer.getLayerNr() > 0)
+
+        const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+
+        // if support is enabled, add the support outlines also so we don't generate bridges over support
+
+        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        if (mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable"))
         {
-            // accumulate the outlines of all of the parts that are on the layer below
+            const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
+            const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
+            const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
 
-            Polygons outlines_below;
-            AABB boundaryBox(part.outline);
-            for (const SliceMeshStorage& m : storage.meshes)
+            if (support_layer_nr > 0)
             {
-                if (m.isPrinted())
+                const SupportLayer& support_layer = storage.support.supportLayers[support_layer_nr];
+
+                if (!support_layer.support_roof.empty())
                 {
-                    for (const SliceLayerPart& prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)
+                    AABB support_roof_bb(support_layer.support_roof);
+                    if (boundaryBox.hit(support_roof_bb))
                     {
-                        if (boundaryBox.hit(prevLayerPart.boundaryBox))
+                        outlines_below.add(support_layer.support_roof);
+                    }
+                }
+                else
+                {
+                    for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
+                    {
+                        AABB support_part_bb(support_part.getInfillArea());
+                        if (boundaryBox.hit(support_part_bb))
                         {
-                            outlines_below.add(prevLayerPart.outline);
+                            outlines_below.add(support_part.getInfillArea());
                         }
                     }
                 }
             }
+        }
 
-            const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+        const int half_outer_wall_width = mesh_config.inset0_config.getLineWidth() / 2;
 
-            // if support is enabled, add the support outlines also so we don't generate bridges over support
+        // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
 
-            const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-            if (mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable"))
-            {
-                const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-                const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
-                const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
+        outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
 
-                if (support_layer_nr > 0)
-                {
-                    const SupportLayer& support_layer = storage.support.supportLayers[support_layer_nr];
+        if (mesh.settings.get<bool>("bridge_settings_enabled"))
+        {
+            // max_air_gap is the max allowed width of the unsupported region below the wall line
+            // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
 
-                    if (!support_layer.support_roof.empty())
-                    {
-                        AABB support_roof_bb(support_layer.support_roof);
-                        if (boundaryBox.hit(support_roof_bb))
-                        {
-                            outlines_below.add(support_layer.support_roof);
-                        }
-                    }
-                    else
-                    {
-                        for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
-                        {
-                            AABB support_part_bb(support_part.getInfillArea());
-                            if (boundaryBox.hit(support_part_bb))
-                            {
-                                outlines_below.add(support_part.getInfillArea());
-                            }
-                        }
-                    }
-                }
-            }
+            const coord_t max_air_gap = half_outer_wall_width;
 
-            const int half_outer_wall_width = mesh_config.inset0_config.getLineWidth() / 2;
+            // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
+            // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
 
-            // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
+            Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
 
-            outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
+            // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
+            // which is required because when the walls are being generated, the vertices do not fall on the part's outline
+            // but, instead, are 1/2 a line width inset from the outline
 
-            if (mesh.settings.get<bool>("bridge_settings_enabled"))
-            {
-                // max_air_gap is the max allowed width of the unsupported region below the wall line
-                // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
-
-                const coord_t max_air_gap = half_outer_wall_width;
-
-                // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
-                // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
-
-                Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
-
-                // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
-                // which is required because when the walls are being generated, the vertices do not fall on the part's outline
-                // but, instead, are 1/2 a line width inset from the outline
-
-                gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
-            }
-            else
-            {
-                // clear to disable use of bridging settings
-                gcode_layer.setBridgeWallMask(Polygons());
-            }
-
-            const AngleDegrees overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
-            if (overhang_angle >= 90)
-            {
-                // clear to disable overhang detection
-                gcode_layer.setOverhangMask(Polygons());
-            }
-            else
-            {
-                // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
-                // the supported region is made up of those areas that really are supported by either model or support on the layer below
-                // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
-                // considered to be
-                const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
-                Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
-                gcode_layer.setOverhangMask(overhang_region);
-            }
+            gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
         }
         else
         {
             // clear to disable use of bridging settings
             gcode_layer.setBridgeWallMask(Polygons());
+        }
+
+        const AngleDegrees overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
+        if (overhang_angle >= 90)
+        {
             // clear to disable overhang detection
             gcode_layer.setOverhangMask(Polygons());
         }
-
-        // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
-        // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
-        // one part higher up. Once all the parts have merged, layers above that level will be spiralized
-        if (spiralize && &mesh.layers[gcode_layer.getLayerNr()].parts[0] == &part)
-        {
-            if (part.insets.size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
-            {
-                added_something = true;
-                setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                gcode_layer.setIsInside(true); // going to print stuff inside print object
-                processSpiralizedWall(storage, gcode_layer, mesh_config, part, mesh);
-            }
-        }
-        else if (false /* TODO! insetorderoptimizer will have to be rewritten! */ && InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
-        {
-            InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
-            return ioo.processInsetsWithOptimizedOrdering();
-        }
         else
         {
-            // TODO: - re-enable use of 'outer inset first'
-            //       - what to do with: compensate overlaps (0 and x)
+            // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
+            // the supported region is made up of those areas that really are supported by either model or support on the layer below
+            // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
+            // considered to be
+            const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
+            Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
+            gcode_layer.setOverhangMask(overhang_region);
+        }
+    }
+    else
+    {
+        // clear to disable use of bridging settings
+        gcode_layer.setBridgeWallMask(Polygons());
+        // clear to disable overhang detection
+        gcode_layer.setOverhangMask(Polygons());
+    }
 
-            constexpr float flow = 1.0;
+    // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
+    // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
+    // one part higher up. Once all the parts have merged, layers above that level will be spiralized
+    if (spiralize && &mesh.layers[gcode_layer.getLayerNr()].parts[0] == &part)
+    {
+        if (part.insets.size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
+        {
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+            processSpiralizedWall(storage, gcode_layer, mesh_config, part, mesh);
+        }
+    }
+    else if (false /* TODO! insetorderoptimizer will have to be rewritten! */ && InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
+    {
+        InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
+        return ioo.processInsetsWithOptimizedOrdering();
+    }
+    else
+    {
+        // TODO: - re-enable use of 'outer inset first'
+        //       - what to do with: compensate overlaps (0 and x)
 
-            for (const auto& toolpath : part.wall_toolpaths)
+        constexpr float flow = 1.0;
+
+        for (const auto& toolpath : part.wall_toolpaths)
+        {
+            for (const auto& extrusion : toolpath)
             {
-                for (const auto& extrusion : toolpath)
+                added_something = true;
+
+                std::vector<arachne::ExtrusionJunction> junctions;
+                extrusion.appendJunctionsTo(junctions);
+
+                setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+                gcode_layer.setIsInside(true); // going to print stuff inside print object
+                ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
+
+                WallOverlapComputation* wall_overlap_computation = nullptr; // TODO??: not sure if used for arachne .. probably not?
+
+                if (extrusion.inset_idx <= 0)
                 {
-                    added_something = true;
-
-                    std::vector<arachne::ExtrusionJunction> junctions;
-                    extrusion.appendJunctionsTo(junctions);
-
-                    setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                    gcode_layer.setIsInside(true); // going to print stuff inside print object
-                    ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-
-                    WallOverlapComputation* wall_overlap_computation = nullptr; // TODO??: not sure if used for arachne .. probably not?
-
-                    if (extrusion.inset_idx <= 0)
-                    {
-                        gcode_layer.addWall(junctions, 0, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
-                    }
-                    else
-                    {
-                        gcode_layer.addWall(junctions, 0, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, 0, 1.0, false);
-                    }
+                    gcode_layer.addWall(junctions, 0, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
+                }
+                else
+                {
+                    gcode_layer.addWall(junctions, 0, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, 0, 1.0, false);
                 }
             }
         }
