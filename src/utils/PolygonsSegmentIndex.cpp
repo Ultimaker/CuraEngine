@@ -3,9 +3,8 @@
 
 #include "PolygonsSegmentIndex.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 PolygonsSegmentIndex::PolygonsSegmentIndex() : PolygonsPointIndex() {}
 

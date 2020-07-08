@@ -4,7 +4,7 @@
 #include <sstream>
 
 
-namespace arachne
+namespace cura
 {
 
 void ToolpathVisualizer::outline(const Polygons& input)
@@ -145,4 +145,4 @@ void ToolpathVisualizer::widths(const std::vector<ExtrusionSegment>& all_segment
     }
 }
 
-} // namespace arachne
+} // namespace cura

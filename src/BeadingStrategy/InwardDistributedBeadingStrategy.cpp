@@ -3,7 +3,7 @@
 
 #include "InwardDistributedBeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
 
 InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
@@ -51,4 +51,4 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
     return ret;
 }
 
-} // namespace arachne
+} // namespace cura

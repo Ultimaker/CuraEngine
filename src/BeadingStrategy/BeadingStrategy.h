@@ -11,9 +11,8 @@
 #include "../utils/optional.h"  // until the move to C++17
 #include "../settings/types/AngleRadians.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * Mostly virtual base class template.
@@ -111,8 +110,5 @@ public:
     virtual std::string toString() const;
 };
 
-
-
-
-} // namespace arachne
+} // namespace cura
 #endif // BEADING_STRATEGY_H

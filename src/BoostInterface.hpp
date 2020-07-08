@@ -10,8 +10,8 @@
 #include "utils/polygon.h"
 
 
-using CSegment = arachne::PolygonsSegmentIndex;
-using CPolygon = boost::polygon::polygon_data<arachne::coord_t>;
+using CSegment = cura::PolygonsSegmentIndex;
+using CPolygon = boost::polygon::polygon_data<cura::coord_t>;
 using CPolygonSet = std::vector<CPolygon>;
 
 namespace boost {

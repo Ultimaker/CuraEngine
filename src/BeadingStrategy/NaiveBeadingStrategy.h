@@ -6,9 +6,8 @@
 
 #include "BeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * Beading strategy which evenly subdivides the thickness and tries to stay close to the optimal width.
@@ -32,5 +31,5 @@ public:
 
 
 
-} // namespace arachne
+} // namespace cura
 #endif // NAIVE_BEADING_STRATEGY_H

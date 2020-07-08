@@ -10,9 +10,8 @@
 
 #include "utils/ExtrusionJunction.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 class SkeletalTrapezoidationEdge
 {
@@ -124,5 +123,5 @@ private:
 };
 
 
-} // namespace arachne
+} // namespace cura
 #endif // SKELETAL_TRAPEZOIDATION_EDGE_H

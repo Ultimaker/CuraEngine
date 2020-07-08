@@ -9,7 +9,7 @@
 #include "Slice.h"
 #include "utils/logoutput.h"
 
-namespace arachne
+namespace cura
 {
 
 GcodeWriter::GcodeWriter(std::string filename, int type, coord_t layer_thickness, float print_speed, float travel_speed, float extrusion_multiplier)
@@ -489,4 +489,4 @@ void GcodeWriter::resetPrintTime()
 }
 
 
-} // namespace arachne
+} // namespace cura

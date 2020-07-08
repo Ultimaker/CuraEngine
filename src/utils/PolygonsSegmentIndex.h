@@ -8,9 +8,8 @@
 
 #include "PolygonsPointIndex.h"
 
-namespace arachne 
+namespace cura 
 {
-    using namespace cura;
 
 /*!
  * A class for iterating over the points in one of the polygons in a \ref Polygons object
@@ -27,7 +26,7 @@ public:
 };
 
 
-}//namespace arachne
+} // namespace cura
 
 
 #endif//UTILS_POLYGONS_SEGMENT_INDEX_H

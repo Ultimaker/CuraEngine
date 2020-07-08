@@ -1913,7 +1913,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 {
                     added_something = true;
 
-                    std::vector<arachne::ExtrusionJunction> junctions;
+                    std::vector<ExtrusionJunction> junctions;
                     extrusion.appendJunctionsTo(junctions);
 
                     setExtruder_addPrime(storage, gcode_layer, extruder_nr);

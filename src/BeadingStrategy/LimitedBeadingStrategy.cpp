@@ -1,9 +1,9 @@
-//Copyright (c) 2019 Ultimaker B.V.
+// Copyright (c) 2020 Ultimaker B.V.
 #include <cassert>
 
 #include "LimitedBeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
 
 LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
@@ -71,4 +71,4 @@ coord_t LimitedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
     else return max_bead_count + 1;
 }
 
-} // namespace arachne
+} // namespace cura

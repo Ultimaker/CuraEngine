@@ -3,7 +3,7 @@
 
 #include "ExtrusionLine.h"
 
-namespace arachne
+namespace cura
 {
 
 coord_t ExtrusionLine::getLength() const

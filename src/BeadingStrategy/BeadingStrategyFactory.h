@@ -14,9 +14,8 @@
 #include "NaiveBeadingStrategy.h"
 #include "DistributedBeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 extern double inward_distributed_center_size;
 extern int max_bead_count;
@@ -43,5 +42,5 @@ public:
     static BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = MM2INT(0.5), float transitioning_angle = M_PI / 4, std::optional<coord_t> min_bead_width = NULL, std::optional<coord_t> min_feature_size = NULL);
 };
 
-} // namespace arachne
+} // namespace cura
 #endif // BEADING_STRATEGY_FACTORY_H
