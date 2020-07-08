@@ -9,7 +9,8 @@
 
 #define INLINE static inline
 
-namespace arachne {
+namespace cura 
+{
 
 /**
 *

@@ -6,9 +6,8 @@
 
 #include "BeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * This beading strategy chooses a wall count that would make the line width
@@ -31,5 +30,5 @@ public:
     coord_t getOptimalBeadCount(coord_t thickness) const override;
 };
 
-} // namespace arachne
+} // namespace cura
 #endif // DISTRIBUTED_BEADING_STRATEGY_H

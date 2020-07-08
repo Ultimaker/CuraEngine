@@ -42,7 +42,6 @@
 #include "TestGeometry/VariableWidthGcodeTester.h"
 
 using namespace cura;
-using namespace arachne;
 
 static TCLAP::CmdLine gCmdLine(" Generate polygon inset toolpaths ", ' ', "0.1");
 

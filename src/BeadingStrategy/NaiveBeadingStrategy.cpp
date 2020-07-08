@@ -3,7 +3,7 @@
 
 #include "NaiveBeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
 
 NaiveBeadingStrategy::Beading NaiveBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
@@ -43,4 +43,4 @@ coord_t NaiveBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 }
 
 
-} // namespace arachne
+} // namespace cura

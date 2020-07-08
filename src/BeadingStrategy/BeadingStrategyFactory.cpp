@@ -2,7 +2,7 @@
 
 #include "BeadingStrategyFactory.h"
 
-namespace arachne
+namespace cura
 {
 
 double inward_distributed_center_size = 2;
@@ -68,4 +68,4 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t
     }
     return ret;
 }
-} // namespace arachne
+} // namespace cura

@@ -21,7 +21,7 @@
 
 #define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX 1000 //A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing performance).
 
-namespace arachne
+namespace cura
 {
 
 SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_type& vd_node, Point p)
@@ -646,7 +646,7 @@ bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, coord_t be
             break; // Only walk upward
         }
     }
-    if (next_edge == to_edge->twin)
+    if (next_edge == to_edge->twin || ! next_edge)
     {
         return false;
     }
@@ -1890,4 +1890,4 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 // =====================
 //
 
-} // namespace arachne
+} // namespace cura

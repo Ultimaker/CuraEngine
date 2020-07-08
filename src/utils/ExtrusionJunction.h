@@ -7,9 +7,8 @@
 
 #include "IntPoint.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * This struct represents one vertex in an extruded path.
@@ -45,17 +44,17 @@ struct ExtrusionJunction
 };
 
 
-} // namespace arachne
+} // namespace cura
 
 namespace cura
 {
-    inline Point operator-(const arachne::ExtrusionJunction& a, const arachne::ExtrusionJunction& b)
+    inline Point operator-(const ExtrusionJunction& a, const ExtrusionJunction& b)
     {
         return a.p - b.p;
     }
 
     // Identity function, used to be able to make templated algorithms that do their operations on 'point-like' input.
-    inline const Point& make_point(const arachne::ExtrusionJunction& ej)
+    inline const Point& make_point(const ExtrusionJunction& ej)
     {
         return ej.p;
     }

@@ -9,7 +9,7 @@
 #include "../utils/IntPoint.h"
 #include "Coord_t.h"
 
-namespace arachne
+namespace cura
 {
 
 template<typename node_data_t, typename edge_data_t, typename derived_node_t, typename derived_edge_t>
@@ -40,5 +40,5 @@ public:
 
 
 
-} // namespace arachne
+} // namespace cura
 #endif // UTILS_HALF_EDGE_H

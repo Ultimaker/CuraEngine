@@ -60,16 +60,16 @@ bool InsetOrderOptimizer::processInsetsIndexedOrdering()
     //If printing the outer inset first, insets are sorted from outside to inside.
     //Otherwise they are sorted from inside to outside.
     //Sort them here.
-    std::vector<const std::list<arachne::ExtrusionLine>*> ordered_insets;
-    for(const std::list<arachne::ExtrusionLine>& path : part.wall_toolpaths)
+    std::vector<const std::list<ExtrusionLine>*> ordered_insets;
+    for(const std::list<ExtrusionLine>& path : part.wall_toolpaths)
     {
         //Make a vector of pointers to the original paths, so that we can modify the order without modifying the original.
         ordered_insets.push_back(&path);
     }
-    std::function<bool(const std::list<arachne::ExtrusionLine>*, const std::list<arachne::ExtrusionLine>*)> comparator;
+    std::function<bool(const std::list<ExtrusionLine>*, const std::list<ExtrusionLine>*)> comparator;
     if(mesh.settings.get<bool>("outer_inset_first"))
     {
-        comparator = [](const std::list<arachne::ExtrusionLine>* left, const std::list<arachne::ExtrusionLine>* right)
+        comparator = [](const std::list<ExtrusionLine>* left, const std::list<ExtrusionLine>* right)
         {
             if(left->empty() || right->empty())
             {
@@ -80,7 +80,7 @@ bool InsetOrderOptimizer::processInsetsIndexedOrdering()
     }
     else
     {
-        comparator = [](const std::list<arachne::ExtrusionLine>* left, const std::list<arachne::ExtrusionLine>* right)
+        comparator = [](const std::list<ExtrusionLine>* left, const std::list<ExtrusionLine>* right)
         {
             if(left->empty() || right->empty())
             {
@@ -96,13 +96,13 @@ bool InsetOrderOptimizer::processInsetsIndexedOrdering()
     constexpr float flow = 1.0;
     const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
 
-    for(const std::list<arachne::ExtrusionLine>* toolpath : ordered_insets)
+    for(const std::list<ExtrusionLine>* toolpath : ordered_insets)
     {
-        for(const arachne::ExtrusionLine& extrusion : *toolpath)
+        for(const ExtrusionLine& extrusion : *toolpath)
         {
             added_something = true;
 
-            std::vector<arachne::ExtrusionJunction> junctions;
+            std::vector<ExtrusionJunction> junctions;
             extrusion.appendJunctionsTo(junctions);
 
             gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
