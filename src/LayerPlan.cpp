@@ -928,7 +928,7 @@ void LayerPlan::addWall(const std::vector<arachne::ExtrusionJunction>& wall, int
 
     arachne::ExtrusionJunction p0 = wall[start_idx];
 
-    for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
+    for (unsigned int point_idx = 1; point_idx < wall.size() + 1; point_idx++)
     {
         const arachne::ExtrusionJunction& p1 = wall[(start_idx + point_idx) % wall.size()];
         const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0.p, p1.p) : flow_ratio;
