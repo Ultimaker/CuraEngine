@@ -801,6 +801,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
 
 void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
+    //TODO: Deprecated in favor of ExtrusionJunction version below.
     if (wall.size() < 3)
     {
         logWarning("WARNING: point, or line added as (polygon) wall sequence! (LayerPlan)\n");
@@ -1015,6 +1016,7 @@ void LayerPlan::addWall(const std::vector<arachne::ExtrusionJunction>& wall, int
 
 void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
+    //TODO: Deprecated in favor of ExtrusionJunction version below.
     PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
     {
@@ -1024,6 +1026,26 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
         addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+    }
+}
+
+void LayerPlan::addWalls(const std::vector<std::vector<arachne::ExtrusionJunction>>& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+{
+    PathOrderOptimizer order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for(unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
+    {
+        //Translate a list of junctions to a list of points. For the order optimization we only need to know the position.
+        Polygon path;
+        for(const arachne::ExtrusionJunction junction : walls[poly_idx])
+        {
+            path.add(junction.p);
+        }
+        order_optimizer.addPolygon(path);
+    }
+    order_optimizer.optimize();
+    for(unsigned int poly_idx : order_optimizer.polyOrder)
+    {
+        addWall(walls[poly_idx], order_optimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
