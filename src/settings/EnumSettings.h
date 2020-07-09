@@ -51,6 +51,15 @@ enum class ESupportType
     EVERYWHERE
 };
 
+/*!
+ * Structure of the support, such as Tree Support
+ */
+enum class ESupportStructure
+{
+    NORMAL,
+    TREE
+};
+
 enum class EZSeamType
 {
     RANDOM,
