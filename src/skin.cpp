@@ -511,7 +511,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             // Insets have previously NOT been generated for any layer if the top/bottom pattern is concentric.
             // In this case, we still want to generate insets for the roofing layers based on the extra skin wall count.
             if (skin_part.roofing_fill.size() > 0
-                && ((layer_nr > 0 && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC)))
+                && (layer_nr > 0 && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC))
             {
                 // Generate skin insets and recalculate the inner and roofing infills, taking into account the 
                 // extra skin wall count (only for the roofing layers).
