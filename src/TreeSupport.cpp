@@ -132,7 +132,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 }
                 circle.add(node.position + corner);
             }
-            if (node.support_roof_layers_below >= 0)
+            if (node.support_roof_layers_below > 0)
             {
                 roof_layer.add(circle);
             }
