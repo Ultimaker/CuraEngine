@@ -55,7 +55,6 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
 
     const bool recompute_outline_based_on_outer_wall =
         settings.get<bool>("support_enable") &&
-        settings.get<ESupportStructure>("support_structure") == ESupportStructure::TREE &&
         !settings.get<bool>("fill_outline_gaps");
     for(size_t i = 0; i < inset_count; i++)
     {

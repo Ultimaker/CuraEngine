@@ -2195,9 +2195,8 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
     int support_layer_nr = -1;
     const SupportLayer* support_layer = nullptr;
-    const ESupportStructure supportStructure = mesh_group_settings.get<ESupportStructure>("support_structure");
 
-    if (mesh_group_settings.get<bool>("support_enable") && supportStructure == ESupportStructure::TREE)
+    if (mesh_group_settings.get<bool>("support_enable"))
     {
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
