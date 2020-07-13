@@ -49,19 +49,22 @@ PathOrderOptimizer::PathOrderOptimizer(const Point start_point, const ZSeamConfi
 
 void PathOrderOptimizer::addPolygon(const PolygonRef& polygon)
 {
-    polygons.emplace_back(polygon);
+    constexpr bool is_closed = true;
+    paths.emplace_back(polygon, is_closed);
 }
 
 void PathOrderOptimizer::addPolygon(const ConstPolygonRef& polygon)
 {
-    polygons.emplace_back(polygon);
+    constexpr bool is_closed = true;
+    paths.emplace_back(polygon, is_closed);
 }
 
 void PathOrderOptimizer::addPolygons(const Polygons& polygons)
 {
-    for(unsigned int i = 0; i < polygons.size(); i++)
+    constexpr bool is_closed = true; //All of these are polygons, not polylines.
+    for(ConstPolygonRef polygon : polygons)
     {
-        this->polygons.emplace_back(polygons[i]);
+        paths.emplace_back(polygon, is_closed);
     }
 }
 
