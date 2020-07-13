@@ -68,6 +68,24 @@ void PathOrderOptimizer::addPolygons(const Polygons& polygons)
     }
 }
 
+void PathOrderOptimizer::addPolyline(const PolygonRef& polyline)
+{
+    paths.emplace_back(polyline);
+}
+
+void PathOrderOptimizer::addPolyline(const ConstPolygonRef& polyline)
+{
+    paths.emplace_back(polyline);
+}
+
+void PathOrderOptimizer::addPolylines(const Polygons& polylines)
+{
+    for(ConstPolygonRef polyline : polylines)
+    {
+        paths.emplace_back(polyline);
+    }
+}
+
 void PathOrderOptimizer::optimize()
 {
     // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:

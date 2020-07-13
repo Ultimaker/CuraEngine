@@ -194,6 +194,27 @@ public:
     void addPolygons(const Polygons& polygons);
 
     /*!
+     * Add a new polyline to be optimized.
+     * \param polyline The polyline to optimize.
+     */
+    void addPolyline(const PolygonRef& polyline);
+
+    /*!
+     * Add a new polyline to be optimized.
+     * \param polyline The polyline to optimize.
+     */
+    void addPolyline(const ConstPolygonRef& polyline);
+
+    /*!
+     * Add a set of polylines to be optimized.
+     *
+     * A shorthand, if you've already got this packed in a ``Polygons``
+     * instance.
+     * \param polylines The polylines to optimize.
+     */
+    void addPolylines(const Polygons& polylines);
+
+    /*!
      * Perform the calculations to optimize the order of the parts.
      *
      * This sets the \ref poly_start and \ref poly_order fields. They will then
