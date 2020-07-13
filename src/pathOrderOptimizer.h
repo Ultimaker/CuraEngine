@@ -17,9 +17,8 @@ namespace cura {
  * Instances of this are passed to the PathOrderOptimizer to specify where the
  * seam is to be located.
  */
-class ZSeamConfig
+struct ZSeamConfig
 {
-public:
     /*!
      * Strategy to place the seam (user-specified, shortest distance, sharpest
      * corner, etc.).
