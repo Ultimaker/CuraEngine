@@ -8,7 +8,7 @@
 
 #include "FanSpeedLayerTime.h"
 #include "gcodeExport.h"
-#include "pathOrderOptimizer.h"
+#include "PathOrderOptimizer.h"
 #include "SpaceFillType.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"

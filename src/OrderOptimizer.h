@@ -1,11 +1,11 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef ORDER_OPTIMIZER_H
 #define ORDER_OPTIMIZER_H
 
 #include <stdint.h>
-#include "pathOrderOptimizer.h" // for ZSeamConfig
+#include "PathOrderOptimizer.h" // for ZSeamConfig
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
 #include "settings/EnumSettings.h"

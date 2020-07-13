@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
@@ -6,7 +6,7 @@
 
 #include "Application.h" //To get the communication channel.
 #include "ExtruderTrain.h"
-#include "pathOrderOptimizer.h" //For skirt/brim.
+#include "PathOrderOptimizer.h" //For skirt/brim.
 #include "PrintFeature.h"
 #include "Slice.h"
 #include "weaveDataStorage.h"

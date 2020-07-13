@@ -151,7 +151,7 @@ set(engine_SRCS # Except main.cpp.
     src/Mold.cpp
     src/multiVolumes.cpp
     src/OrderOptimizer.cpp
-    src/pathOrderOptimizer.cpp
+    src/PathOrderOptimizer.cpp
     src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp

@@ -2,7 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <map>
-#include "pathOrderOptimizer.h"
+#include "PathOrderOptimizer.h"
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/linearAlg2D.h"
