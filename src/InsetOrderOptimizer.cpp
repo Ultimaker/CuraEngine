@@ -57,68 +57,66 @@ bool InsetOrderOptimizer::optimize()
 
 bool InsetOrderOptimizer::processInsetsIndexedOrdering()
 {
-    //If printing the outer inset first, insets are sorted from outside to inside.
-    //Otherwise they are sorted from inside to outside.
-    //Sort them here.
-    std::vector<const std::list<ExtrusionLine>*> ordered_insets;
+    //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
+    const size_t num_insets = mesh.settings.get<size_t>("wall_line_count");
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> insets(num_insets); //Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
     for(const std::list<ExtrusionLine>& path : part.wall_toolpaths)
     {
-        //Make a vector of pointers to the original paths, so that we can modify the order without modifying the original.
-        ordered_insets.push_back(&path);
-    }
-    std::function<bool(const std::list<ExtrusionLine>*, const std::list<ExtrusionLine>*)> comparator;
-    if(mesh.settings.get<bool>("outer_inset_first"))
-    {
-        comparator = [](const std::list<ExtrusionLine>* left, const std::list<ExtrusionLine>* right)
+        if(path.empty()) //Don't bother printing these.
         {
-            if(left->empty() || right->empty())
-            {
-                return true; //One of the two is empty, so the order doesn't matter. We can place the empty one wherever in the order.
-            }
-            return left->front().inset_idx < right->front().inset_idx;
-        };
+            continue;
+        }
+        const size_t inset_index = path.front().inset_idx;
+
+        //Convert list of extrusion lines to vectors of extrusion junctions, and add those to the binned insets.
+        for(const ExtrusionLine& line : path)
+        {
+            insets[inset_index].emplace_back(line.junctions.begin(), line.junctions.end());
+        }
+    }
+
+    //If printing the outer inset first, start with the lowest inset.
+    //Otherwise start with the highest inset and iterate backwards.
+    const bool outer_inset_first = mesh.settings.get<bool>("outer_inset_first");
+    size_t start_inset;
+    size_t end_inset;
+    int direction;
+    if(outer_inset_first)
+    {
+        start_inset = 0;
+        end_inset = insets.size();
+        direction = 1;
     }
     else
     {
-        comparator = [](const std::list<ExtrusionLine>* left, const std::list<ExtrusionLine>* right)
-        {
-            if(left->empty() || right->empty())
-            {
-                return true; //One of the two is empty, so the order doesn't matter. We can place the empty one wherever in the order.
-            }
-            return left->front().inset_idx > right->front().inset_idx;
-        };
+        start_inset = insets.size() - 1;
+        end_inset = -1;
+        direction = -1;
     }
-    std::sort(ordered_insets.begin(), ordered_insets.end(), comparator);
 
-    //TODO: what to do with "compensate overlaps" (0 and x)
-
-    constexpr float flow = 1.0;
+    //Add all of the insets one by one.
+    constexpr Ratio flow = 1.0_r;
     const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
-
-    for(const std::list<ExtrusionLine>* toolpath : ordered_insets)
+    const coord_t wall_0_wipe_dist = mesh.settings.get<coord_t>("wall_0_wipe_dist");
+    for(size_t inset = start_inset; inset != end_inset; inset += direction)
     {
-        for(const ExtrusionLine& extrusion : *toolpath)
+        if(insets[inset].empty())
         {
-            added_something = true;
+            continue; //Don't switch extruders either, etc.
+        }
+        added_something = true;
+        gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+        gcode_layer.setIsInside(true); //Going to print walls, which are always inside.
+        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")); //TODO: Listen to Z seam.
+        WallOverlapComputation* wall_overlap_computation = nullptr; //TODO: Should we still use wall overlap compensation with Arachne? Probably not?
 
-            std::vector<ExtrusionJunction> junctions;
-            extrusion.appendJunctionsTo(junctions);
-
-            gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-            gcode_layer.setIsInside(true); // going to print stuff inside print object
-            ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-
-            WallOverlapComputation* wall_overlap_computation = nullptr; // TODO??: not sure if used for arachne .. probably not?
-
-            if(extrusion.inset_idx <= 0)
-            {
-                gcode_layer.addWall(junctions, 0, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
-            }
-            else
-            {
-                gcode_layer.addWall(junctions, 0, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, 0, flow, false);
-            }
+        if(inset == 0) //Print using outer wall config.
+        {
+            gcode_layer.addWalls(insets[inset], mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+        }
+        else
+        {
+            gcode_layer.addWalls(insets[inset], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config, 0, flow, false);
         }
     }
     return added_something;

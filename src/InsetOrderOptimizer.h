@@ -69,6 +69,8 @@ private:
      * For instance, it will first print all insets with index 0, then all
      * insets with index 1, and so on. Which index to start from depends on the
      * ``outer_inset_first`` setting.
+     * Within the set of walls with the same index, the walls are ordered to
+     * minimize travel distance.
      * \return Whether this added anything to the layer plan or not.
      */
     bool processInsetsIndexedOrdering();
