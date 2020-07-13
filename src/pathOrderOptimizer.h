@@ -68,7 +68,7 @@ public:
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    Point startPoint;
+    Point start_point;
 
     /*!
      * Seam settings.
@@ -87,10 +87,10 @@ public:
      * After optimizing, this will indicate the starting vertex of each polygon.
      *
      * This refers to the index in the polygon that the print must start with.
-     * ``polygons[i][polyStart[i]]`` would result in the actual coordinates of
+     * ``polygons[i][poly_start[i]]`` would result in the actual coordinates of
      * the starting point of polygon ``i``.
      */
-    std::vector<size_t> polyStart;
+    std::vector<size_t> poly_start;
 
     /*!
      * After optimizing, this will indicate the optimized order in which the
@@ -98,19 +98,19 @@ public:
      *
      * Each entry refers to an index in the ``polygons`` field.
      */
-    std::vector<size_t> polyOrder;
+    std::vector<size_t> poly_order;
 
     /*!
      * Construct a new optimizer.
      *
-     * This doesn't actually optimize the order yet, so the ``polyOrder`` and
-     * ``polyStart`` fields will not be filled yet.
-     * \param startPoint The location where the nozzle is assumed to start from
+     * This doesn't actually optimize the order yet, so the ``poly_order`` and
+     * ``poly_start`` fields will not be filled yet.
+     * \param start_point The location where the nozzle is assumed to start from
      * before printing these parts.
      * \param config Seam settings.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point startPoint, const ZSeamConfig config = ZSeamConfig(), const Polygons* combing_boundary = nullptr);
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig config = ZSeamConfig(), const Polygons* combing_boundary = nullptr);
 
     /*!
      * Add a new polygon to be optimized.
@@ -137,7 +137,7 @@ public:
     /*!
      * Perform the calculations to optimize the order of the parts.
      *
-     * This sets the \ref polyStart and \ref polyOrder fields. They will then
+     * This sets the \ref poly_start and \ref poly_order fields. They will then
      * refer by index to the polygons in the \ref polygons field.
      */
     void optimize();

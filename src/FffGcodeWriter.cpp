@@ -1321,7 +1321,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
             part_order_optimizer.addPolygon((part.insets.size() > 0) ? part.insets[0][0] : part.outline[0]);
         }
         part_order_optimizer.optimize();
-        for (int part_idx : part_order_optimizer.polyOrder)
+        for (int part_idx : part_order_optimizer.poly_order)
         {
             const SliceLayerPart& part = layer.parts[part_idx];
             addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, part, gcode_layer);
@@ -1346,7 +1346,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
                 part_order_optimizer.addPolygon((part->insets.size() > 0) ? part->insets[0][0] : part->outline[0]);
             }
             part_order_optimizer.optimize();
-            const int nearest_part_index = part_order_optimizer.polyOrder[0];
+            const int nearest_part_index = part_order_optimizer.poly_order[0];
             addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *parts[nearest_part_index], gcode_layer);
             parts.erase(parts.begin() + nearest_part_index);
         }
@@ -2012,7 +2012,7 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     }
     part_order_optimizer.optimize();
 
-    for (int ordered_skin_part_idx : part_order_optimizer.polyOrder)
+    for (int ordered_skin_part_idx : part_order_optimizer.poly_order)
     {
         const SkinPart& skin_part = part.skin_parts[ordered_skin_part_idx];
 
@@ -2482,7 +2482,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     const std::vector<SupportInfillPart>& part_list = support_layer.support_infill_parts;
-    for (int part_idx : island_order_optimizer.polyOrder)
+    for (int part_idx : island_order_optimizer.poly_order)
     {
         const SupportInfillPart& part = part_list[part_idx];
 

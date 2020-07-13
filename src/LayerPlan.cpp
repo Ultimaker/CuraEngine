@@ -598,17 +598,17 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     
     if(reverse_order == false)
     {
-        for (unsigned int poly_idx : orderOptimizer.polyOrder)
+        for (unsigned int poly_idx : orderOptimizer.poly_order)
         {
-            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            addPolygon(polygons[poly_idx], orderOptimizer.poly_start[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
     else
     {
-        for(int index = orderOptimizer.polyOrder.size() - 1; index >= 0; --index)
+        for(int index = orderOptimizer.poly_order.size() - 1; index >= 0; --index)
         {
-            int poly_idx = orderOptimizer.polyOrder[index];
-            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            int poly_idx = orderOptimizer.poly_order[index];
+            addPolygon(polygons[poly_idx], orderOptimizer.poly_start[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
 }
@@ -1023,9 +1023,9 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (unsigned int poly_idx : orderOptimizer.polyOrder)
+    for (unsigned int poly_idx : orderOptimizer.poly_order)
     {
-        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(walls[poly_idx], orderOptimizer.poly_start[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
@@ -1043,9 +1043,9 @@ void LayerPlan::addWalls(const std::vector<std::vector<ExtrusionJunction>>& wall
         order_optimizer.addPolygon(path);
     }
     order_optimizer.optimize();
-    for(unsigned int poly_idx : order_optimizer.polyOrder)
+    for(unsigned int poly_idx : order_optimizer.poly_order)
     {
-        addWall(walls[poly_idx], order_optimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(walls[poly_idx], order_optimizer.poly_start[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 

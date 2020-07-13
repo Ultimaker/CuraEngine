@@ -32,8 +32,8 @@ ZSeamConfig::ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCor
 }
 
 
-PathOrderOptimizer::PathOrderOptimizer(const Point startPoint, const ZSeamConfig config, const Polygons* combing_boundary)
-: startPoint(startPoint)
+PathOrderOptimizer::PathOrderOptimizer(const Point start_point, const ZSeamConfig config, const Polygons* combing_boundary)
+: start_point(start_point)
 , config(config)
 , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)
 {
@@ -69,15 +69,15 @@ void PathOrderOptimizer::optimize()
         switch (config.type)
         {
             case EZSeamType::USER_SPECIFIED:
-                polyStart.push_back(getClosestPointInPolygon(config.pos, poly_idx));
+                poly_start.push_back(getClosestPointInPolygon(config.pos, poly_idx));
                 break;
             case EZSeamType::RANDOM:
-                polyStart.push_back(getRandomPointInPolygon(poly_idx));
+                poly_start.push_back(getRandomPointInPolygon(poly_idx));
                 break;
             case EZSeamType::SHARPEST_CORNER:
             case EZSeamType::SHORTEST:
             default:
-                polyStart.push_back(getClosestPointInPolygon(startPoint, poly_idx));
+                poly_start.push_back(getClosestPointInPolygon(start_point, poly_idx));
                 break;
         }
         assert(poly.size() != 2);
@@ -94,7 +94,7 @@ void PathOrderOptimizer::optimize()
         case EZSeamType::SHARPEST_CORNER:
         case EZSeamType::SHORTEST:
         default:
-            prev_point = startPoint;
+            prev_point = start_point;
     }
     for (unsigned int poly_order_idx = 0; poly_order_idx < polygons.size(); poly_order_idx++) /// actual path order optimizer
     {
@@ -111,7 +111,7 @@ void PathOrderOptimizer::optimize()
 
             assert (polygons[poly_idx]->size() != 2);
 
-            const Point& p = (*polygons[poly_idx])[polyStart[poly_idx]];
+            const Point& p = (*polygons[poly_idx])[poly_start[poly_idx]];
             float dist2 = vSize2f(p - prev_point);
             if (dist2 < bestDist2 && combing_boundary)
             {
@@ -163,10 +163,10 @@ void PathOrderOptimizer::optimize()
         {
             assert(polygons[best_poly_idx]->size() != 2);
 
-            prev_point = (*polygons[best_poly_idx])[polyStart[best_poly_idx]];
+            prev_point = (*polygons[best_poly_idx])[poly_start[best_poly_idx]];
 
             picked[best_poly_idx] = true;
-            polyOrder.push_back(best_poly_idx);
+            poly_order.push_back(best_poly_idx);
         }
         else
         {

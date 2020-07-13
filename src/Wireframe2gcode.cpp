@@ -644,12 +644,12 @@ void Wireframe2gcode::processSkirt()
     const Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
     for (size_t poly_order_idx = 0; poly_order_idx < skirt.size(); poly_order_idx++)
     {
-        const size_t poly_idx = order.polyOrder[poly_order_idx];
+        const size_t poly_idx = order.poly_order[poly_order_idx];
         PolygonRef poly = skirt[poly_idx];
-        gcode.writeTravel(poly[order.polyStart[poly_idx]], scene_settings.get<Velocity>("speed_travel"));
+        gcode.writeTravel(poly[order.poly_start[poly_idx]], scene_settings.get<Velocity>("speed_travel"));
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            Point& p = poly[(point_idx + order.polyStart[poly_idx] + 1) % poly.size()];
+            Point& p = poly[(point_idx + order.poly_start[poly_idx] + 1) % poly.size()];
             gcode.writeExtrusion(p, scene_settings.get<Velocity>("skirt_brim_speed"), scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * INT2MM(initial_layer_thickness), PrintFeatureType::SkirtBrim);
         }
     }

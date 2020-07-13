@@ -212,10 +212,10 @@ void GcodeWriter::printOrdered(std::vector<std::list<ExtrusionLine>>& polygons_p
             }
             order_optimizer.addPolygons(recreated);
             order_optimizer.optimize();
-            for (int poly_idx : order_optimizer.polyOrder)
+            for (int poly_idx : order_optimizer.poly_order)
             {
                 ExtrusionLine& polygon = polygons_per_index_vector[inset_idx][poly_idx];
-                int start_idx = order_optimizer.polyStart[poly_idx];
+                int start_idx = order_optimizer.poly_start[poly_idx];
                 assert(static_cast<size_t>(start_idx) < polygon.junctions.size());
                 auto first = polygon.junctions.begin();
                 std::advance(first, start_idx);
