@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <map>
@@ -16,10 +16,6 @@ namespace cura {
 constexpr coord_t COINCIDENT_POINT_DISTANCE = 5; // In uM. Points closer than this may be considered overlapping / at the same place
 constexpr coord_t SQUARED_COINCIDENT_POINT_DISTANCE = COINCIDENT_POINT_DISTANCE * COINCIDENT_POINT_DISTANCE;
 
-
-/**
-*
-*/
 void PathOrderOptimizer::optimize()
 {
     // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:
@@ -230,9 +226,6 @@ static inline bool pointsAreCoincident(const Point& a, const Point& b)
     return vSize2(a - b) < SQUARED_COINCIDENT_POINT_DISTANCE; // points are closer than 5uM, consider them coincident
 }
 
-/**
-*
-*/
 void LineOrderOptimizer::optimize(bool find_chains)
 {
     const int grid_size = 2000; // the size of the cells in the hash grid. TODO
