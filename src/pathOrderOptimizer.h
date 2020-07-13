@@ -101,18 +101,6 @@ public:
     std::vector<size_t> polyOrder;
 
     /*!
-     * Hash map storing where each line is.
-     *
-     * This allows us to quickly find any nearby other lines.
-     */
-    LocToLineGrid* loc_to_line;
-
-    /*!
-     * Boundary to avoid when making travel moves.
-     */
-    const Polygons* combing_boundary;
-
-    /*!
      * Construct a new optimizer.
      *
      * This doesn't actually optimize the order yet, so the ``polyOrder`` and
@@ -154,7 +142,19 @@ public:
      */
     void optimize();
 
-private:
+protected:
+    /*!
+     * Hash map storing where each line is.
+     *
+     * This allows us to quickly find any nearby other lines.
+     */
+    LocToLineGrid* loc_to_line;
+
+    /*!
+     * Boundary to avoid when making travel moves.
+     */
+    const Polygons* combing_boundary;
+
     /*!
      * Find the vertex of a polygon that is closest to another point.
      * \param prev The point that the vertex must be close to.
@@ -224,18 +224,6 @@ public:
     std::vector<size_t> polyOrder;
 
     /*!
-     * Hash map storing where each line is.
-     *
-     * This allows us to quickly find any nearby other lines.
-     */
-    LocToLineGrid* loc_to_line;
-
-    /*!
-     * Boundary to avoid when making travel moves.
-     */
-    const Polygons* combing_boundary;
-
-    /*!
      * Construct a new optimizer, to plan in a new set of lines.
      * \param startPoint The location where the nozzle is assumed to start from
      * before printing these parts.
@@ -271,7 +259,19 @@ public:
      */
     void optimize(const bool find_chains = true); //!< sets #polyStart and #polyOrder
 
-private:
+protected:
+    /*!
+     * Hash map storing where each line is.
+     *
+     * This allows us to quickly find any nearby other lines.
+     */
+    LocToLineGrid* loc_to_line;
+
+    /*!
+     * Boundary to avoid when making travel moves.
+     */
+    const Polygons* combing_boundary;
+
     /*!
      * Update LineOrderOptimizer::polyStart if the current line is better than
      * the current best.
