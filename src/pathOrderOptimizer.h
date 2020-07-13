@@ -51,7 +51,7 @@ struct ZSeamConfig
      * \param corner_pref The corner preference, when using the sharpest corner
      * strategy.
      */
-    ZSeamConfig(EZSeamType type, Point pos, EZSeamCornerPrefType corner_pref);
+    ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCornerPrefType corner_pref);
 };
 
 /*!
@@ -90,7 +90,7 @@ public:
      * ``polygons[i][polyStart[i]]`` would result in the actual coordinates of
      * the starting point of polygon ``i``.
      */
-    std::vector<int> polyStart;
+    std::vector<size_t> polyStart;
 
     /*!
      * After optimizing, this will indicate the optimized order in which the
@@ -98,7 +98,7 @@ public:
      *
      * Each entry refers to an index in the ``polygons`` field.
      */
-    std::vector<int> polyOrder;
+    std::vector<size_t> polyOrder;
 
     /*!
      * Hash map storing where each line is.
@@ -122,19 +122,19 @@ public:
      * \param config Seam settings.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(Point startPoint, const ZSeamConfig config = ZSeamConfig(), const Polygons* combing_boundary = nullptr);
+    PathOrderOptimizer(const Point startPoint, const ZSeamConfig config = ZSeamConfig(), const Polygons* combing_boundary = nullptr);
 
     /*!
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(PolygonRef polygon);
+    void addPolygon(const PolygonRef& polygon);
 
     /*!
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(ConstPolygonRef polygon);
+    void addPolygon(const ConstPolygonRef& polygon);
 
     /*!
      * Add a complex polygon to be optimized.
@@ -162,7 +162,7 @@ private:
      * which to find a vertex.
      * \return An index to a vertex in that polygon.
      */
-    int getClosestPointInPolygon(Point prev, int i_polygon);
+    size_t getClosestPointInPolygon(const Point prev, const size_t i_polygon) const;
 
     /*!
      * Get a random vertex of a polygon.
@@ -170,7 +170,7 @@ private:
      * which to find a vertex.
      * \return A random index in that polygon.
      */
-    int getRandomPointInPolygon(int poly_idx);
+    size_t getRandomPointInPolygon(const size_t poly_idx) const;
 };
 
 
@@ -213,7 +213,7 @@ public:
      * In the case of polylines, this will always refer to the first or the last
      * vertex, depending on which direction the line should get printed in.
      */
-    std::vector<int> polyStart;
+    std::vector<size_t> polyStart;
 
     /*!
      * After optimizing, this will indicate the optimized order in which the
@@ -221,7 +221,7 @@ public:
      *
      * Each entry refers to an index in the ``polygons`` field.
      */
-    std::vector<int> polyOrder;
+    std::vector<size_t> polyOrder;
 
     /*!
      * Hash map storing where each line is.
@@ -241,25 +241,25 @@ public:
      * before printing these parts.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary = nullptr);
+    LineOrderOptimizer(const Point startPoint, const Polygons* combing_boundary = nullptr);
 
     /*!
      * Add a new polyline to be optimized.
      * \param polygon The polyline to optimize.
      */
-    void addPolygon(PolygonRef polygon);
+    void addPolygon(const PolygonRef& polygon);
 
     /*!
      * Add a new polyline to be optimized.
      * \param polygon The polyline to optimize.
      */
-    void addPolygon(ConstPolygonRef polygon);
+    void addPolygon(const ConstPolygonRef& polygon);
 
     /*!
      * Add a list of polylines to be optimized.
      * \param polygons The list of polylines to optimize.
      */
-    void addPolygons(Polygons& polygons);
+    void addPolygons(const Polygons& polygons);
 
     /*!
      * Perform the calculations to optimize the order of the parts.
@@ -269,7 +269,7 @@ public:
      * \param find_chains Should we attempt to find chains of lines segments
      * that are close together, and prevent breaking up those chains.
      */
-    void optimize(bool find_chains = true); //!< sets #polyStart and #polyOrder
+    void optimize(const bool find_chains = true); //!< sets #polyStart and #polyOrder
 
 private:
     /*!
@@ -284,7 +284,7 @@ private:
      * \param just_point[in] If not -1, only look at the line vertex with this
      * index.
      */
-    void updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, int just_point = -1);
+    void updateBestLine(const size_t poly_idx, int& best, float& best_score, const Point prev_point, const int just_point = -1);
 
     /*!
      * Compute the squared distance from \p p0 to \p p1 using combing.
@@ -295,7 +295,7 @@ private:
      * \param p1 Another point.
      * \return The squared travel distance between the two points.
      */
-    float combingDistance2(const Point &p0, const Point &p1);
+    float combingDistance2(const Point& p0, const Point& p1);
 };
 
 } //namespace cura

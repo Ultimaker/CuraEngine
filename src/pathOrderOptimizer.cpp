@@ -24,7 +24,7 @@ ZSeamConfig::ZSeamConfig()
 {
 }
 
-ZSeamConfig::ZSeamConfig(EZSeamType type, Point pos, EZSeamCornerPrefType corner_pref)
+ZSeamConfig::ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCornerPrefType corner_pref)
 : type(type)
 , pos(pos)
 , corner_pref(corner_pref)
@@ -32,19 +32,19 @@ ZSeamConfig::ZSeamConfig(EZSeamType type, Point pos, EZSeamCornerPrefType corner
 }
 
 
-PathOrderOptimizer::PathOrderOptimizer(Point startPoint, const ZSeamConfig config, const Polygons* combing_boundary)
+PathOrderOptimizer::PathOrderOptimizer(const Point startPoint, const ZSeamConfig config, const Polygons* combing_boundary)
 : startPoint(startPoint)
 , config(config)
 , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)
 {
 }
 
-void PathOrderOptimizer::addPolygon(PolygonRef polygon)
+void PathOrderOptimizer::addPolygon(const PolygonRef& polygon)
 {
     polygons.emplace_back(polygon);
 }
 
-void PathOrderOptimizer::addPolygon(ConstPolygonRef polygon)
+void PathOrderOptimizer::addPolygon(const ConstPolygonRef& polygon)
 {
     polygons.emplace_back(polygon);
 }
@@ -180,7 +180,7 @@ void PathOrderOptimizer::optimize()
     }
 }
 
-int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
+size_t PathOrderOptimizer::getClosestPointInPolygon(const Point prev_point, const size_t poly_idx) const
 {
     ConstPolygonRef poly = *polygons[poly_idx];
 
@@ -257,7 +257,7 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
     return best_point_idx;
 }
 
-int PathOrderOptimizer::getRandomPointInPolygon(int poly_idx)
+size_t PathOrderOptimizer::getRandomPointInPolygon(const size_t poly_idx) const
 {
     return rand() % polygons[poly_idx]->size();
 }
@@ -267,23 +267,23 @@ static inline bool pointsAreCoincident(const Point& a, const Point& b)
     return vSize2(a - b) < SQUARED_COINCIDENT_POINT_DISTANCE; // points are closer than 5uM, consider them coincident
 }
 
-LineOrderOptimizer::LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary)
+LineOrderOptimizer::LineOrderOptimizer(const Point startPoint, const Polygons* combing_boundary)
 {
     this->startPoint = startPoint;
     this->combing_boundary = (combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr;
 }
 
-void LineOrderOptimizer::addPolygon(PolygonRef polygon)
+void LineOrderOptimizer::addPolygon(const PolygonRef& polygon)
 {
     polygons.push_back(polygon);
 }
 
-void LineOrderOptimizer::addPolygon(ConstPolygonRef polygon)
+void LineOrderOptimizer::addPolygon(const ConstPolygonRef& polygon)
 {
     polygons.push_back(polygon);
 }
 
-void LineOrderOptimizer::addPolygons(Polygons& polygons)
+void LineOrderOptimizer::addPolygons(const Polygons& polygons)
 {
     for(unsigned int i = 0; i < polygons.size(); i++)
     {
@@ -291,7 +291,7 @@ void LineOrderOptimizer::addPolygons(Polygons& polygons)
     }
 }
 
-void LineOrderOptimizer::optimize(bool find_chains)
+void LineOrderOptimizer::optimize(const bool find_chains)
 {
     const int grid_size = 2000; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(grid_size);
@@ -518,7 +518,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
     }
 }
 
-float LineOrderOptimizer::combingDistance2(const Point &p0, const Point &p1)
+float LineOrderOptimizer::combingDistance2(const Point& p0, const Point& p1)
 {
     if (loc_to_line == nullptr)
     {
@@ -553,7 +553,7 @@ in:
 out:
  best, best_score
 */
-inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, int just_point)
+inline void LineOrderOptimizer::updateBestLine(size_t poly_idx, int& best, float& best_score, const Point prev_point, const int just_point)
 {
     // when looking at a chain end, just_point will be either 0 or 1 depending on which vertex we are currently interested in testing
     // if just_point is -1, it means that we are not looking at a chain end and we will test both vertices to see if either is best
