@@ -6,9 +6,8 @@
 
 #include "BeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * This is a meta-strategy that can be applied on any other beading strategy. If
@@ -51,5 +50,5 @@ public:
 
 
 
-} // namespace arachne
+} // namespace cura
 #endif // WIDENING_BEADING_STRATEGY_H

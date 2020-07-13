@@ -10,11 +10,11 @@
 
 #include <optional>
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 class STHalfEdgeNode;
+
 class STHalfEdge : public HalfEdge<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge, STHalfEdgeNode, STHalfEdge>
 {
     using edge_t = STHalfEdge;

@@ -14,7 +14,7 @@
 #include "HalfEdgeNode.h"
 #include "SVG.h"
 
-namespace arachne
+namespace cura
 {
     using namespace cura;
 
@@ -28,5 +28,5 @@ public:
     std::list<node_t> nodes;
 };
 
-} // namespace arachne
+} // namespace cura
 #endif // UTILS_HALF_EDGE_GRAPH_H

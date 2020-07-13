@@ -12,9 +12,8 @@
 #include "polygonUtils.h"
 #include "ExtrusionJunction.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * Represents a single line segment as part of an extrusion path.
@@ -83,5 +82,5 @@ public:
 
 
 
-} // namespace arachne
+} // namespace cura
 #endif // UTILS_EXTRUSION_SEGMENT_H

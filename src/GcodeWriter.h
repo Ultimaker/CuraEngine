@@ -12,7 +12,7 @@
 #include "utils/ExtrusionLine.h"
 #include "timeEstimate.h"
 
-namespace arachne
+namespace cura
 {
 
 /*!
@@ -76,5 +76,5 @@ private:
 
 
 
-} // namespace arachne
+} // namespace cura
 #endif // GCODER_H

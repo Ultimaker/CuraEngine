@@ -10,9 +10,8 @@
 #include "utils/polygonUtils.h"
 #include "settings/EnumSettings.h"
 
-namespace arachne {
-
-    using namespace cura;
+namespace cura 
+{
 
 /*!
  * Parts order optimization class.

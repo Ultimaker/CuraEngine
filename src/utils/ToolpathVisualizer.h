@@ -6,7 +6,7 @@
 #include "SVG.h"
 #include "ExtrusionSegment.h"
 
-namespace arachne
+namespace cura
 {
     using namespace cura;
 
@@ -33,5 +33,5 @@ private:
 
 
 
-} // namespace arachne
+} // namespace cura
 #endif // TOOLPATH_VISUALIZER_H

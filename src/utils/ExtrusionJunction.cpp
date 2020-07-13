@@ -3,7 +3,7 @@
 
 #include "ExtrusionJunction.h"
 
-namespace arachne
+namespace cura
 {
 
 bool ExtrusionJunction::operator ==(const ExtrusionJunction& other) const

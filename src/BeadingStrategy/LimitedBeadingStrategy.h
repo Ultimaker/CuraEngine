@@ -8,9 +8,8 @@
 #include "../utils/logoutput.h"
 #include "../utils/macros.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * This is a meta-strategy that can be applied on top of any other beading
@@ -35,19 +34,23 @@ public:
             RUN_ONCE(logWarning("LimitedBeadingStrategy with odd bead count is odd indeed!\n"));
         }
     }
+    
     virtual ~LimitedBeadingStrategy() override
     {
         delete parent;
     }
+    
     Beading compute(coord_t thickness, coord_t bead_count) const override;
     coord_t getOptimalThickness(coord_t bead_count) const override;
     coord_t getTransitionThickness(coord_t lower_bead_count) const override;
     coord_t getOptimalBeadCount(coord_t thickness) const override;
     virtual std::string toString() const override { return std::string("LimitedBeadingStrategy+") + parent->toString();}
+    
     coord_t getTransitioningLength(coord_t lower_bead_count) const override
     {
         return parent->getTransitioningLength(lower_bead_count);
     }
+    
     float getTransitionAnchorPos(coord_t lower_bead_count) const override
     {
         return parent->getTransitionAnchorPos(lower_bead_count);
@@ -55,5 +58,5 @@ public:
 };
 
 
-} // namespace arachne
+} // namespace cura
 #endif // LIMITED_DISTRIBUTED_BEADING_STRATEGY_H

@@ -14,9 +14,8 @@
 #include "PolygonsSegmentIndex.h"
 
 
-namespace arachne 
+namespace cura 
 {
-    using namespace cura;
 
 /*!
  */
@@ -93,9 +92,6 @@ protected:
 
 };
 
+} // namespace cura
 
-}//namespace arachne
-
-
-
-#endif//UTILS_VORONOI_UTILS_H
+#endif // UTILS_VORONOI_UTILS_H

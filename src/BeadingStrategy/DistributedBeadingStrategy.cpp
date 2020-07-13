@@ -3,7 +3,7 @@
 
 #include "DistributedBeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
 
 DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
@@ -43,4 +43,4 @@ coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
     return (thickness + optimal_width / 2) / optimal_width;
 }
 
-} // namespace arachne
+} // namespace cura

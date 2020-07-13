@@ -21,9 +21,8 @@
 #include "BeadingStrategy/BeadingStrategy.h"
 #include "SkeletalTrapezoidationGraph.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * Main class of the dynamic beading strategies.
@@ -583,5 +582,5 @@ protected:
     void generateLocalMaximaSingleBeads();
 };
 
-} // namespace arachne
+} // namespace cura
 #endif // VORONOI_QUADRILATERALIZATION_H

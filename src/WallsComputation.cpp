@@ -132,9 +132,9 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     tubeshape.removeSmallAreas(INT2MM(line_width_0/2) * INT2MM(line_width_0/2), false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
     if (tubeshape.area() > 0)
     {
-        const arachne::DistributedBeadingStrategy beading_strat(line_width_0, line_width_0 * 2, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
+        const DistributedBeadingStrategy beading_strat(line_width_0, line_width_0 * 2, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
 
-        arachne::SkeletalTrapezoidation wall_maker(tubeshape, beading_strat, beading_strat.transitioning_angle);
+        SkeletalTrapezoidation wall_maker(tubeshape, beading_strat, beading_strat.transitioning_angle);
         wall_maker.generateToolpaths(part->wall_toolpaths);
     }
 }

@@ -7,9 +7,8 @@
 
 #include "BeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * This beading strategy makes the deviation in the thickness of the part
@@ -37,5 +36,5 @@ public:
     coord_t getOptimalBeadCount(coord_t thickness) const override;
 };
 
-} // namespace arachne
+} // namespace cura
 #endif // CENTER_DEVIATION_BEADING_STRATEGY_H

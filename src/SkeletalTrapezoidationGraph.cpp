@@ -6,7 +6,7 @@
 
 #include "utils/linearAlg2D.h"
 
-namespace arachne
+namespace cura
 {
 
 STHalfEdge::STHalfEdge(SkeletalTrapezoidationEdge data) : HalfEdge(data) {}

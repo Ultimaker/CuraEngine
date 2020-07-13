@@ -7,9 +7,8 @@
 
 #include "ExtrusionJunction.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * Represents a polyline (not just a line) that is to be extruded with variable
@@ -59,5 +58,5 @@ struct ExtrusionLine
     void appendJunctionsTo(std::vector<ExtrusionJunction>& result) const;
 };
 
-} // namespace arachne
+} // namespace cura
 #endif // UTILS_EXTRUSION_LINE_H
