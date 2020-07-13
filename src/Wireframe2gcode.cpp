@@ -642,15 +642,14 @@ void Wireframe2gcode::processSkirt()
     order.optimize();
 
     const Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
-    for (size_t poly_order_idx = 0; poly_order_idx < skirt.size(); poly_order_idx++)
+    for(const PathOrderOptimizer::Path& path : order.paths)
     {
-        const size_t poly_idx = order.poly_order[poly_order_idx];
-        PolygonRef poly = skirt[poly_idx];
-        gcode.writeTravel(poly[order.poly_start[poly_idx]], scene_settings.get<Velocity>("speed_travel"));
-        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+        const ConstPolygonRef poly = *path.vertices;
+        gcode.writeTravel(poly[path.start_vertex], scene_settings.get<Velocity>("speed_travel"));
+        for(size_t vertex_index = 0; vertex_index < poly.size(); ++vertex_index)
         {
-            Point& p = poly[(point_idx + order.poly_start[poly_idx] + 1) % poly.size()];
-            gcode.writeExtrusion(p, scene_settings.get<Velocity>("skirt_brim_speed"), scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * INT2MM(initial_layer_thickness), PrintFeatureType::SkirtBrim);
+            Point vertex = poly[(vertex_index + path.start_vertex + 1) % poly.size()];
+            gcode.writeExtrusion(vertex, scene_settings.get<Velocity>("skirt_brim_speed"), scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * INT2MM(initial_layer_thickness), PrintFeatureType::SkirtBrim);
         }
     }
 }

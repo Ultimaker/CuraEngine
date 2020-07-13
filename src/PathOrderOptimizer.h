@@ -152,14 +152,6 @@ public:
     std::vector<Path> paths;
 
     /*!
-     * After optimizing, this will indicate the optimized order in which the
-     * polygons should be printed.
-     *
-     * Each entry refers to an index in the ``polygons`` field.
-     */
-    std::vector<size_t> poly_order;
-
-    /*!
      * Construct a new optimizer.
      *
      * This doesn't actually optimize the order yet, so the ``poly_order`` and
