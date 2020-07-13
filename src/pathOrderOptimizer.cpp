@@ -16,6 +16,22 @@ namespace cura {
 constexpr coord_t COINCIDENT_POINT_DISTANCE = 5; // In uM. Points closer than this may be considered overlapping / at the same place
 constexpr coord_t SQUARED_COINCIDENT_POINT_DISTANCE = COINCIDENT_POINT_DISTANCE * COINCIDENT_POINT_DISTANCE;
 
+
+ZSeamConfig::ZSeamConfig()
+: type(EZSeamType::SHORTEST)
+, pos(Point(0, 0))
+, corner_pref(EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+{
+}
+
+ZSeamConfig::ZSeamConfig(EZSeamType type, Point pos, EZSeamCornerPrefType corner_pref)
+: type(type)
+, pos(pos)
+, corner_pref(corner_pref)
+{
+}
+
+
 void PathOrderOptimizer::optimize()
 {
     // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:

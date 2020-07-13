@@ -20,22 +20,39 @@ namespace cura {
 class ZSeamConfig
 {
 public:
+    /*!
+     * Strategy to place the seam (user-specified, shortest distance, sharpest
+     * corner, etc.).
+     */
     EZSeamType type;
-    Point pos; //!< The position near where to create the z_seam (if \ref PathOrderOptimizer::type == 'back')
+
+    /*!
+     * When using a user-specified position for the seam, this is the position
+     * that the user specified.
+     */
+    Point pos;
+
+    /*!
+     * Corner preference type, if using the sharpest corner strategy.
+     */
     EZSeamCornerPrefType corner_pref;
-    // default constructor
-    ZSeamConfig()
-    : type(EZSeamType::SHORTEST)
-    , pos(Point(0, 0))
-    , corner_pref(EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
-    {
-    }
-    ZSeamConfig(EZSeamType type, Point pos, EZSeamCornerPrefType corner_pref)
-    : type(type)
-    , pos(pos)
-    , corner_pref(corner_pref)
-    {
-    }
+
+    /*!
+     * Default constructor for use when memory must be allocated before it gets
+     * filled (like with some data structures).
+     *
+     * This will select the "shortest" seam strategy.
+     */
+    ZSeamConfig();
+
+    /*!
+     * Create a seam configuration with a custom configuration.
+     * \param type The strategy to place the seam.
+     * \param pos The position of a user-specified seam.
+     * \param corner_pref The corner preference, when using the sharpest corner
+     * strategy.
+     */
+    ZSeamConfig(EZSeamType type, Point pos, EZSeamCornerPrefType corner_pref);
 };
 
 /*!
@@ -177,7 +194,7 @@ private:
 
 /*!
  * Line order optimization class.
- * 
+ *
  * Utility class for optimizing the order in which lines are being printed by
  * minimizing the distance traveled between printing different polylines within
  * a part. The order of lines is optimized and the starting point of each
