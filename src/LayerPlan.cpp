@@ -1029,14 +1029,14 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
     }
 }
 
-void LayerPlan::addWalls(const std::vector<std::vector<arachne::ExtrusionJunction>>& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWalls(const std::vector<std::vector<ExtrusionJunction>>& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     PathOrderOptimizer order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for(unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
     {
         //Translate a list of junctions to a list of points. For the order optimization we only need to know the position.
         Polygon path;
-        for(const arachne::ExtrusionJunction junction : walls[poly_idx])
+        for(const ExtrusionJunction junction : walls[poly_idx])
         {
             path.add(junction.p);
         }
