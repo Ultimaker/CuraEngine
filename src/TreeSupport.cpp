@@ -98,7 +98,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); //Side length of a regular polygon.
     const coord_t z_distance_bottom = mesh_group_settings.get<coord_t>("support_bottom_distance");
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
-    const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom, layer_height);
+    const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom, layer_height) > 0 ? round_up_divide(z_distance_bottom, layer_height) : 1;
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
@@ -132,7 +132,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 }
                 circle.add(node.position + corner);
             }
-            if (node.support_roof_layers_below >= 0)
+            if (node.support_roof_layers_below > 0)
             {
                 roof_layer.add(circle);
             }
@@ -143,10 +143,10 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         }
         support_layer = support_layer.unionPolygons();
         roof_layer = roof_layer.unionPolygons();
-        support_layer = support_layer.difference(roof_layer);
         const size_t z_collision_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(z_distance_bottom_layers) + 1)); //Layer to test against to create a Z-distance.
         support_layer = support_layer.difference(volumes_.getCollision(0, z_collision_layer)); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
-        roof_layer = roof_layer.difference(volumes_.getCollision(0, z_collision_layer));
+        roof_layer = roof_layer.difference(volumes_.getCollision(branch_radius, z_collision_layer));
+        support_layer = support_layer.difference(roof_layer);
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = static_cast<double>(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
         support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), resolution); //Don't deviate more than the collision resolution so that the lines still stack properly.
