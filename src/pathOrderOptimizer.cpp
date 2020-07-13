@@ -32,6 +32,14 @@ ZSeamConfig::ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCor
 }
 
 
+PathOrderOptimizer::Path::Path(const ConstPolygonPointer vertices, const bool is_closed, const size_t start_vertex, const bool backwards)
+: vertices(vertices)
+, start_vertex(start_vertex)
+, is_closed(is_closed)
+, backwards(backwards)
+{
+}
+
 PathOrderOptimizer::PathOrderOptimizer(const Point start_point, const ZSeamConfig config, const Polygons* combing_boundary)
 : start_point(start_point)
 , config(config)

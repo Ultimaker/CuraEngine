@@ -55,15 +55,81 @@ struct ZSeamConfig
 };
 
 /*!
- * Parts order optimization class.
+ * Path order optimization class.
  * 
- * Utility class for optimizing the path order by minimizing the distance
- * traveled between printing different parts in the layer. The order of polygons
- * is optimized and the starting point within each polygon is chosen.
+ * Utility class for optimizing the order in which things are printed, by
+ * minimizing the distance traveled between different items to be printed. For
+ * each item to be printed, it also chooses a starting point as to where on the
+ * polygon or polyline to start printing, and determines which direction to
+ * print in.
+ *
+ * To use this class, first create an instance and provide some parameters as
+ * metadata. Then add polygons and polylines to the class. Then call the
+ * \ref optimize function to compute the optimization. Finally, print the
+ * polygons and polylines in the \ref paths field in the order in which they are
+ * given.
+ *
+ * In the output of this class, polylines and polygons are combined into a
+ * single vector: \ref paths . Each path contains a pointer to the original
+ * polygon data, as well as whether that data represented a polygon or a
+ * polyline, which direction to print that path in, and where to start along the
+ * path.
+ *
+ * The optimizer will always start a polyline from either end, never halfway.
+ * The Z seam is not used for these.
  */
 class PathOrderOptimizer
 {
 public:
+    /*!
+     * Represents a path which has been optimized, the output of the
+     * optimization.
+     *
+     * This small data structure contains the vertex data of a path,  where to
+     * start along the path and in which direction to print it, as well as
+     * whether the path should be closed (in case of a polygon) or open (in case
+     * of a polyline.
+     *
+     * After optimization is completed, the \ref paths vector will be filled
+     * with optimized paths.
+     */
+    struct Path
+    {
+        /*!
+         * Construct a new path.
+         */
+        Path(const ConstPolygonPointer vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards);
+
+        /*!
+         * The vertex data of the path.
+         */
+        ConstPolygonPointer vertices;
+
+        /*!
+         * Which vertex along the path to start printing with.
+         *
+         * If this path represents a polyline, this will always be one of the
+         * endpoints of the path; either 0 or ``vertices->size() - 1``.
+         */
+        size_t start_vertex;
+
+        /*!
+         * Whether the path should be closed at the ends or not.
+         *
+         * If this path should be closed, it represents a polygon. If it should
+         * not be closed, it represents a polyline.
+         */
+        bool is_closed;
+
+        /*!
+         * Whether the path should be traversed in backwards direction.
+         *
+         * For a polyline it may be more efficient to print the path in
+         * backwards direction, if the last vertex is closer than the first.
+         */
+        bool backwards;
+    };
+
     /*!
      * The location where the nozzle is assumed to start from before printing
      * these parts.
@@ -76,21 +142,14 @@ public:
     const ZSeamConfig config;
 
     /*!
-     * The parts of the layer to optimize a path through.
+     * After optimizing, this contains the paths that need to be printed in the
+     * correct order.
      *
-     * These can be in any arbitrary order. The order of these will be optimized
-     * by this class.
+     * Each path contains the information necessary to print the parts: A
+     * pointer to the vertex data, whether or not to close the loop, the
+     * direction in which to print the path and where to start the path.
      */
-    std::vector<ConstPolygonPointer> polygons;
-
-    /*!
-     * After optimizing, this will indicate the starting vertex of each polygon.
-     *
-     * This refers to the index in the polygon that the print must start with.
-     * ``polygons[i][poly_start[i]]`` would result in the actual coordinates of
-     * the starting point of polygon ``i``.
-     */
-    std::vector<size_t> poly_start;
+    std::vector<Path> paths;
 
     /*!
      * After optimizing, this will indicate the optimized order in which the
