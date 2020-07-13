@@ -122,30 +122,19 @@ public:
      * \param config Seam settings.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(Point startPoint, const ZSeamConfig config = ZSeamConfig(), const Polygons* combing_boundary = nullptr)
-    : startPoint(startPoint)
-    , config(config)
-    , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)
-    {
-    }
+    PathOrderOptimizer(Point startPoint, const ZSeamConfig config = ZSeamConfig(), const Polygons* combing_boundary = nullptr);
 
     /*!
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(PolygonRef polygon)
-    {
-        polygons.emplace_back(polygon);
-    }
+    void addPolygon(PolygonRef polygon);
 
     /*!
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(ConstPolygonRef polygon)
-    {
-        polygons.emplace_back(polygon);
-    }
+    void addPolygon(ConstPolygonRef polygon);
 
     /*!
      * Add a complex polygon to be optimized.
@@ -155,13 +144,7 @@ public:
      * a complex polygon to be printed together.
      * \param polygons The complex polygon to optimize.
      */
-    void addPolygons(const Polygons& polygons)
-    {
-        for(unsigned int i = 0; i < polygons.size(); i++)
-        {
-            this->polygons.emplace_back(polygons[i]);
-        }
-    }
+    void addPolygons(const Polygons& polygons);
 
     /*!
      * Perform the calculations to optimize the order of the parts.
@@ -258,41 +241,25 @@ public:
      * before printing these parts.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary = nullptr)
-    {
-        this->startPoint = startPoint;
-        this->combing_boundary = (combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr;
-    }
+    LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary = nullptr);
 
     /*!
      * Add a new polyline to be optimized.
      * \param polygon The polyline to optimize.
      */
-    void addPolygon(PolygonRef polygon)
-    {
-        polygons.push_back(polygon);
-    }
+    void addPolygon(PolygonRef polygon);
 
     /*!
      * Add a new polyline to be optimized.
      * \param polygon The polyline to optimize.
      */
-    void addPolygon(ConstPolygonRef polygon)
-    {
-        polygons.push_back(polygon);
-    }
+    void addPolygon(ConstPolygonRef polygon);
 
     /*!
      * Add a list of polylines to be optimized.
      * \param polygons The list of polylines to optimize.
      */
-    void addPolygons(Polygons& polygons)
-    {
-        for(unsigned int i=0;i<polygons.size(); i++)
-        {
-            this->polygons.push_back(polygons[i]);
-        }
-    }
+    void addPolygons(Polygons& polygons);
 
     /*!
      * Perform the calculations to optimize the order of the parts.

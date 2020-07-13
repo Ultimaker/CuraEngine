@@ -32,6 +32,31 @@ ZSeamConfig::ZSeamConfig(EZSeamType type, Point pos, EZSeamCornerPrefType corner
 }
 
 
+PathOrderOptimizer::PathOrderOptimizer(Point startPoint, const ZSeamConfig config, const Polygons* combing_boundary)
+: startPoint(startPoint)
+, config(config)
+, combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)
+{
+}
+
+void PathOrderOptimizer::addPolygon(PolygonRef polygon)
+{
+    polygons.emplace_back(polygon);
+}
+
+void PathOrderOptimizer::addPolygon(ConstPolygonRef polygon)
+{
+    polygons.emplace_back(polygon);
+}
+
+void PathOrderOptimizer::addPolygons(const Polygons& polygons)
+{
+    for(unsigned int i = 0; i < polygons.size(); i++)
+    {
+        this->polygons.emplace_back(polygons[i]);
+    }
+}
+
 void PathOrderOptimizer::optimize()
 {
     // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:
@@ -240,6 +265,30 @@ int PathOrderOptimizer::getRandomPointInPolygon(int poly_idx)
 static inline bool pointsAreCoincident(const Point& a, const Point& b)
 {
     return vSize2(a - b) < SQUARED_COINCIDENT_POINT_DISTANCE; // points are closer than 5uM, consider them coincident
+}
+
+LineOrderOptimizer::LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary)
+{
+    this->startPoint = startPoint;
+    this->combing_boundary = (combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr;
+}
+
+void LineOrderOptimizer::addPolygon(PolygonRef polygon)
+{
+    polygons.push_back(polygon);
+}
+
+void LineOrderOptimizer::addPolygon(ConstPolygonRef polygon)
+{
+    polygons.push_back(polygon);
+}
+
+void LineOrderOptimizer::addPolygons(Polygons& polygons)
+{
+    for(unsigned int i = 0; i < polygons.size(); i++)
+    {
+        this->polygons.push_back(polygons[i]);
+    }
 }
 
 void LineOrderOptimizer::optimize(bool find_chains)
