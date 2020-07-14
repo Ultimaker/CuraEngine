@@ -44,7 +44,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
-    const Settings group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const Settings& group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const bool global_use_tree_support =
         group_settings.get<bool>("support_enable")&&
         group_settings.get<ESupportStructure>("support_structure") == ESupportStructure::TREE;
