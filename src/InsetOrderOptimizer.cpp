@@ -235,7 +235,7 @@ void InsetOrderOptimizer::processHoleInsets()
     if (optimize_backwards)
     {
         // determine the location of the z-seam and use that as the start point
-        PathOrderOptimizer order_optimizer(Point(), z_seam_config);
+        PathOrderOptimizer<ConstPolygonRef> order_optimizer(Point(), z_seam_config);
         order_optimizer.addPolygon(*inset_polys[0][0]);
         order_optimizer.optimize();
         const unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(*inset_polys[0][0], order_optimizer.paths[0].start_vertex);
@@ -243,7 +243,7 @@ void InsetOrderOptimizer::processHoleInsets()
     }
     Polygons comb_boundary(*gcode_layer.getCombBoundaryInside());
     comb_boundary.simplify(100, 100);
-    PathOrderOptimizer order_optimizer(start_point, z_seam_config, &comb_boundary);
+    PathOrderOptimizer<ConstPolygonRef> order_optimizer(start_point, z_seam_config, &comb_boundary);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
@@ -284,7 +284,7 @@ void InsetOrderOptimizer::processHoleInsets()
                     // does it touch any yet to be processed hole outlines?
                     for (size_t order_index = outer_poly_order_idx + 1; num_future_outlines_touched < 1 && order_index < order_optimizer.paths.size(); ++order_index)
                     {
-                        PathOrderOptimizer::Path& path = order_optimizer.paths[order_index];
+                        PathOrderOptimizer<ConstPolygonRef>::Path& path = order_optimizer.paths[order_index];
                         // as we don't know the shape of the outlines (straight, concave, convex, etc.) and the
                         // adjacency test assumes that the poly's are arranged so that the first has smaller
                         // radius curves than the second (it's "inside" the second) we need to test both combinations
@@ -500,7 +500,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         // determine the location of the z seam
-        PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+        PathOrderOptimizer<ConstPolygonRef> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
         order_optimizer.addPolygon(*inset_polys[0][0]);
         order_optimizer.optimize();
         const unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(*inset_polys[0][0], order_optimizer.paths[0].start_vertex);
@@ -510,8 +510,11 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         {
             Polygons boundary(*gcode_layer.getCombBoundaryInside());
             ZSeamConfig inner_walls_z_seam_config;
-            PathOrderOptimizer orderOptimizer(z_seam_location, inner_walls_z_seam_config, &boundary); //TODO: Seriously?! Different casing is a different optimizer?!
-            orderOptimizer.addPolygons(part_inner_walls);
+            PathOrderOptimizer<ConstPolygonRef> orderOptimizer(z_seam_location, inner_walls_z_seam_config, &boundary); //TODO: Seriously?! Different casing is a different optimizer?!
+            for(ConstPolygonRef poly : part_inner_walls)
+            {
+                orderOptimizer.addPolygon(poly);
+            }
             orderOptimizer.optimize();
             if (!outer_inset_first)
             {
@@ -521,7 +524,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
             constexpr coord_t wall_0_wipe_dist = 0;
             constexpr float flow_ratio = 1.0;
             constexpr bool always_retract = false;
-            for(PathOrderOptimizer::Path& path : orderOptimizer.paths)
+            for(PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
             {
                 gcode_layer.addWall(*path.vertices, path.start_vertex, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x, wall_0_wipe_dist, flow_ratio, always_retract);
             }

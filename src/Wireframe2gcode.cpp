@@ -637,14 +637,17 @@ void Wireframe2gcode::processSkirt()
         return;
     }
     Polygons skirt = wireFrame.bottom_outline.offset(100000+5000).offset(-100000);
-    PathOrderOptimizer order(Point(INT32_MIN, INT32_MIN));
-    order.addPolygons(skirt);
+    PathOrderOptimizer<PolygonRef> order(Point(INT32_MIN, INT32_MIN));
+    for(PolygonRef skirt_path : skirt)
+    {
+        order.addPolygon(skirt_path);
+    }
     order.optimize();
 
     const Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
-    for(const PathOrderOptimizer::Path& path : order.paths)
+    for(const PathOrderOptimizer<PolygonRef>::Path& path : order.paths)
     {
-        const ConstPolygonRef poly = *path.vertices;
+        const PolygonRef poly = *path.vertices;
         gcode.writeTravel(poly[path.start_vertex], scene_settings.get<Velocity>("speed_travel"));
         for(size_t vertex_index = 0; vertex_index < poly.size(); ++vertex_index)
         {

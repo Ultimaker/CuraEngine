@@ -42,7 +42,12 @@ struct ZSeamConfig
      *
      * This will select the "shortest" seam strategy.
      */
-    ZSeamConfig();
+    ZSeamConfig()
+    : type(EZSeamType::SHORTEST)
+    , pos(Point(0, 0))
+    , corner_pref(EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+    {
+    }
 
     /*!
      * Create a seam configuration with a custom configuration.
@@ -51,7 +56,12 @@ struct ZSeamConfig
      * \param corner_pref The corner preference, when using the sharpest corner
      * strategy.
      */
-    ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCornerPrefType corner_pref);
+    ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCornerPrefType corner_pref)
+    : type(type)
+    , pos(pos)
+    , corner_pref(corner_pref)
+    {
+    }
 };
 
 /*!
@@ -77,7 +87,12 @@ struct ZSeamConfig
  *
  * The optimizer will always start a polyline from either end, never halfway.
  * The Z seam is not used for these.
+ * \tparam PathType The type of paths that will be optimized by this optimizer.
+ * Make sure that a specialization is available for \ref get_vertex and
+ * \ref get_size in order for the optimizer to know how to read information from
+ * your path.
  */
+template<typename PathType>
 class PathOrderOptimizer
 {
 public:
@@ -98,12 +113,18 @@ public:
         /*!
          * Construct a new path.
          */
-        Path(const ConstPolygonPointer vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false);
+        Path(const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
+        : vertices(&vertices)
+        , start_vertex(start_vertex)
+        , is_closed(is_closed)
+        , backwards(backwards)
+        {
+        }
 
         /*!
          * The vertex data of the path.
          */
-        ConstPolygonPointer vertices;
+        const PathType* vertices;
 
         /*!
          * Which vertex along the path to start printing with.
@@ -154,65 +175,49 @@ public:
     /*!
      * Construct a new optimizer.
      *
-     * This doesn't actually optimize the order yet, so the ``poly_order`` and
-     * ``poly_start`` fields will not be filled yet.
+     * This doesn't actually optimize the order yet, so the ``paths`` field will
+     * not be filled yet.
      * \param start_point The location where the nozzle is assumed to start from
      * before printing these parts.
      * \param config Seam settings.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig config = ZSeamConfig(), const Polygons* combing_boundary = nullptr);
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig config = ZSeamConfig(), const Polygons* combing_boundary = nullptr)
+    : start_point(start_point)
+    , config(config)
+    , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)
+    {
+    }
 
     /*!
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(const PolygonRef& polygon);
-
-    /*!
-     * Add a new polygon to be optimized.
-     * \param polygon The polygon to optimize.
-     */
-    void addPolygon(const ConstPolygonRef& polygon);
-
-    /*!
-     * Add a complex polygon to be optimized.
-     *
-     * Each contour of this complex polygon will be optimized separately, so it
-     * could be that the order of these polygons will not cause the contours of
-     * a complex polygon to be printed together.
-     * \param polygons The complex polygon to optimize.
-     */
-    void addPolygons(const Polygons& polygons);
+    void addPolygon(const PathType& polygon)
+    {
+        constexpr bool is_closed = true;
+        paths.emplace_back(polygon, is_closed);
+    }
 
     /*!
      * Add a new polyline to be optimized.
      * \param polyline The polyline to optimize.
      */
-    void addPolyline(const PolygonRef& polyline);
-
-    /*!
-     * Add a new polyline to be optimized.
-     * \param polyline The polyline to optimize.
-     */
-    void addPolyline(const ConstPolygonRef& polyline);
-
-    /*!
-     * Add a set of polylines to be optimized.
-     *
-     * A shorthand, if you've already got this packed in a ``Polygons``
-     * instance.
-     * \param polylines The polylines to optimize.
-     */
-    void addPolylines(const Polygons& polylines);
+    void addPolyline(const PathType& polyline)
+    {
+        paths.emplace_back(polyline);
+    }
 
     /*!
      * Perform the calculations to optimize the order of the parts.
      *
-     * This sets the \ref poly_start and \ref poly_order fields. They will then
-     * refer by index to the polygons in the \ref polygons field.
+     * This reorders the \ref paths field and fills their starting vertices and
+     * directions.
      */
-    void optimize();
+    void optimize()
+    {
+        //TODO: Implement optimization!
+    }
 
 protected:
     /*!
@@ -234,7 +239,10 @@ protected:
      * which to find a vertex.
      * \return An index to a vertex in that polygon.
      */
-    size_t getClosestPointInPolygon(const Point prev, const size_t i_polygon) const;
+    size_t getClosestPointInPolygon(const Point prev, const size_t i_polygon) const
+    {
+        return 0; //TODO: Reimplement with template code.
+    }
 
     /*!
      * Get a random vertex of a polygon.
@@ -242,7 +250,10 @@ protected:
      * which to find a vertex.
      * \return A random index in that polygon.
      */
-    size_t getRandomPointInPolygon(const size_t poly_idx) const;
+    size_t getRandomPointInPolygon(const size_t poly_idx) const
+    {
+        return 0; //TODO: Reimplement with template code.
+    }
 };
 
 } //namespace cura

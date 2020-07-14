@@ -585,12 +585,12 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
 
 void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, const Ratio flow_ratio, bool always_retract, bool reverse_order, const std::optional<Point> start_near_location)
 {
-    if (polygons.size() == 0)
+    if(polygons.empty())
     {
         return;
     }
-    PathOrderOptimizer orderOptimizer(start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(), z_seam_config);
-    for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+    PathOrderOptimizer<ConstPolygonRef> orderOptimizer(start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for(size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
@@ -598,7 +598,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 
     if(!reverse_order)
     {
-        for(const PathOrderOptimizer::Path& path : orderOptimizer.paths)
+        for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
         {
             addPolygon(*path.vertices, path.start_vertex, config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
@@ -607,7 +607,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         for(int index = orderOptimizer.paths.size() - 1; index >= 0; --index)
         {
-            const PathOrderOptimizer::Path& path = orderOptimizer.paths[index];
+            const PathOrderOptimizer<ConstPolygonRef>::Path& path = orderOptimizer.paths[index];
             addPolygon(*path.vertices, path.start_vertex, config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
@@ -1017,13 +1017,13 @@ void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_id
 void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     //TODO: Deprecated in favor of ExtrusionJunction version below.
-    PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
-    for (unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
+    PathOrderOptimizer<ConstPolygonRef> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for(size_t poly_idx = 0; poly_idx < walls.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
     orderOptimizer.optimize();
-    for(const PathOrderOptimizer::Path& path : orderOptimizer.paths)
+    for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
     {
         addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
     }
@@ -1031,19 +1031,13 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
 
 void LayerPlan::addWalls(const std::vector<std::vector<ExtrusionJunction>>& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
-    PathOrderOptimizer order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
-    for(unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
+    PathOrderOptimizer<std::vector<ExtrusionJunction>> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for(const std::vector<ExtrusionJunction>& wall : walls)
     {
-        //Translate a list of junctions to a list of points. For the order optimization we only need to know the position.
-        Polygon path;
-        for(const ExtrusionJunction junction : walls[poly_idx])
-        {
-            path.add(junction.p);
-        }
-        order_optimizer.addPolygon(path);
+        order_optimizer.addPolygon(wall);
     }
     order_optimizer.optimize();
-    for(const PathOrderOptimizer::Path& path : order_optimizer.paths)
+    for(const PathOrderOptimizer<std::vector<ExtrusionJunction>>::Path& path : order_optimizer.paths)
     {
         addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
     }
@@ -1073,16 +1067,16 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         // simplify boundary to cut down processing time
         boundary.simplify(100, 100);
     }
-    PathOrderOptimizer order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), &boundary);
+    PathOrderOptimizer<ConstPolygonRef> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), &boundary);
     for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
-        order_optimizer.addPolygon(polygons[line_idx]);
+        order_optimizer.addPolyline(polygons[line_idx]);
     }
     order_optimizer.optimize();
 
     for (size_t order_idx = 0; order_idx < order_optimizer.paths.size(); order_idx++)
     {
-        const PathOrderOptimizer::Path& path = order_optimizer.paths[order_idx];
+        const PathOrderOptimizer<ConstPolygonRef>::Path& path = order_optimizer.paths[order_idx];
         ConstPolygonRef polygon = *path.vertices;
         const size_t start = path.start_vertex;
         const size_t end = 1 - start;
@@ -1111,7 +1105,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
             // Don't wipe if next starting point is very near
             if (wipe && (order_idx < order_optimizer.paths.size() - 1))
             {
-                const PathOrderOptimizer::Path& next_path = order_optimizer.paths[order_idx + 1];
+                const PathOrderOptimizer<ConstPolygonRef>::Path& next_path = order_optimizer.paths[order_idx + 1];
                 ConstPolygonRef next_polygon = *next_path.vertices;
                 const size_t next_start = next_path.start_vertex;
                 const Point& next_p0 = next_polygon[next_start];
