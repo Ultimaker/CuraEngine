@@ -307,13 +307,12 @@ protected:
 
     /*!
      * Get a random vertex of a polygon.
-     * \param poly_idx The index of the polygon in the \ref polygons field of
-     * which to find a vertex.
+     * \param polygon A polygon to get a random vertex of.
      * \return A random index in that polygon.
      */
-    size_t getRandomPointInPolygon(const size_t poly_idx) const
+    size_t getRandomPointInPolygon(ConstPolygonRef polygon) const
     {
-        return 0; //TODO: Reimplement with template code.
+        return rand() % polygon.size();
     }
 
     bool isLoopingPolyline(const PathType& path)
