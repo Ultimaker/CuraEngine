@@ -10,25 +10,25 @@ namespace cura
 {
 
 template<>
-ConstPolygonRef PathOrderOptimizer<ConstPolygonRef>::getVertexData(const ConstPolygonRef* path) const
+ConstPolygonRef PathOrderOptimizer<ConstPolygonRef>::getVertexData(const ConstPolygonRef* path)
 {
     return (*path);
 }
 
 template<>
-ConstPolygonRef PathOrderOptimizer<PolygonRef>::getVertexData(const PolygonRef* path) const
+ConstPolygonRef PathOrderOptimizer<PolygonRef>::getVertexData(const PolygonRef* path)
 {
     return (*path);
 }
 
 template<>
-ConstPolygonRef PathOrderOptimizer<SkinPart>::getVertexData(const SkinPart* path) const
+ConstPolygonRef PathOrderOptimizer<SkinPart>::getVertexData(const SkinPart* path)
 {
     return path->outline.outerPolygon();
 }
 
 template<>
-ConstPolygonRef PathOrderOptimizer<SliceLayerPart>::getVertexData(const SliceLayerPart* path) const
+ConstPolygonRef PathOrderOptimizer<SliceLayerPart>::getVertexData(const SliceLayerPart* path)
 {
     if(!path->insets.empty())
     {
@@ -41,20 +41,21 @@ ConstPolygonRef PathOrderOptimizer<SliceLayerPart>::getVertexData(const SliceLay
 }
 
 template<>
-ConstPolygonRef PathOrderOptimizer<SupportInfillPart>::getVertexData(const SupportInfillPart* path) const
+ConstPolygonRef PathOrderOptimizer<SupportInfillPart>::getVertexData(const SupportInfillPart* path)
 {
     return path->outline.outerPolygon();
 }
 
 template<>
-ConstPolygonRef PathOrderOptimizer<std::vector<ExtrusionJunction>>::getVertexData(const std::vector<ExtrusionJunction>* path) const
+ConstPolygonRef PathOrderOptimizer<std::vector<ExtrusionJunction>>::getVertexData(const std::vector<ExtrusionJunction>* path)
 {
-    Polygon poly;
+	cached_vertices.emplace_back();
+    Polygon& poly = cached_vertices.back();
     for(const ExtrusionJunction junction : *path)
     {
         poly.add(junction.p);
     }
-    return ConstPolygonRef(poly); //TODO: The reference is lost here because poly goes out of scope?
+    return ConstPolygonRef(poly);
 }
 
 }

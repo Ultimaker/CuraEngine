@@ -209,20 +209,6 @@ public:
     }
 
     /*!
-     * Get vertex data from the custom path type.
-     *
-     * This is a function that allows the optimization algorithm to work with
-     * any type of input data structure. It provides a translation from the
-     * input data structure that the user would like to have ordered to a data
-     * structure that the optimization algorithm can work with. It's unknown how
-     * the ``PathType`` object is structured or how to get the vertex data from
-     * it. This function tells the optimizer how, but it needs to be specialized
-     * for each different type that this optimizer is used. See the .cpp file
-     * for examples and where to add a new specialization.
-     */
-    ConstPolygonRef getVertexData(const PathType* path) const;
-
-    /*!
      * Perform the calculations to optimize the order of the parts.
      *
      * This reorders the \ref paths field and fills their starting vertices and
@@ -248,6 +234,16 @@ protected:
     const Polygons* combing_boundary;
 
     /*!
+     * Some input data structures need to be converted to polygons before use.
+     * For those, we need to store the vertex data somewhere during the lifetime
+     * of the object. Store them here.
+     *
+     * For example, if the ``PathType`` is a list of ``ExtrusionJunction``s,
+     * this will store the coordinates of those junctions.
+     */
+    std::vector<Polygon> cached_vertices;
+
+    /*!
      * Find the vertex of a polygon that is closest to another point.
      * \param prev The point that the vertex must be close to.
      * \param i_polygon The index of the polygon in the \ref polygons field of
@@ -269,6 +265,20 @@ protected:
     {
         return 0; //TODO: Reimplement with template code.
     }
+
+    /*!
+     * Get vertex data from the custom path type.
+     *
+     * This is a function that allows the optimization algorithm to work with
+     * any type of input data structure. It provides a translation from the
+     * input data structure that the user would like to have ordered to a data
+     * structure that the optimization algorithm can work with. It's unknown how
+     * the ``PathType`` object is structured or how to get the vertex data from
+     * it. This function tells the optimizer how, but it needs to be specialized
+     * for each different type that this optimizer is used. See the .cpp file
+     * for examples and where to add a new specialization.
+     */
+    ConstPolygonRef getVertexData(const PathType* path);
 };
 
 } //namespace cura
