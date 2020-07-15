@@ -4,11 +4,9 @@
 #ifndef PATHORDEROPTIMIZER_H
 #define PATHORDEROPTIMIZER_H
 
-#include <stdint.h>
-#include <utility>
-#include "settings/EnumSettings.h"
-#include "utils/polygon.h"
+#include "settings/EnumSettings.h" //To get the seam settings.
 #include "utils/polygonUtils.h"
+#include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
 
 namespace cura {
 
@@ -185,7 +183,7 @@ public:
     /*!
      * Seam settings.
      */
-    ZSeamConfig config;
+    ZSeamConfig seam_config;
 
     /*!
      * Construct a new optimizer.
@@ -202,9 +200,9 @@ public:
      * they are.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig config = ZSeamConfig(), const bool detect_chains = false, const Polygons* combing_boundary = nullptr)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_chains = false, const Polygons* combing_boundary = nullptr)
     : start_point(start_point)
-    , config(config)
+    , seam_config(seam_config)
     , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)
     , detect_chains(detect_chains)
     {
@@ -294,15 +292,120 @@ protected:
     bool detect_chains;
 
     /*!
-     * Find the vertex of a polygon that is closest to another point.
-     * \param prev The point that the vertex must be close to.
-     * \param i_polygon The index of the polygon in the \ref polygons field of
-     * which to find a vertex.
-     * \return An index to a vertex in that polygon.
+     * Find the vertex which will be the starting point of printing a polygon or
+     * polyline.
+     *
+     * This will be the seam location (for polygons) or the closest endpoint
+     * (for polylines). Usually the seam location is some combination of being
+     * the closest point and/or being a sharp inner or outer corner.
+     * \param vertices The vertex data of a path. This will never be empty (so
+     * no need to check again) but might have size 1.
+     * \param target_pos The point that the starting vertex must be close to, if
+     * applicable.
+     * \param is_closed Whether the polygon is closed (a polygon) or not
+     * (a polyline). If the path is not closed, it will choose between the two
+     * endpoints rather than 
+     * \return An index to a vertex in that path where printing must start.
      */
-    size_t getClosestPointInPolygon(const Point prev, const size_t i_polygon) const
+    size_t findStartLocation(ConstPolygonRef vertices, const Point& target_pos, const bool is_closed) const
     {
-        return 0; //TODO: Reimplement with template code.
+        if(!is_closed)
+        {
+            //For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
+            if(vSize2(vertices.back() - target_pos) > vSize2(vertices.front() - target_pos))
+            {
+                return vertices.size() - 1; //Back end is closer.
+            }
+            else
+            {
+                return 0; //Front end is closer.
+            }
+        }
+
+        //Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
+
+        if(seam_config.type == EZSeamType::RANDOM)
+        {
+            return getRandomPointInPolygon(vertices);
+        }
+
+        size_t best_index = 0;
+        float best_score = std::numeric_limits<float>::infinity();
+        Point previous = vertices.back();
+        for(size_t i = 0; i < vertices.size(); ++i)
+        {
+            const Point& here = vertices[i];
+            const Point& next = vertices[(i + 1) % vertices.size()];
+
+            //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
+            //For SHARPEST_CORNER, use a fixed starting score of 0.
+            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : vSize(here - target_pos);
+            const float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) / M_PI - 1; //Between -1 and 1.
+
+            float score;
+            if(seam_config.type == EZSeamType::USER_SPECIFIED) //If user-specified, the seam always needs to be the closest vertex that applies within the filter of the CornerPrefType.
+            {
+                switch(seam_config.corner_pref)
+                {
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+                    score = corner_angle > 0 ? score_distance : std::numeric_limits<float>::max(); break; //If it's indeed a concave corner, allow the distance as score. Otherwise a very high score so it won't get picked.
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+                    score = corner_angle < 0 ? score_distance : std::numeric_limits<float>::max(); break; //If it's indeed a convex corner, allow the distance as score. Otherwise a very high score so it won't get picked.
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
+                default:
+                    score = score_distance; break; //If not filtering on inner or outer corners, just take only distance.
+                }
+            }
+            else //SHARPEST_CORNER or SHORTEST.
+            {
+                constexpr float corner_shift = 10000 * 10000; //Allow up to 20mm shifting of the seam to find a good location. For SHARPEST_CORNER, this shift is the only factor.
+                switch(seam_config.corner_pref)
+                {
+                default:
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+                    score = score_distance;
+                    if(corner_angle > 0) //Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
+                    {
+                        score -= (corner_angle + 1.0) * corner_shift;
+                    }
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+                    score = score_distance;
+                    if(corner_angle < 0) //Indeed a convex corner?
+                    {
+                        score -= (-corner_angle + 1.0) * corner_shift;
+                    }
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+                    score = score_distance - fabs(corner_angle) * corner_shift; //Still give sharper corners more advantage.
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
+                    score = score_distance; //No advantage for sharper corners.
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED: //Give sharper corners some advantage, but sharper concave corners even more.
+                    {
+                        float score_corner = fabs(corner_angle) * corner_shift;
+                        if(corner_angle < 0) //Concave corner.
+                        {
+                            score_corner *= 2;
+                        }
+                        score = score_distance - score_corner;
+                        break;
+                    }
+                }
+            }
+
+            if(score < best_score)
+            {
+                best_index = i;
+                best_score = score;
+            }
+            previous = here;
+        }
+        
+        return best_index;
     }
 
     /*!
