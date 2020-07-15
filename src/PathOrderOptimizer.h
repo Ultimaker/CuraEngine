@@ -1,10 +1,11 @@
 //Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PATHOPTIMIZER_H
-#define PATHOPTIMIZER_H
+#ifndef PATHORDEROPTIMIZER_H
+#define PATHORDEROPTIMIZER_H
 
 #include <stdint.h>
+#include <utility>
 #include "settings/EnumSettings.h"
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
@@ -114,17 +115,18 @@ public:
          * Construct a new path.
          */
         Path(const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
-        : vertices(&vertices)
+        : vertices(vertices)
         , start_vertex(start_vertex)
         , is_closed(is_closed)
         , backwards(backwards)
         {
+            std::cout << "++++++++++++++++++++++ constructing path. Vertices = " << &(this->vertices) << std::endl;
         }
 
         /*!
          * The vertex data of the path.
          */
-        const PathType* vertices;
+        const PathType vertices;
 
         /*!
          * Which vertex along the path to start printing with.
@@ -149,6 +151,20 @@ public:
          * backwards direction, if the last vertex is closer than the first.
          */
         bool backwards;
+
+        /*!
+         * Swap position with another path.
+         *
+         * This is required in order to use std::swap on the paths, or to use
+         * algorithms like std::reverse.
+         */
+        void swap(Path& other)
+        {
+            std::swap(vertices, other.vertices);
+            std::swap(start_vertex, other.start_vertex);
+            std::swap(is_closed, other.is_closed);
+            std::swap(backwards, other.backwards);
+        }
     };
 
     /*!
@@ -205,6 +221,7 @@ public:
      */
     void addPolyline(const PathType& polyline)
     {
+        std::cout << "++++++ got a polyline to add: " << &polyline << std::endl;
         paths.emplace_back(polyline);
     }
 
@@ -278,9 +295,9 @@ protected:
      * for each different type that this optimizer is used. See the .cpp file
      * for examples and where to add a new specialization.
      */
-    ConstPolygonRef getVertexData(const PathType* path);
+    ConstPolygonRef getVertexData(const PathType path);
 };
 
 } //namespace cura
 
-#endif //PATHOPTIMIZER_H
+#endif //PATHORDEROPTIMIZER_H

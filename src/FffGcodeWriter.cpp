@@ -1315,13 +1315,13 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     {
         z_seam_config = ZSeamConfig(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
     }
-    PathOrderOptimizer<SliceLayerPart> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    PathOrderOptimizer<const SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for(const SliceLayerPart& part : layer.parts)
     {
-        part_order_optimizer.addPolygon(part);
+        part_order_optimizer.addPolygon(&part);
     }
     part_order_optimizer.optimize();
-    for(const PathOrderOptimizer<SliceLayerPart>::Path& path : part_order_optimizer.paths)
+    for(const PathOrderOptimizer<const SliceLayerPart*>::Path& path : part_order_optimizer.paths)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
     }
@@ -1978,14 +1978,14 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
                             && !Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize")
                             && extruder_nr == wall_0_extruder_nr;
 
-    PathOrderOptimizer<SkinPart> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
+    PathOrderOptimizer<const SkinPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
     for(const SkinPart& skin_part : part.skin_parts)
     {
-        part_order_optimizer.addPolygon(skin_part);
+        part_order_optimizer.addPolygon(&skin_part);
     }
     part_order_optimizer.optimize();
 
-    for(const PathOrderOptimizer<SkinPart>::Path& path : part_order_optimizer.paths)
+    for(const PathOrderOptimizer<const SkinPart*>::Path& path : part_order_optimizer.paths)
     {
         const SkinPart& skin_part = *path.vertices;
 
@@ -2446,15 +2446,15 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const size_t zag_skip_count = infill_extruder.settings.get<size_t>("support_zag_skip_count");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
-    PathOrderOptimizer<SupportInfillPart> island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
+    PathOrderOptimizer<const SupportInfillPart*> island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
     for(const SupportInfillPart& part : support_layer.support_infill_parts)
     {
-        island_order_optimizer.addPolygon(part);
+        island_order_optimizer.addPolygon(&part);
     }
     island_order_optimizer.optimize();
 
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-    for(const PathOrderOptimizer<SupportInfillPart>::Path& path : island_order_optimizer.paths)
+    for(const PathOrderOptimizer<const SupportInfillPart*>::Path& path : island_order_optimizer.paths)
     {
         const SupportInfillPart& part = *path.vertices;
 

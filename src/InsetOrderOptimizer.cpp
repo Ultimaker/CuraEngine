@@ -252,7 +252,7 @@ void InsetOrderOptimizer::processHoleInsets()
     if (optimize_backwards)
     {
         // reverse the optimized order so we end up as near to the outline z-seam as possible
-        std::reverse(order_optimizer.paths.begin(), order_optimizer.paths.end());
+        //std::reverse(order_optimizer.paths.begin(), order_optimizer.paths.end());
     }
 
     // this will consume all of the insets that surround holes but not the insets next to the outermost wall of the model
@@ -519,7 +519,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
             if (!outer_inset_first)
             {
                 // reverse the optimized order so we end up as near to the outline z-seam as possible
-                std::reverse(orderOptimizer.paths.begin(), orderOptimizer.paths.end());
+                //std::reverse(orderOptimizer.paths.begin(), orderOptimizer.paths.end());
             }
             constexpr coord_t wall_0_wipe_dist = 0;
             constexpr float flow_ratio = 1.0;

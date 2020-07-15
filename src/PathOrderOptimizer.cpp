@@ -10,25 +10,25 @@ namespace cura
 {
 
 template<>
-ConstPolygonRef PathOrderOptimizer<ConstPolygonRef>::getVertexData(const ConstPolygonRef* path)
+ConstPolygonRef PathOrderOptimizer<ConstPolygonRef>::getVertexData(ConstPolygonRef path)
 {
-    return (*path);
+    return path;
 }
 
 template<>
-ConstPolygonRef PathOrderOptimizer<PolygonRef>::getVertexData(const PolygonRef* path)
+ConstPolygonRef PathOrderOptimizer<PolygonRef>::getVertexData(PolygonRef path)
 {
-    return (*path);
+    return path;
 }
 
 template<>
-ConstPolygonRef PathOrderOptimizer<SkinPart>::getVertexData(const SkinPart* path)
+ConstPolygonRef PathOrderOptimizer<const SkinPart*>::getVertexData(const SkinPart* path)
 {
     return path->outline.outerPolygon();
 }
 
 template<>
-ConstPolygonRef PathOrderOptimizer<SliceLayerPart>::getVertexData(const SliceLayerPart* path)
+ConstPolygonRef PathOrderOptimizer<const SliceLayerPart*>::getVertexData(const SliceLayerPart* path)
 {
     if(!path->insets.empty())
     {
@@ -41,13 +41,13 @@ ConstPolygonRef PathOrderOptimizer<SliceLayerPart>::getVertexData(const SliceLay
 }
 
 template<>
-ConstPolygonRef PathOrderOptimizer<SupportInfillPart>::getVertexData(const SupportInfillPart* path)
+ConstPolygonRef PathOrderOptimizer<const SupportInfillPart*>::getVertexData(const SupportInfillPart* path)
 {
     return path->outline.outerPolygon();
 }
 
 template<>
-ConstPolygonRef PathOrderOptimizer<std::vector<ExtrusionJunction>>::getVertexData(const std::vector<ExtrusionJunction>* path)
+ConstPolygonRef PathOrderOptimizer<const std::vector<ExtrusionJunction>*>::getVertexData(const std::vector<ExtrusionJunction>* path)
 {
 	cached_vertices.emplace_back();
     Polygon& poly = cached_vertices.back();
