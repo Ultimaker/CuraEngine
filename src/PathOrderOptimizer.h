@@ -209,6 +209,20 @@ public:
     }
 
     /*!
+     * Get vertex data from the custom path type.
+     *
+     * This is a function that allows the optimization algorithm to work with
+     * any type of input data structure. It provides a translation from the
+     * input data structure that the user would like to have ordered to a data
+     * structure that the optimization algorithm can work with. It's unknown how
+     * the ``PathType`` object is structured or how to get the vertex data from
+     * it. This function tells the optimizer how, but it needs to be specialized
+     * for each different type that this optimizer is used. See the .cpp file
+     * for examples and where to add a new specialization.
+     */
+    ConstPolygonRef getVertexData(const PathType* path) const;
+
+    /*!
      * Perform the calculations to optimize the order of the parts.
      *
      * This reorders the \ref paths field and fills their starting vertices and
@@ -216,6 +230,7 @@ public:
      */
     void optimize()
     {
+        ConstPolygonRef vertices = getVertexData(paths[0].vertices); //Placeholder to catch compilation errors.
         //TODO: Implement optimization!
     }
 
