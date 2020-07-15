@@ -243,7 +243,8 @@ void InsetOrderOptimizer::processHoleInsets()
     }
     Polygons comb_boundary(*gcode_layer.getCombBoundaryInside());
     comb_boundary.simplify(100, 100);
-    PathOrderOptimizer<ConstPolygonRef> order_optimizer(start_point, z_seam_config, &comb_boundary);
+    constexpr bool detect_chains = true;
+    PathOrderOptimizer<ConstPolygonRef> order_optimizer(start_point, z_seam_config, detect_chains, &comb_boundary);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
@@ -510,7 +511,8 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         {
             Polygons boundary(*gcode_layer.getCombBoundaryInside());
             ZSeamConfig inner_walls_z_seam_config;
-            PathOrderOptimizer<ConstPolygonRef> orderOptimizer(z_seam_location, inner_walls_z_seam_config, &boundary); //TODO: Seriously?! Different casing is a different optimizer?!
+            constexpr bool detect_chains = true;
+            PathOrderOptimizer<ConstPolygonRef> orderOptimizer(z_seam_location, inner_walls_z_seam_config, detect_chains, &boundary); //TODO: Seriously?! Different casing is a different optimizer?!
             for(ConstPolygonRef poly : part_inner_walls)
             {
                 orderOptimizer.addPolygon(poly);

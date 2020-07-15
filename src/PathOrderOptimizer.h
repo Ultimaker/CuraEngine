@@ -167,17 +167,6 @@ public:
     };
 
     /*!
-     * The location where the nozzle is assumed to start from before printing
-     * these parts.
-     */
-    Point start_point;
-
-    /*!
-     * Seam settings.
-     */
-    const ZSeamConfig config;
-
-    /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
      *
@@ -188,6 +177,17 @@ public:
     std::vector<Path> paths;
 
     /*!
+     * The location where the nozzle is assumed to start from before printing
+     * these parts.
+     */
+    Point start_point;
+
+    /*!
+     * Seam settings.
+     */
+    ZSeamConfig config;
+
+    /*!
      * Construct a new optimizer.
      *
      * This doesn't actually optimize the order yet, so the ``paths`` field will
@@ -195,12 +195,18 @@ public:
      * \param start_point The location where the nozzle is assumed to start from
      * before printing these parts.
      * \param config Seam settings.
+     * \param detect_chains Whether to try to connect endpoints of paths that
+     * are close together. If they are just a few microns apart, it will merge
+     * the two endpoints together. Also detects if the two endpoints of a
+     * polyline are close together, and turns that polyline into a polygon if
+     * they are.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig config = ZSeamConfig(), const Polygons* combing_boundary = nullptr)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig config = ZSeamConfig(), const bool detect_chains = false, const Polygons* combing_boundary = nullptr)
     : start_point(start_point)
     , config(config)
     , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)
+    , detect_chains(detect_chains)
     {
     }
 
@@ -241,6 +247,16 @@ public:
 
 protected:
     /*!
+     * Some input data structures need to be converted to polygons before use.
+     * For those, we need to store the vertex data somewhere during the lifetime
+     * of the object. Store them here.
+     *
+     * For example, if the ``PathType`` is a list of ``ExtrusionJunction``s,
+     * this will store the coordinates of those junctions.
+     */
+    std::vector<Polygon> cached_vertices;
+
+    /*!
      * Hash map storing where each line is.
      *
      * This allows us to quickly find any nearby other lines.
@@ -253,14 +269,18 @@ protected:
     const Polygons* combing_boundary;
 
     /*!
-     * Some input data structures need to be converted to polygons before use.
-     * For those, we need to store the vertex data somewhere during the lifetime
-     * of the object. Store them here.
+     * Whether to detect chains and loops before optimizing.
      *
-     * For example, if the ``PathType`` is a list of ``ExtrusionJunction``s,
-     * this will store the coordinates of those junctions.
+     * If this is enabled, the optimizer will first attempt to find endpoints of
+     * polylines that are very close together. If they are closer than
+     * \ref coincident_point_distance, the polylines will be connected together.
+     * The average of the two endpoints will be used as the joint vertex.
+     *
+     * This will also similarly detect when the two endpoints of a single
+     * polyline are close together, such that it forms a loop. It will turn the
+     * polyline into a loop (polygon) then.
      */
-    std::vector<Polygon> cached_vertices;
+    bool detect_chains;
 
     /*!
      * Find the vertex of a polygon that is closest to another point.

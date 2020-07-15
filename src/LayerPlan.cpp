@@ -1031,7 +1031,8 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
 
 void LayerPlan::addWalls(const std::vector<std::vector<ExtrusionJunction>>& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
-    PathOrderOptimizer<const std::vector<ExtrusionJunction>*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    constexpr bool detect_chains = true;
+    PathOrderOptimizer<const std::vector<ExtrusionJunction>*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_chains);
     for(const std::vector<ExtrusionJunction>& wall : walls)
     {
         order_optimizer.addPolygon(&wall);
@@ -1067,7 +1068,8 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         // simplify boundary to cut down processing time
         boundary.simplify(100, 100);
     }
-    PathOrderOptimizer<ConstPolygonRef> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), &boundary);
+    constexpr bool detect_chains = true;
+    PathOrderOptimizer<ConstPolygonRef> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_chains, &boundary);
     for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
         order_optimizer.addPolyline(polygons[line_idx]);
