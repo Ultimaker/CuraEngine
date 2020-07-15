@@ -120,7 +120,6 @@ public:
         , is_closed(is_closed)
         , backwards(backwards)
         {
-            std::cout << "++++++++++++++++++++++ constructing path. Vertices = " << &(this->vertices) << std::endl;
         }
 
         /*!
@@ -221,7 +220,6 @@ public:
      */
     void addPolyline(const PathType& polyline)
     {
-        std::cout << "++++++ got a polyline to add: " << &polyline << std::endl;
         paths.emplace_back(polyline);
     }
 
@@ -233,6 +231,10 @@ public:
      */
     void optimize()
     {
+        if(paths.empty())
+        {
+            return;
+        }
         ConstPolygonRef vertices = getVertexData(paths[0].vertices); //Placeholder to catch compilation errors.
         //TODO: Implement optimization!
     }

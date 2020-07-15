@@ -1070,7 +1070,6 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     PathOrderOptimizer<ConstPolygonRef> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), &boundary);
     for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
-        std::cout << "++++++++++++ adding polyline: " << &polygons << " + " << line_idx << std::endl;
         order_optimizer.addPolyline(polygons[line_idx]);
     }
     order_optimizer.optimize();
