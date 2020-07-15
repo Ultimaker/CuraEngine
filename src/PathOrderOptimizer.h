@@ -226,7 +226,12 @@ public:
      */
     void addPolyline(const PathType& polyline)
     {
-        paths.emplace_back(polyline);
+        bool is_closed = false;
+        if(detect_chains)
+        {
+            is_closed = isLoopingPolyline(polyline);
+        }
+        paths.emplace_back(polyline, is_closed);
     }
 
     /*!
@@ -246,6 +251,12 @@ public:
     }
 
 protected:
+    /*!
+     * If \ref detect_chains is enabled, endpoints of polylines that are closer
+     * than this distance together will be considered to be coincident.
+     */
+    constexpr static coord_t coincident_point_distance = 5;
+
     /*!
      * Some input data structures need to be converted to polygons before use.
      * For those, we need to store the vertex data somewhere during the lifetime
@@ -273,12 +284,12 @@ protected:
      *
      * If this is enabled, the optimizer will first attempt to find endpoints of
      * polylines that are very close together. If they are closer than
-     * \ref coincident_point_distance, the polylines will be connected together.
-     * The average of the two endpoints will be used as the joint vertex.
+     * \ref coincident_point_distance, the polylines will always be ordered end-
+     * to-end.
      *
      * This will also similarly detect when the two endpoints of a single
      * polyline are close together, such that it forms a loop. It will turn the
-     * polyline into a loop (polygon) then.
+     * polyline into a polygon then.
      */
     bool detect_chains;
 
@@ -303,6 +314,16 @@ protected:
     size_t getRandomPointInPolygon(const size_t poly_idx) const
     {
         return 0; //TODO: Reimplement with template code.
+    }
+
+    bool isLoopingPolyline(const PathType& path)
+    {
+        ConstPolygonRef vertices = getVertexData(path);
+        if(vertices.empty())
+        {
+            return false;
+        }
+        return vSize2(vertices.back() - vertices[0]) < coincident_point_distance * coincident_point_distance;
     }
 
     /*!
