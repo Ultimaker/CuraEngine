@@ -569,19 +569,28 @@ public:
     void addWallLine(const Point& p0, const Point& p1, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start);
 
     /*!
-     * Add a wall (a polygon) to the gcode starting at vertex \p startIdx
-     * \param wall The wall polygon
-     * \param startIdx The index of the starting vertex of \p wall
-     * \param mesh The current mesh being added to the layer plan
-     * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
-     * \param bridge_config The config with which to print the wall lines that are spanning a bridge
-     * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
-     * \param wall_0_wipe_dist The distance to travel along the wall after it has been laid down, in order to wipe the start and end of the wall together
-     * \param flow_ratio The ratio with which to multiply the extrusion amount
-     * \param always_retract Whether to force a retraction when moving to the start of the wall (used for outer walls)
+     * Add a wall to the g-code starting at vertex \p start_idx
+     * \param wall The vertices of the wall to add.
+     * \param start_idx The index of the starting vertex to start at.
+     * \param mesh The current mesh being added to the layer plan.
+     * \param non_bridge_config The config with which to print the wall lines
+     * that are not spanning a bridge.
+     * \param bridge_config The config with which to print the wall lines that
+     * are spanning a bridge.
+     * \param wall_overlap_computation The wall overlap compensation calculator
+     * for each given segment (optionally nullptr).
+     * \param wall_0_wipe_dist The distance to travel along the wall after it
+     * has been laid down, in order to wipe the start and end of the wall
+     * together.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount.
+     * \param always_retract Whether to force a retraction when moving to the
+     * start of the wall (used for outer walls).
+     * \param is_closed Whether this wall is a closed loop (a polygon) or not (a
+     * polyline).
+     * \param is_reversed Whether to print this wall in reverse direction.
      */
     void addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
-    void addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
+    void addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.

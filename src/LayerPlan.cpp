@@ -820,7 +820,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     addWall(ewall, start_idx, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
 }
 
-void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed)
 {
     // make sure wall start point is not above air!
     start_idx = locateFirstSupportedVertex(wall, start_idx);
@@ -929,7 +929,8 @@ void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_id
 
     ExtrusionJunction p0 = wall[start_idx];
 
-    for (unsigned int point_idx = 1; point_idx < wall.size() + 1; point_idx++)
+    const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
+    for(size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
         const ExtrusionJunction& p1 = wall[(start_idx + point_idx) % wall.size()];
         const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0.p, p1.p) : flow_ratio;
@@ -1035,12 +1036,12 @@ void LayerPlan::addWalls(const std::vector<std::vector<ExtrusionJunction>>& wall
     PathOrderOptimizer<const std::vector<ExtrusionJunction>*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_chains);
     for(const std::vector<ExtrusionJunction>& wall : walls)
     {
-        order_optimizer.addPolygon(&wall);
+        order_optimizer.addPolyline(&wall);
     }
     order_optimizer.optimize();
     for(const PathOrderOptimizer<const std::vector<ExtrusionJunction>*>::Path& path : order_optimizer.paths)
     {
-        addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract, path.is_closed, path.backwards);
     }
 }
 
