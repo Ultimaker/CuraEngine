@@ -244,8 +244,15 @@ public:
         {
             return;
         }
-        ConstPolygonRef vertices = getVertexData(paths[0].vertices); //Placeholder to catch compilation errors.
-        //TODO: Implement optimization!
+
+        Point current_position = start_point;
+        std::vector<Path> optimized_order; //To store our result in. At the end we'll std::swap.
+        optimized_order.reserve(paths.size());
+        while(optimized_order.size() < paths.size())
+        {
+            optimized_order.push_back(paths[optimized_order.size()]); //TODO: Choose the best path to insert next.
+        }
+        std::swap(optimized_order, paths); //Apply the optimized order to the output field.
     }
 
 protected:
