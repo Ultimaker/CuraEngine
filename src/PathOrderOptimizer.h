@@ -247,6 +247,7 @@ public:
 
         //For every input path, get the vertices of that path so that we don't need to re-compute them often.
         std::vector<ConstPolygonRef> vertices_per_path;
+        vertices_per_path.reserve(paths.size());
         for(const Path& path : paths)
         {
             vertices_per_path.push_back(getVertexData(path.vertices));
@@ -264,23 +265,59 @@ public:
                 {
                     continue; //Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
                 }
+                if(vertices_per_path[i].empty())
+                {
+                    continue;
+                }
                 path.start_vertex = findStartLocation(vertices_per_path[i], seam_config.pos, path.is_closed);
             }
         }
 
+        std::vector<bool> picked(paths.size(), false); //Fixed size boolean flag for whether each path is already in the optimized vector.
         Point current_position = start_point;
         std::vector<Path> optimized_order; //To store our result in. At the end we'll std::swap.
         optimized_order.reserve(paths.size());
         while(optimized_order.size() < paths.size())
         {
-            //TODO: The following is just debugging code that sets the start vertex and backwards properties of paths. It's not correct.
-            Path& path = paths[optimized_order.size()];
-            path.start_vertex = findStartLocation(getVertexData(path.vertices), seam_config.pos, path.is_closed);
-            if(!path.is_closed && path.start_vertex > 0)
+            //TODO: Optimize finding very close paths using loc_to_line.
+            //TODO: Optionally use combing lengths rather than Euclidean distance.
+            size_t best_candidate = 0;
+            coord_t best_distance2 = std::numeric_limits<coord_t>::max();
+            for(size_t candidate_path_index = 0; candidate_path_index < paths.size(); ++candidate_path_index)
             {
-                path.backwards = true;
+                if(picked[candidate_path_index])
+                {
+                    continue; //Already taken.
+                }
+                if(vertices_per_path[candidate_path_index].empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
+                {
+                    if(best_distance2 == std::numeric_limits<coord_t>::max())
+                    {
+                        best_candidate = candidate_path_index;
+                    }
+                    continue;
+                }
+
+                Path& path = paths[candidate_path_index];
+                if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
+                {
+                    path.start_vertex = findStartLocation(vertices_per_path[candidate_path_index], seam_config.pos, path.is_closed);
+                }
+                if(!path.is_closed && path.start_vertex > 0) //Open polylines start at vertex 0 or vertex N-1. Indicate that they are backwards if they start at N-1.
+                {
+                    path.backwards = true;
+                }
+                const coord_t distance2 = vSize2(vertices_per_path[candidate_path_index][path.start_vertex] - current_position);
+                if(distance2 < best_distance2) //Closer than the best candidate so far.
+                {
+                    best_candidate = candidate_path_index;
+                    best_distance2 = distance2;
+                }
             }
-            optimized_order.push_back(paths[optimized_order.size()]); //TODO: Choose the best path to insert next.
+
+            optimized_order.push_back(paths[best_candidate]);
+            picked[best_candidate] = true;
+            current_position = vertices_per_path[best_candidate][paths[best_candidate].start_vertex];
         }
         std::swap(optimized_order, paths); //Apply the optimized order to the output field.
     }
@@ -346,15 +383,18 @@ protected:
      */
     size_t findStartLocation(ConstPolygonRef vertices, const Point& target_pos, const bool is_closed) const
     {
+        std::cout << "-------------- Finding start location... Polygon size: " << vertices.size() << std::endl;
         if(!is_closed)
         {
             //For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
             if(vSize2(vertices.back() - target_pos) > vSize2(vertices.front() - target_pos))
             {
+                std::cout << "------------------ Start location is back end." << std::endl;
                 return vertices.size() - 1; //Back end is closer.
             }
             else
             {
+                std::cout << "------------- Start location is front end." << std::endl;
                 return 0; //Front end is closer.
             }
         }
@@ -363,7 +403,9 @@ protected:
 
         if(seam_config.type == EZSeamType::RANDOM)
         {
-            return getRandomPointInPolygon(vertices);
+            size_t vert = getRandomPointInPolygon(vertices);
+            std::cout << "-------------------- Random start location! " << vert << std::endl;
+            return vert;
         }
 
         size_t best_index = 0;
@@ -432,7 +474,8 @@ protected:
             }
             previous = here;
         }
-        
+
+        std::cout << "---------------- best index is found to be: " << best_index << std::endl;
         return best_index;
     }
 
