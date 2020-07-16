@@ -315,9 +315,19 @@ public:
                 }
             }
 
-            optimized_order.push_back(paths[best_candidate]);
+            Path& best_path = paths[best_candidate];
+            optimized_order.push_back(best_path);
             picked[best_candidate] = true;
-            current_position = vertices_per_path[best_candidate][paths[best_candidate].start_vertex];
+
+            if(best_path.is_closed)
+            {
+                current_position = vertices_per_path[best_candidate][best_path.start_vertex]; //We end where we started.
+            }
+            else
+            {
+                //Pick the other end from where we started.
+                current_position = best_path.start_vertex == 0 ? vertices_per_path[best_candidate][vertices_per_path[best_candidate].size() - 1] : vertices_per_path[best_candidate][0];
+            }
         }
         std::swap(optimized_order, paths); //Apply the optimized order to the output field.
     }
@@ -383,18 +393,15 @@ protected:
      */
     size_t findStartLocation(ConstPolygonRef vertices, const Point& target_pos, const bool is_closed) const
     {
-        std::cout << "-------------- Finding start location... Polygon size: " << vertices.size() << std::endl;
         if(!is_closed)
         {
             //For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
             if(vSize2(vertices.back() - target_pos) > vSize2(vertices.front() - target_pos))
             {
-                std::cout << "------------------ Start location is back end." << std::endl;
                 return vertices.size() - 1; //Back end is closer.
             }
             else
             {
-                std::cout << "------------- Start location is front end." << std::endl;
                 return 0; //Front end is closer.
             }
         }
@@ -404,7 +411,6 @@ protected:
         if(seam_config.type == EZSeamType::RANDOM)
         {
             size_t vert = getRandomPointInPolygon(vertices);
-            std::cout << "-------------------- Random start location! " << vert << std::endl;
             return vert;
         }
 
@@ -475,7 +481,6 @@ protected:
             previous = here;
         }
 
-        std::cout << "---------------- best index is found to be: " << best_index << std::endl;
         return best_index;
     }
 
