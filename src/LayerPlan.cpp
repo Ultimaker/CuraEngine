@@ -929,15 +929,16 @@ void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_id
 
     ExtrusionJunction p0 = wall[start_idx];
 
+    const int direction = is_reversed ? -1 : 1;
     const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
     for(size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
-        const ExtrusionJunction& p1 = wall[(start_idx + point_idx) % wall.size()];
+        const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
         const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0.p, p1.p) : flow_ratio;
 
         if (!bridge_wall_mask.empty())
         {
-            computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
+            computeDistanceToBridgeStart((wall.size() + start_idx + point_idx * direction - 1) % wall.size());
         }
 
         if (flow >= wall_min_flow)
