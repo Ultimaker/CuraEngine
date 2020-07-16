@@ -245,11 +245,41 @@ public:
             return;
         }
 
+        //For every input path, get the vertices of that path so that we don't need to re-compute them often.
+        std::vector<ConstPolygonRef> vertices_per_path;
+        for(const Path& path : paths)
+        {
+            vertices_per_path.push_back(getVertexData(path.vertices));
+        }
+
+        //For some Z seam types the start position can be pre-computed.
+        //This is faster since we don't need to re-compute the start position at each step then.
+        const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
+        if(precompute_start)
+        {
+            for(size_t i = 0; i < paths.size(); ++i)
+            {
+                Path& path = paths[i];
+                if(!path.is_closed)
+                {
+                    continue; //Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
+                }
+                path.start_vertex = findStartLocation(vertices_per_path[i], seam_config.pos, path.is_closed);
+            }
+        }
+
         Point current_position = start_point;
         std::vector<Path> optimized_order; //To store our result in. At the end we'll std::swap.
         optimized_order.reserve(paths.size());
         while(optimized_order.size() < paths.size())
         {
+            //TODO: The following is just debugging code that sets the start vertex and backwards properties of paths. It's not correct.
+            Path& path = paths[optimized_order.size()];
+            path.start_vertex = findStartLocation(getVertexData(path.vertices), seam_config.pos, path.is_closed);
+            if(!path.is_closed && path.start_vertex > 0)
+            {
+                path.backwards = true;
+            }
             optimized_order.push_back(paths[optimized_order.size()]); //TODO: Choose the best path to insert next.
         }
         std::swap(optimized_order, paths); //Apply the optimized order to the output field.
