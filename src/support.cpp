@@ -779,7 +779,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
 
 void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
-    if (!mesh.settings.get<bool>("support_enable") && !mesh.settings.get<bool>("support_tree_enable") && !mesh.settings.get<bool>("support_mesh"))
+    if (!mesh.settings.get<bool>("support_enable") && !mesh.settings.get<bool>("support_mesh"))
     {
         return;
     }
@@ -841,8 +841,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 {
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
 
+    const ESupportStructure support_structure = mesh.settings.get<ESupportStructure>("support_structure");
     const bool is_support_mesh_place_holder = mesh.settings.get<bool>("support_mesh"); // whether this mesh has empty SliceMeshStorage and this function is now called to only generate support for all support meshes
-    if (!mesh.settings.get<bool>("support_enable") && !is_support_mesh_place_holder)
+    if ((!mesh.settings.get<bool>("support_enable") || support_structure != ESupportStructure::NORMAL) && !is_support_mesh_place_holder)
     {
         return;
     }

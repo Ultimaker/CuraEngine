@@ -342,7 +342,7 @@ unsigned int FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
     size_t start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::NONE)
     {
-        if ((mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable")) && mesh_group_settings.get<bool>("support_brim_enable"))
+        if (mesh_group_settings.get<bool>("support_enable") && mesh_group_settings.get<bool>("support_brim_enable"))
         {
             start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
         }
@@ -1791,7 +1791,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             // if support is enabled, add the support outlines also so we don't generate bridges over support
 
             const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-            if (mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable"))
+            if (mesh_group_settings.get<bool>("support_enable"))
             {
                 const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
                 const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
@@ -2196,7 +2196,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     int support_layer_nr = -1;
     const SupportLayer* support_layer = nullptr;
 
-    if (mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable"))
+    if (mesh_group_settings.get<bool>("support_enable"))
     {
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");

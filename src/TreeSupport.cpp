@@ -44,13 +44,17 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
-    const bool global_use_tree_support = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("support_tree_enable");
+    const Settings& group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const bool global_use_tree_support =
+        group_settings.get<bool>("support_enable")&&
+        group_settings.get<ESupportStructure>("support_structure") == ESupportStructure::TREE;
 
     if (!(global_use_tree_support || 
           std::any_of(storage.meshes.cbegin(),
                       storage.meshes.cend(),
                       [](const SliceMeshStorage& m) { 
-                          return m.settings.get<bool>("support_tree_enable");
+                          return m.settings.get<bool>("support_enable") &&
+                                 m.settings.get<ESupportStructure>("support_structure") == ESupportStructure::TREE;
                       })))
     {
         return;
@@ -59,7 +63,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     std::vector<std::unordered_set<Node*>> contact_nodes(storage.support.supportLayers.size()); //Generate empty layers to store the points in.
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        if (mesh.settings.get<bool>("support_tree_enable"))
+        if (mesh.settings.get<ESupportStructure>("support_structure") == ESupportStructure::TREE)
         {
             generateContactPoints(mesh, contact_nodes);
         }
