@@ -242,6 +242,7 @@ set(engine_TEST
     InfillTest
     LayerPlanTest
     MergeInfillLinesTest
+	PathOrderOptimizerTest
     TimeEstimateCalculatorTest
 )
 set(engine_TEST_INFILL
