@@ -890,6 +890,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     double retraction_diff_e_amount = old_retraction_e_amount - new_retraction_e_amount;
     if (std::abs(retraction_diff_e_amount) < 0.000001)
     {
+        writeComment("Retraction skipped - too small");
         return;
     }
 
@@ -904,11 +905,13 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         }
         if (!force && config.retraction_count_max <= 0)
         {
+            writeComment("Retraction cancelled - retraction max <= 0");
             return;
         }
         if (!force && extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max
             && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config.retraction_extrusion_window * extr_attr.filament_area) 
         {
+            writeComment("Retraction cancelled - retraction max exceeded");
             return;
         }
         extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
