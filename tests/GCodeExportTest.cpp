@@ -448,7 +448,7 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
     EXPECT_CALL(*mock_communication, sendCurrentPosition(testing::_));
     gcode.switchExtruder(1, no_retraction);
 
-    EXPECT_EQ(std::string("G92 E0\n;FIRST EXTRUDER END G-CODE!\nT1\nG92 E0\n;SECOND EXTRUDER START G-CODE!\n"), output.str());
+    EXPECT_EQ(std::string("G92 E0\n;FIRST EXTRUDER END G-CODE!\n; Retraction skipped - too small\nT1\nG92 E0\n;SECOND EXTRUDER START G-CODE!\n"), output.str());
 }
 
 TEST_F(GCodeExportTest, WriteZHopStartZero)
