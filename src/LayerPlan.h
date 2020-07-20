@@ -513,6 +513,7 @@ public:
      * Add polygon to the gcode starting at vertex \p startIdx
      * \param polygon The polygon
      * \param startIdx The index of the starting vertex of the \p polygon
+     * \param backwards Print this polygon in reverse direction.
      * \param config The config with which to print the polygon lines
      * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
      * \param wall_0_wipe_dist The distance to travel along the polygon after it has been laid down, in order to wipe the start and end of the wall together
@@ -520,7 +521,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygon(ConstPolygonRef polygon, int startIdx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, const Ratio& flow_ratio = 1.0_r, bool always_retract = false);
+    void addPolygon(ConstPolygonRef polygon, int startIdx, const bool reverse, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, const Ratio& flow_ratio = 1.0_r, bool always_retract = false);
 
     /*!
      * Add polygons to the gcode with optimized order.

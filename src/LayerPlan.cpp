@@ -535,30 +535,31 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFi
     last_planned_position = p;
 }
 
-void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, const Ratio& flow_ratio, bool always_retract)
+void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const bool backwards, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, const Ratio& flow_ratio, bool always_retract)
 {
     Point p0 = polygon[start_idx];
     addTravel(p0, always_retract);
-    for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
+    const int direction = backwards ? -1 : 1;
+    for(size_t point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
-        Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
+        Point p1 = polygon[(start_idx + point_idx * direction + polygon.size()) % polygon.size()];
         const Ratio flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
         p0 = p1;
     }
-    if (polygon.size() > 2)
+    if(polygon.size() > 2)
     {
         const Point& p1 = polygon[start_idx];
         const Ratio flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
 
-        if (wall_0_wipe_dist > 0)
+        if(wall_0_wipe_dist > 0)
         { // apply outer wall wipe
             p0 = polygon[start_idx];
             int distance_traversed = 0;
-            for (unsigned int point_idx = 1; ; point_idx++)
+            for(size_t point_idx = 1; ; point_idx++)
             {
-                Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
+                Point p1 = polygon[(start_idx + point_idx * direction + polygon.size()) % polygon.size()];
                 int p0p1_dist = vSize(p1 - p0);
                 if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
                 {
@@ -600,7 +601,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
         {
-            addPolygon(*path.vertices, path.start_vertex, config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
     else
@@ -608,7 +609,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
         for(int index = orderOptimizer.paths.size() - 1; index >= 0; --index)
         {
             const PathOrderOptimizer<ConstPolygonRef>::Path& path = orderOptimizer.paths[index];
-            addPolygon(*path.vertices, path.start_vertex, config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
 }
