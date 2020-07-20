@@ -32,7 +32,7 @@ public:
      * Precompute the octree of subdivided cubes
      * \param mesh contains infill layer data and settings
      */
-    static void precomputeOctree(SliceMeshStorage& mesh);
+    static void precomputeOctree(SliceMeshStorage& mesh, const Point& infill_origin);
 
     /*!
      * Generates the lines of subdivision of the specific cube at the specific layer. It recursively calls itself, so it ends up drawing all the subdivision lines of sub-cubes too.

@@ -39,6 +39,10 @@ class SlicePhaseTest : public testing::Test
         scene.settings.add("meshfix_maximum_deviation", "0.02");
         scene.settings.add("xy_offset", "0");
         scene.settings.add("xy_offset_layer_0", "0");
+        scene.settings.add("support_mesh", "false");
+        scene.settings.add("anti_overhang_mesh", "false");
+        scene.settings.add("cutting_mesh", "false");
+        scene.settings.add("infill_mesh", "false");
     }
 };
 

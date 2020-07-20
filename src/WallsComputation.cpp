@@ -5,6 +5,7 @@
 #include "sliceDataStorage.h"
 #include "WallsComputation.h"
 #include "settings/types/Ratio.h"
+#include "settings/EnumSettings.h"
 #include "utils/polygonUtils.h"
 
 namespace cura {
@@ -52,7 +53,9 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
     }
 
-    const bool recompute_outline_based_on_outer_wall = (settings.get<bool>("support_enable") || settings.get<bool>("support_tree_enable")) && !settings.get<bool>("fill_outline_gaps");
+    const bool recompute_outline_based_on_outer_wall =
+        settings.get<bool>("support_enable") &&
+        !settings.get<bool>("fill_outline_gaps");
     for(size_t i = 0; i < inset_count; i++)
     {
         part->insets.push_back(Polygons());

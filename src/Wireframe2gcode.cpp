@@ -515,7 +515,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode)
     update_extrusion_offset = false;
 
     nozzle_outer_diameter = scene_settings.get<coord_t>("machine_nozzle_tip_outer_diameter");    // ___       ___   .
-    nozzle_head_distance = scene_settings.get<coord_t>("machine_nozzle_head_distance");          //    |     |      .
+	                                                                                             //    \     /      .
     nozzle_expansion_angle = scene_settings.get<AngleRadians>("machine_nozzle_expansion_angle"); //     \_U_/       .
     nozzle_clearance = scene_settings.get<coord_t>("wireframe_nozzle_clearance");    // at least line width
     nozzle_top_diameter = tan(nozzle_expansion_angle) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;

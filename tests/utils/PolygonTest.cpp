@@ -5,6 +5,8 @@
 #include <gmock/gmock.h>
 
 #include <../src/utils/polygon.h> //The class under test.
+#include <../src/utils/polygonUtils.h> // helper functions
+#include <../src/utils/SVG.h> // helper functions
 
 namespace cura
 {
@@ -20,6 +22,8 @@ public:
     Polygon clockwise_small;
     Polygons clockwise_donut;
     Polygon line;
+    
+    static constexpr bool visualize = false;
 
     void SetUp()
     {
@@ -246,17 +250,29 @@ TEST_F(PolygonTest, simplifyZigzag)
     constexpr coord_t segment_length = 1000;
     const coord_t y_increment = segment_length / std::sqrt(2);
     coord_t x = y_increment / 2;
+    size_t zigzag_count = 100;
 
-    for (size_t i = 0; i < 100; i++)
+    for (size_t i = 0; i < zigzag_count; i++)
     {
         zigzag.add(Point(x, i * y_increment));
         x = 0 - x;
     }
 
-    constexpr coord_t maximum_error = 2 * segment_length * segment_length + 100; //Squared offset from baseline (and some margin for rounding).
-    zigzag_polygons.simplify(segment_length + 10, maximum_error);
+    Polygon zigzag_before = zigzag;
 
-    ASSERT_LE(zigzag.size(), 5) << "Zigzag should be removed since the total error compensates with each zag.";
+    // we make the smallest_line_segment just smaller than the line from the start to the second to last point
+    // so that we ensure the polygon does not get removed altogether
+    zigzag_polygons.simplify(y_increment * (zigzag_count - 2) - 100, y_increment);
+
+    if (visualize)
+    {
+        SVG svg("output/simplifyZigzag.svg", AABB(zigzag_before));
+        svg.writePolygon(zigzag_before);
+        svg.nextLayer();
+        svg.writePolygon(zigzag, SVG::Color::RED);
+    }
+    
+    EXPECT_THAT(zigzag.size(), testing::AllOf(testing::Ge(3), testing::Le(5))) << "All but the last zigzag should be removed.";
 }
 
 TEST_F(PolygonTest, simplifyLimitedLength)
@@ -287,14 +303,19 @@ TEST_F(PolygonTest, simplifyLimitedLength)
 
 TEST_F(PolygonTest, simplifyLimitedError)
 {
-    //Generate a square spiral with increasingly large corners until the area exceeds the limit.
+    // Generate a large polygon with a small region with arbitrary simplifiable geometry
+    // We choose a spiral for that arbitrary geometry
+    
+    //Generate a square spiral with increasingly large corners
     Polygons spiral_polygons;
     PolygonRef spiral = spiral_polygons.newPoly();
-    spiral.add(Point());
+    spiral.emplace_back(-15000, 11000); // introduce points that may never be simplified so that we know the simplification should start at 0,0
+    spiral.emplace_back(-15000, 1000);
+    spiral.emplace_back(0, 0);
 
     //Generate a square spiral, 90 degree corners to make it easy to compute the area loss while retaining a positive area per corner.
     coord_t segment_length = 1000;
-    Point last_position;
+    Point last_position(0, 0);
     double angle = 0;
     for (size_t i = 0; i < 10; i++)
     {
@@ -305,18 +326,263 @@ TEST_F(PolygonTest, simplifyLimitedError)
         segment_length += 100;
         angle += M_PI / 2;
     }
+    Polygon spiral_before = spiral;
 
-    //We want it to not merge the lines 1400 and 1500 any more, but do merge all lines before it.
-    //Take the area of the 1400 by 1500 and plug it into the formula for the height to get at the baseline height, which is our allowed error.
-    constexpr coord_t area = 1400 * 1500 / 2;
-    const coord_t diagonal_length = std::sqrt(1400 * 1400 + 1500 * 1500); //Pythagoras.
-    //A = 0.5 * b * h. diagonal_length is the base line in this case.
-    //2A = b * h
-    //2A / b = h
-    const coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
-    spiral_polygons.simplify(999999999, height - 10);
+    coord_t max_height = segment_length * std::sqrt(2.0); // the diameter of the circle along the diagonal
 
-    EXPECT_THAT(spiral.size(), testing::AllOf(testing::Ge(11 - 5), testing::Le(11 - 4))) << "Should merge segments of length 1000 through 1400 and (optionally) first with last.";
+    for (size_t i = 0; i < spiral_before.size(); ++i)
+    {
+        // apply simplify iteratively for each point until nothing is simplifiable any more
+        spiral_polygons.simplify(10000, max_height);
+    }
+
+    EXPECT_THAT(spiral.size(), testing::Eq(4)) << "Should simplify all spiral points except those connected to far away geometry.";
+}
+
+
+TEST_F(PolygonTest, simplifyIncreasingLimitedError)
+{
+    // Generate a zigzag with bends in the outer ends with increasing height
+    //   _   /\                        .
+    //  | | | |
+    //  | | | |
+    //  | | | |
+    //  | | | |
+    //     v   \/
+    
+    Polygons zigzag_polygons;
+    PolygonRef zigzag = zigzag_polygons.newPoly();
+    
+    constexpr coord_t non_simplifiable_bound = 10000;
+    constexpr coord_t max_height = 562;
+    
+    coord_t long_segment = non_simplifiable_bound + 100;
+    
+    constexpr coord_t width = 1000;
+    
+    zigzag.emplace_back(0, 0);
+
+    size_t simplifiable_bend_count = 0;
+    
+    for (coord_t height = 100; height < 1000 || (height == 1000 && long_segment < 0); height += 25)
+    {
+        Point last_position = zigzag.back();
+        zigzag.emplace_back(last_position + Point(width / 2, height));
+        zigzag.emplace_back(last_position + Point(width, 0));
+        zigzag.emplace_back(last_position + Point(width, long_segment));
+        long_segment *= -1;
+        if (height < max_height)
+        {
+            simplifiable_bend_count++;
+        }
+    }
+    zigzag.emplace_back(zigzag.back() + Point(-non_simplifiable_bound, -non_simplifiable_bound)); // complete polygon with a point which enforces non-simplification to both its segments
+
+    Polygon zigzag_before = zigzag;
+
+    zigzag_polygons.simplify(non_simplifiable_bound, max_height);
+
+    if (visualize)
+    {
+        SVG svg("output/simplifyIncreasingLimitedError.svg", AABB(zigzag_before));
+        svg.writePolygon(zigzag_before);
+        svg.nextLayer();
+        svg.writePolygon(zigzag, SVG::Color::RED);
+    }
+    EXPECT_THAT(zigzag.size(), testing::Eq(zigzag_before.size() - simplifiable_bend_count)) << "Should simplify bends with height 100 up to 500";
+}
+
+
+TEST_F(PolygonTest, simplifySineLimitedError)
+{
+    // Generate a straight line with sinusoidal errors which should be simplified back into a more straight line
+    
+    // Hypothetically simplify() might replace each half period of the sine with a straight segment,
+    // but because simplify() is heuristic it introduces more segments.
+    // The function signature doesn't provide any guarantee about how much simplification will occur,
+    // but in practice it should at least simplify up to double the minimal segment count.
+    
+    Polygons sine_polygons;
+    PolygonRef sine = sine_polygons.newPoly();
+    
+    constexpr coord_t length = 10000;
+    constexpr coord_t deviation = 500;
+    constexpr size_t bulge_count = 5;
+    
+    sine.emplace_back(length, 0);
+    sine.emplace_back(length, length);
+    sine.emplace_back(0, length);
+    sine.emplace_back(0, 0);
+
+    for (coord_t x = 100; x < length; x += 100)
+    {
+        sine.emplace_back(x, std::sin(INT2MM(x) / INT2MM(length) * M_PI * bulge_count ) * deviation);
+    }
+    Polygon sine_before = sine;
+
+    sine_polygons.simplify(length / 2, 2 * deviation);
+    if (visualize)
+    {
+        SVG svg("output/simplifySineLimitedError.svg", AABB(sine_before));
+        svg.writePolygon(sine_before);
+        svg.nextLayer();
+        svg.writePolygon(sine, SVG::Color::RED);
+    }
+    const size_t max_simplified_sine_segments = bulge_count * 2; // * 2 because simplify() is not precise and might not optimally simplify
+    EXPECT_THAT(sine.size(), testing::AllOf(testing::Ge(4), testing::Le(4 + max_simplified_sine_segments))) << "Should simplify each outward and each inward bulge.";
+}
+
+TEST_F(PolygonTest, simplifySineHighPoly)
+{
+    // Generate a straight line with sinusoidal errors which should be simplified back into a more straight line
+    
+    // Hypothetically simplify() might replace each half period of the sine with a straight segment,
+    // but because simplify() is heuristic it introduces more segments.
+    // The function signature doesn't provide any guarantee about how much simplification will occur,
+    // but in practice it should at least simplify up to double the minimal segment count.
+    
+    Polygons sine_polygons;
+    PolygonRef sine = sine_polygons.newPoly();
+    
+    constexpr coord_t length = 1000;
+    constexpr coord_t deviation = 100;
+    constexpr size_t bulge_count = 17;
+    constexpr coord_t allowed_simplification_height = 30;
+    constexpr coord_t allowed_segment_length = 100;
+    
+    sine.emplace_back(length, 0);
+    sine.emplace_back(length, length);
+    sine.emplace_back(0, length);
+    sine.emplace_back(0, 0);
+
+    for (coord_t x = 1; x < length; x += 1)
+    {
+        coord_t y = std::sin(INT2MM(x) / INT2MM(length) * M_PI * bulge_count) * deviation;
+        if ( ! sine.empty())
+        {
+            coord_t y_mid = (y + sine.back().Y) / 2;
+            if (y_mid != y && y_mid != sine.back().Y
+                && sine.back().X == x - 1
+            )
+            {
+                sine.emplace_back(x, y_mid);
+            }
+        }
+        sine.emplace_back(x, y);
+        if (x % (allowed_segment_length * 3) == 0) x += allowed_segment_length + 5;
+    }
+    Polygon sine_before = sine;
+
+    sine_polygons.simplify(allowed_segment_length, allowed_simplification_height);
+    
+    // find largest height deviation
+    coord_t largest_dist = 0;
+    for (Point from : sine_before)
+    {
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(from, sine_polygons);
+        coord_t dist_between_polys = vSize(from - cpp.p());
+        largest_dist = std::max(largest_dist, dist_between_polys);
+    }
+    if (visualize)
+    {
+        SVG svg("output/simplifySineHighPoly.svg", AABB(sine_before));
+        svg.writePolygon(sine_before);
+        svg.nextLayer();
+        svg.writePolygon(sine, SVG::Color::RED);
+    }
+    EXPECT_THAT( largest_dist, testing::Le(allowed_simplification_height + 10)) << "Shouldn't exceed maximum error distance";
+}
+
+TEST_F(PolygonTest, simplifyCircleLimitedError)
+{
+    //Generate a circle with increasing resolution
+    Polygons circle_polygons;
+    PolygonRef circle = circle_polygons.newPoly();
+
+    coord_t radius = 20000;
+    coord_t segment_length = 100;
+    for (double angle = 0; angle < 2 * M_PI; )
+    {
+        const coord_t dx = std::cos(angle) * radius;
+        const coord_t dy = std::sin(angle) * radius;
+        Point new_point(dx, dy);
+        assert(circle.empty() || std::abs( vSize(circle.back() - new_point) - segment_length) < 10); // we should now add a segment of the prescribed length
+        circle.add(new_point);
+        segment_length += 100;
+        angle += 2.0 * std::asin(0.5 * INT2MM(segment_length) / INT2MM(radius));
+    }
+
+    Polygon circle_before = circle;
+
+    coord_t allowed_simplification_height = 1000;
+    Polygons circle_polygons_before = circle_polygons;
+    
+    circle_polygons.simplify(9999999, allowed_simplification_height);
+
+    // find largest height deviation
+    coord_t largest_dist = 0;
+    for (Point from : circle_before)
+    {
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(from, circle_polygons);
+        coord_t dist_between_polys = vSize(from - cpp.p());
+        largest_dist = std::max(largest_dist, dist_between_polys);
+    }
+    if (visualize)
+    {
+        SVG svg("output/simplifyCircleLimitedError.svg", AABB(circle_before));
+        svg.writePolygon(circle_before);
+        svg.nextLayer();
+        svg.writePolygon(circle, SVG::Color::RED);
+    }
+    EXPECT_THAT( largest_dist, testing::Le(allowed_simplification_height + 10)) << "Shouldn't exceed maximum error distance";
+}
+
+TEST_F(PolygonTest, simplifyCircleHighPoly)
+{
+    //Generate a circle with extremely high point count, such that all segments are within rounding distance 
+    Polygons circle_polygons;
+    PolygonRef circle = circle_polygons.newPoly();
+
+    coord_t radius = 2000;
+    coord_t segment_length = 1;
+    coord_t allowed_simplification_height = 50;
+
+    for (double angle = 0; angle < 2 * M_PI; )
+    {
+        const coord_t x = std::cos(angle) * radius;
+        const coord_t y = std::sin(angle) * radius;
+        Point new_point(x, y);
+        circle.add(new_point);
+        coord_t segment_length_here = segment_length;
+        if ( (x + y) % 5 == 0 )
+        {
+            segment_length_here = 500;
+        }
+        angle += 2.0 * std::asin(0.5 * INT2MM(segment_length_here) / INT2MM(radius));
+    }
+
+    Polygon circle_before = circle;
+
+    Polygons circle_polygons_before = circle_polygons;
+    
+    circle_polygons.simplify(9999999, allowed_simplification_height);
+
+    // find largest height deviation
+    coord_t largest_dist = 0;
+    for (Point from : circle_before)
+    {
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(from, circle_polygons);
+        coord_t dist_between_polys = vSize(from - cpp.p());
+        largest_dist = std::max(largest_dist, dist_between_polys);
+    }
+    if (visualize)
+    {
+        SVG svg("output/simplifyCircleHighPoly.svg", AABB(circle_before));
+        svg.writePolygon(circle_before);
+        svg.nextLayer();
+        svg.writePolygon(circle, SVG::Color::RED);
+    }
+    EXPECT_THAT( largest_dist, testing::Le(allowed_simplification_height + 5)) << "Shouldn't exceed maximum error distance";
 }
 
 TEST_F(PolygonTest, simplifyColinear)
@@ -331,20 +597,44 @@ TEST_F(PolygonTest, simplifyColinear)
     }
     colinear.add(Point(spacing * 9, 0)); //Make it a triangle so that the area is not 0 or anything.
 
+    Polygon colinear_before = colinear;
+
     colinear_polygons.simplify(20, 20); //Regardless of parameters, it should always remove vertices with less than 5 micron deviation.
-    ASSERT_EQ(colinear_polygons[0].size(), 3) << "Only the first vertex of the colinear segments, the last vertex of the colinear segments, and the extra triangle vertex should remain.";
-    size_t start_point = 0;
-    for(; start_point < 3; start_point++) //Find where in the new polygon it starts with (-1, -1).
+    if (visualize)
     {
-        if(colinear_polygons[0][start_point] == Point(-1, -1))
-        {
-            break;
-        }
+        SVG svg("output/simplifyColinear.svg", AABB(colinear_before));
+        svg.writePolygon(colinear_before);
+        svg.nextLayer();
+        svg.writePolygon(colinear, SVG::Color::RED);
     }
-    ASSERT_LT(start_point, 3) << "The starting point (-1, -1) must be in the resulting polygon somewhere. Doesn't matter where.";
-    EXPECT_EQ(colinear_polygons[0][start_point], Point(-1, -1));
-    EXPECT_EQ(colinear_polygons[0][(start_point + 1) % 3], Point(spacing * 9, spacing * 9));
-    EXPECT_EQ(colinear_polygons[0][(start_point + 2) % 3], Point(spacing * 9, 0));
+    ASSERT_EQ(colinear_polygons.size(), 1) << "Polygon shouldn't have gotten removed altogether";
+    ASSERT_LE(colinear_polygons[0].size(), 8) << "At least half of the colinear points should have been removed";
+}
+
+TEST_F(PolygonTest, simplifyDegenerateVertex)
+{
+    //Generate a line with several vertices halfway.
+    constexpr coord_t spacing = 100;
+    Polygons colinear_polygons;
+    PolygonRef colinear = colinear_polygons.newPoly();
+    colinear.emplace_back(0, 0);
+    colinear.emplace_back(spacing, 0);
+    colinear.emplace_back(spacing, spacing);
+    colinear.emplace_back(0, spacing);
+    colinear.emplace_back(0, -spacing); // degenerate vertex
+    
+    Polygon colinear_before = colinear;
+
+    colinear_polygons.simplify(20, 5); //Regardless of parameters, it should always remove the one vertex
+    if (visualize)
+    {
+        SVG svg("output/simplifyDegenerateVertex.svg", AABB(colinear_before));
+        svg.writePolygon(colinear_before);
+        svg.nextLayer();
+        svg.writePolygon(colinear, SVG::Color::RED);
+    }
+    ASSERT_EQ(colinear_polygons.size(), 1) << "Polygon shouldn't have gotten removed altogether";
+    ASSERT_EQ(colinear_polygons[0].size(), 4) << "The one colinear vertex should have gotten removed.";
 }
 
 /*

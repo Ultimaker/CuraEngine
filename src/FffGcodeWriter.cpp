@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
@@ -17,7 +17,6 @@
 #include "Slice.h"
 #include "wallOverlap.h"
 #include "communication/Communication.h" //To send layer view data.
-#include "infill/SpaghettiInfillPathGenerator.h"
 #include "progress/Progress.h"
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
@@ -343,7 +342,7 @@ unsigned int FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
     size_t start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::NONE)
     {
-        if ((mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable")) && mesh_group_settings.get<bool>("support_brim_enable"))
+        if (mesh_group_settings.get<bool>("support_enable") && mesh_group_settings.get<bool>("support_brim_enable"))
         {
             start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
         }
@@ -631,7 +630,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0") != 0)
     {
-        constexpr bool wait = true;
+        const bool wait = mesh_group_settings.get<bool>("material_bed_temp_wait");
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0"), wait);
     }
 
@@ -1008,9 +1007,9 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         return;
     }
-    const Polygons& skirt_brim = storage.skirt_brim[extruder_nr];
+    const Polygons& original_skirt_brim = storage.skirt_brim[extruder_nr];
     gcode_layer.setSkirtBrimIsPlanned(extruder_nr);
-    if (skirt_brim.size() == 0)
+    if (original_skirt_brim.size() == 0)
     {
         return;
     }
@@ -1027,7 +1026,33 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
-    
+
+    Polygons first_skirt_brim;
+    Polygons skirt_brim;
+    // Plan parts that need to be printed first: for example, skirt needs to be printed before support-brim.
+    for (size_t i_part = 0; i_part < original_skirt_brim.size(); ++i_part)
+    {
+        if (i_part < storage.skirt_brim_max_locked_part_order[extruder_nr])
+        {
+            first_skirt_brim.add(original_skirt_brim[i_part]);
+        }
+        else
+        {
+            skirt_brim.add(original_skirt_brim[i_part]);
+        }
+    }
+
+    if (!first_skirt_brim.empty())
+    {
+        gcode_layer.addTravel(first_skirt_brim.back().closestPointTo(start_close_to));
+        gcode_layer.addPolygonsByOptimizer(first_skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+    }
+
+    if (skirt_brim.empty())
+    {
+        return;
+    }
+
     if (train.settings.get<bool>("brim_outside_only"))
     {
         gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
@@ -1048,16 +1073,23 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
                 inner_brim.add(polygon);
             }
         }
-        gcode_layer.addTravel(outer_brim.back().closestPointTo(start_close_to));
-        gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
-        
-        //Add polygon in reverse order
-        const coord_t wall_0_wipe_dist = 0;
-        const bool spiralize = false;
-        const float flow_ratio = 1.0;
-        const bool always_retract = false;
-        const bool reverse_order = true;
-        gcode_layer.addPolygonsByOptimizer(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], nullptr, ZSeamConfig(), wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_order);
+
+        if (! outer_brim.empty())
+        {
+            gcode_layer.addTravel(outer_brim.back().closestPointTo(start_close_to));
+            gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+        }
+
+        if (! inner_brim.empty())
+        {
+            //Add polygon in reverse order
+            const coord_t wall_0_wipe_dist = 0;
+            const bool spiralize = false;
+            const float flow_ratio = 1.0;
+            const bool always_retract = false;
+            const bool reverse_order = true;
+            gcode_layer.addPolygonsByOptimizer(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], nullptr, ZSeamConfig(), wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_order);
+        }
     }
 }
 
@@ -1366,16 +1398,9 @@ bool FffGcodeWriter::processInfill(const SliceDataStorage& storage, LayerPlan& g
     {
         return false;
     }
-    if (mesh.settings.get<bool>("spaghetti_infill_enabled"))
-    {
-        return SpaghettiInfillPathGenerator::processSpaghettiInfill(storage, *this, gcode_layer, mesh, extruder_nr, mesh_config, part);
-    }
-    else
-    {
-        bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
-        added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
-        return added_something;
-    }
+    bool added_something = processMultiLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+    added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+    return added_something;
 }
 
 bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const
@@ -1631,18 +1656,26 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
+        std::optional<Point> near_start_location;
+        if (mesh.settings.get<bool>("infill_randomize_start_location"))
+        {
+            srand(gcode_layer.getLayerNr());
+            if(!infill_lines.empty())
+            {
+                near_start_location = infill_lines[rand() % infill_lines.size()][0];
+            }
+            else
+            {
+                PolygonRef start_poly = infill_polygons[rand() % infill_polygons.size()];
+                near_start_location = start_poly[rand() % start_poly.size()];
+            }
+        }
         if (!infill_polygons.empty())
         {
             constexpr bool force_comb_retract = false;
             // start the infill polygons at the nearest vertex to the current location
             gcode_layer.addTravel(PolygonUtils::findNearestVert(gcode_layer.getLastPlannedPositionOrStartingPosition(), infill_polygons).p(), force_comb_retract);
-            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0]);
-        }
-        std::optional<Point> near_start_location;
-        if (mesh.settings.get<bool>("infill_randomize_start_location"))
-        {
-            srand(gcode_layer.getLayerNr());
-            near_start_location = infill_lines[rand() % infill_lines.size()][0];
+            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], nullptr, ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
         }
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
@@ -1758,7 +1791,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             // if support is enabled, add the support outlines also so we don't generate bridges over support
 
             const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-            if (mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable"))
+            if (mesh_group_settings.get<bool>("support_enable"))
             {
                 const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
                 const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
@@ -2163,7 +2196,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     int support_layer_nr = -1;
     const SupportLayer* support_layer = nullptr;
 
-    if (mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_tree_enable"))
+    if (mesh_group_settings.get<bool>("support_enable"))
     {
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");

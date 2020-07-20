@@ -462,6 +462,13 @@ public:
      * 
      * Removes verts which are connected to line segments which are both too small.
      * Removes verts which detour from a direct line from the previous and next vert by a too small amount.
+     *
+     * Criteria:
+     * 1. Never remove a vertex if either of the connceted segments is larger than \p smallest_line_segment
+     * 2. Never remove a vertex if the distance between that vertex and the final resulting polygon would be higher than \p allowed_error_distance
+     * 3. Simplify uses a heuristic and doesn't neccesarily remove all removable vertices under the above criteria.
+     * 4. But simplify may never violate these criteria.
+     * 5. Unless the segments or the distance is smaller than the rounding error of 5 micron
      * 
      * \param smallest_line_segment_squared maximal squared length of removed line segments
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
@@ -914,6 +921,13 @@ public:
      * than the `smallest_line_segment`, unless that would introduce a deviation
      * in the contour of more than `allowed_error_distance`.
      *
+     * Criteria:
+     * 1. Never remove a vertex if either of the connceted segments is larger than \p smallest_line_segment
+     * 2. Never remove a vertex if the distance between that vertex and the final resulting polygon would be higher than \p allowed_error_distance
+     * 3. Simplify uses a heuristic and doesn't neccesarily remove all removable vertices under the above criteria.
+     * 4. But simplify may never violate these criteria.
+     * 5. Unless the segments or the distance is smaller than the rounding error of 5 micron
+     * 
      * Vertices which introduce an error of less than 5 microns are removed
      * anyway, even if the segments are longer than the smallest line segment.
      * This makes sure that (practically) colinear line segments are joined into
@@ -963,6 +977,15 @@ public:
      * Each PolygonsPart in the result has an outline as first polygon, whereas the rest are holes.
      */
     std::vector<PolygonsPart> splitIntoParts(bool unionAll = false) const;
+
+    /*!
+     * Utility method for creating the tube (or 'donut') of a shape.
+     * \param inner_offset Offset relative to the original shape-outline towards the inside of the shape. Sort-of like a negative normal offset, except it's the offset part that's kept, not the shape.
+     * \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset.
+     * \return The resulting polygons.
+     */
+    Polygons tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+
 private:
     /*!
      * recursive part of \ref Polygons::removeEmptyHoles and \ref Polygons::getEmptyHoles

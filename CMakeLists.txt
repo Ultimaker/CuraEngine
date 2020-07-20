@@ -18,7 +18,7 @@ if(ENABLE_ARCUS)
     # We want to have access to protobuf_generate_cpp and other FindProtobuf features.
     # However, if ProtobufConfig is used instead, there is a CMake option that controls
     # this, which defaults to OFF. We need to force this option to ON instead.
-    set(protobuf_MODULE_COMPATIBLE ON CACHE "" INTERNAL FORCE)
+    set(protobuf_MODULE_COMPATIBLE ON CACHE INTERNAL "" FORCE)
     find_package(Protobuf 3.0.0 REQUIRED)
     find_package(Arcus REQUIRED)
     add_definitions(-DARCUS)
@@ -44,9 +44,9 @@ if(CMAKE_BUILD_TYPE)
 endif()
 
 if(CMAKE_BUILD_TYPE_UPPER MATCHES "DEBUG")
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_DEBUG_INIT})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG_INIT}")
 else()
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_RELEASE_INIT})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE_INIT}")
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
@@ -195,8 +195,6 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessor.cpp
     src/infill/SierpinskiFill.cpp
     src/infill/SierpinskiFillProvider.cpp
-    src/infill/SpaghettiInfill.cpp
-    src/infill/SpaghettiInfillPathGenerator.cpp
     src/infill/SubDivCube.cpp
     src/infill/GyroidInfill.cpp
 

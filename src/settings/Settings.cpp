@@ -78,6 +78,11 @@ template<> size_t Settings::get<size_t>(const std::string& key) const
     return std::stoul(get<std::string>(key).c_str());
 }
 
+template<> int Settings::get<int>(const std::string& key) const
+{
+    return atoi(get<std::string>(key).c_str());
+}
+
 template<> bool Settings::get<bool>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
@@ -376,6 +381,24 @@ template<> ESupportType Settings::get<ESupportType>(const std::string& key) cons
         return ESupportType::NONE;
     }
 }
+
+template<> ESupportStructure Settings::get<ESupportStructure>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "normal")
+    {
+        return ESupportStructure::NORMAL;
+    }
+    else if (value == "tree")
+    {
+        return ESupportStructure::TREE;
+    }
+    else //Default.
+    {
+        return ESupportStructure::NORMAL;
+    }
+}
+
 
 template<> EZSeamType Settings::get<EZSeamType>(const std::string& key) const
 {

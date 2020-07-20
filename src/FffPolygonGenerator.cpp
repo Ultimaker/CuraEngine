@@ -32,7 +32,6 @@
 #include "infill/DensityProvider.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/SierpinskiFillProvider.h"
-#include "infill/SpaghettiInfill.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
@@ -309,7 +308,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         std::multimap<int, size_t> order_to_mesh_indices;
         for (size_t mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
         {
-            order_to_mesh_indices.emplace(storage.meshes[mesh_idx].settings.get<size_t>("infill_mesh_order"), mesh_idx);
+            order_to_mesh_indices.emplace(storage.meshes[mesh_idx].settings.get<int>("infill_mesh_order"), mesh_idx);
         }
         for (std::pair<const int, size_t>& order_and_mesh_idx : order_to_mesh_indices)
         {
@@ -722,48 +721,42 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
 
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 {
-    // generate spaghetti infill filling areas and volumes
-    if (mesh.settings.get<bool>("spaghetti_infill_enabled"))
-    {
-        SpaghettiInfill::generateSpaghettiInfill(mesh);
+    if (mesh.settings.get<bool>("infill_support_enabled"))
+    {// create gradual infill areas
+        SkinInfillAreaComputation::generateInfillSupport(mesh);
     }
-    else
+
+    // create gradual infill areas
+    SkinInfillAreaComputation::generateGradualInfill(mesh);
+
+    //SubDivCube Pre-compute Octree
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0
+        && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
     {
-        if (mesh.settings.get<bool>("infill_support_enabled"))
-        {// create gradual infill areas
-            SkinInfillAreaComputation::generateInfillSupport(mesh);
-        }
+        const Point3 mesh_middle = mesh.bounding_box.getMiddle();
+        const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
+        SubDivCube::precomputeOctree(mesh, infill_origin);
+    }
 
-        // create gradual infill areas
-        SkinInfillAreaComputation::generateGradualInfill(mesh);
-
-        //SubDivCube Pre-compute Octree
-        if (mesh.settings.get<coord_t>("infill_line_distance") > 0
-            && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
+    // Pre-compute Cross Fractal
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0
+        && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS
+            || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D)
+    )
+    {
+        const std::string cross_subdivision_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
+        std::ifstream cross_fs(cross_subdivision_spec_image_file.c_str());
+        if (!cross_subdivision_spec_image_file.empty() && cross_fs.good())
         {
-            SubDivCube::precomputeOctree(mesh);
+            mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"), cross_subdivision_spec_image_file);
         }
-
-        // Pre-compute Cross Fractal
-        if (mesh.settings.get<coord_t>("infill_line_distance") > 0
-            && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS
-                || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D)
-        )
+        else
         {
-            const std::string cross_subdisivion_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
-            std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
-            if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
+            if (!cross_subdivision_spec_image_file.empty() && cross_subdivision_spec_image_file != " ")
             {
-                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"), cross_subdisivion_spec_image_file);
+                logError("Cannot find density image \'%s\'.", cross_subdivision_spec_image_file.c_str());
             }
-            else
-            {
-                if (cross_subdisivion_spec_image_file != "" && cross_subdisivion_spec_image_file != " ")
-                {
-                    logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
-                }
-                mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
-            }
+            mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
         }
 
         // combine infill
@@ -1029,21 +1022,27 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
     Polygons first_layer_outline;
     coord_t primary_line_count;
-    //If brim for prime tower is used, add the brim for prime tower separately.
-    //Since FffGCodeWriter assumes that the outermost contour is last, add this first. Keep it ordered!
-    bool should_brim_prime_tower = storage.primeTower.enabled && mesh_group_settings.get<bool>("prime_tower_brim_enable");
-    if (should_brim_prime_tower)
+
+    EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
+
+    if (adhesion_type == EPlatformAdhesion::SKIRT)
+    {
+        primary_line_count = train.settings.get<size_t>("skirt_line_count");
+        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, true, first_layer_outline);
+        SkirtBrim::generate(storage, first_layer_outline, train.settings.get<coord_t>("skirt_gap"), primary_line_count);
+    }
+
+    // Generate any brim for the prime tower, should happen _after_ any skirt, but _before_ any other brim (since FffGCodeWriter assumes that the outermost contour is last).
+    if (adhesion_type != EPlatformAdhesion::RAFT && storage.primeTower.enabled && mesh_group_settings.get<bool>("prime_tower_brim_enable"))
     {
         constexpr bool dont_allow_helpers = false;
         SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"), dont_allow_helpers);
     }
 
-    switch(mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
+    switch(adhesion_type)
     {
     case EPlatformAdhesion::SKIRT:
-        primary_line_count = train.settings.get<size_t>("skirt_line_count");
-        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, true, first_layer_outline);
-        SkirtBrim::generate(storage, first_layer_outline, train.settings.get<coord_t>("skirt_gap"), primary_line_count);
+        // Already done, because of prime-tower-brim & ordering, see above.
         break;
     case EPlatformAdhesion::BRIM:
         primary_line_count = train.settings.get<size_t>("brim_line_count");
@@ -1052,7 +1051,6 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         break;
     case EPlatformAdhesion::RAFT:
         Raft::generate(storage);
-        should_brim_prime_tower = false;
         break;
     case EPlatformAdhesion::NONE:
         if (mesh_group_settings.get<bool>("support_brim_enable"))
