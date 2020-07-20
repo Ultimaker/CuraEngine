@@ -396,7 +396,7 @@ protected:
         if(!is_closed)
         {
             //For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
-            if(vSize2(vertices.back() - target_pos) > vSize2(vertices.front() - target_pos))
+            if(vSize2(vertices.back() - target_pos) < vSize2(vertices.front() - target_pos))
             {
                 return vertices.size() - 1; //Back end is closer.
             }
