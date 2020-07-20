@@ -301,7 +301,7 @@ public:
                 Path& path = paths[candidate_path_index];
                 if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
                 {
-                    path.start_vertex = findStartLocation(vertices_per_path[candidate_path_index], seam_config.pos, path.is_closed);
+                    path.start_vertex = findStartLocation(vertices_per_path[candidate_path_index], current_position, path.is_closed);
                 }
                 if(!path.is_closed && path.start_vertex > 0) //Open polylines start at vertex 0 or vertex N-1. Indicate that they are backwards if they start at N-1.
                 {
