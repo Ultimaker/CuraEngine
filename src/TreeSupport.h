@@ -307,7 +307,7 @@ private:
      * save the resulting support polygons to.
      * \param contact_nodes The nodes to draw as support.
      */
-    void drawCircles(SliceDataStorage& storage, const std::vector<std::unordered_set<Node*>>& contact_nodes);
+    void drawCircles(SliceDataStorage& storage, const std::vector<std::vector<Node*>>& contact_nodes);
 
     /*!
      * \brief Drops down the nodes of the tree support towards the build plate.
@@ -321,7 +321,7 @@ private:
      * dropped down. The nodes are dropped to lower layers inside the same
      * vector of layers.
      */
-    void dropNodes(std::vector<std::unordered_set<Node*>>& contact_nodes);
+    void dropNodes(std::vector<std::vector<Node*>>& contact_nodes);
 
     /*!
      * \brief Creates points where support contacts the model.
@@ -336,14 +336,14 @@ private:
      * \return For each layer, a list of points where the tree should connect
      * with the model.
      */
-    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::unordered_set<Node*>>& contact_nodes);
+    void generateContactPoints(const SliceMeshStorage& mesh, std::vector<std::vector<Node*>>& contact_nodes);
 
     /*!
      * \brief Add a node to the next layer.
      *
      * If a node is already at that position in the layer, the nodes are merged.
      */
-    void insertDroppedNode(std::unordered_set<Node*>& nodes_layer, Node* node);
+    void insertDroppedNode(std::vector<Node*>& nodes_layer, Node* node);
 };
 
 }

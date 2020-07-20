@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <vector>
 #include <unordered_map>
-#include <unordered_set>
 
 #include "../src/utils/MinimumSpanningTree.h"
 
@@ -36,7 +35,7 @@ namespace cura
                 Point(12, 12),
                 Point(12, 13),
             };
-            std::unordered_set<Point> pts_set(pts.begin(), pts.end());
+            std::vector<Point> pts_set(pts.begin(), pts.end());
             p_mst = new MinimumSpanningTree(pts_set);
         }
 
@@ -52,7 +51,7 @@ namespace cura
 
     TEST(SimpleMinimumSpanningTreeTest, TestConstructEmpty)
     {
-        std::unordered_set<Point> vertices;
+        std::vector<Point> vertices;
         MinimumSpanningTree tree(vertices);
 
         ASSERT_TRUE(tree.leaves().empty()) << "Empty tree should be empty.";
@@ -61,7 +60,7 @@ namespace cura
     TEST(SimpleMinimumSpanningTreeTest, TestConstructOne)
     {
         const Point pt_a(1, 1);
-        std::unordered_set<Point> vertices = { pt_a };
+        std::vector<Point> vertices = { pt_a };
         MinimumSpanningTree tree(vertices);
 
         ASSERT_FALSE(tree.leaves().empty()) << "Tree with one point shouldn't have no vertices.";
@@ -76,7 +75,7 @@ namespace cura
         const Point pt_b(2, 2);
         const Point pt_c(3, 3);
         const Point pt_d(4, 4);
-        std::unordered_set<Point> vertices = { pt_a, pt_b, pt_c, pt_d };
+        std::vector<Point> vertices = { pt_a, pt_b, pt_c, pt_d };
         MinimumSpanningTree tree(vertices);
 
         std::vector<Point> adjacent;
@@ -103,7 +102,7 @@ namespace cura
         const Point pt_b(5, 2);
         const Point pt_c(2, 5);
         const Point pt_d(3, 3);
-        std::unordered_set<Point> vertices = { pt_a, pt_b, pt_c, pt_d };
+        std::vector<Point> vertices = { pt_a, pt_b, pt_c, pt_d };
         MinimumSpanningTree tree(vertices);
 
         std::vector<Point> leaves = tree.leaves();
