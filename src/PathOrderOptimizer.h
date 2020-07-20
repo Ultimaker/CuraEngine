@@ -316,17 +316,18 @@ public:
             }
 
             Path& best_path = paths[best_candidate];
+            ConstPolygonRef& best_path_vertices = vertices_per_path[best_candidate];
             optimized_order.push_back(best_path);
             picked[best_candidate] = true;
 
             if(best_path.is_closed)
             {
-                current_position = vertices_per_path[best_candidate][best_path.start_vertex]; //We end where we started.
+                current_position = best_path_vertices[best_path.start_vertex]; //We end where we started.
             }
             else
             {
                 //Pick the other end from where we started.
-                current_position = best_path.start_vertex == 0 ? vertices_per_path[best_candidate][vertices_per_path[best_candidate].size() - 1] : vertices_per_path[best_candidate][0];
+                current_position = best_path.start_vertex == 0 ? best_path_vertices.back() : best_path_vertices[0];
             }
         }
         std::swap(optimized_order, paths); //Apply the optimized order to the output field.
