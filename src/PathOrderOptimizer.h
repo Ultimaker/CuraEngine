@@ -302,10 +302,10 @@ public:
                 if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
                 {
                     path.start_vertex = findStartLocation(vertices_per_path[candidate_path_index], current_position, path.is_closed);
-                }
-                if(!path.is_closed && path.start_vertex > 0) //Open polylines start at vertex 0 or vertex N-1. Indicate that they are backwards if they start at N-1.
-                {
-                    path.backwards = true;
+                    if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they are backwards if they start at N-1.
+                    {
+                        path.backwards = path.start_vertex > 0;
+                    }
                 }
                 const coord_t distance2 = vSize2(vertices_per_path[candidate_path_index][path.start_vertex] - current_position);
                 if(distance2 < best_distance2) //Closer than the best candidate so far.
