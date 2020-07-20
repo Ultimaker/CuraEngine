@@ -81,7 +81,7 @@ public:
      */
     const Polygons& getPlaceableAreas(coord_t radius, LayerIndex layer_idx) const;
 
-    void precalculateAvoidance(const size_t maxLayer,const coord_t branch_radius, const double scaleFactor ,const coord_t min_max_radius,const double scale_foot ); //__attribute__((optimize("-O3")))
+    void precalculateAvoidance(const size_t max_layer,const coord_t branch_radius, const double scale_factor ,const coord_t min_max_radius,const double scale_foot );
 
     coord_t getMaxMove(){
     	return max_move_;
@@ -419,7 +419,7 @@ public:
     	min_ddt_to_model(round_up_divide(mesh_group_settings.get<coord_t>("support_tree_min_height_to_model"), layer_height)),
     	increase_radius_until_radius(2000),
     	increase_radius_until_layer(increase_radius_until_radius<=branch_radius?tip_layers*(increase_radius_until_radius/branch_radius):(increase_radius_until_radius - branch_radius)/(branch_radius*diameter_angle_scale_factor)),
-		dont_move_until_ddt(round_up_divide(mesh_group_settings.get<coord_t>("support_tree_dont_move_distance"), layer_height)),
+		dont_move_until_ddt(mesh_group_settings.get<bool>("support_roof_enable")? round_up_divide(mesh_group_settings.get<coord_t>("support_roof_height"), layer_height):0),
 		support_rests_on_model(mesh_group_settings.get<ESupportType>("support_type") == ESupportType::EVERYWHERE),
 		xy_distance(mesh_group_settings.get<coord_t>("support_xy_distance")),
 		bp_radius(mesh_group_settings.get<coord_t>("support_tree_bp_radius")),
@@ -454,11 +454,11 @@ public:
 		coord_t support_line_width;
     public:
 
-    	size_t getEffektiveDDT(const TreeSupport::SupportElement& elem) const { // can be bigger if we use bp radius
+    	inline size_t getEffektiveDDT(const TreeSupport::SupportElement& elem) const { // can be bigger if we use bp radius
     		return elem.effective_radius_height<increase_radius_until_layer ? (elem.distance_to_top<increase_radius_until_layer ? elem.distance_to_top : increase_radius_until_layer) : elem.effective_radius_height ;
     	}
 
-    	coord_t getRadius(const size_t distance_to_top,const double elephant_foot_increases=0)const {
+    	inline coord_t getRadius(const size_t distance_to_top,const double elephant_foot_increases=0)const {
 
     		if(distance_to_top==1) // todo integrate properly into formula
     			return support_line_width*1.15/2;
@@ -471,18 +471,18 @@ public:
 					branch_radius * (distance_to_top-tip_layers) * diameter_angle_scale_factor+  // gradual increase
 					branch_radius * elephant_foot_increases * (std::max(diameter_scale_elephant_foot-diameter_angle_scale_factor,0.0));
     	}
-    	coord_t getRadius(const TreeSupport::SupportElement& elem) const {
+    	inline coord_t getRadius(const TreeSupport::SupportElement& elem) const {
 
     		return getRadius(getEffektiveDDT(elem),elem.elephant_foot_increases);
     	}
 
-    	coord_t getCollisionRadius(const TreeSupport::SupportElement& elem) const {
+    	inline coord_t getCollisionRadius(const TreeSupport::SupportElement& elem) const {
 
     		return getRadius(elem.effective_radius_height,elem.elephant_foot_increases);
     	}
 
 
-    	coord_t reccomendedMinRadius(coord_t layer_nr) const {
+    	inline coord_t reccomendedMinRadius(coord_t layer_nr) const {
     		double scale=(layer_start_bp_radius-layer_nr) * diameter_scale_elephant_foot;
     		return scale>0?branch_radius+branch_radius*scale:0;
     	}
@@ -490,7 +490,7 @@ public:
     };
 
 private:
-	enum LineStatus{INVALID,TO_MODEL,TO_MODEL_GRACIOUS,TO_BP};
+	enum LineStatus{INVALID,TO_MODEL,TO_MODEL_GRACIOUS,TO_BP}; //todo class
 	using LineInformation=std::vector<std::pair<Point,TreeSupport::LineStatus>>;
     /*!
      * \brief Generator for model collision, avoidance and internal guide volumes
@@ -499,7 +499,7 @@ private:
      *  \warning This class is NOT currently thread-safe and should not be accessed in OpenMP blocks
      */
     ModelVolumes volumes_;
-    std::vector<Polygons> precalculatedSupportLayers;
+    std::vector<Polygons> precalculated_support_layers;
 
 
     TreeSupportSettings config;
@@ -512,7 +512,7 @@ private:
 
     //generates Points where the Model should be supported and creates the areas where these points have to be placed
 
-    void generateInitalAreas(const SliceMeshStorage &mesh,std::vector<std::map<SupportElement*,Polygons*>>& moveBounds,SliceDataStorage &storage);
+    void generateInitalAreas(const SliceMeshStorage& mesh,std::vector<std::map<SupportElement*,Polygons*>>& move_bounds,SliceDataStorage& storage);
 
     /*!
      * \brief Merges Influence Areas if possible.
@@ -536,8 +536,8 @@ private:
 			std::map<SupportElement,AABB>& input_aabb,
     		const std::unordered_map<SupportElement,Polygons>& main,
     		const std::unordered_map<SupportElement,Polygons>& secondary,
-			std::unordered_map<SupportElement,Polygons>& insertMain,
-			std::unordered_map<SupportElement,Polygons>& insertSecondary,
+			std::unordered_map<SupportElement,Polygons>& insert_main,
+			std::unordered_map<SupportElement,Polygons>& insert_secondary,
     		std::vector<SupportElement>& erase,
     		coord_t layer_nr)const;
     /*!
@@ -552,17 +552,17 @@ private:
      *  Value is the influence area where the center of a circle of support may be placed.
      */
     void mergePolygonsDaQ(std::map<SupportElement,Polygons>& input,std::unordered_map<SupportElement,Polygons>& main,std::unordered_map<SupportElement,Polygons>& secondary,int layer_nr) const;
-    Polygons safeOffsetInc(Polygons& me,coord_t distance,const Polygons& collision,coord_t lastSafeStepSize=0,size_t min_amount_offset=0)const;
+    Polygons safeOffsetInc(Polygons& me,coord_t distance,const Polygons& collision,coord_t last_safe_step_size=0,size_t min_amount_offset=0)const;
 
 
-    void increaseAreas(std::unordered_map<SupportElement,Polygons>& newLayer,std::map<SupportElement,Polygons>& newLayer_merge,std::unordered_map<SupportElement,Polygons>& newLayer_to_model,std::vector<std::pair<SupportElement*,Polygons*>> lstLayer,size_t layer_nr);
-    void createLayerPathing(std::vector<std::map<SupportElement*,Polygons*>>& moveBounds);
+    void increaseAreas(std::unordered_map<SupportElement,Polygons>& new_layer,std::map<SupportElement,Polygons>& new_layer_merge,std::unordered_map<SupportElement,Polygons>& new_layer_to_model,std::vector<std::pair<SupportElement*,Polygons*>> last_layer,size_t layer_nr);
+    void createLayerPathing(std::vector<std::map<SupportElement*,Polygons*>>& move_bounds);
     void setPointsOnAreas(SupportElement* elem, coord_t max_move);
-    bool setToModelContact(std::vector<std::map<SupportElement*,Polygons*>>& moveBounds, SupportElement* firstElem ,const size_t layer_nr);
+    bool setToModelContact(std::vector<std::map<SupportElement*,Polygons*>>& move_bounds, SupportElement* first_elem ,const size_t layer_nr);
 
-    void createNodesFromArea(std::vector<std::map<SupportElement*,Polygons*>>& moveBounds);
+    void createNodesFromArea(std::vector<std::map<SupportElement*,Polygons*>>& move_bounds);
 
-    void drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& moveBounds,SliceDataStorage &storage);
+    void drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& move_bounds,SliceDataStorage& storage);
 
 
 };
