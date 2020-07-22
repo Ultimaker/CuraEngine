@@ -348,7 +348,7 @@ protected:
      * For example, if the ``PathType`` is a list of ``ExtrusionJunction``s,
      * this will store the coordinates of those junctions.
      */
-    std::vector<Polygon> cached_vertices;
+    std::vector<ClipperLib::Path> cached_vertices;
 
     /*!
      * Hash map storing where each line is.

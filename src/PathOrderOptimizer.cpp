@@ -50,10 +50,10 @@ template<>
 ConstPolygonRef PathOrderOptimizer<const std::vector<ExtrusionJunction>*>::getVertexData(const std::vector<ExtrusionJunction>* path)
 {
 	cached_vertices.emplace_back();
-    Polygon& poly = cached_vertices.back();
+    ClipperLib::Path& poly = cached_vertices.back();
     for(const ExtrusionJunction junction : *path)
     {
-        poly.add(junction.p);
+        poly.push_back(junction.p);
     }
     return ConstPolygonRef(poly);
 }
