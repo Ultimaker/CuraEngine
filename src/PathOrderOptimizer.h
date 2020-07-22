@@ -320,14 +320,17 @@ public:
             optimized_order.push_back(best_path);
             picked[best_candidate] = true;
 
-            if(best_path.is_closed)
+            if(!best_path_vertices.empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
             {
-                current_position = best_path_vertices[best_path.start_vertex]; //We end where we started.
-            }
-            else
-            {
-                //Pick the other end from where we started.
-                current_position = best_path.start_vertex == 0 ? best_path_vertices.back() : best_path_vertices[0];
+                if(best_path.is_closed)
+                {
+                    current_position = best_path_vertices[best_path.start_vertex]; //We end where we started.
+                }
+                else
+                {
+                    //Pick the other end from where we started.
+                    current_position = best_path.start_vertex == 0 ? best_path_vertices.back() : best_path_vertices[0];
+                }
             }
         }
         std::swap(optimized_order, paths); //Apply the optimized order to the output field.
