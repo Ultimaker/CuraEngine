@@ -844,6 +844,14 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
     {
         log("Removing %d layers because they are empty\n", n_empty_first_layers);
         const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
+        const coord_t layer_height_0 = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height_0");
+        if (layer_height_0 > layer_height)
+        {
+            // the first layer is thicker than the others so to maintain the correct overall height for the mesh we need to
+            // remove some more layers
+            n_empty_first_layers += std::round((double)layer_height_0 / layer_height) - 1;
+            n_empty_first_layers = std::min(n_empty_first_layers, total_layers);
+        }
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             std::vector<SliceLayer>& layers = mesh.layers;
@@ -857,10 +865,10 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
             {
                 layer.printZ -= n_empty_first_layers * layer_height;
             }
-            mesh.layer_nr_max_filled_layer -= n_empty_first_layers;
+            mesh.layer_nr_max_filled_layer = std::max(0, (int)mesh.layer_nr_max_filled_layer - (int)n_empty_first_layers);
         }
         total_layers -= n_empty_first_layers;
-        storage.support.layer_nr_max_filled_layer -= n_empty_first_layers;
+        storage.support.layer_nr_max_filled_layer = std::max(0, (int)storage.support.layer_nr_max_filled_layer - (int)n_empty_first_layers);
         std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
         support_layers.erase(support_layers.begin(), support_layers.begin() + n_empty_first_layers);
     }
