@@ -134,6 +134,8 @@ protected:
      */
     void generateRoofing(SliceLayerPart& part);
 
+    Polygons generateNoAirAbove(SliceLayerPart& part);
+
     /*!
      * Generate the skin insets and the inner infill area
      * 
