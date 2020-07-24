@@ -232,11 +232,11 @@ public:
     void addPolyline(const PathType& polyline)
     {
         bool is_closed = false;
+        paths.emplace_back(*this, polyline, is_closed);
         if(detect_chains)
         {
-            is_closed = isLoopingPolyline(polyline);
+            is_closed = isLoopingPolyline(paths.back());
         }
-        paths.emplace_back(*this, polyline, is_closed);
     }
 
     /*!
@@ -495,14 +495,13 @@ protected:
         return rand() % polygon.size();
     }
 
-    bool isLoopingPolyline(const PathType& path)
+    bool isLoopingPolyline(const Path& path)
     {
-        ConstPolygonRef vertices = getVertexData(path);
-        if(vertices.empty())
+        if(path.converted.empty())
         {
             return false;
         }
-        return vSize2(vertices.back() - vertices[0]) < coincident_point_distance * coincident_point_distance;
+        return vSize2(path.converted.back() - path.converted[0]) < coincident_point_distance * coincident_point_distance;
     }
 
     /*!
