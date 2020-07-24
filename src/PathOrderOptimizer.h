@@ -112,8 +112,9 @@ public:
         /*!
          * Construct a new path.
          */
-        Path(const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
+        Path(PathOrderOptimizer<PathType>& optimizer, const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
         : vertices(vertices)
+        , converted(optimizer.getVertexData(vertices))
         , start_vertex(start_vertex)
         , is_closed(is_closed)
         , backwards(backwards)
@@ -124,6 +125,12 @@ public:
          * The vertex data of the path.
          */
         const PathType vertices;
+
+        /*!
+         * Vertex data, converted into a ConstPolygonRef so that the optimizer
+         * knows how to deal with this data.
+         */
+        const ConstPolygonRef converted;
 
         /*!
          * Which vertex along the path to start printing with.
@@ -215,7 +222,7 @@ public:
     void addPolygon(const PathType& polygon)
     {
         constexpr bool is_closed = true;
-        paths.emplace_back(polygon, is_closed);
+        paths.emplace_back(*this, polygon, is_closed);
     }
 
     /*!
@@ -229,7 +236,7 @@ public:
         {
             is_closed = isLoopingPolyline(polyline);
         }
-        paths.emplace_back(polyline, is_closed);
+        paths.emplace_back(*this, polyline, is_closed);
     }
 
     /*!
@@ -245,31 +252,22 @@ public:
             return;
         }
 
-        //For every input path, get the vertices of that path so that we don't need to re-compute them often.
-        std::vector<ConstPolygonRef> vertices_per_path;
-        vertices_per_path.reserve(paths.size());
-        for(const Path& path : paths)
-        {
-            vertices_per_path.push_back(getVertexData(path.vertices));
-        }
-
         //For some Z seam types the start position can be pre-computed.
         //This is faster since we don't need to re-compute the start position at each step then.
         const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
         if(precompute_start)
         {
-            for(size_t i = 0; i < paths.size(); ++i)
+            for(Path& path : paths)
             {
-                Path& path = paths[i];
                 if(!path.is_closed)
                 {
                     continue; //Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
                 }
-                if(vertices_per_path[i].empty())
+                if(path.converted.empty())
                 {
                     continue;
                 }
-                path.start_vertex = findStartLocation(vertices_per_path[i], seam_config.pos, path.is_closed);
+                path.start_vertex = findStartLocation(path.converted, seam_config.pos, path.is_closed);
             }
         }
 
@@ -289,7 +287,8 @@ public:
                 {
                     continue; //Already taken.
                 }
-                if(vertices_per_path[candidate_path_index].empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
+                Path& path = paths[candidate_path_index];
+                if(path.converted.empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
                 {
                     if(best_distance2 == std::numeric_limits<coord_t>::max())
                     {
@@ -298,16 +297,15 @@ public:
                     continue;
                 }
 
-                Path& path = paths[candidate_path_index];
                 if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
                 {
-                    path.start_vertex = findStartLocation(vertices_per_path[candidate_path_index], current_position, path.is_closed);
+                    path.start_vertex = findStartLocation(path.converted, current_position, path.is_closed);
                     if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they are backwards if they start at N-1.
                     {
                         path.backwards = path.start_vertex > 0;
                     }
                 }
-                const coord_t distance2 = vSize2(vertices_per_path[candidate_path_index][path.start_vertex] - current_position);
+                const coord_t distance2 = vSize2(path.converted[path.start_vertex] - current_position);
                 if(distance2 < best_distance2) //Closer than the best candidate so far.
                 {
                     best_candidate = candidate_path_index;
@@ -316,20 +314,19 @@ public:
             }
 
             Path& best_path = paths[best_candidate];
-            ConstPolygonRef& best_path_vertices = vertices_per_path[best_candidate];
             optimized_order.push_back(best_path);
             picked[best_candidate] = true;
 
-            if(!best_path_vertices.empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
+            if(!best_path.converted.empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
             {
                 if(best_path.is_closed)
                 {
-                    current_position = best_path_vertices[best_path.start_vertex]; //We end where we started.
+                    current_position = best_path.converted[best_path.start_vertex]; //We end where we started.
                 }
                 else
                 {
                     //Pick the other end from where we started.
-                    current_position = best_path.start_vertex == 0 ? best_path_vertices.back() : best_path_vertices[0];
+                    current_position = best_path.start_vertex == 0 ? best_path.converted.back() : best_path.converted[0];
                 }
             }
         }
@@ -351,7 +348,7 @@ protected:
      * For example, if the ``PathType`` is a list of ``ExtrusionJunction``s,
      * this will store the coordinates of those junctions.
      */
-    std::vector<ClipperLib::Path> cached_vertices;
+    std::vector<Polygon> cached_vertices;
 
     /*!
      * Hash map storing where each line is.
