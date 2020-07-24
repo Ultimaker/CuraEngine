@@ -127,14 +127,29 @@ protected:
     void generateInfill(SliceLayerPart& part, const Polygons& skin);
 
     /*!
-     * Calculate the areas which are 'directly' under air,
-     * remove them from the \ref SkinPart::inner_infill and save them in the \ref SkinPart::roofing_fill of the \p part
+     * Remove the areas which are 'directly' under air from the \ref SkinPart::inner_infill and 
+     * save them in the \ref SkinPart::roofing_fill of the \p part.
      * 
      * \param[in,out] part Where to get the sSkinParts to get the outline info from and to store the roofing areas
      */
     void generateRoofing(SliceLayerPart& part);
 
+    /*!
+     * Helper function to calculate and return the areas which are 'directly' under air.
+     *
+     * \param part Where to get the sSkinParts to get the outline info from
+     */
     Polygons generateNoAirAbove(SliceLayerPart& part);
+
+    /*!
+     * Helper function to recalculate the roofing fill and inner infill in roofing layers where the 
+     * insets have to be changed.
+     *
+     * \param part Where to get the sSkinParts to get the outline info from
+     * \param skin_part The part where the skin outline information (input) is stored and
+     * where the inner infill and roofing infill areas (output) is stored.
+     */
+    void regenerateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part);
 
     /*!
      * Generate the skin insets and the inner infill area
