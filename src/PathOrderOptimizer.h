@@ -244,14 +244,20 @@ public:
             path.converted = getVertexData(path.vertices);
         }
 
-        //If we want to detect chains, first check if some of the polylines are secretly polygons.
+        SparsePointGridInclusive<size_t> line_bucket_grid(2000); //Grid size of 2mm. TODO: Optimize for performance; smaller grid size yields fewer false positives, but uses more memory.
         if(detect_chains)
         {
-            for(Path& path : paths)
+            for(size_t i = 0; i < paths.size(); ++i)
             {
+                Path& path = paths[i];
                 if(!path.is_closed)
                 {
-                    path.is_closed = isLoopingPolyline(path);
+                    //If we want to detect chains, first check if some of the polylines are secretly polygons.
+                    path.is_closed = isLoopingPolyline(path); //If it is, we'll set the seam position correctly.
+
+                    //Add both endpoints to a bucket grid so that we can find nearby endpoints quickly.
+                    line_bucket_grid.insert(path.converted->front(), i); //Store by index so that we can also mark them down in the `picked` vector.
+                    line_bucket_grid.insert(path.converted->back(), i);
                 }
             }
         }
