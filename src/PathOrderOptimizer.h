@@ -401,7 +401,7 @@ protected:
         if(!path.is_closed)
         {
             //For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
-            if(vSize2(path.converted->back() - target_pos) < vSize2(path.converted->front() - target_pos))
+            if(getDistance(path.converted->back(), target_pos) < getDistance(path.converted->front(), target_pos))
             {
                 return path.converted->size() - 1; //Back end is closer.
             }
@@ -429,7 +429,7 @@ protected:
 
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
-            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : vSize(here - target_pos);
+            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : getDistance(here, target_pos) / 1000000;
             const float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) / M_PI - 1; //Between -1 and 1.
 
             float score;
@@ -474,7 +474,7 @@ protected:
                 if((seam_config.corner_pref == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER && corner_angle <= 0)
                 || (seam_config.corner_pref == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER && corner_angle >= 0))
                 {
-                    score += 1000000; //1 meter penalty.
+                    score += 1000; //1 meter penalty.
                 }
             }
 
@@ -487,6 +487,24 @@ protected:
         }
 
         return best_index;
+    }
+
+    /*!
+     * Calculate the distance from one point to another.
+     *
+     * The distance is allowed to be weighted. It doesn't necessarily have to be
+     * a real Euclidean distance or even a combing distance. It merely needs to
+     * indicate the fitness-cost of moving from one place to another.
+     *
+     * The distance is expected to be commutative however. That means that
+     * ``getDistance(a, b) == getDistance(b, a)``.
+     * \param a One point, to compute distance to \ref b.
+     * \param b Another point, to compute distance to \ref a.
+     * \return The distance between the two points.
+     */
+    coord_t getDistance(const Point& a, const Point& b) const
+    {
+        return vSize2(a - b);
     }
 
     /*!
