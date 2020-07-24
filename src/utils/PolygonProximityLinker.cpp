@@ -447,7 +447,7 @@ void PolygonProximityLinker::addToPoint2LinkMap(Point p, ProximityPointLinks::it
 
 void PolygonProximityLinker::proximity2HTML(const char* filename) const
 {
-    PolygonProximityLinker copy = *this; // copy, cause getFlow might change the state of the overlap computation!
+    PolygonProximityLinker copy = *this;
 
     AABB aabb(copy.polygons);
 

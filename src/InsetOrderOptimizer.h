@@ -12,7 +12,6 @@ namespace cura
 
 class FffGcodeWriter;
 class LayerPlan;
-class WallOverlapComputation;
 
 class InsetOrderOptimizer
 {
@@ -58,8 +57,6 @@ private:
     const ZSeamConfig z_seam_config;
     bool added_something;
     bool retraction_region_calculated; //Whether the retraction_region field has been calculated or not.
-    WallOverlapComputation* wall_overlapper_0;
-    WallOverlapComputation* wall_overlapper_x;
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
     Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
 
