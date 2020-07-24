@@ -111,10 +111,13 @@ public:
     {
         /*!
          * Construct a new path.
+         *
+         * The \ref converted field is not initialized yet. This can only be
+         * done after all of the input paths have been added, to prevent
+         * invalidating the pointer.
          */
-        Path(PathOrderOptimizer<PathType>& optimizer, const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
+        Path(const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
         : vertices(vertices)
-        , converted(optimizer.getVertexData(vertices))
         , start_vertex(start_vertex)
         , is_closed(is_closed)
         , backwards(backwards)
@@ -127,10 +130,10 @@ public:
         PathType vertices;
 
         /*!
-         * Vertex data, converted into a ConstPolygonRef so that the optimizer
-         * knows how to deal with this data.
+         * Vertex data, converted into a Polygon so that the optimizer knows
+         * how to deal with this data.
          */
-        ConstPolygonRef converted;
+        ConstPolygonPointer converted;
 
         /*!
          * Which vertex along the path to start printing with.
@@ -208,7 +211,7 @@ public:
     void addPolygon(const PathType& polygon)
     {
         constexpr bool is_closed = true;
-        paths.emplace_back(*this, polygon, is_closed);
+        paths.emplace_back(polygon, is_closed);
     }
 
     /*!
@@ -217,12 +220,8 @@ public:
      */
     void addPolyline(const PathType& polyline)
     {
-        bool is_closed = false;
-        paths.emplace_back(*this, polyline, is_closed);
-        if(detect_chains)
-        {
-            is_closed = isLoopingPolyline(paths.back());
-        }
+        constexpr bool is_closed = false;
+        paths.emplace_back(polyline, is_closed);
     }
 
     /*!
@@ -238,6 +237,25 @@ public:
             return;
         }
 
+        //Get the vertex data and store it in the paths.
+        cached_vertices.reserve(paths.size()); //Prevent pointer invalidation.
+        for(Path& path : paths)
+        {
+            path.converted = getVertexData(path.vertices);
+        }
+
+        //If we want to detect chains, first check if some of the polylines are secretly polygons.
+        if(detect_chains)
+        {
+            for(Path& path : paths)
+            {
+                if(!path.is_closed)
+                {
+                    path.is_closed = isLoopingPolyline(path);
+                }
+            }
+        }
+
         //For some Z seam types the start position can be pre-computed.
         //This is faster since we don't need to re-compute the start position at each step then.
         const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
@@ -249,7 +267,7 @@ public:
                 {
                     continue; //Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
                 }
-                if(path.converted.empty())
+                if(path.converted->empty())
                 {
                     continue;
                 }
@@ -274,7 +292,7 @@ public:
                     continue; //Already taken.
                 }
                 Path& path = paths[candidate_path_index];
-                if(path.converted.empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
+                if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
                 {
                     if(best_distance2 == std::numeric_limits<coord_t>::max())
                     {
@@ -291,7 +309,7 @@ public:
                         path.backwards = path.start_vertex > 0;
                     }
                 }
-                const coord_t distance2 = vSize2(path.converted[path.start_vertex] - current_position);
+                const coord_t distance2 = vSize2((*path.converted)[path.start_vertex] - current_position);
                 if(distance2 < best_distance2) //Closer than the best candidate so far.
                 {
                     best_candidate = candidate_path_index;
@@ -303,16 +321,16 @@ public:
             optimized_order.push_back(best_path);
             picked[best_candidate] = true;
 
-            if(!best_path.converted.empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
+            if(!best_path.converted->empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
             {
                 if(best_path.is_closed)
                 {
-                    current_position = best_path.converted[best_path.start_vertex]; //We end where we started.
+                    current_position = (*best_path.converted)[best_path.start_vertex]; //We end where we started.
                 }
                 else
                 {
                     //Pick the other end from where we started.
-                    current_position = best_path.start_vertex == 0 ? best_path.converted.back() : best_path.converted[0];
+                    current_position = best_path.start_vertex == 0 ? best_path.converted->back() : best_path.converted->front();
                 }
             }
         }
@@ -383,9 +401,9 @@ protected:
         if(!path.is_closed)
         {
             //For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
-            if(vSize2(path.converted.back() - target_pos) < vSize2(path.converted.front() - target_pos))
+            if(vSize2(path.converted->back() - target_pos) < vSize2(path.converted->front() - target_pos))
             {
-                return path.converted.size() - 1; //Back end is closer.
+                return path.converted->size() - 1; //Back end is closer.
             }
             else
             {
@@ -397,17 +415,17 @@ protected:
 
         if(seam_config.type == EZSeamType::RANDOM)
         {
-            size_t vert = getRandomPointInPolygon(path.converted);
+            size_t vert = getRandomPointInPolygon(*path.converted);
             return vert;
         }
 
         size_t best_index = 0;
         float best_score = std::numeric_limits<float>::infinity();
-        Point previous = path.converted.back();
-        for(size_t i = 0; i < path.converted.size(); ++i)
+        Point previous = path.converted->back();
+        for(size_t i = 0; i < path.converted->size(); ++i)
         {
-            const Point& here = path.converted[i];
-            const Point& next = path.converted[(i + 1) % path.converted.size()];
+            const Point& here = (*path.converted)[i];
+            const Point& next = (*path.converted)[(i + 1) % path.converted->size()];
 
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
@@ -483,11 +501,11 @@ protected:
 
     bool isLoopingPolyline(const Path& path)
     {
-        if(path.converted.empty())
+        if(path.converted->empty())
         {
             return false;
         }
-        return vSize2(path.converted.back() - path.converted[0]) < coincident_point_distance * coincident_point_distance;
+        return vSize2(path.converted->back() - path.converted->front()) < coincident_point_distance * coincident_point_distance;
     }
 
     /*!
