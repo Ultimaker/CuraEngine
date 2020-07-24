@@ -254,10 +254,12 @@ public:
                 {
                     //If we want to detect chains, first check if some of the polylines are secretly polygons.
                     path.is_closed = isLoopingPolyline(path); //If it is, we'll set the seam position correctly.
+                }
 
-                    //Add both endpoints to a bucket grid so that we can find nearby endpoints quickly.
-                    line_bucket_grid.insert(path.converted->front(), i); //Store by index so that we can also mark them down in the `picked` vector.
-                    line_bucket_grid.insert(path.converted->back(), i);
+                //Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
+                for(const Point& point : *path.converted)
+                {
+                    line_bucket_grid.insert(point, i); //Store by index so that we can also mark them down in the `picked` vector.
                 }
             }
         }
@@ -287,16 +289,36 @@ public:
         optimized_order.reserve(paths.size());
         while(optimized_order.size() < paths.size())
         {
-            //TODO: Optimize finding very close paths using loc_to_line.
             //TODO: Optionally use combing lengths rather than Euclidean distance.
             size_t best_candidate = 0;
             coord_t best_distance2 = std::numeric_limits<coord_t>::max();
-            for(size_t candidate_path_index = 0; candidate_path_index < paths.size(); ++candidate_path_index)
+
+            //First see if we already know about some nearby paths due to the line bucket grid.
+            std::vector<size_t> nearby_candidates = line_bucket_grid.getNearbyVals(current_position, 10);
+            std::vector<size_t> available_candidates;
+            available_candidates.reserve(nearby_candidates.size());
+            for(const size_t candidate : nearby_candidates)
             {
-                if(picked[candidate_path_index])
+                if(picked[candidate])
                 {
-                    continue; //Already taken.
+                    continue; //Not a valid candidate.
                 }
+                available_candidates.push_back(candidate);
+            }
+            if(available_candidates.empty()) //We may need to broaden our search through all candidates then.
+            {
+                for(size_t candidate = 0; candidate < paths.size(); ++candidate)
+                {
+                    if(picked[candidate])
+                    {
+                        continue; //Not a valid candidate.
+                    }
+                    available_candidates.push_back(candidate);
+                }
+            }
+
+            for(const size_t candidate_path_index : available_candidates)
+            {
                 Path& path = paths[candidate_path_index];
                 if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
                 {
