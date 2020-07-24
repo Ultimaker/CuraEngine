@@ -124,13 +124,13 @@ public:
         /*!
          * The vertex data of the path.
          */
-        const PathType vertices;
+        PathType vertices;
 
         /*!
          * Vertex data, converted into a ConstPolygonRef so that the optimizer
          * knows how to deal with this data.
          */
-        const ConstPolygonRef converted;
+        ConstPolygonRef converted;
 
         /*!
          * Which vertex along the path to start printing with.
@@ -155,20 +155,6 @@ public:
          * backwards direction, if the last vertex is closer than the first.
          */
         bool backwards;
-
-        /*!
-         * Swap position with another path.
-         *
-         * This is required in order to use std::swap on the paths, or to use
-         * algorithms like std::reverse.
-         */
-        void swap(Path& other)
-        {
-            std::swap(vertices, other.vertices);
-            std::swap(start_vertex, other.start_vertex);
-            std::swap(is_closed, other.is_closed);
-            std::swap(backwards, other.backwards);
-        }
     };
 
     /*!
@@ -267,7 +253,7 @@ public:
                 {
                     continue;
                 }
-                path.start_vertex = findStartLocation(path.converted, seam_config.pos, path.is_closed);
+                path.start_vertex = findStartLocation(path, seam_config.pos);
             }
         }
 
@@ -299,7 +285,7 @@ public:
 
                 if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
                 {
-                    path.start_vertex = findStartLocation(path.converted, current_position, path.is_closed);
+                    path.start_vertex = findStartLocation(path, current_position);
                     if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they are backwards if they start at N-1.
                     {
                         path.backwards = path.start_vertex > 0;
@@ -392,14 +378,14 @@ protected:
      * endpoints rather than 
      * \return An index to a vertex in that path where printing must start.
      */
-    size_t findStartLocation(ConstPolygonRef vertices, const Point& target_pos, const bool is_closed) const
+    size_t findStartLocation(const Path& path, const Point& target_pos) const
     {
-        if(!is_closed)
+        if(!path.is_closed)
         {
             //For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
-            if(vSize2(vertices.back() - target_pos) < vSize2(vertices.front() - target_pos))
+            if(vSize2(path.converted.back() - target_pos) < vSize2(path.converted.front() - target_pos))
             {
-                return vertices.size() - 1; //Back end is closer.
+                return path.converted.size() - 1; //Back end is closer.
             }
             else
             {
@@ -411,17 +397,17 @@ protected:
 
         if(seam_config.type == EZSeamType::RANDOM)
         {
-            size_t vert = getRandomPointInPolygon(vertices);
+            size_t vert = getRandomPointInPolygon(path.converted);
             return vert;
         }
 
         size_t best_index = 0;
         float best_score = std::numeric_limits<float>::infinity();
-        Point previous = vertices.back();
-        for(size_t i = 0; i < vertices.size(); ++i)
+        Point previous = path.converted.back();
+        for(size_t i = 0; i < path.converted.size(); ++i)
         {
-            const Point& here = vertices[i];
-            const Point& next = vertices[(i + 1) % vertices.size()];
+            const Point& here = path.converted[i];
+            const Point& next = path.converted[(i + 1) % path.converted.size()];
 
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
@@ -490,7 +476,7 @@ protected:
      * \param polygon A polygon to get a random vertex of.
      * \return A random index in that polygon.
      */
-    size_t getRandomPointInPolygon(ConstPolygonRef polygon) const
+    size_t getRandomPointInPolygon(ConstPolygonRef const& polygon) const
     {
         return rand() % polygon.size();
     }
