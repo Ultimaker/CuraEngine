@@ -194,16 +194,6 @@ public:
             path.converted = getVertexData(path.vertices);
         }
 
-        //Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
-        SparsePointGridInclusive<size_t> line_bucket_grid(2000); //Grid size of 2mm. TODO: Optimize for performance; smaller grid size yields fewer false positives, but uses more memory.
-        for(size_t i = 0; i < paths.size(); ++i)
-        {
-            for(const Point& point : *(paths[i].converted))
-            {
-                line_bucket_grid.insert(point, i); //Store by index so that we can also mark them down in the `picked` vector.
-            }
-        }
-
         //If necessary, check polylines to see if they are actually polygons.
         if(detect_loops)
         {
@@ -214,6 +204,25 @@ public:
                     //If we want to detect chains, first check if some of the polylines are secretly polygons.
                     path.is_closed = isLoopingPolyline(path); //If it is, we'll set the seam position correctly later.
                 }
+            }
+        }
+
+        //Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
+        SparsePointGridInclusive<size_t> line_bucket_grid(2000); //Grid size of 2mm. TODO: Optimize for performance; smaller grid size yields fewer false positives, but uses more memory.
+        for(size_t i = 0; i < paths.size(); ++i)
+        {
+            const Path& path = paths[i];
+            if(path.is_closed)
+            {
+                for(const Point& point : *path.converted)
+                {
+                    line_bucket_grid.insert(point, i); //Store by index so that we can also mark them down in the `picked` vector.
+                }
+            }
+            else //For polylines, only insert the endpoints. Those are the only places we can start from so the only relevant vertices to be near to.
+            {
+                line_bucket_grid.insert(path.converted->front(), i);
+                line_bucket_grid.insert(path.converted->back(), i);
             }
         }
 
