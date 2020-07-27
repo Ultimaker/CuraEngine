@@ -139,19 +139,18 @@ public:
      * \param start_point The location where the nozzle is assumed to start from
      * before printing these parts.
      * \param config Seam settings.
-     * \param detect_chains Whether to try to connect endpoints of paths that
+     * \param detect_loops Whether to try to close polylines if the endpoints
      * are close together. If they are just a few microns apart, it will merge
-     * the two endpoints together. Also detects if the two endpoints of a
-     * polyline are close together, and turns that polyline into a polygon if
-     * they are.
+     * the two endpoints together and pretends that the loop is closed, turning
+     * it into a polygon.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_chains = false, const Polygons* combing_boundary = nullptr)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr)
     : start_point(start_point)
     , seam_config(seam_config)
     , combing_grid(nullptr)
     , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 1) ? combing_boundary : nullptr)
-    , detect_chains(detect_chains)
+    , detect_loops(detect_loops)
     {
     }
 
@@ -195,22 +194,25 @@ public:
             path.converted = getVertexData(path.vertices);
         }
 
+        //Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
         SparsePointGridInclusive<size_t> line_bucket_grid(2000); //Grid size of 2mm. TODO: Optimize for performance; smaller grid size yields fewer false positives, but uses more memory.
-        if(detect_chains)
+        for(size_t i = 0; i < paths.size(); ++i)
         {
-            for(size_t i = 0; i < paths.size(); ++i)
+            for(const Point& point : *(paths[i].converted))
             {
-                Path& path = paths[i];
+                line_bucket_grid.insert(point, i); //Store by index so that we can also mark them down in the `picked` vector.
+            }
+        }
+
+        //If necessary, check polylines to see if they are actually polygons.
+        if(detect_loops)
+        {
+            for(Path& path : paths)
+            {
                 if(!path.is_closed)
                 {
                     //If we want to detect chains, first check if some of the polylines are secretly polygons.
-                    path.is_closed = isLoopingPolyline(path); //If it is, we'll set the seam position correctly.
-                }
-
-                //Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
-                for(const Point& point : *path.converted)
-                {
-                    line_bucket_grid.insert(point, i); //Store by index so that we can also mark them down in the `picked` vector.
+                    path.is_closed = isLoopingPolyline(path); //If it is, we'll set the seam position correctly later.
                 }
             }
         }
@@ -327,10 +329,11 @@ public:
 
 protected:
     /*!
-     * If \ref detect_chains is enabled, endpoints of polylines that are closer
-     * than this distance together will be considered to be coincident.
+     * If \ref detect_loops is enabled, endpoints of polylines that are closer
+     * than this distance together will be considered to be coincident, closing
+     * that polyline into a polygon.
      */
-    constexpr static coord_t coincident_point_distance = 5;
+    constexpr static coord_t coincident_point_distance = 10;
 
     /*!
      * Some input data structures need to be converted to polygons before use.
@@ -357,18 +360,15 @@ protected:
     const Polygons* combing_boundary;
 
     /*!
-     * Whether to detect chains and loops before optimizing.
+     * Whether to check polylines to see if they are closed, before optimizing.
      *
      * If this is enabled, the optimizer will first attempt to find endpoints of
      * polylines that are very close together. If they are closer than
-     * \ref coincident_point_distance, the polylines will always be ordered end-
-     * to-end.
-     *
-     * This will also similarly detect when the two endpoints of a single
-     * polyline are close together, such that it forms a loop. It will turn the
-     * polyline into a polygon then.
+     * \ref coincident_point_distance, the polylines will be closed and form
+     * polygons. This then allows the optimizer to decide on a seam location
+     * that is not one of the endpoints of the polyline.
      */
-    bool detect_chains;
+    bool detect_loops;
 
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
