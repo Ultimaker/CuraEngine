@@ -150,22 +150,6 @@ public:
     , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)
     , detect_chains(detect_chains)
     {
-        if(this->combing_boundary != nullptr)
-        {
-            constexpr coord_t grid_size = 2000; //2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
-            combing_grid = PolygonUtils::createLocToLineGrid(*combing_boundary, grid_size);
-        }
-    }
-
-    /*!
-     * Destroy resources associated with this path order optimizer, if any.
-     */
-    ~PathOrderOptimizer()
-    {
-        if(combing_grid != nullptr)
-        {
-            delete combing_grid;
-        }
     }
 
     /*!
@@ -199,6 +183,11 @@ public:
         if(paths.empty())
         {
             return;
+        }
+        if(this->combing_boundary != nullptr)
+        {
+            constexpr coord_t grid_size = 2000; //2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
+            combing_grid = PolygonUtils::createLocToLineGrid(*combing_boundary, grid_size);
         }
 
         //Get the vertex data and store it in the paths.
@@ -327,6 +316,11 @@ public:
             }
         }
         std::swap(optimized_order, paths); //Apply the optimized order to the output field.
+
+        if(combing_grid != nullptr)
+        {
+            delete combing_grid;
+        }
     }
 
 protected:
