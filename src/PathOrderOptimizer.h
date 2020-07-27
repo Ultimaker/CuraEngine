@@ -150,6 +150,22 @@ public:
     , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)
     , detect_chains(detect_chains)
     {
+        if(this->combing_boundary != nullptr)
+        {
+            constexpr coord_t grid_size = 2000; //2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
+            combing_grid = PolygonUtils::createLocToLineGrid(*combing_boundary, grid_size);
+        }
+    }
+
+    /*!
+     * Destroy resources associated with this path order optimizer, if any.
+     */
+    ~PathOrderOptimizer()
+    {
+        if(combing_grid != nullptr)
+        {
+            delete combing_grid;
+        }
     }
 
     /*!
@@ -331,11 +347,13 @@ protected:
     std::vector<Polygon> cached_vertices;
 
     /*!
-     * Hash map storing where each line is.
+     * Bucket grid to store the locations of the combing boundary.
      *
-     * This allows us to quickly find any nearby other lines.
+     * This is cached in order to speed up the collision checking with the
+     * combing boundary. We only need to generate this mapping once for the
+     * combing boundary, since the combing boundary can't change.
      */
-    LocToLineGrid* loc_to_line;
+    LocToLineGrid* combing_grid;
 
     /*!
      * Boundary to avoid when making travel moves.

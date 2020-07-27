@@ -953,11 +953,11 @@ LocToLineGrid* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int s
 }
 
 /*
- * The current implemetnation can check the same line segment multiple times, 
- * since the same line segment can occur in multiple cells if it it longer than the cell size of the SparsePointGridInclusive.
+ * The current implementation can check the same line segment multiple times,
+ * since the same line segment can occur in multiple cells if it it longer than
+ * the cell size of the SparsePointGridInclusive.
  * 
  * We could skip the duplication by keeping a vector of vectors of bools.
- *
  */
 std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     Point from, const Polygons& polygons,
