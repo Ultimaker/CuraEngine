@@ -107,7 +107,7 @@ bool InsetOrderOptimizer::processInsetsIndexedOrdering()
         added_something = true;
         gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); //Going to print walls, which are always inside.
-        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")); //TODO: Listen to Z seam.
+        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
         WallOverlapComputation* wall_overlap_computation = nullptr; //TODO: Should we still use wall overlap compensation with Arachne? Probably not?
 
         if(inset == 0) //Print using outer wall config.
@@ -243,8 +243,8 @@ void InsetOrderOptimizer::processHoleInsets()
     }
     Polygons comb_boundary(*gcode_layer.getCombBoundaryInside());
     comb_boundary.simplify(100, 100);
-    constexpr bool detect_chains = true;
-    PathOrderOptimizer<ConstPolygonRef> order_optimizer(start_point, z_seam_config, detect_chains, &comb_boundary);
+    constexpr bool detect_loops = true;
+    PathOrderOptimizer<ConstPolygonRef> order_optimizer(start_point, z_seam_config, detect_loops, &comb_boundary);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
@@ -511,8 +511,8 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         {
             Polygons boundary(*gcode_layer.getCombBoundaryInside());
             ZSeamConfig inner_walls_z_seam_config;
-            constexpr bool detect_chains = true;
-            PathOrderOptimizer<ConstPolygonRef> orderOptimizer(z_seam_location, inner_walls_z_seam_config, detect_chains, &boundary); //TODO: Seriously?! Different casing is a different optimizer?!
+            constexpr bool detect_loops = true;
+            PathOrderOptimizer<ConstPolygonRef> orderOptimizer(z_seam_location, inner_walls_z_seam_config, detect_loops, &boundary); //TODO: Seriously?! Different casing is a different optimizer?!
             for(ConstPolygonRef poly : part_inner_walls)
             {
                 orderOptimizer.addPolygon(poly);
