@@ -1255,6 +1255,10 @@ bool PolygonUtils::polygonCollidesWithLineSegment(const Polygons& polys, const P
 
 bool PolygonUtils::polygonCollidesWithLineSegment(const Polygons& polys, const Point& startPoint, const Point& endPoint)
 {
+    if(endPoint == startPoint)
+    {
+        return false; //Zero-length line segments never collide.
+    }
     Point diff = endPoint - startPoint;
 
     PointMatrix transformation_matrix = PointMatrix(diff);

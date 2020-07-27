@@ -150,7 +150,7 @@ public:
     : start_point(start_point)
     , seam_config(seam_config)
     , combing_grid(nullptr)
-    , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr)
+    , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 1) ? combing_boundary : nullptr)
     , detect_chains(detect_chains)
     {
     }
@@ -509,9 +509,9 @@ protected:
      */
     coord_t getCombingDistance(const Point& a, const Point& b)
     {
-        if(!PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, a, b)) //No collision. Just compute the direct distance then.
+        if(!PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, a, b))
         {
-            return getDirectDistance(a, b);
+            return getDirectDistance(a, b); //No collision with any line. Just compute the direct distance then.
         }
         if(paths.size() > 100)
         {
