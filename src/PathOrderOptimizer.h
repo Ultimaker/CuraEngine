@@ -240,7 +240,6 @@ public:
         optimized_order.reserve(paths.size());
         while(optimized_order.size() < paths.size())
         {
-            //TODO: Optionally use combing lengths rather than Euclidean distance.
             size_t best_candidate = 0;
             coord_t best_distance2 = std::numeric_limits<coord_t>::max();
 
@@ -288,7 +287,12 @@ public:
                         path.backwards = path.start_vertex > 0;
                     }
                 }
-                const coord_t distance2 = vSize2((*path.converted)[path.start_vertex] - current_position);
+                const Point& candidate_position = (*path.converted)[path.start_vertex];
+                coord_t distance2 = getDirectDistance(current_position, candidate_position);
+                if(distance2 < best_distance2 && combing_boundary) //If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
+                {
+                    distance2 = getCombingDistance(current_position, candidate_position);
+                }
                 if(distance2 < best_distance2) //Closer than the best candidate so far.
                 {
                     best_candidate = candidate_path_index;
@@ -387,7 +391,10 @@ protected:
         if(!path.is_closed)
         {
             //For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
-            if(getDirectDistance(path.converted->back(), target_pos) < getDirectDistance(path.converted->front(), target_pos))
+            const coord_t back_distance = (combing_boundary == nullptr)
+                ? getDirectDistance(path.converted->back(), target_pos)
+                : getCombingDistance(path.converted->back(), target_pos);
+            if(back_distance < getDirectDistance(path.converted->front(), target_pos) || (combing_boundary && back_distance < getCombingDistance(path.converted->front(), target_pos))) //Lazy or: Only compute combing distance if direct distance is closer.
             {
                 return path.converted->size() - 1; //Back end is closer.
             }
@@ -415,7 +422,10 @@ protected:
 
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
-            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : getDirectDistance(here, target_pos) / 1000000;
+            const coord_t distance = (combing_boundary == nullptr)
+                ? getDirectDistance(here, target_pos)
+                : getCombingDistance(here, target_pos);
+            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : distance / 1000000;
             const float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) / M_PI - 1; //Between -1 and 1.
 
             float score;
