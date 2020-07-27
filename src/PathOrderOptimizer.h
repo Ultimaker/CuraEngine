@@ -4,6 +4,8 @@
 #ifndef PATHORDEROPTIMIZER_H
 #define PATHORDEROPTIMIZER_H
 
+#include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
+#include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "settings/EnumSettings.h" //To get the seam settings.
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/polygonUtils.h"
@@ -183,11 +185,6 @@ public:
         if(paths.empty())
         {
             return;
-        }
-        if(this->combing_boundary != nullptr)
-        {
-            constexpr coord_t grid_size = 2000; //2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
-            combing_grid = PolygonUtils::createLocToLineGrid(*combing_boundary, grid_size);
         }
 
         //Get the vertex data and store it in the paths.
@@ -389,7 +386,7 @@ protected:
         if(!path.is_closed)
         {
             //For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
-            if(getDistance(path.converted->back(), target_pos) < getDistance(path.converted->front(), target_pos))
+            if(getDirectDistance(path.converted->back(), target_pos) < getDirectDistance(path.converted->front(), target_pos))
             {
                 return path.converted->size() - 1; //Back end is closer.
             }
@@ -417,7 +414,7 @@ protected:
 
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
-            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : getDistance(here, target_pos) / 1000000;
+            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : getDirectDistance(here, target_pos) / 1000000;
             const float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) / M_PI - 1; //Between -1 and 1.
 
             float score;
@@ -478,21 +475,61 @@ protected:
     }
 
     /*!
-     * Calculate the distance from one point to another.
-     *
-     * The distance is allowed to be weighted. It doesn't necessarily have to be
-     * a real Euclidean distance or even a combing distance. It merely needs to
-     * indicate the fitness-cost of moving from one place to another.
-     *
-     * The distance is expected to be commutative however. That means that
-     * ``getDistance(a, b) == getDistance(b, a)``.
+     * Calculate the direct Euclidean distance to move from one point to
+     * another.
      * \param a One point, to compute distance to \ref b.
      * \param b Another point, to compute distance to \ref a.
      * \return The distance between the two points.
      */
-    coord_t getDistance(const Point& a, const Point& b) const
+    coord_t getDirectDistance(const Point& a, const Point& b) const
     {
         return vSize2(a - b);
+    }
+
+    /*!
+     * Calculate the distance that one would have to travel to move from A to B
+     * while avoiding collisions with the combing boundary.
+     *
+     * This method assumes that there is a combing boundary. So
+     * \ref combing_boundary should not be ``nullptr``.
+     * \param a One point, to compute distance to \ref b.
+     * \param b Another point, to compute distance to \ref a.
+     * \return The combing distance between the two points.
+     */
+    coord_t getCombingDistance(const Point& a, const Point& b) const
+    {
+        if(!PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary, a, b)) //No collision. Just compute the direct distance then.
+        {
+            return getDirectDistance(a, b);
+        }
+        if(paths.size() > 100)
+        {
+            /* If we have many paths to optimize the order for, this combing
+            calculation can become very expensive. Instead, penalize travels
+            that hit the combing boundary with a static factor.*/
+            return getDirectDistance(a, b) * 5;
+        }
+
+        if(combing_grid == nullptr)
+        {
+            constexpr coord_t grid_size = 2000; //2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
+            combing_grid = PolygonUtils::createLocToLineGrid(*combing_boundary, grid_size);
+        }
+
+        CombPath comb_path; //Output variable.
+        constexpr coord_t rounding_error = -25;
+        constexpr coord_t tiny_travel_threshold = 0;
+        constexpr bool fail_on_unavoidable_obstacles = false;
+        LinePolygonsCrossings::comb(*combing_boundary, *combing_grid, a, b, comb_path, rounding_error, tiny_travel_threshold, fail_on_unavoidable_obstacles);
+
+        coord_t sum = 0;
+        Point last_point = a;
+        for(const Point& point : comb_path)
+        {
+            sum += vSize(point - last_point);
+            last_point = point;
+        }
+        return sum * sum; //Squared distance, for fair comparison with direct distance.
     }
 
     /*!
