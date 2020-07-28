@@ -18,7 +18,7 @@ jobs:
         update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
         update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
         curl -1sLf 'https://dl.cloudsmith.io/public/ultimaker/cura-public/cfg/setup/bash.deb.sh' | bash
-        apt-get install -y cura-libprotobuf-dev cura-libprotobuf-mingw-w64-dev cura-libarcus-mingw-w64-dev libboost1.71-dev
+        apt-get install -y cura-libprotobuf-dev cura-libprotobuf-mingw-w64-dev cura-libarcus-mingw-w64-dev libboost-dev
     - name: Build debian package
       run: |
         docker/build-mingw64.sh
