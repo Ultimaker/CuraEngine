@@ -758,10 +758,10 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
             }
             mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
         }
-
-        // combine infill
-        SkinInfillAreaComputation::combineInfillLayers(mesh);
     }
+
+	// combine infill
+	SkinInfillAreaComputation::combineInfillLayers(mesh);
 
     // fuzzy skin
     if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled"))
