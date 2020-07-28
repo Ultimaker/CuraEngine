@@ -382,6 +382,24 @@ template<> ESupportType Settings::get<ESupportType>(const std::string& key) cons
     }
 }
 
+template<> ESupportStructure Settings::get<ESupportStructure>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "normal")
+    {
+        return ESupportStructure::NORMAL;
+    }
+    else if (value == "tree")
+    {
+        return ESupportStructure::TREE;
+    }
+    else //Default.
+    {
+        return ESupportStructure::NORMAL;
+    }
+}
+
+
 template<> EZSeamType Settings::get<EZSeamType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);

@@ -100,8 +100,7 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
 
     if (pattern == EFillMethod::ZIG_ZAG || (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON || pattern == EFillMethod::GYROID)))
     {
-        const float width_scale = (mesh) ? (float)mesh->settings.get<coord_t>("layer_height") / mesh->settings.get<coord_t>("infill_sparse_thickness") : 1;
-        outline_offset -= width_scale * infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
+        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
     }
 
     switch(pattern)
