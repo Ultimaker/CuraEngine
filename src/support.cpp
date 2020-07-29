@@ -409,25 +409,18 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 
 void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x)
 {
-    for (unsigned int inset_idx = 0; inset_idx < inset_count; inset_idx++)
+    insets.reserve(inset_count);
+    insets.emplace_back(outline.offset(static_cast<int>(-wall_line_width_x / 2)));
+    const auto idx = inset_count - 1;
+    for (size_t i = 0; i < idx; ++i)
     {
-        insets.push_back(Polygons());
-        if (inset_idx == 0)
-        {
-            insets[0] = outline.offset(-wall_line_width_x / 2);
-        }
-        else
-        {
-            insets[inset_idx] = insets[inset_idx - 1].offset(-wall_line_width_x);
-        }
-
-        // optimize polygons: remove unnecessary verts
-        insets[inset_idx].simplify();
-        if (insets[inset_idx].size() < 1)
+        insets[i].simplify();
+        if (insets[i].empty())
         {
             insets.pop_back();
             break;
         }
+        insets.emplace_back(insets[i].offset(-wall_line_width_x));
     }
 }
 
