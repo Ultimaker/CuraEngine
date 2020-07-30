@@ -27,7 +27,7 @@ void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t l
     {
         // when spiralizing, the model is often solid so it's no good trying to determine if there is air above or not
         // in this situation, just iron the topmost of the bottom layers
-        if (layer_number == mesh.settings.get<size_t>("bottom_layers") - 1)
+        if (layer_number == mesh.settings.get<size_t>("initial_bottom_layers") - 1)
         {
             areas = mesh.layers[layer_number].getOutlines();
         }
