@@ -132,7 +132,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     Polygons tubeshape = part->outline.tubeShape(line_width_0 + line_width_x * (inset_count - 1), 0).offset(-10).offset(10);
     tubeshape.simplify(50, 50);
     tubeshape.removeColinearEdges(0.03);
-    tubeshape.fixSelfInterssections();
+    tubeshape.fixSelfIntersections();
     tubeshape.removeSmallAreas(INT2MM(line_width_0/2) * INT2MM(line_width_0/2), false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
     if (tubeshape.area() > 0)
     {
