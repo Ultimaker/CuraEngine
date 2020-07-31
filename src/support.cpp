@@ -25,6 +25,8 @@
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 #include "utils/math.h"
+#include "BeadingStrategy/DistributedBeadingStrategy.h"
+#include "SkeletalTrapezoidation.h"
 
 namespace cura
 {
@@ -405,6 +407,40 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
     }
 }
 
+void AreaSupport::prepareInsetForToolpathGeneration(Polygons& inset, const double& small_area)
+{
+    constexpr coord_t smallest_line_segment = 50;
+    constexpr coord_t allowed_error_distance = 50;
+    constexpr float  max_deviation_error = 0.03;
+    inset.simplify(smallest_line_segment, allowed_error_distance);
+    inset.removeColinearEdges(max_deviation_error); // Note: using a double-sized type would probably be faster on newer generation machines, Why not use AngleRadians?
+    inset.fixSelfIntersections();
+    inset.removeSmallAreas(small_area,false);
+}
+
+void AreaSupport::generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& outline,
+                                       const unsigned int& inset_count, const coord_t& wall_line_width_x)
+{
+    constexpr float transitioning_angle = 0.5;
+    const coord_t transition_length = wall_line_width_x * 2;
+    DistributedBeadingStrategy beading_strategy(wall_line_width_x, transition_length, transitioning_angle);
+
+    const double small_area = static_cast<double>(wall_line_width_x * wall_line_width_x) / 4e6; // same as (wall_line_width_x / 2 / 1000)**2
+    Polygons wall = outline.offset(static_cast<int>(-wall_line_width_x / 2));
+
+    for (size_t i = 1; i < inset_count; ++i)
+    {
+        prepareInsetForToolpathGeneration(wall, small_area);
+        if (wall.empty())
+            break;
+        SkeletalTrapezoidation wall_maker(wall, beading_strategy, beading_strategy.transitioning_angle);
+        std::vector<std::list<ExtrusionLine>> wall_toolpath;
+        wall_maker.generateToolpaths(wall_toolpath);
+        wall_toolpaths.reserve(wall_toolpaths.size() + wall_toolpath.size());
+        wall_toolpaths.insert(wall_toolpaths.end(), wall_toolpath.begin(), wall_toolpath.end());
+        wall = wall.offset(-wall_line_width_x);
+    }
+}
 
 void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x)
 {

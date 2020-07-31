@@ -8,6 +8,7 @@
 
 #include "utils/AABB.h"
 #include "utils/polygon.h"
+#include "utils/ExtrusionLine.h"
 
 
 namespace cura
@@ -26,6 +27,7 @@ class SupportInfillPart
 public:
     PolygonsPart outline;  //!< The outline of the support infill area
     std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
+    std::vector<std::list<ExtrusionLine>> wall_toolpaths;  //!< 'new style' toolpaths for walls, will replace(?) the insets
     AABB outline_boundary_box;  //!< The boundary box for the infill area
     coord_t support_line_width;  //!< The support line width
     int inset_count_to_generate;  //!< The number of insets need to be generated from the outline. This is not the actual insets that will be generated.

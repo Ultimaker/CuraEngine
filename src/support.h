@@ -4,6 +4,10 @@
 #ifndef SUPPORT_H
 #define SUPPORT_H
 
+#include <memory>
+#include "BeadingStrategy/BeadingStrategy.h"
+#include "utils/ExtrusionLine.h"
+
 namespace cura
 {
 
@@ -69,8 +73,13 @@ public:
      * \param inset_count The number of perimeters to surround the support infill outline.
      * \param wall_line_width_x The wall line width in microns on the X axis.
      */
-    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x);
+    [[deprecated]] static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x);
 
+    // Todo: write doc
+    static void generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& outline, const unsigned int& inset_count, const coord_t& wall_line_width_x);
+
+    // Todo: write doc
+    static void prepareInsetForToolpathGeneration(Polygons& inset, const double& small_area);
 private:
     /*!
      * Splits the global support areas into separete SupportInfillParts.
