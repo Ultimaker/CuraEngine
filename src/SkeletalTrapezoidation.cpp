@@ -364,8 +364,8 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     }
 
     vd_t vonoroi_diagram;
-    construct_voronoi(points.begin(), points.end(),segments.begin(), segments.end(), &vonoroi_diagram);
-    
+    construct_voronoi(segments.begin(), segments.end(), &vonoroi_diagram);
+
     for (vd_t::cell_type cell : vonoroi_diagram.cells())
     {
         if (!cell.incident_edge())

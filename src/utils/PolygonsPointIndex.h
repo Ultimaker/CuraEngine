@@ -95,6 +95,10 @@ public:
     {
         return !(*this == other);
     }
+    bool operator<(const PolygonsPointIndex& other) const
+    {
+        return this->p() < other.p();
+    }
     PolygonsPointIndex& operator=(const PolygonsPointIndex& other)
     {
         polygons = other.polygons;
