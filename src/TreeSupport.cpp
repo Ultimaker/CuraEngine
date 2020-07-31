@@ -472,9 +472,10 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                 std::vector<Node*>::iterator to_erase = std::find(contact_nodes[i_layer].begin(), contact_nodes[i_layer].end(), i_node);
                 if (to_erase != contact_nodes[i_layer].end())
                 {
+                    to_free_node_set.insert(*to_erase);
                     contact_nodes[i_layer].erase(to_erase);
                     to_free_node_set.insert(i_node);
-                    to_free_node_set.insert(*to_erase);
+                    
                     for (Node* neighbour : i_node->merged_neighbours)
                     {
                         unsupported_branch_leaves.push_front({ i_layer, neighbour });
