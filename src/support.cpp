@@ -129,18 +129,17 @@ void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataS
     // at this stage, the outlines are final, and we can generate insets and infill area
     for (SupportLayer& support_layer : storage.support.supportLayers)
     {
-        for (std::vector<SupportInfillPart>::iterator part_itr = support_layer.support_infill_parts.begin(); part_itr != support_layer.support_infill_parts.end();)
+        auto supportParts = support_layer.support_infill_parts; // Todo check if I get a ref
+        for (auto part_iter = supportParts.begin(); part_iter != supportParts.end();)
         {
-            SupportInfillPart& part = *part_itr;
-            const bool is_not_empty_part = part.generateInsetsAndInfillAreas();
-            if (!is_not_empty_part)
+            const bool has_insets = part_iter->generateInsets(); // Todo check if i'm not oversimplifying a leave out some cases
+            if (has_insets)
             {
-                part_itr = support_layer.support_infill_parts.erase(part_itr);
+                part_iter->generateInfillAreas();
+                part_iter++;
             }
             else
-            {
-                part_itr++;
-            }
+                part_iter = support_layer.support_infill_parts.erase(part_iter);
         }
     }
 }

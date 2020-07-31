@@ -39,7 +39,13 @@ public:
      *
      * \return false if the area is too small and no insets and infill area can be generated, otherwise true.
      */
-    bool generateInsetsAndInfillAreas();
+    [[deprecated]] bool generateInsetsAndInfillAreas(); // Todo check if C++11 supports attribute deprecated
+
+    // Todo write doc
+    bool generateInsets();
+
+    // Todo write doc
+    void generateInfillAreas();
 
     const Polygons& getInfillArea() const;
 
