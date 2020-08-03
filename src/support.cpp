@@ -421,24 +421,20 @@ void AreaSupport::prepareInsetForToolpathGeneration(Polygons& inset, const doubl
 void AreaSupport::generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& outline,
                                        const unsigned int& inset_count, const coord_t& wall_line_width_x)
 {
-    constexpr float transitioning_angle = 0.5;
-    const coord_t transition_length = wall_line_width_x * 2;
-    DistributedBeadingStrategy beading_strategy(wall_line_width_x, transition_length, transitioning_angle);
-
+    // Create the Wall donut
+    const coord_t inner_offset = wall_line_width_x * (inset_count - 1) + wall_line_width_x / 2;
+    const coord_t outer_offset =  wall_line_width_x / 2;
+    Polygons tubeshape = outline.tubeShape(inner_offset, outer_offset);
     const double small_area = static_cast<double>(wall_line_width_x * wall_line_width_x) / 4e6; // same as (wall_line_width_x / 2 / 1000)**2
-    Polygons wall = outline.offset(static_cast<int>(-wall_line_width_x / 2));
+    prepareInsetForToolpathGeneration(tubeshape, small_area);
 
-    for (size_t i = 1; i < inset_count; ++i)
+    if (!tubeshape.empty()) // Todo check if i need to test against area() assumption for now is that if its not empty it has an area and this safes the computation done in the area function
     {
-        prepareInsetForToolpathGeneration(wall, small_area);
-        if (wall.empty())
-            break;
-        SkeletalTrapezoidation wall_maker(wall, beading_strategy, beading_strategy.transitioning_angle);
-        std::vector<std::list<ExtrusionLine>> wall_toolpath;
-        wall_maker.generateToolpaths(wall_toolpath);
-        wall_toolpaths.reserve(wall_toolpaths.size() + wall_toolpath.size());
-        wall_toolpaths.insert(wall_toolpaths.end(), wall_toolpath.begin(), wall_toolpath.end());
-        wall = wall.offset(-wall_line_width_x);
+        constexpr float transitioning_angle = 0.5;
+        const coord_t transition_length = wall_line_width_x * 2;
+        const DistributedBeadingStrategy beading_strat(wall_line_width_x, transition_length, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
+        SkeletalTrapezoidation wall_maker(tubeshape, beading_strat, beading_strat.transitioning_angle);
+        wall_maker.generateToolpaths(wall_toolpaths);
     }
 }
 

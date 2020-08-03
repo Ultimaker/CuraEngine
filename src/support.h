@@ -76,10 +76,11 @@ public:
     [[deprecated]] static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x);
 
     // Todo: write doc
-    static void generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& outline, const unsigned int& inset_count, const coord_t& wall_line_width_x);
+    static void prepareInsetForToolpathGeneration(Polygons& inset, const double& small_area);
 
     // Todo: write doc
-    static void prepareInsetForToolpathGeneration(Polygons& inset, const double& small_area);
+    static void generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& outline, const unsigned int& inset_count, const coord_t& wall_line_width_x);
+
 private:
     /*!
      * Splits the global support areas into separete SupportInfillParts.
