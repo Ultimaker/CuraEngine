@@ -514,11 +514,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
                 orderOptimizer.addPolygon(poly);
             }
             orderOptimizer.optimize();
-            if (!outer_inset_first)
-            {
-                // reverse the optimized order so we end up as near to the outline z-seam as possible
-                //std::reverse(orderOptimizer.paths.begin(), orderOptimizer.paths.end());
-            }
+            //TODO: Listen to outer_inset_first and maybe print in reverse order depending on that.
             constexpr coord_t wall_0_wipe_dist = 0;
             constexpr float flow_ratio = 1.0;
             constexpr bool always_retract = false;
