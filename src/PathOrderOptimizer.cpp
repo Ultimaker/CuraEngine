@@ -49,7 +49,7 @@ ConstPolygonRef PathOrderOptimizer<const SupportInfillPart*>::getVertexData(cons
 template<>
 ConstPolygonRef PathOrderOptimizer<const std::vector<ExtrusionJunction>*>::getVertexData(const std::vector<ExtrusionJunction>* path)
 {
-	cached_vertices.emplace_back();
+    cached_vertices.emplace_back();
     Polygon& poly = cached_vertices.back();
     for(const ExtrusionJunction junction : *path)
     {
