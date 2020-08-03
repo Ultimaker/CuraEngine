@@ -250,11 +250,7 @@ void InsetOrderOptimizer::processHoleInsets()
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
     }
     order_optimizer.optimize();
-    if (optimize_backwards)
-    {
-        // reverse the optimized order so we end up as near to the outline z-seam as possible
-        //std::reverse(order_optimizer.paths.begin(), order_optimizer.paths.end());
-    }
+    //TODO: Listen to optimize_backwards and reverse the printing order if necessary.
 
     // this will consume all of the insets that surround holes but not the insets next to the outermost wall of the model
     for (size_t outer_poly_order_idx = 0; outer_poly_order_idx < order_optimizer.paths.size(); ++outer_poly_order_idx)
