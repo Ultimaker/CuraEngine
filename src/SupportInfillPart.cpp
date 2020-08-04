@@ -29,9 +29,10 @@ bool SupportInfillPart::generateInsets()
 void SupportInfillPart::generateInfillAreas()
 {
     // if there are walls, we use the inner area as the infill area
-    infill_area = insets.back().offset(-support_line_width / 2);
-    // optimize polygons: remove unnecessary verts
-    infill_area.simplify();
+    const coord_t inner_offset = support_line_width * (inset_count_to_generate - 1) + support_line_width;
+    const double small_area = static_cast<double>(support_line_width * support_line_width) / 4e6; // same as (wall_line_width_x / 2 / 1000)**2
+    infill_area = outline.offset(-inner_offset); // Todo get outline from last inner_inset, don't recalculate
+    AreaSupport::prepareInsetForToolpathGeneration(infill_area, small_area);
 }
 
 bool SupportInfillPart::generateInsetsAndInfillAreas()
