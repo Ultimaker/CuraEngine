@@ -131,17 +131,17 @@ void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataS
     // at this stage, the outlines are final, and we can generate insets and infill area
     for (SupportLayer& support_layer : storage.support.supportLayers)
     {
-        auto supportParts = support_layer.support_infill_parts; // Todo check if I get a ref
-        for (auto part_iter = supportParts.begin(); part_iter != supportParts.end();)
+        for (std::vector<SupportInfillPart>::iterator part_itr = support_layer.support_infill_parts.begin(); part_itr != support_layer.support_infill_parts.end();)
         {
-            const bool has_insets = part_iter->generateInsets(); // Todo check if i'm not oversimplifying a leave out some cases
+            SupportInfillPart& part = *part_itr;
+            const bool has_insets = part.generateInsets(); // Todo check if i'm not oversimplifying a leave out some cases
             if (has_insets)
             {
-                part_iter->generateInfillAreas();
-                part_iter++;
+                part.generateInfillAreas();
+                part_itr++;
             }
             else
-                part_iter = support_layer.support_infill_parts.erase(part_iter);
+                part_itr = support_layer.support_infill_parts.erase(part_itr);
         }
     }
 }
@@ -418,7 +418,8 @@ void AreaSupport::prepareInsetForToolpathGeneration(Polygons& inset, const doubl
     inset.removeSmallAreas(small_area,false);
 }
 
-void AreaSupport::generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& outline,
+void AreaSupport::generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths,
+                                       const Polygons& outline,
                                        const unsigned int& inset_count, const coord_t& wall_line_width_x)
 {
     // Create the Wall donut
@@ -457,17 +458,16 @@ void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons&
 
 void AreaSupport::cleanup(SliceDataStorage& storage)
 {
-    const coord_t support_line_width = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("support_line_width");
-    for (unsigned int layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+    const auto support_line_width = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("support_line_width");
+    for (auto& layer : storage.support.supportLayers)
     {
-        SupportLayer& layer = storage.support.supportLayers[layer_nr];
         for (unsigned int part_idx = 0; part_idx < layer.support_infill_parts.size(); part_idx++)
         {
             SupportInfillPart& part = layer.support_infill_parts[part_idx];
             bool can_be_removed = true;
             if (part.inset_count_to_generate > 0)
             {
-                if (part.insets.size() > 0 && part.insets[0].size() > 0)
+                if (!part.wall_toolpaths.empty())
                 {
                     can_be_removed = false;
                 }
