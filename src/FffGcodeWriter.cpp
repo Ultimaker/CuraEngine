@@ -1577,7 +1577,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                             if (skin_above_combined.size())
                             {
                                 // does this skin part overlap with any of the skin parts on the layers above?
-                                Polygons overlap = skin_above_combined.intersection(skin_part.outline);
+                                const Polygons overlap = skin_above_combined.intersection(skin_part.outline);
                                 if (overlap.size())
                                 {
                                     // yes, it overlaps, need to leave a gap between this skin part and the others
@@ -1598,7 +1598,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                                         //     ------- -------------------------- ----------
 
                                         // expand the overlap region slightly to make a small gap
-                                        Polygons overlap_expanded = overlap.offset(tiny_infill_offset);
+                                        const Polygons overlap_expanded = overlap.offset(tiny_infill_offset);
                                         // subtract the expanded overlap region from the regions accumulated from higher layers
                                         skin_above_combined = skin_above_combined.difference(overlap_expanded);
                                         // subtract the expanded overlap region from this skin part and add the remainder to the overlap region
