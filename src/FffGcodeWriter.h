@@ -9,6 +9,7 @@
 #include "gcodeExport.h"
 #include "LayerPlanBuffer.h"
 #include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
+#include "settings/SupportConfig.h"
 #include "utils/NoCopy.h"
 
 namespace std
@@ -642,13 +643,17 @@ private:
      */
     bool addSupportToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const size_t extruder_nr) const;
 
+    bool processSupport(const SliceDataStorage& storage, LayerPlan& gcode_layer) const;
+
+    bool processSupportInset(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportConfig& config) const;
+
     /*!
      * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \return whether any support infill was added to the layer plan
      */
-    bool processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer) const;
+    bool processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportConfig& config) const;
 
     /*!
      * Add the support roofs to the layer plan \p gcodeLayer of the current
