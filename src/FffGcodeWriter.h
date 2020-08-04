@@ -10,6 +10,9 @@
 #include "LayerPlanBuffer.h"
 #include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
 #include "utils/NoCopy.h"
+#include "SupportInfillPart.h"
+#include "sliceDataStorage.h"
+#include "ExtruderTrain.h"
 
 namespace std
 {
@@ -27,6 +30,75 @@ class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
 class TimeKeeper;
+
+// Todo move to proper file
+struct SupportSettings
+{
+    const bool first_layer;
+    const bool lower_layers;
+    const size_t extruder_nr;
+    const coord_t line_distance;
+    const coord_t infill_overlap;
+    const AngleDegrees infill_angle;
+    const size_t infill_multiplier;
+    const size_t wall_line_count;
+    const coord_t line_width;
+    const EFillMethod pattern;
+    const bool zig_zaggify_infill;
+    const bool connect_polygons;
+    const bool skip_some_zags;
+    const size_t zag_skip_count;
+    const bool connect_zigzags;
+    const coord_t brim_line_count;
+
+    // Todo document and unittest (maybe inline)
+    static size_t ExtruderNr(const bool& lower_layers, const Settings& mesh_group_settings)
+    {
+        if (lower_layers)
+            return mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr;
+
+        return mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
+    }
+
+    // Todo document and unittest (maybe inline)
+    static coord_t LineDistance(const bool& first_layer, const ExtruderTrain& infill_extruder)
+    {
+        if (first_layer)
+            return infill_extruder.settings.get<coord_t>("support_initial_layer_line_distance");
+        return infill_extruder.settings.get<coord_t>("support_line_distance");
+    }
+
+    // Todo document function and unittest (maybe inline)
+    static AngleDegrees InfillAngle(const bool& lower_layers, const size_t& layer_no, const SupportStorage& storage)
+    {
+        if (!lower_layers)
+            return storage.support_infill_angles.at(layer_no % storage.support_infill_angles.size());
+
+        // handles negative layer numbers
+        const auto divisor = storage.support_infill_angles_layer_0.size();
+        const auto index = ((layer_no % divisor) + divisor) % divisor;
+        return storage.support_infill_angles_layer_0.at(index); // Todo: check if data type index is good
+    }
+
+    // Todo document and unittest (maybe inline)
+    static coord_t  LineWidth(const bool& first_layer, const Settings& mesh_group_settings, const ExtruderTrain& infill_extruder)
+    {
+        auto line_width = infill_extruder.settings.get<coord_t>("support_line_width");
+        if (first_layer && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+            line_width *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
+
+        return line_width;
+    }
+
+    // Todo document and write unittest (maybe inline)
+    static EFillMethod Pattern(const bool& lower_layers, const ExtruderTrain& infill_extruder)
+    {
+        auto pattern = infill_extruder.settings.get<EFillMethod>("support_pattern");
+        if (lower_layers && (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG))
+            pattern = EFillMethod::GRID;
+        return pattern;
+    }
+};
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
@@ -642,12 +714,17 @@ private:
      */
     bool addSupportToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const size_t extruder_nr) const;
 
+    bool processSupport(const SliceDataStorage& storage, LayerPlan& gcode_layer) const;
+
+    bool processSupportInset(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportSettings& support_settings) const;
+
     /*!
      * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \return whether any support infill was added to the layer plan
      */
+    bool processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportSettings& support_settings) const;
     bool processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer) const;
 
     /*!
