@@ -19,11 +19,9 @@ SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t suppor
     infill_area_per_combine_per_density.clear();
 }
 
-// Todo change name
 bool SupportInfillPart::generateInsets()
 {
     // generate insets, use the first inset as the wall line, and the second as the infill area
-    //AreaSupport::generateOutlineInsets(insets, outline, inset_count_to_generate, support_line_width);
     AreaSupport::generateSupportWalls(wall_toolpaths, outline, inset_count_to_generate, support_line_width);
     return (inset_count_to_generate > 0 && !wall_toolpaths.empty());
 }
