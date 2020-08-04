@@ -1202,7 +1202,12 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         {
             if (extruder_nr != extruder)
             {
-                extruder_attr[extruder_nr].waited_for_temperature = wait;
+                // only reset the other extruders' waited_for_temperature state when the new temperature
+                // is greater than the old temperature
+                if (wait || temperature > extruder_attr[extruder_nr].currentTemperature)
+                {
+                    extruder_attr[extruder_nr].waited_for_temperature = wait;
+                }
                 extruder_attr[extruder_nr].currentTemperature = temperature;
             }
         }
