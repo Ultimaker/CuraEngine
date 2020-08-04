@@ -2452,23 +2452,20 @@ bool FffGcodeWriter::processSupportInset(const SliceDataStorage& storage, LayerP
 {
     // Todo: Use libArachne for this part and InsetOrderOptimizer as muse
     bool added_something = false;
-    // add outline (boundary) if any wall is generated
-    if (!part.insets.empty())
-    {
-        Polygons all_insets;
-        for (const Polygons& inset : part.insets)
-        {
-            all_insets.add(inset);
-        }
 
-        if (!all_insets.empty())
-        {
-            setExtruder_addPrime(storage, gcode_layer, config.extruder_nr); // only switch extruder if we're sure we're going to switch
-            gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-            gcode_layer.addPolygonsByOptimizer(all_insets, gcode_layer.configs_storage.support_infill_config[0]);
-            added_something = true;
-        }
+    for(const auto& path : part.wall_toolpaths)
+    {
+        if(path.empty())
+            continue;
+
+        added_something = true;
+        // Assume for now the wall_toolpaths are sorted againts idx
+        setExtruder_addPrime(storage, gcode_layer, config.extruder_nr);
+        gcode_layer.setIsInside(false); //Going to print walls, which are always outside.
+        for (const auto& line : path)
+            gcode_layer.addSupportWall(line.junctions, line.inset_idx, gcode_layer.configs_storage.support_infill_config[0]);
     }
+
     return added_something;
 }
 

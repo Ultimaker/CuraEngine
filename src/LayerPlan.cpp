@@ -1050,6 +1050,16 @@ void LayerPlan::addWalls(const std::vector<std::vector<ExtrusionJunction>>& wall
     }
 }
 
+void LayerPlan::addSupportWall(const std::list<ExtrusionJunction>& wall, int start_idx, const GCodePathConfig& config)
+{
+    const float flow = 1;
+    const Ratio bla = 1;
+    for (const auto& p : wall)
+    {
+        addExtrusionMove(p.p, config, SpaceFillType::Polygons, flow, false, bla);
+    }
+}
+
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, double fan_speed)
 {
     Polygons boundary;
