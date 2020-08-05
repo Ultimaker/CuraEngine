@@ -563,7 +563,6 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
 bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
 {
     added_something = false;
-    const unsigned int num_insets = part.insets.size();
 
     // create a vector of vectors containing all the inset polys
     inset_polys.clear();
