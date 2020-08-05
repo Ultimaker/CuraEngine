@@ -828,7 +828,7 @@ void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_id
 
     for (const auto& j_n : wall)
     {
-        double flow = j_n.w/200;
+        const double flow = j_n.w / Ratio(path_config.getLineWidth());
         addExtrusionMove(j_n.p, path_config, SpaceFillType::Polygons, flow);
         j = j_n;
     }
