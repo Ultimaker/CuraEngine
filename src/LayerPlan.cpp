@@ -821,6 +821,19 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     addWall(ewall, start_idx, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
 }
 
+void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SupportConfig& support_config, const GCodePathConfig& path_config)
+{
+    ExtrusionJunction j{*wall.begin()};
+    addTravel(j.p, false);
+
+    for (const auto& j_n : wall)
+    {
+        double flow = j_n.w/200;
+        addExtrusionMove(j_n.p, path_config, SpaceFillType::Polygons, flow);
+        j = j_n;
+    }
+}
+
 void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed)
 {
     if(is_closed)
@@ -1047,16 +1060,6 @@ void LayerPlan::addWalls(const std::vector<std::vector<ExtrusionJunction>>& wall
     for(const PathOrderOptimizer<const std::vector<ExtrusionJunction>*>::Path& path : order_optimizer.paths)
     {
         addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract, path.is_closed, path.backwards);
-    }
-}
-
-void LayerPlan::addSupportWall(const std::list<ExtrusionJunction>& wall, int start_idx, const GCodePathConfig& config)
-{
-    const float flow = 1;
-    const Ratio bla = 1;
-    for (const auto& p : wall)
-    {
-        addExtrusionMove(p.p, config, SpaceFillType::Polygons, flow, false, bla);
     }
 }
 

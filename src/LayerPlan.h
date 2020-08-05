@@ -19,6 +19,7 @@
 #include "utils/polygon.h"
 
 #include "utils/ExtrusionJunction.h"
+#include "settings/SupportConfig.h"
 
 namespace cura 
 {
@@ -592,6 +593,7 @@ public:
      */
     void addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
     void addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
+    void addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SupportConfig& support_config, const GCodePathConfig& path_config);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.
@@ -607,8 +609,6 @@ public:
      */
     void addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
     void addWalls(const std::vector<std::vector<ExtrusionJunction>>& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
-
-    void addSupportWall(const std::list<ExtrusionJunction>& wall, int start_idx, const GCodePathConfig& config);
 
     /*!
      * Add lines to the gcode with optimized order.
