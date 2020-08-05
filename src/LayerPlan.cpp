@@ -542,15 +542,13 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
         Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
-        const Ratio flow = flow_ratio;
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow_ratio, spiralize);
         p0 = p1;
     }
     if (polygon.size() > 2)
     {
         const Point& p1 = polygon[start_idx];
-        const Ratio flow = flow_ratio;
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow_ratio, spiralize);
 
         if (wall_0_wipe_dist > 0)
         { // apply outer wall wipe

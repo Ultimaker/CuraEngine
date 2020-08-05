@@ -568,15 +568,7 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
     // create a vector of vectors containing all the inset polys
     inset_polys.clear();
 
-    // Use the original, un-compensated, polys
-
-    inset_polys.emplace_back();
-    for (unsigned int poly_idx = 0; poly_idx < part.insets[0].size(); ++poly_idx)
-    {
-        inset_polys[0].push_back(part.insets[0][poly_idx]);
-    }
-
-    for (unsigned int inset_level = 1; inset_level < num_insets; ++inset_level)
+    for (unsigned int inset_level = 0; inset_level < part.insets.size(); ++inset_level)
     {
         inset_polys.emplace_back();
         for (unsigned int poly_idx = 0; poly_idx < part.insets[inset_level].size(); ++poly_idx)
