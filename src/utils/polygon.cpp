@@ -359,7 +359,7 @@ void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
                 {
                     new_path.push_back(pt);
                 }
-                else
+                else if (point_idx != (pathlen - 1))
                 {
                     // Skip the next point, since the current one was removed:
                     skip_indices[new_path.size()] = true;
