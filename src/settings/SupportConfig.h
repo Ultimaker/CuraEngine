@@ -15,8 +15,8 @@ namespace cura
 {
 struct SupportConfig
 {
-    bool first_layer;
-    bool lower_layers;
+    const bool first_layer;
+    const bool lower_layers;
     const size_t extruder_nr;
     const coord_t line_distance;
     const coord_t infill_overlap;
@@ -24,7 +24,7 @@ struct SupportConfig
     const size_t infill_multiplier;
     const size_t wall_line_count;
     const coord_t line_width;
-    EFillMethod pattern;
+    const EFillMethod pattern;
     const bool zig_zaggify_infill;
     const bool connect_polygons;
     const bool skip_some_zags;

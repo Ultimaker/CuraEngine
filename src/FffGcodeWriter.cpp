@@ -2440,9 +2440,6 @@ bool FffGcodeWriter::processSupport(const SliceDataStorage& storage, LayerPlan& 
     // Process the support islands
     for (const auto& path: island_order_optimizer.paths)
     {
-        config.first_layer = SupportConfig::FirstLayer(gcode_layer.getLayerNr());
-        config.lower_layers = SupportConfig::LowerLayer(gcode_layer.getLayerNr());
-        config.pattern = SupportConfig::Pattern(config.lower_layers, infill_extruder);
         const SupportInfillPart& part = *path.vertices;
         added_something |= processSupportInset(storage, gcode_layer, part, config);
         added_something |= processSupportInfill(storage, gcode_layer, part, config);
