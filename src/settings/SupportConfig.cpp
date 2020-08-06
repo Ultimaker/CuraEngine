@@ -7,6 +7,17 @@
 
 namespace cura
 {
+
+bool SupportConfig::LowerLayer(const size_t& layer_no)
+{
+    return layer_no <= 0;
+}
+
+bool SupportConfig::FirstLayer(const size_t& layer_no)
+{
+    return layer_no == 0;
+}
+
 size_t SupportConfig::ExtruderNr(const bool& lower_layers, const Settings& mesh_group_settings)
 {
     if (lower_layers)

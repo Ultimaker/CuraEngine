@@ -2410,26 +2410,25 @@ bool FffGcodeWriter::processSupport(const SliceDataStorage& storage, LayerPlan& 
     island_order_optimizer.optimize();
 
     // Settings per layer Todo: maybe move out and create seperate function and setting struct
-    const size_t layer_no = gcode_layer.getLayerNr();
-    const bool first_layer = layer_no == 0; // is checked multiple times for different settings
-    const bool lower_layers = layer_no <= 0; // is checked multiple times for different settings
+    const bool first_layer = SupportConfig::FirstLayer(gcode_layer.getLayerNr()); // is checked multiple times for different settings
+    const bool lower_layers =  SupportConfig::LowerLayer(gcode_layer.getLayerNr()); // is checked multiple times for different settings
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const size_t extruder_nr = SupportConfig::ExtruderNr(lower_layers, mesh_group_settings);
     const ExtruderTrain& infill_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
     // Cluster the used support settings for easy handling and maintainability
-    const SupportConfig config
+    SupportConfig config
     {
         first_layer,
         lower_layers,
         extruder_nr,
         SupportConfig::LineDistance(first_layer, infill_extruder),
         infill_extruder.settings.get<coord_t>("infill_overlap_mm"),
-        SupportConfig::InfillAngle(lower_layers, layer_no, storage.support),
+        SupportConfig::InfillAngle(lower_layers, gcode_layer.getLayerNr(), storage.support),
         1, // there is no frontend setting for this (yet)
-        0,
+        wall_count,
         SupportConfig::LineWidth(first_layer, mesh_group_settings, infill_extruder),
-        SupportConfig::Pattern(layer_no, infill_extruder),
+        SupportConfig::Pattern(lower_layers, infill_extruder),
         infill_extruder.settings.get<bool>("zig_zaggify_support"),
         false, // polygons are too distant to connect for sparse support
         infill_extruder.settings.get<bool>("support_skip_some_zags"),
@@ -2441,6 +2440,9 @@ bool FffGcodeWriter::processSupport(const SliceDataStorage& storage, LayerPlan& 
     // Process the support islands
     for (const auto& path: island_order_optimizer.paths)
     {
+        config.first_layer = SupportConfig::FirstLayer(gcode_layer.getLayerNr());
+        config.lower_layers = SupportConfig::LowerLayer(gcode_layer.getLayerNr());
+        config.pattern = SupportConfig::Pattern(config.lower_layers, infill_extruder);
         const SupportInfillPart& part = *path.vertices;
         added_something |= processSupportInset(storage, gcode_layer, part, config);
         added_something |= processSupportInfill(storage, gcode_layer, part, config);
@@ -2453,7 +2455,16 @@ bool FffGcodeWriter::processSupportInset(const SliceDataStorage& storage, LayerP
     // Todo: Use libArachne for this part and InsetOrderOptimizer as muse
     bool added_something = false;
 
-    for(const auto& path : part.wall_toolpaths)
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> wall_toolpaths(part.wall_toolpaths.size());
+    for (const auto& toolpath : part.wall_toolpaths)
+    {
+        for (const auto& line : toolpath)
+        {
+            wall_toolpaths[line.inset_idx].emplace_back(line.junctions.begin(), line.junctions.end());
+        }
+    }
+
+    for(const auto& path : wall_toolpaths)
     {
         if(path.empty())
             continue;
@@ -2462,8 +2473,11 @@ bool FffGcodeWriter::processSupportInset(const SliceDataStorage& storage, LayerP
         // Assume for now the wall_toolpaths are sorted againts idx
         setExtruder_addPrime(storage, gcode_layer, config.extruder_nr);
         gcode_layer.setIsInside(false); //Going to print walls, which are always outside.
-        for (const auto& line : path)
-            gcode_layer.addSupportWall(line.junctions, line.inset_idx, gcode_layer.configs_storage.support_infill_config[0]);
+
+        for (const auto& wall : path)
+        {
+            gcode_layer.addWall(wall, 0, config, gcode_layer.configs_storage.support_infill_config[0]);
+        }
     }
 
     return added_something;
