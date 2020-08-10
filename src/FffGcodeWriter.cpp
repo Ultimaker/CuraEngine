@@ -2426,7 +2426,7 @@ bool FffGcodeWriter::processSupport(const SliceDataStorage& storage, LayerPlan& 
         infill_extruder.settings.get<coord_t>("infill_overlap_mm"),
         SupportConfig::InfillAngle(lower_layers, gcode_layer.getLayerNr(), storage.support),
         1, // there is no frontend setting for this (yet)
-        wall_count,
+        infill_extruder.settings.get<size_t>("support_wall_count"),
         SupportConfig::LineWidth(first_layer, mesh_group_settings, infill_extruder),
         SupportConfig::Pattern(lower_layers, infill_extruder),
         infill_extruder.settings.get<bool>("zig_zaggify_support"),
