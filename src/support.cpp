@@ -129,19 +129,11 @@ void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
 void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage)
 {
     // at this stage, the outlines are final, and we can generate insets and infill area
-    for (SupportLayer& support_layer : storage.support.supportLayers)
-    {
-        for (std::vector<SupportInfillPart>::iterator part_itr = support_layer.support_infill_parts.begin(); part_itr != support_layer.support_infill_parts.end();)
-        {
-            SupportInfillPart& part = *part_itr;
-            const bool has_insets = part.generateInsets(); // Todo check if i'm not oversimplifying a leave out some cases
-            if (has_insets)
-            {
-                part.generateInfillAreas();
-                part_itr++;
-            }
-            else
-                part_itr = support_layer.support_infill_parts.erase(part_itr);
+    for (auto& supportLayer : storage.support.supportLayers) {
+        for (auto& part : supportLayer.support_infill_parts) {
+            part.generateInsetsAndInfillAreas();
+            if (part.inset_count_to_generate > 0 && !part.getWallArea().empty())
+                part.generateInsets();
         }
     }
 }
@@ -407,36 +399,14 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
     }
 }
 
-void AreaSupport::prepareInsetForToolpathGeneration(Polygons& inset, const double& small_area)
-{
-    constexpr coord_t smallest_line_segment = 50;
-    constexpr coord_t allowed_error_distance = 50;
-    constexpr float  max_deviation_error = 0.03;
-    inset.simplify(smallest_line_segment, allowed_error_distance);
-    inset.removeColinearEdges(max_deviation_error); // Note: using a double-sized type would probably be faster on newer generation machines, Why not use AngleRadians?
-    inset.fixSelfIntersections();
-    inset.removeSmallAreas(small_area,false);
-}
-
 void AreaSupport::generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths,
-                                       const Polygons& outline,
-                                       const unsigned int& inset_count, const coord_t& wall_line_width_x)
+                                       const Polygons& wall_area, const coord_t& wall_line_width)
 {
-    // Create the Wall donut
-    const coord_t inner_offset = wall_line_width_x * (inset_count - 1) + wall_line_width_x / 2;
-    const coord_t outer_offset =  wall_line_width_x / 2;
-    Polygons tubeshape = outline.tubeShape(inner_offset, outer_offset);
-    const double small_area = static_cast<double>(wall_line_width_x * wall_line_width_x) / 4e6; // same as (wall_line_width_x / 2 / 1000)**2
-    prepareInsetForToolpathGeneration(tubeshape, small_area);
-
-    if (!tubeshape.empty()) // Todo check if i need to test against area() assumption for now is that if its not empty it has an area and this safes the computation done in the area function
-    {
-        constexpr float transitioning_angle = 0.5;
-        const coord_t transition_length = wall_line_width_x * 2;
-        const DistributedBeadingStrategy beading_strat(wall_line_width_x, transition_length, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
-        SkeletalTrapezoidation wall_maker(tubeshape, beading_strat, beading_strat.transitioning_angle);
-        wall_maker.generateToolpaths(wall_toolpaths);
-    }
+    constexpr float transitioning_angle = 0.5;
+    const coord_t transition_length = wall_line_width * 2;
+    const DistributedBeadingStrategy beading_strat(wall_line_width, transition_length, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
+    SkeletalTrapezoidation wall_maker(wall_area, beading_strat, beading_strat.transitioning_angle);
+    wall_maker.generateToolpaths(wall_toolpaths);
 }
 
 void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x)

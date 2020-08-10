@@ -41,26 +41,29 @@ public:
      *
      * \return false if the area is too small and no insets and infill area can be generated, otherwise true.
      */
-    [[deprecated]] bool generateInsetsAndInfillAreas(); // Todo check if C++11 supports attribute deprecated
+    void generateInsetsAndInfillAreas();
 
     // Todo write doc
-    bool generateInsets();
-
-    // Todo write doc
-    void generateInfillAreas();
+    void generateInsets();
 
     const Polygons& getInfillArea() const;
 
+    const Polygons& getWallArea() const;
+
 private:
     Polygons infill_area;  //!< The support infill area for generating patterns
+    Polygons wall_area; //!< The wall area for generating libArachne walls
 };
 
 inline const Polygons& SupportInfillPart::getInfillArea() const
 {
-    // if there is no wall, we use the original outline as the infill area
-    return (inset_count_to_generate == 0) ? outline : infill_area;
+    return infill_area;
 }
 
+inline const Polygons& SupportInfillPart::getWallArea() const
+{
+    return wall_area;
+}
 } // namespace cura
 
 #endif // SUPPORT_INFILL_PART_H
