@@ -37,10 +37,10 @@ void SupportInfillPart::generateInsetsAndInfillAreas()
         constexpr coord_t smallest_line_segment = 50; // Todo: get rid of magic number
         constexpr coord_t allowed_error_distance = 50; // Todo: get rid of magic number
         const auto half_wall = support_line_width / 2;
-        const auto inner_offset = -half_wall - support_line_width * (inset_count_to_generate - 1);
+        const auto inner_offset = -support_line_width - support_line_width * (inset_count_to_generate - 1);
         infill_area = outline.offset(inner_offset);
         infill_area.simplify(smallest_line_segment, allowed_error_distance);
-        auto outer_inset = outline.offset(half_wall);
+        auto outer_inset = outline.offset(-half_wall);
         outer_inset.simplify();
         wall_area = outer_inset.difference(infill_area);
         wall_area.removeColinearEdges(0.03);
