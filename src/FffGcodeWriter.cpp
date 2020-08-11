@@ -2401,12 +2401,16 @@ bool FffGcodeWriter::processSupport(const SliceDataStorage& storage, LayerPlan& 
 
     // Nothing to do return
     if (gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer || support_layer.support_infill_parts.empty())
+    {
         return added_something;
+    }
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
     PathOrderOptimizer<const SupportInfillPart*> island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
     for (const auto& part : support_layer.support_infill_parts)
+    {
         island_order_optimizer.addPolygon(&part);
+    }
     island_order_optimizer.optimize();
 
     // Settings per layer Todo: maybe move out and create seperate function and setting struct

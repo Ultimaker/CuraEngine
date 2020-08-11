@@ -129,11 +129,15 @@ void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
 void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage)
 {
     // at this stage, the outlines are final, and we can generate insets and infill area
-    for (auto& supportLayer : storage.support.supportLayers) {
-        for (auto& part : supportLayer.support_infill_parts) {
+    for (auto& supportLayer : storage.support.supportLayers)
+    {
+        for (auto& part : supportLayer.support_infill_parts)
+        {
             part.generateInsetsAndInfillAreas();
             if (part.inset_count_to_generate > 0 && !part.getWallArea().empty())
+            {
                 part.generateInsets();
+            }
         }
     }
 }
