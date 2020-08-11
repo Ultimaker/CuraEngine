@@ -823,14 +823,14 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
 
 void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SupportConfig& support_config, const GCodePathConfig& path_config)
 {
-    ExtrusionJunction j{*wall.begin()};
-    addTravel(j.p, false);
+    ExtrusionJunction junction{*wall.begin()};
+    addTravel(junction.p, false);
 
-    for (const auto& j_n : wall)
+    for (const auto& junction_n : wall)
     {
-        const double flow = j_n.w / Ratio(path_config.getLineWidth());
-        addExtrusionMove(j_n.p, path_config, SpaceFillType::Polygons, flow);
-        j = j_n;
+        const double flow = junction_n.w / Ratio(path_config.getLineWidth());
+        addExtrusionMove(junction_n.p, path_config, SpaceFillType::Polygons, flow);
+        junction = junction_n;
     }
 }
 
