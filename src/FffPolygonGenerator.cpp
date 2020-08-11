@@ -582,45 +582,6 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
             }
             for (SliceLayerPart& part : layer.parts)
             {
-                 // handle perimeter gaps of normal insets
-                int line_width = wall_line_width_0;
-                for (unsigned int inset_idx = 0; static_cast<int>(inset_idx) < static_cast<int>(part.insets.size()) - 1; inset_idx++)
-                {
-                    const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-                    line_width = wall_line_width_x;
-
-                    Polygons inner = part.insets[inset_idx + 1].offset(line_width / 2);
-                    part.perimeter_gaps.add(outer.difference(inner));
-                }
-
-                if (filter_out_tiny_gaps) {
-                    part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
-                }
-
-                // gap between inner wall and skin/infill
-                if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0)
-                {
-                    const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-
-                    // accumulate area of skin and infill that will be printed
-                    Polygons inner;
-                    for (const SkinPart& skin_part : part.skin_parts)
-                    {
-                        inner.add(skin_part.outline);
-                    }
-                    // for some reason the zig-zag and lines patterns behave differently and a narrow region that isn't filled with zig-zag pattern can be filled with
-                    // lines pattern so we only add the narrow region to the perimeter gaps when the pattern is zig-zag.
-                    if (((layer_nr == 0) ? mesh.settings.get<EFillMethod>("top_bottom_pattern_0") : mesh.settings.get<EFillMethod>("top_bottom_pattern")) == EFillMethod::ZIG_ZAG)
-                    {
-                        // remove skin areas that are narrower than skin_line_width as they won't get printed unless
-                        // we print them as a perimeter gap
-                        inner = inner.offset(-skin_line_width / 2).offset(skin_line_width / 2);
-                    }
-                    inner.add(part.infill_area);
-                    inner = inner.unionPolygons();
-                    part.perimeter_gaps.add(outer.difference(inner));
-                }
-
                 // add perimeter gaps for skin insets
                 for (SkinPart& skin_part : part.skin_parts)
                 {
