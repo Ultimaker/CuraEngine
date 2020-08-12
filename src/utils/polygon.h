@@ -479,6 +479,8 @@ public:
         }
     }
 
+    void removeColinearEdges(const AngleRadians max_deviation_angle);
+
     /*! 
      * Removes consecutive line segments with same orientation and changes this polygon.
      * 
@@ -935,6 +937,20 @@ public:
 
     Polygons smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
     
+    void removeColinearEdges(const float max_deviation_angle = 0.02)
+    {
+        Polygons& thiss = *this;
+        for (size_t p = 0; p < size(); p++)
+        {
+            thiss[p].removeColinearEdges(max_deviation_angle);
+            if (thiss[p].size() < 3)
+            {
+                remove(p);
+                p--;
+            }
+        }
+    }
+
     /*!
      * Removes vertices of the polygons to make sure that they are not too high
      * resolution.
@@ -973,6 +989,11 @@ public:
                 p--;
             }
         }
+    }
+
+    void fixSelfIntersections()
+    {
+        ClipperLib::SimplifyPolygons(paths);
     }
 
     /*!

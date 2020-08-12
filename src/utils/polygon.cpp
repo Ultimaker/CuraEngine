@@ -3,6 +3,7 @@
 
 #include "polygon.h"
 
+#include <numeric>
 #include <unordered_set>
 
 #include "linearAlg2D.h" // pointLiesOnTheRightOfLine
@@ -303,6 +304,78 @@ Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, d
     clipper.MiterLimit = miter_limit;
     clipper.Execute(ret.paths, distance);
     return ret;
+}
+
+void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
+{
+    // TODO: Can be made more efficient (for example, use pointer-types for process-/skip-indices, so we can swap them without copy).
+
+    size_t num_removed_in_iteration = 0;
+    do
+    {
+        num_removed_in_iteration = 0;
+
+        std::vector<bool> process_indices(path->size(), true);
+
+        bool go = true;
+        while (go)
+        {
+            go = false;
+
+            const auto& rpath = *path;
+            const size_t pathlen = rpath.size();
+            if (pathlen <= 3)
+            {
+                return;
+            }
+
+            std::vector<bool> skip_indices(path->size(), false);
+
+            ClipperLib::Path new_path;
+            for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
+            {
+                // Don't iterate directly over process-indices, but do it this way, because there are points _in_ process-indices that should nonetheless be skipped:
+                if (! process_indices[point_idx])
+                {
+                    new_path.push_back(rpath[point_idx]);
+                    continue;
+                }
+
+                // Should skip the last point for this iteration if the old first was removed (which can be seen from the fact that the new first was skipped):
+                if (point_idx == (pathlen - 1) && skip_indices[0])
+                {
+                    skip_indices[new_path.size()] = true;
+                    go = true;
+                    new_path.push_back(rpath[point_idx]);
+                    break;
+                }
+
+                const Point& prev = rpath[(point_idx - 1 + pathlen) % pathlen];
+                const Point& pt = rpath[point_idx];
+                const Point& next = rpath[(point_idx + 1) % pathlen];
+
+                // Check if the angle is large enough for the point to 'make sense' given the maximum deviation:
+                if (std::abs(M_PI - std::abs(LinearAlg2D::getAngleLeft(prev, pt, next))) > max_deviation_angle)
+                {
+                    new_path.push_back(pt);
+                }
+                else if (point_idx != (pathlen - 1))
+                {
+                    // Skip the next point, since the current one was removed:
+                    skip_indices[new_path.size()] = true;
+                    go = true;
+                    new_path.push_back(next);
+                    ++point_idx;
+                }
+            }
+            *path = new_path;
+            num_removed_in_iteration += pathlen - path->size();
+
+            process_indices.clear();
+            process_indices.insert(process_indices.end(), skip_indices.begin(), skip_indices.end());
+        }
+    }
+    while (num_removed_in_iteration > 0);
 }
 
 void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared)
