@@ -1,5 +1,5 @@
 //Copyright (c) 2020 Ultimaker B.V.
-
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SKELETAL_TRAPEZOIDATION_GRAPH_H
 #define SKELETAL_TRAPEZOIDATION_GRAPH_H
@@ -10,11 +10,11 @@
 
 #include <optional>
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 class STHalfEdgeNode;
+
 class STHalfEdge : public HalfEdge<SkeletalTrapezoidationJoint, SkeletalTrapezoidationEdge, STHalfEdgeNode, STHalfEdge>
 {
     using edge_t = STHalfEdge;

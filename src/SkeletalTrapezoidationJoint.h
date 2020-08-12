@@ -1,5 +1,5 @@
 //Copyright (c) 2020 Ultimaker B.V.
-
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SKELETAL_TRAPEZOIDATION_JOINT_H
 #define SKELETAL_TRAPEZOIDATION_JOINT_H
@@ -9,9 +9,8 @@
 #include "BeadingStrategy/BeadingStrategy.h"
 #include "utils/IntPoint.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 class SkeletalTrapezoidationJoint
 {
@@ -58,5 +57,5 @@ private:
     std::weak_ptr<BeadingPropagation> beading;
 };
 
-} // namespace arachne
+} // namespace cura
 #endif // SKELETAL_TRAPEZOIDATION_JOINT_H

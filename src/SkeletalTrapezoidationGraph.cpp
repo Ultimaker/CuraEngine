@@ -1,9 +1,12 @@
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "SkeletalTrapezoidationGraph.h"
 #include <unordered_map>
 
 #include "utils/linearAlg2D.h"
 
-namespace arachne
+namespace cura
 {
 
 STHalfEdge::STHalfEdge(SkeletalTrapezoidationEdge data) : HalfEdge(data) {}

@@ -3,7 +3,7 @@
 
 #include "WideningBeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
 
 WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
@@ -73,4 +73,4 @@ std::vector<coord_t> WideningBeadingStrategy::getNonlinearThicknesses(coord_t lo
     return ret;
 }
 
-} // namespace arachne
+} // namespace cura

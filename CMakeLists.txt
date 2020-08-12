@@ -1,4 +1,4 @@
-#Copyright (c) 2019 Ultimaker B.V.
+#Copyright (c) 2020 Ultimaker B.V.
 #CuraEngine is released under the terms of the AGPLv3 or higher.
 
 cmake_minimum_required(VERSION 3.6.0)
@@ -140,7 +140,6 @@ set(engine_SRCS # Except main.cpp.
     src/FffProcessor.cpp
     src/gcodeExport.cpp
     src/GCodePathConfig.cpp
-    src/GcodeWriter.cpp
     src/infill.cpp
     src/InsetOrderOptimizer.cpp
     src/layerPart.cpp
@@ -151,8 +150,7 @@ set(engine_SRCS # Except main.cpp.
     src/MeshGroup.cpp
     src/Mold.cpp
     src/multiVolumes.cpp
-    src/OrderOptimizer.cpp
-    src/pathOrderOptimizer.cpp
+    src/PathOrderOptimizer.cpp
     src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp
@@ -211,6 +209,7 @@ set(engine_SRCS # Except main.cpp.
     src/settings/FlowTempGraph.cpp
     src/settings/PathConfigStorage.cpp
     src/settings/Settings.cpp
+    src/settings/ZSeamConfig.cpp
 
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
@@ -244,6 +243,7 @@ set(engine_TEST
     InfillTest
     LayerPlanTest
     MergeInfillLinesTest
+	PathOrderOptimizerTest
     TimeEstimateCalculatorTest
 )
 set(engine_TEST_INFILL

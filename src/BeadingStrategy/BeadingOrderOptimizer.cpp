@@ -10,7 +10,7 @@
 
 #include "../utils/SparsePointGridInclusive.h"
 
-namespace arachne
+namespace cura
 {
 
 void BeadingOrderOptimizer::optimize(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
@@ -331,4 +331,4 @@ std::list<ExtrusionJunction>::iterator BeadingOrderOptimizer::getSelfPosIt(std::
     return (++it).base();
 }
 
-} // namespace arachne
+} // namespace cura

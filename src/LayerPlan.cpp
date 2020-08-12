@@ -231,14 +231,8 @@ Polygons LayerPlan::computeCombBoundaryInside(const size_t max_inset)
                             inner = part.insets[num_insets - 1].offset(-10 - mesh.settings.get<coord_t>("wall_line_width_x") / 2);
                         }
 
-                        Polygons infill(part.infill_area);
-                        if (part.perimeter_gaps.size() > 0)
-                        {
-                            infill = infill.unionPolygons(part.perimeter_gaps.offset(10)); // ensure polygons overlap slightly
-                        }
-
                         // combine the wall combing region (outer - inner) with the infill (if any)
-                        comb_boundary.add(infill.unionPolygons(outer.difference(inner)));
+                        comb_boundary.add(part.infill_area.unionPolygons(outer.difference(inner)));
                     }
                 }
             }
@@ -535,30 +529,31 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFi
     last_planned_position = p;
 }
 
-void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, const Ratio& flow_ratio, bool always_retract)
+void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const bool backwards, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, const Ratio& flow_ratio, bool always_retract)
 {
     Point p0 = polygon[start_idx];
     addTravel(p0, always_retract);
-    for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
+    const int direction = backwards ? -1 : 1;
+    for(size_t point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
-        Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
+        Point p1 = polygon[(start_idx + point_idx * direction + polygon.size()) % polygon.size()];
         const Ratio flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
         p0 = p1;
     }
-    if (polygon.size() > 2)
+    if(polygon.size() > 2)
     {
         const Point& p1 = polygon[start_idx];
         const Ratio flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
 
-        if (wall_0_wipe_dist > 0)
+        if(wall_0_wipe_dist > 0)
         { // apply outer wall wipe
             p0 = polygon[start_idx];
             int distance_traversed = 0;
-            for (unsigned int point_idx = 1; ; point_idx++)
+            for(size_t point_idx = 1; ; point_idx++)
             {
-                Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
+                Point p1 = polygon[(start_idx + point_idx * direction + polygon.size()) % polygon.size()];
                 int p0p1_dist = vSize(p1 - p0);
                 if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
                 {
@@ -583,32 +578,32 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     }
 }
 
-void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, const Ratio flow_ratio, bool always_retract, bool reverse_order, std::optional<Point> start_near_location)
+void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, bool spiralize, const Ratio flow_ratio, bool always_retract, bool reverse_order, const std::optional<Point> start_near_location)
 {
-    if (polygons.size() == 0)
+    if(polygons.empty())
     {
         return;
     }
-    PathOrderOptimizer orderOptimizer(start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(), z_seam_config);
-    for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+    PathOrderOptimizer<ConstPolygonRef> orderOptimizer(start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for(size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
     orderOptimizer.optimize();
-    
-    if(reverse_order == false)
+
+    if(!reverse_order)
     {
-        for (unsigned int poly_idx : orderOptimizer.polyOrder)
+        for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
         {
-            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
     else
     {
-        for(int index = orderOptimizer.polyOrder.size() - 1; index >= 0; --index)
+        for(int index = orderOptimizer.paths.size() - 1; index >= 0; --index)
         {
-            int poly_idx = orderOptimizer.polyOrder[index];
-            addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            const PathOrderOptimizer<ConstPolygonRef>::Path& path = orderOptimizer.paths[index];
+            addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
 }
@@ -801,8 +796,32 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
 
 void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
-    // make sure wall start point is not above air!
-    start_idx = locateFirstSupportedVertex(wall, start_idx);
+    //TODO: Deprecated in favor of ExtrusionJunction version below.
+    if (wall.size() < 3)
+    {
+        logWarning("WARNING: point, or line added as (polygon) wall sequence! (LayerPlan)\n");
+    }
+
+    constexpr size_t dummy_perimeter_id = 0;  // <-- Here, don't care about which perimeter any more.
+    const coord_t nominal_line_width = non_bridge_config.getLineWidth();  // <-- The line width which it's 'supposed to' be will be used to adjust the flow ratio each time, this'll give a flow-ratio-multiplier of 1.
+
+    std::vector<ExtrusionJunction> ewall;
+    std::for_each(wall.begin(), wall.end(), [&dummy_perimeter_id, &nominal_line_width, &ewall](const Point& p)
+    {
+        ewall.emplace_back(p, nominal_line_width, dummy_perimeter_id);
+    });
+    ewall.emplace_back(*wall.begin(), nominal_line_width, dummy_perimeter_id);
+
+    addWall(ewall, start_idx, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract, true, false);
+}
+
+void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed)
+{
+    if(is_closed)
+    {
+        // make sure wall start point is not above air!
+        start_idx = locateFirstSupportedVertex(wall, start_idx);
+    }
 
     float non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     double speed_factor = 1.0; // start first line at normal speed
@@ -812,10 +831,12 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     const Ratio wall_min_flow = mesh.settings.get<Ratio>("wall_min_flow");
     const bool wall_min_flow_retract = mesh.settings.get<bool>("wall_min_flow_retract");
     const coord_t small_feature_max_length = mesh.settings.get<coord_t>("small_feature_max_length");
-    const bool is_small_feature = (small_feature_max_length > 0) && wall.shorterThan(small_feature_max_length);
+    const bool is_small_feature = (small_feature_max_length > 0) && cura::shorterThan(wall, small_feature_max_length);
     Ratio small_feature_speed_factor = mesh.settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder[getLastPlannedExtruderTrain()->extruder_nr].cool_min_speed;
     small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
+
+    const Ratio nominal_line_width_multiplier = 1.0 / Ratio(non_bridge_config.getLineWidth()); // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
 
     // helper function to calculate the distance from the start of the current wall line to the first bridge segment
 
@@ -828,18 +849,18 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
             // there is air below the part so iterate through the lines that have not yet been output accumulating the total distance to the first bridge segment
             for (unsigned point_idx = current_index; point_idx < wall.size(); ++point_idx)
             {
-                const Point& p0 = wall[point_idx];
-                const Point& p1 = wall[(point_idx + 1) % wall.size()];
+                const ExtrusionJunction& p0 = wall[point_idx];
+                const ExtrusionJunction& p1 = wall[(point_idx + 1) % wall.size()];
 
-                if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask, p0, p1))
+                if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask, p0.p, p1.p))
                 {
                     // the line crosses the boundary between supported and non-supported regions so it will contain one or more bridge segments
 
                     // determine which segments of the line are bridges
 
                     Polygon line_poly;
-                    line_poly.add(p0);
-                    line_poly.add(p1);
+                    line_poly.add(p0.p);
+                    line_poly.add(p1.p);
                     Polygons line_polys;
                     line_polys.add(line_poly);
                     line_polys = bridge_wall_mask.intersectionPolyLines(line_polys);
@@ -848,10 +869,10 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
                     {
                         // find the bridge line segment that's nearest to p0
                         int nearest = 0;
-                        float smallest_dist2 = vSize2f(p0 - line_polys[0][0]);
+                        float smallest_dist2 = vSize2f(p0.p - line_polys[0][0]);
                         for(unsigned i = 1; i < line_polys.size(); ++i)
                         {
-                            float dist2 = vSize2f(p0 - line_polys[i][0]);
+                            float dist2 = vSize2f(p0.p - line_polys[i][0]);
                             if (dist2 < smallest_dist2)
                             {
                                 nearest = i;
@@ -864,14 +885,14 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
                         Point b0 = bridge[0];
                         Point b1 = bridge[1];
 
-                        if (vSize2f(p0 - b1) < vSize2f(p0 - b0))
+                        if (vSize2f(p0.p - b1) < vSize2f(p0.p - b0))
                         {
                             // swap vertex order
                             b0 = bridge[1];
                             b1 = bridge[0];
                         }
 
-                        distance_to_bridge_start += vSize(b0 - p0);
+                        distance_to_bridge_start += vSize(b0 - p0.p);
 
                         const double bridge_line_len = vSize(b1 - b0);
 
@@ -887,10 +908,10 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
                         line_polys.remove(nearest);
                     }
                 }
-                else if (!bridge_wall_mask.inside(p0, true))
+                else if (!bridge_wall_mask.inside(p0.p, true))
                 {
                     // none of the line is over air
-                    distance_to_bridge_start += vSize(p1 - p0);
+                    distance_to_bridge_start += vSize(p1.p - p0.p);
                 }
             }
 
@@ -904,34 +925,36 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
 
     bool first_line = true;
 
-    Point p0 = wall[start_idx];
+    ExtrusionJunction p0 = wall[start_idx];
 
-    for (unsigned int point_idx = 1; point_idx < wall.size(); point_idx++)
+    const int direction = is_reversed ? -1 : 1;
+    const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
+    for(size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
-        const Point& p1 = wall[(start_idx + point_idx) % wall.size()];
-        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
+        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0.p, p1.p) : flow_ratio;
 
         if (!bridge_wall_mask.empty())
         {
-            computeDistanceToBridgeStart((start_idx + point_idx - 1) % wall.size());
+            computeDistanceToBridgeStart((wall.size() + start_idx + point_idx * direction - 1) % wall.size());
         }
 
         if (flow >= wall_min_flow)
         {
             if (first_line || travel_required)
             {
-                addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
+                addTravel(p0.p, (first_line) ? always_retract : wall_min_flow_retract);
                 first_line = false;
                 travel_required = false;
             }
             if (is_small_feature)
             {
                 constexpr bool spiralize = false;
-                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
+                addExtrusionMove(p1.p, non_bridge_config, SpaceFillType::Polygons, flow * (p1.w * nominal_line_width_multiplier), spiralize, small_feature_speed_factor);
             }
             else
             {
-                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                addWallLine(p0.p, p1.p, mesh, non_bridge_config, bridge_config, flow * (p1.w * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
             }
         }
         else
@@ -942,10 +965,15 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
         p0 = p1;
     }
 
-    if (wall.size() > 2)
+    if (travel_required)
     {
-        const Point& p1 = wall[start_idx];
-        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        addTravel(p0.p, wall_min_flow_retract);
+    }
+
+    if (wall.size() >= 2)
+    {
+        const ExtrusionJunction& p1 = wall[start_idx];
+        const float flow = (wall_overlap_computation) ? flow_ratio * wall_overlap_computation->getFlow(p0.p, p1.p) : flow_ratio;
 
         if (!bridge_wall_mask.empty())
         {
@@ -954,38 +982,24 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
 
         if (flow >= wall_min_flow)
         {
-            if (travel_required)
-            {
-                addTravel(p0, wall_min_flow_retract);
-            }
-            if (is_small_feature)
-            {
-                constexpr bool spiralize = false;
-                addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize, small_feature_speed_factor);
-            }
-            else
-            {
-                addWallLine(p0, p1, mesh, non_bridge_config, bridge_config, flow, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
-            }
-
             if (wall_0_wipe_dist > 0)
             { // apply outer wall wipe
                 p0 = wall[start_idx];
                 int distance_traversed = 0;
                 for (unsigned int point_idx = 1; ; point_idx++)
                 {
-                    Point p1 = wall[(start_idx + point_idx) % wall.size()];
+                    ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
                     int p0p1_dist = vSize(p1 - p0);
                     if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
                     {
-                        Point vector = p1 - p0;
-                        Point half_way = p0 + normal(vector, wall_0_wipe_dist - distance_traversed);
+                        Point vector = p1.p - p0.p;
+                        Point half_way = p0.p + normal(vector, wall_0_wipe_dist - distance_traversed);
                         addTravel_simple(half_way);
                         break;
                     }
                     else
                     {
-                        addTravel_simple(p1);
+                        addTravel_simple(p1.p);
                         distance_traversed += p0p1_dist;
                     }
                     p0 = p1;
@@ -996,54 +1010,37 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     }
     else
     {
-        logWarning("WARNING: line added as polygon! (LayerPlan)\n");
+        logWarning("WARNING: point added as wall sequence! (LayerPlan)\n");
     }
 }
 
 void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
-    PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
-    for (unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
+    //TODO: Deprecated in favor of ExtrusionJunction version below.
+    PathOrderOptimizer<ConstPolygonRef> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for(size_t poly_idx = 0; poly_idx < walls.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (unsigned int poly_idx : orderOptimizer.polyOrder)
+    for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
     {
-        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
-unsigned LayerPlan::locateFirstSupportedVertex(ConstPolygonRef wall, const unsigned start_idx) const
+void LayerPlan::addWalls(const std::vector<std::vector<ExtrusionJunction>>& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
-    if (bridge_wall_mask.empty() && overhang_mask.empty())
+    constexpr bool detect_loops = true;
+    PathOrderOptimizer<const std::vector<ExtrusionJunction>*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops);
+    for(const std::vector<ExtrusionJunction>& wall : walls)
     {
-        return start_idx;
+        order_optimizer.addPolyline(&wall);
     }
-
-    Polygons air_below(bridge_wall_mask.unionPolygons(overhang_mask));
-
-    unsigned curr_idx = start_idx;
-
-    while(true)
+    order_optimizer.optimize();
+    for(const PathOrderOptimizer<const std::vector<ExtrusionJunction>*>::Path& path : order_optimizer.paths)
     {
-        const Point& vertex = wall[curr_idx];
-        if (!air_below.inside(vertex, true))
-        {
-            // vertex isn't above air so it's OK to use
-            return curr_idx;
-        }
-
-        if (++curr_idx >= wall.size())
-        {
-            curr_idx = 0;
-        }
-
-        if (curr_idx == start_idx)
-        {
-            // no vertices are supported so just return the original index
-            return start_idx;
-        }
+        addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract, path.is_closed, path.backwards);
     }
 }
 
@@ -1071,18 +1068,19 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         // simplify boundary to cut down processing time
         boundary.simplify(100, 100);
     }
-    LineOrderOptimizer orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), &boundary);
-    for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
+    constexpr bool detect_loops = true;
+    PathOrderOptimizer<ConstPolygonRef> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary);
+    for(size_t line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
-        orderOptimizer.addPolygon(polygons[line_idx]);
+        order_optimizer.addPolyline(polygons[line_idx]);
     }
-    orderOptimizer.optimize();
+    order_optimizer.optimize();
 
-    for (unsigned int order_idx = 0; order_idx < orderOptimizer.polyOrder.size(); order_idx++)
+    for(size_t order_idx = 0; order_idx < order_optimizer.paths.size(); order_idx++)
     {
-        const unsigned int poly_idx = orderOptimizer.polyOrder[order_idx];
-        ConstPolygonRef polygon = polygons[poly_idx];
-        const size_t start = orderOptimizer.polyStart[poly_idx];
+        const PathOrderOptimizer<ConstPolygonRef>::Path& path = order_optimizer.paths[order_idx];
+        ConstPolygonRef polygon = *path.vertices;
+        const size_t start = path.start_vertex;
         const size_t end = 1 - start;
         const Point& p0 = polygon[start];
         const Point& p1 = polygon[end];
@@ -1095,23 +1093,23 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
 
         // Wipe
-        if (wipe_dist != 0)
+        if(wipe_dist != 0)
         {
             bool wipe = true;
             int line_width = config.getLineWidth();
 
             // Don't wipe is current extrusion is too small
-            if (vSize2(p1 - p0) <= line_width * line_width * 4)
+            if(vSize2(p1 - p0) <= line_width * line_width * 4)
             {
                 wipe = false;
             }
 
             // Don't wipe if next starting point is very near
-            if (wipe && (order_idx < orderOptimizer.polyOrder.size() - 1))
+            if(wipe && (order_idx < order_optimizer.paths.size() - 1))
             {
-                const unsigned int next_poly_idx = orderOptimizer.polyOrder[order_idx + 1];
-                ConstPolygonRef next_polygon = polygons[next_poly_idx];
-                const size_t next_start = orderOptimizer.polyStart[next_poly_idx];
+                const PathOrderOptimizer<ConstPolygonRef>::Path& next_path = order_optimizer.paths[order_idx + 1];
+                ConstPolygonRef next_polygon = *next_path.vertices;
+                const size_t next_start = next_path.start_vertex;
                 const Point& next_p0 = next_polygon[next_start];
                 if (vSize2(next_p0 - p1) <= line_width * line_width * 4)
                 {
@@ -1119,9 +1117,9 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
                 }
             }
 
-            if (wipe)
+            if(wipe)
             {
-                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
+                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
             }
         }
     }

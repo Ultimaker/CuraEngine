@@ -5,10 +5,8 @@
 
 #include "logoutput.h"
 
-namespace arachne
+namespace cura
 {
-
-    using namespace cura;
 
 Polygons ExtrusionSegment::toPolygons()
 {

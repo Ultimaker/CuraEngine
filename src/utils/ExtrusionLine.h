@@ -7,9 +7,8 @@
 
 #include "ExtrusionJunction.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * Represents a polyline (not just a line) that is to be extruded with variable
@@ -52,8 +51,12 @@ struct ExtrusionLine
      * Sum the total length of this path.
      */
     coord_t getLength() const;
+
+    /*!
+     * Export the included junctions as vector.
+     */
+    void appendJunctionsTo(std::vector<ExtrusionJunction>& result) const;
 };
 
-
-} // namespace arachne
+} // namespace cura
 #endif // UTILS_EXTRUSION_LINE_H

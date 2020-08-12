@@ -259,10 +259,6 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     {
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (part.perimeter_gaps.size() > 0)
-            {
-                return true;
-            }
             for (const SkinPart& skin_part : part.skin_parts)
             {
                 if (skin_part.perimeter_gaps.size() > 0)

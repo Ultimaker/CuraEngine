@@ -1,5 +1,5 @@
 //Copyright (c) 2020 Ultimaker B.V.
-
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
 #define SKELETAL_TRAPEZOIDATION_EDGE_H
@@ -10,9 +10,8 @@
 
 #include "utils/ExtrusionJunction.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 class SkeletalTrapezoidationEdge
 {
@@ -124,5 +123,5 @@ private:
 };
 
 
-} // namespace arachne
+} // namespace cura
 #endif // SKELETAL_TRAPEZOIDATION_EDGE_H

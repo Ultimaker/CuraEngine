@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_LINEAR_ALG_2D_H
@@ -134,6 +134,8 @@ public:
     */
     static Point getClosestOnLine(const Point& from, const Point& p0, const Point& p1)
     {
+        if (p1 == p0) { return p0; }
+
         const Point direction = p1 - p0;
         const Point to_from = from - p0;
         const coord_t projected_x = dot(to_from, direction);

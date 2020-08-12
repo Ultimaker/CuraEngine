@@ -7,10 +7,9 @@
 
 #include "DistributedBeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
-
+    
 /*!
  * A beading strategy which divides the discrepancy between the current and
  * optimal thickness mainly to the inner beads.
@@ -32,15 +31,13 @@ public:
     {
         name = "InwardDistributedBeadingStrategy";
     }
-    virtual ~InwardDistributedBeadingStrategy() override
-    {}
+    
+    virtual ~InwardDistributedBeadingStrategy() override {}
+    
     Beading compute(coord_t thickness, coord_t bead_count) const override;
 private:
     float one_over_distribution_radius_squared; // (1 / distribution_radius)^2
 };
 
-
-
-
-} // namespace arachne
+} // namespace cura
 #endif // INWARD_DISTRIBUTED_BEADING_STRATEGY_H

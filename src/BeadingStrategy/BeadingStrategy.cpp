@@ -4,7 +4,7 @@
 
 #include "BeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
 
 coord_t BeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
@@ -34,4 +34,4 @@ std::string BeadingStrategy::toString() const
     return name;
 }
 
-} // namespace arachne
+} // namespace cura

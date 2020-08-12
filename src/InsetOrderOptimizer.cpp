@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ExtruderTrain.h"
@@ -24,6 +24,102 @@ static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, cons
         }
     }
     return -1;
+}
+
+InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) :
+    gcode_writer(gcode_writer),
+    storage(storage),
+    gcode_layer(gcode_layer),
+    mesh(mesh),
+    extruder_nr(extruder_nr),
+    mesh_config(mesh_config),
+    part(part),
+    layer_nr(layer_nr),
+    z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
+    added_something(false),
+    retraction_region_calculated(false),
+    wall_overlapper_0(nullptr),
+    wall_overlapper_x(nullptr)
+{
+}
+
+bool InsetOrderOptimizer::optimize()
+{
+    if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
+    {
+        return processInsetsWithOptimizedOrdering();
+    }
+    else
+    {
+        return processInsetsIndexedOrdering();
+    }
+}
+
+bool InsetOrderOptimizer::processInsetsIndexedOrdering()
+{
+    //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
+    const size_t num_insets = mesh.settings.get<size_t>("wall_line_count");
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> insets(num_insets); //Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
+    for(const std::list<ExtrusionLine>& path : part.wall_toolpaths)
+    {
+        if(path.empty()) //Don't bother printing these.
+        {
+            continue;
+        }
+        const size_t inset_index = path.front().inset_idx;
+
+        //Convert list of extrusion lines to vectors of extrusion junctions, and add those to the binned insets.
+        for(const ExtrusionLine& line : path)
+        {
+            insets[inset_index].emplace_back(line.junctions.begin(), line.junctions.end());
+        }
+    }
+
+    //If printing the outer inset first, start with the lowest inset.
+    //Otherwise start with the highest inset and iterate backwards.
+    const bool outer_inset_first = mesh.settings.get<bool>("outer_inset_first");
+    size_t start_inset;
+    size_t end_inset;
+    int direction;
+    if(outer_inset_first)
+    {
+        start_inset = 0;
+        end_inset = insets.size();
+        direction = 1;
+    }
+    else
+    {
+        start_inset = insets.size() - 1;
+        end_inset = -1;
+        direction = -1;
+    }
+
+    //Add all of the insets one by one.
+    constexpr Ratio flow = 1.0_r;
+    const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
+    const coord_t wall_0_wipe_dist = mesh.settings.get<coord_t>("wall_0_wipe_dist");
+    for(size_t inset = start_inset; inset != end_inset; inset += direction)
+    {
+        if(insets[inset].empty())
+        {
+            continue; //Don't switch extruders either, etc.
+        }
+        added_something = true;
+        gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+        gcode_layer.setIsInside(true); //Going to print walls, which are always inside.
+        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
+        WallOverlapComputation* wall_overlap_computation = nullptr; //TODO: Should we still use wall overlap compensation with Arachne? Probably not?
+
+        if(inset == 0) //Print using outer wall config.
+        {
+            gcode_layer.addWalls(insets[inset], mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+        }
+        else
+        {
+            gcode_layer.addWalls(insets[inset], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config, 0, flow, false);
+        }
+    }
+    return added_something;
 }
 
 void InsetOrderOptimizer::moveInside()
@@ -139,31 +235,28 @@ void InsetOrderOptimizer::processHoleInsets()
     if (optimize_backwards)
     {
         // determine the location of the z-seam and use that as the start point
-        PathOrderOptimizer order_optimizer(Point(), z_seam_config);
+        PathOrderOptimizer<ConstPolygonRef> order_optimizer(Point(), z_seam_config);
         order_optimizer.addPolygon(*inset_polys[0][0]);
         order_optimizer.optimize();
-        const unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(*inset_polys[0][0], order_optimizer.polyStart[0]);
+        const unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(*inset_polys[0][0], order_optimizer.paths[0].start_vertex);
         start_point = (*inset_polys[0][0])[outer_poly_start_idx];
     }
     Polygons comb_boundary(*gcode_layer.getCombBoundaryInside());
     comb_boundary.simplify(100, 100);
-    PathOrderOptimizer order_optimizer(start_point, z_seam_config, &comb_boundary);
+    constexpr bool detect_loops = true;
+    PathOrderOptimizer<ConstPolygonRef> order_optimizer(start_point, z_seam_config, detect_loops, &comb_boundary);
     for (unsigned int poly_idx = 1; poly_idx < inset_polys[0].size(); poly_idx++)
     {
         order_optimizer.addPolygon(*inset_polys[0][poly_idx]);
     }
     order_optimizer.optimize();
-    if (optimize_backwards)
-    {
-        // reverse the optimized order so we end up as near to the outline z-seam as possible
-        std::reverse(order_optimizer.polyOrder.begin(), order_optimizer.polyOrder.end());
-    }
+    //TODO: Listen to optimize_backwards and reverse the printing order if necessary.
 
     // this will consume all of the insets that surround holes but not the insets next to the outermost wall of the model
-    for (unsigned int outer_poly_order_idx = 0; outer_poly_order_idx < order_optimizer.polyOrder.size(); ++outer_poly_order_idx)
+    for (size_t outer_poly_order_idx = 0; outer_poly_order_idx < order_optimizer.paths.size(); ++outer_poly_order_idx)
     {
         Polygons hole_outer_wall; // the outermost wall of a hole
-        hole_outer_wall.add(*inset_polys[0][order_optimizer.polyOrder[outer_poly_order_idx] + 1]); // +1 because first element (part outer wall) wasn't included
+        hole_outer_wall.add(*order_optimizer.paths[outer_poly_order_idx].vertices);
         std::vector<unsigned int> hole_level_1_wall_indices; // the indices of the walls that touch the hole's outer wall
         if (inset_polys.size() > 1)
         {
@@ -186,14 +279,14 @@ void InsetOrderOptimizer::processHoleInsets()
                         ++num_future_outlines_touched;
                     }
                     // does it touch any yet to be processed hole outlines?
-                    for (unsigned int order_index = outer_poly_order_idx + 1; num_future_outlines_touched < 1 && order_index < order_optimizer.polyOrder.size(); ++order_index)
+                    for (size_t order_index = outer_poly_order_idx + 1; num_future_outlines_touched < 1 && order_index < order_optimizer.paths.size(); ++order_index)
                     {
-                        int outline_index = order_optimizer.polyOrder[order_index] + 1; // +1 because first element (part outer wall) wasn't included
+                        PathOrderOptimizer<ConstPolygonRef>::Path& path = order_optimizer.paths[order_index];
                         // as we don't know the shape of the outlines (straight, concave, convex, etc.) and the
                         // adjacency test assumes that the poly's are arranged so that the first has smaller
                         // radius curves than the second (it's "inside" the second) we need to test both combinations
-                        if (PolygonUtils::polygonOutlinesAdjacent(inset[0], *inset_polys[0][outline_index], max_gap) ||
-                            PolygonUtils::polygonOutlinesAdjacent(*inset_polys[0][outline_index], inset[0], max_gap))
+                        if (PolygonUtils::polygonOutlinesAdjacent(inset[0], *path.vertices, max_gap) ||
+                            PolygonUtils::polygonOutlinesAdjacent(*path.vertices, inset[0], max_gap))
                         {
                             // yes, it touches this yet to be processed hole outline
                             ++num_future_outlines_touched;
@@ -254,9 +347,9 @@ void InsetOrderOptimizer::processHoleInsets()
                         // that haven't yet been processed to see if they are also enclosed by this enclosing inset
                         const ConstPolygonRef& enclosing_inset = *inset_polys[inset_level][i];
                         bool encloses_future_hole = false; // set true if this inset also encloses another hole that hasn't yet been processed
-                        for (unsigned int hole_order_index = outer_poly_order_idx + 1; !encloses_future_hole && hole_order_index < order_optimizer.polyOrder.size(); ++hole_order_index)
+                        for (size_t hole_order_index = outer_poly_order_idx + 1; !encloses_future_hole && hole_order_index < order_optimizer.paths.size(); ++hole_order_index)
                         {
-                            const ConstPolygonRef& enclosed_inset = *inset_polys[0][order_optimizer.polyOrder[hole_order_index] + 1]; // +1 because first element (part outer wall) wasn't included
+                            const ConstPolygonRef enclosed_inset = *order_optimizer.paths[hole_order_index].vertices;
                             encloses_future_hole = PolygonUtils::polygonsIntersect(enclosing_inset, enclosed_inset);
                         }
                         if (encloses_future_hole)
@@ -293,8 +386,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 // avoid the possible retract when moving from the end of the immediately enclosing inset to the start
                 // of the hole outer wall we first move to a location that is close to the z seam and at a vertex of the
                 // first inset we want to be printed
-                const unsigned outer_poly_idx = order_optimizer.polyOrder[outer_poly_order_idx];
-                unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(hole_outer_wall[0], order_optimizer.polyStart[outer_poly_idx]);
+                size_t outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(hole_outer_wall[0], order_optimizer.paths[outer_poly_order_idx].start_vertex);
 
                 // detect special case where where the z-seam is located on the sharpest corner and there is only 1 hole and
                 // the gap between the walls is just a few line widths
@@ -405,30 +497,30 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         // determine the location of the z seam
-        PathOrderOptimizer order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+        PathOrderOptimizer<ConstPolygonRef> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
         order_optimizer.addPolygon(*inset_polys[0][0]);
         order_optimizer.optimize();
-        const unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(*inset_polys[0][0], order_optimizer.polyStart[0]);
+        const unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(*inset_polys[0][0], order_optimizer.paths[0].start_vertex);
         const Point z_seam_location = (*inset_polys[0][0])[outer_poly_start_idx];
 
         std::function<void(void)> addInnerWalls = [this, part_inner_walls, outer_inset_first, z_seam_location]()
         {
             Polygons boundary(*gcode_layer.getCombBoundaryInside());
             ZSeamConfig inner_walls_z_seam_config;
-            PathOrderOptimizer orderOptimizer(z_seam_location, inner_walls_z_seam_config, &boundary);
-            orderOptimizer.addPolygons(part_inner_walls);
-            orderOptimizer.optimize();
-            if (!outer_inset_first)
+            constexpr bool detect_loops = true;
+            PathOrderOptimizer<ConstPolygonRef> orderOptimizer(z_seam_location, inner_walls_z_seam_config, detect_loops, &boundary); //TODO: Seriously?! Different casing is a different optimizer?!
+            for(ConstPolygonRef poly : part_inner_walls)
             {
-                // reverse the optimized order so we end up as near to the outline z-seam as possible
-                std::reverse(orderOptimizer.polyOrder.begin(), orderOptimizer.polyOrder.end());
+                orderOptimizer.addPolygon(poly);
             }
+            orderOptimizer.optimize();
+            //TODO: Listen to outer_inset_first and maybe print in reverse order depending on that.
             constexpr coord_t wall_0_wipe_dist = 0;
             constexpr float flow_ratio = 1.0;
             constexpr bool always_retract = false;
-            for (unsigned int wall_idx : orderOptimizer.polyOrder)
+            for(PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
             {
-                gcode_layer.addWall(part_inner_walls[wall_idx], orderOptimizer.polyStart[wall_idx], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x, wall_0_wipe_dist, flow_ratio, always_retract);
+                gcode_layer.addWall(*path.vertices, path.start_vertex, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x, wall_0_wipe_dist, flow_ratio, always_retract);
             }
         };
 
@@ -592,6 +684,8 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
 
 bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part)
 {
+    return false; //TODO: The optimized inset order is broken due to libArachne.
+
     if (!mesh.settings.get<bool>("optimize_wall_printing_order"))
     {
         // optimization disabled

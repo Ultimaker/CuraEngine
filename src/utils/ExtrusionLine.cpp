@@ -3,7 +3,7 @@
 
 #include "ExtrusionLine.h"
 
-namespace arachne
+namespace cura
 {
 
 coord_t ExtrusionLine::getLength() const
@@ -20,6 +20,11 @@ coord_t ExtrusionLine::getLength() const
         prev = next;
     }
     return len;
+}
+
+void ExtrusionLine::appendJunctionsTo(std::vector<ExtrusionJunction>& result) const
+{
+    result.insert(result.end(), junctions.begin(), junctions.end());
 }
 
 }

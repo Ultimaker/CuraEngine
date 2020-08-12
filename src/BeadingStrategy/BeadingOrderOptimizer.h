@@ -9,9 +9,8 @@
 #include "../utils/ExtrusionJunction.h"
 #include "../utils/ExtrusionLine.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * Connecting ExtrusionSegments together into chains / polygons
@@ -185,5 +184,5 @@ private:
     bool isEnd(const directional_iterator it, const ExtrusionLine& polyline) const;
 };
 
-} // namespace arachne
+} // namespace cura
 #endif // BEADING_ORDER_OPTIMIZER_H

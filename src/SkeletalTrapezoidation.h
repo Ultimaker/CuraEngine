@@ -1,5 +1,5 @@
 //Copyright (c) 2020 Ultimaker B.V.
-
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SKELETAL_TRAPEZOIDATION_H
 #define SKELETAL_TRAPEZOIDATION_H
@@ -21,9 +21,8 @@
 #include "BeadingStrategy/BeadingStrategy.h"
 #include "SkeletalTrapezoidationGraph.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 /*!
  * Main class of the dynamic beading strategies.
@@ -121,7 +120,7 @@ public:
      * "central" but as if it's a obtuse corner. As a result, sharp corners will
      * no longer end in a single line but will just loop.
      */
-    std::vector<std::list<ExtrusionLine>> generateToolpaths(bool filter_outermost_central_edges = false);
+    void generateToolpaths(std::vector<std::list<ExtrusionLine>>& generated_toolpaths, bool filter_outermost_central_edges = false);
 
 protected:
     /*!
@@ -163,7 +162,7 @@ protected:
     /*!
      * (Eventual) returned 'polylines per index' result (from generateToolpaths):
      */
-    std::vector<std::list<ExtrusionLine>> generated_toolpaths;
+    std::vector<std::list<ExtrusionLine>>* p_generated_toolpaths;
 
     /*!
      * Transfer an edge from the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
@@ -375,7 +374,7 @@ protected:
     /*!
      * Also set the rest values at nodes in between the transition ends
      */
-    void applyTransitions();
+    void applyTransitions(ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends);
 
     /*!
      * Create extra edges along all edges, where it needs to transition from one
@@ -575,7 +574,7 @@ protected:
     /*!
      * connect junctions in each quad
      */
-    void connectJunctions();
+    void connectJunctions(ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions);
 
     /*!
      * Genrate small segments for local maxima where the beading would only result in a single bead
@@ -583,5 +582,5 @@ protected:
     void generateLocalMaximaSingleBeads();
 };
 
-} // namespace arachne
+} // namespace cura
 #endif // VORONOI_QUADRILATERALIZATION_H

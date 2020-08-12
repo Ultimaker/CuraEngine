@@ -21,6 +21,10 @@
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
 
+// libArachne
+#include "utils/ExtrusionJunction.h"
+#include "utils/ExtrusionLine.h"
+
 #define OMP_MAX_ACTIVE_LAYERS_PROCESSED 30 // TODO: hardcoded-value for the max number of layers being in the pipeline while writing away and destroying layers in a multi-threaded context
 
 namespace cura
@@ -1306,46 +1310,20 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
 
     gcode_layer.setMesh(mesh.mesh_name);
 
-    if (mesh.isPrinted())
+    ZSeamConfig z_seam_config;
+    if(mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
     {
-        // "normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings
-        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-        PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
-        for (unsigned int part_idx = 0; part_idx < layer.parts.size(); part_idx++)
-        {
-            const SliceLayerPart& part = layer.parts[part_idx];
-            part_order_optimizer.addPolygon((part.insets.size() > 0) ? part.insets[0][0] : part.outline[0]);
-        }
-        part_order_optimizer.optimize();
-        for (int part_idx : part_order_optimizer.polyOrder)
-        {
-            const SliceLayerPart& part = layer.parts[part_idx];
-            addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, part, gcode_layer);
-        }
+        z_seam_config = ZSeamConfig(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
     }
-    else
+    PathOrderOptimizer<const SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for(const SliceLayerPart& part : layer.parts)
     {
-        // infill meshes and anything else that doesn't have walls (so no z-seams) get parts ordered by closeness to the last planned position
-
-        std::vector<const SliceLayerPart*> parts; // use pointers to avoid recreating the SliceLayerPart objects
-
-        for(const SliceLayerPart& part_ref : layer.parts)
-        {
-            parts.emplace_back(&part_ref);
-        }
-
-        while (parts.size())
-        {
-            PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
-            for (auto part : parts)
-            {
-                part_order_optimizer.addPolygon((part->insets.size() > 0) ? part->insets[0][0] : part->outline[0]);
-            }
-            part_order_optimizer.optimize();
-            const int nearest_part_index = part_order_optimizer.polyOrder[0];
-            addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *parts[nearest_part_index], gcode_layer);
-            parts.erase(parts.begin() + nearest_part_index);
-        }
+        part_order_optimizer.addPolygon(&part);
+    }
+    part_order_optimizer.optimize();
+    for(const PathOrderOptimizer<const SliceLayerPart*>::Path& path : part_order_optimizer.paths)
+    {
+        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
     }
 
     processIroning(mesh, layer, mesh_config.ironing_config, gcode_layer);
@@ -1722,236 +1700,182 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
 
 bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const
 {
+    bool added_something = false;
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr && extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
     {
-        return false;
+        return added_something;
     }
-    bool added_something = false;
+    if (mesh.settings.get<size_t>("wall_line_count") <= 0)
+    {
+        return added_something;
+    }
     const bool compensate_overlap_0 = mesh.settings.get<bool>("travel_compensate_overlapping_walls_0_enabled");
     const bool compensate_overlap_x = mesh.settings.get<bool>("travel_compensate_overlapping_walls_x_enabled");
-    const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
-    if (mesh.settings.get<size_t>("wall_line_count") > 0)
+
+    bool spiralize = false;
+    if(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
-        bool spiralize = false;
-        if(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
+        if (part.insets.size() == 0)
         {
-            if (part.insets.size() == 0)
+            // nothing to do
+            return false;
+        }
+        const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
+        if (gcode_layer.getLayerNr() >= static_cast<LayerIndex>(initial_bottom_layers))
+        {
+            spiralize = true;
+        }
+        if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers) && !part.insets.empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
+        { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+            if (part.insets[0].size() > 0)
             {
-                // nothing to do
-                return false;
-            }
-            const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
-            if (gcode_layer.getLayerNr() >= static_cast<LayerIndex>(initial_bottom_layers))
-            {
-                spiralize = true;
-            }
-            if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers) && !part.insets.empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
-            { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
-                added_something = true;
-                setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                gcode_layer.setIsInside(true); // going to print stuff inside print object
-                if (part.insets[0].size() > 0)
+                // start this first wall at the same vertex the spiral starts
+                ConstPolygonRef spiral_inset = part.insets[0][0];
+                const unsigned spiral_start_vertex = storage.spiralize_seam_vertex_indices[initial_bottom_layers];
+                if (spiral_start_vertex < spiral_inset.size())
                 {
-                    // start this first wall at the same vertex the spiral starts
-                    ConstPolygonRef spiral_inset = part.insets[0][0];
-                    const unsigned spiral_start_vertex = storage.spiralize_seam_vertex_indices[initial_bottom_layers];
-                    if (spiral_start_vertex < spiral_inset.size())
+                    gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
+                }
+                WallOverlapComputation* wall_overlap_computation(nullptr);
+                int wall_0_wipe_dist(0);
+                gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
+            }
+        }
+    }
+    // for non-spiralized layers, determine the shape of the unsupported areas below this part
+    if (!spiralize && gcode_layer.getLayerNr() > 0)
+    {
+        // accumulate the outlines of all of the parts that are on the layer below
+
+        Polygons outlines_below;
+        AABB boundaryBox(part.outline);
+        for (const SliceMeshStorage& m : storage.meshes)
+        {
+            if (m.isPrinted())
+            {
+                for (const SliceLayerPart& prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)
+                {
+                    if (boundaryBox.hit(prevLayerPart.boundaryBox))
                     {
-                        gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
+                        outlines_below.add(prevLayerPart.outline);
                     }
-                    WallOverlapComputation* wall_overlap_computation(nullptr);
-                    int wall_0_wipe_dist(0);
-                    gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, ZSeamConfig(), wall_0_wipe_dist);
                 }
             }
         }
-        // for non-spiralized layers, determine the shape of the unsupported areas below this part
-        if (!spiralize && gcode_layer.getLayerNr() > 0)
+
+        const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+
+        // if support is enabled, add the support outlines also so we don't generate bridges over support
+
+        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        if (mesh_group_settings.get<bool>("support_enable"))
         {
-            // accumulate the outlines of all of the parts that are on the layer below
+            const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
+            const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
+            const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
 
-            Polygons outlines_below;
-            AABB boundaryBox(part.outline);
-            for (const SliceMeshStorage& m : storage.meshes)
+            if (support_layer_nr > 0)
             {
-                if (m.isPrinted())
+                const SupportLayer& support_layer = storage.support.supportLayers[support_layer_nr];
+
+                if (!support_layer.support_roof.empty())
                 {
-                    for (const SliceLayerPart& prevLayerPart : m.layers[gcode_layer.getLayerNr() - 1].parts)
+                    AABB support_roof_bb(support_layer.support_roof);
+                    if (boundaryBox.hit(support_roof_bb))
                     {
-                        if (boundaryBox.hit(prevLayerPart.boundaryBox))
+                        outlines_below.add(support_layer.support_roof);
+                    }
+                }
+                else
+                {
+                    for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
+                    {
+                        AABB support_part_bb(support_part.getInfillArea());
+                        if (boundaryBox.hit(support_part_bb))
                         {
-                            outlines_below.add(prevLayerPart.outline);
+                            outlines_below.add(support_part.getInfillArea());
                         }
                     }
                 }
             }
+        }
 
-            const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+        const int half_outer_wall_width = mesh_config.inset0_config.getLineWidth() / 2;
 
-            // if support is enabled, add the support outlines also so we don't generate bridges over support
+        // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
 
-            const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-            if (mesh_group_settings.get<bool>("support_enable"))
-            {
-                const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-                const size_t z_distance_top_layers = round_up_divide(z_distance_top, layer_height) + 1;
-                const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
+        outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
 
-                if (support_layer_nr > 0)
-                {
-                    const SupportLayer& support_layer = storage.support.supportLayers[support_layer_nr];
+        if (mesh.settings.get<bool>("bridge_settings_enabled"))
+        {
+            // max_air_gap is the max allowed width of the unsupported region below the wall line
+            // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
 
-                    if (!support_layer.support_roof.empty())
-                    {
-                        AABB support_roof_bb(support_layer.support_roof);
-                        if (boundaryBox.hit(support_roof_bb))
-                        {
-                            outlines_below.add(support_layer.support_roof);
-                        }
-                    }
-                    else
-                    {
-                        for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
-                        {
-                            AABB support_part_bb(support_part.getInfillArea());
-                            if (boundaryBox.hit(support_part_bb))
-                            {
-                                outlines_below.add(support_part.getInfillArea());
-                            }
-                        }
-                    }
-                }
-            }
+            const coord_t max_air_gap = half_outer_wall_width;
 
-            const int half_outer_wall_width = mesh_config.inset0_config.getLineWidth() / 2;
+            // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
+            // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
 
-            // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
+            Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
 
-            outlines_below = outlines_below.offset(-half_outer_wall_width).offset(half_outer_wall_width);
+            // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
+            // which is required because when the walls are being generated, the vertices do not fall on the part's outline
+            // but, instead, are 1/2 a line width inset from the outline
 
-            if (mesh.settings.get<bool>("bridge_settings_enabled"))
-            {
-                // max_air_gap is the max allowed width of the unsupported region below the wall line
-                // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
-
-                const coord_t max_air_gap = half_outer_wall_width;
-
-                // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
-                // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
-
-                Polygons compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
-
-                // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
-                // which is required because when the walls are being generated, the vertices do not fall on the part's outline
-                // but, instead, are 1/2 a line width inset from the outline
-
-                gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
-            }
-            else
-            {
-                // clear to disable use of bridging settings
-                gcode_layer.setBridgeWallMask(Polygons());
-            }
-
-            const AngleDegrees overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
-            if (overhang_angle >= 90)
-            {
-                // clear to disable overhang detection
-                gcode_layer.setOverhangMask(Polygons());
-            }
-            else
-            {
-                // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
-                // the supported region is made up of those areas that really are supported by either model or support on the layer below
-                // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
-                // considered to be
-                const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
-                Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
-                gcode_layer.setOverhangMask(overhang_region);
-            }
+            gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
         }
         else
         {
             // clear to disable use of bridging settings
             gcode_layer.setBridgeWallMask(Polygons());
+        }
+
+        const AngleDegrees overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
+        if (overhang_angle >= 90)
+        {
             // clear to disable overhang detection
             gcode_layer.setOverhangMask(Polygons());
         }
-
-        // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
-        // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
-        // one part higher up. Once all the parts have merged, layers above that level will be spiralized
-        if (spiralize && &mesh.layers[gcode_layer.getLayerNr()].parts[0] == &part)
-        {
-            if (part.insets.size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
-            {
-                added_something = true;
-                setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                gcode_layer.setIsInside(true); // going to print stuff inside print object
-                processSpiralizedWall(storage, gcode_layer, mesh_config, part, mesh);
-            }
-        }
-        else if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
-        {
-            InsetOrderOptimizer ioo(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
-            return ioo.processInsetsWithOptimizedOrdering();
-        }
         else
         {
-            const bool outer_inset_first = mesh.settings.get<bool>("outer_inset_first")
-                || (gcode_layer.getLayerNr() == 0 && mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM);
-            int processed_inset_number = -1;
-            for (int inset_number = part.insets.size() - 1; inset_number > -1; inset_number--)
-            {
-                processed_inset_number = inset_number;
-                if (outer_inset_first)
-                {
-                    processed_inset_number = part.insets.size() - 1 - inset_number;
-                }
-                // Outer wall is processed
-                if (processed_inset_number == 0)
-                {
-                    constexpr float flow = 1.0;
-                    if (part.insets[0].size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
-                    {
-                        added_something = true;
-                        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                        gcode_layer.setIsInside(true); // going to print stuff inside print object
-                        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-                        Polygons outer_wall = part.insets[0];
-                        if (!compensate_overlap_0)
-                        {
-                            WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addWalls(outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlap_computation, z_seam_config, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
-                        }
-                        else
-                        {
-                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh_config.inset0_config.getLineWidth());
-                            gcode_layer.addWalls(outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, &wall_overlap_computation, z_seam_config, mesh.settings.get<coord_t>("wall_0_wipe_dist"), flow, retract_before_outer_wall);
-                        }
-                    }
-                }
-                // Inner walls are processed
-                else if (!part.insets[processed_inset_number].empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
-                {
-                    added_something = true;
-                    setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                    gcode_layer.setIsInside(true); // going to print stuff inside print object
-                    ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-                    Polygons inner_wall = part.insets[processed_inset_number];
-                    if (!compensate_overlap_x)
-                    {
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addWalls(part.insets[processed_inset_number], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlap_computation, z_seam_config);
-                    }
-                    else
-                    {
-                        WallOverlapComputation wall_overlap_computation(inner_wall, mesh_config.insetX_config.getLineWidth());
-                        gcode_layer.addWalls(inner_wall, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, &wall_overlap_computation, z_seam_config);
-                    }
-                }
-            }
+            // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
+            // the supported region is made up of those areas that really are supported by either model or support on the layer below
+            // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
+            // considered to be
+            const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
+            Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
+            gcode_layer.setOverhangMask(overhang_region);
         }
+    }
+    else
+    {
+        // clear to disable use of bridging settings
+        gcode_layer.setBridgeWallMask(Polygons());
+        // clear to disable overhang detection
+        gcode_layer.setOverhangMask(Polygons());
+    }
+
+    // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
+    // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
+    // one part higher up. Once all the parts have merged, layers above that level will be spiralized
+    if (spiralize && &mesh.layers[gcode_layer.getLayerNr()].parts[0] == &part)
+    {
+        if (part.insets.size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
+        {
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+            processSpiralizedWall(storage, gcode_layer, mesh_config, part, mesh);
+        }
+    }
+    else
+    {
+        //Main case: Optimize the insets with the InsetOrderOptimizer.
+        InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
+        added_something |= inset_order_optimizer.optimize();
     }
     return added_something;
 }
@@ -2050,21 +1974,16 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     }
     bool added_something = false;
 
-    const bool fill_perimeter_gaps = mesh.settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
-                            && !Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize")
-                            && extruder_nr == wall_0_extruder_nr;
-
-    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
-    for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
+    PathOrderOptimizer<const SkinPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
+    for(const SkinPart& skin_part : part.skin_parts)
     {
-        const PolygonsPart& outline = part.skin_parts[skin_part_idx].outline;
-        part_order_optimizer.addPolygon(outline.outerPolygon());
+        part_order_optimizer.addPolygon(&skin_part);
     }
     part_order_optimizer.optimize();
 
-    for (int ordered_skin_part_idx : part_order_optimizer.polyOrder)
+    for(const PathOrderOptimizer<const SkinPart*>::Path& path : part_order_optimizer.paths)
     {
-        const SkinPart& skin_part = part.skin_parts[ordered_skin_part_idx];
+        const SkinPart& skin_part = *path.vertices;
 
         processSkinInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
 
@@ -2072,11 +1991,6 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
             processSkinPart(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part);
     }
 
-    if (fill_perimeter_gaps)
-    { // handle perimeter gaps of normal insets
-        assert(extruder_nr == wall_0_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
-        processPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, part.perimeter_gaps, mesh_config.perimeter_gap_config, added_something);
-    }
     return added_something;
 }
 
@@ -2523,18 +2437,17 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const size_t zag_skip_count = infill_extruder.settings.get<size_t>("support_zag_skip_count");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
-    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
-    for (size_t part_idx = 0; part_idx < support_layer.support_infill_parts.size(); ++part_idx)
+    PathOrderOptimizer<const SupportInfillPart*> island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
+    for(const SupportInfillPart& part : support_layer.support_infill_parts)
     {
-        island_order_optimizer.addPolygon(support_layer.support_infill_parts[part_idx].outline[0]);
+        island_order_optimizer.addPolygon(&part);
     }
     island_order_optimizer.optimize();
 
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-    const std::vector<SupportInfillPart>& part_list = support_layer.support_infill_parts;
-    for (int part_idx : island_order_optimizer.polyOrder)
+    for(const PathOrderOptimizer<const SupportInfillPart*>::Path& path : island_order_optimizer.paths)
     {
-        const SupportInfillPart& part = part_list[part_idx];
+        const SupportInfillPart& part = *path.vertices;
 
         // always process the wall overlap if walls are generated
         const int current_support_infill_overlap = (part.inset_count_to_generate > 0) ? default_support_infill_overlap : 0;

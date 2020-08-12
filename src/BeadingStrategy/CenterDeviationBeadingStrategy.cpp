@@ -3,7 +3,7 @@
 
 #include "CenterDeviationBeadingStrategy.h"
 
-namespace arachne
+namespace cura
 {
 
 CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
@@ -78,4 +78,4 @@ coord_t CenterDeviationBeadingStrategy::getOptimalBeadCount(coord_t thickness) c
 }
 
 
-} // namespace arachne
+} // namespace cura

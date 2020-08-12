@@ -8,10 +8,9 @@
 #include "../utils/logoutput.h"
 #include "../utils/macros.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
-
+    
 /*!
  * This is a meta-strategy that can be applied on top of any other beading
  * strategy, which limits the thickness of the walls to the summed ideal width
@@ -44,5 +43,5 @@ public:
     coord_t getOptimalBeadCount(coord_t thickness) const override;
 };
 
-} // namespace arachne
+} // namespace cura
 #endif // LIMITED_DISTRIBUTED_BEADING_STRATEGY_H

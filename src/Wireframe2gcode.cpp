@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
@@ -6,7 +6,7 @@
 
 #include "Application.h" //To get the communication channel.
 #include "ExtruderTrain.h"
-#include "pathOrderOptimizer.h" //For skirt/brim.
+#include "PathOrderOptimizer.h" //For skirt/brim.
 #include "PrintFeature.h"
 #include "Slice.h"
 #include "weaveDataStorage.h"
@@ -637,20 +637,21 @@ void Wireframe2gcode::processSkirt()
         return;
     }
     Polygons skirt = wireFrame.bottom_outline.offset(100000+5000).offset(-100000);
-    PathOrderOptimizer order(Point(INT32_MIN, INT32_MIN));
-    order.addPolygons(skirt);
+    PathOrderOptimizer<PolygonRef> order(Point(INT32_MIN, INT32_MIN));
+    for(PolygonRef skirt_path : skirt)
+    {
+        order.addPolygon(skirt_path);
+    }
     order.optimize();
 
     const Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
-    for (size_t poly_order_idx = 0; poly_order_idx < skirt.size(); poly_order_idx++)
+    for(const PathOrderOptimizer<PolygonRef>::Path& path : order.paths)
     {
-        const size_t poly_idx = order.polyOrder[poly_order_idx];
-        PolygonRef poly = skirt[poly_idx];
-        gcode.writeTravel(poly[order.polyStart[poly_idx]], scene_settings.get<Velocity>("speed_travel"));
-        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+        gcode.writeTravel(path.vertices[path.start_vertex], scene_settings.get<Velocity>("speed_travel"));
+        for(size_t vertex_index = 0; vertex_index < path.vertices.size(); ++vertex_index)
         {
-            Point& p = poly[(point_idx + order.polyStart[poly_idx] + 1) % poly.size()];
-            gcode.writeExtrusion(p, scene_settings.get<Velocity>("skirt_brim_speed"), scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * INT2MM(initial_layer_thickness), PrintFeatureType::SkirtBrim);
+            Point vertex = path.vertices[(vertex_index + path.start_vertex + 1) % path.vertices.size()];
+            gcode.writeExtrusion(vertex, scene_settings.get<Velocity>("skirt_brim_speed"), scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * INT2MM(initial_layer_thickness), PrintFeatureType::SkirtBrim);
         }
     }
 }

@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_INT_POINT_H
@@ -147,6 +147,12 @@ INLINE int angle(const Point& p)
     double angle = std::atan2(p.X, p.Y) / M_PI * 180.0;
     if (angle < 0.0) angle += 360.0;
     return angle;
+}
+
+// Identity function, used to be able to make templated algorithms where the input is sometimes points, sometimes things that contain or can be converted to points.
+INLINE const Point& make_point(const Point& p)
+{
+    return p;
 }
 
 }//namespace cura

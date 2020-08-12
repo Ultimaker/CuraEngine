@@ -8,9 +8,8 @@
 
 #include "IntPoint.h"
 
-namespace arachne
+namespace cura
 {
-    using namespace cura;
 
 template<typename node_data_t, typename edge_data_t, typename derived_node_t, typename derived_edge_t>
 class HalfEdge;
@@ -38,5 +37,5 @@ public:
 
 
 
-} // namespace arachne
+} // namespace cura
 #endif // UTILS_HALF_EDGE_NODE_H
