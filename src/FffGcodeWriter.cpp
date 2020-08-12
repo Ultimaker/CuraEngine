@@ -2261,7 +2261,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     };
 
     bool is_bridge_skin = false;
-    if (layer_nr > 0 && bridge_settings_enabled) //TODO: Is it intentional that bridge settings are applied when bridge settings are disabled ?
+    if (layer_nr > 0)
     {
         is_bridge_skin = handle_bridge_skin(1, &mesh_config.bridge_skin_config, mesh.settings.get<Ratio>("bridge_skin_density"));
     }

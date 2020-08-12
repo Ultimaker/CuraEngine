@@ -22,11 +22,12 @@
 #include "infill.h"
 #include "utils/linearAlg2D.h"
 
+#include <optional>
+
 #include <string>
 #include <numeric>
 #include <fstream>
 
-#define SQRT_2 1.4142135623730950488 //Square root of 2.
 #define CIRCLE_RESOLUTION 10 //The number of vertices in each circle.
 
 //The various stages of the process can be weighted differently in the progress bar.
@@ -43,6 +44,7 @@
 #define SUPPORT_TREE_EXPONENTIAL_THREASHOLD 1000
 #define SUPPORT_TREE_EXPONENTIAL_FACTOR 1.25
 #define SUPPORT_TREE_COLLISION_RESOLUTION 250
+#define SUPPORT_TREE_ADD_REGULAR_POINTS_ADDITIONALLY_ON_SMALL_AREAS true
 
 namespace cura {
 
@@ -70,7 +72,6 @@ TreeSupport::TreeSupport(const SliceDataStorage &storage) {
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
     const bool global_use_tree_support = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("support_tree_enable");
-
     if (!(global_use_tree_support ||
           std::any_of(storage.meshes.cbegin(),
                       storage.meshes.cend(),
@@ -80,6 +81,9 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     {
         return;
     }
+
+    // we extract and manage
+
     auto t_start = std::chrono::high_resolution_clock::now();
     // only precalculates avoidance and collision
     precalculate(storage);
@@ -87,11 +91,15 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
 	std::vector<std::map<SupportElement*,Polygons*>> move_bounds(storage.support.supportLayers.size()); // value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in drawAreas
 
+
 	for (SliceMeshStorage &mesh : storage.meshes) {
 		if (mesh.settings.get<bool>("support_tree_enable")) {
 			generateInitalAreas(mesh,move_bounds,storage);
+
 		}
 	}
+
+
 
 	auto t_gen = std::chrono::high_resolution_clock::now();
 	//Expand Influnce areas down.
@@ -250,7 +258,9 @@ void TreeSupport::mergeHelper(std::map<SupportElement,Polygons>& reduced_new_lay
 					if(intersect.area()>1){ // dont use empty as a line is not empty, but for our usecase it very well may be (and will be one layer down, union does not keep lines)
 
 						if(intersect.offset(-25).area()<=1) // check if the overlap we have is good enough. While 25 was guessed as enough, until now i did not have reason to doubt that
+						{
 							continue;
+						}
 
 						Point new_pos = reduced_check_iter->first.next_position;
 						if(!intersect.inside(new_pos, true)){
@@ -260,7 +270,6 @@ void TreeSupport::mergeHelper(std::map<SupportElement,Polygons>& reduced_new_lay
 						if(increased_dtt==0){
 							increased_dtt=std::max(reduced_check_iter->first.increased_ddt,influence_iter->first.increased_ddt);
 						}
-
 						SupportElement key(reduced_check_iter->first,influence_iter->first,layer_nr-1,new_pos,increased_dtt,config);
 
 						Polygons intersect_sec;
@@ -436,13 +445,15 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement,Polygons>& new
 			size_t radius;
 			std::function<bool(bool,bool,bool)> setPolygons=[&](bool slow,bool increase_radius,bool simplify) { // this correctly sets the polygons defined above according to the parameters and returns if a new layer is possible
 				SupportElement simulate_increase(elem);
-				if(increase_radius)
+				if(increase_radius){
 					simulate_increase.effective_radius_height+=1;
+				}
 				radius = increase_radius? config.getCollisionRadius(simulate_increase) : config.getCollisionRadius(elem);
 
-				coord_t extra_move_speed= config.getRadius(simulate_increase)-config.getRadius(*tup.first); //todo limit ?
-				if(extra_move_speed<0)
+				coord_t extra_move_speed= std::min(config.getRadius(simulate_increase)-config.getRadius(*tup.first),config.maximum_move_distance_slow/2);
+				if(extra_move_speed<0){
 					logWarning("Tree Support: extraMoveSpeed<0. This implies that a branch is getting smaller while going down. This may cause problems.");
+				}
 				extra_move_speed+=extra_over_speed;
 				increased=safeOffsetInc(*tup.first->area, extra_move_speed + (slow?config.maximum_move_distance_slow:config.maximum_move_distance), wall_restriction, 2*(config.xy_distance+config.getCollisionRadius(*tup.first)), 2); // offsetting in 2 steps makes our offseted area rounder preventing (rounding) errors created by to pointy areas. May not be a problem anymore though.
 
@@ -506,7 +517,7 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement,Polygons>& new
 						coord_t orig_ceil= volumes_.ceilRadius(config.getRadius(elem.effective_radius_height,elem.elephant_foot_increases));
 						bool increasing_radius=config.getRadius(elem.effective_radius_height)!=config.getRadius(elem.effective_radius_height+1);
 						size_t max_effective_dtt = elem.effective_radius_height;
-						for (coord_t i =1;volumes_.ceilRadius(config.getRadius(elem.effective_radius_height+i,elem.elephant_foot_increases))==orig_ceil&&increasing_radius;i++){ // todo make it mathematically nice, instead of simulating radius increases
+						for (coord_t i =1;volumes_.ceilRadius(config.getRadius(elem.effective_radius_height+i,elem.elephant_foot_increases))==orig_ceil&&increasing_radius;i++){
 
 							if(config.getRadius(elem.effective_radius_height+i)==config.getRadius(elem.effective_radius_height+i+1))// we reached a point where we can not increase our radius further
 							{
@@ -541,7 +552,9 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement,Polygons>& new
 			else{
 
 				if(!elem.to_buildplate&&(!elem.to_model_gracious ||( !tup.first->area->intersection(volumes_.getPlaceableAreas(radius, layer_nr)).empty()))) // we can use empty here as we dont need area inside the polygon i think
+				{
 					continue; // it is normal that we wont be able to find a new area at some point in time if we wont be able to reach layer 0 aka have to connect with the model
+				}
 
 				logError("Influence area could not be increased! Data about the Influence area: Radius: %lld at layer: %lld NextTarget: %lld Distance to top: %lld Elephant foot increases %f \n",radius,layer_nr-1,elem.next_height,elem.distance_to_top,elem.elephant_foot_increases);
 				extra_over_speed=config.maximum_move_distance/2;
@@ -625,13 +638,16 @@ void TreeSupport::createLayerPathing(std::vector<std::map<SupportElement*,Polygo
 		for(std::pair<SupportElement,Polygons> tup:new_layer_to_model){
 			const SupportElement& elem = tup.first;
 
-			if(elem.to_buildplate) continue;
+			if(elem.to_buildplate){
+				continue;
+			}
 			Polygons* new_area= new Polygons(tup.second);
 			SupportElement* next= new SupportElement(elem,new_area);
 			move_bounds[layer_nr-1][next]=new Polygons(new_layer_merge[tup.first]);
 
-			if(new_area->area()<1)
+			if(new_area->area()<1){
 				logError("Insert Error of Influence area to model on layer %lld.\n",layer_nr-1);
+			}
 
 		}
 
@@ -646,7 +662,7 @@ void TreeSupport::createLayerPathing(std::vector<std::map<SupportElement*,Polygo
 }
 
 
-void TreeSupport::setPointsOnAreas(SupportElement* elem, coord_t max_move){
+void TreeSupport::setPointsOnAreas(const SupportElement* elem){
 
 	if(elem->result_on_layer==Point(-1,-1)){
 		logError("Uninitialised support element\n");
@@ -655,16 +671,44 @@ void TreeSupport::setPointsOnAreas(SupportElement* elem, coord_t max_move){
 
 	for(SupportElement* next_elem : elem->parents){
 
-		if(next_elem->result_on_layer!=Point(-1,-1)) // if we set the value somewhere else we keep it; should only happen at the top most layer
+		if(next_elem->result_on_layer!=Point(-1,-1)) // if we set the value somewhere else we keep it; should not happen anymore i think
+		{
 			continue;
+		}
 
 		Point from = elem->result_on_layer;
 		if(!(next_elem->area->inside(from, true))){ // todo else try move to next position
-			PolygonUtils::moveInside(*next_elem->area,from,0); // Move inside has edgecases (see tests) so DONT use Polygons.inside, Error with dist 0 is <= 1 //
+			PolygonUtils::moveInside(*next_elem->area,from,0); // Move inside has edgecases (see tests) so DONT use Polygons.inside to confirm correct move, Error with dist 0 is <= 1 //
 		}
-		if(vSize(from-elem->result_on_layer)>max_move){ // while this SEEMS like a problem it may occur after merges or because the radius changed => which is free movement speed
+		else if(config.maximum_move_distance_slow>2&&elem->next_position==next_elem->next_position&&elem->next_height==next_elem->next_height){ // we did not merge so we can try to move closer to the next target
+
+			const coord_t allowed_movement=std::min(config.maximum_move_distance_slow/2,config.support_line_width/3);
+			const size_t steps= std::max(coord_t(1), allowed_movement/config.getCollisionRadius(*next_elem));
+			const coord_t move_per_step=allowed_movement/steps;
+			for(size_t move_step = 0;move_step<steps;move_step++){
+				Point vector_to_target= next_elem->next_position - from;
+				if(vSize(vector_to_target)<move_per_step)
+				{
+					if(next_elem->area->inside(next_elem->next_position, true)){
+						from=next_elem->next_position;
+					}
+					break;
+				}
+				else{
+					double scale = (allowed_movement*1.0/vSize(vector_to_target));
+					Point next_candidate=from+vector_to_target*scale;
+					if(next_elem->area->inside(next_candidate, true)){
+						from=next_candidate;
+					}
+					else{
+						break;
+					}
+				}
+			}
 
 		}
+		//we do not need to check if how far this move moved a point as is can be larger than maximum_movement_speed. While this seems like a problem it may occur after merges or because the radius changed => which is free movement speed
+
 		next_elem->result_on_layer=from;
 		//no we do not call recursive because if we do out amount of layers is restricted by our stack size -.-'
 	}
@@ -687,12 +731,18 @@ bool TreeSupport::setToModelContact (std::vector<std::map<SupportElement*,Polygo
 				last_successfull_layer=layer_check;
 			}
 			if(layer_check!=layer_nr)
+			{
 				checked.emplace_back(check);
+			}
 			if(check->parents.size()==1)
+			{
 				check=check->parents[0];
+			}
 			else{
 				if(layer_check+1<check->next_height)
+				{
 					logError("Set To Model Contact encountered a problem: Element that did not merge has multiple parents! \n");
+				}
 				break;
 			}
 		}
@@ -707,7 +757,9 @@ bool TreeSupport::setToModelContact (std::vector<std::map<SupportElement*,Polygo
 		// set Pos
 		Point best=checked[last_successfull_layer-layer_nr]->next_position;
 		if(!checked[last_successfull_layer-layer_nr]->area->inside(best, true))
+		{
 			PolygonUtils::moveInside(*checked[last_successfull_layer-layer_nr]->area,best);
+		}
 		checked[last_successfull_layer-layer_nr]->result_on_layer=best;
 
 		logDebug("Added gracious Support On Model on layer Point (%lld,%lld) on current layer is %lld\n",best.X,best.Y,last_successfull_layer);
@@ -716,10 +768,12 @@ bool TreeSupport::setToModelContact (std::vector<std::map<SupportElement*,Polygo
 
 
 	}
-	else{ // can not add gracefull => just place it here and hope for the best
+	else{ // can not add graceful => just place it here and hope for the best
 		Point best=first_elem->next_position;
 		if(!first_elem->area->inside(best, true))
+		{
 			PolygonUtils::moveInside(*first_elem->area,best);
+		}
 		first_elem->result_on_layer=best;
 		logDebug("added NON gracious  Support On Model on layer Point (%lld,%lld) my current layer is %lld\n",best.X,best.Y,layer_nr);
 		return false;
@@ -731,14 +785,14 @@ bool TreeSupport::setToModelContact (std::vector<std::map<SupportElement*,Polygo
 
 void TreeSupport::createNodesFromArea(std::vector<std::map<SupportElement*,Polygons*>>& move_bounds){
 
-	const coord_t maximum_move_distance =config.maximum_move_distance + 3; // movement needs to be a bit higher to avoid rounding errors
-
 	for(std::pair<SupportElement*,Polygons*> init : move_bounds[0]){ // init points on layer 0
 		Point p=init.first->next_position;
 		if(!(init.first->area->inside(p, true)))
+		{
 			PolygonUtils::moveInside(*init.first->area,p,0 );
+		}
 		init.first->result_on_layer=p;
-		setPointsOnAreas(init.first, maximum_move_distance);
+		setPointsOnAreas(init.first);
 	}
 
 	std::map<SupportElement,int> ignore;
@@ -764,12 +818,16 @@ void TreeSupport::createNodesFromArea(std::vector<std::map<SupportElement*,Polyg
 
 					removed=setToModelContact(move_bounds, influence_area_tup.first, layer_nr);
 					if(removed)
+					{
 						remove.emplace(influence_area_tup.first);
+					}
 				}
 			}
 
 			if(!removed)
-				setPointsOnAreas(influence_area_tup.first, maximum_move_distance);//element is valid now setting points in the layer above
+			{
+				setPointsOnAreas(influence_area_tup.first);//element is valid now setting points in the layer above
+			}
 		}
 
 		for(SupportElement* del :remove){ // delete all support elements we dont need anymore
@@ -795,46 +853,43 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 				"support_wall_count");
 		Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
 		for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++) {
-			const AngleRadians angle = static_cast<double>(i) / CIRCLE_RESOLUTION
-					* TAU;
-			branch_circle.emplace_back(cos(angle) * branch_radius,
-					sin(angle) * branch_radius);
+			const AngleRadians angle = static_cast<double>(i) / CIRCLE_RESOLUTION * TAU;
+			branch_circle.emplace_back(cos(angle) * branch_radius, sin(angle) * branch_radius);
 		}
-		const coord_t z_distance_bottom = mesh_group_settings.get<coord_t>(
-				"support_bottom_distance");
-		const coord_t layer_height = mesh_group_settings.get<coord_t>(
-				"layer_height");
-		const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom,
-				layer_height);
+		const coord_t z_distance_bottom = mesh_group_settings.get<coord_t>("support_bottom_distance");
+		const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+		const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom,layer_height);
 		const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
-		const double diameter_angle_scale_factor = sin(
-				mesh_group_settings.get<AngleRadians>(
-						"support_tree_branch_diameter_angle")) * layer_height
-				/ branch_radius; //Scale factor per layer to produce the desired angle.
-		const coord_t line_width = mesh_group_settings.get<coord_t>(
-				"support_line_width");
+		const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height/ branch_radius; //Scale factor per layer to produce the desired angle.
+		const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
 		const std::function<SupportElement*(SupportElement*)> getBiggestRadiusParrent=[&](const SupportElement* elem) {
 			SupportElement* ret=nullptr;
 			for(SupportElement* el2:elem->parents){
 				const coord_t rad=config.getRadius(*el2);
 				if(ret==nullptr||rad>config.getRadius(*ret))
+				{
 					ret=el2;
+				}
 			}
 			return  ret;
 		};
 
-	std::map<SupportElement*,std::pair<SupportElement*,Polygons*>> inverese_tree_order; // in our tree we can only access the partents. We inverse this to be able to access the children.
-	std::vector<std::pair<size_t,std::pair<SupportElement*,Polygons*>>> linear_data; // we put all SupportElements into a layer independent storage to improve parallelization. Was added at a point in time where this function had performance issues.
+	std::map<SupportElement*,std::pair<SupportElement*,Polygons*>> inverese_tree_order; // in our tree we can only access the parents. We inverse this to be able to access the children.
+	std::vector<std::pair<size_t,std::pair<SupportElement*,Polygons*>>> linear_data; // All SupportElements are put into a layer independent storage (the size_t is the layer number) to improve parallelization. Was added at a point in time where this function had performance issues.
 																					// These were fixed by creating less initial points, but i do not see a good reason to remove a working performance optimization.
 	for (size_t layer_nr = 0; layer_nr < move_bounds.size();layer_nr++) {
 		for(std::pair<SupportElement*,Polygons*> tup: move_bounds[layer_nr]){
 
 			if((layer_nr>0&&((!inverese_tree_order.count(tup.first)&&tup.first->target_height==layer_nr)||(inverese_tree_order.count(tup.first)&&inverese_tree_order[tup.first].first->result_on_layer==Point(-1,-1))))) // we either come from nowhere at the final layer or we had invalid parents 2. should never happen but just to be sure
+			{
 				continue;
+			}
 
 			for(SupportElement* par : tup.first->parents){
 				if(par->result_on_layer==Point(-1,-1))
+				{
 					continue;
+				}
 				inverese_tree_order.emplace(par,tup);
 			}
 			linear_data.emplace_back(layer_nr,tup);
@@ -848,12 +903,8 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 		const std::pair<SupportElement*,Polygons*> tup= linear_data[i].second;
 
 		Polygon circle;
-		double scale = (1.0 + static_cast<double>(config.getEffektiveDDT(*tup.first) - tip_layers) * diameter_angle_scale_factor);
-		if (config.getEffektiveDDT(*tup.first) < tip_layers){ //We're in the tip.
-			scale = static_cast<double>(config.getEffektiveDDT(*tup.first) + 1) / tip_layers;
-		}
-		scale = config.getRadius(*tup.first)/(1.0*branch_radius);
-
+		double scale = config.getRadius(*tup.first)/(1.0*branch_radius); // make inital circle a bit larger to avoid problems TODO pretty
+		coord_t effective_radius=scale*branch_radius;
 		Point movement;
 		SupportElement* child_elem =  inverese_tree_order.count(tup.first)?inverese_tree_order.at(tup.first).first:nullptr;
 		if(child_elem!=nullptr){
@@ -876,6 +927,10 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 		}
 
 		Point center_position = tup.first->result_on_layer+movement/2;
+
+		if(vSize(movement)>effective_radius*3&&effective_radius<config.support_line_width*0.7){ // increase radius if movement is large, while the radius is not
+			scale=(config.support_line_width*0.7)/(1.0*branch_radius);
+		}
 
 		const double moveX = movement.X/(scale*branch_radius);
 		const double moveY = movement.Y/(scale*branch_radius);
@@ -900,7 +955,14 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 		poly.add(circle);
 
 		const Polygons child = inverese_tree_order.count(tup.first)?*inverese_tree_order.at(tup.first).second:Polygons();
-		linear_inserts[i]=tup.second->unionPolygons(child).intersection(poly.unionPolygons());
+		if(vSize(movement)>effective_radius*2){
+			linear_inserts[i]=poly.difference(volumes_.getCollision(effective_radius, linear_data[i].first));// this is slower by about 25%
+		}
+		else{
+			// Also prevents support areas from lagging through walls when always_increase_radius_until is large, the difference between radius and collision radius is large and increase_radius_until_radius > *2xy_distance+wall line width.
+			// This is a rare edgecase i have not seen yet, but may happen.
+			linear_inserts[i]=tup.second->unionPolygons(child).intersection(poly.unionPolygons());
+		}
 	}
 
 	std::vector<std::vector<Polygons>> byLayer(move_bounds.size());
@@ -913,7 +975,7 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 	linear_inserts.clear();
 	linear_data.clear();
 
-	//now we iterate over the inserted elements in parallel and clean them up
+	//Iterate over the generated circles in parallel and clean them up. Also add support floor.
 #pragma omp parallel for shared(precalculated_support_layers, storage)
 	for (coord_t layer_nr = 0; layer_nr < static_cast<coord_t>(precalculated_support_layers.size());layer_nr++) {
 			precalculated_support_layers[layer_nr] = precalculated_support_layers[layer_nr].unionPolygons().smooth(50);
@@ -921,7 +983,7 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 			precalculated_support_layers[layer_nr] = precalculated_support_layers[layer_nr].difference(storage.support.supportLayers[layer_nr].support_roof);
 			precalculated_support_layers[layer_nr].simplify(30,10);
 			//Subtract support floors.
-			if (mesh_group_settings.get<bool>("support_bottom_enable")) { // support bottom magic from the drawCircle.
+			if (mesh_group_settings.get<bool>("support_bottom_enable")) { // support bottom magic from the old drawCircle.
 				Polygons &floor_layer =
 						storage.support.supportLayers[layer_nr].support_bottom;
 				const coord_t support_interface_resolution =
@@ -974,134 +1036,33 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 	#pragma omp critical (support_max_layer_nr)
 			{
 				if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty()
-						|| !storage.support.supportLayers[layer_nr].support_roof.empty()) {
+						|| !storage.support.supportLayers[layer_nr].support_roof.empty())
+				{
 					storage.support.layer_nr_max_filled_layer = std::max(
 							storage.support.layer_nr_max_filled_layer,
 							static_cast<int>(layer_nr));
 				}
 			}
-
 		}
 
 }
 
-
-Polygons getLineEndPointsPolyline(const Polygons& poly,coord_t inset,coord_t maxSegLength){
-	std::deque<std::deque<Point>> result;
-
-	std::function<void(Point)> insertPoint=[&](Point p) {
-		if(result.empty()){
-			result.emplace_back(std::deque<Point>{p});
-			return;
-		}
-		coord_t pos=-1;
-		bool front=false;
-		coord_t closest=std::numeric_limits<coord_t>::max();
-
-		for(size_t i=0;i<result.size();i++){
-			std::deque<Point> line=result[i];
-			if(vSize2(line.front()-p)<closest){
-				closest=vSize2(line.front()-p);
-				pos=i;
-				front=true;
-			}
-			if(vSize2(line.back()-p)<closest){
-				closest=vSize2(line.back()-p);
-				pos=i;
-				front=false;
-			}
-		}
-
-		if(closest<maxSegLength*maxSegLength){
-			if(front)
-				result[pos].emplace_front(p);
-			else
-				result[pos].emplace_back(p);
-		}
-		else
-			result.emplace_back(std::deque<Point>{p});
-
-	};
-
-	if(!poly.empty())
-		for(auto part : poly){
-
-
-			Point p1 =part[0];
-			Point p2 =part[part.size()-1];
-
-			Point v12 = p2-p1;
-			Point v21= p1-p2;
-
-			if(vSize(v12)<=inset*2)// if we would inset from both sides nothing is left or the distance is so small that it would be useless
-				continue;
-			if(vSize(v12)<=inset*4){
-				insertPoint((p1+p2)/2);
-				continue;
-			}
-
-			double scale = (1.0*inset)/vSize(v12);
-			p1=p1+v12*scale; // move points inside by inset
-			p2=p2+v21*scale;
-			insertPoint(p1);
-			insertPoint(p2);
-
-		}
-
-	Polygons result_poly;
-
-	for(std::deque<Point> line:result){
-
-		Polygon result_line;
-		for(Point p:line)
-			result_line.add(p);
-		result_poly.add(result_line);
-	}
-	return result_poly;
-
-}
 
 
 std::vector<TreeSupport::LineInformation> TreeSupport::convertLinesToInternal(Polygons polylines,coord_t layer_nr){
 	std::vector<LineInformation> result;
 
-	std::vector<std::pair<AABB,Polygons>> avoid_to_bp;
-	std::vector<std::pair<AABB,Polygons>> avoid_to_model;
-	std::vector<std::pair<AABB,Polygons>> collision;
-	if(config.support_rests_on_model){
-		for(auto part: volumes_.getCollision(config.getRadius(1), layer_nr).splitIntoParts(false)){
-			collision.emplace_back(AABB(part),part);
-		}
-		for(auto part: volumes_.getAvoidance(config.getRadius(1), layer_nr,false,true).splitIntoParts(false)){
-			avoid_to_model.emplace_back(AABB(part),part);
-		}
-	}
-	for(auto part: volumes_.getAvoidance(config.getRadius(1), layer_nr,false,false).splitIntoParts(false)){
-		avoid_to_bp.emplace_back(AABB(part),part);
-	}
-
-	std::function<bool(Point p,std::vector<std::pair<AABB,Polygons>>)> fastInside=[&](Point p,std::vector<std::pair<AABB,Polygons>> area) {
-
-		for(std::pair<AABB,Polygons> part:area){
-			if(part.first.contains(p)&&part.second.inside(p, true))
-				return true;
-		}
-
-		return false;
-	};
-
-
 	// we check if the position is valid, if it is NOT we delete that point
 	for(auto line:polylines){
 		LineInformation res_line;
 		for(Point p:line){
-			if(!fastInside(p,avoid_to_bp)){
+			if(!volumes_.getAvoidance(config.getRadius(0), layer_nr,false,false).inside(p, true)){
 				res_line.emplace_back(p,LineStatus::TO_BP);
 			}
-			else if(config.support_rests_on_model&&!fastInside(p,avoid_to_model)){
+			else if(config.support_rests_on_model&&!volumes_.getAvoidance(config.getRadius(0), layer_nr,false,true).inside(p, true)){
 				res_line.emplace_back(p,LineStatus::TO_MODEL_GRACIOUS);
 			}
-			else if(config.support_rests_on_model&&!fastInside(p,collision)){
+			else if(config.support_rests_on_model&&!volumes_.getCollision(config.getRadius(0), layer_nr).inside(p, true)){
 				res_line.emplace_back(p,LineStatus::TO_MODEL);
 			}
 			else{
@@ -1143,47 +1104,20 @@ std::pair<std::vector<TreeSupport::LineInformation>,std::vector<TreeSupport::Lin
 	std::vector<LineInformation> set_free(1);
 	enum STATE{keeping,freeing};
 
-	std::vector<std::pair<AABB,Polygons>> avoid_to_bp;
-	std::vector<std::pair<AABB,Polygons>> avoid_to_model;
-	std::vector<std::pair<AABB,Polygons>> collision;
-	if(config.support_rests_on_model){
-		for(auto part: volumes_.getCollision(config.getRadius(ddt+1), current_layer-1).splitIntoParts(false)){
-			collision.emplace_back(AABB(part),part);
-		}
-		for(auto part: volumes_.getAvoidance(config.getRadius(ddt+1), current_layer-1,false,true).splitIntoParts(false)){
-			avoid_to_model.emplace_back(AABB(part),part);
-		}
-	}
-	for(auto part: volumes_.getAvoidance(config.getRadius(ddt+1), current_layer-1,false,false).splitIntoParts(false)){
-		avoid_to_bp.emplace_back(AABB(part),part);
-	}
-
-	std::function<bool(Point p,std::vector<std::pair<AABB,Polygons>>)> fastInside=[&](Point p,std::vector<std::pair<AABB,Polygons>> area) {
-
-		for(std::pair<AABB,Polygons> part:area){
-			if(part.first.contains(p)&&part.second.inside(p, true))
-				return true;
-		}
-
-		return false;
-	};
-
 	std::function<bool(std::pair<Point,LineStatus>)> evaluatePoint=[&](std::pair<Point,LineStatus> p) {
-		if(!fastInside(p.first,avoid_to_bp)){
+		if(!volumes_.getAvoidance(config.getRadius(ddt+1), current_layer-1,false,false).inside(p.first, true)){
 			return true;
 		}
 		if(config.support_rests_on_model&&p.second!=LineStatus::TO_BP){
 
 			if( p.second==LineStatus::TO_MODEL_GRACIOUS){
-				return !fastInside(p.first,avoid_to_model);
-
+				return !volumes_.getAvoidance(config.getRadius(ddt+1), current_layer-1,false,true).inside(p.first, true);
 			}
 			else{
-				return !fastInside(p.first,collision);
+				return !volumes_.getCollision(config.getRadius(ddt+1), current_layer-1).inside(p.first, true);
 			}
 
 		}
-
 		return false;
 	};
 
@@ -1223,9 +1157,7 @@ std::pair<std::vector<TreeSupport::LineInformation>,std::vector<TreeSupport::Lin
 			}
 		}
 	}
-
 	return std::pair<std::vector<std::vector<std::pair<Point,TreeSupport::LineStatus>>>,std::vector<std::vector<std::pair<Point,TreeSupport::LineStatus>>>> (keep,set_free);
-
 
 }
 
@@ -1233,7 +1165,9 @@ std::pair<std::vector<TreeSupport::LineInformation>,std::vector<TreeSupport::Lin
 void writePolylines(SVG& svg,Polygons polylines,SVG::Color color){
 	for(auto path :polylines){
 		if(path.size()==0)
+		{
 			continue;
+		}
 		Point before = path[0];
 		for(size_t i=1;i<path.size();i++){
 			svg.writeLine(before, path[i], color, 2);
@@ -1243,14 +1177,27 @@ void writePolylines(SVG& svg,Polygons polylines,SVG::Color color){
 }
 
 
-//ensures that every line segment is at most distance in legnth
-Polygons ensureMaximumDistancePolyline (Polygons input, coord_t distance){
+//ensures that every line segment is about distance in length. The resulting lines may differ from the original but all points are on the original
+Polygons ensureMaximumDistancePolyline (Polygons input, coord_t distance,size_t min_points){
 	Polygons result;
 	for(auto part:input){
 		if(part.size()==0)
+		{
 			continue;
+		}
+		coord_t length = Polygon(part).offset(0).polyLineLength();
+		size_t points=length/distance;
+		if(points < min_points){
+			points =min_points;
+		}
+		coord_t target_distance=length/points;
 		Polygon line;
-		line.add(part[0]);
+		if(points==1){
+			target_distance=length/2+10; // we will only have the point in the middle
+		}
+		else{
+			line.add(part[0]);
+		}
 		coord_t used_distance=0;
 		for(size_t pos=0;pos+1<part.size();pos++){
 			Point me =part[(part.size()+pos)%part.size()];
@@ -1258,8 +1205,8 @@ Polygons ensureMaximumDistancePolyline (Polygons input, coord_t distance){
 			coord_t next_step_length;
 			do{
 				next_step_length=vSize(me-next);
-				if(next_step_length+used_distance>=distance){
-					double scale = (1.0*(distance-used_distance))/(next_step_length);
+				if(next_step_length+used_distance>=target_distance){
+					double scale = (1.0*(target_distance-used_distance))/(next_step_length);
 					me= me + (next-me)*scale;
 					used_distance=0;
 					line.add(me);
@@ -1267,15 +1214,16 @@ Polygons ensureMaximumDistancePolyline (Polygons input, coord_t distance){
 				}
 				used_distance+=next_step_length;
 			}
-			while(next_step_length>distance);
+			while(next_step_length>target_distance);
 		}
-		line.add(part.back());
+		if(points>1){
+			line.add(part.back());
+		}
 		result.add(line);
 
 	}
 	return result;
 }
-
 
 //adds the implizit line from the last vertex to the first explicitly
 Polygons toPolylines(Polygons poly){
@@ -1290,6 +1238,7 @@ Polygons toPolylines(Polygons poly){
 	}
 	return result;
 }
+
 
 void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh,std::vector<std::map<SupportElement*,Polygons*>>& move_bounds,SliceDataStorage& storage){
 
@@ -1306,54 +1255,91 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh,std::vector<s
 	const size_t z_distance_top_layers =( round_up_divide(z_distance_top, config.layer_height) + 1); //Support must always be 1 layer below overhang.
 	const coord_t support_roof_line_width=mesh.settings.get<coord_t>("support_roof_line_width");
 	const coord_t support_line_width=mesh.settings.get<coord_t>("support_line_width");
+	const coord_t wall_line_width_0=mesh.settings.get<coord_t>("wall_line_width_0");
 
 	const coord_t support_roof_line_distance=mesh.settings.get<coord_t>("support_roof_line_distance");
 	const coord_t minimum_roof_area=mesh.settings.get<coord_t>("minimum_roof_area")*1000;
 	const coord_t support_tree_branch_distance =mesh.settings.get<coord_t>("support_tree_branch_distance");
-	const bool roof_enabled=config.dont_move_until_ddt!=0;//todo
+	const bool roof_enabled=config.dont_move_until_ddt!=0;
 	const bool only_gracious=SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL;
+	const EFillMethod roof_pattern =mesh.settings.get<EFillMethod>("support_roof_pattern");
+	const EFillMethod support_pattern =mesh.settings.get<EFillMethod>("support_pattern");
+	const coord_t connect_length = support_tree_branch_distance;
+	const coord_t outset=roof_enabled?mesh.settings.get<coord_t>("support_roof_offset"):mesh.settings.get<coord_t>("support_offset");
+
 	std::vector<AngleDegrees> support_infill_angles;
 	std::vector<AngleDegrees> support_roof_angles;
 	support_infill_angles=mesh.settings.get<std::vector<AngleDegrees>>("support_infill_angles");
 	support_roof_angles=mesh.settings.get<std::vector<AngleDegrees>>("support_roof_angles");
 
 
-	const coord_t connect_length = 2*(config.getRadius(1,0)+config.maximum_move_distance_slow); // i assume one only wants lines of distance support_tree_branch_distance. If both dimensions should be support_tree_branch_distance change connect length to support_tree_branch_distance
-	const coord_t outset=roof_enabled?mesh.settings.get<coord_t>("support_roof_offset"):mesh.settings.get<coord_t>("support_offset");
+	std::function<void(std::vector<AngleDegrees>&,EFillMethod)> getInterfaceAngles=[&](std::vector<AngleDegrees>& angles,EFillMethod pattern){ // (logic) from getInterfaceAngles in FFFGcodeWriter.
+		if (angles.empty())
+		{
+			if (pattern == EFillMethod::CONCENTRIC)
+			{
+				angles.push_back(0); //Concentric has no rotation.
+			}
+			else if (pattern == EFillMethod::TRIANGLES)
+			{
+				angles.push_back(90); //Triangular support interface shouldn't alternate every layer.
+			}
+			else
+			{
+				if (config.dont_move_until_ddt>=2)
+				{
+					//Some roofs are quite thick.
+					//Alternate between the two kinds of diagonal: / and \ .
+					angles.push_back(45);
+					angles.push_back(135);
+				}
+				if (angles.empty())
+				{
+					angles.push_back(90); //Perpendicular to support lines.
+				}
+			}
+		}
+	};
 
-	if(support_infill_angles.size() == 0){
-		support_infill_angles.push_back(45);
-		support_infill_angles.push_back(135);
-	}
+	getInterfaceAngles(support_infill_angles,support_pattern);
+	getInterfaceAngles(support_roof_angles,roof_pattern);
 
-	if(support_roof_angles.size() == 0){
-		support_roof_angles.push_back(45);
-		support_roof_angles.push_back(135);
-	}
-
-	logDebug("Distance between points of lines of inital influene areas %lld \n",connect_length);
-	std::vector<std::unordered_set<Point>> already_inserted(mesh.overhang_areas.size() - z_distance_top_layers);
-
-	if(mesh.overhang_areas.size()<=z_distance_top_layers)
+	if(mesh.overhang_areas.size() <= z_distance_top_layers){
 		return;
+	}
+	logDebug("Distance between points of lines of inital influence areas %lld \n",connect_length);
+	std::vector<std::unordered_set<Point>> already_inserted(mesh.overhang_areas.size() - z_distance_top_layers);
+	if(mesh.overhang_areas.size()<=z_distance_top_layers){
+		return;
+	}
 
 #pragma omp parallel for
 	for (coord_t layer_nr =  mesh.overhang_areas.size() - z_distance_top_layers -1 ; layer_nr >=1;layer_nr--) {
 		if(mesh.overhang_areas[layer_nr+ z_distance_top_layers].empty())
+		{
 			continue;
+		}
 
 		const Polygons outline =storage.getLayerOutlines(layer_nr+ z_distance_top_layers, false, false, false);
 
-		Polygons relevant_forbidden=(config.support_rests_on_model?(only_gracious?volumes_.getAvoidance(config.getRadius(1),layer_nr,false,true):volumes_.getCollision(config.getRadius(1), layer_nr)):volumes_.getAvoidance(config.getRadius(1),layer_nr));
+		Polygons relevant_forbidden=(config.support_rests_on_model?(only_gracious?volumes_.getAvoidance(config.getRadius(0),layer_nr,false,true):volumes_.getCollision(config.getRadius(0), layer_nr)):volumes_.getAvoidance(config.getRadius(0),layer_nr));
 
 		Polygons overhang = mesh.overhang_areas[layer_nr+ z_distance_top_layers].difference(relevant_forbidden);
 
 		if(overhang.empty())
+		{
 			continue;
+		}
 
-		//Polygons overhang_outset=overhang.offset(outset).difference(relevant_forbidden);
+		for(Polygons overhang_outset:overhang.offset(outset>0?outset:0).difference(relevant_forbidden).splitIntoParts(true) ){
+			if(outset<0){ //area is smaller than outset, can happen if outset<0
+				Polygons overhang_outset_smaller=overhang_outset.offset(outset);
+				if(overhang_outset_smaller.area()>1){ // if the outset is applied the area would not dissapear.
+					overhang_outset=overhang_outset_smaller;
+				}
+				//if it were to dissapear, outset is ignored currently
 
-		for(Polygons overhang_outset:overhang.offset(outset).difference(relevant_forbidden).splitIntoParts(true) ){
+			}
 
 		std::function<Polygons(const Polygons&,bool,size_t)> generateLines=[&](const Polygons& area,bool roof,size_t dtt){
 			Polygons gaps;
@@ -1376,8 +1362,10 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh,std::vector<s
 			constexpr coord_t pocket_size = 0;
 			std::vector<AngleDegrees> angles = roof ? support_roof_angles:support_infill_angles;
 
-			const AngleDegrees fill_angle=angles[(layer_nr-dtt)%angles.size()];
 			const coord_t z=layer_nr-dtt;
+	        int divisor = static_cast<int>(angles.size());
+	        int index = ((z % divisor) + divisor) % divisor;
+			const AngleDegrees fill_angle=angles[index];
 		    Infill roof_computation(
 		        pattern, zig_zaggify_infill, connect_polygons, area, outline_offset, roof?support_roof_line_width:support_line_width,
 		        roof?support_roof_line_distance:support_tree_branch_distance, support_roof_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
@@ -1392,10 +1380,10 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh,std::vector<s
 
 
 		std::function<void(std::pair<Point,LineStatus>,size_t,coord_t)> addToData=[&](std::pair<Point,LineStatus> p,size_t ddt, coord_t insert_layer) {
-
 			bool to_bp=p.second==LineStatus::TO_BP;
 			bool gracious = to_bp|| p.second==LineStatus::TO_MODEL_GRACIOUS;
 			if(!config.support_rests_on_model&&!to_bp){
+				logWarning("Tried to add an invalid support point\n");
 				return;
 			}
 
@@ -1407,9 +1395,9 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh,std::vector<s
 			}
 #pragma omp critical(moveBounds)
 			{
-				if(!already_inserted[insert_layer].count(p.first/((support_roof_line_width+1)/10))){//we normalize the point a bit to also catch points which are so close that inserting it would achieve nothing todo orrect lw
-					already_inserted[insert_layer].emplace(p.first/((support_roof_line_width+1)/10));
-					SupportElement* elem= new SupportElement(ddt,insert_layer,p.first,to_bp,gracious); // +1 as we otherwise would
+				if(!already_inserted[insert_layer].count(p.first/((support_line_width+1)/10))){//we normalize the point a bit to also catch points which are so close that inserting it would achieve nothing
+					already_inserted[insert_layer].emplace(p.first/((support_line_width+1)/10));
+					SupportElement* elem= new SupportElement(ddt,insert_layer,p.first,to_bp,gracious);
 					elem->area=new Polygons(circle.offset(0));
 					Polygons* outer_wall_area=new Polygons(outer_circle.offset(0)); // technically wrong by up to base_radius, but i dont care about 10 microns
 					move_bounds[insert_layer].emplace(elem,outer_wall_area);
@@ -1417,89 +1405,132 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh,std::vector<s
 			}
 		};
 
-		std::vector<std::vector<LineInformation>> cache(support_roof_angles.size());
-		std::function<void(size_t,bool)> prepareData=[&](size_t dtt,bool roof){
-			if(dtt!=0){
-				Polygons forbidden =(config.support_rests_on_model?(only_gracious?volumes_.getAvoidance(config.getRadius(1),layer_nr-dtt,false,true):volumes_.getCollision(config.getRadius(1), layer_nr-dtt)):volumes_.getAvoidance(config.getRadius(1),layer_nr-dtt));
-				overhang_outset=overhang_outset.difference(forbidden);
-
+		std::function<Polygons(std::vector<LineInformation>,size_t)> getAddArea=[&](std::vector<LineInformation> lines,size_t dtt){
+			Polygons to_be_added;
+			coord_t radius=config.getRadius(dtt,0)/baseRadius;
+			for(LineInformation line:lines){
+				for(auto point_data:line)
+				{
+					Polygon circle;
+					for (Point corner : base_circle){
+						circle.add(corner*radius+point_data.first);//*radius+
+					}
+					to_be_added.add(circle);
+				}
 			}
-			if(cache[(layer_nr-dtt)%cache.size()].empty()){
-				Polygons lines = generateLines(overhang_outset,roof,dtt);
-				std::vector<LineInformation> internal_lines = convertLinesToInternal(ensureMaximumDistancePolyline(lines,connect_length),layer_nr-dtt);
-				cache[(layer_nr-dtt)%cache.size()]=internal_lines;
-			}
-			else{
-				cache[(layer_nr-dtt)%cache.size()]=splitLines(cache[(layer_nr-dtt)%cache.size()], layer_nr+1-dtt, dtt).first;
-			}
+			return to_be_added;
 		};
 
-		bool continue_outer=false;
 
-		for(size_t i=0;i<config.dont_move_until_ddt&&layer_nr-i>=1;i++){
-			prepareData(i,true);
-			std::pair<std::vector<LineInformation>,std::vector<LineInformation>> splits=splitLines(cache[(layer_nr-i)%cache.size()], layer_nr-i, i+1);
-			for(auto line :splits.second){
+		bool propergate_last_points=false;// if true it was not possible to continue roof
+		size_t propergate_start=0;
+		std::vector<LineInformation> overhang_lines;
 
-				for(auto p:line){
-					addToData(p,1,layer_nr-i);
+		Polygons last_overhang=overhang_outset;
+		for(size_t dtt=0;dtt<config.dont_move_until_ddt&&layer_nr-dtt>=1;dtt++){// here the roof is handled. If roof can not be added the branches will try to not move instead
+			Polygons forbidden_next =(config.support_rests_on_model?(only_gracious?volumes_.getAvoidance(config.getRadius(0),layer_nr-(dtt+1),false,true):volumes_.getCollision(config.getRadius(0), layer_nr-(dtt+1))):volumes_.getAvoidance(config.getRadius(0),layer_nr-(dtt+1)));
+			Polygons overhang_outset_next=overhang_outset.difference(forbidden_next);
+			if(!propergate_last_points && overhang_outset_next.area()<minimum_roof_area){ // next layer down the roof area would be to small so we have to insert our roof support here
+				propergate_last_points=true;
+				propergate_start=dtt;
+				size_t dtt_before=dtt>0?dtt-1:0;
+				if(SUPPORT_TREE_ADD_REGULAR_POINTS_ADDITIONALLY_ON_SMALL_AREAS||dtt!=0){
+					overhang_lines=convertLinesToInternal(ensureMaximumDistancePolyline(generateLines(last_overhang,roof_enabled,dtt_before),connect_length,1),layer_nr-dtt_before);
+				}
+				if(dtt!=0){
+					overhang_lines=splitLines(overhang_lines, layer_nr-dtt_before, dtt_before).first;
+				}
+				if(dtt==0){// if the area is so small at dtt 0 that a roof is impossible extra support points are added to ensure the overhang is supported.
+					std::vector<LineInformation> extra_lines=convertLinesToInternal(ensureMaximumDistancePolyline(toPolylines(overhang_outset),connect_length,3),layer_nr-dtt);
+					overhang_lines.insert(overhang_lines.end(), extra_lines.begin(), extra_lines.end());
 				}
 			}
-			cache[(layer_nr-i)%cache.size()]=splits.first;
-			if(overhang_outset.area()>minimum_roof_area){ // todo ||cache[(layer_nr-i)%cache.size()].empty?
 
-				#pragma omp critical(precalculatedSupportLayers)
-				{
-					storage.support.supportLayers[layer_nr-i].support_roof.add(overhang_outset);
+			if(propergate_last_points){
+
+				std::pair<std::vector<LineInformation>,std::vector<LineInformation>> splits=splitLines(overhang_lines,layer_nr-dtt,(dtt-propergate_start));
+				for(auto line :splits.second){
+					for(auto p:line){
+						addToData(p,dtt-propergate_start,layer_nr-dtt);
+					}
 				}
+				overhang_lines=splits.first;
+
+				Polygons to_be_added=getAddArea(overhang_lines,(dtt-propergate_start));
+#pragma omp critical(precalculated_support_layers)
+				{
+					precalculated_support_layers[layer_nr-dtt].add(to_be_added);
+				}
+
+			}
+			if(!propergate_last_points){
+				#pragma omp critical(precalculated_support_layers)
+				{
+					storage.support.supportLayers[layer_nr-dtt].support_roof.add(overhang_outset);
+				}
+			}
+
+			if(!propergate_last_points){
+				last_overhang=overhang_outset;
+				overhang_outset=overhang_outset_next;
+			}
+
+		}
+
+
+		const size_t dtt_end= std::min(coord_t(config.dont_move_until_ddt),layer_nr);
+
+		if(!roof_enabled){
+			Polygons polylines=ensureMaximumDistancePolyline(generateLines(overhang_outset,roof_enabled,0),support_line_width,1); // support_line_width to form a line here as otherwise most will be unsupported. Technically this violates branch distance, but not only is this the only reasonable choice, but it ensures consistant behaviour as some infill patterns generate each line segment as its own polyline part causing a similar line forming behaviour.
+			if(polylines.pointCount()<=3){
+				// add the outer wall to ensure it is correct supported instead
+				polylines=ensureMaximumDistancePolyline(toPolylines(overhang),connect_length,3);
+			}
+			overhang_lines=convertLinesToInternal(polylines,layer_nr);
+		}
+		else if(!propergate_last_points){
+			overhang_lines=convertLinesToInternal(ensureMaximumDistancePolyline(generateLines(overhang_outset,roof_enabled,dtt_end-1),connect_length,1),layer_nr-dtt_end);
+		}
+
+		if(dtt_end<config.dont_move_until_ddt){ // reached buildplate
+			if(propergate_last_points){
+				Polygons last_area=getAddArea(overhang_lines,layer_nr-propergate_start);
+#pragma omp critical(precalculated_support_layers)
+{
+					precalculated_support_layers[0].add(last_area);
+}
 			}
 			else{
-				size_t points_added=0;
-				for(LineInformation line:splits.first){
-					for(auto point_data:line)
-					{
-						points_added++;
-						addToData(point_data,1,layer_nr-i);
-					}
-				}
-
-				if(points_added<3&&i==0){// as we did not add enough points we also add the outline as points to ensure small areas are properly supported
-					for(LineInformation line:convertLinesToInternal(ensureMaximumDistancePolyline(toPolylines(overhang_outset.offset(-5)),connect_length), layer_nr)){
-						for(auto point_data:line)
-						{
-							addToData(point_data,1,layer_nr-i);
-						}
-					}
-
-				}
-				continue_outer=true;
-				break;
-			}
-		}
-		if(continue_outer){
-			continue;
-		}
-
-		if(static_cast<coord_t>(config.dont_move_until_ddt)<layer_nr){
-
-			prepareData(config.dont_move_until_ddt,roof_enabled);
-			std::vector<LineInformation> last_lines = cache[(layer_nr-config.dont_move_until_ddt)%cache.size()];
-			for(LineInformation line:last_lines){
-				for(auto point_data:line){
-					addToData(point_data,1,layer_nr-config.dont_move_until_ddt);
-				}
-			}
-		}
-
-		else{
-#pragma omp critical(precalculatedSupportLayers)
+#pragma omp critical(precalculated_support_layers)
 {
-			storage.support.supportLayers[0].support_roof.add(overhang_outset);
+				storage.support.supportLayers[0].support_roof.add(overhang_outset);
 }
+			}
+		}
+		else{ // normal trees have to be generated
+			for(LineInformation line:overhang_lines){
+				for(auto point_data:line){
+					addToData(point_data,propergate_last_points?config.dont_move_until_ddt-propergate_start:0,layer_nr-config.dont_move_until_ddt);
+				}
+			}
 		}
 	}
 	}
 
+}
+
+//ensures offsets are only done in sizes with a max step size per offset while adding the collision offset after each step, this ensures that areas cannot glitch through walls defined by the collision when offseting to fast
+Polygons safeOffset(Polygons& me,coord_t distance,ClipperLib::JoinType jt,coord_t max_safe_step_distance,const Polygons& collision,double miter_limit = 1.2){
+	const size_t steps = std::abs (distance/max_safe_step_distance);
+	assert(distance*max_safe_step_distance>=0);
+	Polygons ret=me;
+
+	for(size_t i=0;i<steps;i++){
+		ret=ret.offset(max_safe_step_distance,jt,miter_limit).unionPolygons(collision);
+	}
+	ret= ret.offset(distance%max_safe_step_distance,jt,miter_limit);
+
+	return ret.unionPolygons(collision);
 }
 
 ModelVolumes::ModelVolumes(const SliceDataStorage& storage, coord_t xy_distance, coord_t max_move,coord_t max_move_slow ,coord_t radius_sample_resolution,coord_t z_distance_bottom_layers,
@@ -1515,7 +1546,9 @@ ModelVolumes::ModelVolumes(const SliceDataStorage& storage, coord_t xy_distance,
 
 		layer_outlines_.push_back(storage.getLayerOutlines(layer_idx, include_support,include_prime_tower));
 		if(avoid_support_blocker)
+		{
 			anti_overhang_.push_back(storage.support.supportLayers[layer_idx].anti_overhang);
+		}
 	}
 }
 
@@ -1524,11 +1557,9 @@ const Polygons& ModelVolumes::getCollision(coord_t radius,LayerIndex layer_idx) 
 	RadiusLayerPair key { radius, layer_idx };
 	const auto it = collision_cache_.find(key);
 	if (it != collision_cache_.end()) {
-		collision_cache_hit++;
 		return it->second;
 	}
 	else {
-		collision_cache_miss++;
 		return calculateCollision(key);
 	}
 }
@@ -1654,19 +1685,6 @@ const Polygons& ModelVolumes::calculateAvoidance(const RadiusLayerPair &key) con
 	return ret.first->second;
 }
 
-//ensures offsets are only done in sizes with a max step size per offset while adding the collision offset after each step, this ensures that areas cannot glitch through walls defined by the collision when offseting to fast
-Polygons safeOffset(Polygons& me,coord_t distance,ClipperLib::JoinType jt,coord_t max_safe_step_distance,const Polygons& collision,double miter_limit = 1.2){
-	const size_t steps = std::abs (distance/max_safe_step_distance);
-	assert(distance*max_safe_step_distance>=0);
-	Polygons ret=me;
-
-	for(size_t i=0;i<steps;i++){
-		ret=ret.offset(max_safe_step_distance,jt,miter_limit).unionPolygons(collision);
-	}
-	ret= ret.offset(distance%max_safe_step_distance,jt,miter_limit);
-
-	return ret.unionPolygons(collision);
-}
 
 
 void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t branch_radius, const double scale_factor,const coord_t min_max_radius,const double scale_foot) {
@@ -1690,9 +1708,15 @@ void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t br
 				max_required_layer-=layers_handled_by_rad_before-2; // -2 to avoid off by one problems and i dont care about a few layers more
 			}
 		}
-		if(max_required_layer<min_max_height) max_required_layer=min_max_height;
-		if(max_required_layer>model_height) max_required_layer=model_height;
-		if(max_required_layer>max_layer) max_required_layer=max_layer;
+		if(max_required_layer<min_max_height){
+			max_required_layer=min_max_height;
+		}
+		if(max_required_layer>model_height){
+			max_required_layer=model_height;
+		}
+		if(max_required_layer>max_layer){
+			max_required_layer=max_layer;
+		}
 
 		return max_required_layer;
 	};
@@ -1705,53 +1729,70 @@ void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t br
 		collision_radii.push_back(radius);
 	}
 
-	std::vector<Polygons> prePlaceable(max_layer+1);
+	std::vector<Polygons> pre_placeable(max_layer+1);
 	//as we dont have multiple radiis for the support blocker we can not parallelize it
-	if(avoid_support_blocker)
-	for(size_t i=0;i<getRequiredHeight(0,0)-1&&i<anti_overhang_.size();i++){
-		if(!anti_overhang_[i].empty()){
-			anti_overhang_[i].simplify(30, 10);
-			anti_overhang_[i+1]=anti_overhang_[i+1].unionPolygons(anti_overhang_[i].offset(-max_move_, ClipperLib::jtRound)); // we create a anti_overhang avoidance => because of this we can union it with the collision later
-		}
+	if(avoid_support_blocker){
+		for(size_t i=0;i<getRequiredHeight(0,0)-1&&i<anti_overhang_.size();i++){
+			if(!anti_overhang_[i].empty()){
+				anti_overhang_[i].simplify(30, 10);
+				anti_overhang_[i+1]=anti_overhang_[i+1].unionPolygons(anti_overhang_[i].offset(-max_move_, ClipperLib::jtRound)); // we create a anti_overhang avoidance => because of this we can union it with the collision later
+			}
 
+		}
 	}
 
+	std::vector<Polygons> outlines_processed(layer_outlines_.size());
+// calculate the outlines before the collision to save a bit of time
+#pragma omp parallel for schedule(static)
+	for(size_t layer=0;layer<layer_outlines_.size();layer++)
+	{
+		Polygons outline=layer_outlines_[layer];
+		outline.simplify(30, 10);// simplify outline to improve performance in later operations.
+		outline=outline.unionPolygons(machine_border_);
+		outlines_processed[layer]=outline;
+	}
+
+	auto t_start = std::chrono::high_resolution_clock::now();
 	// calculate all required collisions
-#pragma omp parallel for schedule(static,1) shared(collision_cache_,prePlaceable)
+#pragma omp parallel for schedule(static,1) shared(collision_cache_,pre_placeable)
 	for(long long unsigned int i=0;i<collision_radii.size();i++){
+		auto t_loop_start = std::chrono::high_resolution_clock::now();
+
 		coord_t radius = collision_radii[i];
 
 		size_t max_required_layer=getRequiredHeight(radius,i!=0?collision_radii[i-1]:0);
-		if(radius==0) max_required_layer=model_height; // we need r=0 everywhere
+		if(radius==0){
+			max_required_layer=model_height; // we need r=0 everywhere
+		}
 		std::vector<std::pair<RadiusLayerPair,Polygons>> data(max_required_layer+1,std::pair<RadiusLayerPair,Polygons>(RadiusLayerPair(radius,-1),Polygons())); // we need to set a invalid default element because sometines we seem to add one
 
 
-		logDebug("precalculating collision: radius: %lld up to layer %lld\n",radius,max_required_layer);
 		RadiusLayerPair key(radius,0);
 
 		for(size_t layer=0;layer<=max_required_layer;layer++){
 			key.second=layer;
-			Polygons collision_areas = machine_border_;
-			if (layer < layer_outlines_.size()) {
-				collision_areas = collision_areas.unionPolygons(layer_outlines_[layer]);
+			Polygons collision_areas=machine_border_;
+			if (layer < outlines_processed.size()) {
+				collision_areas = outlines_processed[layer];
 			}
 			collision_areas = collision_areas.offset(xy_distance_ + radius, ClipperLib::JoinType::jtRound);
-
 			collision_areas.simplify(30,10);
-
 			data[layer]=std::pair<RadiusLayerPair,Polygons>(key,collision_areas);
 
 		}
 
+		auto t_main = std::chrono::high_resolution_clock::now();
 
 		for(coord_t layer=static_cast<coord_t>(max_required_layer);layer>=0;layer--){ // have to do signed as we are counting down
 			for(coord_t i=1;i<=z_distance_bottom_layers&&layer-i>0;i++){
 				data[layer].second=data[layer].second.unionPolygons(data[layer-i].second);
 			}
-			if(support_rests_on_model&& layer+1<static_cast<coord_t>(prePlaceable.size())&&layer<static_cast<coord_t>(max_required_layer)&&radius==0){
-				prePlaceable[layer+1]=data[layer].second.difference(data[layer+1].second);
+			if(support_rests_on_model&& layer+1<static_cast<coord_t>(pre_placeable.size())&&layer<static_cast<coord_t>(max_required_layer)&&radius==0){
+				pre_placeable[layer+1]=data[layer].second.difference(data[layer+1].second);
 			}
 		}
+
+		auto t_bot = std::chrono::high_resolution_clock::now();
 
 		for(size_t layer=0;layer<=max_required_layer;layer++){
 
@@ -1760,9 +1801,18 @@ void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t br
 			}
 			//we add the anti overhang to the collision, as this anti_overhang was already converted into an anti_overhang avoidance we can just add it as we can always escape this avoidance with max move speed
 			if(avoid_support_blocker&&!anti_overhang_[layer].empty())
+			{
 				data[layer].second=data[layer].second.unionPolygons(anti_overhang_[layer].offset(radius, ClipperLib::JoinType::jtRound));// we add the support blocker to ensure there is no support inside the support blocker
+			}
 		}
 
+		auto t_now = std::chrono::high_resolution_clock::now();
+		auto dur_ = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_now-t_loop_start ).count();
+		auto dur_main = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_main-t_loop_start ).count();
+		auto dur_bot = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_bot-t_main ).count();
+		auto dur_top = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_now-t_bot ).count();
+
+		logDebug("Collision precalculation of radius %lld up to %lld took %.3lf ms. Main calculation: %.3lf ms Bottom distance: %.3lf ms Top Distance: %.3lf ms \n",radius,max_required_layer,dur_,dur_main,dur_bot,dur_top);
 		#pragma omp critical(collision_cache_)
 		{
 			collision_cache_.insert(data.begin(),data.end());
@@ -1772,12 +1822,13 @@ void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t br
 		}
 
 	}
-
+	auto t_coll = std::chrono::high_resolution_clock::now();
 // calculate avoidance
 #pragma omp parallel shared(avoidance_cache_,avoidance_cache_slow)
 	{
-	#pragma omp for schedule(static,1) nowait // to ensure all cores get equal amount of stuff to calculate schedule guided ? dynamic mit hoher blocksize TODO
+	#pragma omp for schedule(static,1) nowait
 	for(long long unsigned int i=0;i<resolution_steps.size();i++){
+		auto t_loop_start = std::chrono::high_resolution_clock::now();
 
 		coord_t radius = resolution_steps[i];
 
@@ -1796,7 +1847,6 @@ void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t br
 		data[0]=std::pair<RadiusLayerPair,Polygons>(key,last_layer);
 		data_slow[0]=std::pair<RadiusLayerPair,Polygons>(key,last_layer_slow);
 
-		logDebug("precalculating regular avoidance: radius: %lld up to layer %lld\n",radius,max_required_layer);
 
 		for(size_t layer=1;layer<=max_required_layer;layer++){
 			key.second=layer;
@@ -1811,6 +1861,11 @@ void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t br
 			data_slow[layer]=std::pair<RadiusLayerPair,Polygons>(key,last_layer_slow);
 
 		}
+
+		auto t_now = std::chrono::high_resolution_clock::now();
+		auto dur_ = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_now-t_loop_start ).count();
+		logDebug("Avoidance precalculation of radius %lld until layer %lld took %.3lf ms\n",radius,max_required_layer,dur_);
+
 		#pragma omp critical(avoidance_cache_)
 		{
 			avoidance_cache_.insert(data.begin(),data.end());
@@ -1826,9 +1881,9 @@ void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t br
 	// calculate avoidance to model
 	if(support_rests_on_model){
 
-	#pragma omp for schedule(static,1) // to ensure all cores get equal amount of stuff to calculate schedule guided ? dynamic mit hoher blocksize TODO
+	#pragma omp for schedule(static,1)
 		for(long long unsigned int i=0;i<resolution_steps.size();i++){
-
+			auto t_loop_start = std::chrono::high_resolution_clock::now();
 			coord_t radius = resolution_steps[i];
 
 			const coord_t max_step_move = 2*(radius+ xy_distance_);
@@ -1846,12 +1901,10 @@ void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t br
 			data[0]=std::pair<RadiusLayerPair,Polygons>(key,last_layer);
 			data_slow[0]=std::pair<RadiusLayerPair,Polygons>(key,last_layer_slow);
 
-			logDebug("precalculating avoidance to model: radius: %lld up to layer %lld\n",radius,max_required_layer);
 
 			for(size_t layer=1;layer<=max_required_layer;layer++){
-				//printf("precalc: avoidance layer %d vertexes: %d\n",layer,last_layer.pointCount());
 				key.second=layer;
-				Polygons placeable=prePlaceable[layer].offset(-radius,ClipperLib::jtRound);
+				Polygons placeable=pre_placeable[layer].offset(-radius,ClipperLib::jtRound);
 
 				Polygons col=getCollision(radius,layer);
 
@@ -1864,6 +1917,9 @@ void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t br
 				data_slow[layer]=std::pair<RadiusLayerPair,Polygons>(key,last_layer_slow);
 				data_placeable[layer]=std::pair<RadiusLayerPair,Polygons>(key,placeable);
 			}
+			auto t_now = std::chrono::high_resolution_clock::now();
+			auto dur_ = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_now-t_loop_start ).count();
+			logDebug("Avoidance to model precalculation of radius %lld until layer %lld took %.3lf ms\n",radius,max_required_layer,dur_);
 			#pragma omp critical(avoidance_cache_)
 			{
 				avoidance_cache_to_model.insert(data.begin(),data.end());
@@ -1878,6 +1934,11 @@ void ModelVolumes::precalculateAvoidance(const size_t max_layer,const coord_t br
 	}
 
 	}
+	auto t_end = std::chrono::high_resolution_clock::now();
+	auto dur_col = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_coll-t_start ).count();
+	auto dur_avo = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_end-t_coll ).count();
+
+	logDebug("Precalc collision took %.3lf avoidance took %.3lf\n",dur_col,dur_avo);
 }
 
 Polygons ModelVolumes::calculateMachineBorderCollision(Polygon machine_border) {
