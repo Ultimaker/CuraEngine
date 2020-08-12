@@ -2530,7 +2530,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                config.infill_angle,
                                gcode_layer.z,
                                support_shift,
-                               config.wall_line_count,
+                               0,
                                infill_origin,
                                perimeter_gaps,
                                config.connect_zigzags,
