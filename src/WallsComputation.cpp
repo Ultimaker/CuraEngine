@@ -10,7 +10,11 @@
 
 // libArachne
 #include "BeadingStrategy/DistributedBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
+#include "BeadingStrategy/NaiveBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
+#include "BeadingStrategy/CenterDeviationBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
 #include "SkeletalTrapezoidation.h"
+#include "BeadingStrategy/InwardDistributedBeadingStrategy.h"
+#include "BeadingStrategy/BeadingStrategyFactory.h"
 
 namespace cura {
 
@@ -127,17 +131,39 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     // Call on libArachne:
     // TODO: Using line_width_0 here _even_ though it's also making the other walls! (that is, while line_width_x is adhered to when creating the area, it's ignored otherwise)
 
-    constexpr float transitioning_angle = 0.5;
+    coord_t *min_bead_width = nullptr, *min_feature_size = nullptr;
+    const coord_t line_width = layer_nr == 0 ? line_width_0 : line_width_x;
+//    const coord_t line_width = line_width_0;
+
+    auto strategy_type       = settings.get<StrategyType>("beading_strategy_type");
+    auto bead_width          = settings.get<coord_t>     ("bead_width");
+    auto transition_length   = settings.get<coord_t>     ("transition_length");
+    auto transitioning_angle = settings.get<AngleRadians>("transitioning_angle");
+    auto max_bead_count      = settings.get<int>         ("max_bead_count");
+
+    if (settings.get<EWideningMode>("widening_mode") == EWideningMode::MINIMUM_BEAD_WIDTH)
+    {
+        min_bead_width = new coord_t(settings.get<coord_t>("min_bead_width"));
+    }
+    else if (settings.get<EWideningMode>("widening_mode") == EWideningMode::MINIMUM_FEATURE_SIZE)
+    {
+        min_feature_size = new coord_t(settings.get<coord_t>("min_feature_size"));
+    }
+
+
 
     Polygons tubeshape = part->outline.tubeShape(line_width_0 + line_width_x * (inset_count - 1), 0).offset(-10).offset(10);
     tubeshape.simplify(50, 50);
     tubeshape.removeColinearEdges(0.03);
     tubeshape.fixSelfIntersections();
-    tubeshape.removeSmallAreas(INT2MM(line_width_0/2) * INT2MM(line_width_0/2), false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
+    tubeshape.removeSmallAreas(INT2MM(line_width/2) * INT2MM(line_width/2), false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
     if (tubeshape.area() > 0)
     {
-        const DistributedBeadingStrategy beading_strat(line_width_0, line_width_0 * 2, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
-        SkeletalTrapezoidation wall_maker(tubeshape, beading_strat, beading_strat.transitioning_angle);
+        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, bead_width, transition_length, (float)transitioning_angle, min_bead_width, min_feature_size, max_bead_count); // TODO: deal with beading-strats & (their) magic parameters
+        SkeletalTrapezoidation wall_maker(tubeshape, *beading_strat, beading_strat->transitioning_angle);
+
+//        const DistributedBeadingStrategy beading_strat(line_width_0, line_width_0 * 2, 0.5);  // TODO: deal with beading-strats & (their) magic parameters
+//        SkeletalTrapezoidation wall_maker(tubeshape, beading_strat, beading_strat.transitioning_angle);
         wall_maker.generateToolpaths(part->wall_toolpaths);
     }
 }

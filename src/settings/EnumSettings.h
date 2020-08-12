@@ -6,6 +6,17 @@
 
 namespace cura
 {
+/*!
+* Type of widening mode. Used in libArachne to apply the widening meta-strategy on top of the selected
+* beading strategy.
+*/
+enum class EWideningMode
+{
+    MINIMUM_BEAD_WIDTH,
+    MINIMUM_FEATURE_SIZE,
+    NONE
+};
+
 
 /*!
  * In Cura different infill methods are available.

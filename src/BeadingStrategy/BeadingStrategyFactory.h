@@ -18,17 +18,15 @@ namespace cura
 {
 
 extern double inward_distributed_center_size;
-extern int max_bead_count;
-extern coord_t default_transition_length;
 
 enum class StrategyType
 {
     Naive,
-    NaiveStrategy,
     Center,
     Distributed,
     InwardDistributed,
     LimitedDistributed,
+    None,
     COUNT
 };
 
@@ -39,7 +37,7 @@ std::string to_string(StrategyType type);
 class BeadingStrategyFactory
 {
 public:
-    static BeadingStrategy* makeStrategy(StrategyType type, coord_t prefered_bead_width = MM2INT(0.5), float transitioning_angle = M_PI / 4, std::optional<coord_t> min_bead_width = NULL, std::optional<coord_t> min_feature_size = NULL);
+    static BeadingStrategy* makeStrategy(StrategyType type, coord_t preferred_bead_width = MM2INT(0.5), coord_t preferred_transition_length = 400, float transitioning_angle = M_PI / 4, const coord_t* min_bead_width = nullptr, const coord_t* min_feature_size = nullptr, int max_bead_count = -1);
 };
 
 } // namespace cura

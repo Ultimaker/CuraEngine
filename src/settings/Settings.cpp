@@ -24,6 +24,7 @@
 #include "../utils/floatpoint.h" //For FMatrix3x3.
 #include "../utils/logoutput.h"
 #include "../utils/string.h" //For Escaped.
+#include "../BeadingStrategy/BeadingStrategyFactory.h"
 
 namespace cura
 {
@@ -341,6 +342,52 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     else //Default.
     {
         return EFillMethod::NONE;
+    }
+}
+
+template<>  StrategyType Settings::get<StrategyType>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "naive")
+    {
+        return StrategyType::Naive;
+    }
+    else if (value == "center_deviation")
+    {
+        return StrategyType::Center;
+    }
+    else if (value == "distributed")
+    {
+        return StrategyType::Distributed;
+    }
+    else if (value == "inward_distributed")
+    {
+        return StrategyType::InwardDistributed;
+    }
+    else if (value == "limited_distributed")
+    {
+        return StrategyType::LimitedDistributed;
+    }
+    else //Default.
+    {
+        return StrategyType::None;
+    }
+}
+
+template<>  EWideningMode Settings::get<EWideningMode>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "min_bead_width_mode")
+    {
+        return EWideningMode::MINIMUM_BEAD_WIDTH;
+    }
+    else if (value == "min_feature_size_mode")
+    {
+        return EWideningMode::MINIMUM_FEATURE_SIZE;
+    }
+    else //Default.
+    {
+        return EWideningMode::NONE;
     }
 }
 
