@@ -25,7 +25,7 @@
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 #include "utils/math.h"
-#include "BeadingStrategy/DistributedBeadingStrategy.h"
+#include "BeadingStrategy/LimitedDistributedBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
 #include "SkeletalTrapezoidation.h"
 
 namespace cura
@@ -134,7 +134,7 @@ void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataS
         for (auto& part : supportLayer.support_infill_parts)
         {
             part.generateInsetsAndInfillAreas();
-            if (part.inset_count_to_generate > 0 && !part.getWallArea().empty())
+            if (part.inset_count_to_generate > 0 && part.getPreparedOutline().area() > 0.)
             {
                 part.generateInsets();
             }
@@ -404,12 +404,12 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 }
 
 void AreaSupport::generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths,
-                                       const Polygons& wall_area, const coord_t& wall_line_width)
+                                       const Polygons& prepared_outline, const coord_t& wall_line_width, const coord_t& max_linewidth, const size_t& inset_count)
 {
     constexpr float transitioning_angle = 0.5;
-    const coord_t transition_length = wall_line_width * 2;
-    const DistributedBeadingStrategy beading_strat(wall_line_width, transition_length, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
-    SkeletalTrapezoidation wall_maker(wall_area, beading_strat, beading_strat.transitioning_angle);
+
+    const LimitedDistributedBeadingStrategy beading_strat(wall_line_width, max_linewidth, inset_count * 2, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
+    SkeletalTrapezoidation wall_maker(prepared_outline, beading_strat, beading_strat.transitioning_angle);
     wall_maker.generateToolpaths(wall_toolpaths);
 }
 

@@ -48,11 +48,11 @@ public:
 
     const Polygons& getInfillArea() const;
 
-    const Polygons& getWallArea() const;
+    const Polygons &getPreparedOutline() const;
 
 private:
     Polygons infill_area;  //!< The support infill area for generating patterns
-    Polygons wall_area; //!< The wall area for generating libArachne walls
+    Polygons prepared_outline; //!< The wall area for generating libArachne walls
 };
 
 inline const Polygons& SupportInfillPart::getInfillArea() const
@@ -60,9 +60,9 @@ inline const Polygons& SupportInfillPart::getInfillArea() const
     return infill_area;
 }
 
-inline const Polygons& SupportInfillPart::getWallArea() const
+inline const Polygons& SupportInfillPart::getPreparedOutline() const
 {
-    return wall_area;
+    return prepared_outline;
 }
 } // namespace cura
 

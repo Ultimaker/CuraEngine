@@ -5,8 +5,6 @@
 #define SUPPORT_H
 
 #include <memory>
-#include "BeadingStrategy/BeadingStrategy.h"
-#include "utils/ExtrusionLine.h"
 
 namespace cura
 {
@@ -76,7 +74,7 @@ public:
     [[deprecated]] static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x);
 
     // Todo: write doc
-    static void generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& wall_area, const coord_t& wall_line_width);
+    static void generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& prepared_outline, const coord_t& wall_line_width, const coord_t& max_linewidth, const size_t& inset_count);
 
 private:
     /*!

@@ -22,7 +22,8 @@ SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t suppor
 void SupportInfillPart::generateInsets()
 {
     // generate insets, use the first inset as the wall line, and the second as the infill area
-    AreaSupport::generateSupportWalls(wall_toolpaths, wall_area, support_line_width);
+    constexpr coord_t max_lineWidth = 400; // Todo get max_lineWidth from GUI
+    AreaSupport::generateSupportWalls(wall_toolpaths, prepared_outline, support_line_width, max_lineWidth, inset_count_to_generate);
 }
 
 void SupportInfillPart::generateInsetsAndInfillAreas()
@@ -34,19 +35,19 @@ void SupportInfillPart::generateInsetsAndInfillAreas()
     }
     else
     {
-        constexpr coord_t smallest_line_segment = 50; // Todo: get rid of magic number
-        constexpr coord_t allowed_error_distance = 50; // Todo: get rid of magic number
-        const auto half_wall = support_line_width / 2;
-        const auto inner_offset = -support_line_width - support_line_width * (inset_count_to_generate - 1);
-        infill_area = outline.offset(inner_offset);
-        infill_area.simplify(smallest_line_segment, allowed_error_distance);
-        auto outer_inset = outline.offset(-half_wall);
-        outer_inset.simplify();
-        wall_area = outer_inset.difference(infill_area);
-        wall_area.removeColinearEdges(0.03);
-        wall_area.fixSelfIntersections();
-        const double small_area = static_cast<double>(support_line_width * support_line_width) /
-                                  4e6; // same as (wall_line_width_x / 2 / 1000)**2
-        wall_area.removeSmallAreas(small_area, false);
+        constexpr coord_t smallest_segment = 50;
+        constexpr coord_t allowed_distance = 50;
+        constexpr coord_t epsilon_offset = 10;
+        constexpr float max_colinear_angle = 0.03;  // Way too large   TODO: after we ironed out all the bugs, remove-colinear should go.
+        constexpr bool remove_holes = false;
+        const double small_area_length = INT2MM(static_cast<double>(support_line_width) / 2);
+
+        prepared_outline = outline.offset(-epsilon_offset).offset(epsilon_offset);
+        prepared_outline.simplify(smallest_segment, allowed_distance);
+        prepared_outline.removeColinearEdges(max_colinear_angle);
+        prepared_outline.fixSelfIntersections();
+        prepared_outline.removeSmallAreas(small_area_length * small_area_length, remove_holes); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
+        infill_area = outline.offset(-static_cast<coord_t>(small_area_length) - static_cast<coord_t>(support_line_width) * (inset_count_to_generate - 1)); // Todo get infill area from generated walls see CURA-7653
+        infill_area.simplify();
     }
 }
