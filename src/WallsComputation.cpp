@@ -147,7 +147,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
     constexpr float max_colinear_angle = 0.03;  // Way too large   TODO: after we ironed out all the bugs, remove-colinear should go.
-    const double small_area_length = INT2MM(line_width_0 / 2);
+    const double small_area_length = INT2MM(bead_width / 2);
 
     Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
     prepared_outline.simplify(smallest_segment, allowed_distance);
@@ -156,7 +156,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
     if (prepared_outline.area() > 0)
     {
-        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, line_width_0, transition_length, (float)transitioning_angle, min_bead_width, min_feature_size, max_bead_count); // TODO: deal with beading-strats & (their) magic parameters
+        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, bead_width, transition_length, (float)transitioning_angle, min_bead_width, min_feature_size, max_bead_count); // TODO: deal with beading-strats & (their) magic parameters
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(part->wall_toolpaths);
     }
