@@ -374,23 +374,6 @@ template<>  StrategyType Settings::get<StrategyType>(const std::string& key) con
     }
 }
 
-template<>  EWideningMode Settings::get<EWideningMode>(const std::string& key) const
-{
-    const std::string& value = get<std::string>(key);
-    if (value == "min_bead_width_mode")
-    {
-        return EWideningMode::MINIMUM_BEAD_WIDTH;
-    }
-    else if (value == "min_feature_size_mode")
-    {
-        return EWideningMode::MINIMUM_FEATURE_SIZE;
-    }
-    else //Default.
-    {
-        return EWideningMode::NONE;
-    }
-}
-
 template<> EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);

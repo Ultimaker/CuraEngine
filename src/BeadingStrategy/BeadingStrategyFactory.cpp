@@ -57,10 +57,12 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t
     {
         const coord_t min_input_width = min_feature_size ? *min_feature_size : *min_bead_width;
         const coord_t min_output_width = min_bead_width ? *min_bead_width : *min_feature_size;
+        logDebug("Applying the Widening Beading meta-strategy with minimum input width %d and minimum output width %d.", min_input_width, min_output_width);
         ret = new WideningBeadingStrategy(ret, min_input_width, min_output_width);
     }
     if (max_bead_count > 0)
     {
+        logDebug("Applying the Limited Beading meta-strategy with maximum bead count = %d.", max_bead_count);
         ret = new LimitedBeadingStrategy(max_bead_count, ret);
     }
     return ret;
