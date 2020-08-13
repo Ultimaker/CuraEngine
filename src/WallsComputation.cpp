@@ -9,11 +9,7 @@
 #include "utils/polygonUtils.h"
 
 // libArachne
-#include "BeadingStrategy/DistributedBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
-#include "BeadingStrategy/NaiveBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
-#include "BeadingStrategy/CenterDeviationBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
 #include "SkeletalTrapezoidation.h"
-#include "BeadingStrategy/InwardDistributedBeadingStrategy.h"
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 
 namespace cura {
@@ -129,18 +125,14 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     }
 
     // Call on libArachne:
-    // TODO: Using line_width_0 here _even_ though it's also making the other walls! (that is, while line_width_x is adhered to when creating the area, it's ignored otherwise)
 
-
-//    const coord_t line_width = line_width_0;
     const coord_t bead_width = layer_nr == 0 ? line_width_0 : line_width_x;
-    coord_t *min_bead_width = nullptr, *min_feature_size = nullptr;
-    int max_bead_count = 0;
-
     auto strategy_type       = settings.get<StrategyType>("beading_strategy_type");
     auto transition_length   = settings.get<coord_t>     ("transition_length");
     auto transitioning_angle = settings.get<AngleRadians>("transitioning_angle");
 
+    coord_t *min_bead_width = nullptr, *min_feature_size = nullptr;
+    int max_bead_count = 0;
     if (settings.get<bool>("widening_beading_enabled"))
     {
         min_bead_width = new coord_t(settings.get<coord_t>("min_bead_width"));
@@ -151,18 +143,21 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         max_bead_count = settings.get<int>("max_bead_count");
     }
 
-    Polygons tubeshape = part->outline.tubeShape(line_width_0 + line_width_x * (inset_count - 1), 0).offset(-10).offset(10);
-    tubeshape.simplify(50, 50);
-    tubeshape.removeColinearEdges(0.03);
-    tubeshape.fixSelfIntersections();
-    tubeshape.removeSmallAreas(INT2MM(bead_width/2) * INT2MM(bead_width/2), false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
-    if (tubeshape.area() > 0)
-    {
-        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, bead_width, transition_length, (float)transitioning_angle, min_bead_width, min_feature_size, max_bead_count); // TODO: deal with beading-strats & (their) magic parameters
-        SkeletalTrapezoidation wall_maker(tubeshape, *beading_strat, beading_strat->transitioning_angle);
+    constexpr coord_t epsilon_offset = 10;
+    constexpr coord_t smallest_segment = 50;
+    constexpr coord_t allowed_distance = 50;
+    constexpr float max_colinear_angle = 0.03;  // Way too large   TODO: after we ironed out all the bugs, remove-colinear should go.
+    const double small_area_length = INT2MM(line_width_0 / 2);
 
-//        const DistributedBeadingStrategy beading_strat(line_width_0, line_width_0 * 2, 0.5);  // TODO: deal with beading-strats & (their) magic parameters
-//        SkeletalTrapezoidation wall_maker(tubeshape, beading_strat, beading_strat.transitioning_angle);
+    Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
+    prepared_outline.simplify(smallest_segment, allowed_distance);
+    prepared_outline.removeColinearEdges(max_colinear_angle);
+    prepared_outline.fixSelfIntersections();
+    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
+    if (prepared_outline.area() > 0)
+    {
+        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, line_width_0, transition_length, (float)transitioning_angle, min_bead_width, min_feature_size, max_bead_count); // TODO: deal with beading-strats & (their) magic parameters
+        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(part->wall_toolpaths);
     }
 }
