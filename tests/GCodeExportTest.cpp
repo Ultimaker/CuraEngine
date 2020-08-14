@@ -628,6 +628,9 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     config.retraction_config.speed = 2; // 120 mm/min.
     config.retraction_config.primeSpeed = 3; // 180 mm/min.
     config.retraction_config.prime_volume = gcode.extruder_attr[0].filament_area * 4; // 4mm in linear dimensions
+    config.retraction_config.retraction_count_max = 100; //Practically no limit.
+    config.retraction_config.retraction_extrusion_window = 1;
+    config.retraction_config.retraction_min_travel_distance = 0; //Don't limit retractions for being too short.
     config.hop_enable = false;
     config.brush_pos_x = 2000;
     config.repeat_count = 1;

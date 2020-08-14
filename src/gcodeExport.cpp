@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <assert.h>
@@ -873,13 +873,14 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
 
-    if (flavor == EGCodeFlavor::BFB)//BitsFromBytes does automatic retraction.
+    if(flavor == EGCodeFlavor::BFB) //BitsFromBytes does automatic retraction.
     {
-        if (extruder_switch)
+        if(extruder_switch)
         {
-            if (!extr_attr.retraction_e_amount_current)
+            if(!extr_attr.retraction_e_amount_current)
+            {
                 *output_stream << "M103" << new_line;
-
+            }
             extr_attr.retraction_e_amount_current = 1.0; // 1.0 is a stub; BFB doesn't use the actual retracted amount; retraction is performed by firmware
         }
         return;
@@ -888,7 +889,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     double old_retraction_e_amount = extr_attr.retraction_e_amount_current;
     double new_retraction_e_amount = mmToE(config.distance);
     double retraction_diff_e_amount = old_retraction_e_amount - new_retraction_e_amount;
-    if (std::abs(retraction_diff_e_amount) < 0.000001)
+    if(std::abs(retraction_diff_e_amount) < 0.000001)
     {
         return;
     }
@@ -902,31 +903,31 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             // also the retraction_count_max could have changed between the last retraction and this
             extruded_volume_at_previous_n_retractions.pop_back();
         }
-        if (!force && config.retraction_count_max <= 0)
+        if(!force && config.retraction_count_max <= 0)
         {
             return;
         }
-        if (!force && extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max
+        if(!force && extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max
             && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config.retraction_extrusion_window * extr_attr.filament_area) 
         {
             return;
         }
         extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
-        if (extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max + 1) 
+        if(extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max + 1) 
         {
             extruded_volume_at_previous_n_retractions.pop_back();
         }
     }
 
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
-    if (extruder_settings.get<bool>("machine_firmware_retract"))
+    if(extruder_settings.get<bool>("machine_firmware_retract"))
     {
-        if (extruder_switch && extr_attr.retraction_e_amount_current) 
+        if(extruder_switch && extr_attr.retraction_e_amount_current) 
         {
             return; 
         }
         *output_stream << "G10";
-        if (extruder_switch && flavor == EGCodeFlavor::REPETIER)
+        if(extruder_switch && flavor == EGCodeFlavor::REPETIER)
         {
             *output_stream << " S1";
         }
@@ -947,7 +948,6 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
 
     extr_attr.retraction_e_amount_current = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
     extr_attr.prime_volume += config.prime_volume;
-
 }
 
 void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed/*= 0*/)
@@ -1397,10 +1397,16 @@ void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
 {
     const Point3 prev_position = currentPosition;
     writeComment("WIPE_SCRIPT_BEGIN");
+    std::cout << "Written 'begin'" << std::endl;
 
     if (wipe_config.retraction_enable)
     {
+        std::cout << "Retraction is enabled! Writing retraction." << std::endl;
         writeRetraction(wipe_config.retraction_config);
+    }
+    else
+    {
+        std::cout << "Retraction is not enabled." << std::endl;
     }
 
     if (wipe_config.hop_enable)
