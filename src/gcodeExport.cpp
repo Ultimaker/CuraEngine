@@ -1397,16 +1397,10 @@ void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
 {
     const Point3 prev_position = currentPosition;
     writeComment("WIPE_SCRIPT_BEGIN");
-    std::cout << "Written 'begin'" << std::endl;
 
     if (wipe_config.retraction_enable)
     {
-        std::cout << "Retraction is enabled! Writing retraction." << std::endl;
         writeRetraction(wipe_config.retraction_config);
-    }
-    else
-    {
-        std::cout << "Retraction is not enabled." << std::endl;
     }
 
     if (wipe_config.hop_enable)
