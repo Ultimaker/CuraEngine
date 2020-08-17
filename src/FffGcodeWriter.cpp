@@ -1310,46 +1310,20 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
 
     gcode_layer.setMesh(mesh.mesh_name);
 
-    if (mesh.isPrinted())
+    ZSeamConfig z_seam_config;
+    if(mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
     {
-        // "normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings
-        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
-        PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
-        for (unsigned int part_idx = 0; part_idx < layer.parts.size(); part_idx++)
-        {
-            const SliceLayerPart& part = layer.parts[part_idx];
-            part_order_optimizer.addPolygon((part.insets.size() > 0) ? part.insets[0][0] : part.outline[0]);
-        }
-        part_order_optimizer.optimize();
-        for (int part_idx : part_order_optimizer.polyOrder)
-        {
-            const SliceLayerPart& part = layer.parts[part_idx];
-            addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, part, gcode_layer);
-        }
+        z_seam_config = ZSeamConfig(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
     }
-    else
+    PathOrderOptimizer<const SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for(const SliceLayerPart& part : layer.parts)
     {
-        // infill meshes and anything else that doesn't have walls (so no z-seams) get parts ordered by closeness to the last planned position
-
-        std::vector<const SliceLayerPart*> parts; // use pointers to avoid recreating the SliceLayerPart objects
-
-        for(const SliceLayerPart& part_ref : layer.parts)
-        {
-            parts.emplace_back(&part_ref);
-        }
-
-        while (parts.size())
-        {
-            PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
-            for (auto part : parts)
-            {
-                part_order_optimizer.addPolygon((part->insets.size() > 0) ? part->insets[0][0] : part->outline[0]);
-            }
-            part_order_optimizer.optimize();
-            const int nearest_part_index = part_order_optimizer.polyOrder[0];
-            addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *parts[nearest_part_index], gcode_layer);
-            parts.erase(parts.begin() + nearest_part_index);
-        }
+        part_order_optimizer.addPolygon(&part);
+    }
+    part_order_optimizer.optimize();
+    for(const PathOrderOptimizer<const SliceLayerPart*>::Path& path : part_order_optimizer.paths)
+    {
+        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
     }
 
     processIroning(mesh, layer, mesh_config.ironing_config, gcode_layer);
@@ -2000,21 +1974,16 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     }
     bool added_something = false;
 
-    const bool fill_perimeter_gaps = mesh.settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
-                            && !Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize")
-                            && extruder_nr == wall_0_extruder_nr;
-
-    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
-    for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
+    PathOrderOptimizer<const SkinPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
+    for(const SkinPart& skin_part : part.skin_parts)
     {
-        const PolygonsPart& outline = part.skin_parts[skin_part_idx].outline;
-        part_order_optimizer.addPolygon(outline.outerPolygon());
+        part_order_optimizer.addPolygon(&skin_part);
     }
     part_order_optimizer.optimize();
 
-    for (int ordered_skin_part_idx : part_order_optimizer.polyOrder)
+    for(const PathOrderOptimizer<const SkinPart*>::Path& path : part_order_optimizer.paths)
     {
-        const SkinPart& skin_part = part.skin_parts[ordered_skin_part_idx];
+        const SkinPart& skin_part = *path.vertices;
 
         processSkinInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
 
@@ -2022,11 +1991,6 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
             processSkinPart(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part);
     }
 
-    if (fill_perimeter_gaps)
-    { // handle perimeter gaps of normal insets
-        assert(extruder_nr == wall_0_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
-        processPerimeterGaps(storage, gcode_layer, mesh, extruder_nr, part.perimeter_gaps, mesh_config.perimeter_gap_config, added_something);
-    }
     return added_something;
 }
 
@@ -2473,18 +2437,17 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const size_t zag_skip_count = infill_extruder.settings.get<size_t>("support_zag_skip_count");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
-    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
-    for (size_t part_idx = 0; part_idx < support_layer.support_infill_parts.size(); ++part_idx)
+    PathOrderOptimizer<const SupportInfillPart*> island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
+    for(const SupportInfillPart& part : support_layer.support_infill_parts)
     {
-        island_order_optimizer.addPolygon(support_layer.support_infill_parts[part_idx].outline[0]);
+        island_order_optimizer.addPolygon(&part);
     }
     island_order_optimizer.optimize();
 
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-    const std::vector<SupportInfillPart>& part_list = support_layer.support_infill_parts;
-    for (int part_idx : island_order_optimizer.polyOrder)
+    for(const PathOrderOptimizer<const SupportInfillPart*>::Path& path : island_order_optimizer.paths)
     {
-        const SupportInfillPart& part = part_list[part_idx];
+        const SupportInfillPart& part = *path.vertices;
 
         // always process the wall overlap if walls are generated
         const int current_support_infill_overlap = (part.inset_count_to_generate > 0) ? default_support_infill_overlap : 0;

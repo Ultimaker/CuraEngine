@@ -479,7 +479,7 @@ public:
         }
     }
 
-    void removeColinearEdges(const float max_deviation_angle);
+    void removeColinearEdges(const AngleRadians max_deviation_angle);
 
     /*! 
      * Removes consecutive line segments with same orientation and changes this polygon.
@@ -991,7 +991,7 @@ public:
         }
     }
 
-    void fixSelfInterssections()
+    void fixSelfIntersections()
     {
         ClipperLib::SimplifyPolygons(paths);
     }

@@ -306,7 +306,7 @@ Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, d
     return ret;
 }
 
-void PolygonRef::removeColinearEdges(const float max_deviation_angle)
+void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
 {
     // TODO: Can be made more efficient (for example, use pointer-types for process-/skip-indices, so we can swap them without copy).
 
@@ -315,12 +315,13 @@ void PolygonRef::removeColinearEdges(const float max_deviation_angle)
     {
         num_removed_in_iteration = 0;
 
-        // The things you have to do just to get a set filled with consecutive numbers the size of another collection:
-        std::set<size_t> process_indices;
-        std::for_each(path->begin(), path->end(), [&process_indices](const Point& _) { process_indices.insert(process_indices.size()); });
+        std::vector<bool> process_indices(path->size(), true);
 
-        while (process_indices.size() > 0)
+        bool go = true;
+        while (go)
         {
+            go = false;
+
             const auto& rpath = *path;
             const size_t pathlen = rpath.size();
             if (pathlen <= 3)
@@ -328,22 +329,23 @@ void PolygonRef::removeColinearEdges(const float max_deviation_angle)
                 return;
             }
 
-            std::set<size_t> skip_indices;
+            std::vector<bool> skip_indices(path->size(), false);
 
             ClipperLib::Path new_path;
             for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
             {
                 // Don't iterate directly over process-indices, but do it this way, because there are points _in_ process-indices that should nonetheless be skipped:
-                if (process_indices.count(point_idx) == 0)
+                if (! process_indices[point_idx])
                 {
                     new_path.push_back(rpath[point_idx]);
                     continue;
                 }
 
                 // Should skip the last point for this iteration if the old first was removed (which can be seen from the fact that the new first was skipped):
-                if (point_idx == (pathlen - 1) && skip_indices.count(0) != 0)
+                if (point_idx == (pathlen - 1) && skip_indices[0])
                 {
-                    skip_indices.insert(new_path.size());
+                    skip_indices[new_path.size()] = true;
+                    go = true;
                     new_path.push_back(rpath[point_idx]);
                     break;
                 }
@@ -357,10 +359,11 @@ void PolygonRef::removeColinearEdges(const float max_deviation_angle)
                 {
                     new_path.push_back(pt);
                 }
-                else
+                else if (point_idx != (pathlen - 1))
                 {
                     // Skip the next point, since the current one was removed:
-                    skip_indices.insert(new_path.size());
+                    skip_indices[new_path.size()] = true;
+                    go = true;
                     new_path.push_back(next);
                     ++point_idx;
                 }
@@ -369,7 +372,7 @@ void PolygonRef::removeColinearEdges(const float max_deviation_angle)
             num_removed_in_iteration += pathlen - path->size();
 
             process_indices.clear();
-            process_indices.insert(skip_indices.begin(), skip_indices.end());
+            process_indices.insert(process_indices.end(), skip_indices.begin(), skip_indices.end());
         }
     }
     while (num_removed_in_iteration > 0);

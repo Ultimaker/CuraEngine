@@ -9,7 +9,7 @@
 #include "utils/polygonUtils.h"
 
 // libArachne
-#include "BeadingStrategy/DistributedBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
+#include "BeadingStrategy/LimitedDistributedBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
 #include "SkeletalTrapezoidation.h"
 
 namespace cura {
@@ -128,16 +128,23 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     // TODO: Using line_width_0 here _even_ though it's also making the other walls! (that is, while line_width_x is adhered to when creating the area, it's ignored otherwise)
 
     constexpr float transitioning_angle = 0.5;
+    constexpr coord_t epsilon_offset = 10;
+    constexpr coord_t smallest_segment = 50;
+    constexpr coord_t allowed_distance = 50;
+    constexpr float max_colinear_angle = 0.03;  // Way too large   TODO: after we ironed out all the bugs, remove-colinear should go.
 
-    Polygons tubeshape = part->outline.tubeShape(line_width_0 + line_width_x * (inset_count - 1), 0).offset(-10).offset(10);
-    tubeshape.simplify(50, 50);
-    tubeshape.removeColinearEdges(0.03);
-    tubeshape.fixSelfInterssections();
-    tubeshape.removeSmallAreas(INT2MM(line_width_0/2) * INT2MM(line_width_0/2), false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
-    if (tubeshape.area() > 0)
+    const double small_area_length = INT2MM(line_width_0 / 2);
+    const coord_t max_linewidth = line_width_0 * 2;
+
+    Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
+    prepared_outline.simplify(smallest_segment, allowed_distance);
+    prepared_outline.removeColinearEdges(max_colinear_angle);
+    prepared_outline.fixSelfIntersections();
+    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
+    if (prepared_outline.area() > 0)
     {
-        const DistributedBeadingStrategy beading_strat(line_width_0, line_width_0 * 2, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
-        SkeletalTrapezoidation wall_maker(tubeshape, beading_strat, beading_strat.transitioning_angle);
+        const LimitedDistributedBeadingStrategy beading_strat(line_width_0, max_linewidth, inset_count * 2, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
+        SkeletalTrapezoidation wall_maker(prepared_outline, beading_strat, beading_strat.transitioning_angle);
         wall_maker.generateToolpaths(part->wall_toolpaths);
     }
 }
