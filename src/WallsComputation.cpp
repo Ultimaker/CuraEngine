@@ -126,7 +126,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
 
     // Call on libArachne:
 
-    const coord_t bead_width = layer_nr == 0 ? line_width_0 : line_width_x;
+    const coord_t bead_width = line_width_0; // TODO: for now use only the outer wall line width
     auto strategy_type       = settings.get<StrategyType>("beading_strategy_type");
     auto transition_length   = settings.get<coord_t>     ("transition_length");
     auto transitioning_angle = settings.get<AngleRadians>("transitioning_angle");
