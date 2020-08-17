@@ -5,6 +5,7 @@
 #define SUPPORT_H
 
 #include <memory>
+#include "BeadingStrategy/BeadingStrategy.h"
 
 namespace cura
 {
@@ -63,18 +64,8 @@ public:
      */
     static void generateSupportInfillFeatures(SliceDataStorage& storage);
 
-    /*!
-     * Generate the insets of the given support infill outline.
-     *
-     * \param[out] insets The insets result to output.
-     * \param outline The given support infill outline.
-     * \param inset_count The number of perimeters to surround the support infill outline.
-     * \param wall_line_width_x The wall line width in microns on the X axis.
-     */
-    [[deprecated]] static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x);
-
     // Todo: write doc
-    static void generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& prepared_outline, const coord_t& wall_line_width, const coord_t& max_linewidth, const size_t& inset_count);
+    static void generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& prepared_outline, const BeadingStrategy& beading_strat);
 
 private:
     /*!
@@ -87,10 +78,10 @@ private:
     static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count);
 
     /*!
-     * Generate insets and infill areas for all support infill parts.
+     * Generate wall_toolpaths and infill areas for all support infill parts.
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      */
-    static void prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage);
+    static void prepareSupport(SliceDataStorage& storage);
 
     /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().

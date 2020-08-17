@@ -43,9 +43,6 @@ public:
      */
     void generateInsetsAndInfillAreas();
 
-    // Todo write doc
-    void generateInsets();
-
     const Polygons& getInfillArea() const;
 
     const Polygons &getPreparedOutline() const;

@@ -25,7 +25,7 @@
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 #include "utils/math.h"
-#include "BeadingStrategy/LimitedDistributedBeadingStrategy.h" // TODO?: Might want to pull in the meta-strategies at some point.
+#include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "SkeletalTrapezoidation.h"
 
 namespace cura
@@ -116,7 +116,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 
 void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
 {
-    AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(storage);
+    AreaSupport::prepareSupport(storage);
     AreaSupport::generateGradualSupport(storage);
 
     // combine support infill layers
@@ -126,9 +126,18 @@ void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
 }
 
 
-void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage)
+void AreaSupport::prepareSupport(SliceDataStorage& storage)
 {
-    // at this stage, the outlines are final, and we can generate insets and infill area
+    // at this stage, the outlines are final, and we can generate infill area and supportWalls
+    const Settings& settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+
+    const StrategyType strategy = StrategyType::LimitedDistributed;  //  Todo: get from settings
+    const AngleRadians transitioning_angle = 0.3; // Todo: get from settings
+    const coord_t transition_length = 100; // Todo: get from settings
+    const bool widening_beading_enabled = false; // Todo: get from settings
+    const coord_t* min_bead_width = widening_beading_enabled ? new coord_t(100) : nullptr; // Todo: get from setting
+    const coord_t* min_feature_size = widening_beading_enabled ? new coord_t(100) : nullptr; // Todo: get from setting
+
     for (auto& supportLayer : storage.support.supportLayers)
     {
         for (auto& part : supportLayer.support_infill_parts)
@@ -136,7 +145,22 @@ void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataS
             part.generateInsetsAndInfillAreas();
             if (part.inset_count_to_generate > 0 && part.getPreparedOutline().area() > 0.)
             {
-                part.generateInsets();
+                const coord_t bead_width = part.support_line_width;
+                // Todo: check max_bead_behaviour and how it should be used, for now just use inset_count * 2
+                const size_t inset_count = part.inset_count_to_generate * 2;
+                // Todo: ready for user based beading strategies see commented beading_strat below
+                auto beading_strat = new LimitedDistributedBeadingStrategy(bead_width,
+                                                                           transition_length,
+                                                                           inset_count,
+                                                                           transitioning_angle);
+//                auto beading_strat = BeadingStrategyFactory::makeStrategy(strategy,
+//                                                                          bead_width,
+//                                                                          transition_length,
+//                                                                          static_cast<float>(transitioning_angle),
+//                                                                          min_bead_width,
+//                                                                          min_feature_size,
+//                                                                          inset_count);
+                generateSupportWalls(part.wall_toolpaths, part.getPreparedOutline(), *beading_strat);
             }
         }
     }
@@ -404,30 +428,11 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 }
 
 void AreaSupport::generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths,
-                                       const Polygons& prepared_outline, const coord_t& wall_line_width, const coord_t& max_linewidth, const size_t& inset_count)
+                                       const Polygons& prepared_outline,
+                                       const BeadingStrategy& beading_strat)
 {
-    constexpr float transitioning_angle = 0.5;
-
-    const LimitedDistributedBeadingStrategy beading_strat(wall_line_width, max_linewidth, inset_count * 2, transitioning_angle);  // TODO: deal with beading-strats & (their) magic parameters
     SkeletalTrapezoidation wall_maker(prepared_outline, beading_strat, beading_strat.transitioning_angle);
     wall_maker.generateToolpaths(wall_toolpaths);
-}
-
-void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x)
-{
-    insets.reserve(inset_count);
-    insets.emplace_back(outline.offset(static_cast<int>(-wall_line_width_x / 2)));
-    const auto idx = inset_count - 1;
-    for (size_t i = 0; i < idx; ++i)
-    {
-        insets[i].simplify();
-        if (insets[i].empty())
-        {
-            insets.pop_back();
-            break;
-        }
-        insets.emplace_back(insets[i].offset(-wall_line_width_x));
-    }
 }
 
 void AreaSupport::cleanup(SliceDataStorage& storage)

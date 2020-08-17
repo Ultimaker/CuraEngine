@@ -19,13 +19,6 @@ SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t suppor
     infill_area_per_combine_per_density.clear();
 }
 
-void SupportInfillPart::generateInsets()
-{
-    // generate insets, use the first inset as the wall line, and the second as the infill area
-    constexpr coord_t max_lineWidth = 400; // Todo get max_lineWidth from GUI
-    AreaSupport::generateSupportWalls(wall_toolpaths, prepared_outline, support_line_width, max_lineWidth, inset_count_to_generate);
-}
-
 void SupportInfillPart::generateInsetsAndInfillAreas()
 {
     if (inset_count_to_generate == 0)
