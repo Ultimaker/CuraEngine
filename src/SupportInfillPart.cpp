@@ -40,7 +40,7 @@ void SupportInfillPart::generateInsetsAndInfillAreas()
         prepared_outline.removeColinearEdges(max_colinear_angle);
         prepared_outline.fixSelfIntersections();
         prepared_outline.removeSmallAreas(small_area_length * small_area_length, remove_holes); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
-        infill_area = outline.offset(-static_cast<coord_t>(small_area_length) - static_cast<coord_t>(support_line_width) * (inset_count_to_generate - 1)); // Todo get infill area from generated walls see CURA-7653
+        infill_area = outline.offset(-static_cast<coord_t>(small_area_length) - static_cast<coord_t>(support_line_width) * (inset_count_to_generate)); // Todo get infill area from generated walls see CURA-7653
         infill_area.simplify();
     }
 }
