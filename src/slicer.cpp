@@ -916,7 +916,8 @@ std::vector<SlicerLayer> Slicer::buildLayersWithHeight(size_t slice_layer_count,
     layers_res.resize(slice_layer_count);
 
     // set (and initialize compensation for) initial layer, depending on slicing mode
-    layers_res[0].z = std::max(0LL, initial_layer_thickness - thickness);
+    // slice first layer at height 1 uM not 0, otherwise it is empty
+    layers_res[0].z = std::max(1LL, initial_layer_thickness - thickness);
     coord_t adjusted_layer_offset = initial_layer_thickness;
     if (use_variable_layer_heights)
     {
@@ -927,7 +928,6 @@ std::vector<SlicerLayer> Slicer::buildLayersWithHeight(size_t slice_layer_count,
         layers_res[0].z = initial_layer_thickness / 2;
         adjusted_layer_offset = initial_layer_thickness + (thickness / 2);
     }
-
     // define all layer z positions (depending on slicing mode, see above)
     for (unsigned int layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
     {
