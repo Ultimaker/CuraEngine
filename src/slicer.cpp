@@ -968,7 +968,6 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
         {
             layers[layer_nr].polygons = layers[layer_nr].polygons.intersection(layers[layer_nr + 1].polygons);
         }
-        layers.back().polygons.clear();
         break;
     case SlicingTolerance::MIDDLE:
     default:
