@@ -643,15 +643,31 @@ private:
      */
     bool addSupportToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const size_t extruder_nr) const;
 
+    /*!
+     * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
+     * \param[in] storage storage where the slice data is stored.
+     * \param gcode_layer The initial planning of the gcode of the layer.
+     * \return whether any support structures are added to the layer plan
+     */
     bool processSupport(const SliceDataStorage& storage, LayerPlan& gcode_layer) const;
 
-    bool processSupportInset(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportConfig& config) const;
+    /*!
+     * Add the wall toolpaths to the layer plan \p gcodeLayer of the current layer.
+     * \param[in] storage where the slice data is stored.
+     * \param gcode_layer The initial planning of the gcode of the layer.
+     * \param[in] part The current support infill part to be processed
+     * \param[in] config all support config settings
+     * \return whether any supportWalls were added to the layer plan
+     */
+    bool processSupportWalls(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportConfig& config) const;
 
     /*!
      * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
-     * \return whether any support infill was added to the layer plan
+     * \param[in] part The current support infill part to be processed
+     * \param[in] config all support config settings
+     * \return whether any supportInfills were added to the layer plan
      */
     bool processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportConfig& config) const;
 

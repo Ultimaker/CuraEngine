@@ -2436,15 +2436,14 @@ bool FffGcodeWriter::processSupport(const SliceDataStorage& storage, LayerPlan& 
     for (const auto& path: island_order_optimizer.paths)
     {
         const SupportInfillPart& part = *path.vertices;
-        added_something |= processSupportInset(storage, gcode_layer, part, config);
+        added_something |= processSupportWalls(storage, gcode_layer, part, config);
         added_something |= processSupportInfill(storage, gcode_layer, part, config);
     }
     return added_something;
 }
 
-bool FffGcodeWriter::processSupportInset(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportConfig& config) const
+bool FffGcodeWriter::processSupportWalls(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportConfig& config) const
 {
-    // Todo: Use libArachne for this part and InsetOrderOptimizer as muse
     bool added_something = false;
 
     std::vector<std::vector<std::vector<ExtrusionJunction>>> wall_toolpaths(part.wall_toolpaths.size());
@@ -2484,7 +2483,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         return added_something;
 
     // always process the wall overlap if walls are generated
-    const coord_t infill_overlap = (part.inset_count_to_generate > 0) ? config.infill_overlap : 0; // Todo check if infill_overlap can be negative
+    const coord_t infill_overlap = (part.inset_count_to_generate > 0) ? config.infill_overlap : 0;
 
     for (unsigned int combine_idx = 0; combine_idx < part.infill_area_per_combine_per_density[0].size(); ++combine_idx)
     {
@@ -2515,13 +2514,15 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             constexpr bool use_endpieces = true;
             constexpr Polygons* perimeter_gaps = nullptr;
             const Point infill_origin;
+            const Polygons in_outline = area_offset > 0 ? area_with_offset : area;
 
             constexpr coord_t pocket_size = 0;
+            constexpr coord_t wall_line_count = 0;
 
             Infill infill_comp(config.pattern,
                                config.zig_zaggify_infill,
                                config.connect_polygons,
-                               area_offset > 0 ? area_with_offset : area,
+                               in_outline,
                                offset_from_outline,
                                line_width,
                                line_distance_here,
@@ -2530,7 +2531,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                config.infill_angle,
                                gcode_layer.z,
                                support_shift,
-                               0,
+                               wall_line_count,
                                infill_origin,
                                perimeter_gaps,
                                config.connect_zigzags,
@@ -2556,9 +2557,10 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
                 gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx]);
             }
+            const SpaceFillType space_file_type = (config.pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
             gcode_layer.addLinesByOptimizer(support_lines,
                                             gcode_layer.configs_storage.support_infill_config[combine_idx],
-                                            (config.pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+                                            space_file_type);
             added_something = true;
         }
     }

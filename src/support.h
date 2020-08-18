@@ -64,9 +64,6 @@ public:
      */
     static void generateSupportInfillFeatures(SliceDataStorage& storage);
 
-    // Todo: write doc
-    static void generateSupportWalls(std::vector<std::list<ExtrusionLine>>& wall_toolpaths, const Polygons& prepared_outline, const BeadingStrategy& beading_strat);
-
 private:
     /*!
      * Splits the global support areas into separete SupportInfillParts.
@@ -78,7 +75,7 @@ private:
     static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count);
 
     /*!
-     * Generate wall_toolpaths and infill areas for all support infill parts.
+     * Prepares the support, by defining the infill area and creating the wall toolpaths for all support infill parts.
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      */
     static void prepareSupport(SliceDataStorage& storage);

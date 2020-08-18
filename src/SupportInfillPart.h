@@ -37,11 +37,12 @@ public:
     SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0);
 
     /*!
-     * Initializes this SupportInfillPart by generating its insets and infill area.
+     * Initializes this SupportInfillPart by generating the infill area and the outline used to generate the wall
+     * toolpaths by libArachne
      *
-     * \return false if the area is too small and no insets and infill area can be generated, otherwise true.
+     * \return true if wall toolpaths should be generated, otherwise false.
      */
-    void generateInsetsAndInfillAreas();
+    bool generateInsetsAndInfillAreas();
 
     const Polygons& getInfillArea() const;
 

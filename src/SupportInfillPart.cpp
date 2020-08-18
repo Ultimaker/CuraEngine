@@ -19,7 +19,7 @@ SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t suppor
     infill_area_per_combine_per_density.clear();
 }
 
-void SupportInfillPart::generateInsetsAndInfillAreas()
+bool SupportInfillPart::generateInsetsAndInfillAreas()
 {
     if (inset_count_to_generate == 0)
     {
@@ -31,7 +31,7 @@ void SupportInfillPart::generateInsetsAndInfillAreas()
         constexpr coord_t smallest_segment = 50;
         constexpr coord_t allowed_distance = 50;
         constexpr coord_t epsilon_offset = 10;
-        constexpr float max_colinear_angle = 0.03;  // Way too large   TODO: after we ironed out all the bugs, remove-colinear should go.
+        constexpr float max_colinear_angle = 0.03;
         constexpr bool remove_holes = false;
         const double small_area_length = INT2MM(static_cast<double>(support_line_width) / 2);
 
@@ -39,8 +39,9 @@ void SupportInfillPart::generateInsetsAndInfillAreas()
         prepared_outline.simplify(smallest_segment, allowed_distance);
         prepared_outline.removeColinearEdges(max_colinear_angle);
         prepared_outline.fixSelfIntersections();
-        prepared_outline.removeSmallAreas(small_area_length * small_area_length, remove_holes); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
-        infill_area = outline.offset(-static_cast<coord_t>(small_area_length) - static_cast<coord_t>(support_line_width) * (inset_count_to_generate)); // Todo get infill area from generated walls see CURA-7653
+        prepared_outline.removeSmallAreas(small_area_length * small_area_length, remove_holes);
+        infill_area = outline.offset(-static_cast<coord_t>(small_area_length) - static_cast<coord_t>(support_line_width) * (inset_count_to_generate));
         infill_area.simplify();
     }
+    return inset_count_to_generate > 0 && prepared_outline.area() > 0.;
 }
