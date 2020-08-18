@@ -168,7 +168,6 @@ set(engine_SRCS # Except main.cpp.
     src/TopSurface.cpp
     src/TreeSupport.cpp
     src/WallsComputation.cpp
-    src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
     
@@ -228,7 +227,6 @@ set(engine_SRCS # Except main.cpp.
     src/utils/PolygonConnector.cpp
     src/utils/PolygonsPointIndex.cpp
     src/utils/PolygonsSegmentIndex.cpp
-    src/utils/PolygonProximityLinker.cpp
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
