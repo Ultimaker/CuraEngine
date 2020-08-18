@@ -737,7 +737,7 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
     assert(extrusion_mm3_per_mm >= 0.0);
 #endif //ASSERT_INSANE_OUTPUT
-
+#ifdef DEBUG
     if (std::isinf(extrusion_mm3_per_mm))
     {
         logError("Extrusion rate is infinite!");
@@ -756,6 +756,7 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
     {
         logWarning("Warning! Negative extrusion move!\n");
     }
+#endif
 
     const double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
