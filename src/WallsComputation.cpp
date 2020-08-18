@@ -131,15 +131,13 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     constexpr coord_t epsilon_offset = 10;
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
-    constexpr float max_colinear_angle = 0.03;  // Way too large   TODO: after we ironed out all the bugs, remove-colinear should go.
 
     const double small_area_length = INT2MM(line_width_0 / 2);
     const coord_t max_linewidth = line_width_0 * 2;
 
     Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
     prepared_outline.simplify(smallest_segment, allowed_distance);
-    prepared_outline.removeColinearEdges(max_colinear_angle);
-    prepared_outline.fixSelfIntersections();
+    prepared_outline.fixSelfIntersections(epsilon_offset);
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
     if (prepared_outline.area() > 0)
     {

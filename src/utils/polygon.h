@@ -991,9 +991,66 @@ public:
         }
     }
 
-    void fixSelfIntersections()
+    void resize(const coord_t& numerator, const coord_t divisor)
     {
-        ClipperLib::SimplifyPolygons(paths);
+        if (numerator == 1 && divisor == 1)
+        {
+            return;
+        }
+
+        Polygons& thiss = *this;
+        for (size_t p = 0; p < size(); p++)
+        {
+            for (Point& pt : thiss[p])
+            {
+                pt.X = (pt.X * numerator) / divisor;
+                pt.Y = (pt.Y * numerator) / divisor;
+            }
+        }
+    }
+
+    void translate(const Point vec)
+    {
+        if (vec.X == 0 && vec.Y == 0)
+        {
+            return;
+        }
+
+        Polygons& thiss = *this;
+        for (size_t p = 0; p < size(); p++)
+        {
+            for (Point& pt : thiss[p])
+            {
+                pt.X += vec.X;
+                pt.Y += vec.Y;
+            }
+        }
+    }
+
+    /* Note: Also tries to solve for near-self intersections, when epsilon >= 1
+     */
+    void fixSelfIntersections(const coord_t epsilon)
+    {
+        if (epsilon < 1)
+        {
+            ClipperLib::SimplifyPolygons(paths);
+            return;
+        }
+
+        const coord_t move_per_axis = epsilon / 2;
+        const std::array<Point, 4> translate_vecs = { Point(0, 0), Point(move_per_axis, 0), Point(0, move_per_axis), Point(move_per_axis, move_per_axis) };
+
+        // Shrink (making _near_ self-intersections into _actual_ self-intersecrtions), fix, grow back to original size.
+        // Do this repeatedly with different offsets, so points that are close together do actually merge.
+        // NOTE: This will probably need to be redone for efficiencies sake once we get it all up and running (TODO)
+        for (const Point& translate_vec : translate_vecs)
+        {
+            translate(translate_vec);
+            resize(1, epsilon);
+            ClipperLib::SimplifyPolygons(paths);
+            resize(epsilon, 1);
+            translate(Point(-translate_vec.X, -translate_vec.Y));
+        }
     }
 
     /*!
