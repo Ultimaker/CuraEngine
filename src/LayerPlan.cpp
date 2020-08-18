@@ -1010,15 +1010,17 @@ void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_id
     }
 }
 
-void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SupportConfig& support_config, const GCodePathConfig& path_config)
+void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const GCodePathConfig& path_config)
 {
     ExtrusionJunction junction{*wall.begin()};
-    addTravel(junction.p, false);
+    constexpr bool force_retract = false;
+    addTravel(junction.p, force_retract);
 
     for (const auto& junction_n : wall)
     {
         const double flow = junction_n.w / Ratio(path_config.getLineWidth());
-        addExtrusionMove(junction_n.p, path_config, SpaceFillType::Polygons, flow);
+        constexpr SpaceFillType space_fill_type = SpaceFillType::Polygons;
+        addExtrusionMove(junction_n.p, path_config, space_fill_type, flow);
         junction = junction_n;
     }
 }

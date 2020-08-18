@@ -2464,7 +2464,7 @@ bool FffGcodeWriter::processSupportWalls(const SliceDataStorage& storage, LayerP
 
         for (const auto& wall : path)
         {
-            gcode_layer.addWall(wall, 0, config, gcode_layer.configs_storage.support_infill_config[0]);
+            gcode_layer.addWall(wall, 0, gcode_layer.configs_storage.support_infill_config[0]);
         }
     }
 

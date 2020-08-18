@@ -588,7 +588,7 @@ public:
      */
     void addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
     void addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
-    void addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SupportConfig& support_config, const GCodePathConfig& path_config);
+    void addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const GCodePathConfig& path_config);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.
