@@ -8,8 +8,6 @@
 
 #ifdef _OPENMP
     #include <omp.h>
-#include <thread>
-
 #endif // _OPENMP
 
 #include "Application.h" //To get settings.
