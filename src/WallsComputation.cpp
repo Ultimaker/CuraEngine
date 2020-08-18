@@ -128,16 +128,18 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     // TODO: Using line_width_0 here _even_ though it's also making the other walls! (that is, while line_width_x is adhered to when creating the area, it's ignored otherwise)
 
     constexpr float transitioning_angle = 0.5;
-    constexpr coord_t epsilon_offset = 10;
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
+    constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
 
     const double small_area_length = INT2MM(line_width_0 / 2);
     const coord_t max_linewidth = line_width_0 * 2;
 
     Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
     prepared_outline.simplify(smallest_segment, allowed_distance);
+    prepared_outline.removeDegenerateVerts();
     prepared_outline.fixSelfIntersections(epsilon_offset);
+    prepared_outline.removeColinearEdges(0.0005);
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
     if (prepared_outline.area() > 0)
     {
