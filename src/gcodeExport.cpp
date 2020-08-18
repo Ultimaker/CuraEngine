@@ -757,14 +757,14 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
         logWarning("Warning! Negative extrusion move!\n");
     }
 
-    double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
+    const double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
     if (is_z_hopped > 0)
     {
         writeZhopEnd();
     }
 
-    Point3 diff = Point3(x,y,z) - currentPosition;
+    const Point3 diff = Point3(x,y,z) - currentPosition;
     const double diff_length = diff.vSizeMM();
 
     writeUnretractionAndPrime();
