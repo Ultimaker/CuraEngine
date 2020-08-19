@@ -127,10 +127,9 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     // Call on libArachne:
 
     const coord_t bead_width = line_width_0; // TODO: for now use only the outer wall line width
-    auto strategy_type       = settings.get<StrategyType>("beading_strategy_type");
-    auto transition_length   = settings.get<coord_t>     ("transition_length");
+    auto strategy_type = settings.get<StrategyType>("beading_strategy_type");
 
-    coord_t *min_bead_width = nullptr, *min_feature_size = nullptr;
+    coord_t *min_bead_width = nullptr, *min_feature_size = nullptr; // TODO: clean the pointers when we are done
     if (settings.get<bool>("widening_beading_enabled"))
     {
         min_bead_width = new coord_t(settings.get<coord_t>("min_bead_width"));
@@ -143,6 +142,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     constexpr float max_colinear_angle = 0.03;  // Way too large   TODO: after we ironed out all the bugs, remove-colinear should go.
     constexpr float transitioning_angle = 0.5;
     const double small_area_length = INT2MM(bead_width / 2);
+    const coord_t transition_length = 2 * bead_width;
 
     Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
     prepared_outline.simplify(smallest_segment, allowed_distance);
