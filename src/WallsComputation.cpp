@@ -129,7 +129,6 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     const coord_t bead_width = line_width_0; // TODO: for now use only the outer wall line width
     auto strategy_type       = settings.get<StrategyType>("beading_strategy_type");
     auto transition_length   = settings.get<coord_t>     ("transition_length");
-    auto transitioning_angle = settings.get<AngleRadians>("transitioning_angle");
 
     coord_t *min_bead_width = nullptr, *min_feature_size = nullptr;
     if (settings.get<bool>("widening_beading_enabled"))
@@ -142,6 +141,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
     constexpr float max_colinear_angle = 0.03;  // Way too large   TODO: after we ironed out all the bugs, remove-colinear should go.
+    constexpr float transitioning_angle = 0.5;
     const double small_area_length = INT2MM(bead_width / 2);
 
     Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
@@ -151,7 +151,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
     if (prepared_outline.area() > 0)
     {
-        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, bead_width, transition_length, (float)transitioning_angle, min_bead_width, min_feature_size, 2 * inset_count); // TODO: deal with beading-strats & (their) magic parameters
+        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, bead_width, transition_length, transitioning_angle, min_bead_width, min_feature_size, 2 * inset_count); // TODO: deal with beading-strats & (their) magic parameters
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(part->wall_toolpaths);
     }
