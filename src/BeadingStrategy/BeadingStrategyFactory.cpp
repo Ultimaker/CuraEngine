@@ -33,7 +33,7 @@ std::string to_string(StrategyType type)
         case StrategyType::Center:             return "CenterDeviation";
         case StrategyType::Distributed:        return "Distributed";
         case StrategyType::InwardDistributed:  return "InwardDistributed";
-        case StrategyType::LimitedDistributed: return "LimitedDistributed";
+        case StrategyType::LimitedDistributed: return "LimitedDistributed";  //TODO: Remove it as it is the same as Distributed + Limited meta-strategy
         default: return "unknown_strategy";
     }
 }

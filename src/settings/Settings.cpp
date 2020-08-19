@@ -364,10 +364,6 @@ template<>  StrategyType Settings::get<StrategyType>(const std::string& key) con
     {
         return StrategyType::InwardDistributed;
     }
-    else if (value == "limited_distributed")
-    {
-        return StrategyType::LimitedDistributed;
-    }
     else //Default.
     {
         return StrategyType::None;
