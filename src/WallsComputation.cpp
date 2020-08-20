@@ -154,7 +154,10 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, bead_width, transition_length, transitioning_angle, min_bead_width, min_feature_size, 2 * inset_count); // TODO: deal with beading-strats & (their) magic parameters
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(part->wall_toolpaths);
+        delete beading_strat;
     }
+    delete min_bead_width;
+    delete min_feature_size;
 }
 
 /*
