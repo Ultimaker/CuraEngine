@@ -199,8 +199,8 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
  */
 void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
-
-    Polygons original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
+    Polygons original_outline = part.outline.offset(-wall_line_count * wall_line_width_0 ); // TODO: At the moment all arachne walls are generated with wall_line_width_0.
+//    Polygons original_outline = part.outline.offset(-(wall_line_width_0 + wall_line_count * wall_line_width_x) ); // TODO: Use this one once the arachne walls are generated with both the width_0 & width_x
 
     // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
     Polygons upskin;
