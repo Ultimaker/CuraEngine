@@ -1420,32 +1420,23 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
         return;
     }
 
-    const coord_t move_per_axis = epsilon / 2;
-    const std::array<Point, 4> translate_vecs = { Point(0, 0), Point(move_per_axis, 0), Point(0, move_per_axis), Point(move_per_axis, move_per_axis) };
+    const coord_t half_epsilon = (epsilon + 1) / 2;
+    const coord_t half_epsilon_sqrd = half_epsilon * half_epsilon;
+    const std::array<Point, 4> translate_vecs = { Point(0, 0), Point(half_epsilon, 0), Point(0, half_epsilon), Point(half_epsilon, half_epsilon) };
 
     // Shrink (making _near_ self-intersections into _actual_ self-intersecrtions), fix, grow back to original size.
     // Do this repeatedly with different offsets, so points that are close together do actually merge.
-    // NOTE: This will probably need to be redone for efficiencies sake once we get it all up and running (TODO)
     for (const Point& translate_vec : translate_vecs)
     {
         thiss.translate(translate_vec);
         thiss.resize(1, epsilon);
         ClipperLib::SimplifyPolygons(thiss.paths);
         thiss.resize(epsilon, 1);
-        thiss.translate(Point(-translate_vec.X, -translate_vec.Y));
+        thiss.translate(-translate_vec);
     }
-
-
-    // TODO: do the actual comparison ... maybe the O(n^4) isn't slower?
-    // TODO: maybe putting all in a _point_ grid and _then_ iterating over the lines would solve it?
-    //       THEN we also have to do it only once maybe, since perhaps we can take care of the stuff up top with the same grid as well
-
 
     // Points too close to line segments should be moved a little away from those line segments, but less than epsilon,
     //   so at least half-epsilon distance between points can still be guaranteed.
-    const coord_t half_epsilon = (epsilon + 1) / 2;
-    const coord_t half_epsilon_sqrd = half_epsilon * half_epsilon;
-
     constexpr coord_t grid_size = 2000;
     LocToLineGrid* query_grid = PolygonUtils::createLocToLineGrid(thiss, grid_size);
 
