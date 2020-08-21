@@ -1,5 +1,5 @@
 //Copyright (c) 2020 Ultimaker B.V.
-
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef BEADING_ORDER_OPTIMIZER_H
 #define BEADING_ORDER_OPTIMIZER_H

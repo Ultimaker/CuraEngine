@@ -5,10 +5,9 @@
 #define SKELETAL_TRAPEZOIDATION_GRAPH_H
 
 #include "utils/HalfEdgeGraph.h"
+#include "utils/optional.h"
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
-
-#include <optional>
 
 namespace cura
 {
