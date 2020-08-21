@@ -1,4 +1,6 @@
 //Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef BOOST_INTERFACE_HPP
 #define BOOST_INTERFACE_HPP
 
