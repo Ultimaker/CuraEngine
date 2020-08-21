@@ -30,7 +30,7 @@ include_directories(${Stb_INCLUDE_DIRS})
 
 #arachne needs boost polygon/voronoi
 find_package(Boost REQUIRED)
-include_directories(${Boost_INCLUDE_DIR})
+include_directories(${Boost_INCLUDE_DIRS})
 
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 if(USE_SYSTEM_LIBS)
@@ -168,7 +168,6 @@ set(engine_SRCS # Except main.cpp.
     src/TopSurface.cpp
     src/TreeSupport.cpp
     src/WallsComputation.cpp
-    src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
     
@@ -227,7 +226,6 @@ set(engine_SRCS # Except main.cpp.
     src/utils/PolygonConnector.cpp
     src/utils/PolygonsPointIndex.cpp
     src/utils/PolygonsSegmentIndex.cpp
-    src/utils/PolygonProximityLinker.cpp
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
