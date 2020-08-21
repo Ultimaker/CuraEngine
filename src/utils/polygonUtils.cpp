@@ -1421,11 +1421,10 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
     }
 
     const coord_t half_epsilon = (epsilon + 1) / 2;
-    const coord_t half_epsilon_sqrd = half_epsilon * half_epsilon;
-    const std::array<Point, 4> translate_vecs = { Point(0, 0), Point(half_epsilon, 0), Point(0, half_epsilon), Point(half_epsilon, half_epsilon) };
 
     // Shrink (making _near_ self-intersections into _actual_ self-intersecrtions), fix, grow back to original size.
     // Do this repeatedly with different offsets, so points that are close together do actually merge.
+    const std::array<Point, 4> translate_vecs = { Point(0, 0), Point(half_epsilon, 0), Point(0, half_epsilon), Point(half_epsilon, half_epsilon) };
     for (const Point& translate_vec : translate_vecs)
     {
         thiss.translate(translate_vec);
@@ -1439,6 +1438,9 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
     //   so at least half-epsilon distance between points can still be guaranteed.
     constexpr coord_t grid_size = 2000;
     LocToLineGrid* query_grid = PolygonUtils::createLocToLineGrid(thiss, grid_size);
+
+    const coord_t move_dist = std::max(2LL, half_epsilon - 2);
+    const coord_t half_epsilon_sqrd = half_epsilon * half_epsilon;
 
     const size_t n = thiss.size();
     for (size_t poly_idx = 0; poly_idx < n; poly_idx++)
@@ -1463,12 +1465,14 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
                     const Point& other = thiss[poly_idx][(point_idx + 1) % pathlen];
                     const Point vec = LinearAlg2D::pointIsLeftOfLine(other, a, b) > 0 ? b - a : a - b;
                     const coord_t len = vSize(vec);
-                    pt.X += (-vec.Y * half_epsilon) / len;
-                    pt.Y += ( vec.X * half_epsilon) / len;
+                    pt.X += (-vec.Y * move_dist) / len;
+                    pt.Y += ( vec.X * move_dist) / len;
                 }
             }
         }
     }
+
+    ClipperLib::SimplifyPolygons(thiss.paths);
 }
 
 }//namespace cura
