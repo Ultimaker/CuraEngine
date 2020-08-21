@@ -1410,4 +1410,74 @@ Polygons PolygonUtils::connect(const Polygons& input)
     return ret;
 }
 
+/* Note: Also tries to solve for near-self intersections, when epsilon >= 1
+ */
+void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
+{
+    if (epsilon < 1)
+    {
+        ClipperLib::SimplifyPolygons(thiss.paths);
+        return;
+    }
+
+    const coord_t move_per_axis = epsilon / 2;
+    const std::array<Point, 4> translate_vecs = { Point(0, 0), Point(move_per_axis, 0), Point(0, move_per_axis), Point(move_per_axis, move_per_axis) };
+
+    // Shrink (making _near_ self-intersections into _actual_ self-intersecrtions), fix, grow back to original size.
+    // Do this repeatedly with different offsets, so points that are close together do actually merge.
+    // NOTE: This will probably need to be redone for efficiencies sake once we get it all up and running (TODO)
+    for (const Point& translate_vec : translate_vecs)
+    {
+        thiss.translate(translate_vec);
+        thiss.resize(1, epsilon);
+        ClipperLib::SimplifyPolygons(thiss.paths);
+        thiss.resize(epsilon, 1);
+        thiss.translate(Point(-translate_vec.X, -translate_vec.Y));
+    }
+
+
+    // TODO: do the actual comparison ... maybe the O(n^4) isn't slower?
+    // TODO: maybe putting all in a _point_ grid and _then_ iterating over the lines would solve it?
+    //       THEN we also have to do it only once maybe, since perhaps we can take care of the stuff up top with the same grid as well
+
+
+    // Points too close to line segments should be moved a little away from those line segments, but less than epsilon,
+    //   so at least half-epsilon distance between points can still be guaranteed.
+    const coord_t half_epsilon = (epsilon + 1) / 2;
+    const coord_t half_epsilon_sqrd = half_epsilon * half_epsilon;
+
+    constexpr coord_t grid_size = 2000;
+    LocToLineGrid* query_grid = PolygonUtils::createLocToLineGrid(thiss, grid_size);
+
+    const size_t n = thiss.size();
+    for (size_t poly_idx = 0; poly_idx < n; poly_idx++)
+    {
+        const size_t pathlen = thiss[poly_idx].size();
+        for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
+        {
+            Point& pt = thiss[poly_idx][point_idx];
+            for (const auto& line : query_grid->getNearby(pt, epsilon))
+            {
+                const size_t line_next_idx = (line.point_idx + 1) % thiss[line.poly_idx].size();
+                if (poly_idx == line.poly_idx && (point_idx == line.point_idx || point_idx == line_next_idx))
+                {
+                    continue;
+                }
+
+                const Point& a = thiss[line.poly_idx][line.point_idx];
+                const Point& b = thiss[line.poly_idx][line_next_idx];
+
+                if (half_epsilon_sqrd >= vSize2(pt - LinearAlg2D::getClosestOnLineSegment(pt, a, b)))
+                {
+                    const Point& other = thiss[poly_idx][(point_idx + 1) % pathlen];
+                    const Point vec = LinearAlg2D::pointIsLeftOfLine(other, a, b) > 0 ? b - a : a - b;
+                    const coord_t len = vSize(vec);
+                    pt.X += (-vec.Y * half_epsilon) / len;
+                    pt.Y += ( vec.X * half_epsilon) / len;
+                }
+            }
+        }
+    }
+}
+
 }//namespace cura

@@ -630,6 +630,9 @@ public:
      * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
      */
     static Polygons connect(const Polygons& input);
+
+    static void fixSelfIntersections(const coord_t epsilon, Polygons& thiss);
+
 private:
     /*!
      * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.

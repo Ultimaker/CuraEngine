@@ -137,9 +137,9 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
 
     Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
     prepared_outline.simplify(smallest_segment, allowed_distance);
+    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
-    prepared_outline.fixSelfIntersections(epsilon_offset);
-    prepared_outline.removeColinearEdges(0.0005);
+    prepared_outline.removeColinearEdges();
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
     if (prepared_outline.area() > 0)
     {

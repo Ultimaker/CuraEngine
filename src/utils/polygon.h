@@ -18,7 +18,6 @@
 
 #include "IntPoint.h"
 #include "../settings/types/AngleDegrees.h" //For angles between vertices.
-#include "linearAlg2D.h"
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -634,6 +633,7 @@ class Polygons
     friend class Polygon;
     friend class PolygonRef;
     friend class ConstPolygonRef;
+    friend class PolygonUtils;
 protected:
     ClipperLib::Paths paths;
 public:
@@ -938,7 +938,7 @@ public:
 
     Polygons smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
     
-    void removeColinearEdges(const float max_deviation_angle = 0.02)
+    void removeColinearEdges(const AngleRadians max_deviation_angle = AngleRadians(0.0005))
     {
         Polygons& thiss = *this;
         for (size_t p = 0; p < size(); p++)
@@ -1024,81 +1024,6 @@ public:
             {
                 pt.X += vec.X;
                 pt.Y += vec.Y;
-            }
-        }
-    }
-
-    /* Note: Also tries to solve for near-self intersections, when epsilon >= 1
-     */
-    void fixSelfIntersections(const coord_t epsilon)
-    {
-        if (epsilon < 1)
-        {
-            ClipperLib::SimplifyPolygons(paths);
-            return;
-        }
-
-        const coord_t move_per_axis = epsilon / 2;
-        const std::array<Point, 4> translate_vecs = { Point(0, 0), Point(move_per_axis, 0), Point(0, move_per_axis), Point(move_per_axis, move_per_axis) };
-
-        // Shrink (making _near_ self-intersections into _actual_ self-intersecrtions), fix, grow back to original size.
-        // Do this repeatedly with different offsets, so points that are close together do actually merge.
-        // NOTE: This will probably need to be redone for efficiencies sake once we get it all up and running (TODO)
-        for (const Point& translate_vec : translate_vecs)
-        {
-            translate(translate_vec);
-            resize(1, epsilon);
-            ClipperLib::SimplifyPolygons(paths);
-            resize(epsilon, 1);
-            translate(Point(-translate_vec.X, -translate_vec.Y));
-        }
-
-        if (epsilon < 2)
-        {
-            return;
-        }
-
-        // Points too close to line segments should be moved a little away from those line segments, but less than epsilon,
-        //   so at least half-epsilon distance between points can still be guaranteed.
-        // NOTE: Current 'incarnation' here to try out if the above was inedeed the problem:  O(n^4) just ... this needs to be better  :-(  TODO!
-        //       Also should probably move this method to inside the cpp, sine linalg2d gets draged in this way and this header is already way too big.
-        const coord_t half_epsilon = epsilon / 2;
-        const coord_t half_epsilon_sqrd = half_epsilon * half_epsilon;
-
-        Polygons& thiss = *this;
-        const size_t n = size();
-        for (size_t p = 0; p < n; p++)
-        {
-            const size_t ppathlen = thiss[p].size();
-
-            for (size_t segment_idx = 0; segment_idx < ppathlen; ++segment_idx)
-            {
-                const size_t next_idx = (segment_idx + 1) % ppathlen;
-                const Point& a = thiss[p][segment_idx];
-                const Point& b = thiss[p][next_idx];
-
-                for (size_t q = 0; q < n; q++)
-                {
-                    const size_t qpathlen = thiss[q].size();
-
-                    for (size_t point_idx = 0; point_idx < qpathlen; ++point_idx)
-                    {
-                        Point& pt = thiss[q][point_idx];
-                        if (p == q && (point_idx == segment_idx || point_idx == next_idx))
-                        {
-                            continue;
-                        }
-
-                        if (half_epsilon_sqrd >= vSize2(pt - LinearAlg2D::getClosestOnLineSegment(pt, a, b)))
-                        {
-                            const Point& other = thiss[q][(point_idx + 1) % qpathlen];
-                            const Point vec = LinearAlg2D::pointIsLeftOfLine(other, a, b) > 0 ? b - a : a - b;
-                            const coord_t len = vSize(vec);
-                            pt.X += (-vec.Y * half_epsilon) / len;
-                            pt.Y += ( vec.X * half_epsilon) / len;
-                        }
-                    }
-                }
             }
         }
     }
