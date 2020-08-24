@@ -129,7 +129,8 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     const coord_t bead_width = line_width_0; // TODO: for now use only the outer wall line width
     auto strategy_type = settings.get<StrategyType>("beading_strategy_type");
 
-    coord_t *min_bead_width = nullptr, *min_feature_size = nullptr; // TODO: clean the pointers when we are done
+    coord_t* min_bead_width = nullptr;
+    coord_t* min_feature_size = nullptr;
     if (settings.get<bool>("widening_beading_enabled"))
     {
         min_bead_width = new coord_t(settings.get<coord_t>("min_bead_width"));
