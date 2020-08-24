@@ -2464,7 +2464,7 @@ bool FffGcodeWriter::processSupportWalls(const SliceDataStorage& storage, LayerP
 
         for (const auto& wall : path)
         {
-            gcode_layer.addWall(wall, 0, gcode_layer.configs_storage.support_infill_config[0]);
+            gcode_layer.addWall(wall, gcode_layer.configs_storage.support_infill_config[0]);
         }
     }
 
@@ -2516,6 +2516,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             constexpr coord_t pocket_size = 0;
             constexpr coord_t wall_line_count = 0;
 
+            // Support infill computations
             Infill infill_comp(config.pattern,
                                config.zig_zaggify_infill,
                                config.connect_polygons,
@@ -2544,7 +2545,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             }
         }
 
-        if (!support_lines.empty()|| !support_polygons.empty())
+        if (!support_lines.empty() || !support_polygons.empty())
         {
             setExtruder_addPrime(storage, gcode_layer, config.extruder_nr); // only switch extruder if we're sure we're going to switch
             gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
@@ -2554,10 +2555,10 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
                 gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx]);
             }
-            const SpaceFillType space_file_type = (config.pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+            const SpaceFillType space_fill_type = (config.pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
             gcode_layer.addLinesByOptimizer(support_lines,
                                             gcode_layer.configs_storage.support_infill_config[combine_idx],
-                                            space_file_type);
+                                            space_fill_type);
             added_something = true;
         }
     }

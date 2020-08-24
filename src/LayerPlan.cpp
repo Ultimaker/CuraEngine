@@ -1010,7 +1010,7 @@ void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_id
     }
 }
 
-void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const GCodePathConfig& path_config)
+void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, const GCodePathConfig& path_config)
 {
     ExtrusionJunction junction{*wall.begin()};
     constexpr bool force_retract = false;

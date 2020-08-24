@@ -653,21 +653,21 @@ private:
 
     /*!
      * Add the wall toolpaths to the layer plan \p gcodeLayer of the current layer.
-     * \param[in] storage where the slice data is stored.
+     * \param[in] storage Where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param[in] part The current support infill part to be processed
-     * \param[in] config all support config settings
-     * \return whether any supportWalls were added to the layer plan
+     * \param[in] config All the support config settings
+     * \return Whether any supportWalls were added to the layer plan
      */
     bool processSupportWalls(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportConfig& config) const;
 
     /*!
      * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
-     * \param[in] storage where the slice data is stored.
+     * \param[in] storage Where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param[in] part The current support infill part to be processed
-     * \param[in] config all support config settings
-     * \return whether any supportInfills were added to the layer plan
+     * \param[in] config all the support config settings
+     * \return Whether any supportInfills were added to the layer plan
      */
     bool processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SupportInfillPart& part, const SupportConfig& config) const;
 
