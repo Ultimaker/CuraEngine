@@ -6,7 +6,6 @@
 
 namespace cura
 {
-
 /*!
  * In Cura different infill methods are available.
  * This enum defines which fill patterns are available to get a uniform naming throughout the engine.
