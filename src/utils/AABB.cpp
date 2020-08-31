@@ -46,6 +46,17 @@ AABB::AABB(const std::list<ExtrusionLine> &path)
     }
 }
 
+AABB::AABB(const ExtrusionLine& line)
+: min(POINT_MAX, POINT_MAX), max(POINT_MIN, POINT_MIN)
+{
+    min = Point(POINT_MAX, POINT_MAX);
+    max = Point(POINT_MIN, POINT_MIN);
+    for(const ExtrusionJunction& junction: line.junctions)
+    {
+        include(junction.p);
+    }
+}
+
 Point AABB::getMiddle() const
 {
     return (min + max) / 2;
@@ -86,6 +97,18 @@ bool AABB::hit(const AABB& other) const
     if (max.Y < other.min.Y) return false;
     if (min.Y > other.max.Y) return false;
     return true;
+}
+
+bool AABB::contains(const AABB& other) const
+{
+    if(max.X > other.max.X && max.Y > other.max.Y)
+    {
+        if(min.X < other.min.X && min.Y < other.min.Y)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void AABB::include(Point point)

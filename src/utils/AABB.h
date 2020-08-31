@@ -25,6 +25,7 @@ public:
     AABB(const Polygons& polys); //!< Computes the boundary box for the given polygons
     AABB(ConstPolygonRef poly); //!< Computes the boundary box for the given polygons
     AABB(const std::list<ExtrusionLine>& path);
+    AABB(const ExtrusionLine& line);
 
     void calculate(const Polygons& polys); //!< Calculates the aabb for the given polygons (throws away old min and max data of this aabb)
     void calculate(ConstPolygonRef poly); //!< Calculates the aabb for the given polygon (throws away old min and max data of this aabb)
@@ -36,6 +37,13 @@ public:
      * ``false`` otherwise.
      */
     bool contains(const Point& point) const;
+    /*!
+     * Whether the bounding box completely contains the specified bounding box.
+     * \param AABB The bounding box to check whether it is inside the bounding box.
+     * \return ``true`` if the bounding box is larger (in all directions) than the the specified AABB,
+     * ``false`` otherwise.
+     */
+    bool contains(const AABB& other) const;
 
     /*!
      * Get the middle of the bounding box
