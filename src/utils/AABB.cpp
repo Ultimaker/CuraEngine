@@ -31,6 +31,21 @@ AABB::AABB(ConstPolygonRef poly)
     calculate(poly);
 }
 
+AABB::AABB(const std::list<ExtrusionLine> &path)
+: min(POINT_MAX, POINT_MAX), max(POINT_MIN, POINT_MIN)
+{
+    min = Point(POINT_MAX, POINT_MAX);
+    max = Point(POINT_MIN, POINT_MIN);
+
+    for(const ExtrusionLine& line : path)
+    {
+        for(const ExtrusionJunction& junction: line.junctions)
+        {
+            include(junction.p);
+        }
+    }
+}
+
 Point AABB::getMiddle() const
 {
     return (min + max) / 2;

@@ -5,6 +5,7 @@
 #define UTILS_AABB_H
 
 #include "IntPoint.h"
+#include "ExtrusionLine.h"
 
 namespace cura
 {
@@ -23,6 +24,7 @@ public:
     AABB(const Point& min, const Point& max); //!< initializes with given min and max
     AABB(const Polygons& polys); //!< Computes the boundary box for the given polygons
     AABB(ConstPolygonRef poly); //!< Computes the boundary box for the given polygons
+    AABB(const std::list<ExtrusionLine>& path);
 
     void calculate(const Polygons& polys); //!< Calculates the aabb for the given polygons (throws away old min and max data of this aabb)
     void calculate(ConstPolygonRef poly); //!< Calculates the aabb for the given polygon (throws away old min and max data of this aabb)
