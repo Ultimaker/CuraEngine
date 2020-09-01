@@ -21,7 +21,7 @@
 #include "../Application.h" //To get the extruders.
 #include "../ExtruderTrain.h"
 #include "../Slice.h"
-#include "../utils/FMatrix3x3.h"
+#include "../utils/FMatrix4x3.h"
 #include "../utils/logoutput.h"
 #include "../utils/string.h" //For Escaped.
 
@@ -204,11 +204,11 @@ template<> FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) co
     return result;
 }
 
-template<> FMatrix3x3 Settings::get<FMatrix3x3>(const std::string& key) const
+template<> FMatrix4x3 Settings::get<FMatrix4x3>(const std::string& key) const
 {
     const std::string value_string = get<std::string>(key);
 
-    FMatrix3x3 result;
+    FMatrix4x3 result;
     if (value_string.empty())
     {
         return result; //Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).

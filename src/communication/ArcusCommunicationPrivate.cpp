@@ -9,7 +9,7 @@
 #include "../Slice.h"
 #include "../settings/types/LayerIndex.h"
 #include "../utils/floatpoint.h" //To accept vertices (which are provided in floating point).
-#include "../utils/FMatrix3x3.h" //To convert vertices to integer-points.
+#include "../utils/FMatrix4x3.h" //To convert vertices to integer-points.
 #include "../utils/logoutput.h"
 
 namespace cura
@@ -94,7 +94,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         mesh_group.settings.add(setting.name(), setting.value());
     }
 
-    FMatrix3x3 matrix;
+    FMatrix4x3 matrix;
     for (const cura::proto::Object& object : mesh_group_message.objects())
     {
         const size_t bytes_per_face = sizeof(FPoint3) * 3; //3 vectors per face.

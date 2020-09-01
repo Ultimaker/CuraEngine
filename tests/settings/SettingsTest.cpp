@@ -17,7 +17,7 @@
 #include "../src/settings/types/Velocity.h"
 #include "../src/settings/types/Ratio.h"
 #include "../src/settings/types/Duration.h"
-#include "../src/utils/FMatrix3x3.h" //Testing matrix transformation settings.
+#include "../src/utils/FMatrix4x3.h" //Testing matrix transformation settings.
 
 namespace cura
 {
@@ -180,7 +180,7 @@ TEST_F(SettingsTest, AddSettingFlowTempGraph)
 TEST_F(SettingsTest, AddSettingFMatrix3x3)
 {
     settings.add("test_setting", "[[1.0, 2.0, 3.3],[ 2 , 3.0 , 1.0],[3.0 ,1.0,2.0 ]]"); //Try various spacing and radixes.
-    FMatrix3x3 float_matrix = settings.get<FMatrix3x3>("test_setting");
+    FMatrix4x3 float_matrix = settings.get<FMatrix4x3>("test_setting");
 
     EXPECT_DOUBLE_EQ(1.0, float_matrix.m[0][0]);
     EXPECT_DOUBLE_EQ(2.0, float_matrix.m[1][0]);

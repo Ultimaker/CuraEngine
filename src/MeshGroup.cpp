@@ -7,7 +7,7 @@
 
 #include "MeshGroup.h"
 #include "utils/floatpoint.h" //To accept incoming meshes with floating point vertices.
-#include "utils/FMatrix3x3.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
+#include "utils/FMatrix4x3.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"
@@ -108,7 +108,7 @@ void MeshGroup::finalize()
     }
 }
 
-bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
+bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
 {
     FILE* f = fopen(filename, "rt");
     char buffer[1024];
@@ -141,7 +141,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const FMatrix3x3& matri
     return true;
 }
 
-bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
+bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
 {
     FILE* f = fopen(filename, "rb");
 
@@ -194,7 +194,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix3x3& matr
     return true;
 }
 
-bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
+bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix4x3& matrix)
 {
     FILE* f = fopen(filename, "rb");
     if (f == nullptr)
@@ -251,7 +251,7 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, Settings& object_parent_settings)
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix4x3& transformation, Settings& object_parent_settings)
 {
     TimeKeeper load_timer;
 

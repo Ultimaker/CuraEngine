@@ -12,28 +12,31 @@ class Point3;
 class Ratio;
 
 /*!
- * A 3x3 linear transformation matrix.
+ * A 4x3 affine transformation matrix.
+ *
+ * This matrix behaves as if it's a 4x4 transformation matrix, but the bottom
+ * row is always identity.
  */
-class FMatrix3x3
+class FMatrix4x3
 {
 public:
 	/*!
 	 * Create a scaling matrix with a uniform scale.
 	 * \param scale The scale factor that this matrix should apply.
 	 */
-	static FMatrix3x3 scale(const Ratio scale);
+	static FMatrix4x3 scale(const Ratio scale);
 
 	/*!
 	 * The matrix data, row-endian.
 	 * 
 	 * The first index is the column. The second index is the row.
 	 */
-    double m[3][3];
+    double m[4][3];
 
 	/*!
 	 * Construct an identity matrix.
 	 */
-    FMatrix3x3();
+    FMatrix4x3();
 
 	/*!
 	 * Apply this transformation to a coordinate.
