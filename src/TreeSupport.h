@@ -11,34 +11,20 @@
 
 namespace cura
 {
-/*!
- * \brief Lazily generates tree guidance volumes.
- *
- * \warning This class is not currently thread-safe and should not be accessed in OpenMP blocks
- */
+
 class ModelVolumes
 {
 public:
-    ModelVolumes() = default;
-    /*!
-     * \brief Construct the ModelVolumes object
-     *
-     * \param storage The slice data storage object to extract the model
-     * contours from.
-     * \param xy_distance The required clearance between the model and the
-     * tree branches.
-     * \param max_move The maximum allowable movement between nodes on
-     * adjacent layers
-     * \param radius_sample_resolution Sample size used to round requested node radii.
-     */
-    ModelVolumes(const SliceDataStorage& storage, coord_t xy_distance, coord_t max_move,coord_t max_move_slow ,coord_t radius_sample_resolution,
-    		coord_t z_distance_bottom_layers,coord_t z_distance_top_layers,bool support_rests_on_model,bool avoid_support_blocker,bool use_exponential_collision_resolution,coord_t exponential_threashold,double exponential_factor);
 
+    ModelVolumes()=default;
+	ModelVolumes(const SliceDataStorage& storage,const coord_t max_move,const coord_t max_move_slow,size_t current_mesh_idx,  const std::vector<Polygons>& additional_excluded_areas=std::vector<Polygons>());
     ModelVolumes(ModelVolumes&&) = default;
     ModelVolumes& operator=(ModelVolumes&&) = default;
 
     ModelVolumes(const ModelVolumes&) = delete;
     ModelVolumes& operator=(const ModelVolumes&) = delete;
+
+	void precalculate(coord_t max_layer);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches.
@@ -47,10 +33,11 @@ public:
      * collide with the model.
      *
      * \param radius The radius of the node of interest
-     * \param layer The layer of interest
+     * \param layer_idx The layer of interest
+     * \param min_xy_dist Is the minimum xy distance used.
      * \return Polygons object
      */
-    const Polygons& getCollision(coord_t radius, LayerIndex layer_idx) const;
+    const Polygons& getCollision(coord_t orig_radius, LayerIndex layer_idx,bool min_xy_dist=false);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches
@@ -62,120 +49,148 @@ public:
      * The input collision areas are inset by the maximum move distance and
      * propagated upwards.
      *
-     * \param radius The radius of the node of interest
-     * \param layer The layer of interest
+     * \param orig_radius The radius of the node of interest
+     * \param layer_idx The layer of interest
+     * \param slow Is the propgation with the maximum move distance slow required.
+     * \param to_model Does the avoidance allow good connections with the model.
+     * \param min_xy_dist is the minimum xy distance used.
      * \return Polygons object
      */
-
-    const Polygons& getAvoidance(coord_t radius, LayerIndex layer_idx,bool slow=false,bool to_model=false) const;
-
+    const Polygons& getAvoidance(coord_t orig_radius, LayerIndex layer_idx,bool slow=false,bool to_model=false,bool min_xy_dist=false);
     /*!
-     * \brief Generates the area of a given layer that must be avoided if the
-     * branches wish to go towards the model
-     *
-     * The area represents the areas that do not collide with the model but
-     * are unable to reach the build platform
-     *
+     * \brief The area represents all areas on the model where the branch does completely fit on the given layer.
      * \param radius The radius of the node of interest
-     * \param layer The layer of interest
+     * \param layer_idx The layer of interest
      * \return Polygons object
      */
-    const Polygons& getPlaceableAreas(coord_t radius, LayerIndex layer_idx) const;
-
-    void precalculateAvoidance(const size_t max_layer,const coord_t branch_radius, const double scale_factor ,const coord_t min_max_radius,const double scale_foot );
-
+    const Polygons& getPlaceableAreas(coord_t radius, LayerIndex layer_idx);
     /*!
-     * \brief Round \p radius upwards to a multiple of radius_sample_resolution_
+     * \brief Round \p radius upwards to either a multiple of radius_sample_resolution_ or a exponentially increasing value
+     *
+     *	It also adds the difference between the minimum xy distance and the regular one.
      *
      * \param radius The radius of the node of interest
+     * \param min_xy_dist is the minimum xy distance used.
      */
-    coord_t ceilRadius(coord_t radius) const;
+    coord_t ceilRadius(coord_t radius,bool min_xy_dist) const;
 private:
     /*!
      * \brief Convenience typedef for the keys to the caches
      */
     using RadiusLayerPair = std::pair<coord_t, LayerIndex>;
 
-
     /*!
-     * \brief Calculate the collision areas at the radius and layer indicated
-     * by \p key.
+     * \brief Round \p radius upwards to either a multiple of radius_sample_resolution_ or a exponentially increasing value
      *
-     * \param key The radius and layer of the node of interest
+     * \param radius The radius of the node of interest
      */
-    const Polygons& calculateCollision(const RadiusLayerPair& key) const;
+    coord_t ceilRadius(coord_t radius) const;
 
+    Polygons extractOutlineFromMesh(SliceMeshStorage mesh, LayerIndex layer_idx) const;
+
+    void calculateCollision( std::deque<RadiusLayerPair> keys );
+
+    void calculateCollision( RadiusLayerPair key ){
+    	calculateCollision(std::deque<RadiusLayerPair>{RadiusLayerPair(key)});
+    }
+    void calculateAvoidance( std::deque<RadiusLayerPair> keys );
+
+    void calculateAvoidance( RadiusLayerPair key ){
+#pragma omp parallel //required as otherwise the "omp for" inside calculateAvoidance will lock up
+    	{
+    	calculateAvoidance(std::deque<RadiusLayerPair>{RadiusLayerPair(key)});
+    	}
+    }
+
+    void calculatePlaceables( RadiusLayerPair key ){
+#pragma omp parallel
+    	{
+			calculatePlaceables(std::deque<RadiusLayerPair>{key});
+    	}
+    }
+
+
+    void calculatePlaceables( std::deque<RadiusLayerPair> keys );
+
+    void calculateAvoidanceToModel( std::deque<RadiusLayerPair> keys );
+
+    void calculateAvoidanceToModel( RadiusLayerPair key ){
+#pragma omp parallel
+    	{
+    		calculateAvoidanceToModel(std::deque<RadiusLayerPair>{RadiusLayerPair(key)});
+    	}
+    }
+
+    const std::optional<std::reference_wrapper<const Polygons>> getArea(std::unordered_map<RadiusLayerPair, Polygons>& cache,const RadiusLayerPair key) const;
+    bool checkSettingsEquality(const Settings& me, const Settings& other)const;
+    coord_t getXYDistByIdx(size_t outline_idx,bool min_xy_dist) const;
+    coord_t getXYDistDeltaByIdx(size_t outline_idx) const{
+    	return getXYDistByIdx(outline_idx, false)-getXYDistByIdx(outline_idx, true);
+    }
+    LayerIndex getMaxCalculatedLayer(coord_t radius,const std::unordered_map<RadiusLayerPair, Polygons>& map ) const;
+    Polygons calculateMachineBorderCollision(Polygon machine_border);
     /*!
-     * \brief Calculate the avoidance areas at the radius and layer indicated
-     * by \p key.
-     *
-     * \param key The radius and layer of the node of interest
+     * \brief The maximum distance that the centrepoint of a tree branch may
+     * move in consequtive layersif it has to avoid the model
      */
-    const Polygons& calculateAvoidance(const RadiusLayerPair& key) const;
-
+    coord_t max_move_;
     /*!
-     * \brief Calculate the collision area around the printable area of the machine.
-     *
-     * \param a Polygons object representing the non-printable areas on and around the build platform
+     * \brief The maximum distance that the centrepoint of a tree branch may
+     * move in consequtive layers if it does not have to avoid the model
      */
-    static Polygons calculateMachineBorderCollision(Polygon machine_border);
-
+    coord_t max_move_slow_;
+    /*!
+     * \brief The smallest maximum resolution for simplify
+     */
+	coord_t min_maximum_resolution_;
+    /*!
+     * \brief The smallest maximum deviation for simplify
+     */
+	coord_t min_maximum_deviation_;
+    /*!
+     * \brief Whether the precalculate was called, meaning every required value should be cached.
+     */
+	bool precalculated=false;
+    /*!
+     * \brief The index to access the outline corresponding with the currently processing mesh
+     */
+	size_t current_outline_idx;
+    /*!
+     * \brief The minimum required clearance between the model and the tree branches
+     */
+	coord_t current_min_xy_dist;
+    /*!
+     * \brief The difference between the minimum required clearance between the model and the tree branches and the regular one.
+     */
+	coord_t current_min_xy_dist_delta;
+    /*!
+     * \brief Does at least one mesh allow support to rest on a model.
+     */
+	bool support_rests_on_model;
+    /*!
+     * \brief The progress of the precalculate function for communicating it to the progress bar.
+     */
+	coord_t precalculation_progress=0;
     /*!
      * \brief Polygons representing the limits of the printable area of the
      * machine
      */
     Polygons machine_border_;
-
     /*!
-     * \brief The required clearance between the model and the tree branches
+     * \brief Storage for layer outlines and the corresponding settings of the meshes grouped by meshes with identical setting.
      */
-    coord_t xy_distance_;
-
+    std::vector<std::pair<Settings,std::vector<Polygons>>> layer_outlines_;
     /*!
-     * \brief The maximum distance that the centrepoint of a tree branch may
-     * move in consequtive layers
+     * \brief Storage for areas that should be avoided, like support blocker or previous generated trees.
      */
-    coord_t max_move_;
-
-    /*!
-     * \brief The maximum distance that the centrepoint of a tree branch wants to
-     * move in consequtive layers (slower than max_move)
-     */
-    coord_t max_move_slow;
-
-    /*!
-     * \brief Sample resolution for radius values.
-     *
-     * The radius will be rounded (upwards) to multiples of this value before
-     * calculations are done when collision, avoidance and internal model
-     * Polygons are requested.
-     */
-    coord_t radius_sample_resolution_;
-
-
-    coord_t z_distance_bottom_layers;
-
-    coord_t z_distance_top_layers;
-
-
-    bool support_rests_on_model;
-
-
-    bool avoid_support_blocker;
-    bool use_exponential_collision_resolution;
-    coord_t exponential_threashold;
-    double exponential_factor;
-
-    /*!
-     * \brief Storage for layer outlines of the meshes.
-     */
-    std::vector<Polygons> layer_outlines_;
     std::vector<Polygons> anti_overhang_;
-
-    std::vector<coord_t> resolution_steps=std::vector<coord_t>();
+    /*!
+     * \brief Radiis that can be ignored by ceilRadius as they will never be requested.
+     */
+    std::unordered_set<coord_t> ignorable_radii_;
 
     /*!
-     * \brief Caches for the collision, avoidance and internal model polygons
+     * \brief Caches for the collision, avoidance and areas on the model where support can be placed safely
      * at given radius and layer indices.
      *
      * These are mutable to allow modification from const function. This is
@@ -185,14 +200,13 @@ private:
      */
     mutable std::unordered_map<RadiusLayerPair, Polygons> collision_cache_;
     mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_;
-    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_slow;
-    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_to_model;
-    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_to_model_slow;
-    mutable std::unordered_map<RadiusLayerPair, Polygons> placeable_areas_cache;
-    mutable std::unordered_map<RadiusLayerPair, Polygons> internal_model_cache_;
-
+    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_slow_;
+    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_to_model_;
+    mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_to_model_slow_;
+    mutable std::unordered_map<RadiusLayerPair, Polygons> placeable_areas_cache_;
 
 };
+
 
 class SliceDataStorage;
 class SliceMeshStorage;
@@ -228,7 +242,7 @@ public:
 
     struct SupportElement{
 
-    	SupportElement(coord_t distance_to_top,size_t target_height,Point target_position,bool to_buildplate,bool to_model_gracious): //SupportElement(target_height,target_position,target_height,target_position,distance_to_top,distance_to_top,to_buildplate)
+    	SupportElement(coord_t distance_to_top,size_t target_height,Point target_position,bool to_buildplate,bool to_model_gracious,bool use_min_xy_dist): //SupportElement(target_height,target_position,target_height,target_position,distance_to_top,distance_to_top,to_buildplate)
     		target_height(target_height),
 			target_position(target_position),
 			next_position(target_position),
@@ -239,7 +253,9 @@ public:
 			area(nullptr),
 			increased_ddt(0),
 			to_model_gracious(to_model_gracious),
-			elephant_foot_increases(0)
+			elephant_foot_increases(0),
+			use_min_xy_dist(use_min_xy_dist),
+			non_gracious_model_contact(false)
     	{
 
     	}
@@ -257,34 +273,44 @@ public:
 				result_on_layer(elem.result_on_layer),
 				increased_ddt(elem.increased_ddt),
 				to_model_gracious(elem.to_model_gracious),
-				elephant_foot_increases(elem.elephant_foot_increases)
+				elephant_foot_increases(elem.elephant_foot_increases),
+				use_min_xy_dist(elem.use_min_xy_dist),
+				non_gracious_model_contact(elem.non_gracious_model_contact)
 
     	{
     		parents.insert(parents.begin(), elem.parents.begin(), elem.parents.end());
     	}
 
-    	SupportElement(const SupportElement& first,SupportElement* newParent):
-    			target_height(first.target_height),
-    			target_position(first.target_position),
-    			next_position(first.next_position),
-    			next_height(first.next_height),
-    			effective_radius_height(first.effective_radius_height),
-    			to_buildplate(first.to_buildplate),
-				distance_to_top(first.distance_to_top+1),
-				area(first.area),
+        /*!
+         * \brief Create a new Element for one layer below the element of the pointer supplied.
+         */
+
+    	SupportElement(SupportElement* first): //todo rename
+    			target_height(first->target_height),
+    			target_position(first->target_position),
+    			next_position(first->next_position),
+    			next_height(first->next_height),
+    			effective_radius_height(first->effective_radius_height),
+    			to_buildplate(first->to_buildplate),
+				distance_to_top(first->distance_to_top+1),
+				area(first->area),
 				result_on_layer(Point(-1,-1)), // set to invalid as we are a new node on a new layer
-				increased_ddt(first.increased_ddt),
-				to_model_gracious(first.to_model_gracious),
-				elephant_foot_increases(first.elephant_foot_increases)
+				increased_ddt(first->increased_ddt),
+				to_model_gracious(first->to_model_gracious),
+				elephant_foot_increases(first->elephant_foot_increases),
+				use_min_xy_dist(first->use_min_xy_dist),
+				non_gracious_model_contact(first->non_gracious_model_contact)
     	{
-    		parents={newParent};
+    		parents={first};
     	}
 
     	SupportElement(const SupportElement& first,const SupportElement& second,size_t next_height,Point next_position,coord_t increased_ddt,TreeSupportSettings config):
     		next_position(next_position),
     		next_height(next_height),
 			area(nullptr),
-			increased_ddt(increased_ddt)
+			increased_ddt(increased_ddt),
+			use_min_xy_dist(first.use_min_xy_dist&&second.use_min_xy_dist),
+			non_gracious_model_contact(first.non_gracious_model_contact&&second.non_gracious_model_contact)
 
     	{
 
@@ -308,7 +334,6 @@ public:
 			elephant_foot_increases=0;
 			if(config.diameter_scale_elephant_foot>0){
 				coord_t foot_increase_radius = std::abs(std::max(config.getRadius(second),config.getRadius(first))-config.getRadius(*this));
-			// extra rad = branch_radius * elephant_foot_increases * (diameter_scale_elephant_foot-diameter_angle_scale_factor) => ele_inc =extraRad/(branch_radius* (diameter_scale_elephant_foot-diameter_angle_scale_factor))
 				elephant_foot_increases=foot_increase_radius/(config.branch_radius* (config.diameter_scale_elephant_foot-config.diameter_angle_scale_factor));
 			}
 
@@ -336,7 +361,7 @@ public:
         size_t next_height;
 
         /*!
-         * \brief The Effective distance to top of this element regarding radius increases and collsision calculations.
+         * \brief The Effective distance to top of this element regarding radius increases and collision calculations.
          */
 
         size_t effective_radius_height;
@@ -347,7 +372,14 @@ public:
 
         bool to_buildplate;
 
+        /*!
+         * \brief All elements in the layer above the current one that are supported by this element
+         */
         std::vector<SupportElement*> parents;
+
+        /*!
+		 * \brief The amount of layers this element is below the topmost layer of this branch.
+		 */
 
         size_t distance_to_top;
 
@@ -361,6 +393,9 @@ public:
 
         double elephant_foot_increases;
 
+        bool use_min_xy_dist;
+
+        bool non_gracious_model_contact;
 
         bool operator==(const SupportElement& other) const
         {
@@ -391,12 +426,13 @@ public:
 
     	TreeSupportSettings()=default;
 
-    	TreeSupportSettings(const Settings& mesh_group_settings):branch_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
-    	layer_height(mesh_group_settings.get<coord_t>("layer_height")),
-		support_line_width(mesh_group_settings.get<coord_t>("support_line_width")),
-		min_radius(1.2*support_line_width/2),
+    	TreeSupportSettings(const Settings& mesh_group_settings):
     	angle(mesh_group_settings.get<AngleRadians>("support_tree_angle")),
     	angle_slow(mesh_group_settings.get<AngleRadians>("support_tree_angle_slow")),
+    	layer_height(mesh_group_settings.get<coord_t>("layer_height")),
+    	branch_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
+		support_line_width(mesh_group_settings.get<coord_t>("support_line_width")),
+		min_radius(1.2*support_line_width/2),
     	maximum_move_distance( (angle < TAU / 4) ? (coord_t) (tan(angle) * layer_height) : std::numeric_limits<coord_t>::max()),
     	maximum_move_distance_slow( (angle_slow < TAU / 4) ? (coord_t) (tan(angle_slow) * layer_height) : std::numeric_limits<coord_t>::max()),
     	support_roof_layers(  mesh_group_settings.get<bool>("support_roof_enable") ?round_divide(mesh_group_settings.get<coord_t>("support_roof_height"),layer_height):0),
@@ -406,24 +442,45 @@ public:
     	min_ddt_to_model(round_up_divide(mesh_group_settings.get<coord_t>("support_tree_min_height_to_model"), layer_height)),
     	increase_radius_until_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
     	increase_radius_until_layer(increase_radius_until_radius<=branch_radius?tip_layers*(increase_radius_until_radius/branch_radius):(increase_radius_until_radius - branch_radius)/(branch_radius*diameter_angle_scale_factor)),
-		dont_move_until_ddt(mesh_group_settings.get<bool>("support_roof_enable")? round_up_divide(mesh_group_settings.get<coord_t>("support_roof_height"), layer_height):0),
 		support_rests_on_model(mesh_group_settings.get<ESupportType>("support_type") == ESupportType::EVERYWHERE),
 		xy_distance(mesh_group_settings.get<coord_t>("support_xy_distance")),
 		bp_radius(mesh_group_settings.get<coord_t>("support_tree_bp_radius")),
-		diameter_scale_elephant_foot(std::min(sin(1.04)*layer_height/branch_radius,1.0/(branch_radius / (support_line_width/3))))
+		diameter_scale_elephant_foot(std::min(sin(1.04)*layer_height/branch_radius,1.0/(branch_radius / (support_line_width/3)))),
+		support_overrides(mesh_group_settings.get<SupportDistPriority>("support_xy_overrides_z")),
+		xy_min_distance(support_overrides == SupportDistPriority::Z_OVERRIDES_XY ? mesh_group_settings.get<coord_t>("support_xy_distance_overhang"):xy_distance),
+		z_distance_top_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_top_distance"), layer_height)),
+		z_distance_bottom_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_bottom_distance"), layer_height))
     	{
     		layer_start_bp_radius =0;
     		for(coord_t counter=0;branch_radius+branch_radius*counter*diameter_scale_elephant_foot<=bp_radius;counter++){
     			layer_start_bp_radius=counter;
     		}
+    		//for performance reasons it is not possible to set a VERY low xy_distance or xy_min_distance (<0.1mm)
+    		//as such if such a value is set the support will be outset by .1mm to ensure all points are supported that should be.
+    		//This is not the best solution, but the only one to ensure areas can not lag though walls at high maximum_move_distance.
+    		if(xy_distance<100){
+    			xy_distance=100;
+    		}
+    		if(xy_min_distance<100){
+				xy_min_distance=100;
+				performance_increased_xy_min=true;
+			}
+
     	}
 
-    	coord_t branch_radius;
-		coord_t layer_height;
-		coord_t support_line_width;
-		coord_t min_radius;
+    private:
+
 		double angle;
 		double angle_slow;
+
+    public:
+
+
+
+		coord_t layer_height;
+    	coord_t branch_radius;
+		coord_t support_line_width; // only used for some smoothing, for the logic mainly irrelevant
+		coord_t min_radius;
 		coord_t maximum_move_distance;
 		coord_t maximum_move_distance_slow;
 		size_t support_roof_layers;
@@ -433,19 +490,48 @@ public:
 		size_t min_ddt_to_model;
 		coord_t increase_radius_until_radius;
 		size_t increase_radius_until_layer;
-		size_t dont_move_until_ddt;
 		bool support_rests_on_model;
 		coord_t xy_distance;
 		coord_t bp_radius;
 		coord_t layer_start_bp_radius;
 		double diameter_scale_elephant_foot;
+		SupportDistPriority support_overrides;
+		coord_t xy_min_distance;
+		size_t z_distance_top_layers;
+		size_t z_distance_bottom_layers;
+		bool performance_increased_xy_min=false;
     public:
 
-		bool hasSameInitalPointSettings(const TreeSupportSettings& other) const {
-				return false;
+		bool hasSameInfluenceAreaSettings(const TreeSupportSettings& other) const {
+				return 	branch_radius == other.branch_radius &&
+						tip_layers == other.tip_layers &&
+						diameter_angle_scale_factor == other.diameter_angle_scale_factor &&
+						layer_start_bp_radius == other.layer_start_bp_radius &&
+						bp_radius == other.bp_radius &&
+						diameter_scale_elephant_foot == other.diameter_scale_elephant_foot &&
+						min_radius == other.min_radius &&
+						xy_min_distance == other.xy_min_distance && // as a recalculation of the AvoidanceAreas is required to set a new min_radius. This is not necessary if only xy_distance changes
+						support_rests_on_model == other.support_rests_on_model &&
+						increase_radius_until_layer == other.increase_radius_until_layer &&
+						min_ddt_to_model == other.min_ddt_to_model &&
+						max_ddt_increase == other.max_ddt_increase &&
+						maximum_move_distance == other.maximum_move_distance &&
+						maximum_move_distance_slow == other.maximum_move_distance_slow;
 		}
-		bool hasSameNonInitalPointSettings(const TreeSupportSettings& other) const {
-				return false;
+		bool hasSameAvoidanceSettings(const TreeSupportSettings& other) const {
+				return  z_distance_bottom_layers == other.z_distance_bottom_layers &&
+						z_distance_top_layers ==other.z_distance_top_layers &&
+						support_overrides == other.support_overrides &&
+						branch_radius == other.branch_radius &&
+						tip_layers == other.tip_layers &&
+						diameter_angle_scale_factor == other.diameter_angle_scale_factor &&
+						layer_start_bp_radius == other.layer_start_bp_radius &&
+						bp_radius == other.bp_radius &&
+						diameter_scale_elephant_foot == other.diameter_scale_elephant_foot &&
+						min_radius == other.min_radius &&
+						xy_min_distance == other.xy_min_distance &&
+						maximum_move_distance == other.maximum_move_distance &&
+						maximum_move_distance_slow == other.maximum_move_distance_slow;
 		}
 
 
@@ -554,7 +640,7 @@ private:
 			std::unordered_map<SupportElement,Polygons>& insert_main,
 			std::unordered_map<SupportElement,Polygons>& insert_secondary,
     		std::vector<SupportElement>& erase,
-    		coord_t layer_nr)const;
+    		coord_t layer_nr);
     /*!
      * \brief Merges Influence Areas if possible.
      *
@@ -566,7 +652,7 @@ private:
      * \param secondary[in] The Elements of the current Layer that do not have to reach the buildplate. Also contains main as every element that can reach the buildplate is not forced to.
      *  Value is the influence area where the center of a circle of support may be placed.
      */
-    void mergePolygonsDaQ(std::map<SupportElement,Polygons>& input,std::unordered_map<SupportElement,Polygons>& main,std::unordered_map<SupportElement,Polygons>& secondary,int layer_nr) const;
+    void mergePolygonsDaQ(std::map<SupportElement,Polygons>& input,std::unordered_map<SupportElement,Polygons>& main,std::unordered_map<SupportElement,Polygons>& secondary,int layer_nr);
     /*!
      * \brief Offsets (increases the area of) a polygons object in multiple steps to ensure that it does not lag through over a given obstacle.
      * \param me[in] Polygons object that has to be offsetted.
@@ -576,7 +662,7 @@ private:
      * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the ammount of vertecies, which may be required if Polygons get very small.
      * \return The resulting Polygons object.
      */
-    Polygons safeOffsetInc(Polygons& me,coord_t distance,const Polygons& collision,coord_t last_safe_step_size=0,size_t min_amount_offset=0)const;
+    Polygons safeOffsetInc(Polygons& me,coord_t distance,const Polygons& collision,coord_t last_safe_step_size,size_t min_amount_offset)const;
 
     /*!
      * \brief Increases influence areas as far as required.
@@ -594,7 +680,7 @@ private:
      * \param last_layer[in] Influence areas of the current layer.
      * \param layer_nr[in] Number of the current layer.
      */
-    void increaseAreas(std::unordered_map<SupportElement,Polygons>& new_layer,std::map<SupportElement,Polygons>& new_layer_merge,std::unordered_map<SupportElement,Polygons>& new_layer_to_model,std::vector<std::pair<SupportElement*,Polygons*>> last_layer,size_t layer_nr);
+    void increaseAreas(std::unordered_map<SupportElement,Polygons>& new_layer,std::map<SupportElement,Polygons>& new_layer_merge,std::unordered_map<SupportElement,Polygons>& new_layer_to_model, std::vector<std::pair<SupportElement*,Polygons*>>& new_layer_bypass_merge, const std::vector<std::pair<SupportElement*,Polygons*>>& last_layer,size_t layer_nr);
 
     /*!
      * \brief Propergates influence downwards, and merges overlapping ones.
