@@ -107,6 +107,7 @@ void MeshGroup::finalize()
         }
         mesh.offset(mesh_offset + meshgroup_offset);
     }
+    scale(settings.get<double>("material_shrinkage_percentage")); //Compensate for the shrinkage of the material.
 }
 
 void MeshGroup::scale(const Ratio factor)
