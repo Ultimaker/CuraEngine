@@ -1,4 +1,4 @@
-//Copyright (C) 2018 Ultimaker B.V.
+//Copyright (C) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <string.h>
@@ -6,7 +6,8 @@
 #include <limits>
 
 #include "MeshGroup.h"
-#include "utils/floatpoint.h"
+#include "utils/floatpoint.h" //To accept incoming meshes with floating point vertices.
+#include "utils/FMatrix3x3.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"

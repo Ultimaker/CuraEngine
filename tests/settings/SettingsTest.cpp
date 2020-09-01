@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> //For M_PI.
@@ -17,7 +17,7 @@
 #include "../src/settings/types/Velocity.h"
 #include "../src/settings/types/Ratio.h"
 #include "../src/settings/types/Duration.h"
-#include "../src/utils/floatpoint.h"
+#include "../src/utils/FMatrix3x3.h" //Testing matrix transformation settings.
 
 namespace cura
 {

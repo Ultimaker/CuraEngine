@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring> //For strtok and strcopy.
@@ -19,7 +19,7 @@
 #include "../FffProcessor.h" //To start a slice and get time estimates.
 #include "../Slice.h"
 #include "../utils/getpath.h"
-#include "../utils/floatpoint.h"
+#include "../utils/FMatrix3x3.h" //For the mesh_rotation_matrix setting.
 #include "../utils/logoutput.h"
 
 namespace cura

@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cctype>
@@ -21,7 +21,7 @@
 #include "../Application.h" //To get the extruders.
 #include "../ExtruderTrain.h"
 #include "../Slice.h"
-#include "../utils/floatpoint.h" //For FMatrix3x3.
+#include "../utils/FMatrix3x3.h"
 #include "../utils/logoutput.h"
 #include "../utils/string.h" //For Escaped.
 
