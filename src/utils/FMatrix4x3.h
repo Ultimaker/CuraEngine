@@ -23,8 +23,11 @@ public:
 	/*!
 	 * Create a scaling matrix with a uniform scale.
 	 * \param scale The scale factor that this matrix should apply.
+	 * \param origin The coordinate origin to apply the scale from. If the scale
+	 * is reduced, all coordinates will go towards this origin. If the scale is
+	 * increased, all coordinates will go away from this origin.
 	 */
-	static FMatrix4x3 scale(const Ratio scale);
+	static FMatrix4x3 scale(const Ratio scale, const Point3 origin);
 
 	/*!
 	 * The matrix data, row-endian.
