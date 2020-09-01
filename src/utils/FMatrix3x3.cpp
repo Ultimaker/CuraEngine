@@ -5,9 +5,19 @@
 
 #include "floatpoint.h" //This matrix gets applied to floating point coordinates.
 #include "IntPoint.h" //Conversion directly into integer-based coordinates.
+#include "../settings/types/Ratio.h" //Scale factor.
 
 namespace cura
 {
+    
+FMatrix3x3 FMatrix3x3::scale(const Ratio scale)
+{
+    FMatrix3x3 result;
+    result.m[0][0] = scale; //X.
+    result.m[1][1] = scale; //Y.
+    result.m[2][2] = scale; //Z.
+    return result;
+}
 
 FMatrix3x3::FMatrix3x3()
 {

@@ -7,8 +7,9 @@
 namespace cura
 {
 
-class Point3;
 class FPoint3;
+class Point3;
+class Ratio;
 
 /*!
  * A 3x3 linear transformation matrix.
@@ -16,6 +17,12 @@ class FPoint3;
 class FMatrix3x3
 {
 public:
+	/*!
+	 * Create a scaling matrix with a uniform scale.
+	 * \param scale The scale factor that this matrix should apply.
+	 */
+	static FMatrix3x3 scale(const Ratio scale);
+
 	/*!
 	 * The matrix data, row-endian.
 	 * 
