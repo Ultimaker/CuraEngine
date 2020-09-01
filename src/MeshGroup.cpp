@@ -6,6 +6,7 @@
 #include <limits>
 
 #include "MeshGroup.h"
+#include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
 #include "utils/floatpoint.h" //To accept incoming meshes with floating point vertices.
 #include "utils/FMatrix4x3.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
 #include "utils/gettime.h"
@@ -105,6 +106,18 @@ void MeshGroup::finalize()
             mesh_offset += Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
         }
         mesh.offset(mesh_offset + meshgroup_offset);
+    }
+}
+
+void MeshGroup::scale(const Ratio factor)
+{
+    const Point3 center = (max() + min()) / 2;
+    const Point3 origin(center.x, center.y, 0);
+
+    const FMatrix4x3 transformation = FMatrix4x3::scale(factor, origin);
+    for(Mesh& mesh : meshes)
+    {
+        mesh.transform(transformation);
     }
 }
 
