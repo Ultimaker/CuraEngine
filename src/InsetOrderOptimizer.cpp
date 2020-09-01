@@ -578,14 +578,11 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
 
 bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
 {
-    std::cout << "OptimisedOrderPrinting" << std::endl;
-
     added_something = false;
 
     const size_t num_insets = mesh.settings.get<size_t>("wall_line_count");
 
-
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> insets;
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> outer_walls;
 
     int num_parts = 0;
     int outermost_wall_index = 0;
@@ -612,13 +609,14 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
                 if(current_bounding_box.contains(largest_bounding_box))
                 {
                     largest_bounding_box = current_bounding_box;
-                    outermost_wall_index = num_parts -1;
+                    outermost_wall_index = num_parts - 1;
                 }
+                std::vector<ExtrusionJunction> converted_list(line.junctions.begin(), line.junctions.end());
+                std::vector<std::vector<ExtrusionJunction>> new_walls;
+                new_walls.push_back(converted_list);
+                outer_walls.push_back(new_walls);
             }
-            std::vector<ExtrusionJunction> converted_list(line.junctions.begin(), line.junctions.end());
-            std::vector<std::vector<ExtrusionJunction>> new_walls;
-            new_walls.push_back(converted_list);
-            insets.push_back(new_walls);
+
         }
     }
 
@@ -632,18 +630,17 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
     gcode_layer.setIsInside(true); // Going to print walls, which are always inside.
     ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
 
-
     // Add the outermost wall first
-    gcode_layer.addWalls(insets[outermost_wall_index], mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+    gcode_layer.addWalls(outer_walls[outermost_wall_index], mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
 
     // After we did that, we can (and should) add all hole outer walls.
-    for (unsigned inset_idx = 0; inset_idx < num_parts; ++inset_idx)
+    for (unsigned wall_index = 0; wall_index < num_parts; ++wall_index)
     {
-        if(inset_idx == outermost_wall_index)
+        if(wall_index == outermost_wall_index)
         {
             continue;
         }
-        gcode_layer.addWalls(insets[inset_idx], mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+        gcode_layer.addWalls(outer_walls[wall_index], mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
     }
 
     return added_something;
