@@ -7,8 +7,6 @@ namespace cura
 {
 
 double inward_distributed_center_size = 2;
-int max_bead_count = -1;
-coord_t default_transition_length = 400;
 
 StrategyType toStrategyType(char c)
 {
@@ -16,8 +14,6 @@ StrategyType toStrategyType(char c)
     {
         case 'n':
             return StrategyType::Naive;
-        case 'N':
-            return StrategyType::NaiveStrategy;
         case 'r':
             return StrategyType::Center;
         case 'd':
@@ -34,26 +30,25 @@ std::string to_string(StrategyType type)
 {
     switch (type)
     {
-        case StrategyType::Naive: return "Naive";
-        case StrategyType::NaiveStrategy: return "NaiveStrategy";
-        case StrategyType::Center: return "Center";
-        case StrategyType::Distributed: return "Distributed";
-        case StrategyType::InwardDistributed: return "InwardDistributed";
-        case StrategyType::LimitedDistributed: return "LimitedDistributed";
+        case StrategyType::Naive:              return "Naive";
+        case StrategyType::Center:             return "CenterDeviation";
+        case StrategyType::Distributed:        return "Distributed";
+        case StrategyType::InwardDistributed:  return "InwardDistributed";
+        case StrategyType::LimitedDistributed: return "LimitedDistributed";  //TODO: Remove it as it is the same as Distributed + Limited meta-strategy
         default: return "unknown_strategy";
     }
 }
 
-BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t prefered_bead_width, float transitioning_angle, std::optional<coord_t> min_bead_width, std::optional<coord_t> min_feature_size)
+BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t preferred_bead_width, coord_t preferred_transition_length, float transitioning_angle, const coord_t* min_bead_width, const coord_t* min_feature_size, int max_bead_count)
 {
     BeadingStrategy* ret = nullptr;
     switch (type)
     {
-        case StrategyType::NaiveStrategy:      ret = new NaiveBeadingStrategy(prefered_bead_width);                                      break;
-        case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(prefered_bead_width, transitioning_angle);       break;
-        case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(prefered_bead_width, default_transition_length, transitioning_angle);     break;
-        case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(prefered_bead_width, default_transition_length, transitioning_angle, inward_distributed_center_size);  break;
-        case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(prefered_bead_width, default_transition_length, max_bead_count, transitioning_angle); break;
+        case StrategyType::Naive:              ret = new NaiveBeadingStrategy(preferred_bead_width);                                      break;
+        case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(preferred_bead_width, transitioning_angle);       break;
+        case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(preferred_bead_width, preferred_transition_length, transitioning_angle);     break;
+        case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(preferred_bead_width, preferred_transition_length, transitioning_angle, inward_distributed_center_size);  break;
+        case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(preferred_bead_width, preferred_transition_length, max_bead_count, transitioning_angle); break;
         default:
             logError("Cannot make strategy!\n");
             return nullptr;
@@ -61,10 +56,14 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t
     
     if (min_bead_width || min_feature_size)
     {
-        ret = new WideningBeadingStrategy(ret, min_feature_size.value_or(*min_bead_width), min_bead_width.value_or(*min_feature_size));
+        const coord_t min_input_width = min_feature_size ? *min_feature_size : *min_bead_width;
+        const coord_t min_output_width = min_bead_width ? *min_bead_width : *min_feature_size;
+        logDebug("Applying the Widening Beading meta-strategy with minimum input width %d and minimum output width %d.", min_input_width, min_output_width);
+        ret = new WideningBeadingStrategy(ret, min_input_width, min_output_width);
     }
     if (max_bead_count > 0)
     {
+        logDebug("Applying the Limited Beading meta-strategy with maximum bead count = %d.", max_bead_count);
         ret = new LimitedBeadingStrategy(max_bead_count, ret);
     }
     return ret;
