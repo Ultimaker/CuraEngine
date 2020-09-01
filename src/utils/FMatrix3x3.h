@@ -10,13 +10,32 @@ namespace cura
 class Point3;
 class FPoint3;
 
+/*!
+ * A 3x3 linear transformation matrix.
+ */
 class FMatrix3x3
 {
 public:
+	/*!
+	 * The matrix data, row-endian.
+	 * 
+	 * The first index is the column. The second index is the row.
+	 */
     double m[3][3];
 
+	/*!
+	 * Construct an identity matrix.
+	 */
     FMatrix3x3();
-    
+
+	/*!
+	 * Apply this transformation to a coordinate.
+	 *
+	 * The result will also be converted to an integer-based coordinate
+	 * (``Point3``).
+	 * \param p The coordinate to transform.
+	 * \return A transformed coordinate.
+	 */
     Point3 apply(const FPoint3& p) const;
 };
 
