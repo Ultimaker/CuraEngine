@@ -578,76 +578,79 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
 
 bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
 {
+    std::cout << "OptimisedOrderPrinting" << std::endl;
+
     added_something = false;
 
-    // Create a vector of vectors containing all the inset polys
-    inset_polys.clear();
+    const size_t num_insets = mesh.settings.get<size_t>("wall_line_count");
 
-    for (unsigned int inset_level = 0; inset_level < part.insets.size(); ++inset_level)
+
+    std::vector<std::vector<std::vector<ExtrusionJunction>>> insets;
+
+    int num_parts = 0;
+    int outermost_wall_index = 0;
+
+    std::vector<AABB> bounding_boxes;  // Store the bounding boxes of all the outer walls.
+    for(const std::list<ExtrusionLine>& path : part.wall_toolpaths)
     {
-        inset_polys.emplace_back();
-        for (unsigned int poly_idx = 0; poly_idx < part.insets[inset_level].size(); ++poly_idx)
+        if(path.empty()) // Don't bother printing these.
         {
-            inset_polys[inset_level].push_back(part.insets[inset_level][poly_idx]);
+            continue;
         }
-    }
 
-    // If the print has thin walls due to the distance from a hole to the outer wall being smaller than a line width,
-    // it will produce a nicer finish on the outer wall if it is printed before the holes because the outer wall does
-    // not get flow reduced but the hole walls will get flow reduced where they are close to the outer wall.
-    // However, we only want to do this if the level 0 insets are being printed before the higher level insets.
+        const size_t inset_index = path.front().inset_idx;
 
-    if (mesh.settings.get<bool>("outer_inset_first") || (layer_nr == 0 && mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM))
-    {
-        // First process the outer wall only
-        processOuterWallInsets(true, false);
+        AABB largest_bounding_box;
 
-        // Then process all the holes and their enclosing insets
-        processHoleInsets();
-
-        // Finally, process the insets enclosed by the part's outer wall
-        processOuterWallInsets(false, true);
-    }
-    else
-    {
-        // First process all the holes and their enclosing insets
-        processHoleInsets();
-
-        // Then process the part's outer wall and its enclosed insets
-        processOuterWallInsets(true, true);
-    }
-
-    // Finally, mop up all the remaining insets that can occur in the gaps between holes
-    if (extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
-    {
-        Polygons remaining;
-        for (unsigned int inset_level = 1; inset_level < inset_polys.size(); ++inset_level)
+        for(const ExtrusionLine& line : path)
         {
-            const unsigned int num_polys = inset_polys[inset_level].size();
-            if (inset_level == 1 && num_polys > 0)
+            if(inset_index == 0)
             {
-                logWarning("Layer %d, %lu level 1 insets remaining to be output (should be 0!)\n", layer_nr, num_polys);
+                num_parts++;
+                AABB current_bounding_box(line);
+                bounding_boxes.push_back(current_bounding_box);
+                if(current_bounding_box.contains(largest_bounding_box))
+                {
+                    largest_bounding_box = current_bounding_box;
+                    outermost_wall_index = num_parts -1;
+                }
             }
-            for (unsigned int poly_idx = 0; poly_idx < num_polys; ++poly_idx)
-            {
-                remaining.add(*inset_polys[inset_level][poly_idx]);
-            }
-        }
-        if (remaining.size() > 0)
-        {
-            gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-            gcode_layer.setIsInside(true); // Going to print stuff inside print object
-            gcode_layer.addWalls(remaining, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config);
-            added_something = true;
+            std::vector<ExtrusionJunction> converted_list(line.junctions.begin(), line.junctions.end());
+            std::vector<std::vector<ExtrusionJunction>> new_walls;
+            new_walls.push_back(converted_list);
+            insets.push_back(new_walls);
         }
     }
+
+    constexpr Ratio flow = 1.0_r;
+    const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
+    const coord_t wall_0_wipe_dist = mesh.settings.get<coord_t>("wall_0_wipe_dist");
+
+    added_something = true;
+
+    gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+    gcode_layer.setIsInside(true); // Going to print walls, which are always inside.
+    ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
+
+
+    // Add the outermost wall first
+    gcode_layer.addWalls(insets[outermost_wall_index], mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+
+    // After we did that, we can (and should) add all hole outer walls.
+    for (unsigned inset_idx = 0; inset_idx < num_parts; ++inset_idx)
+    {
+        if(inset_idx == outermost_wall_index)
+        {
+            continue;
+        }
+        gcode_layer.addWalls(insets[inset_idx], mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+    }
+
     return added_something;
 }
 
 bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part)
 {
-    return false; //TODO: The optimized inset order is broken due to libArachne.
-
     if (!mesh.settings.get<bool>("optimize_wall_printing_order"))
     {
         // Optimization disabled
