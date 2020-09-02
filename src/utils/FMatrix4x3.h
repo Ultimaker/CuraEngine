@@ -20,43 +20,43 @@ class Ratio;
 class FMatrix4x3
 {
 public:
-	/*!
-	 * Create a scaling matrix with a uniform scale.
-	 * \param scale The scale factor that this matrix should apply.
-	 * \param origin The coordinate origin to apply the scale from. If the scale
-	 * is reduced, all coordinates will go towards this origin. If the scale is
-	 * increased, all coordinates will go away from this origin.
-	 */
-	static FMatrix4x3 scale(const Ratio scale, const Point3 origin);
+    /*!
+     * Create a scaling matrix with a uniform scale.
+     * \param scale The scale factor that this matrix should apply.
+     * \param origin The coordinate origin to apply the scale from. If the scale
+     * is reduced, all coordinates will go towards this origin. If the scale is
+     * increased, all coordinates will go away from this origin.
+     */
+    static FMatrix4x3 scale(const Ratio scale, const Point3 origin);
 
-	/*!
-	 * The matrix data, row-endian.
-	 * 
-	 * The first index is the column. The second index is the row.
-	 */
+    /*!
+     * The matrix data, row-endian.
+     * 
+     * The first index is the column. The second index is the row.
+     */
     double m[4][3];
 
-	/*!
-	 * Construct an identity matrix.
-	 */
+    /*!
+     * Construct an identity matrix.
+     */
     FMatrix4x3();
 
-	/*!
-	 * Apply this transformation to a coordinate.
-	 *
-	 * The result will also be converted to an integer-based coordinate
-	 * (``Point3``).
-	 * \param p The coordinate to transform.
-	 * \return A transformed coordinate.
-	 */
+    /*!
+     * Apply this transformation to a coordinate.
+     *
+     * The result will also be converted to an integer-based coordinate
+     * (``Point3``).
+     * \param p The coordinate to transform.
+     * \return A transformed coordinate.
+     */
     Point3 apply(const FPoint3& p) const;
 
-	/*!
-	 * Apply this transformation to a coordinate.
-	 * \param p The coordinate to transform.
-	 * \return A transformed coordinate.
-	 */
-	Point3 apply(const Point3& p) const;
+    /*!
+     * Apply this transformation to a coordinate.
+     * \param p The coordinate to transform.
+     * \return A transformed coordinate.
+     */
+    Point3 apply(const Point3& p) const;
 };
 
 } //namespace cura
