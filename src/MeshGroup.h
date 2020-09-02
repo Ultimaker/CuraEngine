@@ -32,13 +32,13 @@ public:
     void finalize();
 
     /*!
-     * Scale the entire mesh group.
+     * Scale the entire mesh group, with the bottom center as origin point.
      *
      * The mesh group is scaled around the bottom center of its bounding box. So
      * that's the center in the X and Y directions, but Z=0. This simulates the
      * shrinkage while sticking to the build plate.
      */
-    void scale(const Ratio factor);
+    void scaleFromBottom(const Ratio factor);
 };
 
 /*!

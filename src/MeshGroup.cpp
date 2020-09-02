@@ -107,10 +107,10 @@ void MeshGroup::finalize()
         }
         mesh.offset(mesh_offset + meshgroup_offset);
     }
-    scale(settings.get<Ratio>("material_shrinkage_percentage")); //Compensate for the shrinkage of the material.
+    scaleFromBottom(settings.get<Ratio>("material_shrinkage_percentage")); //Compensate for the shrinkage of the material.
 }
 
-void MeshGroup::scale(const Ratio factor)
+void MeshGroup::scaleFromBottom(const Ratio factor)
 {
     const Point3 center = (max() + min()) / 2;
     const Point3 origin(center.x, center.y, 0);
