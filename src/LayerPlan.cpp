@@ -1010,6 +1010,22 @@ void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_id
     }
 }
 
+void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, const GCodePathConfig& path_config)
+{
+    assert(("All empty walls should have been filtered at this stage", !wall.empty()));
+    ExtrusionJunction junction{*wall.begin()};
+    constexpr bool force_retract = false;
+    addTravel(junction.p, force_retract);
+
+    for (const auto &junction_n : wall)
+    {
+        const double flow = junction_n.w / Ratio(path_config.getLineWidth());
+        constexpr SpaceFillType space_fill_type = SpaceFillType::Polygons;
+        addExtrusionMove(junction_n.p, path_config, space_fill_type, flow);
+        junction = junction_n;
+    }
+}
+
 void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     //TODO: Deprecated in favor of ExtrusionJunction version below.
