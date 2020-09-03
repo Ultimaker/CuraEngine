@@ -848,48 +848,76 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
             s.endVertex = nullptr;
             int end_edge_idx = -1;
 
-            if (p0.z < z && p1.z >= z && p2.z >= z)
-            {
-                s = project2D(p0, p2, p1, z);
-                end_edge_idx = 0;
-                if (p1.z == z)
+            /*
+            Now see if the triangle intersects the layer, and if so, where.
+
+            Edge cases are important here:
+            - If all three vertices of the triangle are exactly on the layer,
+              don't count the triangle at all, because if the model is
+              watertight, there will be adjacent triangles on all 3 sides that
+              are not flat on the layer.
+            - If two of the vertices are exactly on the layer, only count the
+              triangle if the last vertex is going up. We can't count both
+              upwards and downwards triangles here, because if the model is
+              manifold there will always be an adjacent triangle that is going
+              the other way and you'd get double edges. You would also get one
+              layer too many if the total model height is an exact multiple of
+              the layer thickness. Between going up and going down, we need to
+              choose the triangles going up, because otherwise the first layer
+              of where the model starts will be empty and the model will float
+              in mid-air. We'd much rather let the last layer be empty in that
+              case.
+            - If only one of the vertices is exactly on the layer, the
+              intersection between the triangle and the plane would be a point.
+              We can't print points and with a manifold model there would be
+              line segments adjacent to the point on both sides anyway, so we
+              need to discard this 0-length line segment then.
+            */
+
+            if (p0.z < z && p1.z > z && p2.z > z)              //  1_______2
+            {                                                  //   \     /
+                s = project2D(p0, p2, p1, z);                  //------------- z
+                end_edge_idx = 0;                              //     \ /
+                if (p1.z == z)                                 //      0
                 {
                     s.endVertex = &v1;
                 }
             }
-            else if (p0.z > z && p1.z < z && p2.z < z)
-            {
-                s = project2D(p0, p1, p2, z);
-                end_edge_idx = 2;
-            }
-            else if (p1.z < z && p0.z >= z && p2.z >= z)
-            {
-                s = project2D(p1, p0, p2, z);
-                end_edge_idx = 1;
-                if (p2.z == z)
+            else if (p0.z > z && p1.z <= z && p2.z <= z)       //      0
+            {                                                  //     / \      .
+                s = project2D(p0, p1, p2, z);                  //------------- z
+                end_edge_idx = 2;                              //   /     \    .
+            }                                                  //  1_______2
+
+            else if (p1.z < z && p0.z > z && p2.z > z)         //  0_______2
+            {                                                  //   \     /
+                s = project2D(p1, p0, p2, z);                  //------------- z
+                end_edge_idx = 1;                              //     \ /
+                if (p2.z == z)                                 //      1
                 {
                     s.endVertex = &v2;
                 }
             }
-            else if (p1.z > z && p0.z < z && p2.z < z)
-            {
-                s = project2D(p1, p2, p0, z);
-                end_edge_idx = 0;
-            }
-            else if (p2.z < z && p1.z >= z && p0.z >= z)
-            {
-                s = project2D(p2, p1, p0, z);
-                end_edge_idx = 2;
-                if (p0.z == z)
+            else if (p1.z > z && p0.z <= z && p2.z <= z)       //      1
+            {                                                  //     / \      .
+                s = project2D(p1, p2, p0, z);                  //------------- z
+                end_edge_idx = 0;                              //   /     \    .
+            }                                                  //  0_______2
+
+            else if (p2.z < z && p1.z > z && p0.z > z)         //  0_______1
+            {                                                  //   \     /
+                s = project2D(p2, p1, p0, z);                  //------------- z
+                end_edge_idx = 2;                              //     \ /
+                if (p0.z == z)                                 //      2
                 {
                     s.endVertex = &v0;
                 }
             }
-            else if (p2.z > z && p1.z < z && p0.z < z)
-            {
-                s = project2D(p2, p0, p1, z);
-                end_edge_idx = 1;
-            }
+            else if (p2.z > z && p1.z <= z && p0.z <= z)       //      2
+            {                                                  //     / \      .
+                s = project2D(p2, p0, p1, z);                  //------------- z
+                end_edge_idx = 1;                              //   /     \    .
+            }                                                  //  0_______1
             else
             {
                 //Not all cases create a segment, because a point of a face could create just a dot, and two touching faces
