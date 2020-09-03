@@ -12,6 +12,7 @@
 namespace cura
 {
 
+
 class ModelVolumes
 {
 public:
@@ -86,7 +87,7 @@ private:
      */
     coord_t ceilRadius(coord_t radius) const;
 
-    Polygons extractOutlineFromMesh(SliceMeshStorage mesh, LayerIndex layer_idx) const;
+    Polygons extractOutlineFromMesh(const SliceMeshStorage& mesh, LayerIndex layer_idx) const;
 
     void calculateCollision( std::deque<RadiusLayerPair> keys );
 
@@ -210,7 +211,7 @@ private:
 
 class SliceDataStorage;
 class SliceMeshStorage;
-
+class ModelVolumes;
 
 
 /*!
@@ -285,23 +286,23 @@ public:
          * \brief Create a new Element for one layer below the element of the pointer supplied.
          */
 
-    	SupportElement(SupportElement* first): //todo rename
-    			target_height(first->target_height),
-    			target_position(first->target_position),
-    			next_position(first->next_position),
-    			next_height(first->next_height),
-    			effective_radius_height(first->effective_radius_height),
-    			to_buildplate(first->to_buildplate),
-				distance_to_top(first->distance_to_top+1),
-				area(first->area),
+    	SupportElement(SupportElement* element_above):
+    			target_height(element_above->target_height),
+    			target_position(element_above->target_position),
+    			next_position(element_above->next_position),
+    			next_height(element_above->next_height),
+    			effective_radius_height(element_above->effective_radius_height),
+    			to_buildplate(element_above->to_buildplate),
+				distance_to_top(element_above->distance_to_top+1),
+				area(element_above->area),
 				result_on_layer(Point(-1,-1)), // set to invalid as we are a new node on a new layer
-				increased_ddt(first->increased_ddt),
-				to_model_gracious(first->to_model_gracious),
-				elephant_foot_increases(first->elephant_foot_increases),
-				use_min_xy_dist(first->use_min_xy_dist),
-				non_gracious_model_contact(first->non_gracious_model_contact)
+				increased_ddt(element_above->increased_ddt),
+				to_model_gracious(element_above->to_model_gracious),
+				elephant_foot_increases(element_above->elephant_foot_increases),
+				use_min_xy_dist(element_above->use_min_xy_dist),
+				non_gracious_model_contact(element_above->non_gracious_model_contact)
     	{
-    		parents={first};
+    		parents={element_above};
     	}
 
     	SupportElement(const SupportElement& first,const SupportElement& second,size_t next_height,Point next_position,coord_t increased_ddt,TreeSupportSettings config):
@@ -436,6 +437,7 @@ public:
     	maximum_move_distance( (angle < TAU / 4) ? (coord_t) (tan(angle) * layer_height) : std::numeric_limits<coord_t>::max()),
     	maximum_move_distance_slow( (angle_slow < TAU / 4) ? (coord_t) (tan(angle_slow) * layer_height) : std::numeric_limits<coord_t>::max()),
     	support_roof_layers(  mesh_group_settings.get<bool>("support_roof_enable") ?round_divide(mesh_group_settings.get<coord_t>("support_roof_height"),layer_height):0),
+    	support_bottom_layers(  mesh_group_settings.get<bool>("support_bottom_enable") ?round_divide(mesh_group_settings.get<coord_t>("support_bottom_height"),layer_height):0),
     	tip_layers(std::max((branch_radius-min_radius) / (support_line_width/3),branch_radius/layer_height)), //ensures lines always stack nicely even if layer height is large
     	diameter_angle_scale_factor(sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius),
     	max_ddt_increase(diameter_angle_scale_factor<=0?std::numeric_limits<coord_t>::max():(mesh_group_settings.get<coord_t>("support_tree_max_radius_increase_by_merges_when_support_to_model"))/(diameter_angle_scale_factor*branch_radius)),
@@ -444,12 +446,13 @@ public:
     	increase_radius_until_layer(increase_radius_until_radius<=branch_radius?tip_layers*(increase_radius_until_radius/branch_radius):(increase_radius_until_radius - branch_radius)/(branch_radius*diameter_angle_scale_factor)),
 		support_rests_on_model(mesh_group_settings.get<ESupportType>("support_type") == ESupportType::EVERYWHERE),
 		xy_distance(mesh_group_settings.get<coord_t>("support_xy_distance")),
-		bp_radius(mesh_group_settings.get<coord_t>("support_tree_bp_radius")),
-		diameter_scale_elephant_foot(std::min(sin(1.04)*layer_height/branch_radius,1.0/(branch_radius / (support_line_width/3)))),
+		bp_radius(mesh_group_settings.get<coord_t>("support_tree_bp_diameter")/2),
+		diameter_scale_elephant_foot(std::min(sin(0.7)*layer_height/branch_radius,1.0/(branch_radius / (support_line_width/2)))),
 		support_overrides(mesh_group_settings.get<SupportDistPriority>("support_xy_overrides_z")),
 		xy_min_distance(support_overrides == SupportDistPriority::Z_OVERRIDES_XY ? mesh_group_settings.get<coord_t>("support_xy_distance_overhang"):xy_distance),
 		z_distance_top_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_top_distance"), layer_height)),
-		z_distance_bottom_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_bottom_distance"), layer_height))
+		z_distance_bottom_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_bottom_distance"), layer_height)),
+		performance_interface_skip_layers(round_up_divide(mesh_group_settings.get<coord_t>("support_interface_skip_height"), layer_height))
     	{
     		layer_start_bp_radius =0;
     		for(coord_t counter=0;branch_radius+branch_radius*counter*diameter_scale_elephant_foot<=bp_radius;counter++){
@@ -484,6 +487,7 @@ public:
 		coord_t maximum_move_distance;
 		coord_t maximum_move_distance_slow;
 		size_t support_roof_layers;
+		size_t support_bottom_layers;
 		size_t tip_layers;
 		double diameter_angle_scale_factor;
 		size_t max_ddt_increase;
@@ -499,6 +503,7 @@ public:
 		coord_t xy_min_distance;
 		size_t z_distance_top_layers;
 		size_t z_distance_bottom_layers;
+		size_t performance_interface_skip_layers;// only relevant at the bottom
 		bool performance_increased_xy_min=false;
     public:
 
@@ -516,7 +521,10 @@ public:
 						min_ddt_to_model == other.min_ddt_to_model &&
 						max_ddt_increase == other.max_ddt_increase &&
 						maximum_move_distance == other.maximum_move_distance &&
-						maximum_move_distance_slow == other.maximum_move_distance_slow;
+						maximum_move_distance_slow == other.maximum_move_distance_slow&&
+						z_distance_bottom_layers == other.z_distance_bottom_layers &&
+						support_line_width == other.support_line_width&&
+						support_overrides == other.support_overrides; //requires new avoidance calculation. Could be changed so it does not, but because i expect that this case happens seldom i dont think it is worth it.
 		}
 		bool hasSameAvoidanceSettings(const TreeSupportSettings& other) const {
 				return  z_distance_bottom_layers == other.z_distance_bottom_layers &&
@@ -535,6 +543,7 @@ public:
 		}
 
 
+
 	    /*!
 	     * \brief Get the Distance to top regarding the real radius this part will have. This is different from distance_to_top, which is can be used to calculate the top most layer of the branch.
 	     * \param elem[in] The SupportElement one wants to know the effectiveDTT
@@ -551,9 +560,9 @@ public:
 	     * \return The radius an element with these attributes would have.
 	     */
     	inline coord_t getRadius(size_t distance_to_top,const double elephant_foot_increases=0)const {
-    		return  distance_to_top<=tip_layers ?min_radius+(branch_radius-min_radius) * distance_to_top/ tip_layers : // tip
+    		return  (distance_to_top<=tip_layers ?min_radius+(branch_radius-min_radius) * distance_to_top/ tip_layers : // tip
     				branch_radius +  //base
-					branch_radius * (distance_to_top-tip_layers) * diameter_angle_scale_factor+  // gradual increase
+					branch_radius * (distance_to_top-tip_layers) * diameter_angle_scale_factor)+  // gradual increase
 					branch_radius * elephant_foot_increases * (std::max(diameter_scale_elephant_foot-diameter_angle_scale_factor,0.0));
     	}
 
