@@ -34,9 +34,11 @@
 //The various stages of the process can be weighted differently in the progress bar.
 //These weights are obtained experimentally.
 #define PROGRESS_PRECALC_COLL 1000
-#define PROGRESS_PRECALC_AVO 6000
+#define PROGRESS_PRECALC_AVO 4000
 #define PROGRESS_GENERATE_NODES 1000
-#define PROGRESS_AREA_CALC 2000
+#define PROGRESS_AREA_CALC 3000
+#define PROGRESS_DRAW_AREAS 1000
+
 #define PROGRESS_TOTAL 10000
 
 #define SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL false
@@ -50,10 +52,29 @@
 
 namespace cura {
 
-
-
 TreeSupport::TreeSupport(const SliceDataStorage& storage) {
+	for(size_t mesh_idx=0;mesh_idx<storage.meshes.size();mesh_idx++){ //group all meshes that can be processed together
+		SliceMeshStorage mesh = storage.meshes[mesh_idx];
 
+		if (!storage.meshes[mesh_idx].settings.get<bool>("support_tree_enable")) {
+			continue;
+		}
+
+		bool added=false;
+		TreeSupportSettings next_settings(mesh.settings);
+		for(size_t idx =0;idx<grouped_meshes.size();idx++){
+			if(next_settings.hasSameInfluenceAreaSettings(grouped_meshes[idx].first)){
+				added=true;
+				grouped_meshes[idx].second.emplace_back(mesh_idx);
+				//handle some settings that are only used for performance reasons. This ensures that a horrible set setting intended to improve performance can not reduce it drastically.
+				grouped_meshes[idx].first.performance_interface_skip_layers=std::min(grouped_meshes[idx].first.performance_interface_skip_layers,next_settings.performance_interface_skip_layers);
+			}
+		}
+		if(!added){
+			grouped_meshes.emplace_back(next_settings,std::vector<size_t>{mesh_idx});
+		}
+
+	}
 }
 
 
@@ -70,24 +91,6 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         return;
     }
 
-	std::vector<std::pair<TreeSupportSettings,std::vector<size_t>>> grouped_meshes;
-	for(size_t mesh_idx=0;mesh_idx<storage.meshes.size();mesh_idx++){ //group all meshes that can be processed together
-		SliceMeshStorage mesh = storage.meshes[mesh_idx];
-		bool added=false;
-		TreeSupportSettings next_settings(mesh.settings);
-		for(size_t idx =0;idx<grouped_meshes.size();idx++){
-			if(next_settings.hasSameInfluenceAreaSettings(grouped_meshes[idx].first)){
-				added=true;
-				grouped_meshes[idx].second.emplace_back(mesh_idx);
-				//handle some settings that are only used for performance reasons. This ensures that a horrible set setting intended to improve performance can not reduce it drastically.
-				grouped_meshes[idx].first.performance_interface_skip_layers=std::min(grouped_meshes[idx].first.performance_interface_skip_layers,next_settings.performance_interface_skip_layers);
-			}
-		}
-		if(!added){
-			grouped_meshes.emplace_back(next_settings,std::vector<size_t>{mesh_idx});
-		}
-
-	}
 	size_t counter=0;
 	for(std::pair<TreeSupportSettings,std::vector<size_t>>processing:grouped_meshes){ //process each combination of meshes
 
@@ -97,6 +100,8 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 		precalculated_support_layers.resize(storage.support.supportLayers.size());
 		log("Processing support tree mesh group %lld of %lld containing %lld meshes.\n",counter+1,grouped_meshes.size(),grouped_meshes[counter].second.size());
 		std::vector<Polygons> exclude(storage.support.supportLayers.size());
+	    auto t_start = std::chrono::high_resolution_clock::now();
+#pragma omp parallel for
 		for(LayerIndex layer_idx=0;layer_idx<coord_t(storage.support.supportLayers.size());layer_idx++){ //get all already existing support areas and exclude them
 			Polygons exlude_at_layer;
 			exlude_at_layer.add(storage.support.supportLayers[layer_idx].support_bottom);
@@ -104,19 +109,18 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 			for(auto part:storage.support.supportLayers[layer_idx].support_infill_parts){
 				exlude_at_layer.add(part.outline);
 			}
-			exclude[layer_idx]=exlude_at_layer;
+			exclude[layer_idx]=exlude_at_layer.unionPolygons();
 		}
 		config=processing.first; //this struct is used to easy retrieve setting. No other function except those in ModelVolumes and generateInitalAreas have knowledge of the existence of multiple meshes being processed.
 
-	    auto t_start = std::chrono::high_resolution_clock::now();
-	    volumes_=ModelVolumes(storage, config.maximum_move_distance, config.maximum_move_distance_slow, processing.second.front(),exclude);
-	    precalculate(storage); //generate avoidance areas
+	    progress_multiplier=1.0/double(grouped_meshes.size());
+	    progress_offset=counter==0?0:PROGRESS_TOTAL*(double(counter)*progress_multiplier);
+	    volumes_=ModelVolumes(storage, config.maximum_move_distance, config.maximum_move_distance_slow, processing.second.front(),progress_multiplier,progress_offset,exclude);
+	    precalculate(storage,processing.second); //generate avoidance areas
 	    auto t_precalc = std::chrono::high_resolution_clock::now();
 
 		for(size_t mesh_idx:processing.second){
-			if (storage.meshes[mesh_idx].settings.get<bool>("support_tree_enable")) {
-				generateInitalAreas(storage.meshes[mesh_idx],move_bounds,storage);
-			}
+			generateInitalAreas(storage.meshes[mesh_idx],move_bounds,storage);
 		}
 
 		auto t_gen = std::chrono::high_resolution_clock::now();
@@ -137,7 +141,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 		auto dur_total = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_draw - t_start ).count();
 		log("Total time used creating Tree support for the currently grouped meshes: %.3lf ms. Different subtasks:\nCalculating Avoidance: %.3lf ms Creating inital influence areas: %.3lf ms Influence area creation: %.3lf ms Placement of Points in InfluenceAreas: %.3lf ms Drawing result as support %.3lf ms\n",dur_total,dur_pre_gen,dur_gen,dur_path,dur_place,dur_draw);
 
-		for (auto &layer : move_bounds) {
+		for (auto& layer : move_bounds) {
 			for (auto elem : layer){
 				delete elem.second;
 				delete elem.first->area;
@@ -153,10 +157,11 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
 
 
-coord_t TreeSupport::precalculate(SliceDataStorage &storage){
+coord_t TreeSupport::precalculate(SliceDataStorage& storage,std::vector<size_t> currently_processing_meshes){
 
 	size_t max_layer=0;
-	for (SliceMeshStorage &mesh : storage.meshes) {
+	for (size_t mesh_idx : currently_processing_meshes) {
+		SliceMeshStorage& mesh = storage.meshes[mesh_idx];
 		const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
 		const coord_t z_distance_top = mesh.settings.get<coord_t>(
 				"support_top_distance");
@@ -1209,11 +1214,10 @@ void TreeSupport::createLayerPathing(std::vector<std::map<SupportElement*,Polygo
 		}
 
 		progress_total+=data_size_inverse * PROGRESS_AREA_CALC;
-		Progress::messageProgress(Progress::Stage::SUPPORT, progress_total,PROGRESS_TOTAL);
-
+		Progress::messageProgress(Progress::Stage::SUPPORT, progress_total*progress_multiplier+progress_offset,PROGRESS_TOTAL);
 	}
 
-    log("Time spent with creating influence areas' subtaks: Increasing areas %lld ms merging areas: %lld ms\n",dur_inc.count()/1000000,dur_merge.count()/1000000);
+    logDebug("Time spent with creating influence areas' subtaks: Increasing areas %lld ms merging areas: %lld ms\n",dur_inc.count()/1000000,dur_merge.count()/1000000);
 
 }
 
@@ -1403,26 +1407,27 @@ void TreeSupport::createNodesFromArea(std::vector<std::map<SupportElement*,Polyg
 void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& move_bounds,SliceDataStorage &storage){
 	//we do most of the things as in the original draw circle but we can improve a few things as we already calculated maximal outer bounds for our tree wall we can now cut areas out of them elliminating the need for a slow difference, using a much faster intersect instead
 	//also we can add the z- bottom distance to precalc
+	double progress_total =PROGRESS_PRECALC_AVO+PROGRESS_PRECALC_COLL+PROGRESS_GENERATE_NODES+PROGRESS_AREA_CALC;
 
-		const Settings &mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-		const size_t wall_count = mesh_group_settings.get<size_t>("support_wall_count");
-		Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
-		for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++) {
-			const AngleRadians angle = static_cast<double>(i) / CIRCLE_RESOLUTION * TAU;
-			branch_circle.emplace_back(cos(angle) * config.branch_radius, sin(angle) * config.branch_radius);
-		}
-		const size_t z_distance_bottom_layers = config.z_distance_bottom_layers;
-		const std::function<SupportElement*(SupportElement*)> getBiggestRadiusParrent=[&](const SupportElement* elem) {
-			SupportElement* ret=nullptr;
-			for(SupportElement* el2:elem->parents){
-				const coord_t rad=config.getRadius(*el2);
-				if(ret==nullptr||rad>config.getRadius(*ret))
-				{
-					ret=el2;
-				}
+	const Settings &mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+	const size_t wall_count = mesh_group_settings.get<size_t>("support_wall_count");
+	Polygon branch_circle; //Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
+	for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++) {
+		const AngleRadians angle = static_cast<double>(i) / CIRCLE_RESOLUTION * TAU;
+		branch_circle.emplace_back(cos(angle) * config.branch_radius, sin(angle) * config.branch_radius);
+	}
+	const size_t z_distance_bottom_layers = config.z_distance_bottom_layers;
+	const std::function<SupportElement*(SupportElement*)> getBiggestRadiusParrent=[&](const SupportElement* elem) {
+		SupportElement* ret=nullptr;
+		for(SupportElement* el2:elem->parents){
+			const coord_t rad=config.getRadius(*el2);
+			if(ret==nullptr||rad>config.getRadius(*ret))
+			{
+				ret=el2;
 			}
-			return  ret;
-		};
+		}
+		return  ret;
+	};
 
 	std::map<SupportElement*,std::pair<SupportElement*,Polygons*>> inverese_tree_order; // in our tree we can only access the parents. We inverse this to be able to access the children.
 	std::vector<std::pair<size_t,std::pair<SupportElement*,Polygons*>>> linear_data; // All SupportElements are put into a layer independent storage (the size_t is the layer number) to improve parallelization. Was added at a point in time where this function had performance issues.
@@ -1448,6 +1453,7 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 
 	std::vector<Polygons> linear_inserts(linear_data.size());
 	std::vector<std::vector<std::pair<size_t,Polygons>>> dropped_down_areas(linear_data.size());
+	const size_t progress_inserts_check_interval=linear_data.size()/10;
 	// parallel iterating over all elements
 #pragma omp parallel for shared(linear_inserts, linear_data, inverese_tree_order)
 	for(coord_t i=0;i<static_cast<coord_t>(linear_data.size());i++){
@@ -1523,6 +1529,15 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 				counter++;
 			}
 		}
+
+		if(i%progress_inserts_check_interval==0){
+#pragma omp critical(progress)
+			{
+				progress_total+=PROGRESS_DRAW_AREAS/20; //half the amount of progress in done in this loop and only 10 samples are reported
+				Progress::messageProgress(Progress::Stage::SUPPORT,progress_total*progress_multiplier+progress_offset ,PROGRESS_TOTAL);
+			}
+		}
+
 	}
 
 	// single threaded combining all elements to the right layers. ONLY COPYS DATA!
@@ -1532,7 +1547,7 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 			precalculated_support_layers[pair.first].add(pair.second);
 		}
 	}
-
+	progress_total=PROGRESS_PRECALC_AVO+PROGRESS_PRECALC_COLL+PROGRESS_GENERATE_NODES+PROGRESS_AREA_CALC+PROGRESS_DRAW_AREAS/2;
 	linear_inserts.clear();
 	linear_data.clear();
 
@@ -1584,6 +1599,12 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 					outline, config.support_line_width, wall_count);
 		}
 
+#pragma omp critical(progress)
+	{
+		progress_total+=PROGRESS_DRAW_AREAS/(2*precalculated_support_layers.size());
+		Progress::messageProgress(Progress::Stage::SUPPORT,progress_total*progress_multiplier+progress_offset ,PROGRESS_TOTAL);
+	}
+
 	#pragma omp critical (support_max_layer_nr)
 			{
 				if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty()
@@ -1602,8 +1623,8 @@ void TreeSupport::drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& mo
 
 
 
-ModelVolumes::ModelVolumes(const SliceDataStorage& storage,const coord_t max_move,const coord_t max_move_slow, size_t current_mesh_idx, const std::vector<Polygons>& additional_excluded_areas):
-		max_move_{std::max(max_move-2,coord_t(0))}, max_move_slow_{std::max(max_move_slow-2,coord_t(0))},machine_border_ { calculateMachineBorderCollision(storage.getMachineBorder()) } // -2 to avoid rounding errors
+ModelVolumes::ModelVolumes(const SliceDataStorage& storage,const coord_t max_move,const coord_t max_move_slow, size_t current_mesh_idx,double progress_multiplier,double progress_offset, const std::vector<Polygons>& additional_excluded_areas):
+		max_move_{std::max(max_move-2,coord_t(0))}, max_move_slow_{std::max(max_move_slow-2,coord_t(0))},progress_multiplier{progress_multiplier},progress_offset{progress_offset},machine_border_ { calculateMachineBorderCollision(storage.getMachineBorder()) } // -2 to avoid rounding errors
 {
 
 	anti_overhang_= std::vector<Polygons>(storage.support.supportLayers.size(),Polygons());
@@ -1762,7 +1783,7 @@ void ModelVolumes::precalculate(coord_t max_layer){
 	auto t_end = std::chrono::high_resolution_clock::now();
 	auto dur_col = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_coll-t_start ).count();
 	auto dur_avo = 0.001* std::chrono::duration_cast<std::chrono::microseconds>( t_end-t_coll ).count();
-	log("Precalc collision took %.3lf ms avoidance took %.3lf ms\n",dur_col,dur_avo);
+	logDebug("Precalc collision took %.3lf ms avoidance took %.3lf ms\n",dur_col,dur_avo);
 }
 
 const Polygons& ModelVolumes::getCollision(coord_t orig_radius,LayerIndex layer_idx,bool min_xy_dist) {
@@ -2021,8 +2042,7 @@ void ModelVolumes::calculateCollision( std::deque<RadiusLayerPair> keys ){ //slo
 				if(precalculated&&precalculation_progress<PROGRESS_PRECALC_COLL){
 
 					precalculation_progress+=PROGRESS_PRECALC_COLL/keys.size();
-					Progress::messageProgress(Progress::Stage::SUPPORT,precalculation_progress ,PROGRESS_TOTAL);
-
+					Progress::messageProgress(Progress::Stage::SUPPORT,precalculation_progress*progress_multiplier+progress_offset ,PROGRESS_TOTAL);
 				}
 			}
 #pragma omp critical(collision_cache_)
@@ -2103,8 +2123,7 @@ void ModelVolumes::calculateAvoidance( std::deque<RadiusLayerPair> keys ){
 				if(precalculated&&precalculation_progress<PROGRESS_PRECALC_COLL+PROGRESS_PRECALC_AVO){
 
 					precalculation_progress+=support_rests_on_model?0.4:1 * PROGRESS_PRECALC_AVO/(keys.size()*2);
-					Progress::messageProgress(Progress::Stage::SUPPORT,precalculation_progress ,PROGRESS_TOTAL);
-
+					Progress::messageProgress(Progress::Stage::SUPPORT,precalculation_progress*progress_multiplier+progress_offset ,PROGRESS_TOTAL);
 				}
 			}
 
@@ -2157,8 +2176,7 @@ void ModelVolumes::calculatePlaceables( std::deque<RadiusLayerPair> keys ){
 				if(precalculated&&precalculation_progress<PROGRESS_PRECALC_COLL+PROGRESS_PRECALC_AVO){
 
 					precalculation_progress+=0.2 * PROGRESS_PRECALC_AVO/(keys.size());
-					Progress::messageProgress(Progress::Stage::SUPPORT,precalculation_progress ,PROGRESS_TOTAL);
-
+					Progress::messageProgress(Progress::Stage::SUPPORT,precalculation_progress*progress_multiplier+progress_offset ,PROGRESS_TOTAL);
 				}
 			}
 
@@ -2222,8 +2240,7 @@ void ModelVolumes::calculateAvoidanceToModel( std::deque<RadiusLayerPair> keys )
 				if(precalculated&&precalculation_progress<PROGRESS_PRECALC_COLL+PROGRESS_PRECALC_AVO){
 
 					precalculation_progress+=0.4 * PROGRESS_PRECALC_AVO/(keys.size()*2);
-					Progress::messageProgress(Progress::Stage::SUPPORT,precalculation_progress ,PROGRESS_TOTAL);
-
+					Progress::messageProgress(Progress::Stage::SUPPORT,precalculation_progress*progress_multiplier+progress_offset ,PROGRESS_TOTAL);
 				}
 			}
 

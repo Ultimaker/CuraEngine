@@ -18,7 +18,7 @@ class ModelVolumes
 public:
 
     ModelVolumes()=default;
-	ModelVolumes(const SliceDataStorage& storage,const coord_t max_move,const coord_t max_move_slow,size_t current_mesh_idx,  const std::vector<Polygons>& additional_excluded_areas=std::vector<Polygons>());
+	ModelVolumes(const SliceDataStorage& storage,const coord_t max_move,const coord_t max_move_slow,size_t current_mesh_idx,double progress_multiplier,double progress_offset,  const std::vector<Polygons>& additional_excluded_areas=std::vector<Polygons>());
     ModelVolumes(ModelVolumes&&) = default;
     ModelVolumes& operator=(ModelVolumes&&) = default;
 
@@ -180,6 +180,8 @@ private:
      * \brief Polygons representing the limits of the printable area of the
      * machine
      */
+	double progress_multiplier;
+	double progress_offset;
     Polygons machine_border_;
     /*!
      * \brief Storage for layer outlines and the corresponding settings of the meshes grouped by meshes with identical setting.
@@ -606,7 +608,7 @@ private:
 	enum class LineStatus{INVALID,TO_MODEL,TO_MODEL_GRACIOUS,TO_BP};
 	using LineInformation=std::vector<std::pair<Point,TreeSupport::LineStatus>>;
 
-	coord_t precalculate(SliceDataStorage &storage);
+	coord_t precalculate(SliceDataStorage& storage,std::vector<size_t> currently_processing_meshes);
     std::vector<LineInformation> convertLinesToInternal(Polygons polylines,coord_t layer_nr);
     Polygons convertInternalToLines(std::vector<TreeSupport::LineInformation> lines);
 
@@ -727,6 +729,8 @@ private:
      */
     void drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& move_bounds,SliceDataStorage& storage);
 
+
+    std::vector<std::pair<TreeSupportSettings,std::vector<size_t>>> grouped_meshes;
     /*!
      * \brief Generator for model collision, avoidance and internal guide volumes
      *
@@ -742,6 +746,8 @@ private:
      */
     TreeSupportSettings config;
 
+    double progress_multiplier=1;
+    double progress_offset=0;
 
 };
 
