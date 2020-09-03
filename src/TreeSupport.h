@@ -94,6 +94,10 @@ private:
     void calculateCollision( RadiusLayerPair key ){
     	calculateCollision(std::deque<RadiusLayerPair>{RadiusLayerPair(key)});
     }
+
+    Polygons safeOffset(const Polygons& me,coord_t distance,ClipperLib::JoinType jt,coord_t max_safe_step_distance,const Polygons& collision)const;
+
+
     void calculateAvoidance( std::deque<RadiusLayerPair> keys );
 
     void calculateAvoidance( RadiusLayerPair key ){
@@ -236,7 +240,7 @@ public:
      * where the resulting support areas are stored.
      */
     void generateSupportAreas(SliceDataStorage& storage);
-    coord_t precalculate(SliceDataStorage &storage);
+
 
     struct TreeSupportSettings; // forward declaration as we need some config values in the merge case
 
@@ -601,24 +605,17 @@ public:
 private:
 	enum class LineStatus{INVALID,TO_MODEL,TO_MODEL_GRACIOUS,TO_BP};
 	using LineInformation=std::vector<std::pair<Point,TreeSupport::LineStatus>>;
-    /*!
-     * \brief Generator for model collision, avoidance and internal guide volumes
-     *
-     * Lazily computes volumes as needed.
-     *  \warning This class is NOT currently thread-safe and should not be accessed in OpenMP blocks
-     */
-    ModelVolumes volumes_;
-    std::vector<Polygons> precalculated_support_layers;
 
-    /*!
-     * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
-     */
-    TreeSupportSettings config;
-
+	coord_t precalculate(SliceDataStorage &storage);
     std::vector<LineInformation> convertLinesToInternal(Polygons polylines,coord_t layer_nr);
     Polygons convertInternalToLines(std::vector<TreeSupport::LineInformation> lines);
 
     std::pair<std::vector<LineInformation>,std::vector<LineInformation>> splitLines(std::vector<LineInformation> lines,size_t current_layer,size_t ddt);//assumes all Points on the current line are valid
+
+    Polygons ensureMaximumDistancePolyline (const Polygons& input, coord_t distance,size_t min_points)const;
+    Polygons toPolylines(const Polygons& poly)const;
+
+
 
     //generates Points where the Model should be supported and creates the areas where these points have to be placed
 
@@ -686,6 +683,7 @@ private:
      * \param new_layer_merge[out] A map of each SupportElement to the area the support could use. This is the influence area offsetted by the radius. This is needed to properly merge influence areas.
      * \param new_layer_to_model[in] Influence areas that do not have to reach the buildplate. This has overlap with new_layer param, as areas that can reach the buildplate also can reach the model.
      * This redundency is required if a to_buildplate influence area is allowed to merge with a to model influence area.
+     * \param new_layer_bypass_merge[out] Influence areas ready to be added to the layer below that do not need merging.
      * \param last_layer[in] Influence areas of the current layer.
      * \param layer_nr[in] Number of the current layer.
      */
@@ -728,6 +726,21 @@ private:
      * \param storage[out ? todo] The storage where the support should be stored.
      */
     void drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& move_bounds,SliceDataStorage& storage);
+
+    /*!
+     * \brief Generator for model collision, avoidance and internal guide volumes
+     *
+     */
+    ModelVolumes volumes_;
+    /*!
+     * \brief Contains support areas that are ready to be added to storage later.
+     */
+    std::vector<Polygons> precalculated_support_layers;
+
+    /*!
+     * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
+     */
+    TreeSupportSettings config;
 
 
 };
