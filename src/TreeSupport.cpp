@@ -327,21 +327,6 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                         const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
                         PolygonUtils::moveOutside(volumes_.getAvoidance(branch_radius_node, layer_nr - 1), next_position, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
                     }
-                    else
-                    {
-                        //Move towards centre of polygon.
-                        const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(node.position, volumes_.getInternalModel(branch_radius_node, layer_nr - 1));
-                        const coord_t distance = vSize(node.position - closest_point_on_border.location);
-                        //Try moving a bit further inside: Current distance + 1 step.
-                        Point moved_inside = next_position;
-                        PolygonUtils::ensureInsideOrOutside(volumes_.getInternalModel(branch_radius_node, layer_nr - 1), moved_inside, closest_point_on_border, distance + maximum_move_distance);
-                        Point difference = moved_inside - node.position;
-                        if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
-                        {
-                            difference = normal(difference, maximum_move_distance);
-                        }
-                        next_position = node.position + difference;
-                    }
 
                     const bool to_buildplate = !volumes_.getAvoidance(branch_radius_node, layer_nr - 1).inside(next_position);
                     Node* next_node = new Node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate, p_node);
@@ -439,21 +424,6 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                     //Avoid collisions.
                     const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
                     PolygonUtils::moveOutside(volumes_.getAvoidance(branch_radius_node, layer_nr - 1), next_layer_vertex, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
-                }
-                else
-                {
-                    //Move towards centre of polygon.
-                    const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(next_layer_vertex, volumes_.getInternalModel(branch_radius_node, layer_nr - 1));
-                    const coord_t distance = vSize(node.position - closest_point_on_border.location);
-                    //Try moving a bit further inside: Current distance + 1 step.
-                    Point moved_inside = next_layer_vertex;
-                    PolygonUtils::ensureInsideOrOutside(volumes_.getInternalModel(branch_radius_node, layer_nr - 1), moved_inside, closest_point_on_border, distance + maximum_move_distance);
-                    Point difference = moved_inside - node.position;
-                    if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
-                    {
-                        difference = normal(difference, maximum_move_distance);
-                    }
-                    next_layer_vertex = node.position + difference;
                 }
 
                 const bool to_buildplate = !volumes_.getAvoidance(branch_radius_node, layer_nr - 1).inside(next_layer_vertex);
