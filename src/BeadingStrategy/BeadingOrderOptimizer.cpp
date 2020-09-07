@@ -13,13 +13,13 @@
 namespace cura
 {
 
-void BeadingOrderOptimizer::optimize(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
+void BeadingOrderOptimizer::optimize(WallToolPaths& polygons_per_index, WallToolPaths& polylines_per_index, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
 {
     BeadingOrderOptimizer optimizer(polylines_per_index);
     optimizer.fuzzyConnect(polygons_per_index, snap_dist, reduce_overlapping_segments, connect_odd_lines_to_polygons);
 }
 
-BeadingOrderOptimizer::BeadingOrderOptimizer(std::vector<std::list<ExtrusionLine>>& polylines_per_index)
+BeadingOrderOptimizer::BeadingOrderOptimizer(WallToolPaths& polylines_per_index)
 : polylines_per_index(polylines_per_index)
 {
     for (auto& polylines : polylines_per_index)
@@ -39,7 +39,7 @@ BeadingOrderOptimizer::BeadingOrderOptimizer(std::vector<std::list<ExtrusionLine
 }
 
 
-void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
+void BeadingOrderOptimizer::fuzzyConnect(WallToolPaths& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
 {
     struct Locator
     {
