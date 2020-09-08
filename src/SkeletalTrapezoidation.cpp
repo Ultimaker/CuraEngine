@@ -1393,7 +1393,7 @@ void SkeletalTrapezoidation::generateSegments()
 
     propagateBeadingsDownward(upward_quad_mids, node_beadings);
     
-    ptr_vector_t<std::vector<ExtrusionJunction>> edge_junctions; // junctions ordered high R to low R
+    ptr_vector_t<LineJunctions> edge_junctions; // junctions ordered high R to low R
     generateJunctions(node_beadings, edge_junctions);
 
     connectJunctions(edge_junctions);
@@ -1571,7 +1571,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     return ret;
 }
 
-void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions)
+void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<LineJunctions>& edge_junctions)
 {
     for (edge_t& edge_ : graph.edges)
     {
@@ -1591,9 +1591,9 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
         }
 
         Beading* beading = &getOrCreateBeading(edge->to, node_beadings)->beading;
-        edge_junctions.emplace_back(std::make_shared<std::vector<ExtrusionJunction>>());
+        edge_junctions.emplace_back(std::make_shared<LineJunctions>());
         edge_.data.setExtrusionJunctions(edge_junctions.back());  // initialization
-        std::vector<ExtrusionJunction>& ret = *edge_junctions.back();
+        LineJunctions& ret = *edge_junctions.back();
 
         assert(beading->total_thickness >= edge->to->data.distance_to_boundary * 2);
 
@@ -1762,7 +1762,7 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
     }
 };
 
-void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions)
+void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_junctions)
 {   
     std::unordered_set<edge_t*> unprocessed_quad_starts(graph.edges.size() * 5 / 2);
     for (edge_t& edge : graph.edges)
@@ -1795,19 +1795,19 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<std::vector<Extrusion
             
             if (! edge_to_peak->data.hasExtrusionJunctions())
             {
-                edge_junctions.emplace_back(std::make_shared<std::vector<ExtrusionJunction>>());
+                edge_junctions.emplace_back(std::make_shared<LineJunctions>());
                 edge_to_peak->data.setExtrusionJunctions(edge_junctions.back());
             }
-            std::vector<ExtrusionJunction> from_junctions = *edge_to_peak->data.getExtrusionJunctions();
+            LineJunctions from_junctions = *edge_to_peak->data.getExtrusionJunctions();
             if (! edge_from_peak->twin->data.hasExtrusionJunctions())
             {
-                edge_junctions.emplace_back(std::make_shared<std::vector<ExtrusionJunction>>());
+                edge_junctions.emplace_back(std::make_shared<LineJunctions>());
                 edge_from_peak->twin->data.setExtrusionJunctions(edge_junctions.back());
             }
-            std::vector<ExtrusionJunction> to_junctions = *edge_from_peak->twin->data.getExtrusionJunctions();
+            LineJunctions to_junctions = *edge_from_peak->twin->data.getExtrusionJunctions();
             if (edge_to_peak->prev)
             {
-                std::vector<ExtrusionJunction> from_prev_junctions = *edge_to_peak->prev->data.getExtrusionJunctions();
+                LineJunctions from_prev_junctions = *edge_to_peak->prev->data.getExtrusionJunctions();
                 if (!from_junctions.empty() && !from_prev_junctions.empty() && from_junctions.back().perimeter_index == from_prev_junctions.front().perimeter_index)
                 {
                     from_junctions.pop_back();
@@ -1818,7 +1818,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<std::vector<Extrusion
             }
             if (edge_from_peak->next)
             {
-                std::vector<ExtrusionJunction> to_next_junctions = *edge_from_peak->next->twin->data.getExtrusionJunctions();
+                LineJunctions to_next_junctions = *edge_from_peak->next->twin->data.getExtrusionJunctions();
                 if (!to_junctions.empty() && !to_next_junctions.empty() && to_junctions.back().perimeter_index == to_next_junctions.front().perimeter_index)
                 {
                     to_junctions.pop_back();

@@ -803,7 +803,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     constexpr size_t dummy_perimeter_id = 0;  // <-- Here, don't care about which perimeter any more.
     const coord_t nominal_line_width = non_bridge_config.getLineWidth();  // <-- The line width which it's 'supposed to' be will be used to adjust the flow ratio each time, this'll give a flow-ratio-multiplier of 1.
 
-    std::vector<ExtrusionJunction> ewall;
+    LineJunctions ewall;
     std::for_each(wall.begin(), wall.end(), [&dummy_perimeter_id, &nominal_line_width, &ewall](const Point& p)
     {
         ewall.emplace_back(p, nominal_line_width, dummy_perimeter_id);
@@ -813,7 +813,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     addWall(ewall, start_idx, mesh, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, true, false);
 }
 
-void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed)
+void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed)
 {
     if(is_closed)
     {
@@ -1010,11 +1010,11 @@ void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, int start_id
     }
 }
 
-void LayerPlan::addWall(const std::vector<ExtrusionJunction>& wall, const GCodePathConfig& path_config)
+void LayerPlan::addWall(const LineJunctions& wall, const GCodePathConfig& path_config,
+                        const bool force_retract)
 {
     assert(("All empty walls should have been filtered at this stage", !wall.empty()));
     ExtrusionJunction junction{*wall.begin()};
-    constexpr bool force_retract = false;
     addTravel(junction.p, force_retract);
 
     for (const auto &junction_n : wall)
@@ -1041,16 +1041,16 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
     }
 }
 
-void LayerPlan::addWalls(const std::vector<std::vector<ExtrusionJunction>>& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWalls(const PathJunctions& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     constexpr bool detect_loops = true;
-    PathOrderOptimizer<const std::vector<ExtrusionJunction>*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops);
-    for(const std::vector<ExtrusionJunction>& wall : walls)
+    PathOrderOptimizer<const LineJunctions*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops);
+    for(const LineJunctions& wall : walls)
     {
         order_optimizer.addPolyline(&wall);
     }
     order_optimizer.optimize();
-    for(const PathOrderOptimizer<const std::vector<ExtrusionJunction>*>::Path& path : order_optimizer.paths)
+    for(const PathOrderOptimizer<const LineJunctions*>::Path& path : order_optimizer.paths)
     {
         addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, path.is_closed, path.backwards);
     }
