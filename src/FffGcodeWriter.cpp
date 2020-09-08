@@ -3,6 +3,7 @@
 
 #include <list>
 #include <limits> // numeric_limits
+#include <algorithm>
 
 #include "Application.h"
 #include "bridge.h"
@@ -1477,7 +1478,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const coord_t infill_line_width = mesh_config.infill_config[0].getLineWidth();
 
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
-    Polygons infill_polygons;
+    Polygons infill_polygons; // Todo: libArachne remove when unused
+    std::vector<WallToolPaths> wall_tool_paths;
     Polygons infill_lines;
 
     const auto pattern = mesh.settings.get<EFillMethod>("infill_pattern");
@@ -1498,34 +1500,34 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     {
         int infill_line_distance_here = infill_line_distance << (density_idx + 1); // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_shift = infill_line_distance_here / 2;
-    /* infill shift explanation: [>]=shift ["]=line_dist
-     :       |       :       |       :       |       :       |         > furthest from top
-     :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
-     : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
-     >>"""""
-     :       |       :       |       :       |       :       |         > furthest from top
-     :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
-     : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
-     >>>>"""""""""
-     :       |       :       |       :       |       :       |         > furthest from top
-     :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
-     : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
-     >>>>>>>>"""""""""""""""""*/
+        /* infill shift explanation: [>]=shift ["]=line_dist
+         :       |       :       |       :       |       :       |         > furthest from top
+         :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+         : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+         >>"""""
+         :       |       :       |       :       |       :       |         > furthest from top
+         :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+         : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+         >>>>"""""""""
+         :       |       :       |       :       |       :       |         > furthest from top
+         :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+         : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+         >>>>>>>>"""""""""""""""""*/
 
         if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D)
         {
-        /* the least dense infill should fill up all remaining gaps
-         :       |       :       |       :       |       :       |       :  > furthest from top
-         :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |   :  > further from top
-         : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | | :  > near top
-           .   .     .       .           .               .       .       .
-           :   :     :       :           :               :       :       :
-           `"""'     `"""""""'           `"""""""""""""""'       `"""""""'
-                                                                     ^   new line distance for lowest density infill
-                                               ^ infill_line_distance_here for lowest density infill up till here
-                         ^ middle density line dist
-             ^   highest density line dist*/
-            
+            /* the least dense infill should fill up all remaining gaps
+             :       |       :       |       :       |       :       |       :  > furthest from top
+             :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |   :  > further from top
+             : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | | :  > near top
+               .   .     .       .           .               .       .       .
+               :   :     :       :           :               :       :       :
+               `"""'     `"""""""'           `"""""""""""""""'       `"""""""'
+                                                                         ^   new line distance for lowest density infill
+                                                   ^ infill_line_distance_here for lowest density infill up till here
+                             ^ middle density line dist
+                 ^   highest density line dist*/
+
             //All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2 for every density index.
             infill_line_distance_here /= 2;
         }
@@ -1586,22 +1588,26 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
                     if (!infill_not_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset)).empty())
                     {
+                        /* The infill walls will be generated twice in this scenario, we might want to consider doing
+                         * some kind of merge operation and performing it one time. For now it assumed that the
+                         * generated walls in this if branch will show not that much variance in line width */
                         constexpr Polygons* perimeter_gaps = nullptr;
                         constexpr bool connected_zigzags = false;
                         constexpr bool use_endpieces = false;
                         constexpr bool skip_some_zags = false;
                         constexpr int zag_skip_count = 0;
+                        constexpr coord_t outline_offset = 0;
+                        const size_t min_wall_line_count = std::max(static_cast<size_t>(1), wall_line_count);
+                        wall_tool_paths.emplace_back(WallToolPaths());
 
                         // infill region with skin above has to have at least one infill wall line
-                        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin, /*outline_offset =*/ 0
-                            , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, std::max(static_cast<unsigned long>(1), wall_line_count), infill_origin
-                            , perimeter_gaps
-                            , connected_zigzags
-                            , use_endpieces
-                            , skip_some_zags
-                            , zag_skip_count
-                            , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-                        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+                        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin,
+                                           outline_offset, infill_line_width, infill_line_distance_here, infill_overlap,
+                                           infill_multiplier, infill_angle, gcode_layer.z, infill_shift,
+                                           min_wall_line_count, infill_origin, perimeter_gaps, connected_zigzags,
+                                           use_endpieces, skip_some_zags, zag_skip_count,
+                                           mesh.settings.get<coord_t>("cross_infill_pocket_size"));
+                        infill_comp.generate(wall_tool_paths.back(), infill_lines, mesh.cross_fill_provider, &mesh);
 
                         // normal processing for the infill that isn't below skin
                         in_outline = infill_not_below_skin;
@@ -1619,18 +1625,25 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         // This is only for density infill, because after generating the infill might appear unnecessary infill on walls
         // especially on vertical surfaces
         in_outline.removeSmallAreas(minimum_small_area);
-        
-        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/ 0
-            , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin
-            , /*Polygons* perimeter_gaps =*/ nullptr
-            , /*bool connected_zigzags =*/ false
-            , /*bool use_endpieces =*/ false
-            , /*bool skip_some_zags =*/ false
-            , /*int zag_skip_count =*/ 0
-            , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+
+        constexpr size_t outline_offset = 0;
+        constexpr Polygons* perimeter_gaps = nullptr;
+        constexpr bool connected_zigzags = false;
+        constexpr bool use_endpieces = false;
+        constexpr bool skip_some_zags = false;
+        constexpr size_t zag_skip_count = 0;
+        wall_tool_paths.emplace_back(WallToolPaths());
+
+        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, outline_offset, infill_line_width,
+                           infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
+                           infill_shift, wall_line_count, infill_origin, perimeter_gaps, connected_zigzags,
+                           use_endpieces, skip_some_zags, zag_skip_count,
+                           mesh.settings.get<coord_t>("cross_infill_pocket_size"));
+        infill_comp.generate(wall_tool_paths.back(), infill_lines, mesh.cross_fill_provider, &mesh);
     }
-    if (!infill_lines.empty() || !infill_polygons.empty())
+
+    const bool walls_generated = std::any_of(wall_tool_paths.cbegin(), wall_tool_paths.cend(), [](WallToolPaths tp){ return !tp.empty(); });
+    if (!infill_lines.empty() || walls_generated)
     {
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
@@ -1645,16 +1658,27 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             }
             else
             {
+                // TODO: libArachne randomize infill walls
                 PolygonRef start_poly = infill_polygons[static_cast<unsigned int>(rand()) % infill_polygons.size()];
                 near_start_location = start_poly[static_cast<unsigned long>(rand()) % start_poly.size()];
             }
         }
-        if (!infill_polygons.empty())
+        if (walls_generated)
         {
-            constexpr bool force_comb_retract = false;
-            // start the infill polygons at the nearest vertex to the current location
-            gcode_layer.addTravel(PolygonUtils::findNearestVert(gcode_layer.getLastPlannedPositionOrStartingPosition(), infill_polygons).p(), force_comb_retract);
-            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
+            for(const WallToolPaths& tool_paths: wall_tool_paths)
+            {
+                BinWallJunctions bins = getBinWallJunctions(wall_line_count, tool_paths);
+                for (const PathJunctions& paths : bins)
+                {
+                    for (const LineJunctions& line : paths)
+                    {
+//                      Todo: do a proper translation of these commands to the addWall
+//                      gcode_layer.addTravel(PolygonUtils::findNearestVert(gcode_layer.getLastPlannedPositionOrStartingPosition(), infill_polygons).p(), force_comb_retract);
+//                      gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
+                        gcode_layer.addWall(line, mesh_config.infill_config[0], false);
+                    }
+                }
+            }
         }
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
