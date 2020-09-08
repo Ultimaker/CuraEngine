@@ -55,22 +55,7 @@ bool InsetOrderOptimizer::optimize()
 bool InsetOrderOptimizer::processInsetsIndexedOrdering()
 {
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
-    const size_t num_insets = mesh.settings.get<size_t>("wall_line_count");
-    std::vector<std::vector<std::vector<ExtrusionJunction>>> insets(num_insets); //Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
-    for(const std::list<ExtrusionLine>& path : part.wall_toolpaths)
-    {
-        if(path.empty()) //Don't bother printing these.
-        {
-            continue;
-        }
-        const size_t inset_index = path.front().inset_idx;
-
-        //Convert list of extrusion lines to vectors of extrusion junctions, and add those to the binned insets.
-        for(const ExtrusionLine& line : path)
-        {
-            insets[inset_index].emplace_back(line.junctions.begin(), line.junctions.end());
-        }
-    }
+    BinWallJunctions insets = getBinWallJunctions(mesh.settings.get<size_t>("wall_line_count"), part.wall_toolpaths);
 
     //If printing the outer inset first, start with the lowest inset.
     //Otherwise start with the highest inset and iterate backwards.
