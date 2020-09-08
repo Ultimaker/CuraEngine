@@ -1498,32 +1498,33 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     {
         int infill_line_distance_here = infill_line_distance << (density_idx + 1); // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_shift = infill_line_distance_here / 2;
-        // infill shift explanation: [>]=shift ["]=line_dist
-// :       |       :       |       :       |       :       |         > furthest from top
-// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
-// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
-// >>"""""
-// :       |       :       |       :       |       :       |         > furthest from top
-// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
-// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
-// >>>>"""""""""
-// :       |       :       |       :       |       :       |         > furthest from top
-// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
-// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
-// >>>>>>>>"""""""""""""""""
+    /* infill shift explanation: [>]=shift ["]=line_dist
+     :       |       :       |       :       |       :       |         > furthest from top
+     :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+     : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+     >>"""""
+     :       |       :       |       :       |       :       |         > furthest from top
+     :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+     : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+     >>>>"""""""""
+     :       |       :       |       :       |       :       |         > furthest from top
+     :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+     : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+     >>>>>>>>"""""""""""""""""*/
 
         if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D)
-        { // the least dense infill should fill up all remaining gaps
-// :       |       :       |       :       |       :       |       :  > furthest from top
-// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |   :  > further from top
-// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | | :  > near top
-//   .   .     .       .           .               .       .       .
-//   :   :     :       :           :               :       :       :
-//   `"""'     `"""""""'           `"""""""""""""""'       `"""""""'
-//                                                             ^   new line distance for lowest density infill
-//                                       ^ infill_line_distance_here for lowest density infill up till here
-//                 ^ middle density line dist
-//     ^   highest density line dist
+        {
+        /* the least dense infill should fill up all remaining gaps
+         :       |       :       |       :       |       :       |       :  > furthest from top
+         :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |   :  > further from top
+         : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | | :  > near top
+           .   .     .       .           .               .       .       .
+           :   :     :       :           :               :       :       :
+           `"""'     `"""""""'           `"""""""""""""""'       `"""""""'
+                                                                     ^   new line distance for lowest density infill
+                                               ^ infill_line_distance_here for lowest density infill up till here
+                         ^ middle density line dist
+             ^   highest density line dist*/
             
             //All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2 for every density index.
             infill_line_distance_here /= 2;
