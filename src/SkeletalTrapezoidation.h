@@ -564,7 +564,7 @@ protected:
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
      */
-    void generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions);
+    void generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<LineJunctions>& edge_junctions);
 
     /*!
      * add a new toolpath segment, defined between two extrusion-juntions
@@ -574,7 +574,7 @@ protected:
     /*!
      * connect junctions in each quad
      */
-    void connectJunctions(ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions);
+    void connectJunctions(ptr_vector_t<LineJunctions>& edge_junctions);
 
     /*!
      * Genrate small segments for local maxima where the beading would only result in a single bead

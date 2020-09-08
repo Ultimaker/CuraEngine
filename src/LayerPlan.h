@@ -601,7 +601,7 @@ public:
      * polyline).
      * \param is_reversed Whether to print this wall in reverse direction.
      */
-    void addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
+    void addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
 
     /*!
      * Add a wall to the g-code
@@ -609,7 +609,7 @@ public:
      * \param wall he wall as ExtrusionJunctions
      * \param path_config The config with which to print the wall lines
      */
-    void addWall(const std::vector<ExtrusionJunction>& wall, const GCodePathConfig& path_config);
+    void addWall(const LineJunctions& wall, const GCodePathConfig& path_config, bool force_retract);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.
@@ -623,7 +623,7 @@ public:
      * \param always_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
      */
     void addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
-    void addWalls(const std::vector<std::vector<ExtrusionJunction>>& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
+    void addWalls(const PathJunctions& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
      * Add lines to the gcode with optimized order.
