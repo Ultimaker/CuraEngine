@@ -27,24 +27,4 @@ void ExtrusionLine::appendJunctionsTo(LineJunctions& result) const
     result.insert(result.end(), junctions.begin(), junctions.end());
 }
 
-BinWallJunctions getBinWallJunctions(const size_t num_insets, const WallToolPaths& wall_toolpaths)
-{
-    BinWallJunctions insets(num_insets); // Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
-    for(const std::list<ExtrusionLine>& path : wall_toolpaths)
-    {
-        if(path.empty()) //Don't bother printing these.
-        {
-            continue;
-        }
-        const size_t inset_index = path.front().inset_idx;
-
-        //Convert list of extrusion lines to vectors of extrusion junctions, and add those to the binned insets.
-        for(const ExtrusionLine& line : path)
-        {
-            insets[inset_index].emplace_back(line.junctions.begin(), line.junctions.end());
-        }
-    }
-    return insets;
-}
-
 }
