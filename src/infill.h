@@ -7,6 +7,7 @@
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
 #include "settings/types/AngleDegrees.h"
+#include "utils/ExtrusionLine.h"
 #include "utils/IntPoint.h"
 
 namespace cura
@@ -25,7 +26,8 @@ class Infill
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
     bool zig_zaggify; //!< Whether to connect the end pieces of the support lines via the wall
     bool connect_polygons; //!< Whether to connect as much polygons together into a single path
-    const Polygons& in_outline; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
+    const Polygons& outline; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
+    Polygons inner_contour; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
     coord_t outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
     coord_t infill_line_width; //!< The line width of the infill lines to generate
     coord_t line_distance; //!< The distance between two infill lines / polygons
@@ -77,7 +79,7 @@ public:
     : pattern(pattern)
     , zig_zaggify(zig_zaggify)
     , connect_polygons(connect_polygons)
-    , in_outline(in_outline)
+    , outline(in_outline)
     , outline_offset(outline_offset)
     , infill_line_width(infill_line_width)
     , line_distance(line_distance)
@@ -106,12 +108,14 @@ public:
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
     void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(ToolPaths& toolpaths, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
     void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void _generate(Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
