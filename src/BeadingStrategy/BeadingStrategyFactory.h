@@ -4,6 +4,8 @@
 #ifndef BEADING_STRATEGY_FACTORY_H
 #define BEADING_STRATEGY_FACTORY_H
 
+#include <memory>
+
 #include "../utils/optional.h"  // until the move to C++17
 
 #include "BeadingStrategy.h"
@@ -38,7 +40,7 @@ std::string to_string(StrategyType type);
 class BeadingStrategyFactory
 {
 public:
-    static BeadingStrategy* makeStrategy(StrategyType type, coord_t preferred_bead_width = MM2INT(0.5), coord_t preferred_transition_length = 400, float transitioning_angle = M_PI / 4, const coord_t* min_bead_width = nullptr, const coord_t* min_feature_size = nullptr, int max_bead_count = -1);
+    static BeadingStrategy* makeStrategy(StrategyType type, coord_t preferred_bead_width = MM2INT(0.5), coord_t preferred_transition_length = 400, float transitioning_angle = M_PI / 4, const std::unique_ptr<coord_t>& min_bead_width = nullptr, const std::unique_ptr<coord_t>& min_feature_size = nullptr, int max_bead_count = -1);
 };
 
 } // namespace cura
