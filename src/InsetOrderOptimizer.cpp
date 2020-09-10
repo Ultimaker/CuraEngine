@@ -6,7 +6,7 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "utils/logoutput.h"
-#include "utils/ExtrusionLine.h"
+#include "WallToolPaths.h"
 
 namespace cura
 {
@@ -56,7 +56,7 @@ bool InsetOrderOptimizer::optimize()
 bool InsetOrderOptimizer::processInsetsIndexedOrdering()
 {
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
-    BinWallJunctions insets = getBinWallJunctions(mesh.settings.get<size_t>("wall_line_count"), part.wall_toolpaths);
+    BinJunctions insets = WallToolPaths::toolPathsToBinJunctions(part.wall_toolpaths, mesh.settings.get<size_t>("wall_line_count"));
 
     //If printing the outer inset first, start with the lowest inset.
     //Otherwise start with the highest inset and iterate backwards.
