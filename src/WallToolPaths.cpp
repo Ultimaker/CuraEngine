@@ -60,7 +60,7 @@ const Polygons& WallToolPaths::getInnerContour()
     }
     // TODO: CURA-7681  -> inner_contour = innerContourFromToolpaths(toolpaths);
     // TODO: Check to make sure if this "correctly generated for now"
-    inner_contour = outline.offset(nominal_bead_width * inset_count);
+    inner_contour = outline.offset(-nominal_bead_width * inset_count);
     return inner_contour;
 }
 
