@@ -9,8 +9,7 @@
 #include "utils/polygonUtils.h"
 
 // libArachne
-#include "SkeletalTrapezoidation.h"
-#include "BeadingStrategy/BeadingStrategyFactory.h"
+#include "WallToolPaths.h"
 
 namespace cura {
 
@@ -125,40 +124,8 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     }
 
     // Call on libArachne:
-
-    const coord_t bead_width = line_width_0; // TODO: for now use only the outer wall line width
-    auto strategy_type = settings.get<StrategyType>("beading_strategy_type");
-
-    coord_t* min_bead_width = nullptr;
-    coord_t* min_feature_size = nullptr;
-    if (settings.get<bool>("widening_beading_enabled"))
-    {
-        min_bead_width = new coord_t(settings.get<coord_t>("min_bead_width"));
-        min_feature_size = new coord_t(settings.get<coord_t>("min_feature_size"));
-    }
-
-    constexpr coord_t epsilon_offset = 10;
-    constexpr coord_t smallest_segment = 50;
-    constexpr coord_t allowed_distance = 50;
-    constexpr float max_colinear_angle = 0.03;  // Way too large   TODO: after we ironed out all the bugs, remove-colinear should go.
-    constexpr float transitioning_angle = 0.5;
-    const double small_area_length = INT2MM(bead_width / 2);
-    const coord_t transition_length = 2 * bead_width;
-
-    Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
-    prepared_outline.simplify(smallest_segment, allowed_distance);
-    prepared_outline.removeColinearEdges(max_colinear_angle);
-    prepared_outline.fixSelfIntersections();
-    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
-    if (prepared_outline.area() > 0)
-    {
-        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, bead_width, transition_length, transitioning_angle, min_bead_width, min_feature_size, 2 * inset_count); // TODO: deal with beading-strats & (their) magic parameters
-        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
-        wall_maker.generateToolpaths(part->wall_toolpaths);
-        delete beading_strat;
-    }
-    delete min_bead_width;
-    delete min_feature_size;
+    WallToolPaths wall_tool_paths(part->outline, line_width_0, inset_count, settings);
+    part->wall_toolpaths = wall_tool_paths.generate();
 }
 
 /*
