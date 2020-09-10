@@ -352,7 +352,6 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         accumulated_area_removed += removed_area_next;
         
         const coord_t length2 = vSize2(current - previous);
-        const coord_t next_length2 = vSize2(current - next);
 
         const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shortcut area polygon
         const coord_t base_length_2 = vSize2(next - previous);
@@ -372,7 +371,6 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
             && LinearAlg2D::getDist2FromLine(current, previous, next) <= 1) // make sure that height_2 is not small because of cancellation of positive and negative areas
             || (length2 < smallest_line_segment_squared
-                && next_length2 < smallest_line_segment_squared // Segments are small
                 && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.
         )
         {
