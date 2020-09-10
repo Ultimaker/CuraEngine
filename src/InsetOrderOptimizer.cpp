@@ -6,6 +6,7 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "utils/logoutput.h"
+#include "utils/ExtrusionLine.h"
 
 namespace cura
 {

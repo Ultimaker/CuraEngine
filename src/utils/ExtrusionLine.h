@@ -67,6 +67,6 @@ using WallToolPaths = std::vector<std::list<ExtrusionLine>>; //<! The wall toolp
  * \param wall_toolpaths the wall_toolpaths
  * \return a bin of WallJunctions
  */
-static BinWallJunctions getBinWallJunctions(size_t num_insets, const WallToolPaths& wall_toolpaths);
+BinWallJunctions getBinWallJunctions(size_t num_insets, const WallToolPaths& wall_toolpaths);
 } // namespace cura
 #endif // UTILS_EXTRUSION_LINE_H
