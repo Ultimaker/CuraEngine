@@ -878,11 +878,8 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
             {                                                  //   \     /
                 s = project2D(p0, p2, p1, z);                  //------------- z
                 end_edge_idx = 0;                              //     \ /
-                if (p1.z == z)                                 //      0
-                {
-                    s.endVertex = &v1;
-                }
-            }
+            }                                                  //      0
+
             else if (p0.z > z && p1.z <= z && p2.z <= z)       //      0
             {                                                  //     / \      .
                 s = project2D(p0, p1, p2, z);                  //------------- z
@@ -893,11 +890,8 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
             {                                                  //   \     /
                 s = project2D(p1, p0, p2, z);                  //------------- z
                 end_edge_idx = 1;                              //     \ /
-                if (p2.z == z)                                 //      1
-                {
-                    s.endVertex = &v2;
-                }
-            }
+            }                                                  //      1
+
             else if (p1.z > z && p0.z <= z && p2.z <= z)       //      1
             {                                                  //     / \      .
                 s = project2D(p1, p2, p0, z);                  //------------- z
@@ -908,11 +902,8 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
             {                                                  //   \     /
                 s = project2D(p2, p1, p0, z);                  //------------- z
                 end_edge_idx = 2;                              //     \ /
-                if (p0.z == z)                                 //      2
-                {
-                    s.endVertex = &v0;
-                }
-            }
+            }                                                  //      2
+
             else if (p2.z > z && p1.z <= z && p0.z <= z)       //      2
             {                                                  //     / \      .
                 s = project2D(p2, p0, p1, z);                  //------------- z
