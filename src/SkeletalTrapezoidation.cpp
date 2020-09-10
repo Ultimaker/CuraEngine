@@ -471,7 +471,7 @@ void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 // vvvvvvvvvvvvvvvvvvvvv
 //
 
-void SkeletalTrapezoidation::generateToolpaths(WallToolPaths& generated_toolpaths, bool filter_outermost_central_edges)
+void SkeletalTrapezoidation::generateToolpaths(ToolPaths& generated_toolpaths, bool filter_outermost_central_edges)
 {
     p_generated_toolpaths = &generated_toolpaths;
 
@@ -1728,7 +1728,7 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
 {
     if (from == to) return;
 
-    WallToolPaths& generated_toolpaths = *p_generated_toolpaths;
+    ToolPaths& generated_toolpaths = *p_generated_toolpaths;
 
     size_t inset_idx = from.perimeter_index;
     if (inset_idx >= generated_toolpaths.size())
@@ -1858,7 +1858,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
 
 void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 {
-    WallToolPaths& generated_toolpaths = *p_generated_toolpaths;
+    ToolPaths& generated_toolpaths = *p_generated_toolpaths;
 
     for (auto& node : graph.nodes)
     {
