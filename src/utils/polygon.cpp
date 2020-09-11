@@ -418,7 +418,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                 if(has_intersection)
                 {
                     // Find out if it is a degenerate intersection.
-                    if(vSize2(current - intersection_point) > allowed_error_distance_squared)
+                    if(LinearAlg2D::getDist2FromLine(intersection_point, previous, current) > allowed_error_distance_squared)
                     {
                         // The intersection is way to far away. Drop it. 
                         continue;
