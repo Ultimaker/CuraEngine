@@ -30,17 +30,27 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
 
 coord_t DistributedBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
-    return bead_count * optimal_width;
+    return (bead_count - 2) * optimal_width_inner + std::min(2LL, bead_count) * optimal_width_outer;
 }
 
 coord_t DistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
-    return lower_bead_count * optimal_width + optimal_width / 2; // TODO: doesnt take min and max width into account
+    // TODO: doesnt take min and max width into account
+    const coord_t optimal_thickness = this->getOptimalThickness(lower_bead_count);
+    return optimal_thickness + (optimal_thickness < 2 ? optimal_width_outer : optimal_width_inner) / 2;
 }
 
 coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    return (thickness + optimal_width / 2) / optimal_width;
+    coord_t thickness_left = thickness;
+    coord_t count = 0;
+    count += std::min(2LL, (thickness + optimal_width_outer / 2) / optimal_width_outer);
+    thickness_left -= count * optimal_width_outer;
+    if ((optimal_width_inner / 2) >= thickness_left)
+    {
+        count += (thickness_left + optimal_width_inner / 2) / optimal_width_inner;
+    }
+    return count;
 }
 
 } // namespace cura

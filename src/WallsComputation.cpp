@@ -125,7 +125,6 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     }
 
     // Call on libArachne:
-    const coord_t bead_width = line_width_0; // TODO: for now use only the outer wall line width
     auto strategy_type = settings.get<StrategyType>("beading_strategy_type");
 
     coord_t* min_bead_width = nullptr;
@@ -137,7 +136,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     }
 
     constexpr float transitioning_angle = 0.5;
-    const coord_t transition_length = 2 * bead_width;
+    const coord_t transition_length = 2 * std::max(line_width_0, line_width_x);
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
     constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
@@ -151,7 +150,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
     if (prepared_outline.area() > 0)
     {
-        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, bead_width, transition_length, transitioning_angle, min_bead_width, min_feature_size, 2 * inset_count); // TODO: deal with beading-strats & (their) magic parameters
+        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, line_width_0, line_width_x, transition_length, transitioning_angle, min_bead_width, min_feature_size, 2 * inset_count); // TODO: deal with beading-strats & (their) magic parameters
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(part->wall_toolpaths);
         delete beading_strat;

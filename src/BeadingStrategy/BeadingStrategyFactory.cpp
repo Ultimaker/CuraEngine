@@ -33,14 +33,14 @@ std::string to_string(StrategyType type)
     }
 }
 
-BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t preferred_bead_width, coord_t preferred_transition_length, float transitioning_angle, const coord_t* min_bead_width, const coord_t* min_feature_size, int max_bead_count)
+BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t preferred_bead_width_outer, coord_t preferred_bead_width_inner, coord_t preferred_transition_length, float transitioning_angle, const coord_t* min_bead_width, const coord_t* min_feature_size, int max_bead_count)
 {
     BeadingStrategy* ret = nullptr;
     switch (type)
     {
-        case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(preferred_bead_width, transitioning_angle);       break;
-        case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(preferred_bead_width, preferred_transition_length, transitioning_angle);     break;
-        case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(preferred_bead_width, preferred_transition_length, transitioning_angle, inward_distributed_center_size);  break;
+        case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, transitioning_angle);       break;
+        case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, preferred_transition_length, transitioning_angle);     break;
+        case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, preferred_transition_length, transitioning_angle, inward_distributed_center_size);  break;
         default:
             logError("Cannot make strategy!\n");
             return nullptr;
