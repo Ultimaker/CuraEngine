@@ -414,16 +414,13 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                 // By taking the intersection of these two lines, we get a point that perseves the direction (so it makes the corner a bit more pointy)
                 Point intersection_point;
                 bool has_intersection = lineLineIntersection(previous_previous, previous, current, next, &intersection_point);
-
-                if(has_intersection)
+                
+                if (!has_intersection || LinearAlg2D::getDist2FromLine(intersection_point, previous, current) > allowed_error_distance_squared)
                 {
-                    // Find out if it is a degenerate intersection.
-                    if(LinearAlg2D::getDist2FromLine(intersection_point, previous, current) > allowed_error_distance_squared)
-                    {
-                        // The intersection is way to far away. Drop it. 
-                        continue;
-                    }
-                    
+                    continue; // We coulnd't find a new place to combine the previous and current vertex, so remove the current vertex.
+                }
+                else
+                {
                     // New point seems like a valid one.
                     current = intersection_point;
                     
@@ -436,10 +433,6 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                     {
                         continue;
                     }
-                }
-                else
-                {
-                    continue; // We coulnd't find a new place for this, so remove the vertex.
                 }
             }
             else
