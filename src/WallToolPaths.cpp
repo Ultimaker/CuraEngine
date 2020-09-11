@@ -63,8 +63,9 @@ const Polygons& WallToolPaths::getInnerContour()
     // TODO: Check to make sure if this "correctly generated for now"
     if (inner_contour.empty())
     {
-        const auto offset_distance = nominal_bead_width * inset_count;
+        const coord_t offset_distance = nominal_bead_width * inset_count;
         inner_contour = outline.offset(-offset_distance);
+        inner_contour.simplify();
     }
     return inner_contour;
 }
