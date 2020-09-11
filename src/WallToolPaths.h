@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef CURAENGINE_WALLTOOLPATHS_H
 #define CURAENGINE_WALLTOOLPATHS_H
@@ -15,8 +15,8 @@ namespace cura
 {
 class WallToolPaths
 {
-  public:
-    WallToolPaths(const Polygons& outline, coord_t nominal_bead_width, size_t inset_count, const Settings& settings);
+public:
+    WallToolPaths(const Polygons& outline, coord_t nominal_bead_width, coord_t inset_count, const Settings& settings);
 
     const ToolPaths& generate();
 
@@ -30,10 +30,10 @@ class WallToolPaths
 
     static Polygons innerContourFromToolpaths(const ToolPaths& toolpaths);
 
-  private:
+private:
     const Polygons& outline;
     const coord_t nominal_bead_width;
-    const size_t inset_count;
+    const coord_t inset_count;
     const StrategyType strategy_type;
     const bool widening_beading_enabled;
     std::unique_ptr<coord_t> min_bead_width;
@@ -44,19 +44,7 @@ class WallToolPaths
     ToolPaths toolpaths;
     Polygons inner_contour;
     BinJunctions binJunctions;
-
-
-//    /*!
-// * Convert the wall_toolpaths generated with libArachne to a bin of WallJunctions such that the are easily added to
-// * LayerPlan
-// * \param num_insets number of insets
-// * \param wall_toolpaths the wall_toolpaths
-// * \return a bin of WallJunctions
-//     */
-//    BinJunctions getBinWallJunctions(size_t num_insets, const ToolPaths& wall_toolpaths);
-//
-//    void generateWallToolPaths(ToolPaths& wall_toolpaths, const Polygons& outline, const Settings& settings);
 };
-}
+} // namespace cura
 
 #endif // CURAENGINE_WALLTOOLPATHS_H
