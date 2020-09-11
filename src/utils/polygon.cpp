@@ -295,6 +295,34 @@ Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, d
     return ret;
 }
 
+bool lineLineIntersection(Point A, Point B, Point C, Point D, Point* output)
+{
+    // Line AB represented as a1x + b1y = c1
+    double a1 = B.Y - A.Y;
+    double b1 = A.X - B.X;
+    double c1 = a1*(A.X) + b1*(A.Y);
+
+    // Line CD represented as a2x + b2y = c2
+    double a2 = D.Y - C.Y;
+    double b2 = C.X - D.X;
+    double c2 = a2*(C.X)+ b2*(C.Y);
+
+    double determinant = a1 * b2 - a2 * b1;
+
+    if (determinant == 0)
+    {
+        // The lines are parallel
+        return false;
+    }
+    else
+    {
+        output->X = (b2 * c1 - b1 * c2) / determinant;
+        output->Y = (a1 * c2 - a2 * c1) / determinant;
+        return true;
+    }
+}
+
+
 void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared)
 {
     if (size() < 3)
@@ -309,6 +337,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
 
     ClipperLib::Path new_path;
     Point previous = path->back();
+    Point previous_previous = path->at(path->size() -3);
     Point current = path->at(0);
 
     /* When removing a vertex, we check the height of the triangle of the area
@@ -352,6 +381,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         accumulated_area_removed += removed_area_next;
         
         const coord_t length2 = vSize2(current - previous);
+        const coord_t next_length2 = vSize2(current - next);
 
         const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shortcut area polygon
         const coord_t base_length_2 = vSize2(next - previous);
@@ -369,20 +399,63 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
         if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
-            && LinearAlg2D::getDist2FromLine(current, previous, next) <= 1) // make sure that height_2 is not small because of cancellation of positive and negative areas
-            || (length2 < smallest_line_segment_squared
-                && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.
-        )
+            && LinearAlg2D::getDist2FromLine(current, previous, next) <= 1)) // make sure that height_2 is not small because of cancellation of positive and negative areas
         {
-            continue; //Remove the vertex.
+            continue;
+        }
+  
+        if (length2 < smallest_line_segment_squared
+            && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.) // removing the vertex doesn't introduce too much error.
+        {
+            if(next_length2 > smallest_line_segment_squared)
+            {
+                // Special case; The next line is long. If we were to remove this, it could happen that we get quite noticeable artifacts.
+                // We should instead move this point to a location where both edges are kept and then remove the previous point that we wanted to keep.
+                // By taking the intersection of these two lines, we get a point that perseves the direction (so it makes the corner a bit more pointy)
+                Point intersection_point;
+                bool has_intersection = lineLineIntersection(previous_previous, previous, current, next, &intersection_point);
+
+                if(has_intersection)
+                {
+                    // Find out if it is a degenerate intersection.
+                    if(vSize2(current - intersection_point) > allowed_error_distance_squared)
+                    {
+                        // The intersection is way to far away. Drop it. 
+                        continue;
+                    }
+                    
+                    // New point seems like a valid one.
+                    current = intersection_point;
+                    
+                    // If there was a previous point added, remove it.
+                    if(new_path.size() > 0)
+                    {
+                        new_path.pop_back();
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    continue; // We coulnd't find a new place for this, so remove the vertex.
+                }
+            }
+            else
+            {
+                continue; //Remove the vertex.
+            }
         }
 
         //Don't remove the vertex.
-
         accumulated_area_removed = removed_area_next; // so that in the next iteration it's the area between the origin, [previous] and [current]
+        previous_previous = previous;
         previous = current; //Note that "previous" is only updated if we don't remove the vertex.
         new_path.push_back(current);
     }
+    
+
     *path = new_path;
 }
 
