@@ -405,7 +405,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         }
   
         if (length2 < smallest_line_segment_squared
-            && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.) // removing the vertex doesn't introduce too much error.
+            && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.)
         {
             if(next_length2 > smallest_line_segment_squared)
             {
