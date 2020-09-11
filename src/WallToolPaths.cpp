@@ -3,7 +3,6 @@
 
 #include "WallToolPaths.h"
 
-#include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "SkeletalTrapezoidation.h"
 #include "utils/polygonUtils.h"
 
@@ -11,7 +10,7 @@ namespace cura
 {
 constexpr coord_t transition_length_multiplier = 2;
 
-WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count,
+WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const coord_t inset_count,
                              const Settings& settings)
     : outline(outline)
     , nominal_bead_width(nominal_bead_width)
@@ -31,8 +30,6 @@ const ToolPaths& WallToolPaths::generate()
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
     constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
-    // TODO: after we ironed out all the bugs, remove-colinear should go.
-    constexpr float max_colinear_angle = 0.03; // Way too large
     constexpr float transitioning_angle = 0.5;
 
     Polygons prepared_outline = outline.offset(-epsilon_offset).offset(epsilon_offset);
@@ -40,14 +37,16 @@ const ToolPaths& WallToolPaths::generate()
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
     prepared_outline.removeColinearEdges();
-    // TODO: complete guess as to when arachne starts breaking, but it doesn't  function well when an area is really small apearantly?
+    // TODO: complete guess as to when arachne starts breaking, but it doesn't  function well when an area is really
+    // small apparently?
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
 
     if (prepared_outline.area() > 0)
     {
+        const coord_t max_bead_count = 2 * inset_count;
         const auto beading_strat = std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy(
             strategy_type, nominal_bead_width, transition_length, transitioning_angle, min_bead_width, min_feature_size,
-            2 * inset_count)); // TODO: deal with beading-strats & (their) magic parameters
+            max_bead_count)); // TODO: deal with beading-strats & (their) magic parameters
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(toolpaths);
     }
@@ -62,7 +61,11 @@ const Polygons& WallToolPaths::getInnerContour()
     }
     // TODO: CURA-7681  -> inner_contour = innerContourFromToolpaths(toolpaths);
     // TODO: Check to make sure if this "correctly generated for now"
-    inner_contour = outline.offset(-nominal_bead_width * inset_count);
+    if (inner_contour.empty())
+    {
+        const auto offset_distance = nominal_bead_width * inset_count;
+        inner_contour = outline.offset(-offset_distance);
+    }
     return inner_contour;
 }
 
@@ -81,10 +84,10 @@ const BinJunctions& WallToolPaths::getBinJunctions()
     return binJunctions;
 }
 
-BinJunctions WallToolPaths::toolPathsToBinJunctions(const ToolPaths& toolpaths, coord_t num_insets)
+BinJunctions WallToolPaths::toolPathsToBinJunctions(const ToolPaths& toolpaths, const coord_t num_insets)
 {
-    BinJunctions insets(
-        num_insets); // Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
+    // Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
+    BinJunctions insets(static_cast<size_t>(num_insets));
     for (const std::list<ExtrusionLine>& path : toolpaths)
     {
         if (path.empty()) // Don't bother printing these.
