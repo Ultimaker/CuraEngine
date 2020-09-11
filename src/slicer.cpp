@@ -1037,7 +1037,7 @@ std::vector<std::pair<int32_t, int32_t>> Slicer::buildZHeightsForFaces(const Mes
         Point3 p1 = v1.p;
         Point3 p2 = v2.p;
 
-        // find the minimum and maximum z point		
+        // find the minimum and maximum z point
         int32_t minZ = p0.z;
         if (p1.z < minZ) 
         {

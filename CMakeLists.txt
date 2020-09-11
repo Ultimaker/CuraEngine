@@ -1,4 +1,4 @@
-#Copyright (c) 2019 Ultimaker B.V.
+#Copyright (c) 2020 Ultimaker B.V.
 #CuraEngine is released under the terms of the AGPLv3 or higher.
 
 cmake_minimum_required(VERSION 3.6.0)
@@ -196,6 +196,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
     src/utils/Date.cpp
+    src/utils/FMatrix4x3.cpp
     src/utils/gettime.cpp
     src/utils/getpath.cpp
     src/utils/LinearAlg2D.cpp
