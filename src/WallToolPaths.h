@@ -32,6 +32,12 @@ public:
     const ToolPaths& generate();
 
     /*!
+     * Gets the toolpaths, if this called before \p generate() it will first generate the Toolpaths
+     * \return a reference to the toolpaths
+     */
+    const ToolPaths& getToolPaths();
+
+    /*!
      * Gets the inner contour of the area which is inside of the generated ToolPaths. This is for now a simple offset
      * of the outline. But after the implementation of CURA-7681 this will return the actual inside contour.
      * If this is called before \p generate() it will first generate the ToolPaths

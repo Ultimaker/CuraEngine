@@ -53,6 +53,15 @@ const ToolPaths& WallToolPaths::generate()
     return toolpaths;
 }
 
+const ToolPaths& WallToolPaths::getToolPaths()
+{
+    if (!toolpaths_generated)
+    {
+        return generate();
+    }
+    return toolpaths;
+}
+
 const Polygons& WallToolPaths::getInnerContour()
 {
     if (!toolpaths_generated)
