@@ -141,16 +141,19 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     constexpr coord_t allowed_distance = 50;
     constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
 
+    // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self instersections allowed:
+    // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
     const double small_area_length = INT2MM(line_width_0 / 2);
     Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
     prepared_outline.simplify(smallest_segment, allowed_distance);
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
     prepared_outline.removeColinearEdges();
-    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false); // TODO: complete guess as to when arachne starts breaking, but it doesn't function well when an area is really small apearantly?
+    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
     if (prepared_outline.area() > 0)
     {
-        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, line_width_0, line_width_x, transition_length, transitioning_angle, min_bead_width, min_feature_size, 2 * inset_count); // TODO: deal with beading-strats & (their) magic parameters
+        // If there are indeed walls to generate, choose a beading-strategy and use libArachne to generate the toolpaths:
+        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, line_width_0, line_width_x, transition_length, transitioning_angle, min_bead_width, min_feature_size, 2 * inset_count);
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(part->wall_toolpaths);
         delete beading_strat;
