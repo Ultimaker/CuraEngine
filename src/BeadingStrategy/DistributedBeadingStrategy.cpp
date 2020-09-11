@@ -30,7 +30,7 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
 
 coord_t DistributedBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
-    return (bead_count - 2) * optimal_width_inner + std::min(2LL, bead_count) * optimal_width_outer;
+    return std::max(0LL, (bead_count - 2)) * optimal_width_inner + std::min(2LL, bead_count) * optimal_width_outer;
 }
 
 coord_t DistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
@@ -46,7 +46,7 @@ coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
     coord_t count = 0;
     count += std::min(2LL, (thickness + optimal_width_outer / 2) / optimal_width_outer);
     thickness_left -= count * optimal_width_outer;
-    if ((optimal_width_inner / 2) >= thickness_left)
+    if (thickness_left >= (optimal_width_inner / 2))
     {
         count += (thickness_left + optimal_width_inner / 2) / optimal_width_inner;
     }
