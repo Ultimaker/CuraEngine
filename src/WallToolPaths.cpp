@@ -5,6 +5,7 @@
 
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "SkeletalTrapezoidation.h"
+#include "utils/polygonUtils.h"
 
 namespace cura
 {
@@ -27,17 +28,18 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
 
 const ToolPaths& WallToolPaths::generate()
 {
-    constexpr coord_t epsilon_offset = 10;
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
+    constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
     // TODO: after we ironed out all the bugs, remove-colinear should go.
     constexpr float max_colinear_angle = 0.03; // Way too large
     constexpr float transitioning_angle = 0.5;
 
     Polygons prepared_outline = outline.offset(-epsilon_offset).offset(epsilon_offset);
     prepared_outline.simplify(smallest_segment, allowed_distance);
-    prepared_outline.removeColinearEdges(max_colinear_angle);
-    prepared_outline.fixSelfIntersections();
+    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
+    prepared_outline.removeDegenerateVerts();
+    prepared_outline.removeColinearEdges();
     // TODO: complete guess as to when arachne starts breaking, but it doesn't  function well when an area is really small apearantly?
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
 

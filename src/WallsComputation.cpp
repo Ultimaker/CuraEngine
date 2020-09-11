@@ -5,8 +5,6 @@
 #include "sliceDataStorage.h"
 #include "WallsComputation.h"
 #include "settings/types/Ratio.h"
-#include "settings/EnumSettings.h"
-#include "utils/polygonUtils.h"
 
 // libArachne
 #include "WallToolPaths.h"
