@@ -12,16 +12,12 @@ StrategyType toStrategyType(char c)
 {
     switch (c)
     {
-        case 'n':
-            return StrategyType::Naive;
         case 'r':
             return StrategyType::Center;
         case 'd':
             return StrategyType::Distributed;
         case 'i':
             return StrategyType::InwardDistributed;
-        case 'l':
-            return StrategyType::LimitedDistributed;
     }
     return StrategyType::COUNT;
 }
@@ -30,11 +26,9 @@ std::string to_string(StrategyType type)
 {
     switch (type)
     {
-        case StrategyType::Naive:              return "Naive";
         case StrategyType::Center:             return "CenterDeviation";
         case StrategyType::Distributed:        return "Distributed";
         case StrategyType::InwardDistributed:  return "InwardDistributed";
-        case StrategyType::LimitedDistributed: return "LimitedDistributed";  //TODO: Remove it as it is the same as Distributed + Limited meta-strategy
         default: return "unknown_strategy";
     }
 }
@@ -44,11 +38,9 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t
     BeadingStrategy* ret = nullptr;
     switch (type)
     {
-        case StrategyType::Naive:              ret = new NaiveBeadingStrategy(preferred_bead_width);                                      break;
         case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(preferred_bead_width, transitioning_angle);       break;
         case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(preferred_bead_width, preferred_transition_length, transitioning_angle);     break;
         case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(preferred_bead_width, preferred_transition_length, transitioning_angle, inward_distributed_center_size);  break;
-        case StrategyType::LimitedDistributed: ret = new LimitedDistributedBeadingStrategy(preferred_bead_width, preferred_transition_length, max_bead_count, transitioning_angle); break;
         default:
             logError("Cannot make strategy!\n");
             return nullptr;

@@ -26,7 +26,6 @@
 #include "BeadingStrategyHelper.h"
 
 #include "utils/VoronoiUtils.h"
-#include "NaiveBeadingStrategy.h"
 #include "BeadingOrderOptimizer.h"
 #include "GcodeWriter.h"
 
@@ -377,11 +376,7 @@ void test(std::string input_outline_filename, std::string output_prefix)
     }
     for (StrategyType type : strategies )
     {
-        if (type == StrategyType::Naive)
-        {
-            testNaive(polys, nozzle_size, output_prefix, generate_gcodes, analyse);
-        }
-        else if (type == StrategyType::COUNT)
+        if (type == StrategyType::COUNT)
         {
             std::cerr << "Trying to perform unknown strategy type!\n";
         }

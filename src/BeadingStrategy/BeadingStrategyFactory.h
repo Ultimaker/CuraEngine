@@ -8,11 +8,9 @@
 
 #include "BeadingStrategy.h"
 #include "InwardDistributedBeadingStrategy.h"
-#include "LimitedDistributedBeadingStrategy.h"
 #include "LimitedBeadingStrategy.h"
 #include "CenterDeviationBeadingStrategy.h"
 #include "WideningBeadingStrategy.h"
-#include "NaiveBeadingStrategy.h"
 #include "DistributedBeadingStrategy.h"
 
 namespace cura
@@ -22,11 +20,9 @@ extern double inward_distributed_center_size;
 
 enum class StrategyType
 {
-    Naive,
     Center,
     Distributed,
     InwardDistributed,
-    LimitedDistributed,
     None,
     COUNT
 };
