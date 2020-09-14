@@ -59,7 +59,7 @@ public:
     Polygons outline_gaps; //!< The gaps between the outline of the mesh and the first wall. a.k.a. thin walls.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
 
-    ToolPaths wall_toolpaths;  //!< toolpaths for walls, will replace(?) the insets
+    VariableWidthPath wall_toolpaths;  //!< toolpaths for walls, will replace(?) the insets
 
     /*!
      * The areas inside of the mesh.

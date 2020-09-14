@@ -13,13 +13,13 @@
 namespace cura
 {
 
-void BeadingOrderOptimizer::optimize(ToolPaths& polygons_per_index, ToolPaths& polylines_per_index, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
+void BeadingOrderOptimizer::optimize(VariableWidthPath& polygons_per_index, VariableWidthPath& polylines_per_index, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
 {
     BeadingOrderOptimizer optimizer(polylines_per_index);
     optimizer.fuzzyConnect(polygons_per_index, snap_dist, reduce_overlapping_segments, connect_odd_lines_to_polygons);
 }
 
-BeadingOrderOptimizer::BeadingOrderOptimizer(ToolPaths& polylines_per_index)
+BeadingOrderOptimizer::BeadingOrderOptimizer(VariableWidthPath& polylines_per_index)
 : polylines_per_index(polylines_per_index)
 {
     for (auto& polylines : polylines_per_index)
@@ -39,7 +39,7 @@ BeadingOrderOptimizer::BeadingOrderOptimizer(ToolPaths& polylines_per_index)
 }
 
 
-void BeadingOrderOptimizer::fuzzyConnect(ToolPaths& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
+void BeadingOrderOptimizer::fuzzyConnect(VariableWidthPath& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
 {
     struct Locator
     {

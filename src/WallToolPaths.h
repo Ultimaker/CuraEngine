@@ -29,13 +29,13 @@ public:
      * Generates the Toolpaths
      * \return A reference to the newly create  ToolPaths
      */
-    const ToolPaths& generate();
+    const VariableWidthPath& generate();
 
     /*!
      * Gets the toolpaths, if this called before \p generate() it will first generate the Toolpaths
      * \return a reference to the toolpaths
      */
-    const ToolPaths& getToolPaths();
+    const VariableWidthPath& getToolPaths();
 
     /*!
      * Gets the inner contour of the area which is inside of the generated ToolPaths. This is for now a simple offset
@@ -64,14 +64,14 @@ public:
      * \param num_insets The maximum number of parallel extrusion lines in the walls
      * \return A bin of walls, consisting of a vector of paths consisting of vector of lines
      */
-    static BinJunctions toolPathsToBinJunctions(const ToolPaths& toolpaths, coord_t num_insets);
+    static BinJunctions toolPathsToBinJunctions(const VariableWidthPath& toolpaths, coord_t num_insets);
 
     /*!
      * Obtains the inner contour of the generated ToolPaths. Not yet implemented. See CURA-7681
      * \param toolpaths the toolpaths used to determine the inner contour
      * \return
      */
-    static Polygons innerContourFromToolpaths(const ToolPaths& toolpaths);
+    static Polygons innerContourFromToolpaths(const VariableWidthPath& toolpaths);
 
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
@@ -84,7 +84,7 @@ private:
     const double small_area_length; //<! The length of the small features which are to be filtered out, this is squared into a surface
     const coord_t transition_length; //<! The transitioning length when the amount of extrusion lines changes
     bool toolpaths_generated; //<! Are the toolpaths generated
-    ToolPaths toolpaths; //<! The generated toolpaths
+    VariableWidthPath toolpaths; //<! The generated toolpaths
     Polygons inner_contour;  //<! The inner contour of the generated toolpaths
     BinJunctions binJunctions;  //<! A bin of generated walls which are a vector of path which is a vector of extrusion junctions
 };

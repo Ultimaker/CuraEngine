@@ -25,7 +25,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
 {
 }
 
-const ToolPaths& WallToolPaths::generate()
+const VariableWidthPath& WallToolPaths::generate()
 {
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
@@ -54,7 +54,7 @@ const ToolPaths& WallToolPaths::generate()
     return toolpaths;
 }
 
-const ToolPaths& WallToolPaths::getToolPaths()
+const VariableWidthPath& WallToolPaths::getToolPaths()
 {
     if (!toolpaths_generated)
     {
@@ -95,7 +95,7 @@ const BinJunctions& WallToolPaths::getBinJunctions()
     return binJunctions;
 }
 
-BinJunctions WallToolPaths::toolPathsToBinJunctions(const ToolPaths& toolpaths, const coord_t num_insets)
+BinJunctions WallToolPaths::toolPathsToBinJunctions(const VariableWidthPath& toolpaths, const coord_t num_insets)
 {
     // Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
     BinJunctions insets(static_cast<size_t>(num_insets));
@@ -116,7 +116,7 @@ BinJunctions WallToolPaths::toolPathsToBinJunctions(const ToolPaths& toolpaths, 
     return insets;
 }
 
-Polygons WallToolPaths::innerContourFromToolpaths(const ToolPaths& toolpaths)
+Polygons WallToolPaths::innerContourFromToolpaths(const VariableWidthPath& toolpaths)
 {
     // TODO: CURA-7681
     return Polygons();
