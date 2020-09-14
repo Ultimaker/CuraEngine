@@ -52,7 +52,8 @@ void Infill::generate(VariableWidthPath& toolpaths, Polygons& result_lines, cons
     }
     WallToolPaths wall_toolpaths(outline, infill_line_width, wall_line_count, mesh->settings);
     toolpaths = wall_toolpaths.generate();
-    inner_contour.add(wall_toolpaths.getInnerContour());
+    outline_offset -= wall_line_count * infill_line_width;
+    inner_contour.add(outline); // TODO: use innerContour once inmplemented, requires changes in a lot of generate.. functions
 
     Polygons generated_result_lines;
     _generate(generated_result_lines, cross_fill_provider, mesh);
@@ -288,33 +289,37 @@ void Infill::multiplyInfill(Polygons& result_lines)
     assert(("concentric not yet supported", pattern != EFillMethod::CONCENTRIC));
 
     const bool odd_multiplier = infill_multiplier % 2 == 1;
-    const coord_t offset = odd_multiplier ? infill_line_width : infill_line_width / 2;
 
     if (zig_zaggify && !odd_multiplier)
     {
         outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
     }
-    const Polygons infill_line_contour = inner_contour.offset(static_cast<int>(outline_offset));
+    const Polygons infill_line_contour = outline.offset(outline_offset);
 
-    auto calc_first_offset = [](const Polygons& lines, const Polygons& in_contour, const Polygons& contour, const coord_t offset, const bool zigzaggify)
+    auto calc_first_offset = [](const Polygons& lines, const Polygons& in_contour, const Polygons& out_contour, const coord_t offset, const bool zigzaggify)
     {
-      const Polygons offset_lines = lines.offsetPolyLine(static_cast<int>(offset));
-      Polygons first_offset = offset_lines.unionPolygons(in_contour.difference(contour));
-      if (zigzaggify) // false when even
+      const Polygons offset_lines = lines.offsetPolyLine(offset);
+      if (zigzaggify)
       {
+          // FIXME: help!
+          const Polygons inward = in_contour.offset(offset);
+          const Polygons outward = out_contour.offset(-offset);
+          const Polygons offset_polygons = inward.difference(outward);
+          Polygons first_offset = offset_lines.unionPolygons(offset_polygons);
           return in_contour.difference(first_offset);
       }
-      return first_offset;
+      return offset_lines;
     };
+    const coord_t offset = odd_multiplier ? infill_line_width : infill_line_width / 2;
     const Polygons first_offset = calc_first_offset(result_lines, infill_line_contour, outline, offset, zig_zaggify);
 
     Polygons result;
     result.add(first_offset);
 
-    Polygons reference_polygons = first_offset;
     const auto extra_infill_lines = static_cast<size_t>(infill_multiplier / 2);
     if (extra_infill_lines > 1)
     {
+        Polygons reference_polygons = first_offset;
         for (size_t infill_line = 1; infill_line < extra_infill_lines; ++infill_line) // 2 because we are making lines on both sides at the same time
         {
             Polygons extra_offset = reference_polygons.offset(infill_line_width);
@@ -323,45 +328,42 @@ void Infill::multiplyInfill(Polygons& result_lines)
         }
     }
 
+    if (zig_zaggify)
+    {
+        result = result.intersection(infill_line_contour);
+    }
+
     if (!odd_multiplier)
     {
         result_lines.clear();
     }
 
-    Polygons result_polygons;
-    result_polygons.add(result);
-    if (zig_zaggify)
-    {
-        result = result.intersection(infill_line_contour);
-    }
-    else
-    {
-        for (PolygonRef poly : result_polygons)
-        { // make polygons into polylines
-            if (poly.empty())
-            {
-                continue;
-            }
-            poly.add(poly[0]);
-        }
-        Polygons polylines = infill_line_contour.intersectionPolyLines(result_polygons);
-        for (PolygonRef polyline : polylines)
+    for (PolygonRef poly : result)
+    { // make polygons into polylines
+        if (poly.empty())
         {
-            Point last_point = no_point;
-            for (Point point : polyline)
-            {
-                Polygon line;
-                if (last_point != no_point)
-                {
-                    line.add(last_point);
-                    line.add(point);
-                    result_lines.add(line);
-                }
-                last_point = point;
-            }
+            continue;
         }
-        result_polygons.clear(); // the output should only contain polylines
+        poly.add(poly[0]);
     }
+    Polygons polylines = infill_line_contour.intersectionPolyLines(result);
+    for (PolygonRef polyline : polylines)
+    {
+        Point last_point = no_point;
+        for (Point point : polyline)
+        {
+            Polygon line;
+            if (last_point != no_point)
+            {
+                line.add(last_point);
+                line.add(point);
+                result_lines.add(line);
+            }
+            last_point = point;
+        }
+    }
+
+    // Todo: simplify the polygons
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
