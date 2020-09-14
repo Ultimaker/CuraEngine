@@ -107,14 +107,14 @@ public:
      * \param mesh The mesh for which to generate infill (should only be used for non-helper objects)
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
-    void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
+    [[deprecated]] void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
     void generate(VariableWidthPath& toolpaths, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
-    void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
+    [[deprecated]] void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
     void _generate(Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
 
     /*!
@@ -128,7 +128,8 @@ private:
      * \param[in,out] result_polygons The polygons to be multiplied (input and output)
      * \param[in,out] result_lines The lines to be multiplied (input and output)
      */
-    void multiplyInfill(Polygons& result_polygons, Polygons& result_lines);
+    [[deprecated]] void multiplyInfill(Polygons& result_polygons, Polygons& result_lines); // Todo: remove once this is no longer used
+    void multiplyInfill(Polygons& result_lines);
 
     struct InfillLineSegment
     {

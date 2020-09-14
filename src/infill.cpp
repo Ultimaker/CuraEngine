@@ -5,6 +5,7 @@
 #include <functional>
 #include <unordered_set>
 
+#include "WallToolPaths.h"
 #include "infill.h"
 #include "infill/GyroidInfill.h"
 #include "infill/ImageBasedDensityProvider.h"
@@ -18,7 +19,6 @@
 #include "utils/UnionFind.h"
 #include "utils/logoutput.h"
 #include "utils/polygonUtils.h"
-#include "WallToolPaths.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -54,11 +54,18 @@ void Infill::generate(VariableWidthPath& toolpaths, Polygons& result_lines, cons
     toolpaths = wall_toolpaths.generate();
     inner_contour.add(wall_toolpaths.getInnerContour());
 
-    //_generate may clear() the generated_result_lines, but this is an output variable that may contain data before we start.
-    //So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
-    assert(("Infill multiplier bigger then 1 not supported at the moment", infill_multiplier <= 1)); // TODO: Apply multiplier, left out for now
     Polygons generated_result_lines;
     _generate(generated_result_lines, cross_fill_provider, mesh);
+    if (infill_multiplier > 1)
+    {
+        bool zig_zaggify_real = zig_zaggify;
+        if (infill_multiplier % 2 == 0)
+        {
+            zig_zaggify = false;
+        }
+        multiplyInfill(generated_result_lines);
+        zig_zaggify = zig_zaggify_real;
+    }
     result_lines.add(generated_result_lines);
 }
 
@@ -274,6 +281,87 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         connectLines(result_lines);
     }
     crossings_on_line.clear();
+}
+
+void Infill::multiplyInfill(Polygons& result_lines)
+{
+    assert(("concentric not yet supported", pattern != EFillMethod::CONCENTRIC));
+
+    const bool odd_multiplier = infill_multiplier % 2 == 1;
+    const coord_t offset = odd_multiplier ? infill_line_width : infill_line_width / 2;
+
+    if (zig_zaggify && !odd_multiplier)
+    {
+        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
+    }
+    const Polygons infill_line_contour = inner_contour.offset(static_cast<int>(outline_offset));
+
+    auto calc_first_offset = [](const Polygons& lines, const Polygons& in_contour, const Polygons& contour, const coord_t offset, const bool zigzaggify)
+    {
+      const Polygons offset_lines = lines.offsetPolyLine(static_cast<int>(offset));
+      Polygons first_offset = offset_lines.unionPolygons(in_contour.difference(contour));
+      if (zigzaggify) // false when even
+      {
+          return in_contour.difference(first_offset);
+      }
+      return first_offset;
+    };
+    const Polygons first_offset = calc_first_offset(result_lines, infill_line_contour, outline, offset, zig_zaggify);
+
+    Polygons result;
+    result.add(first_offset);
+
+    Polygons reference_polygons = first_offset;
+    const auto extra_infill_lines = static_cast<size_t>(infill_multiplier / 2);
+    if (extra_infill_lines > 1)
+    {
+        for (size_t infill_line = 1; infill_line < extra_infill_lines; ++infill_line) // 2 because we are making lines on both sides at the same time
+        {
+            Polygons extra_offset = reference_polygons.offset(infill_line_width);
+            result.add(extra_offset);
+            reference_polygons = std::move(extra_offset);
+        }
+    }
+
+    if (!odd_multiplier)
+    {
+        result_lines.clear();
+    }
+
+    Polygons result_polygons;
+    result_polygons.add(result);
+    if (zig_zaggify)
+    {
+        result = result.intersection(infill_line_contour);
+    }
+    else
+    {
+        for (PolygonRef poly : result_polygons)
+        { // make polygons into polylines
+            if (poly.empty())
+            {
+                continue;
+            }
+            poly.add(poly[0]);
+        }
+        Polygons polylines = infill_line_contour.intersectionPolyLines(result_polygons);
+        for (PolygonRef polyline : polylines)
+        {
+            Point last_point = no_point;
+            for (Point point : polyline)
+            {
+                Polygon line;
+                if (last_point != no_point)
+                {
+                    line.add(last_point);
+                    line.add(point);
+                    result_lines.add(line);
+                }
+                last_point = point;
+            }
+        }
+        result_polygons.clear(); // the output should only contain polylines
+    }
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
