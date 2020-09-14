@@ -27,6 +27,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
 
 const VariableWidthPath& WallToolPaths::generate()
 {
+    assert(("inset count should be more then 0", inset_count > 0));
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
     constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
@@ -65,16 +66,20 @@ const VariableWidthPath& WallToolPaths::getToolPaths()
 
 const Polygons& WallToolPaths::getInnerContour()
 {
-    if (!toolpaths_generated)
+    if (!toolpaths_generated && inset_count > 0)
     {
         generate();
+    }
+    else
+    {
+        return outline;
     }
     // TODO: CURA-7681  -> inner_contour = innerContourFromToolpaths(toolpaths);
     // TODO: Check to make sure if this "correctly generated for now"
     if (inner_contour.empty())
     {
         const coord_t offset_distance = nominal_bead_width * inset_count;
-        inner_contour = outline.offset(-offset_distance);
+        inner_contour = outline.offset(-static_cast<int>(offset_distance));
         inner_contour.simplify();
     }
     return inner_contour;

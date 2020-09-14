@@ -41,6 +41,7 @@ public:
      * Gets the inner contour of the area which is inside of the generated ToolPaths. This is for now a simple offset
      * of the outline. But after the implementation of CURA-7681 this will return the actual inside contour.
      * If this is called before \p generate() it will first generate the ToolPaths
+     * If this is called when the inset count is 0 it will return a reference to the outline
      * \return A reference to the inner contour
      */
     const Polygons& getInnerContour();
