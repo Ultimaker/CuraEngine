@@ -1544,9 +1544,9 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                 const size_t skin_layer_nr = static_cast<unsigned long>(gcode_layer.getLayerNr()) + i;
                 if (skin_layer_nr < mesh.layers.size())
                 {
-                    for (const SliceLayerPart& layerPart : mesh.layers[skin_layer_nr].parts)
+                    for (const SliceLayerPart& layer_part : mesh.layers[skin_layer_nr].parts)
                     {
-                        for (const SkinPart& skin_part : layerPart.skin_parts)
+                        for (const SkinPart& skin_part : layer_part.skin_parts)
                         {
                             if (i == 1)
                             {
