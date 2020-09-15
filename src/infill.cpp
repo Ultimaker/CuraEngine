@@ -894,6 +894,7 @@ void Infill::connectLines(Polygons& result_lines)
                     return vSize(left_hand_point - to_point) < vSize(right_hand_point - to_point);
                 }
             };
+            assert(("crossings on line should not be empty", !crossings_on_line.empty()));
             std::sort(crossings_on_line[polygon_index][vertex_index].begin(), crossings_on_line[polygon_index][vertex_index].end(), CompareByDistance(vertex_before, polygon_index, vertex_index));
 
             for (InfillLineSegment* crossing : crossings_on_line[polygon_index][vertex_index])
