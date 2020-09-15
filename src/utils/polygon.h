@@ -992,7 +992,7 @@ public:
         }
     }
 
-    void resize(const coord_t& numerator, const coord_t divisor)
+    void scale(const coord_t& numerator, const coord_t divisor)
     {
         if (numerator == 1 && divisor == 1)
         {

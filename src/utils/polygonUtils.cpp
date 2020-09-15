@@ -1428,9 +1428,9 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
     for (const Point& translate_vec : translate_vecs)
     {
         thiss.translate(translate_vec);
-        thiss.resize(1, epsilon);
+        thiss.scale(1, epsilon);
         ClipperLib::SimplifyPolygons(thiss.paths);
-        thiss.resize(epsilon, 1);
+        thiss.scale(epsilon, 1);
         thiss.translate(-translate_vec);
     }
 
