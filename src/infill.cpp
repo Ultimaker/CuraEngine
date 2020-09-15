@@ -296,22 +296,26 @@ void Infill::multiplyInfill(Polygons& result_lines)
     }
     const Polygons infill_line_contour = outline.offset(outline_offset);
 
-    auto calc_first_offset = [](const Polygons& lines, const Polygons& in_contour, const Polygons& out_contour, const coord_t offset, const bool zigzaggify)
+    auto calc_first_offset = [](const Polygons& lines, const Polygons& contour, const size_t multiplier, const coord_t offset, const bool zigzaggify)
     {
-      const Polygons offset_lines = lines.offsetPolyLine(offset);
+      Polygons offset_lines = lines.offsetPolyLine(offset);
       if (zigzaggify)
       {
-          // FIXME: help!
-          const Polygons inward = in_contour.offset(offset);
-          const Polygons outward = out_contour.offset(-offset);
-          const Polygons offset_polygons = inward.difference(outward);
-          Polygons first_offset = offset_lines.unionPolygons(offset_polygons);
-          return in_contour.difference(first_offset);
+          std::vector<Polygons> connected { multiplier, Polygons() };
+          connected[0].add(contour.offset(-offset));
+          for (int i = 1; i < multiplier; ++i)
+          {
+              connected[i].add(connected[i - 1].offset(-offset));
+              Polygons diff = connected[i - 1].difference(connected[1]);
+              log("Here\n");
+              offset_lines.unionPolygons(diff);
+          }
+          return offset_lines;
       }
       return offset_lines;
     };
     const coord_t offset = odd_multiplier ? infill_line_width : infill_line_width / 2;
-    const Polygons first_offset = calc_first_offset(result_lines, infill_line_contour, outline, offset, zig_zaggify);
+    const Polygons first_offset = calc_first_offset(result_lines, infill_line_contour, infill_multiplier, offset, zig_zaggify);
 
     Polygons result;
     result.add(first_offset);
@@ -338,6 +342,19 @@ void Infill::multiplyInfill(Polygons& result_lines)
         result_lines.clear();
     }
 
+    // TODO: Do we still have a need for connect polygons now that we don't have insets?
+    if (connect_polygons)
+    {
+        // remove too small polygons
+        coord_t snap_distance = infill_line_width * 2; // polygons with a span of max 1 * nozzle_size are too small
+        auto it = std::remove_if(result.begin(), result.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
+        result.erase(it, result.end());
+
+        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
+        connector.add(result);
+        result = connector.connect();
+    }
+
     for (PolygonRef poly : result)
     { // make polygons into polylines
         if (poly.empty())
@@ -362,6 +379,7 @@ void Infill::multiplyInfill(Polygons& result_lines)
             last_point = point;
         }
     }
+
 
     // Todo: simplify the polygons
 }
