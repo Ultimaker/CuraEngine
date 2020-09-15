@@ -201,14 +201,19 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         }
     }
     result.add(first_offset);
-    Polygons reference_polygons = first_offset;
-    for (size_t infill_line = 1; infill_line < infill_multiplier / 2; infill_line++) // 2 because we are making lines on both sides at the same time
+    if (infill_multiplier > 3)
     {
-        Polygons extra_offset = reference_polygons.offset(-infill_line_width);
-        result.add(extra_offset);
-        reference_polygons = std::move(extra_offset);
-    }
+        Polygons reference_polygons = first_offset;
+        const size_t multiplier = static_cast<size_t>(infill_multiplier / 2);
 
+        const int extra_offset = mirror_offset ? -infill_line_width : infill_line_width;
+        for (size_t infill_line = 1; infill_line < multiplier; ++infill_line)
+        {
+            Polygons extra_polys = reference_polygons.offset(extra_offset);
+            result.add(extra_polys);
+            reference_polygons = std::move(extra_polys);
+        }
+    }
     if (zig_zaggify)
     {
         result = result.intersection(outline);
