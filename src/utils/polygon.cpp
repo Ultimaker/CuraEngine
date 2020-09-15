@@ -417,7 +417,13 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                 
                 if (!has_intersection || LinearAlg2D::getDist2FromLine(intersection_point, previous, current) > allowed_error_distance_squared)
                 {
-                    continue; // We coulnd't find a new place to combine the previous and current vertex, so remove the current vertex.
+                    if(length2 < 25)
+                    {
+                        // We're allowed to always delete segments of less than 5 micron.
+                        continue;
+                    }
+                    // We can't find a better spot for it, but the size of the line is more than 5 micron.
+                    // So the only thing we can do here is leave it in...
                 }
                 else
                 {
