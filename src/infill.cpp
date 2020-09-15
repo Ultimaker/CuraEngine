@@ -296,26 +296,25 @@ void Infill::multiplyInfill(Polygons& result_lines)
     }
     const Polygons infill_line_contour = outline.offset(outline_offset);
 
-    auto calc_first_offset = [](const Polygons& lines, const Polygons& contour, const size_t multiplier, const coord_t offset, const bool zigzaggify)
+    auto calc_first_offset = [&](const Polygons& lines, const Polygons& contour, const size_t multiplier, const coord_t offset, const bool zigzaggify)
     {
-      Polygons offset_lines = lines.offsetPolyLine(offset);
+      Polygons offset_lines = lines.offsetPolyLine(offset, ClipperLib::JoinType::jtMiter);
+      offset_lines.simplify(offset * (1 - multiplier), offset);
       if (zigzaggify)
       {
           std::vector<Polygons> connected { multiplier, Polygons() };
-          connected[0].add(contour.offset(-offset));
+          connected[0].add(contour.offset(offset));
           for (int i = 1; i < multiplier; ++i)
           {
               connected[i].add(connected[i - 1].offset(-offset));
               Polygons diff = connected[i - 1].difference(connected[1]);
-              log("Here\n");
               offset_lines.unionPolygons(diff);
           }
-          return offset_lines;
       }
       return offset_lines;
     };
     const coord_t offset = odd_multiplier ? infill_line_width : infill_line_width / 2;
-    const Polygons first_offset = calc_first_offset(result_lines, infill_line_contour, infill_multiplier, offset, zig_zaggify);
+    Polygons first_offset = calc_first_offset(result_lines, infill_line_contour.offset(infill_multiplier * offset), infill_multiplier, offset, zig_zaggify);
 
     Polygons result;
     result.add(first_offset);
@@ -342,19 +341,6 @@ void Infill::multiplyInfill(Polygons& result_lines)
         result_lines.clear();
     }
 
-    // TODO: Do we still have a need for connect polygons now that we don't have insets?
-    if (connect_polygons)
-    {
-        // remove too small polygons
-        coord_t snap_distance = infill_line_width * 2; // polygons with a span of max 1 * nozzle_size are too small
-        auto it = std::remove_if(result.begin(), result.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
-        result.erase(it, result.end());
-
-        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
-        connector.add(result);
-        result = connector.connect();
-    }
-
     for (PolygonRef poly : result)
     { // make polygons into polylines
         if (poly.empty())
@@ -363,6 +349,7 @@ void Infill::multiplyInfill(Polygons& result_lines)
         }
         poly.add(poly[0]);
     }
+
     Polygons polylines = infill_line_contour.intersectionPolyLines(result);
     for (PolygonRef polyline : polylines)
     {
@@ -379,9 +366,6 @@ void Infill::multiplyInfill(Polygons& result_lines)
             last_point = point;
         }
     }
-
-
-    // Todo: simplify the polygons
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
@@ -595,7 +579,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
         Polygons cross_pattern_polygons;
         cross_pattern_polygons.add(cross_pattern_polygon);
         Polygons poly_lines = outline.intersectionPolyLines(cross_pattern_polygons);
-        
+
         for (PolygonRef poly_line : poly_lines)
         {
             for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
@@ -731,7 +715,8 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         perimeter_gaps->add(inner_contour.difference(gaps_outline));
     }
 
-    Polygons outline = inner_contour.offset(outline_offset + infill_overlap);
+    const coord_t offset = (zig_zaggify) ? outline_offset + infill_overlap - infill_multiplier * infill_line_width/2 + infill_line_width/2 : outline_offset + infill_overlap;
+    Polygons outline = inner_contour.offset(offset);
 
     if (outline.size() == 0)
     {
