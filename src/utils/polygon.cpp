@@ -435,10 +435,6 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                     {
                         new_path.pop_back();
                     }
-                    else
-                    {
-                        continue;
-                    }
                 }
             }
             else
