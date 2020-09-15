@@ -28,7 +28,7 @@ CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(
         }
 
         // middle (if any):
-        const coord_t optimal_width_middle = bead_count == 1 ? optimal_width_outer : optimal_width_inner;
+        const coord_t optimal_width_middle = optimal_width_inner;
         if (bead_count % 2 == 1)
         {
             ret.bead_widths.emplace_back(thickness - (optimal_width_outer + (bead_count - 2) * optimal_width_inner));
@@ -75,8 +75,7 @@ coord_t CenterDeviationBeadingStrategy::getTransitionThickness(coord_t lower_bea
 coord_t CenterDeviationBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
     coord_t thickness_left = thickness;
-    coord_t naive_count = 0;
-    naive_count += std::min(2LL, ((thickness / 2 + optimal_width_outer / 2) / optimal_width_outer) * 2);
+    coord_t naive_count = std::min(2LL, ((thickness / 2 + optimal_width_outer / 2) / optimal_width_outer) * 2);
     thickness_left -= naive_count * optimal_width_outer;
     if (thickness_left >= (optimal_width_inner / 2))
     {
