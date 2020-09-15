@@ -128,7 +128,7 @@ private:
      * \param[in,out] result_polygons The polygons to be multiplied (input and output)
      * \param[in,out] result_lines The lines to be multiplied (input and output)
      */
-    [[deprecated]] void multiplyInfill(Polygons& result_polygons, Polygons& result_lines); // Todo: remove once this is no longer used
+    void multiplyInfill(Polygons& result_polygons, Polygons& result_lines);
     void multiplyInfill(Polygons& result_lines);
 
     struct InfillLineSegment

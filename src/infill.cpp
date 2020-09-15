@@ -289,71 +289,8 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
 
 void Infill::multiplyInfill(Polygons& result_lines)
 {
-    assert(("concentric not yet supported", pattern != EFillMethod::CONCENTRIC));
-    assert(("Gyroid not yet supported", pattern != EFillMethod::GYROID));
-
-    const bool odd_multiplier = infill_multiplier % 2 == 1;
-
-    auto calc_first_offset = [&](const Polygons& lines, const size_t multiplier, const coord_t offset)
-    {
-      Polygons offset_lines = lines.offsetPolyLine(offset, ClipperLib::JoinType::jtMiter);
-      offset_lines.simplify(offset * multiplier, offset);
-      return offset_lines;
-    };
-    const coord_t offset = odd_multiplier ? infill_line_width : infill_line_width / 2;
-    Polygons first_offset = calc_first_offset(result_lines, infill_multiplier, offset);
-
-    Polygons result;
-    result.add(first_offset);
-
-    const auto extra_infill_lines = static_cast<size_t>(infill_multiplier / 2);
-    if (extra_infill_lines > 1)
-    {
-        Polygons reference_polygons = first_offset;
-        for (size_t infill_line = 1; infill_line < extra_infill_lines; ++infill_line) // 2 because we are making lines on both sides at the same time
-        {
-            Polygons extra_offset = reference_polygons.offset(infill_line_width);
-            result.add(extra_offset);
-            reference_polygons = std::move(extra_offset);
-        }
-    }
-
-    const Polygons infill_line_contour = outline.offset(-infill_line_width * wall_line_count);
-    if (zig_zaggify)
-    {
-        result = result.intersection(infill_line_contour);
-    }
-
-    if (!odd_multiplier)
-    {
-        result_lines.clear();
-    }
-
-    for (PolygonRef poly : result)
-    { // make polygons into polylines
-        if (poly.empty())
-        {
-            continue;
-        }
-        poly.add(poly[0]);
-    }
-
-    Polygons polylines = infill_line_contour.intersectionPolyLines(result);
-    for (PolygonRef polyline : polylines)
-    {
-        Point last_point = no_point;
-        for (Point point : polyline)
-        {
-            Polygon line;
-            if (last_point != no_point)
-            {
-                line.add(last_point);
-                line.add(point);
-                result_lines.add(line);
-            }
-            last_point = point;
-        }
-    }
+    Polygons generated_polygons;
+    multiplyInfill(generated_polygons, result_lines);
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
