@@ -1651,7 +1651,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             srand(static_cast<unsigned int>(gcode_layer.getLayerNr()));
             if(!infill_lines.empty())
             {
-                near_start_location = infill_lines[static_cast<unsigned int>(rand()) % infill_lines.size()][0];
+                near_start_location = infill_lines[static_cast<size_t>(rand()) % infill_lines.size()][0];
             }
             else
             {
@@ -1669,9 +1669,6 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                 {
                     for (const LineJunctions& line : paths)
                     {
-//                      Todo: do a proper translation of these commands to the addWall
-//                      gcode_layer.addTravel(PolygonUtils::findNearestVert(gcode_layer.getLastPlannedPositionOrStartingPosition(), infill_polygons).p(), force_comb_retract);
-//                      gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
                         gcode_layer.addWall(line, mesh_config.infill_config[0], false);
                     }
                 }
