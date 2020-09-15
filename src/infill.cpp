@@ -50,8 +50,11 @@ void Infill::generate(VariableWidthPath& toolpaths, Polygons& result_lines, cons
     {
         return;
     }
-    WallToolPaths wall_toolpaths(outline, infill_line_width, wall_line_count, mesh->settings);
-    toolpaths = wall_toolpaths.generate();
+    if (wall_line_count > 0)
+    {
+        WallToolPaths wall_toolpaths(outline, infill_line_width, wall_line_count, mesh->settings);
+        toolpaths = wall_toolpaths.generate();
+    }
     outline_offset -= wall_line_count * infill_line_width;
     inner_contour.add(outline); // TODO: use innerContour once inmplemented, requires changes in a lot of generate.. functions
 
@@ -591,16 +594,16 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
 {
     auto compare_coord_t = [](const void* a, const void* b)
     {
-        coord_t n = (*(coord_t*)a) - (*(coord_t*)b);
-        if (n < 0)
-        {
-            return -1;
-        }
-        if (n > 0)
-        {
-            return 1;
-        }
-        return 0;
+      coord_t n = (*(coord_t*)a) - (*(coord_t*)b);
+      if (n < 0)
+      {
+          return -1;
+      }
+      if (n > 0)
+      {
+          return 1;
+      }
+      return 0;
     };
 
     unsigned int scanline_idx = 0;
