@@ -348,11 +348,7 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
 template<>  StrategyType Settings::get<StrategyType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    if (value == "naive")
-    {
-        return StrategyType::Naive;
-    }
-    else if (value == "center_deviation")
+    if (value == "center_deviation")
     {
         return StrategyType::Center;
     }
