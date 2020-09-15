@@ -56,7 +56,7 @@ bool InsetOrderOptimizer::optimize()
 bool InsetOrderOptimizer::processInsetsIndexedOrdering()
 {
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
-    BinJunctions insets = WallToolPaths::toolPathsToBinJunctions(part.wall_toolpaths, mesh.settings.get<size_t>("wall_line_count"));
+    BinJunctions insets = toolPathsToBinJunctions(part.wall_toolpaths, mesh.settings.get<size_t>("wall_line_count"));
 
     //If printing the outer inset first, start with the lowest inset.
     //Otherwise start with the highest inset and iterate backwards.
@@ -631,5 +631,25 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
     return true;
 }
 
+BinJunctions InsetOrderOptimizer::toolPathsToBinJunctions(const VariableWidthPath& toolpaths, const coord_t num_insets)
+{
+    // Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
+    BinJunctions insets(static_cast<size_t>(num_insets));
+    for (const std::list<ExtrusionLine>& path : toolpaths)
+    {
+        if (path.empty()) // Don't bother printing these.
+        {
+            continue;
+        }
+        const size_t inset_index = path.front().inset_idx;
+
+        // Convert list of extrusion lines to vectors of extrusion junctions, and add those to the binned insets.
+        for (const ExtrusionLine& line : path)
+        {
+            insets[inset_index].emplace_back(line.junctions.begin(), line.junctions.end());
+        }
+    }
+    return insets;
+}
 
 }//namespace cura

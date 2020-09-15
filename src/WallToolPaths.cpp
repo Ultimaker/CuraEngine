@@ -90,37 +90,6 @@ const Polygons& WallToolPaths::getOutline() const
     return outline;
 }
 
-const BinJunctions& WallToolPaths::getBinJunctions()
-{
-    if (!toolpaths_generated)
-    {
-        generate();
-    }
-    binJunctions = toolPathsToBinJunctions(toolpaths, inset_count);
-    return binJunctions;
-}
-
-BinJunctions WallToolPaths::toolPathsToBinJunctions(const VariableWidthPath& toolpaths, const coord_t num_insets)
-{
-    // Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
-    BinJunctions insets(static_cast<size_t>(num_insets));
-    for (const std::list<ExtrusionLine>& path : toolpaths)
-    {
-        if (path.empty()) // Don't bother printing these.
-        {
-            continue;
-        }
-        const size_t inset_index = path.front().inset_idx;
-
-        // Convert list of extrusion lines to vectors of extrusion junctions, and add those to the binned insets.
-        for (const ExtrusionLine& line : path)
-        {
-            insets[inset_index].emplace_back(line.junctions.begin(), line.junctions.end());
-        }
-    }
-    return insets;
-}
-
 Polygons WallToolPaths::innerContourFromToolpaths(const VariableWidthPath& toolpaths)
 {
     // TODO: CURA-7681

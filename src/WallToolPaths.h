@@ -53,21 +53,6 @@ public:
     const Polygons& getOutline() const;
 
     /*!
-     * Converts the generated ToolPaths into a bin of walls which are a vector of paths which are line of extrusion
-     * junctions. If this is called before \p generate() it will first generate the ToolPaths
-     * \return A reference to a bin of walls, consisting of a vector of paths consisting of vector of lines
-     */
-    const BinJunctions& getBinJunctions();
-
-    /*!
-     * Converts the ToolPaths to a bin of walls, consisting of a vector of paths, consisting of a vector of lines
-     * \param toolpaths The toolpaths to convert
-     * \param num_insets The maximum number of parallel extrusion lines in the walls
-     * \return A bin of walls, consisting of a vector of paths consisting of vector of lines
-     */
-    static BinJunctions toolPathsToBinJunctions(const VariableWidthPath& toolpaths, coord_t num_insets);
-
-    /*!
      * Obtains the inner contour of the generated ToolPaths. Not yet implemented. See CURA-7681
      * \param toolpaths the toolpaths used to determine the inner contour
      * \return

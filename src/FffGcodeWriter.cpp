@@ -1664,7 +1664,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         {
             for(const VariableWidthPath& tool_paths: wall_tool_paths)
             {
-                BinJunctions bins = WallToolPaths::toolPathsToBinJunctions(tool_paths, wall_line_count);
+                BinJunctions bins = InsetOrderOptimizer::toolPathsToBinJunctions(tool_paths, wall_line_count);
                 for (const PathJunctions& paths : bins)
                 {
                     for (const LineJunctions& line : paths)
