@@ -1004,8 +1004,7 @@ public:
         {
             for (Point& pt : thiss[p])
             {
-                pt.X = (pt.X * numerator) / divisor;
-                pt.Y = (pt.Y * numerator) / divisor;
+                pt = pt * numerator / divisor;
             }
         }
     }
