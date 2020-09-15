@@ -287,34 +287,18 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
 void Infill::multiplyInfill(Polygons& result_lines)
 {
     assert(("concentric not yet supported", pattern != EFillMethod::CONCENTRIC));
+    assert(("Gyroid not yet supported", pattern != EFillMethod::GYROID));
 
     const bool odd_multiplier = infill_multiplier % 2 == 1;
 
-    if (zig_zaggify && !odd_multiplier)
-    {
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
-    }
-    const Polygons infill_line_contour = outline.offset(outline_offset);
-
-    auto calc_first_offset = [&](const Polygons& lines, const Polygons& contour, const size_t multiplier, const coord_t offset, const bool zigzaggify)
+    auto calc_first_offset = [&](const Polygons& lines, const size_t multiplier, const coord_t offset)
     {
       Polygons offset_lines = lines.offsetPolyLine(offset, ClipperLib::JoinType::jtMiter);
-      offset_lines.simplify(offset * (1 - multiplier), offset);
-      if (zigzaggify)
-      {
-          std::vector<Polygons> connected { multiplier, Polygons() };
-          connected[0].add(contour.offset(offset));
-          for (int i = 1; i < multiplier; ++i)
-          {
-              connected[i].add(connected[i - 1].offset(-offset));
-              Polygons diff = connected[i - 1].difference(connected[1]);
-              offset_lines.unionPolygons(diff);
-          }
-      }
+      offset_lines.simplify(offset * multiplier, offset);
       return offset_lines;
     };
     const coord_t offset = odd_multiplier ? infill_line_width : infill_line_width / 2;
-    Polygons first_offset = calc_first_offset(result_lines, infill_line_contour.offset(infill_multiplier * offset), infill_multiplier, offset, zig_zaggify);
+    Polygons first_offset = calc_first_offset(result_lines, infill_multiplier, offset);
 
     Polygons result;
     result.add(first_offset);
@@ -331,6 +315,7 @@ void Infill::multiplyInfill(Polygons& result_lines)
         }
     }
 
+    const Polygons infill_line_contour = outline.offset(-infill_line_width * wall_line_count);
     if (zig_zaggify)
     {
         result = result.intersection(infill_line_contour);
@@ -715,7 +700,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         perimeter_gaps->add(inner_contour.difference(gaps_outline));
     }
 
-    const coord_t offset = (zig_zaggify) ? outline_offset + infill_overlap - infill_multiplier * infill_line_width/2 + infill_line_width/2 : outline_offset + infill_overlap;
+    const coord_t offset = (zig_zaggify) ? outline_offset + infill_overlap - infill_multiplier * infill_line_width/2 + infill_line_width/2  : outline_offset + infill_overlap;
     Polygons outline = inner_contour.offset(offset);
 
     if (outline.size() == 0)
