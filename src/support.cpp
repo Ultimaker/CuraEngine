@@ -514,7 +514,7 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                     const AngleRadians angle = TAU * i / circle_resolution;
                     const Point3 machine_middle = storage.machine_size.getMiddle();
                     const coord_t x = machine_middle.x + cos(angle) * width / 2;
-                    const coord_t y = machine_middle.y * sin(angle) * depth / 2;
+                    const coord_t y = machine_middle.y + sin(angle) * depth / 2;
                     border_circle.emplace_back(x, y);
                 }
                 machine_volume_border.add(border_circle);
@@ -1000,7 +1000,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     // Post-process the sloped areas's. (Skip if no stair-stepping anyway.)
     // The idea here is to 'add up' all the sloped 'areas' so they form actual areas per each stair-step height.
     // (Only the 'top' sloped area for each step is actually used in the end, see 'moveUpFromModel'.)
-    if (bottom_stair_step_layer_count > 0)
+    if (bottom_stair_step_layer_count > 1)
     {
         // We can parallelize this part, which is needed since these are potentially expensive operations,
         // but only in chunks of `bottom_stair_step_layer_count` steps, since, within such a chunk,

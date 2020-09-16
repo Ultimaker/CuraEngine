@@ -13,7 +13,7 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
     ret.total_thickness = thickness;
     if (bead_count > 0)
     {
-        coord_t to_be_divided = thickness - bead_count * optimal_width;
+        coord_t to_be_divided = thickness - this->getOptimalThickness(bead_count);
         float total_weight = 0;
         float middle = static_cast<float>(bead_count - 1) / 2;
         
@@ -30,7 +30,7 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
         
         for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
         {
-            coord_t width = optimal_width + to_be_divided * getWeight(bead_idx) / total_weight;
+            coord_t width = ((bead_idx == 0 || bead_idx == (bead_count - 1)) ? optimal_width_outer : optimal_width_inner) + to_be_divided * getWeight(bead_idx) / total_weight;
             if (bead_idx == 0)
             {
                 ret.toolpath_locations.emplace_back(width / 2);

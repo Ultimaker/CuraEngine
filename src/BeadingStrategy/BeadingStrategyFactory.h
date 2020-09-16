@@ -10,11 +10,9 @@
 
 #include "BeadingStrategy.h"
 #include "InwardDistributedBeadingStrategy.h"
-#include "LimitedDistributedBeadingStrategy.h"
 #include "LimitedBeadingStrategy.h"
 #include "CenterDeviationBeadingStrategy.h"
 #include "WideningBeadingStrategy.h"
-#include "NaiveBeadingStrategy.h"
 #include "DistributedBeadingStrategy.h"
 
 namespace cura
@@ -24,11 +22,9 @@ extern double inward_distributed_center_size;
 
 enum class StrategyType
 {
-    Naive,
     Center,
     Distributed,
     InwardDistributed,
-    LimitedDistributed,
     None,
     COUNT
 };
@@ -40,7 +36,7 @@ std::string to_string(StrategyType type);
 class BeadingStrategyFactory
 {
 public:
-    static BeadingStrategy* makeStrategy(StrategyType type, coord_t preferred_bead_width = MM2INT(0.5), coord_t preferred_transition_length = 400, float transitioning_angle = M_PI / 4, const std::unique_ptr<coord_t>& min_bead_width = nullptr, const std::unique_ptr<coord_t>& min_feature_size = nullptr,  const coord_t max_bead_count = 0);
+    static BeadingStrategy* makeStrategy(StrategyType type, coord_t preferred_bead_width_outer = MM2INT(0.5), coord_t preferred_bead_width_inner = MM2INT(0.5), coord_t preferred_transition_length = 400, float transitioning_angle = M_PI / 4, const std::unique_ptr<coord_t>& min_bead_width = nullptr, const std::unique_ptr<coord_t>& min_feature_size = nullptr,  const coord_t max_bead_count = 0);
 };
 
 } // namespace cura

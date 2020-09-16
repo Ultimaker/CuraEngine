@@ -17,8 +17,8 @@ namespace cura
 class DistributedBeadingStrategy : public BeadingStrategy
 {
 public:
-    DistributedBeadingStrategy(const coord_t optimal_width, coord_t default_transition_length, float transitioning_angle)
-    : BeadingStrategy(optimal_width, default_transition_length, transitioning_angle)
+    DistributedBeadingStrategy(const coord_t optimal_width_outer, coord_t optimal_width_inner, coord_t default_transition_length, float transitioning_angle)
+    : BeadingStrategy(optimal_width_outer, optimal_width_inner, default_transition_length, transitioning_angle)
     {
         name = "DistributedBeadingStrategy";
     }
