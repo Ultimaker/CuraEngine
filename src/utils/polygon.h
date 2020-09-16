@@ -903,9 +903,14 @@ public:
      * Criteria:
      * 1. Never remove a vertex if either of the connceted segments is larger than \p smallest_line_segment
      * 2. Never remove a vertex if the distance between that vertex and the final resulting polygon would be higher than \p allowed_error_distance
-     * 3. Simplify uses a heuristic and doesn't neccesarily remove all removable vertices under the above criteria.
-     * 4. But simplify may never violate these criteria.
-     * 5. Unless the segments or the distance is smaller than the rounding error of 5 micron
+     * 3. The direction of segments longer than \p smallest_line_segment always
+     * remains unaltered (but their end points may change if it is connected to
+     * a small segment)
+     *
+     * Simplify uses a heuristic and doesn't neccesarily remove all removable
+     * vertices under the above criteria, but simplify may never violate these
+     * criteria. Unless the segments or the distance is smaller than the
+     * rounding error of 5 micron.
      * 
      * Vertices which introduce an error of less than 5 microns are removed
      * anyway, even if the segments are longer than the smallest line segment.
