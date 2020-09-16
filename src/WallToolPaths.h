@@ -29,13 +29,13 @@ public:
      * Generates the Toolpaths
      * \return A reference to the newly create  ToolPaths
      */
-    const VariableWidthPath& generate();
+    const VariableWidthPaths& generate();
 
     /*!
      * Gets the toolpaths, if this called before \p generate() it will first generate the Toolpaths
      * \return a reference to the toolpaths
      */
-    const VariableWidthPath& getToolPaths();
+    const VariableWidthPaths& getToolPaths();
 
     /*!
      * Gets the inner contour of the area which is inside of the generated ToolPaths. This is for now a simple offset
@@ -57,7 +57,14 @@ public:
      * \param toolpaths the toolpaths used to determine the inner contour
      * \return
      */
-    static Polygons innerContourFromToolpaths(const VariableWidthPath& toolpaths);
+    static Polygons innerContourFromToolpaths(const VariableWidthPaths& toolpaths);
+
+    /*!
+     * Removes empty paths from the toolpaths
+     * \param toolpaths the VariableWidthPaths generated with \p generate()
+     * \return true if there are still paths left. If all toolpaths were removed it returns false
+     */
+    static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
 
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
@@ -70,7 +77,7 @@ private:
     const double small_area_length; //<! The length of the small features which are to be filtered out, this is squared into a surface
     const coord_t transition_length; //<! The transitioning length when the amount of extrusion lines changes
     bool toolpaths_generated; //<! Are the toolpaths generated
-    VariableWidthPath toolpaths; //<! The generated toolpaths
+    VariableWidthPaths toolpaths; //<! The generated toolpaths
     Polygons inner_contour;  //<! The inner contour of the generated toolpaths
 };
 } // namespace cura

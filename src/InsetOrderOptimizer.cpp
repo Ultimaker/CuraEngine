@@ -632,12 +632,12 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
     return true;
 }
 
-BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPath& toolpaths,
+BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths,
                                                                   coord_t num_insets)
 {
     // Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
     BinJunctions insets(static_cast<size_t>(num_insets));
-    for (const std::list<ExtrusionLine>& path : toolpaths)
+    for (const VariableWidthLines& path : toolpaths)
     {
         if (path.empty()) // Don't bother printing these.
         {

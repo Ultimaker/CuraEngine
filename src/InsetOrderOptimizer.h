@@ -113,7 +113,7 @@ public:
      * \param num_insets The maximum number of parallel extrusion lines in the walls
      * \return A bin of walls, consisting of a vector of paths consisting of vector of lines
      */
-    static BinJunctions variableWidthPathToBinJunctions(const VariableWidthPath& toolpaths, coord_t num_insets);
+    static BinJunctions variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, coord_t num_insets);
 };
 
 } //namespace cura

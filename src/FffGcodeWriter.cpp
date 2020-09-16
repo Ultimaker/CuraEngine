@@ -1476,7 +1476,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Polygons infill_polygons; // Todo: libArachne remove when unused
-    std::vector<VariableWidthPath> wall_tool_paths;
+    std::vector<VariableWidthPaths> wall_tool_paths;
     Polygons infill_lines;
 
     const auto pattern = mesh.settings.get<EFillMethod>("infill_pattern");
@@ -1595,7 +1595,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                         constexpr int zag_skip_count = 0;
                         constexpr coord_t outline_offset = 0;
                         const size_t min_wall_line_count = std::max(static_cast<size_t>(1), wall_line_count);
-                        wall_tool_paths.emplace_back(VariableWidthPath());
+                        wall_tool_paths.emplace_back(VariableWidthPaths());
 
                         // infill region with skin above has to have at least one infill wall line
                         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin,
@@ -1629,7 +1629,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         constexpr bool use_endpieces = false;
         constexpr bool skip_some_zags = false;
         constexpr size_t zag_skip_count = 0;
-        wall_tool_paths.emplace_back(VariableWidthPath());
+        wall_tool_paths.emplace_back(VariableWidthPaths());
 
         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, outline_offset, infill_line_width,
                            infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
@@ -1639,7 +1639,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         infill_comp.generate(wall_tool_paths.back(), infill_lines, mesh.cross_fill_provider, &mesh);
     }
 
-    const bool walls_generated = std::any_of(wall_tool_paths.cbegin(), wall_tool_paths.cend(), [](VariableWidthPath tp){ return !tp.empty(); });
+    const bool walls_generated = std::any_of(wall_tool_paths.cbegin(), wall_tool_paths.cend(), [](VariableWidthPaths tp){ return !tp.empty(); });
     if (!infill_lines.empty() || walls_generated)
     {
         added_something = true;
@@ -1662,7 +1662,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         }
         if (walls_generated)
         {
-            for(const VariableWidthPath& tool_paths: wall_tool_paths)
+            for(const VariableWidthPaths& tool_paths: wall_tool_paths)
             {
                 BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(tool_paths, wall_line_count);
                 for (const PathJunctions& paths : bins)

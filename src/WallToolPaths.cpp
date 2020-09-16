@@ -25,7 +25,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
 {
 }
 
-const VariableWidthPath& WallToolPaths::generate()
+const VariableWidthPaths& WallToolPaths::generate()
 {
     assert(("inset count should be more then 0", inset_count > 0));
     constexpr coord_t smallest_segment = 50;
@@ -55,7 +55,7 @@ const VariableWidthPath& WallToolPaths::generate()
     return toolpaths;
 }
 
-const VariableWidthPath& WallToolPaths::getToolPaths()
+const VariableWidthPaths& WallToolPaths::getToolPaths()
 {
     if (!toolpaths_generated)
     {
@@ -90,10 +90,19 @@ const Polygons& WallToolPaths::getOutline() const
     return outline;
 }
 
-Polygons WallToolPaths::innerContourFromToolpaths(const VariableWidthPath& toolpaths)
+Polygons WallToolPaths::innerContourFromToolpaths(const VariableWidthPaths& toolpaths)
 {
     // TODO: CURA-7681
     return Polygons();
+}
+
+bool WallToolPaths::removeEmptyToolPaths(VariableWidthPaths& toolpaths)
+{
+    toolpaths.erase(std::remove_if(toolpaths.begin(), toolpaths.end(), [](const VariableWidthLines& lines)
+                                   {
+                                       return lines.empty();
+                                   }), toolpaths.end());
+    return toolpaths.empty();
 }
 
 } // namespace cura

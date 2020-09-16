@@ -107,7 +107,7 @@ public:
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
     [[deprecated]] void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
-    void generate(VariableWidthPath& toolpaths, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(VariableWidthPaths& toolpaths, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
     /*!
