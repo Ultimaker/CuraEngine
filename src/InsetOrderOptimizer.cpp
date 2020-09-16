@@ -57,7 +57,7 @@ bool InsetOrderOptimizer::processInsetsIndexedOrdering()
 {
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
     BinJunctions insets =
-        variableWidthPathToBinJunctions(part.wall_toolpaths, mesh.settings.get<size_t>("wall_line_count"));
+        variableWidthPathToBinJunctions(part.wall_toolpaths);
 
     //If printing the outer inset first, start with the lowest inset.
     //Otherwise start with the highest inset and iterate backwards.
@@ -632,13 +632,9 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
     return true;
 }
 
-BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths,
-                                                                  coord_t num_insets)
+BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths)
 {
-    assert(("number of insets can't be 0 if there are toolpaths generated", (!toolpaths.empty() && num_insets == 0)));
-    assert(("Toolpaths shouldn't be empty", toolpaths.empty()));
-    // Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
-    BinJunctions insets(static_cast<size_t>(num_insets));
+    BinJunctions insets(toolpaths.size());
     for (const VariableWidthLines& path : toolpaths)
     {
         if (path.empty()) // Don't bother printing these.
