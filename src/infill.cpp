@@ -137,7 +137,6 @@ void Infill::_generate(Polygons& result_lines, const SierpinskiFillProvider* cro
     }
 
     assert(("concentric not yet supported", pattern != EFillMethod::CONCENTRIC));
-    assert(("cross3D not yet supported", pattern != EFillMethod::CROSS_3D));
 
     switch(pattern)
     {
@@ -184,8 +183,7 @@ void Infill::_generate(Polygons& result_lines, const SierpinskiFillProvider* cro
                 logError("Cannot generate Cross infill without a cross fill provider!\n");
                 break;
             }
-//            generateCrossInfill(*cross_fill_provider, result_polygons, result_lines);
-            // TODO: handle CROSS_3D
+            generateCrossInfill(*cross_fill_provider, result_lines);
             break;
         case EFillMethod::GYROID:
             generateGyroidInfill(result_lines);
@@ -520,6 +518,28 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
                 result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
             }
         }
+    }
+}
+
+void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_lines)
+{
+    Polygons result_polygons;
+    if (mirror_offset)
+    {
+        const coord_t offset = infill_multiplier % 2 == 0 ? outline_offset : outline_offset + infill_line_width / 2 ;
+        result_polygons.add(outer_contour.offset(offset));
+        generateCrossInfill(cross_fill_provider, result_polygons, result_lines);
+        for (PolygonRef poly_line : result_polygons)
+        {
+            for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
+            {
+                result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
+            }
+        }
+    }
+    else
+    {
+        generateCrossInfill(cross_fill_provider, result_polygons, result_lines);
     }
 }
 

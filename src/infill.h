@@ -26,7 +26,7 @@ class Infill
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
     bool zig_zaggify; //!< Whether to connect the end pieces of the support lines via the wall
     bool connect_polygons; //!< Whether to connect as much polygons together into a single path
-    const Polygons& outer_contour; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
+    Polygons outer_contour; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
     coord_t outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
     coord_t infill_line_width; //!< The line width of the infill lines to generate
     coord_t line_distance; //!< The distance between two infill lines / polygons
@@ -309,6 +309,7 @@ private:
      * \param[out] result_lines The resulting lines
      */
     void generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines);
+    void generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
