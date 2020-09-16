@@ -42,7 +42,7 @@ public:
     /*!
      * \brief Constructs a minimum spanning tree that spans all given vertices.
      */
-    MinimumSpanningTree(std::unordered_set<Point> vertices);
+    MinimumSpanningTree(std::vector<Point> vertices);
 
     /*!
      * \brief Gets the nodes that are adjacent to the specified node.
@@ -73,7 +73,7 @@ private:
      * \param vertices The vertices to span.
      * \return An adjacency graph with for each point one or more edges.
      */
-    AdjacencyGraph_t prim(std::unordered_set<Point> vertices) const;
+    AdjacencyGraph_t prim(std::vector<Point> vertices) const;
 };
 
 }

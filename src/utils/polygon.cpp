@@ -405,9 +405,9 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
      computing the area in a 'fan' where each of the blades of the fan go from
      the origin to one of the segments. While removing vertices the area in
      this fan accumulates. By subtracting the area of the blade connected to
-     the shortcutting segment we obtain the total area of the cutoff region.
-     From this area we compute the height of the represenatative triangle
-     using the standard formula for a triangle area: A = .5*b*h
+     the short-cutting segment we obtain the total area of the cutoff region.
+     From this area we compute the height of the representative triangle using
+     the standard formula for a triangle area: A = .5*b*h
      */
     coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; // Twice the Shoelace formula for area of polygon per line segment.
 
@@ -431,13 +431,13 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         }
 
         const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Twice the Shoelace formula for area of polygon per line segment.
-        const coord_t negative_area_closing = next.X * previous.Y - next.Y * previous.X; // area between the origin and the shurtcutting segment
+        const coord_t negative_area_closing = next.X * previous.Y - next.Y * previous.X; // area between the origin and the short-cutting segment
         accumulated_area_removed += removed_area_next;
         
         const coord_t length2 = vSize2(current - previous);
         const coord_t next_length2 = vSize2(current - next);
 
-        const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shurtcut area polygon
+        const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shortcut area polygon
         const coord_t base_length_2 = vSize2(next - previous);
 
         if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
@@ -452,8 +452,8 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = (L / b)^2     [square it]
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
-        if ((height_2 <= 25 //Almost exactly colinear (barring rounding errors).
-            && LinearAlg2D::getDist2FromLine(current, previous, next) <= 25) // make sure that height_2 is not small because of cancellation of positive and negative areas
+        if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
+            && LinearAlg2D::getDist2FromLine(current, previous, next) <= 1) // make sure that height_2 is not small because of cancellation of positive and negative areas
             || (length2 < smallest_line_segment_squared
                 && next_length2 < smallest_line_segment_squared // Segments are small
                 && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.

@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <assert.h>
@@ -737,7 +737,7 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
     assert(extrusion_mm3_per_mm >= 0.0);
 #endif //ASSERT_INSANE_OUTPUT
-
+#ifdef DEBUG
     if (std::isinf(extrusion_mm3_per_mm))
     {
         logError("Extrusion rate is infinite!");
@@ -756,21 +756,23 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
     {
         logWarning("Warning! Negative extrusion move!\n");
     }
+#endif
 
-    double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
+    const double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
     if (is_z_hopped > 0)
     {
         writeZhopEnd();
     }
 
-    Point3 diff = Point3(x,y,z) - currentPosition;
+    const Point3 diff = Point3(x,y,z) - currentPosition;
+    const double diff_length = diff.vSizeMM();
 
     writeUnretractionAndPrime();
 
     //flow rate compensation
     double extrusion_offset = 0;
-    if (diff.vSizeMM())
+    if(diff_length)
     {
         extrusion_offset = speed * extrusion_mm3_per_mm * extrusion_offset_factor;
         if (extrusion_offset > max_extrusion_offset)
@@ -785,8 +787,8 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
         *output_stream << ";FLOW_RATE_COMPENSATED_OFFSET = " << current_e_offset << new_line;
     }
 
-    extruder_attr[current_extruder].last_e_value_after_wipe += extrusion_per_mm * diff.vSizeMM();
-    double new_e_value = current_e_value + extrusion_per_mm * diff.vSizeMM();
+    extruder_attr[current_extruder].last_e_value_after_wipe += extrusion_per_mm * diff_length;
+    const double new_e_value = current_e_value + extrusion_per_mm * diff_length;
 
     *output_stream << "G1";
     writeFXYZE(speed, x, y, z, new_e_value, feature);
@@ -873,13 +875,14 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
 
-    if (flavor == EGCodeFlavor::BFB)//BitsFromBytes does automatic retraction.
+    if(flavor == EGCodeFlavor::BFB) //BitsFromBytes does automatic retraction.
     {
-        if (extruder_switch)
+        if(extruder_switch)
         {
-            if (!extr_attr.retraction_e_amount_current)
+            if(!extr_attr.retraction_e_amount_current)
+            {
                 *output_stream << "M103" << new_line;
-
+            }
             extr_attr.retraction_e_amount_current = 1.0; // 1.0 is a stub; BFB doesn't use the actual retracted amount; retraction is performed by firmware
         }
         return;
@@ -888,7 +891,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     double old_retraction_e_amount = extr_attr.retraction_e_amount_current;
     double new_retraction_e_amount = mmToE(config.distance);
     double retraction_diff_e_amount = old_retraction_e_amount - new_retraction_e_amount;
-    if (std::abs(retraction_diff_e_amount) < 0.000001)
+    if(std::abs(retraction_diff_e_amount) < 0.000001)
     {
         return;
     }
@@ -902,31 +905,31 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             // also the retraction_count_max could have changed between the last retraction and this
             extruded_volume_at_previous_n_retractions.pop_back();
         }
-        if (!force && config.retraction_count_max <= 0)
+        if(!force && config.retraction_count_max <= 0)
         {
             return;
         }
-        if (!force && extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max
+        if(!force && extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max
             && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config.retraction_extrusion_window * extr_attr.filament_area) 
         {
             return;
         }
         extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
-        if (extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max + 1) 
+        if(extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max + 1) 
         {
             extruded_volume_at_previous_n_retractions.pop_back();
         }
     }
 
     const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[current_extruder].settings;
-    if (extruder_settings.get<bool>("machine_firmware_retract"))
+    if(extruder_settings.get<bool>("machine_firmware_retract"))
     {
-        if (extruder_switch && extr_attr.retraction_e_amount_current) 
+        if(extruder_switch && extr_attr.retraction_e_amount_current) 
         {
             return; 
         }
         *output_stream << "G10";
-        if (extruder_switch && flavor == EGCodeFlavor::REPETIER)
+        if(extruder_switch && flavor == EGCodeFlavor::REPETIER)
         {
             *output_stream << " S1";
         }
@@ -947,7 +950,6 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
 
     extr_attr.retraction_e_amount_current = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
     extr_attr.prime_volume += config.prime_volume;
-
 }
 
 void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed/*= 0*/)
@@ -1202,7 +1204,12 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         {
             if (extruder_nr != extruder)
             {
-                extruder_attr[extruder_nr].waited_for_temperature = wait;
+                // only reset the other extruders' waited_for_temperature state when the new temperature
+                // is greater than the old temperature
+                if (wait || temperature > extruder_attr[extruder_nr].currentTemperature)
+                {
+                    extruder_attr[extruder_nr].waited_for_temperature = wait;
+                }
                 extruder_attr[extruder_nr].currentTemperature = temperature;
             }
         }

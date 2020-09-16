@@ -23,7 +23,19 @@ void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t l
         mesh_above = mesh.layers[layer_number + 1].getOutlines();
     } //If this is the top-most layer, mesh_above stays empty.
 
-    areas = mesh.layers[layer_number].getOutlines().difference(mesh_above);
+    if (mesh.settings.get<bool>("magic_spiralize"))
+    {
+        // when spiralizing, the model is often solid so it's no good trying to determine if there is air above or not
+        // in this situation, just iron the topmost of the bottom layers
+        if (layer_number == mesh.settings.get<size_t>("initial_bottom_layers") - 1)
+        {
+            areas = mesh.layers[layer_number].getOutlines();
+        }
+    }
+    else
+    {
+        areas = mesh.layers[layer_number].getOutlines().difference(mesh_above);
+    }
 }
 
 bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer) const

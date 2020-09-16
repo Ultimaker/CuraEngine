@@ -9,12 +9,12 @@
 namespace cura
 {
 
-MinimumSpanningTree::MinimumSpanningTree(std::unordered_set<Point> vertices) : adjacency_graph(prim(vertices))
+MinimumSpanningTree::MinimumSpanningTree(std::vector<Point> vertices) : adjacency_graph(prim(vertices))
 {
     //Just copy over the fields.
 }
 
-auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> AdjacencyGraph_t
+auto MinimumSpanningTree::prim(std::vector<Point> vertices) const -> AdjacencyGraph_t
 {
     AdjacencyGraph_t result;
     if (vertices.empty())
