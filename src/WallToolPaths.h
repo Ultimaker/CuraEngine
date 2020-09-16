@@ -26,6 +26,16 @@ public:
     WallToolPaths(const Polygons& outline, coord_t nominal_bead_width, coord_t inset_count, const Settings& settings);
 
     /*!
+     * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
+     * \param outline An outline of the area in which the ToolPaths are to be generated
+     * \param bead_width_0 The bead width of the first wall used in the generation of the toolpaths
+     * \param bead_width_x The bead width of the inner walls used in the generation of the toolpaths
+     * \param inset_count The maximum number of parallel extrusion lines that make up the wall
+     * \param settings The settings as provided by the user
+     */
+    WallToolPaths(const Polygons& outline, coord_t bead_width_0, coord_t bead_width_x, coord_t inset_count, const Settings& settings);
+
+    /*!
      * Generates the Toolpaths
      * \return A reference to the newly create  ToolPaths
      */
@@ -68,7 +78,8 @@ public:
 
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
-    const coord_t nominal_bead_width; //<! The nominal extrusion line width with which libArachne generates its walls
+    const coord_t bead_width_0; //<! The nominal or first extrusion line width with which libArachne generates its walls
+    const coord_t bead_width_x; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor this is the same as bead_width_0
     const coord_t inset_count; //<! The maximum number of walls to generate
     const StrategyType strategy_type; //<! The wall generating strategy
     const bool widening_beading_enabled; //<! Is the widening beading setting enabled
