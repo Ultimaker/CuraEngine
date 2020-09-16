@@ -107,12 +107,13 @@ public:
     static bool optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part);
 
     /*!
-     * Converts the ToolPaths to a bin of walls, consisting of a vector of paths, consisting of a vector of lines
+     * Converts the VariableWidthPath to a bin of walls, consisting of a vector of paths, consisting of a vector of
+     * lines
      * \param toolpaths The toolpaths to convert
      * \param num_insets The maximum number of parallel extrusion lines in the walls
      * \return A bin of walls, consisting of a vector of paths consisting of vector of lines
      */
-    static BinJunctions toolPathsToBinJunctions(const VariableWidthPath& toolpaths, coord_t num_insets);
+    static BinJunctions variableWidthPathToBinJunctions(const VariableWidthPath& toolpaths, coord_t num_insets);
 };
 
 } //namespace cura
