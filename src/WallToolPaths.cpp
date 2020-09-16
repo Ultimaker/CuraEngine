@@ -51,6 +51,7 @@ const VariableWidthPaths& WallToolPaths::generate()
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(toolpaths);
     }
+    removeEmptyToolPaths(toolpaths);
     toolpaths_generated = true;
     return toolpaths;
 }

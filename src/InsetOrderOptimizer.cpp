@@ -635,6 +635,8 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
 BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths,
                                                                   coord_t num_insets)
 {
+    assert(("number of insets can't be 0 if there are toolpaths generated", (!toolpaths.empty() && num_insets == 0)));
+    assert(("Toolpaths shouldn't be empty", toolpaths.empty()));
     // Vector of insets (bins). Each inset is a vector of paths. Each path is a vector of lines.
     BinJunctions insets(static_cast<size_t>(num_insets));
     for (const VariableWidthLines& path : toolpaths)
