@@ -187,9 +187,10 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
     const Polygons outline = in_outline.offset(outline_offset);
 
+    // Get the first offset these are mirrored from the original center line
     Polygons result;
     Polygons first_offset;
-    { // calculate [first_offset]
+    {
         const Polygons first_offset_lines = result_lines.offsetPolyLine(offset); // make lines on both sides of the input lines
         const Polygons first_offset_polygons_inward = result_polygons.offset(-offset); // make lines on the inside of the input polygons
         const Polygons first_offset_polygons_outward = result_polygons.offset(offset); // make lines on the other side of the input polygons
@@ -201,6 +202,9 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         }
     }
     result.add(first_offset);
+
+    // Create the additional offsets from the first offsets, generated earlier, the direction of these offsets is
+    // depended on whether these lines should be connected or not.
     if (infill_multiplier > 3)
     {
         Polygons reference_polygons = first_offset;
@@ -219,6 +223,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         result = result.intersection(outline);
     }
 
+    // Remove the original center lines when there are an even number of lines required.
     if (!odd_multiplier)
     {
         result_polygons.clear();
