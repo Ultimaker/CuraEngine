@@ -1016,14 +1016,9 @@ public:
             return;
         }
 
-        Polygons& thiss = *this;
-        for (size_t p = 0; p < size(); p++)
+        for (PolygonRef poly : *this)
         {
-            for (Point& pt : thiss[p])
-            {
-                pt.X += vec.X;
-                pt.Y += vec.Y;
-            }
+            poly.translate(vec);
         }
     }
 
