@@ -72,7 +72,6 @@ private:
     bool toolpaths_generated; //<! Are the toolpaths generated
     VariableWidthPath toolpaths; //<! The generated toolpaths
     Polygons inner_contour;  //<! The inner contour of the generated toolpaths
-    BinJunctions binJunctions;  //<! A bin of generated walls which are a vector of path which is a vector of extrusion junctions
 };
 } // namespace cura
 
