@@ -295,32 +295,7 @@ Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, d
     return ret;
 }
 
-bool lineLineIntersection(Point a, Point b, Point c, Point d, Point& output)
-{
-    // Line AB represented as a1x + b1y = c1
-    double a1 = b.Y - a.Y;
-    double b1 = a.X - b.X;
-    double c1 = a1*(a.X) + b1*(a.Y);
 
-    // Line CD represented as a2x + b2y = c2
-    double a2 = d.Y - c.Y;
-    double b2 = c.X - d.X;
-    double c2 = a2*(c.X)+ b2*(c.Y);
-
-    double determinant = a1 * b2 - a2 * b1;
-
-    if (determinant == 0)
-    {
-        // The lines are parallel
-        return false;
-    }
-    else
-    {
-        output.X = (b2 * c1 - b1 * c2) / determinant;
-        output.Y = (a1 * c2 - a2 * c1) / determinant;
-        return true;
-    }
-}
 
 
 void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared)
@@ -413,7 +388,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                 // We should instead move this point to a location where both edges are kept and then remove the previous point that we wanted to keep.
                 // By taking the intersection of these two lines, we get a point that perseves the direction (so it makes the corner a bit more pointy)
                 Point intersection_point;
-                bool has_intersection = lineLineIntersection(previous_previous, previous, current, next, intersection_point);
+                bool has_intersection = LinearAlg2D::lineLineIntersection(previous_previous, previous, current, next, intersection_point);
                 
                 if (!has_intersection || LinearAlg2D::getDist2FromLine(intersection_point, previous, current) > allowed_error_distance_squared)
                 {
