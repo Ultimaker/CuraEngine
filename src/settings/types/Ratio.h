@@ -24,6 +24,10 @@ struct Ratio
      */
     constexpr Ratio(double value) : value(value) {};
 
+    template <typename E1, typename E2>
+    constexpr Ratio(const E1& numerator, const E2& divisor)
+        : value(static_cast<double>(numerator) / static_cast<double>(divisor)) {};
+
     /*
      * \brief Casts the Ratio instance to a double.
      */
