@@ -37,6 +37,21 @@ struct Ratio
     }
 
     /*
+     * Some Relational operators
+     */
+    template <typename E>
+    constexpr bool operator==(const E& rhs) const
+    {
+        return value == static_cast<double>(rhs);
+    }
+
+    template <typename E>
+    constexpr bool operator!=(const E& rhs) const
+    {
+        return !(rhs == *this);
+    }
+
+    /*
      * Some operators for arithmetic on ratios.
      */
     Ratio operator *(const Ratio& other) const
