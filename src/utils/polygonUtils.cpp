@@ -1421,6 +1421,8 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
     }
 
     const coord_t half_epsilon = (epsilon + 1) / 2;
+    const Ratio ratio(1, epsilon);
+    const Ratio ratio_inv(epsilon, 1);
 
     // Shrink (making _near_ self-intersections into _actual_ self-intersecrtions), fix, grow back to original size.
     // Do this repeatedly with different offsets, so points that are close together do actually merge.
@@ -1428,9 +1430,10 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
     for (const Point& translate_vec : translate_vecs)
     {
         thiss.translate(translate_vec);
-        thiss.scale(1, epsilon);
+
+        thiss.scale(ratio);
         ClipperLib::SimplifyPolygons(thiss.paths);
-        thiss.scale(epsilon, 1);
+        thiss.scale(ratio_inv);
         thiss.translate(-translate_vec);
     }
 
