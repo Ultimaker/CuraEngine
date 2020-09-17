@@ -66,6 +66,32 @@ public:
                 
     }
 
+    static bool lineLineIntersection(const Point& a, const Point& b, const Point& c, const Point& d, Point& output)
+    {
+        // Line AB represented as a1x + b1y = c1
+        const double a1 = b.Y - a.Y;
+        const double b1 = a.X - b.X;
+
+        // Line CD represented as a2x + b2y = c2
+        const double a2 = d.Y - c.Y;
+        const double b2 = c.X - d.X;
+
+        const double determinant = a1 * b2 - a2 * b1;
+
+        if (determinant == 0)
+        {
+            // The lines are parallel
+            return false;
+        }
+
+        const double c1 = a1 * (a.X) + b1 * (a.Y);
+        const double c2 = a2 * (c.X) + b2 * (c.Y);
+
+        output.X = (b2 * c1 - b1 * c2) / determinant;
+        output.Y = (a1 * c2 - a2 * c1) / determinant;
+        return true;
+    }
+
     /*!
      * Find whether a point projected on a line segment would be projected to
      * - properly on the line : zero returned
