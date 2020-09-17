@@ -177,11 +177,19 @@ private:
      */
 	coord_t precalculation_progress=0;
     /*!
+     * \brief The progress multiplier of all values added progress bar.
+     * Required for the progress bar the behave as expected when areas have to be calculated multiple times
+     */
+	double progress_multiplier;
+    /*!
+     * \brief The progress offset added to all values communitcated to the progress bar.
+     * Required for the progress bar the behave as expected when areas have to be calculated multiple times
+     */
+	double progress_offset;
+    /*!
      * \brief Polygons representing the limits of the printable area of the
      * machine
      */
-	double progress_multiplier;
-	double progress_offset;
     Polygons machine_border_;
     /*!
      * \brief Storage for layer outlines and the corresponding settings of the meshes grouped by meshes with identical setting.
@@ -249,7 +257,7 @@ public:
 
     struct SupportElement{
 
-    	SupportElement(coord_t distance_to_top,size_t target_height,Point target_position,bool to_buildplate,bool to_model_gracious,bool use_min_xy_dist): //SupportElement(target_height,target_position,target_height,target_position,distance_to_top,distance_to_top,to_buildplate)
+    	SupportElement(coord_t distance_to_top,size_t target_height,Point target_position,bool to_buildplate,bool to_model_gracious,bool use_min_xy_dist,size_t dont_move_until,bool supports_roof): //SupportElement(target_height,target_position,target_height,target_position,distance_to_top,distance_to_top,to_buildplate)
     		target_height(target_height),
 			target_position(target_position),
 			next_position(target_position),
@@ -258,11 +266,13 @@ public:
 			to_buildplate(to_buildplate),
 			distance_to_top(distance_to_top),
 			area(nullptr),
-			increased_ddt(0),
+			result_on_layer(target_position),
+			increased_to_model_radius(0),
 			to_model_gracious(to_model_gracious),
 			elephant_foot_increases(0),
 			use_min_xy_dist(use_min_xy_dist),
-			non_gracious_model_contact(false)
+			supports_roof(supports_roof),
+			dont_move_until(dont_move_until)
     	{
 
     	}
@@ -278,11 +288,12 @@ public:
 				distance_to_top(elem.distance_to_top),
 				area(newArea!=nullptr?newArea:elem.area),
 				result_on_layer(elem.result_on_layer),
-				increased_ddt(elem.increased_ddt),
+				increased_to_model_radius(elem.increased_to_model_radius),
 				to_model_gracious(elem.to_model_gracious),
 				elephant_foot_increases(elem.elephant_foot_increases),
 				use_min_xy_dist(elem.use_min_xy_dist),
-				non_gracious_model_contact(elem.non_gracious_model_contact)
+				supports_roof(elem.supports_roof),
+				dont_move_until(elem.dont_move_until)
 
     	{
     		parents.insert(parents.begin(), elem.parents.begin(), elem.parents.end());
@@ -302,22 +313,24 @@ public:
 				distance_to_top(element_above->distance_to_top+1),
 				area(element_above->area),
 				result_on_layer(Point(-1,-1)), // set to invalid as we are a new node on a new layer
-				increased_ddt(element_above->increased_ddt),
+				increased_to_model_radius(element_above->increased_to_model_radius),
 				to_model_gracious(element_above->to_model_gracious),
 				elephant_foot_increases(element_above->elephant_foot_increases),
 				use_min_xy_dist(element_above->use_min_xy_dist),
-				non_gracious_model_contact(element_above->non_gracious_model_contact)
+				supports_roof(element_above->supports_roof),
+				dont_move_until(element_above->dont_move_until)
     	{
     		parents={element_above};
     	}
 
-    	SupportElement(const SupportElement& first,const SupportElement& second,size_t next_height,Point next_position,coord_t increased_ddt,TreeSupportSettings config):
+    	SupportElement(const SupportElement& first,const SupportElement& second,size_t next_height,Point next_position,coord_t increased_to_model_radius,TreeSupportSettings config):
     		next_position(next_position),
     		next_height(next_height),
 			area(nullptr),
-			increased_ddt(increased_ddt),
+			increased_to_model_radius(increased_to_model_radius),
 			use_min_xy_dist(first.use_min_xy_dist&&second.use_min_xy_dist),
-			non_gracious_model_contact(first.non_gracious_model_contact&&second.non_gracious_model_contact)
+			supports_roof(first.supports_roof||second.supports_roof),
+			dont_move_until(std::min(first.dont_move_until,second.dont_move_until))
 
     	{
 
@@ -387,22 +400,47 @@ public:
         /*!
 		 * \brief The amount of layers this element is below the topmost layer of this branch.
 		 */
-
         size_t distance_to_top;
 
+        /*!
+		 * \brief The resulting influence area.
+		 * Will only be set in the results of createLayerPathing, and will be nullptr inside!
+		 */
         Polygons* area;
 
+        /*!
+		 * \brief The resulting center point around which a circle will be drawn later.
+		 * Will be set by setPointsOnAreas
+		 */
         Point result_on_layer=Point(-1,-1);
-
-        size_t increased_ddt; // how much to model we increased only relevant for merging
-
+        /*!
+		 * \brief The amount of extra radius we got from merging branches that could have reached the buildplate, but merged with ones that can not.
+		 */
+        coord_t increased_to_model_radius; // how much to model we increased only relevant for merging
+        /*!
+		 * \brief Will the branch be able to rest completly on a flat surface, be it buildplate or model ?
+		 */
         bool to_model_gracious;
 
+        /*!
+		 * \brief Counter about the times the elephant foot was increased. Can be fractions for merge reasons.
+		 */
         double elephant_foot_increases;
 
+        /*!
+		 * \brief Whether the min_xy_distance can be used to get avoidance or similar. Will only be true if support_xy_overrides_z=Z overrides X/Y.
+		 */
         bool use_min_xy_dist;
 
-        bool non_gracious_model_contact;
+        /*!
+		 * \brief True if this Element or any parent provides support to a support roof.
+		 */
+        bool supports_roof;
+
+        /*!
+		 * \brief The element trys not to move until this dtt is reached, is set to 0 if the element had to move.
+		 */
+        size_t dont_move_until;
 
         bool operator==(const SupportElement& other) const
         {
@@ -413,7 +451,7 @@ public:
         {
         	return !(*this==other)&&!(*this>other);
         }
-        bool operator> (const SupportElement& other) const{ // doesnt really have to make sense, only required for ordering in maps etc
+        bool operator> (const SupportElement& other) const{ // Doesn't really have to make sense, only required for ordering in maps to ensure deterministic behavior.
 
         	if(*this==other) return false;
         	if(other.target_height!=target_height){
@@ -424,11 +462,16 @@ public:
         }
 
         void AddParents(std::vector<SupportElement*> adding){
-        	parents.insert(parents.begin(), adding.begin(), adding.end());
+        	for(SupportElement* ptr:adding){
+        		parents.emplace_back(ptr);
+        	}
         }
 
     };
 
+    /*!
+     * \brief This struct contains settings used in the tree support. Thanks to this most functions do not need to know of meshes etc. Also makes the code shorter.
+     */
     struct TreeSupportSettings{
 
     	TreeSupportSettings()=default;
@@ -439,14 +482,14 @@ public:
     	layer_height(mesh_group_settings.get<coord_t>("layer_height")),
     	branch_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
 		support_line_width(mesh_group_settings.get<coord_t>("support_line_width")),
-		min_radius(1.2*support_line_width/2),
+		min_radius(1.25*support_line_width/2),
     	maximum_move_distance( (angle < TAU / 4) ? (coord_t) (tan(angle) * layer_height) : std::numeric_limits<coord_t>::max()),
     	maximum_move_distance_slow( (angle_slow < TAU / 4) ? (coord_t) (tan(angle_slow) * layer_height) : std::numeric_limits<coord_t>::max()),
     	support_roof_layers(  mesh_group_settings.get<bool>("support_roof_enable") ?round_divide(mesh_group_settings.get<coord_t>("support_roof_height"),layer_height):0),
     	support_bottom_layers(  mesh_group_settings.get<bool>("support_bottom_enable") ?round_divide(mesh_group_settings.get<coord_t>("support_bottom_height"),layer_height):0),
     	tip_layers(std::max((branch_radius-min_radius) / (support_line_width/3),branch_radius/layer_height)), //ensures lines always stack nicely even if layer height is large
     	diameter_angle_scale_factor(sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius),
-    	max_ddt_increase(diameter_angle_scale_factor<=0?std::numeric_limits<coord_t>::max():(mesh_group_settings.get<coord_t>("support_tree_max_radius_increase_by_merges_when_support_to_model"))/(diameter_angle_scale_factor*branch_radius)),
+    	max_to_model_radius_increase(mesh_group_settings.get<coord_t>("support_tree_max_diameter_increase_by_merges_when_support_to_model")/2),
     	min_ddt_to_model(round_up_divide(mesh_group_settings.get<coord_t>("support_tree_min_height_to_model"), layer_height)),
     	increase_radius_until_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
     	increase_radius_until_layer(increase_radius_until_radius<=branch_radius?tip_layers*(increase_radius_until_radius/branch_radius):(increase_radius_until_radius - branch_radius)/(branch_radius*diameter_angle_scale_factor)),
@@ -485,7 +528,6 @@ public:
     public:
 
 
-
 		coord_t layer_height;
     	coord_t branch_radius;
 		coord_t support_line_width; // only used for some smoothing, for the logic mainly irrelevant
@@ -494,9 +536,15 @@ public:
 		coord_t maximum_move_distance_slow;
 		size_t support_roof_layers;
 		size_t support_bottom_layers;
+	    /*!
+	     * \brief Amount of effectiveDTT increases are required to reach branch radius.
+	     */
 		size_t tip_layers;
+	    /*!
+	     * \brief Factor by which to increase the branch radius.
+	     */
 		double diameter_angle_scale_factor;
-		size_t max_ddt_increase;
+		coord_t max_to_model_radius_increase;
 		size_t min_ddt_to_model;
 		coord_t increase_radius_until_radius;
 		size_t increase_radius_until_layer;
@@ -510,7 +558,7 @@ public:
 		size_t z_distance_top_layers;
 		size_t z_distance_bottom_layers;
 		size_t performance_interface_skip_layers;// only relevant at the bottom
-		bool performance_increased_xy_min=false;
+		bool performance_increased_xy_min=false; //safeOffsetInc can only work in steps of the size xy_min_distance => has be larger than 0 and should be large enough for performance to not suffer extremely
     public:
 
 		bool hasSameInfluenceAreaSettings(const TreeSupportSettings& other) const {
@@ -521,11 +569,12 @@ public:
 						bp_radius == other.bp_radius &&
 						diameter_scale_elephant_foot == other.diameter_scale_elephant_foot &&
 						min_radius == other.min_radius &&
-						xy_min_distance == other.xy_min_distance && // as a recalculation of the AvoidanceAreas is required to set a new min_radius. This is not necessary if only xy_distance changes
+						xy_min_distance == other.xy_min_distance && // as a recalculation of the collision areas is required to set a new min_radius.
+						xy_distance-xy_min_distance == other.xy_distance-other.xy_min_distance &&//if the delta of xy_min_distance and xy_distance is different the collision areas have to be recalculated.
 						support_rests_on_model == other.support_rests_on_model &&
 						increase_radius_until_layer == other.increase_radius_until_layer &&
 						min_ddt_to_model == other.min_ddt_to_model &&
-						max_ddt_increase == other.max_ddt_increase &&
+						max_to_model_radius_increase == other.max_to_model_radius_increase &&
 						maximum_move_distance == other.maximum_move_distance &&
 						maximum_move_distance_slow == other.maximum_move_distance_slow&&
 						z_distance_bottom_layers == other.z_distance_bottom_layers &&
@@ -533,19 +582,7 @@ public:
 						support_overrides == other.support_overrides; //requires new avoidance calculation. Could be changed so it does not, but because i expect that this case happens seldom i dont think it is worth it.
 		}
 		bool hasSameAvoidanceSettings(const TreeSupportSettings& other) const {
-				return  z_distance_bottom_layers == other.z_distance_bottom_layers &&
-						z_distance_top_layers ==other.z_distance_top_layers &&
-						support_overrides == other.support_overrides &&
-						branch_radius == other.branch_radius &&
-						tip_layers == other.tip_layers &&
-						diameter_angle_scale_factor == other.diameter_angle_scale_factor &&
-						layer_start_bp_radius == other.layer_start_bp_radius &&
-						bp_radius == other.bp_radius &&
-						diameter_scale_elephant_foot == other.diameter_scale_elephant_foot &&
-						min_radius == other.min_radius &&
-						xy_min_distance == other.xy_min_distance &&
-						maximum_move_distance == other.maximum_move_distance &&
-						maximum_move_distance_slow == other.maximum_move_distance_slow;
+				return  z_distance_top_layers ==other.z_distance_top_layers && hasSameInfluenceAreaSettings(other); // while some of those with different InfluenceAreaSettings may be combined together doing so provides no performance advantages.
 		}
 
 
@@ -670,7 +707,7 @@ private:
      * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the ammount of vertecies, which may be required if Polygons get very small.
      * \return The resulting Polygons object.
      */
-    Polygons safeOffsetInc(Polygons& me,coord_t distance,const Polygons& collision,coord_t last_safe_step_size,size_t min_amount_offset)const;
+    Polygons safeOffsetInc(Polygons& me,coord_t distance,const Polygons& collision,coord_t safe_step_size,coord_t last_safe_step_size,size_t min_amount_offset)const;
 
     /*!
      * \brief Increases influence areas as far as required.
@@ -729,7 +766,6 @@ private:
      */
     void drawAreas(std::vector<std::map<SupportElement*,Polygons*>>& move_bounds,SliceDataStorage& storage);
 
-
     std::vector<std::pair<TreeSupportSettings,std::vector<size_t>>> grouped_meshes;
     /*!
      * \brief Generator for model collision, avoidance and internal guide volumes
@@ -737,17 +773,20 @@ private:
      */
     ModelVolumes volumes_;
     /*!
-     * \brief Contains support areas that are ready to be added to storage later.
-     */
-    std::vector<Polygons> precalculated_support_layers;
-
-    /*!
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
      */
     TreeSupportSettings config;
 
-    double progress_multiplier=1;
-    double progress_offset=0;
+    /*!
+     * \brief The progress multiplier of all values added progress bar.
+     * Required for the progress bar the behave as expected when areas have to be calculated multiple times
+     */
+	double progress_multiplier=1;
+    /*!
+     * \brief The progress offset added to all values communitcated to the progress bar.
+     * Required for the progress bar the behave as expected when areas have to be calculated multiple times
+     */
+	double progress_offset=0;
 
 };
 
