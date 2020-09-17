@@ -354,9 +354,8 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Twice the Shoelace formula for area of polygon per line segment.
         const coord_t negative_area_closing = next.X * previous.Y - next.Y * previous.X; // area between the origin and the short-cutting segment
         accumulated_area_removed += removed_area_next;
-        
+
         const coord_t length2 = vSize2(current - previous);
-        const coord_t next_length2 = vSize2(current - next);
 
         const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shortcut area polygon
         const coord_t base_length_2 = vSize2(next - previous);
@@ -378,10 +377,11 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             continue;
         }
-  
+
         if (length2 < smallest_line_segment_squared
             && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.)
         {
+            const coord_t next_length2 = vSize2(current - next);
             if (next_length2 > smallest_line_segment_squared)
             {
                 // Special case; The next line is long. If we were to remove this, it could happen that we get quite noticeable artifacts.
@@ -424,7 +424,6 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         previous = current; //Note that "previous" is only updated if we don't remove the vertex.
         new_path.push_back(current);
     }
-    
 
     *path = new_path;
 }
