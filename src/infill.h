@@ -108,15 +108,14 @@ public:
      * \param mesh The mesh for which to generate infill (should only be used for non-helper objects)
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
-    [[deprecated]] void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
-    void generate(VariableWidthPaths& toolpaths, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
+    void generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
-    [[deprecated]] void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
-    void _generate(Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
@@ -130,7 +129,6 @@ private:
      * \param[in,out] result_lines The lines to be multiplied (input and output)
      */
     void multiplyInfill(Polygons& result_polygons, Polygons& result_lines);
-    void multiplyInfill(Polygons& result_lines);
 
     struct InfillLineSegment
     {

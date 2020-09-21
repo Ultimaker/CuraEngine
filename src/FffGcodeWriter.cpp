@@ -1475,7 +1475,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const coord_t infill_line_width = mesh_config.infill_config[0].getLineWidth();
 
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
-    Polygons infill_polygons; // Todo: libArachne remove when unused
+    Polygons infill_polygons;
     std::vector<VariableWidthPaths> wall_tool_paths;
     Polygons infill_lines;
 
@@ -1663,7 +1663,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                                            min_wall_line_count, infill_origin, perimeter_gaps, connected_zigzags,
                                            use_endpieces, skip_some_zags, zag_skip_count,
                                            mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-                        infill_comp.generate(wall_tool_paths.back(), infill_lines, mesh.cross_fill_provider, &mesh);
+                        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
 
                         // normal processing for the infill that isn't below skin
                         in_outline = infill_not_below_skin;
@@ -1695,11 +1695,11 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            infill_shift, wall_line_count, infill_origin, perimeter_gaps, connected_zigzags,
                            use_endpieces, skip_some_zags, zag_skip_count,
                            mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-        infill_comp.generate(wall_tool_paths.back(), infill_lines, mesh.cross_fill_provider, &mesh);
+        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
     }
 
-    const bool walls_generated = std::any_of(wall_tool_paths.cbegin(), wall_tool_paths.cend(), [](VariableWidthPaths tp){ return !tp.empty(); });
-    if (!infill_lines.empty() || walls_generated)
+    const bool walls_generated = std::any_of(wall_tool_paths.cbegin(), wall_tool_paths.cend(), [](const VariableWidthPaths& tp){ return !tp.empty(); });
+    if (!infill_lines.empty()  || walls_generated)
     {
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
@@ -1732,6 +1732,13 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                     }
                 }
             }
+        }
+        if (!infill_polygons.empty())
+        {
+            constexpr bool force_comb_retract = false;
+            // start the infill polygons at the nearest vertex to the current location
+            gcode_layer.addTravel(PolygonUtils::findNearestVert(gcode_layer.getLastPlannedPositionOrStartingPosition(), infill_polygons).p(), force_comb_retract);
+            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
         }
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)

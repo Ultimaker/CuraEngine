@@ -43,7 +43,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,  Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
     // generate walls
     if (outer_contour.empty())
@@ -57,8 +57,6 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_lines, con
     }
     outline_offset -= wall_line_count * infill_line_width;
 
-    Polygons generated_result_lines;
-    _generate(generated_result_lines, cross_fill_provider, mesh);
     if (infill_multiplier > 1)
     {
         bool zig_zaggify_real = zig_zaggify;
@@ -66,10 +64,35 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_lines, con
         {
             zig_zaggify = false;
         }
-        multiplyInfill(generated_result_lines);
+        Polygons generated_result_polygons;
+        Polygons generated_result_lines;
+        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
         zig_zaggify = zig_zaggify_real;
+        multiplyInfill(generated_result_polygons, generated_result_lines);
+        result_polygons.add(generated_result_polygons);
+        result_lines.add(generated_result_lines);
     }
-    result_lines.add(generated_result_lines);
+    else
+    {
+        //_generate may clear() the generated_result_lines, but this is an output variable that may contain data before we start.
+        //So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
+        Polygons generated_result_polygons;
+        Polygons generated_result_lines;
+        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
+        result_polygons.add(generated_result_polygons);
+        result_lines.add(generated_result_lines);
+    }
+    if (connect_polygons)
+    {
+        // remove too small polygons
+        coord_t snap_distance = infill_line_width * 2; // polygons with a span of max 1 * nozzle_size are too small
+        auto it = std::remove_if(result_polygons.begin(), result_polygons.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
+        result_polygons.erase(it, result_polygons.end());
+
+        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
+        connector.add(result_polygons);
+        result_polygons = connector.connect();
+    }
 }
 
 void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
@@ -121,89 +144,6 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         connector.add(result_polygons);
         result_polygons = connector.connect();
     }
-}
-
-void Infill::_generate(Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
-{
-    if (line_distance == 0)
-    {
-        return;
-    }
-
-    if (pattern == EFillMethod::ZIG_ZAG || (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON || pattern == EFillMethod::GYROID)))
-    {
-        // TODO: How to handle variable line widths
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
-    }
-
-    assert(("concentric not yet supported", pattern != EFillMethod::CONCENTRIC));
-
-    switch(pattern)
-    {
-        case EFillMethod::GRID:
-            generateGridInfill(result_lines);
-            break;
-        case EFillMethod::LINES:
-            generateLineInfill(result_lines, line_distance, fill_angle, 0);
-            break;
-        case EFillMethod::CUBIC:
-            generateCubicInfill(result_lines);
-            break;
-        case EFillMethod::TETRAHEDRAL:
-            generateTetrahedralInfill(result_lines);
-            break;
-        case EFillMethod::QUARTER_CUBIC:
-            generateQuarterCubicInfill(result_lines);
-            break;
-        case EFillMethod::TRIANGLES:
-            generateTriangleInfill(result_lines);
-            break;
-        case EFillMethod::TRIHEXAGON:
-            generateTrihexagonInfill(result_lines);
-            break;
-        case EFillMethod::CONCENTRIC:
-            // generateConcentricInfill(result_polygons, line_distance);
-            // TODO: Handle ConcentricInfill
-            break;
-        case EFillMethod::ZIG_ZAG:
-            generateZigZagInfill(result_lines, line_distance, fill_angle);
-            break;
-        case EFillMethod::CUBICSUBDIV:
-            if (!mesh)
-            {
-                logError("Cannot generate Cubic Subdivision infill without a mesh!\n");
-                break;
-            }
-            generateCubicSubDivInfill(result_lines, *mesh);
-            break;
-        case EFillMethod::CROSS:
-        case EFillMethod::CROSS_3D:
-            if (!cross_fill_provider)
-            {
-                logError("Cannot generate Cross infill without a cross fill provider!\n");
-                break;
-            }
-            generateCrossInfill(*cross_fill_provider, result_lines);
-            break;
-        case EFillMethod::GYROID:
-            generateGyroidInfill(result_lines);
-            break;
-        default:
-            logError("Fill pattern has unknown value.\n");
-            break;
-    }
-
-    //TODO: The connected lines algorithm is only available for linear-based infill, for now.
-    //We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
-    //Cubic Subdivision ends lines in the center of the infill so it won't be effective.
-    if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
-    {
-        //The list should be empty because it will be again filled completely. Otherwise might have double lines.
-        result_lines.clear();
-
-        connectLines(result_lines);
-    }
-    crossings_on_line.clear();
 }
 
 void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
@@ -281,12 +221,6 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         connectLines(result_lines);
     }
     crossings_on_line.clear();
-}
-
-void Infill::multiplyInfill(Polygons& result_lines)
-{
-    Polygons generated_polygons;
-    multiplyInfill(generated_polygons, result_lines);
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
