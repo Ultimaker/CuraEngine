@@ -493,16 +493,16 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
 {
     auto compare_coord_t = [](const void* a, const void* b)
     {
-      coord_t n = (*(coord_t*)a) - (*(coord_t*)b);
-      if (n < 0)
-      {
-          return -1;
-      }
-      if (n > 0)
-      {
-          return 1;
-      }
-      return 0;
+        coord_t n = (*(coord_t*)a) - (*(coord_t*)b);
+        if (n < 0)
+        {
+            return -1;
+        }
+        if (n > 0)
+        {
+            return 1;
+        }
+        return 0;
     };
 
     unsigned int scanline_idx = 0;
