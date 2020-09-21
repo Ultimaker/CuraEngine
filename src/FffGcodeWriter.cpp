@@ -2501,7 +2501,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         support_infill_angle = storage.support.support_infill_angles.at(gcode_layer.getLayerNr() % storage.support.support_infill_angles.size());
     }
     constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
-    constexpr size_t wall_line_count = 0;
+    const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
     coord_t default_support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
     if (gcode_layer.getLayerNr() == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
