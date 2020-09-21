@@ -40,7 +40,7 @@ struct ExtrusionLine
      *
      * Each junction has a width, making this path a variable-width path.
      */
-    std::list<ExtrusionJunction> junctions;
+    std::vector<ExtrusionJunction> junctions;
 
     ExtrusionLine(const size_t inset_idx, const bool is_odd)
     : inset_idx(inset_idx)

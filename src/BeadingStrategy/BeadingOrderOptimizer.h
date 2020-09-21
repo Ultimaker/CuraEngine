@@ -169,13 +169,13 @@ private:
      * Get an iterator where we can insert new junctions.
      */
     template<typename directional_iterator>
-    static std::list<ExtrusionJunction>::iterator getInsertPosIt(const directional_iterator it);
+    static std::vector<ExtrusionJunction>::iterator getInsertPosIt(const directional_iterator it);
 
     /*!
      * Get an iterator pointing to a certain junction.
      */
     template<typename directional_iterator>
-    static std::list<ExtrusionJunction>::iterator getSelfPosIt(const directional_iterator it);
+    static std::vector<ExtrusionJunction>::iterator getSelfPosIt(const directional_iterator it);
 
     /*!
      * Test if an iterator points to the end of a polyline.
