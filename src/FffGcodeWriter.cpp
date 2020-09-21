@@ -2563,6 +2563,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             const coord_t support_line_width = default_support_line_width * (combine_idx + 1);
 
             Polygons support_polygons;
+            VariableWidthPaths wall_toolpaths;
             Polygons support_lines;
             for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
             {
@@ -2594,7 +2595,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                    support_line_distance_here, current_support_infill_overlap, infill_multiplier, support_infill_angle, gcode_layer.z, support_shift, wall_line_count, infill_origin,
                                    perimeter_gaps, infill_extruder.settings.get<bool>("support_connect_zigzags"), use_endpieces,
                                    skip_some_zags, zag_skip_count, pocket_size);
-                infill_comp.generate(support_polygons, support_lines, storage.support.cross_fill_provider);
+                infill_comp.generate(wall_toolpaths, support_polygons, support_lines, storage.support.cross_fill_provider);
                 if (support_area_offset > 0)
                 {
                     // Only polygons (not lines), because this only happens in the case of concentric on layer 0 (if support brim is enabled).
@@ -2602,10 +2603,20 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 }
             }
 
-            if (support_lines.size() > 0 || support_polygons.size() > 0)
+            if (!support_lines.empty() || !support_polygons.empty() || !wall_toolpaths.empty())
             {
                 setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
                 gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+
+                BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths);
+                for (const PathJunctions& paths : bins)
+                {
+                    for (const LineJunctions& line : paths)
+                    {
+                        gcode_layer.addWall(line, gcode_layer.configs_storage.support_infill_config[combine_idx], false);
+                    }
+                }
+
                 if (!support_polygons.empty())
                 {
                     constexpr bool force_comb_retract = false;
