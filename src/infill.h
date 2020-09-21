@@ -7,6 +7,7 @@
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
 #include "settings/types/AngleDegrees.h"
+#include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/IntPoint.h"
 
@@ -109,7 +110,7 @@ public:
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
     void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
-    void generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
     /*!

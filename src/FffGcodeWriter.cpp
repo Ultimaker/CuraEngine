@@ -1663,7 +1663,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                                            min_wall_line_count, infill_origin, perimeter_gaps, connected_zigzags,
                                            use_endpieces, skip_some_zags, zag_skip_count,
                                            mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-                        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+                        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
 
                         // normal processing for the infill that isn't below skin
                         in_outline = infill_not_below_skin;
@@ -1695,7 +1695,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            infill_shift, wall_line_count, infill_origin, perimeter_gaps, connected_zigzags,
                            use_endpieces, skip_some_zags, zag_skip_count,
                            mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
     }
 
     const bool walls_generated = std::any_of(wall_tool_paths.cbegin(), wall_tool_paths.cend(), [](const VariableWidthPaths& tp){ return !tp.empty(); });
@@ -2595,7 +2595,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                    support_line_distance_here, current_support_infill_overlap, infill_multiplier, support_infill_angle, gcode_layer.z, support_shift, wall_line_count, infill_origin,
                                    perimeter_gaps, infill_extruder.settings.get<bool>("support_connect_zigzags"), use_endpieces,
                                    skip_some_zags, zag_skip_count, pocket_size);
-                infill_comp.generate(wall_toolpaths, support_polygons, support_lines, storage.support.cross_fill_provider);
+                infill_comp.generate(wall_toolpaths, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
                 if (support_area_offset > 0)
                 {
                     // Only polygons (not lines), because this only happens in the case of concentric on layer 0 (if support brim is enabled).

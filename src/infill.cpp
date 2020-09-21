@@ -43,7 +43,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,  Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,  Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
     // generate walls
     if (outer_contour.empty())
@@ -52,7 +52,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     }
     if (wall_line_count > 0)
     {
-        WallToolPaths wall_toolpaths(outer_contour, infill_line_width, wall_line_count, mesh->settings);
+        WallToolPaths wall_toolpaths(outer_contour, infill_line_width, wall_line_count, settings);
         toolpaths = wall_toolpaths.generate();
     }
     outline_offset -= wall_line_count * infill_line_width;
