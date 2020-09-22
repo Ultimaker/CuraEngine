@@ -1728,7 +1728,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                 {
                     for (const LineJunctions& line : paths)
                     {
-                        gcode_layer.addWall(line, mesh_config.infill_config[0], false);
+                        gcode_layer.addInfillWall(line, mesh_config.infill_config[0], false);
                     }
                 }
             }

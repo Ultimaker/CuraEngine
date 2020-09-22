@@ -604,12 +604,12 @@ public:
     void addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
 
     /*!
-     * Add a wall to the g-code
+     * Add an infill wall to the g-code
      * Walls should not be an empty vector at this time
      * \param wall he wall as ExtrusionJunctions
      * \param path_config The config with which to print the wall lines
      */
-    void addWall(const LineJunctions& wall, const GCodePathConfig& path_config, bool force_retract);
+    void addInfillWall(const LineJunctions& wall, const GCodePathConfig& path_config, bool force_retract);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.
