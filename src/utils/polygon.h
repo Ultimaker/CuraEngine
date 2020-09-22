@@ -5,8 +5,9 @@
 #define UTILS_POLYGON_H
 
 #include <vector>
-#include <assert.h>
-#include <float.h>
+#include <cassert>
+#include <cfloat>
+#include <algorithm>
 #include <clipper.hpp>
 
 #include <algorithm>    // std::reverse, fill_n array
@@ -16,8 +17,9 @@
 
 #include <initializer_list>
 
-#include "IntPoint.h"
 #include "../settings/types/AngleDegrees.h" //For angles between vertices.
+#include "../settings/types/Ratio.h"
+#include "IntPoint.h"
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -992,20 +994,18 @@ public:
         }
     }
 
-    void resize(const coord_t& numerator, const coord_t divisor)
+    void scale(const Ratio& ratio)
     {
-        if (numerator == 1 && divisor == 1)
+        if (ratio == 1.)
         {
             return;
         }
 
-        Polygons& thiss = *this;
-        for (size_t p = 0; p < size(); p++)
+        for (auto& points : *this)
         {
-            for (Point& pt : thiss[p])
+            for (auto& pt : points)
             {
-                pt.X = (pt.X * numerator) / divisor;
-                pt.Y = (pt.Y * numerator) / divisor;
+                pt = pt * static_cast<double>(ratio);
             }
         }
     }
@@ -1017,14 +1017,9 @@ public:
             return;
         }
 
-        Polygons& thiss = *this;
-        for (size_t p = 0; p < size(); p++)
+        for (PolygonRef poly : *this)
         {
-            for (Point& pt : thiss[p])
-            {
-                pt.X += vec.X;
-                pt.Y += vec.Y;
-            }
+            poly.translate(vec);
         }
     }
 

@@ -105,11 +105,11 @@ public:
     {
         return extrusion_junctions.use_count() > 0 && (ignore_empty || ! extrusion_junctions.lock()->empty());
     }
-    void setExtrusionJunctions(std::shared_ptr<std::vector<ExtrusionJunction>> storage)
+    void setExtrusionJunctions(std::shared_ptr<LineJunctions> storage)
     {
         extrusion_junctions = storage;
     }
-    std::shared_ptr<std::vector<ExtrusionJunction>> getExtrusionJunctions()
+    std::shared_ptr<LineJunctions> getExtrusionJunctions()
     {
         return extrusion_junctions.lock();
     }
@@ -119,7 +119,7 @@ private:
 
     std::weak_ptr<std::list<TransitionMiddle>> transitions;
     std::weak_ptr<std::list<TransitionEnd>> transition_ends;
-    std::weak_ptr<std::vector<ExtrusionJunction>> extrusion_junctions;
+    std::weak_ptr<LineJunctions> extrusion_junctions;
 };
 
 

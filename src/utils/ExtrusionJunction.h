@@ -58,5 +58,9 @@ namespace cura
     {
         return ej.p;
     }
+
+    using LineJunctions = std::vector<ExtrusionJunction>; //<! Vector of Lines
+    using PathJunctions = std::vector<LineJunctions>; //<! Vector of paths
+    using BinJunctions = std::vector<PathJunctions>; //<! Vector of insets (bins)
 }
 #endif // UTILS_EXTRUSION_JUNCTION_H

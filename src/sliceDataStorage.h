@@ -44,7 +44,6 @@ public:
     Polygons roofing_fill; //!< The inner infill which has air directly above
 };
 
-
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
     It's filled during the FffProcessor.processSliceData(.), where each step uses data from the previous steps.
@@ -60,7 +59,7 @@ public:
     Polygons outline_gaps; //!< The gaps between the outline of the mesh and the first wall. a.k.a. thin walls.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
 
-    std::vector<std::vector<ExtrusionLine>> wall_toolpaths;  //!< 'new style' toolpaths for walls, will replace(?) the insets
+    VariableWidthPaths wall_toolpaths;  //!< toolpaths for walls, will replace(?) the insets
 
     /*!
      * The areas inside of the mesh.
@@ -73,9 +72,9 @@ public:
      * The areas which need to be filled with sparse (0-99%) infill.
      * Like SliceLayerPart::outline, this class member is not used to actually determine the feature area,
      * but is used to compute the infill_area_per_combine_per_density.
-     * 
+     *
      * These polygons may be cleared once they have been used to generate gradual infill and/or infill combine.
-     * 
+     *
      * If these polygons are not initialized, simply use the normal infill area.
      */
     std::optional<Polygons> infill_area_own;

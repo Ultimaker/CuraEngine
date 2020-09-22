@@ -5,12 +5,9 @@
 #include "sliceDataStorage.h"
 #include "WallsComputation.h"
 #include "settings/types/Ratio.h"
-#include "settings/EnumSettings.h"
-#include "utils/polygonUtils.h"
 
 // libArachne
-#include "SkeletalTrapezoidation.h"
-#include "BeadingStrategy/BeadingStrategyFactory.h"
+#include "WallToolPaths.h"
 
 namespace cura {
 
@@ -125,41 +122,8 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     }
 
     // Call on libArachne:
-    auto strategy_type = settings.get<StrategyType>("beading_strategy_type");
-
-    coord_t* min_bead_width = nullptr;
-    coord_t* min_feature_size = nullptr;
-    if (settings.get<bool>("widening_beading_enabled"))
-    {
-        min_bead_width = new coord_t(settings.get<coord_t>("min_bead_width"));
-        min_feature_size = new coord_t(settings.get<coord_t>("min_feature_size"));
-    }
-
-    constexpr float transitioning_angle = 0.5;
-    const coord_t transition_length = 2 * std::max(line_width_0, line_width_x);
-    constexpr coord_t smallest_segment = 50;
-    constexpr coord_t allowed_distance = 50;
-    constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
-
-    // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self instersections allowed:
-    // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
-    const double small_area_length = INT2MM(line_width_0 / 2);
-    Polygons prepared_outline = part->outline.offset(-epsilon_offset).offset(epsilon_offset);
-    prepared_outline.simplify(smallest_segment, allowed_distance);
-    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
-    prepared_outline.removeDegenerateVerts();
-    prepared_outline.removeColinearEdges();
-    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
-    if (prepared_outline.area() > 0)
-    {
-        // If there are indeed walls to generate, choose a beading-strategy and use libArachne to generate the toolpaths:
-        const BeadingStrategy* beading_strat = BeadingStrategyFactory::makeStrategy(strategy_type, line_width_0, line_width_x, transition_length, transitioning_angle, min_bead_width, min_feature_size, 2 * inset_count);
-        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
-        wall_maker.generateToolpaths(part->wall_toolpaths);
-        delete beading_strat;
-    }
-    delete min_bead_width;
-    delete min_feature_size;
+    WallToolPaths wall_tool_paths(part->outline, line_width_0, inset_count, settings);
+    part->wall_toolpaths = wall_tool_paths.generate();
 }
 
 /*

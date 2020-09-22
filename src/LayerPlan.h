@@ -577,7 +577,23 @@ public:
      * are spanning a bridge.
      * \param wall_0_wipe_dist The distance to travel along the wall after it
      * has been laid down, in order to wipe the start and end of the wall
-     * together.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount.
+     * \param always_retract Whether to force a retraction when moving to the
+     * start of the wall (used for outer walls).
+     */
+    void addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
+
+    /*!
+     * Add a wall to the g-code starting at vertex \p start_idx
+     * \param wall The wall of type ExtrusionJunctions
+     * \param start_idx The index of the starting vertex to start at.
+     * \param mesh The current mesh being added to the layer plan.
+     * \param non_bridge_config The config with which to print the wall lines
+     * that are not spanning a bridge.
+     * \param bridge_config The config with which to print the wall lines that
+     * are spanning a bridge
+     * \param wall_0_wipe_dist The distance to travel along the wall after it
+     * has been laid down, in order to wipe the start and end of the wall
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
      * \param always_retract Whether to force a retraction when moving to the
      * start of the wall (used for outer walls).
@@ -585,8 +601,15 @@ public:
      * polyline).
      * \param is_reversed Whether to print this wall in reverse direction.
      */
-    void addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
-    void addWall(const std::vector<ExtrusionJunction>& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
+    void addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
+
+    /*!
+     * Add a wall to the g-code
+     * Walls should not be an empty vector at this time
+     * \param wall he wall as ExtrusionJunctions
+     * \param path_config The config with which to print the wall lines
+     */
+    void addWall(const LineJunctions& wall, const GCodePathConfig& path_config, bool force_retract);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.
@@ -600,7 +623,7 @@ public:
      * \param always_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
      */
     void addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
-    void addWalls(const std::vector<std::vector<ExtrusionJunction>>& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
+    void addWalls(const PathJunctions& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
      * Add lines to the gcode with optimized order.
