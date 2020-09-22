@@ -450,7 +450,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
         for (PolygonRef poly_line : poly_lines)
         {
-            for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
+            for (size_t point_idx = 1; point_idx < poly_line.size(); point_idx++)
             {
                 result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
             }
@@ -468,9 +468,10 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
         generateCrossInfill(cross_fill_provider, result_polygons, result_lines);
         for (PolygonRef poly_line : result_polygons)
         {
-            for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
+            for (size_t point_idx = 1; point_idx < poly_line.size(); point_idx++)
             {
-                result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
+                result_lines.addLine(poly_line[static_cast<unsigned int>(point_idx - 1)],
+                                     poly_line[static_cast<unsigned int>(point_idx)]);
             }
         }
     }
