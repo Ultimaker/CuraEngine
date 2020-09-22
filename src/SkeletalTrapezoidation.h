@@ -120,7 +120,7 @@ public:
      * "central" but as if it's a obtuse corner. As a result, sharp corners will
      * no longer end in a single line but will just loop.
      */
-    void generateToolpaths(std::vector<std::list<ExtrusionLine>>& generated_toolpaths, bool filter_outermost_central_edges = false);
+    void generateToolpaths(std::vector<std::vector<ExtrusionLine>>& generated_toolpaths, bool filter_outermost_central_edges = false);
 
 protected:
     /*!
@@ -162,7 +162,7 @@ protected:
     /*!
      * (Eventual) returned 'polylines per index' result (from generateToolpaths):
      */
-    std::vector<std::list<ExtrusionLine>>* p_generated_toolpaths;
+    std::vector<std::vector<ExtrusionLine>>* p_generated_toolpaths;
 
     /*!
      * Transfer an edge from the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)

@@ -37,7 +37,7 @@ public:
      * \param connect_odd_lines_to_polygons Whether to preferably connect an odd
      * count segment to a polygon, rather than closing the polygonal toolpath.
      */
-    static void optimize(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, const bool reduce_overlapping_segments = true, const bool connect_odd_lines_to_polygons = true);
+    static void optimize(std::vector<std::vector<ExtrusionLine>>& polygons_per_index, std::vector<std::vector<ExtrusionLine>>& polylines_per_index, const bool reduce_overlapping_segments = true, const bool connect_odd_lines_to_polygons = true);
 private:
     /*!
      * This private constructor is called by \ref optimize. It creates one
@@ -45,7 +45,7 @@ private:
      * \param polylines_per_index The polylines which are not connected into
      * loops.
      */
-    BeadingOrderOptimizer(std::vector<std::list<ExtrusionLine>>& polylines_per_index);
+    BeadingOrderOptimizer(std::vector<std::vector<ExtrusionLine>>& polylines_per_index);
 
     /*!
      * A reference to one endpoint of a polyline.
@@ -68,14 +68,14 @@ private:
         /*!
          * The polyline that this is an endpoint of.
          */
-        std::list<ExtrusionLine>::iterator polyline;
+        std::vector<ExtrusionLine>::iterator polyline;
 
         /*!
          * Whether to point to the front or the end of the extrusion line.
          */
         bool front;
 
-        ExtrusionLineEndRef(const coord_t inset_idx, const std::list<ExtrusionLine>::iterator polyline, const bool front)
+        ExtrusionLineEndRef(const coord_t inset_idx, const std::vector<ExtrusionLine>::iterator polyline, const bool front)
         : inset_idx(inset_idx)
         , polyline(polyline)
         , front(front)
@@ -115,7 +115,7 @@ private:
     /*!
      * All of the polylines that must be optimized.
      */
-    std::vector<std::list<ExtrusionLine>>& polylines_per_index;
+    std::vector<std::vector<ExtrusionLine>>& polylines_per_index;
 
     /*!
      * A mapping of where the endpoints of the polylines are.
@@ -141,7 +141,7 @@ private:
      * polygons? If so, this might open those polygons, creating a seam, but it
      * will remove another seam where the polyline is adjacent to a polygon.
      */
-    void fuzzyConnect(std::vector<std::list<ExtrusionLine>>& polygons_per_index, const coord_t snap_dist, const bool reduce_overlapping_segments, const bool connect_odd_lines_to_polygons);
+    void fuzzyConnect(std::vector<std::vector<ExtrusionLine>>& polygons_per_index, const coord_t snap_dist, const bool reduce_overlapping_segments, const bool connect_odd_lines_to_polygons);
 
     /*!
      * Compensate for overlaps between intersecting lines.
