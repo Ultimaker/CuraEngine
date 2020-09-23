@@ -28,7 +28,7 @@ public:
 	void precalculate(coord_t max_layer);
 
     /*!
-     * \brief Creates the areas that have to be avoided by the tree's branches.
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
      *
      * The result is a 2D area that would cause nodes of radius \p radius to
      * collide with the model.
@@ -72,6 +72,7 @@ public:
      *
      * \param radius The radius of the node of interest
      * \param min_xy_dist is the minimum xy distance used.
+     * \return The rounded radius
      */
     coord_t ceilRadius(coord_t radius,bool min_xy_dist) const;
 private:
@@ -87,17 +88,42 @@ private:
      */
     coord_t ceilRadius(coord_t radius) const;
 
+    /*!
+     * \brief Extracts the relevant outling from a mesh
+     * \param[in] mesh The mesh which outline will be extracted
+     * \param layer_idx The layer which should be extracted from the mesh
+     * \return Polygons object representing the outline
+     */
     Polygons extractOutlineFromMesh(const SliceMeshStorage& mesh, LayerIndex layer_idx) const;
 
+    /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
+     *
+     * The result is a 2D area that would cause nodes of radius \p radius to
+     * collide with the model. Result is saved in the cache.
+     * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
+     */
     void calculateCollision( std::deque<RadiusLayerPair> keys );
-
+    /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
+     *
+     * The result is a 2D area that would cause nodes of radius \p radius to
+     * collide with the model. Result is saved in the cache.
+     * \param key RadiusLayerPairs the requested areas. The radius will be calculated up to the provided layer.
+     */
     void calculateCollision( RadiusLayerPair key ){
     	calculateCollision(std::deque<RadiusLayerPair>{RadiusLayerPair(key)});
     }
 
     Polygons safeOffset(const Polygons& me,coord_t distance,ClipperLib::JoinType jt,coord_t max_safe_step_distance,const Polygons& collision)const;
 
-
+    /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model.
+     *
+     * The result is a 2D area that would cause nodes of radius \p radius to
+     * collide with the model. Result is saved in the cache.
+     * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
+     */
     void calculateAvoidance( std::deque<RadiusLayerPair> keys );
 
     void calculateAvoidance( RadiusLayerPair key ){
@@ -107,6 +133,11 @@ private:
     	}
     }
 
+    /*!
+     * \brief Creates the areas where a branch of a given radius can be place on the model.
+     * Result is saved in the cache.
+     * \param key RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
+     */
     void calculatePlaceables( RadiusLayerPair key ){
 #pragma omp parallel
     	{
@@ -114,24 +145,42 @@ private:
     	}
     }
 
-
+    /*!
+     * \brief Creates the areas where a branch of a given radius can be place on the model.
+     * Result is saved in the cache.
+     * \param keys RadiusLayerPair of the requested areas. The radius will be calculated up to the provided layer.
+     */
     void calculatePlaceables( std::deque<RadiusLayerPair> keys );
 
+    /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a single layer.
+     *
+     * The result is a 2D area that would cause nodes of radius \p radius to
+     * collide with the model in a not wanted way. Result is saved in the cache.
+     * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
+     */
     void calculateAvoidanceToModel( std::deque<RadiusLayerPair> keys );
 
+    /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a single layer.
+     *
+     * The result is a 2D area that would cause nodes of radius \p radius to
+     * collide with the model in a not wanted way. Result is saved in the cache.
+     * \param key RadiusLayerPair of the requested areas. The radius will be calculated up to the provided layer.
+     */
     void calculateAvoidanceToModel( RadiusLayerPair key ){
-#pragma omp parallel
+#pragma omp parallel //required as otherwise the "omp for" inside calculateAvoidance will lock up
     	{
     		calculateAvoidanceToModel(std::deque<RadiusLayerPair>{RadiusLayerPair(key)});
     	}
     }
-
+    /*!
+     * \brief Checks a cache for a given RadiusLayerPair and returns it if it is found
+     * \param key RadiusLayerPair of the requested areas. The radius will be calculated up to the provided layer.
+     * \return A wrapped optional reference of the requested area (if it was found, an empty optional if nothing was found)
+     */
     const std::optional<std::reference_wrapper<const Polygons>> getArea(std::unordered_map<RadiusLayerPair, Polygons>& cache,const RadiusLayerPair key) const;
     bool checkSettingsEquality(const Settings& me, const Settings& other)const;
-    coord_t getXYDistByIdx(size_t outline_idx,bool min_xy_dist) const;
-    coord_t getXYDistDeltaByIdx(size_t outline_idx) const{
-    	return getXYDistByIdx(outline_idx, false)-getXYDistByIdx(outline_idx, true);
-    }
     LayerIndex getMaxCalculatedLayer(coord_t radius,const std::unordered_map<RadiusLayerPair, Polygons>& map ) const;
     Polygons calculateMachineBorderCollision(Polygon machine_border);
     /*!
@@ -353,7 +402,7 @@ public:
 
 			elephant_foot_increases=0;
 			if(config.diameter_scale_elephant_foot>0){
-				coord_t foot_increase_radius = std::abs(std::max(config.getRadius(second),config.getRadius(first))-config.getRadius(*this));
+				coord_t foot_increase_radius = std::abs(std::max(config.getCollisionRadius(second),config.getCollisionRadius(first))-config.getCollisionRadius(*this));
 				elephant_foot_increases=foot_increase_radius/(config.branch_radius* (config.diameter_scale_elephant_foot-config.diameter_angle_scale_factor));
 			}
 
