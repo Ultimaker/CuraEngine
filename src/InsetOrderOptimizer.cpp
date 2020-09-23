@@ -56,8 +56,7 @@ bool InsetOrderOptimizer::optimize()
 bool InsetOrderOptimizer::processInsetsIndexedOrdering()
 {
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
-    BinJunctions insets =
-        variableWidthPathToBinJunctions(part.wall_toolpaths);
+    BinJunctions insets = variableWidthPathToBinJunctions(part.wall_toolpaths);
 
     //If printing the outer inset first, start with the lowest inset.
     //Otherwise start with the highest inset and iterate backwards.

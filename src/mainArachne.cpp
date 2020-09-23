@@ -291,7 +291,6 @@ void writeVarWidthTest()
                 aabb.include(j.p);
     Polygons fake_outline; fake_outline.add(aabb.toPolygon());
 
-
     {
         std::ostringstream ss;
         ss << "output/variable_width_test_P3.gcode";
