@@ -13,18 +13,18 @@
 namespace cura
 {
 
-void BeadingOrderOptimizer::optimize(std::vector<std::list<ExtrusionLine>>& polygons_per_index, std::vector<std::list<ExtrusionLine>>& polylines_per_index, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
+void BeadingOrderOptimizer::optimize(VariableWidthPaths& polygons_per_index, VariableWidthPaths& polylines_per_index, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
 {
     BeadingOrderOptimizer optimizer(polylines_per_index);
     optimizer.fuzzyConnect(polygons_per_index, snap_dist, reduce_overlapping_segments, connect_odd_lines_to_polygons);
 }
 
-BeadingOrderOptimizer::BeadingOrderOptimizer(std::vector<std::list<ExtrusionLine>>& polylines_per_index)
+BeadingOrderOptimizer::BeadingOrderOptimizer(VariableWidthPaths& polylines_per_index)
 : polylines_per_index(polylines_per_index)
 {
     for (auto& polylines : polylines_per_index)
     {
-        for (std::list<ExtrusionLine>::iterator polyline_it = polylines.begin(); polyline_it != polylines.end(); ++polyline_it)
+        for (VariableWidthLines::iterator polyline_it = polylines.begin(); polyline_it != polylines.end(); ++polyline_it)
         {
             ExtrusionLine& polyline = *polyline_it;
             assert(polyline.junctions.size() >= 2); // Otherwise the front and back ExtrusionLineEndRef would be mapped to from the same location
@@ -39,7 +39,7 @@ BeadingOrderOptimizer::BeadingOrderOptimizer(std::vector<std::list<ExtrusionLine
 }
 
 
-void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
+void BeadingOrderOptimizer::fuzzyConnect(VariableWidthPaths& polygons_per_index, coord_t snap_dist, bool reduce_overlapping_segments, bool connect_odd_lines_to_polygons)
 {
     struct Locator
     {
@@ -49,7 +49,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
         }
     };
     SparsePointGridInclusive<ExtrusionLineEndRef> polyline_grid(snap_dist); // Inclusive because iterators might get invalidated
-    for (std::list<ExtrusionLine>& polys : polylines_per_index)
+    for (VariableWidthLines& polys : polylines_per_index)
     {
         for (auto poly_it = polys.begin(); poly_it != polys.end(); ++poly_it)
         {
@@ -84,7 +84,7 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
     // TODO: decide on the best way to connect polylines at 3-way intersections
     std::list<ExtrusionLineEndRef> end_points_to_check;
 
-    for (std::list<ExtrusionLine>& polys : polylines_per_index)
+    for (VariableWidthLines& polys : polylines_per_index)
     {
         for (bool odd_lines : { connect_odd_lines_to_polygons, !connect_odd_lines_to_polygons })
         { // Try to combine odd lines into polygons first, if connect_odd_lines_to_polygons
@@ -230,9 +230,9 @@ void BeadingOrderOptimizer::fuzzyConnect(std::vector<std::list<ExtrusionLine>>& 
 
     // Remove emptied lists
     // This is done afterwards, because otherwise iterators would be invalid during the connecting algorithm
-    for (std::list<ExtrusionLine>& polys : polylines_per_index)
+    for (VariableWidthLines& polys : polylines_per_index)
     {
-        for (std::list<ExtrusionLine>::const_iterator poly_it = polys.begin(); poly_it != polys.end();)
+        for (VariableWidthLines::const_iterator poly_it = polys.begin(); poly_it != polys.end();)
         {
             if (poly_it->junctions.empty() || poly_it->getLength() < 2 * snap_dist) 
             // Too small segments might have been overlooked byecause of the fuzzy nature of matching end points to each other

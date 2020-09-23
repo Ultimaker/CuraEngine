@@ -120,7 +120,7 @@ public:
      * "central" but as if it's a obtuse corner. As a result, sharp corners will
      * no longer end in a single line but will just loop.
      */
-    void generateToolpaths(std::vector<std::list<ExtrusionLine>>& generated_toolpaths, bool filter_outermost_central_edges = false);
+    void generateToolpaths(VariableWidthPaths& generated_toolpaths, bool filter_outermost_central_edges = false);
 
 protected:
     /*!
@@ -158,11 +158,11 @@ protected:
     std::unordered_map<vd_t::edge_type*, edge_t*> vd_edge_to_he_edge;
     std::unordered_map<vd_t::vertex_type*, node_t*> vd_node_to_he_node;
     node_t& makeNode(vd_t::vertex_type& vd_node, Point p); //!< Get the node which the VD node maps to, or create a new mapping if there wasn't any yet.
-    
+
     /*!
      * (Eventual) returned 'polylines per index' result (from generateToolpaths):
      */
-    std::vector<std::list<ExtrusionLine>>* p_generated_toolpaths;
+    VariableWidthPaths* p_generated_toolpaths;
 
     /*!
      * Transfer an edge from the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
@@ -564,7 +564,7 @@ protected:
      * generate junctions for each bone
      * \param edge_to_junctions junctions ordered high R to low R
      */
-    void generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions);
+    void generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<LineJunctions>& edge_junctions);
 
     /*!
      * add a new toolpath segment, defined between two extrusion-juntions
@@ -574,7 +574,7 @@ protected:
     /*!
      * connect junctions in each quad
      */
-    void connectJunctions(ptr_vector_t<std::vector<ExtrusionJunction>>& edge_junctions);
+    void connectJunctions(ptr_vector_t<LineJunctions>& edge_junctions);
 
     /*!
      * Genrate small segments for local maxima where the beading would only result in a single bead

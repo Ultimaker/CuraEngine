@@ -170,6 +170,7 @@ set(engine_SRCS # Except main.cpp.
     src/WallsComputation.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
+    src/WallToolPaths.cpp
     
     src/BeadingStrategy/BeadingOrderOptimizer.cpp
     src/BeadingStrategy/BeadingStrategy.cpp

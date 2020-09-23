@@ -177,16 +177,16 @@ void test(Polygons& polys, coord_t nozzle_size, std::string output_prefix, Strat
     bool filter_outermost_marked_edges_now = filter_outermost_marked_edges;
     
     SkeletalTrapezoidation st(polys, *beading_strategy, transitioning_angle, discretization_step_size, transition_filter_dist, beading_propagation_transition_dist);
-    
-    
-    std::vector<std::list<ExtrusionLine>> result_polylines_per_index = st.generateToolpaths(filter_outermost_marked_edges_now);
+
+
+    ToolPaths result_polylines_per_index = st.generateToolpaths(filter_outermost_marked_edges_now);
 
     if (max_bead_count > 0)
     { // throw away generated odd beads in the middle
         result_polylines_per_index.resize(max_bead_count / 2);
     }
 
-    std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
+    ToolPaths result_polygons_per_index;
     BeadingOrderOptimizer::optimize(result_polygons_per_index, result_polylines_per_index, reduce_overlapping_segments_now, connect_odd_lines_to_polygons);
     double processing_time = tk.restart();
     logAlways("Processing took %fs\n", processing_time);
@@ -235,8 +235,8 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
     double processing_time = tk.restart();
     logAlways("Naive processing took %fs\n", processing_time);
 
-    std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
-    std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
+    ToolPaths result_polygons_per_index;
+    ToolPaths result_polylines_per_index;
     result_polygons_per_index.resize(insets.size());
     for (size_t inset_idx = 0; inset_idx < insets.size(); inset_idx++)
     {
@@ -280,8 +280,8 @@ void testNaive(Polygons& polys, coord_t nozzle_size, std::string output_prefix, 
 
 void writeVarWidthTest()
 {
-    std::vector<std::list<ExtrusionLine>> result_polygons_per_index;
-    std::vector<std::list<ExtrusionLine>> result_polylines_per_index;
+    ToolPaths result_polygons_per_index;
+    ToolPaths result_polylines_per_index;
     result_polylines_per_index = VariableWidthGcodeTester::zigzag();
 
     AABB aabb;
@@ -290,8 +290,8 @@ void writeVarWidthTest()
             for (ExtrusionJunction& j : p.junctions)
                 aabb.include(j.p);
     Polygons fake_outline; fake_outline.add(aabb.toPolygon());
-    
-        
+
+
     {
         std::ostringstream ss;
         ss << "output/variable_width_test_P3.gcode";
