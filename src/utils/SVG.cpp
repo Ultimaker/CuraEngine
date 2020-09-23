@@ -307,7 +307,7 @@ void SVG::writePolyline(ConstPolygonRef poly, ColorObject color, float stroke_wi
     int size = poly.size();
     Point p0 = poly[0];
     int i = 0;
-    for (coord_t p_idx = 1; p_idx < poly.size(); p_idx++)
+    for (size_t p_idx = 1; p_idx < poly.size(); p_idx++)
     {
         Point p1 = poly[p_idx];
         if (color.color == Color::RAINBOW)
