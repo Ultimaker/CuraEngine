@@ -1653,7 +1653,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                         constexpr bool skip_some_zags = false;
                         constexpr int zag_skip_count = 0;
                         constexpr coord_t outline_offset = 0;
-                        const size_t min_wall_line_count = std::max(1ULL, wall_line_count);
+                        const size_t min_wall_line_count = std::max(static_cast<size_t>(1), wall_line_count);
                         wall_tool_paths.emplace_back(VariableWidthPaths());
 
                         // infill region with skin above has to have at least one infill wall line
