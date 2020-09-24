@@ -30,7 +30,7 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
         
         for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
         {
-            coord_t width = ((bead_idx == 0 || bead_idx == (bead_count - 1)) ? optimal_width_outer : optimal_width_inner) + to_be_divided * getWeight(bead_idx) / total_weight;
+            coord_t width = (bead_idx == 0 ? optimal_width_outer : optimal_width_inner) + to_be_divided * getWeight(bead_idx) / total_weight;
             if (bead_idx == 0)
             {
                 ret.toolpath_locations.emplace_back(width / 2);
