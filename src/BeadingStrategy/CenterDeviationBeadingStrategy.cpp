@@ -15,6 +15,7 @@ CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(
     {
         ret.bead_widths.emplace_back(thickness);
         ret.toolpath_locations.emplace_back(thickness / 2);
+        ret.left_over = 0;
     }
     else if (bead_count > 1)
     {

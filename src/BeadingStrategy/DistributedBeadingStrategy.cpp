@@ -15,6 +15,7 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
     {
         ret.bead_widths.emplace_back(thickness);
         ret.toolpath_locations.emplace_back(thickness / 2);
+        ret.left_over = 0;
     }
     else if (bead_count > 1)
     {
@@ -29,6 +30,8 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
             ret.bead_widths.emplace_back(distributed_width_inner);
             ret.toolpath_locations.emplace_back(optimal_width_outer + distributed_width_inner * ((bead_idx - 1) * 2 + 1) / 2);
         }
+
+        ret.left_over = 0;
     }
     else
     {
