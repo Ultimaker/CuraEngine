@@ -77,12 +77,12 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
 
     setSupportAngles(storage);
-    
+
     gcode.writeLayerCountComment(total_layers);
 
     { // calculate the mesh order for each extruder
         const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
-        mesh_order_per_extruder.clear(); // Might be not empty in case of sequential printing. 
+        mesh_order_per_extruder.clear(); // Might be not empty in case of sequential printing.
         mesh_order_per_extruder.reserve(extruder_count);
         for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
@@ -276,7 +276,7 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime()
     }
 }
 
-void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
+void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
 {
     Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_index = 0; extruder_index < scene.extruders.size(); extruder_index++)
@@ -611,7 +611,11 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
             gcode.resetExtrusionValue();
 
             // retract before first travel move
-            gcode.writeRetraction(storage.retraction_config_per_extruder[start_extruder_nr]);
+            if (mesh_group_settings.get<bool>("retract_before_first_move"))
+            {
+                gcode.writeRetraction(storage.retraction_config_per_extruder[start_extruder_nr]);
+            }
+
         }
     }
     gcode.setExtruderFanNumber(start_extruder_nr);
@@ -636,7 +640,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 
     processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
-    
+
 void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 {
     Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
@@ -767,7 +771,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
-    
+
     coord_t layer_height = train.settings.get<coord_t>("raft_surface_thickness");
 
     for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= train.settings.get<size_t>("raft_surface_layers"); raft_surface_layer++)
@@ -930,7 +934,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     const size_t support_bottom_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr;
     const size_t support_infill_extruder_nr = (layer_nr <= 0) ? mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
     bool disable_path_optimisation = false;
-    
+
     for (const size_t& extruder_nr : extruder_order)
     {
         if (include_helper_parts
@@ -1268,7 +1272,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
 void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
 {
     const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
-    
+
     Polygons lines;
     for(ConstPolygonRef polyline : layer->openPolyLines)
     {
@@ -1546,7 +1550,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 //                                       ^ infill_line_distance_here for lowest density infill up till here
 //                 ^ middle density line dist
 //     ^   highest density line dist
-            
+
             //All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2 for every density index.
             infill_line_distance_here /= 2;
         }
@@ -1698,11 +1702,11 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         //However we found that this doesn't scale well with polygons with larger circumference (https://github.com/Ultimaker/Cura/issues/3992).
         //Given that the original test worked for approximately 2x2cm models, this scaling by circumference should make it work for any size.
         const double minimum_small_area = 0.4 * 0.4 * circumference / 40000;
-        
+
         // This is only for density infill, because after generating the infill might appear unnecessary infill on walls
         // especially on vertical surfaces
         in_outline.removeSmallAreas(minimum_small_area);
-        
+
         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/ 0
             , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin
             , /*Polygons* perimeter_gaps =*/ nullptr
@@ -2546,11 +2550,11 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const ExtruderTrain& infill_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
     coord_t default_support_line_distance = infill_extruder.settings.get<coord_t>("support_line_distance");
-    
+
     // To improve adhesion for the "support initial layer" the first layer might have different properties
     if(gcode_layer.getLayerNr() == 0)
     {
-        default_support_line_distance = infill_extruder.settings.get<coord_t>("support_initial_layer_line_distance"); 
+        default_support_line_distance = infill_extruder.settings.get<coord_t>("support_initial_layer_line_distance");
     }
 
     const coord_t default_support_infill_overlap = infill_extruder.settings.get<coord_t>("infill_overlap_mm");
@@ -2694,8 +2698,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, gcode_layer.getLayerNr())];
 
-    if (!storage.support.generated 
-        || gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer 
+    if (!storage.support.generated
+        || gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer
         || support_layer.support_roof.empty())
     {
         return false; //No need to generate support roof if there's no support.
@@ -2776,8 +2780,8 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, gcode_layer.getLayerNr())];
 
-    if (!storage.support.generated 
-        || gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer 
+    if (!storage.support.generated
+        || gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer
         || support_layer.support_bottom.empty())
     {
         return false; //No need to generate support bottoms if there's no support.
