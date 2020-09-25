@@ -31,7 +31,7 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
             ret.toolpath_locations.emplace_back(optimal_width_outer + distributed_width_inner * ((bead_idx - 1) * 2 + 1) / 2);
         }
 
-        ret.left_over = 0;
+        ret.left_over = std::max(0LL, thickness - (ret.toolpath_locations.back() + optimal_width_inner / 2));
     }
     else
     {

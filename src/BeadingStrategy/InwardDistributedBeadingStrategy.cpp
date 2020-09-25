@@ -41,7 +41,7 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
             }
             ret.bead_widths.emplace_back(width);
         }
-        ret.left_over = 0;
+        ret.left_over = std::max(0LL, thickness - (ret.toolpath_locations.back() + optimal_width_inner / 2));
     }
     else
     {
