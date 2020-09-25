@@ -24,11 +24,11 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
         ret.toolpath_locations.emplace_back(optimal_width_outer / 2);
 
         // Evenly distributed inner walls:
-        const coord_t distributed_width_inner = std::max(optimal_width_outer / 2, (thickness - optimal_width_outer) / (bead_count - 1));
+        const coord_t distributed_width_inner = std::max(optimal_width_inner / 2, (thickness - optimal_width_outer) / (bead_count - 1));
         for (coord_t bead_idx = 1; bead_idx < bead_count; bead_idx++)
         {
             ret.bead_widths.emplace_back(distributed_width_inner);
-            ret.toolpath_locations.emplace_back(optimal_width_outer + distributed_width_inner * ((bead_idx - 1) * 2 + 1) / 2);
+            ret.toolpath_locations.emplace_back(optimal_width_outer + (distributed_width_inner * (bead_idx - 1) * 2 + 1) / 2);
         }
 
         ret.left_over = std::max(0LL, thickness - (ret.toolpath_locations.back() + optimal_width_inner / 2));
