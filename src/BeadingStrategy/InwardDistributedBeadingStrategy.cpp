@@ -11,37 +11,44 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
     Beading ret;
 
     ret.total_thickness = thickness;
-    if (bead_count > 0)
+    if (bead_count == 1)
     {
+        ret.bead_widths.emplace_back(thickness);
+        ret.toolpath_locations.emplace_back(thickness / 2);
+        ret.left_over = 0;
+    }
+    else if (bead_count > 1)
+    {
+        // Outer wall, always the same size:
+        ret.bead_widths.emplace_back(optimal_width_outer);
+        ret.toolpath_locations.emplace_back(optimal_width_outer / 2);
+
+        // Inwardly distributed inner walls:
         coord_t to_be_divided = thickness - this->getOptimalThickness(bead_count);
+
         float total_weight = 0;
-        float middle = static_cast<float>(bead_count - 1) / 2;
+        float middle = static_cast<float>(bead_count - 2) / 2;
         
         auto getWeight = [middle, this](coord_t bead_idx)
         {
-            float dev_from_middle = bead_idx - middle;
+            float dev_from_middle = (bead_idx - 1) - middle;
             return std::max(0.0f, 1.0f - one_over_distribution_radius_squared * dev_from_middle * dev_from_middle);
         };
         
-        for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
+        for (coord_t bead_idx = 1; bead_idx < bead_count; bead_idx++)
         {
             total_weight += getWeight(bead_idx);
         }
-        
-        for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
+
+        coord_t half_last_width = ret.toolpath_locations.back();
+        for (coord_t bead_idx = 1; bead_idx < bead_count; bead_idx++)
         {
-            coord_t width = (bead_idx == 0 ? optimal_width_outer : optimal_width_inner) + to_be_divided * getWeight(bead_idx) / total_weight;
-            if (bead_idx == 0)
-            {
-                ret.toolpath_locations.emplace_back(width / 2);
-            }
-            else
-            {
-                ret.toolpath_locations.emplace_back(ret.toolpath_locations.back() + (ret.bead_widths.back() + width) / 2);
-            }
+            coord_t width = optimal_width_inner + (to_be_divided * getWeight(bead_idx)) / total_weight;
             ret.bead_widths.emplace_back(width);
+            ret.toolpath_locations.emplace_back(ret.toolpath_locations.back() + half_last_width + width / 2);
+            half_last_width = width / 2;
         }
-        ret.left_over = std::max(0LL, thickness - (ret.toolpath_locations.back() + optimal_width_inner / 2));
+        ret.left_over = 0; // There should be nothing left over, as we've distributed the remaining space.
     }
     else
     {

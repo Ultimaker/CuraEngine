@@ -28,10 +28,10 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
         for (coord_t bead_idx = 1; bead_idx < bead_count; bead_idx++)
         {
             ret.bead_widths.emplace_back(distributed_width_inner);
-            ret.toolpath_locations.emplace_back(optimal_width_outer + (distributed_width_inner * (bead_idx - 1) * 2 + 1) / 2);
+            ret.toolpath_locations.emplace_back((optimal_width_outer - distributed_width_inner / 2) + distributed_width_inner * bead_idx);
         }
 
-        ret.left_over = std::max(0LL, thickness - (ret.toolpath_locations.back() + optimal_width_inner / 2));
+        ret.left_over = 0; // There should be nothing left over, as we've distributed the remaining space.
     }
     else
     {
