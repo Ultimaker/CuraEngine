@@ -89,7 +89,7 @@ Polygons Polygons::approxConvexHull(int extra_outset)
     //Perform the offset for each polygon one at a time.
     //This is necessary because the polygons may overlap, in which case the offset could end up in an infinite loop.
     //See http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/_Body.htm
-    for (const ClipperLib::Path path : paths)
+    for (const ClipperLib::Path& path : paths)
     {
         Polygons offset_result;
         ClipperLib::ClipperOffset offsetter(1.2, 10.0);
@@ -389,7 +389,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                 // By taking the intersection of these two lines, we get a point that perseves the direction (so it makes the corner a bit more pointy)
                 Point intersection_point;
                 bool has_intersection = LinearAlg2D::lineLineIntersection(previous_previous, previous, current, next, intersection_point);
-                
+
                 if (!has_intersection || LinearAlg2D::getDist2FromLine(intersection_point, previous, current) > allowed_error_distance_squared)
                 {
                     if(length2 < 25)
@@ -404,7 +404,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                 {
                     // New point seems like a valid one.
                     current = intersection_point;
-                    
+
                     // If there was a previous point added, remove it.
                     if(new_path.size() > 0)
                     {

@@ -128,7 +128,7 @@ void AdaptiveLayerHeights::calculateLayers()
 
             // find the minimum slope of all the interesting triangles
             double minimum_slope = std::numeric_limits<double>::max();
-            for (const int& triangle_index : triangles_of_interest)
+            for (const size_t& triangle_index : triangles_of_interest)
             {
                 const double slope = face_slopes.at(triangle_index);
                 if (minimum_slope > slope)
