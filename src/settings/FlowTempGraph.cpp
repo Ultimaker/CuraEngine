@@ -35,6 +35,6 @@ double FlowTempGraph::getTemp(const double flow, const Temperature material_prin
 
     logWarning("Warning! Flow too high!\n"); // TODO
     return data.back().temp;
-};
+}
 
 } //namespace cura

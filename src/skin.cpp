@@ -13,9 +13,9 @@
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
 
-#define MIN_AREA_SIZE (0.4 * 0.4) 
+#define MIN_AREA_SIZE (0.4 * 0.4)
 
-namespace cura 
+namespace cura
 {
 
 coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
@@ -117,7 +117,7 @@ Polygons SkinInfillAreaComputation::getWalls(const SliceLayerPart& part_here, in
         }
     }
     return result;
-};
+}
 
 int SkinInfillAreaComputation::getReferenceWallIdx(coord_t& preshrink) const
 {
@@ -491,7 +491,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
                 && mesh.settings.get<EFillMethod>("roofing_pattern") != EFillMethod::CONCENTRIC
                 && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC)
             {
-                // Generate skin insets, regenerate the no_air_above, and recalculate the inner and roofing infills, 
+                // Generate skin insets, regenerate the no_air_above, and recalculate the inner and roofing infills,
                 // taking into account the extra skin wall count (only for the roofing layers).
                 generateSkinInsets(skin_part);
                 regenerateRoofingFillAndInnerInfill(part, skin_part);
@@ -500,7 +500,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             // In such cases we want to clear the skin insets first and then regenerate the proper roofing fill and inner infill
             // in the concentric roofing_pattern.
             else if (!skin_part.roofing_fill.empty()
-                    && layer_nr > 0 
+                    && layer_nr > 0
                     && mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
                     && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC)
             {
@@ -577,7 +577,7 @@ void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
         SliceLayer& layer_above = mesh.layers[layer_idx + 1];
-        
+
         Polygons inside_above;
         Polygons infill_above;
         for (SliceLayerPart& part_above : layer_above.parts)
