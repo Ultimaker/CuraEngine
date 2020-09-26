@@ -89,4 +89,4 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
 
 
 
-}; // namespace cura
+} // namespace cura
