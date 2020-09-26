@@ -884,7 +884,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
     // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
     // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
-#if defined(__GNUC__) && __GNUC__ <= 8
+#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, sloped_areas_per_layer, storage, mesh) schedule(dynamic)
 #else
     #pragma omp parallel for default(none) \
@@ -1009,7 +1009,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
         // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
         // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
-#if defined(__GNUC__) && __GNUC__ <= 8
+#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
 #pragma omp parallel for default(none) shared(sloped_areas_per_layer) schedule(dynamic)
 #else
 #pragma omp parallel for default(none) shared(sloped_areas_per_layer, layer_count, bottom_stair_step_layer_count) schedule(dynamic)
@@ -1169,7 +1169,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
     // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
     // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
-#if defined(__GNUC__) && __GNUC__ <= 8
+#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
     #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
 #else
     #pragma omp parallel for default(none) shared(support_areas, storage, max_checking_layer_idx, layer_z_distance_top) schedule(dynamic)
