@@ -82,12 +82,6 @@ private:
     static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count);
 
     /*!
-     * Generate insets and infill areas for all support infill parts.
-     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
-     */
-    static void prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage);
-
-    /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().
      * This uses the same technic as the gradual infill.
      *

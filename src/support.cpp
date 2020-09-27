@@ -114,35 +114,12 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 
 void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
 {
-    AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(storage);
     AreaSupport::generateGradualSupport(storage);
 
     // combine support infill layers
     AreaSupport::combineSupportInfillLayers(storage);
 
     AreaSupport::cleanup(storage);
-}
-
-
-void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage)
-{
-    // at this stage, the outlines are final, and we can generate insets and infill area
-    for (SupportLayer& support_layer : storage.support.supportLayers)
-    {
-        for (std::vector<SupportInfillPart>::iterator part_itr = support_layer.support_infill_parts.begin(); part_itr != support_layer.support_infill_parts.end();)
-        {
-            SupportInfillPart& part = *part_itr;
-            const bool is_not_empty_part = part.generateInsetsAndInfillAreas();
-            if (!is_not_empty_part)
-            {
-                part_itr = support_layer.support_infill_parts.erase(part_itr);
-            }
-            else
-            {
-                part_itr++;
-            }
-        }
-    }
 }
 
 
@@ -351,7 +328,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 
             for (SupportInfillPart& part : layer.support_infill_parts)
             {
-                if (part.insets.empty() && part.inset_count_to_generate > 0)
+                if (part.getInfillArea().empty())
                 {
                     continue;
                 }
@@ -443,10 +420,7 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
             bool can_be_removed = true;
             if (part.inset_count_to_generate > 0)
             {
-                if (part.insets.size() > 0 && part.insets[0].size() > 0)
-                {
-                    can_be_removed = false;
-                }
+                can_be_removed = false;
             }
             else
             {
@@ -454,7 +428,7 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
                 {
                     for (const Polygons& infill_area_this_combine_this_density : infill_area_per_combine_this_density)
                     {
-                        // remove small areas which were intorduced by rounding errors in comparing the same area on two consecutive layer
+                        // remove small areas which were introduced by rounding errors in comparing the same area on two consecutive layer
                         if (!infill_area_this_combine_this_density.empty()
                             && infill_area_this_combine_this_density.area() > support_line_width * support_line_width)
                         {
