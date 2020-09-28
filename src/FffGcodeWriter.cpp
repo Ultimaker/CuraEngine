@@ -2547,6 +2547,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
       return area;
     };
     const auto support_brim_line_count = infill_extruder.settings.get<coord_t>("support_brim_line_count");
+    const auto support_connect_zigzags = infill_extruder.settings.get<bool>("support_connect_zigzags");
+    const Point infill_origin;
 
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     for(const PathOrderOptimizer<const SupportInfillPart*>::Path& path : island_order_optimizer.paths)
@@ -2577,10 +2579,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     continue;
                 }
 
-                const Polygons& support_area = part.infill_area_per_combine_per_density[density_idx][combine_idx];
-                const double support_area_offset = (gcode_layer.getLayerNr() == 0 && support_pattern == EFillMethod::CONCENTRIC) ? (support_line_width * infill_extruder.settings.get<coord_t>("support_brim_line_count") / 1000) : 0;
-                const Polygons support_area_with_offset = support_area_offset > 0 ? support_area.offset(support_area_offset) : Polygons();
-
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int support_line_distance_here = default_support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 const int support_shift = support_line_distance_here / 2;
@@ -2592,21 +2590,18 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr coord_t offset_from_outline = 0;
                 constexpr bool use_endpieces = true;
                 constexpr Polygons* perimeter_gaps = nullptr;
-                const Point infill_origin;
 
                 constexpr coord_t pocket_size = 0;
-                const Polygons area = get_support_area(support_area, gcode_layer.getLayerNr(), support_pattern, support_line_width, support_brim_line_count);
+                const Polygons& area = get_support_area(part.infill_area_per_combine_per_density[density_idx][combine_idx],
+                                                        gcode_layer.getLayerNr(), support_pattern, support_line_width,
+                                                        support_brim_line_count);
 
-                Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, area, offset_from_outline, support_line_width,
-                                   support_line_distance_here, current_support_infill_overlap, infill_multiplier, support_infill_angle, gcode_layer.z, support_shift, wall_line_count, infill_origin,
-                                   perimeter_gaps, infill_extruder.settings.get<bool>("support_connect_zigzags"), use_endpieces,
-                                   skip_some_zags, zag_skip_count, pocket_size);
+                Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, area, offset_from_outline,
+                                   support_line_width, support_line_distance_here, current_support_infill_overlap,
+                                   infill_multiplier, support_infill_angle, gcode_layer.z, support_shift,
+                                   wall_line_count, infill_origin, perimeter_gaps, support_connect_zigzags,
+                                   use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
                 infill_comp.generate(wall_toolpaths, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
-                if (support_area_offset > 0)
-                {
-                    // Only polygons (not lines), because this only happens in the case of concentric on layer 0 (if support brim is enabled).
-                    support_polygons = support_polygons.difference(support_area_with_offset.difference(support_area.offset(support_line_width / 2)));
-                }
             }
 
             setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
