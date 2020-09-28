@@ -2512,11 +2512,17 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         default_support_line_width *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
     }
 
-    EFillMethod support_pattern = infill_extruder.settings.get<EFillMethod>("support_pattern");
-    if (gcode_layer.getLayerNr() <= 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
+    // Helper to get the support pattern
+    auto get_support_pattern = [](const EFillMethod pattern, const int layer_nr)
     {
-        support_pattern = EFillMethod::GRID;
-    }
+      if (layer_nr <= 0 && (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG))
+      {
+          return EFillMethod::GRID;
+      }
+      return pattern;
+    };
+    const EFillMethod support_pattern = get_support_pattern(infill_extruder.settings.get<EFillMethod>("support_pattern"), gcode_layer.getLayerNr());
+
     const bool zig_zaggify_infill = infill_extruder.settings.get<bool>("zig_zaggify_support");
     constexpr bool connect_polygons = false; // polygons are too distant to connect for sparse support
     const bool skip_some_zags = infill_extruder.settings.get<bool>("support_skip_some_zags");
