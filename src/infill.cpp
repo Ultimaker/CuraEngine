@@ -86,7 +86,10 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     {
         // remove too small polygons
         coord_t snap_distance = infill_line_width * 2; // polygons with a span of max 1 * nozzle_size are too small
-        auto it = std::remove_if(result_polygons.begin(), result_polygons.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
+        auto it = std::remove_if(result_polygons.begin(), result_polygons.end(), [snap_distance](PolygonRef poly)
+                                 {
+                                     return poly.shorterThan(snap_distance);
+                                 });
         result_polygons.erase(it, result_polygons.end());
 
         PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
@@ -447,7 +450,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
         for (PolygonRef poly_line : poly_lines)
         {
-            for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
+            for (size_t point_idx = 1; point_idx < poly_line.size(); point_idx++)
             {
                 result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
             }
@@ -465,9 +468,10 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
         generateCrossInfill(cross_fill_provider, result_polygons, result_lines);
         for (PolygonRef poly_line : result_polygons)
         {
-            for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
+            for (size_t point_idx = 1; point_idx < poly_line.size(); point_idx++)
             {
-                result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
+                result_lines.addLine(poly_line[static_cast<unsigned int>(point_idx - 1)],
+                                     poly_line[static_cast<unsigned int>(point_idx)]);
             }
         }
     }

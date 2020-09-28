@@ -1010,8 +1010,8 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const SliceMes
     }
 }
 
-void LayerPlan::addWall(const LineJunctions& wall, const GCodePathConfig& path_config,
-                        const bool force_retract)
+void LayerPlan::addInfillWall(const LineJunctions& wall, const GCodePathConfig& path_config,
+                        bool force_retract)
 {
     assert(("All empty walls should have been filtered at this stage", !wall.empty()));
     ExtrusionJunction junction{*wall.begin()};
