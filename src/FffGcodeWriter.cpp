@@ -2523,10 +2523,9 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     };
     const EFillMethod support_pattern = get_support_pattern(infill_extruder.settings.get<EFillMethod>("support_pattern"), gcode_layer.getLayerNr());
 
-    const bool zig_zaggify_infill = infill_extruder.settings.get<bool>("zig_zaggify_support");
-    constexpr bool connect_polygons = false; // polygons are too distant to connect for sparse support
-    const bool skip_some_zags = infill_extruder.settings.get<bool>("support_skip_some_zags");
-    const size_t zag_skip_count = infill_extruder.settings.get<size_t>("support_zag_skip_count");
+    const auto zig_zaggify_infill = infill_extruder.settings.get<bool>("zig_zaggify_support");
+    const auto skip_some_zags = infill_extruder.settings.get<bool>("support_skip_some_zags");
+    const auto zag_skip_count = infill_extruder.settings.get<size_t>("support_zag_skip_count");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
     PathOrderOptimizer<const SupportInfillPart*> island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
@@ -2548,7 +2547,15 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     };
     const auto support_brim_line_count = infill_extruder.settings.get<coord_t>("support_brim_line_count");
     const auto support_connect_zigzags = infill_extruder.settings.get<bool>("support_connect_zigzags");
+    const auto support_structure = infill_extruder.settings.get<ESupportStructure>("support_structure");
     const Point infill_origin;
+    const coord_t default_support_shift = default_support_line_width / 2;
+
+    constexpr coord_t offset_from_outline = 0;
+    constexpr bool use_endpieces = true;
+    constexpr Polygons* perimeter_gaps = nullptr;
+    constexpr coord_t pocket_size = 0;
+    constexpr bool connect_polygons = false; // polygons are too distant to connect for sparse support
 
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     for(const PathOrderOptimizer<const SupportInfillPart*>::Path& path : island_order_optimizer.paths)
@@ -2559,8 +2566,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         const int current_support_infill_overlap = (part.inset_count_to_generate > 0) ? default_support_infill_overlap : 0;
 
         // process sub-areas in this support infill area with different densities
-        if (default_support_line_distance <= 0
-            || part.infill_area_per_combine_per_density.empty())
+        if ((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density.empty())
         {
             continue;
         }
@@ -2587,11 +2593,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     support_line_distance_here /= 2;
                 }
 
-                constexpr coord_t offset_from_outline = 0;
-                constexpr bool use_endpieces = true;
-                constexpr Polygons* perimeter_gaps = nullptr;
-
-                constexpr coord_t pocket_size = 0;
                 const Polygons& area = get_support_area(part.infill_area_per_combine_per_density[density_idx][combine_idx],
                                                         gcode_layer.getLayerNr(), support_pattern, support_line_width,
                                                         support_brim_line_count);
