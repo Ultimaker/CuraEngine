@@ -2616,7 +2616,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 {
                     for (const LineJunctions& line : paths)
                     {
-                        gcode_layer.addWall(line, gcode_layer.configs_storage.support_infill_config[combine_idx], false);
+                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[combine_idx], false);
                     }
                 }
                 added_something = true;
