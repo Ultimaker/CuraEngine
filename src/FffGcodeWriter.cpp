@@ -2488,18 +2488,22 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
 
     const coord_t default_support_infill_overlap = infill_extruder.settings.get<coord_t>("infill_overlap_mm");
-    AngleDegrees support_infill_angle = 0;
-    if (gcode_layer.getLayerNr() <= 0)
+
+    // Helper to get the support infill angle
+    auto get_support_infill_angle = [](const SupportStorage& support_storage, const int layer_nr)
     {
-        // handle negative layer numbers
-        int divisor = static_cast<int>(storage.support.support_infill_angles_layer_0.size());
-        int index = ((gcode_layer.getLayerNr() % divisor) + divisor) % divisor;
-        support_infill_angle = storage.support.support_infill_angles_layer_0.at(index);
-    }
-    else
-    {
-        support_infill_angle = storage.support.support_infill_angles.at(gcode_layer.getLayerNr() % storage.support.support_infill_angles.size());
-    }
+      if (layer_nr <= 0)
+      {
+          // handle negative layer numbers
+          size_t divisor = support_storage.support_infill_angles_layer_0.size();
+          size_t index = ((layer_nr % divisor) + divisor) % divisor;
+          assert(("index should be positive", ((layer_nr % divisor) + divisor) % divisor >= 0));
+          return support_storage.support_infill_angles_layer_0.at(index);
+      }
+      return support_storage.support_infill_angles.at(static_cast<size_t>(layer_nr) % support_storage.support_infill_angles.size());
+    };
+    const AngleDegrees support_infill_angle = get_support_infill_angle(storage.support, gcode_layer.getLayerNr());
+
     constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
     const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
     coord_t default_support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
