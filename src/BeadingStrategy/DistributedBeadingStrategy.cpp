@@ -19,16 +19,19 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
     }
     else if (bead_count > 1)
     {
-        // Outer wall, always the same size:
-        ret.bead_widths.emplace_back(optimal_width_outer);
-        ret.toolpath_locations.emplace_back(optimal_width_outer / 2);
+        const float widen_by = static_cast<float>(thickness) / (optimal_width_outer + optimal_width_inner * (bead_count));
+
+        // Outer wall:
+        const coord_t distributed_width_outer = static_cast<coord_t>(optimal_width_outer * widen_by);
+        ret.bead_widths.emplace_back(distributed_width_outer);
+        ret.toolpath_locations.emplace_back(distributed_width_outer / 2);
 
         // Evenly distributed inner walls:
-        const coord_t distributed_width_inner = std::max(optimal_width_inner / 2, (thickness - optimal_width_outer) / (bead_count - 1));
+        const coord_t distributed_width_inner = (thickness - distributed_width_outer) / (bead_count - 1);
         for (coord_t bead_idx = 1; bead_idx < bead_count; bead_idx++)
         {
             ret.bead_widths.emplace_back(distributed_width_inner);
-            ret.toolpath_locations.emplace_back((optimal_width_outer - distributed_width_inner / 2) + distributed_width_inner * bead_idx);
+            ret.toolpath_locations.emplace_back((distributed_width_outer - distributed_width_inner / 2) + distributed_width_inner * bead_idx);
         }
 
         ret.left_over = 0; // There should be nothing left over, as we've distributed the remaining space.
@@ -55,13 +58,9 @@ coord_t DistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_co
 
 coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    coord_t thickness_left = thickness;
     coord_t count = std::min(1LL, (thickness + optimal_width_outer / 2) / optimal_width_outer);
-    thickness_left -= count * optimal_width_outer;
-    if (thickness_left >= (optimal_width_inner / 2))
-    {
-        count += (thickness_left + optimal_width_inner / 2) / optimal_width_inner;
-    }
+    const coord_t thickness_left = thickness - count * optimal_width_outer;
+    count += (thickness_left + (optimal_width_inner / 2)) / optimal_width_inner;
     return count;
 }
 

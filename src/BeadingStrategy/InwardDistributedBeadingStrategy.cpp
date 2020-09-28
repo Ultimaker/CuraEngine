@@ -19,15 +19,19 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
     }
     else if (bead_count > 1)
     {
-        // Outer wall, always the same size:
-        ret.bead_widths.emplace_back(optimal_width_outer);
-        ret.toolpath_locations.emplace_back(optimal_width_outer / 2);
+        const float widen_by = static_cast<float>(thickness) / (optimal_width_outer + optimal_width_inner * (bead_count));
+
+        // Outer wall:
+        const coord_t distributed_width_outer = static_cast<coord_t>(optimal_width_outer * widen_by);
+        ret.bead_widths.emplace_back(distributed_width_outer);
+        ret.toolpath_locations.emplace_back(distributed_width_outer / 2);
 
         // Inwardly distributed inner walls:
-        coord_t to_be_divided = thickness - this->getOptimalThickness(bead_count);
+        const coord_t distributed_width_inner = (thickness - distributed_width_outer) / (bead_count - 1);
+        const coord_t to_be_divided = thickness - (distributed_width_outer + distributed_width_inner * (bead_count - 1));
 
         float total_weight = 0;
-        float middle = static_cast<float>(bead_count - 2) / 2;
+        const float middle = static_cast<float>(bead_count - 2) / 2;
         
         auto getWeight = [middle, this](coord_t bead_idx)
         {
@@ -43,11 +47,12 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
         coord_t half_last_width = ret.toolpath_locations.back();
         for (coord_t bead_idx = 1; bead_idx < bead_count; bead_idx++)
         {
-            coord_t width = optimal_width_inner + (to_be_divided * getWeight(bead_idx)) / total_weight;
+            coord_t width = distributed_width_inner + (to_be_divided * getWeight(bead_idx)) / total_weight;
             ret.bead_widths.emplace_back(width);
             ret.toolpath_locations.emplace_back(ret.toolpath_locations.back() + half_last_width + width / 2);
             half_last_width = width / 2;
         }
+
         ret.left_over = 0; // There should be nothing left over, as we've distributed the remaining space.
     }
     else
