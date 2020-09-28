@@ -61,16 +61,6 @@ public:
      */
     static void generateSupportInfillFeatures(SliceDataStorage& storage);
 
-    /*!
-     * Generate the insets of the given support infill outline.
-     *
-     * \param[out] insets The insets result to output.
-     * \param outline The given support infill outline.
-     * \param inset_count The number of perimeters to surround the support infill outline.
-     * \param wall_line_width_x The wall line width in microns on the X axis.
-     */
-    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x);
-
 private:
     /*!
      * Splits the global support areas into separete SupportInfillParts.

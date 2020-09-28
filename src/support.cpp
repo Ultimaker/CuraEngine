@@ -384,30 +384,6 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 }
 
 
-void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x)
-{
-    for (unsigned int inset_idx = 0; inset_idx < inset_count; inset_idx++)
-    {
-        insets.push_back(Polygons());
-        if (inset_idx == 0)
-        {
-            insets[0] = outline.offset(-wall_line_width_x / 2);
-        }
-        else
-        {
-            insets[inset_idx] = insets[inset_idx - 1].offset(-wall_line_width_x);
-        }
-
-        // optimize polygons: remove unnecessary verts
-        insets[inset_idx].simplify();
-        if (insets[inset_idx].size() < 1)
-        {
-            insets.pop_back();
-            break;
-        }
-    }
-}
-
 void AreaSupport::cleanup(SliceDataStorage& storage)
 {
     const coord_t support_line_width = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("support_line_width");
