@@ -2536,6 +2536,18 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
     island_order_optimizer.optimize();
 
+    // Helper to determine the appropriate support area
+    auto get_support_area = [](const Polygons& area, const int layer_nr, const EFillMethod pattern,
+                               const coord_t line_width, const coord_t brim_line_count)
+    {
+      if (layer_nr == 0 && pattern == EFillMethod::CONCENTRIC)
+      {
+          return  area.offset(static_cast<int>(line_width * brim_line_count / 1000));
+      }
+      return area;
+    };
+    const auto support_brim_line_count = infill_extruder.settings.get<coord_t>("support_brim_line_count");
+
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     for(const PathOrderOptimizer<const SupportInfillPart*>::Path& path : island_order_optimizer.paths)
     {
@@ -2583,8 +2595,9 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const Point infill_origin;
 
                 constexpr coord_t pocket_size = 0;
+                const Polygons area = get_support_area(support_area, gcode_layer.getLayerNr(), support_pattern, support_line_width, support_brim_line_count);
 
-                Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, support_area_offset > 0 ? support_area_with_offset : support_area, offset_from_outline, support_line_width,
+                Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, area, offset_from_outline, support_line_width,
                                    support_line_distance_here, current_support_infill_overlap, infill_multiplier, support_infill_angle, gcode_layer.z, support_shift, wall_line_count, infill_origin,
                                    perimeter_gaps, infill_extruder.settings.get<bool>("support_connect_zigzags"), use_endpieces,
                                    skip_some_zags, zag_skip_count, pocket_size);
