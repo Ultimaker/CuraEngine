@@ -22,7 +22,7 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
         const float widen_by = static_cast<float>(thickness) / (optimal_width_outer + optimal_width_inner * (bead_count));
 
         // Outer wall:
-        const coord_t distributed_width_outer = static_cast<coord_t>(optimal_width_outer * widen_by);
+        const auto distributed_width_outer = static_cast<coord_t>(optimal_width_outer * widen_by);
         ret.bead_widths.emplace_back(distributed_width_outer);
         ret.toolpath_locations.emplace_back(distributed_width_outer / 2);
 
@@ -31,11 +31,11 @@ InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::comp
         const coord_t to_be_divided = thickness - (distributed_width_outer + distributed_width_inner * (bead_count - 1));
 
         float total_weight = 0;
-        const float middle = static_cast<float>(bead_count - 2) / 2;
+        const auto middle = static_cast<float>(bead_count - 2) / 2.0f;
         
         auto getWeight = [middle, this](coord_t bead_idx)
         {
-            float dev_from_middle = (bead_idx - 1) - middle;
+            const float dev_from_middle = (bead_idx - 1) - middle;
             return std::max(0.0f, 1.0f - one_over_distribution_radius_squared * dev_from_middle * dev_from_middle);
         };
         

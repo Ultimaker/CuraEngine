@@ -19,10 +19,10 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
     }
     else if (bead_count > 1)
     {
-        const float widen_by = static_cast<float>(thickness) / (optimal_width_outer + optimal_width_inner * (bead_count));
+        const auto widen_by = static_cast<float>(thickness) / (optimal_width_outer + optimal_width_inner * (bead_count));
 
         // Outer wall:
-        const coord_t distributed_width_outer = static_cast<coord_t>(optimal_width_outer * widen_by);
+        const auto distributed_width_outer = static_cast<coord_t>(optimal_width_outer * widen_by);
         ret.bead_widths.emplace_back(distributed_width_outer);
         ret.toolpath_locations.emplace_back(distributed_width_outer / 2);
 
