@@ -82,7 +82,7 @@ void BeadingOrderOptimizer::fuzzyConnect(VariableWidthPaths& polygons_per_index,
 
     // Order of end_points_to_check and nearby_end_points determines which ends are connected together
     // TODO: decide on the best way to connect polylines at 3-way intersections
-    std::list<ExtrusionLineEndRef> end_points_to_check;
+    std::vector<ExtrusionLineEndRef> end_points_to_check;
 
     for (VariableWidthLines& polys : polylines_per_index)
     {
@@ -178,12 +178,12 @@ void BeadingOrderOptimizer::fuzzyConnect(VariableWidthPaths& polygons_per_index,
                 }
                 else if (!end_point.front && other_end.front)
                 {
-                    end_point.polyline->junctions.splice(end_point.polyline->junctions.end(), other_end.polyline->junctions);
+                    end_point.polyline->junctions.insert(end_point.polyline->junctions.end(), other_end.polyline->junctions.begin(), other_end.polyline->junctions.end());
                     changed_side_is_front = 0;
                 }
                 else if (end_point.front && !other_end.front)
                 {
-                    end_point.polyline->junctions.splice(end_point.polyline->junctions.begin(), other_end.polyline->junctions);
+                    end_point.polyline->junctions.insert(end_point.polyline->junctions.begin(), other_end.polyline->junctions.begin(), other_end.polyline->junctions.end());
                     changed_side_is_front = 1;
                 }
                 else if (end_point.front && other_end.front)
@@ -235,7 +235,7 @@ void BeadingOrderOptimizer::fuzzyConnect(VariableWidthPaths& polygons_per_index,
         for (VariableWidthLines::const_iterator poly_it = polys.begin(); poly_it != polys.end();)
         {
             if (poly_it->junctions.empty() || poly_it->getLength() < 2 * snap_dist) 
-            // Too small segments might have been overlooked byecause of the fuzzy nature of matching end points to each other
+            // Too small segments might have been overlooked because of the fuzzy nature of matching end points to each other
             {
                 poly_it = polys.erase(poly_it);
             }
@@ -274,7 +274,7 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(ExtrusionLine& polyline, d
     {
         const coord_t reduction_left = total_reduction_length - traveled_dist;
         const Point mid = a + ab * std::max(static_cast<coord_t>(0), std::min(length, reduction_left)) / length;
-        const std::list<ExtrusionJunction>::iterator forward_it = getInsertPosIt(next_junction_it);
+        const std::vector<ExtrusionJunction>::iterator forward_it = getInsertPosIt(next_junction_it);
         const coord_t mid_w = start_junction.w + (next_junction.w - start_junction.w) * reduction_left / length;
         polyline.junctions.insert(forward_it, ExtrusionJunction(mid, mid_w, start_junction.perimeter_index));
     }
@@ -296,37 +296,37 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(ExtrusionLine& polyline, d
 
 
 template<>
-bool BeadingOrderOptimizer::isEnd(const std::list<ExtrusionJunction>::iterator it, const ExtrusionLine& polyline) const
+bool BeadingOrderOptimizer::isEnd(const std::vector<ExtrusionJunction>::iterator it, const ExtrusionLine& polyline) const
 {
     return it == polyline.junctions.end();
 }
 
 template<>
-bool BeadingOrderOptimizer::isEnd(const std::list<ExtrusionJunction>::reverse_iterator it, const ExtrusionLine& polyline) const
+bool BeadingOrderOptimizer::isEnd(const std::vector<ExtrusionJunction>::reverse_iterator it, const ExtrusionLine& polyline) const
 {
     return it == polyline.junctions.rend();
 }
 
 template<>
-std::list<ExtrusionJunction>::iterator BeadingOrderOptimizer::getInsertPosIt(std::list<ExtrusionJunction>::iterator it)
+std::vector<ExtrusionJunction>::iterator BeadingOrderOptimizer::getInsertPosIt(std::vector<ExtrusionJunction>::iterator it)
 {
     return it;
 }
 
 template<>
-std::list<ExtrusionJunction>::iterator BeadingOrderOptimizer::getInsertPosIt(std::list<ExtrusionJunction>::reverse_iterator it)
+std::vector<ExtrusionJunction>::iterator BeadingOrderOptimizer::getInsertPosIt(std::vector<ExtrusionJunction>::reverse_iterator it)
 {
     return it.base();
 }
 
 template<>
-std::list<ExtrusionJunction>::iterator BeadingOrderOptimizer::getSelfPosIt(std::list<ExtrusionJunction>::iterator it)
+std::vector<ExtrusionJunction>::iterator BeadingOrderOptimizer::getSelfPosIt(std::vector<ExtrusionJunction>::iterator it)
 {
     return it;
 }
 
 template<>
-std::list<ExtrusionJunction>::iterator BeadingOrderOptimizer::getSelfPosIt(std::list<ExtrusionJunction>::reverse_iterator it)
+std::vector<ExtrusionJunction>::iterator BeadingOrderOptimizer::getSelfPosIt(std::vector<ExtrusionJunction>::reverse_iterator it)
 {
     return (++it).base();
 }

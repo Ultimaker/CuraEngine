@@ -34,23 +34,13 @@ public:
 
     SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0);
 
-    /*!
-     * Initializes this SupportInfillPart by generating its insets and infill area.
-     *
-     * \return false if the area is too small and no insets and infill area can be generated, otherwise true.
-     */
-    bool generateInsetsAndInfillAreas();
-
     const Polygons& getInfillArea() const;
-
-private:
-    Polygons infill_area;  //!< The support infill area for generating patterns
 };
 
 inline const Polygons& SupportInfillPart::getInfillArea() const
 {
     // if there is no wall, we use the original outline as the infill area
-    return (inset_count_to_generate == 0) ? outline : infill_area;
+    return outline;
 }
 
 } // namespace cura
