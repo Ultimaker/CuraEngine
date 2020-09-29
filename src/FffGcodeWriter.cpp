@@ -1723,7 +1723,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         {
             for(const VariableWidthPaths& tool_paths: wall_tool_paths)
             {
-                BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(tool_paths);
+                const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(tool_paths);
                 for (const PathJunctions& paths : bins)
                 {
                     for (const LineJunctions& line : paths)
@@ -2490,13 +2490,13 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const coord_t default_support_infill_overlap = infill_extruder.settings.get<coord_t>("infill_overlap_mm");
 
     // Helper to get the support infill angle
-    auto get_support_infill_angle = [](const SupportStorage& support_storage, const int layer_nr)
+    const auto get_support_infill_angle = [](const SupportStorage& support_storage, const int layer_nr)
     {
       if (layer_nr <= 0)
       {
           // handle negative layer numbers
-          size_t divisor = support_storage.support_infill_angles_layer_0.size();
-          size_t index = ((layer_nr % divisor) + divisor) % divisor;
+          const size_t divisor = support_storage.support_infill_angles_layer_0.size();
+          const size_t index = ((layer_nr % divisor) + divisor) % divisor;
           assert(("index should be positive", ((layer_nr % divisor) + divisor) % divisor >= 0));
           return support_storage.support_infill_angles_layer_0.at(index);
       }
@@ -2513,7 +2513,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
 
     // Helper to get the support pattern
-    auto get_support_pattern = [](const EFillMethod pattern, const int layer_nr)
+    const auto get_support_pattern = [](const EFillMethod pattern, const int layer_nr)
     {
       if (layer_nr <= 0 && (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG))
       {
@@ -2536,7 +2536,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     island_order_optimizer.optimize();
 
     // Helper to determine the appropriate support area
-    auto get_support_area = [](const Polygons& area, const int layer_nr, const EFillMethod pattern,
+    const auto get_support_area = [](const Polygons& area, const int layer_nr, const EFillMethod pattern,
                                const coord_t line_width, const coord_t brim_line_count)
     {
       if (layer_nr == 0 && pattern == EFillMethod::CONCENTRIC)
@@ -2610,8 +2610,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             if (!wall_toolpaths.empty())
             {
-
-                BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths);
+                const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths);
                 for (const PathJunctions& paths : bins)
                 {
                     for (const LineJunctions& line : paths)
