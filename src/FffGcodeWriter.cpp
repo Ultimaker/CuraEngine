@@ -1663,7 +1663,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                                            min_wall_line_count, infill_origin, perimeter_gaps, connected_zigzags,
                                            use_endpieces, skip_some_zags, zag_skip_count,
                                            mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-                        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+                        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
 
                         // normal processing for the infill that isn't below skin
                         in_outline = infill_not_below_skin;
@@ -1695,7 +1695,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            infill_shift, wall_line_count, infill_origin, perimeter_gaps, connected_zigzags,
                            use_endpieces, skip_some_zags, zag_skip_count,
                            mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
     }
 
     const bool walls_generated = std::any_of(wall_tool_paths.cbegin(), wall_tool_paths.cend(), [](const VariableWidthPaths& tp){ return !tp.empty(); });
@@ -1723,7 +1723,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         {
             for(const VariableWidthPaths& tool_paths: wall_tool_paths)
             {
-                BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(tool_paths);
+                const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(tool_paths);
                 for (const PathJunctions& paths : bins)
                 {
                     for (const LineJunctions& line : paths)
@@ -2488,35 +2488,44 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
 
     const coord_t default_support_infill_overlap = infill_extruder.settings.get<coord_t>("infill_overlap_mm");
-    AngleDegrees support_infill_angle = 0;
-    if (gcode_layer.getLayerNr() <= 0)
+
+    // Helper to get the support infill angle
+    const auto get_support_infill_angle = [](const SupportStorage& support_storage, const int layer_nr)
     {
-        // handle negative layer numbers
-        int divisor = static_cast<int>(storage.support.support_infill_angles_layer_0.size());
-        int index = ((gcode_layer.getLayerNr() % divisor) + divisor) % divisor;
-        support_infill_angle = storage.support.support_infill_angles_layer_0.at(index);
-    }
-    else
-    {
-        support_infill_angle = storage.support.support_infill_angles.at(gcode_layer.getLayerNr() % storage.support.support_infill_angles.size());
-    }
+      if (layer_nr <= 0)
+      {
+          // handle negative layer numbers
+          const size_t divisor = support_storage.support_infill_angles_layer_0.size();
+          const size_t index = ((layer_nr % divisor) + divisor) % divisor;
+          assert(("index should be positive", ((layer_nr % divisor) + divisor) % divisor >= 0));
+          return support_storage.support_infill_angles_layer_0.at(index);
+      }
+      return support_storage.support_infill_angles.at(static_cast<size_t>(layer_nr) % support_storage.support_infill_angles.size());
+    };
+    const AngleDegrees support_infill_angle = get_support_infill_angle(storage.support, gcode_layer.getLayerNr());
+
     constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
-    constexpr size_t wall_line_count = 0;
+    const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
     coord_t default_support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
     if (gcode_layer.getLayerNr() == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         default_support_line_width *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
     }
 
-    EFillMethod support_pattern = infill_extruder.settings.get<EFillMethod>("support_pattern");
-    if (gcode_layer.getLayerNr() <= 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
+    // Helper to get the support pattern
+    const auto get_support_pattern = [](const EFillMethod pattern, const int layer_nr)
     {
-        support_pattern = EFillMethod::GRID;
-    }
-    const bool zig_zaggify_infill = infill_extruder.settings.get<bool>("zig_zaggify_support");
-    constexpr bool connect_polygons = false; // polygons are too distant to connect for sparse support
-    const bool skip_some_zags = infill_extruder.settings.get<bool>("support_skip_some_zags");
-    const size_t zag_skip_count = infill_extruder.settings.get<size_t>("support_zag_skip_count");
+      if (layer_nr <= 0 && (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG))
+      {
+          return EFillMethod::GRID;
+      }
+      return pattern;
+    };
+    const EFillMethod support_pattern = get_support_pattern(infill_extruder.settings.get<EFillMethod>("support_pattern"), gcode_layer.getLayerNr());
+
+    const auto zig_zaggify_infill = infill_extruder.settings.get<bool>("zig_zaggify_support");
+    const auto skip_some_zags = infill_extruder.settings.get<bool>("support_skip_some_zags");
+    const auto zag_skip_count = infill_extruder.settings.get<size_t>("support_zag_skip_count");
 
     // create a list of outlines and use PathOrderOptimizer to optimize the travel move
     PathOrderOptimizer<const SupportInfillPart*> island_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition());
@@ -2526,6 +2535,28 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
     island_order_optimizer.optimize();
 
+    // Helper to determine the appropriate support area
+    const auto get_support_area = [](const Polygons& area, const int layer_nr, const EFillMethod pattern,
+                               const coord_t line_width, const coord_t brim_line_count)
+    {
+      if (layer_nr == 0 && pattern == EFillMethod::CONCENTRIC)
+      {
+          return  area.offset(static_cast<int>(line_width * brim_line_count / 1000));
+      }
+      return area;
+    };
+    const auto support_brim_line_count = infill_extruder.settings.get<coord_t>("support_brim_line_count");
+    const auto support_connect_zigzags = infill_extruder.settings.get<bool>("support_connect_zigzags");
+    const auto support_structure = infill_extruder.settings.get<ESupportStructure>("support_structure");
+    const Point infill_origin;
+    const coord_t default_support_shift = default_support_line_width / 2;
+
+    constexpr coord_t offset_from_outline = 0;
+    constexpr bool use_endpieces = true;
+    constexpr Polygons* perimeter_gaps = nullptr;
+    constexpr coord_t pocket_size = 0;
+    constexpr bool connect_polygons = false; // polygons are too distant to connect for sparse support
+
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     for(const PathOrderOptimizer<const SupportInfillPart*>::Path& path : island_order_optimizer.paths)
     {
@@ -2534,26 +2565,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         // always process the wall overlap if walls are generated
         const int current_support_infill_overlap = (part.inset_count_to_generate > 0) ? default_support_infill_overlap : 0;
 
-        // add outline (boundary) if any wall is generated
-        if (!part.insets.empty())
-        {
-            Polygons all_insets;
-            for (const Polygons& inset : part.insets)
-            {
-                all_insets.add(inset);
-            }
-
-            if (all_insets.size() > 0)
-            {
-                setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
-                gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-                gcode_layer.addPolygonsByOptimizer(all_insets, gcode_layer.configs_storage.support_infill_config[0]);
-            }
-        }
-
         // process sub-areas in this support infill area with different densities
-        if (default_support_line_distance <= 0
-            || part.infill_area_per_combine_per_density.empty())
+        if ((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density.empty())
         {
             continue;
         }
@@ -2563,6 +2576,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             const coord_t support_line_width = default_support_line_width * (combine_idx + 1);
 
             Polygons support_polygons;
+            VariableWidthPaths wall_toolpaths;
             Polygons support_lines;
             for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
             {
@@ -2570,10 +2584,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 {
                     continue;
                 }
-
-                const Polygons& support_area = part.infill_area_per_combine_per_density[density_idx][combine_idx];
-                const double support_area_offset = (gcode_layer.getLayerNr() == 0 && support_pattern == EFillMethod::CONCENTRIC) ? (support_line_width * infill_extruder.settings.get<coord_t>("support_brim_line_count") / 1000) : 0;
-                const Polygons support_area_with_offset = support_area_offset > 0 ? support_area.offset(support_area_offset) : Polygons();
 
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int support_line_distance_here = default_support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
@@ -2583,35 +2593,44 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     support_line_distance_here /= 2;
                 }
 
-                constexpr coord_t offset_from_outline = 0;
-                constexpr bool use_endpieces = true;
-                constexpr Polygons* perimeter_gaps = nullptr;
-                const Point infill_origin;
+                const Polygons& area = get_support_area(part.infill_area_per_combine_per_density[density_idx][combine_idx],
+                                                        gcode_layer.getLayerNr(), support_pattern, support_line_width,
+                                                        support_brim_line_count);
 
-                constexpr coord_t pocket_size = 0;
-
-                Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, support_area_offset > 0 ? support_area_with_offset : support_area, offset_from_outline, support_line_width,
-                                   support_line_distance_here, current_support_infill_overlap, infill_multiplier, support_infill_angle, gcode_layer.z, support_shift, wall_line_count, infill_origin,
-                                   perimeter_gaps, infill_extruder.settings.get<bool>("support_connect_zigzags"), use_endpieces,
-                                   skip_some_zags, zag_skip_count, pocket_size);
-                infill_comp.generate(support_polygons, support_lines, storage.support.cross_fill_provider);
-                if (support_area_offset > 0)
-                {
-                    // Only polygons (not lines), because this only happens in the case of concentric on layer 0 (if support brim is enabled).
-                    support_polygons = support_polygons.difference(support_area_with_offset.difference(support_area.offset(support_line_width / 2)));
-                }
+                Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, area, offset_from_outline,
+                                   support_line_width, support_line_distance_here, current_support_infill_overlap,
+                                   infill_multiplier, support_infill_angle, gcode_layer.z, support_shift,
+                                   wall_line_count, infill_origin, perimeter_gaps, support_connect_zigzags,
+                                   use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
+                infill_comp.generate(wall_toolpaths, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
             }
 
-            if (support_lines.size() > 0 || support_polygons.size() > 0)
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
+            gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+
+            if (!wall_toolpaths.empty())
             {
-                setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
-                gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-                if (!support_polygons.empty())
+                const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths);
+                for (const PathJunctions& paths : bins)
                 {
-                    constexpr bool force_comb_retract = false;
-                    gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
-                    gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx]);
+                    for (const LineJunctions& line : paths)
+                    {
+                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[combine_idx], false);
+                    }
                 }
+                added_something = true;
+            }
+
+            if (!support_polygons.empty())
+            {
+                constexpr bool force_comb_retract = false;
+                gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
+                gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx]);
+                added_something = true;
+            }
+
+            if (!support_lines.empty())
+            {
                 gcode_layer.addLinesByOptimizer(support_lines, gcode_layer.configs_storage.support_infill_config[combine_idx],
                                                 (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
                 added_something = true;
