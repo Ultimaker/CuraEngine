@@ -379,28 +379,6 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
         WallToolPaths wall_tool_paths(skin_part.outline, skin_line_width, skin_inset_count, mesh.settings);
         skin_part.inset_paths = wall_tool_paths.generate();
     }
-
-    for (size_t inset_idx = 0; inset_idx < skin_inset_count; inset_idx++)
-    {
-        skin_part.insets.push_back(Polygons());
-        if (inset_idx == 0)
-        {
-            //The 10 micron reduced inset is to prevent rounding errors from creating gaps that get filled by the fill small gaps routine.
-            skin_part.insets[0] = skin_part.outline.offset(-skin_line_width / 2 + 10);
-        }
-        else
-        {
-            skin_part.insets[inset_idx] = skin_part.insets[inset_idx - 1].offset(-skin_line_width);
-        }
-
-        // optimize polygons: remove unnecessary verts
-        skin_part.insets[inset_idx].simplify();
-        if (skin_part.insets[inset_idx].size() < 1)
-        {
-            skin_part.insets.pop_back();
-            return; // don't generate inner_infill areas if the innermost inset was too small
-        }
-    }
 }
 
 /*
@@ -411,13 +389,12 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
  */
 void SkinInfillAreaComputation::generateInnerSkinInfill(SkinPart& skin_part)
 {
-    if (skin_part.insets.empty())
+    if (skin_part.inset_paths.empty())
     {
         skin_part.inner_infill = skin_part.outline;
         return;
     }
-    const Polygons& innermost_inset = skin_part.insets.back();
-    skin_part.inner_infill = innermost_inset.offset(-skin_line_width / 2);
+    skin_part.inner_infill = skin_part.outline.offset(-skin_line_width * skin_inset_count);
 }
 
 /*
@@ -513,7 +490,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             {
                 // Clear the skin insets for the roofing layers and regenerate the roofing fill and inner infill without taking into
                 // account the Extra Skin Wall Count.
-                skin_part.insets.clear();
+                //skin_part.insets.clear();   // TODO! : concentric!
                 regenerateRoofingFillAndInnerInfill(part, skin_part);
             }
         }
