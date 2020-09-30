@@ -458,29 +458,6 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     }
 }
 
-void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_lines)
-{
-    Polygons result_polygons;
-    if (mirror_offset)
-    {
-        const coord_t offset = infill_multiplier % 2 == 0 ? outline_offset : outline_offset + infill_line_width / 2 ;
-        result_polygons.add(outer_contour.offset(offset));
-        generateCrossInfill(cross_fill_provider, result_polygons, result_lines);
-        for (PolygonRef poly_line : result_polygons)
-        {
-            for (size_t point_idx = 1; point_idx < poly_line.size(); point_idx++)
-            {
-                result_lines.addLine(poly_line[static_cast<unsigned int>(point_idx - 1)],
-                                     poly_line[static_cast<unsigned int>(point_idx)]);
-            }
-        }
-    }
-    else
-    {
-        generateCrossInfill(cross_fill_provider, result_polygons, result_lines);
-    }
-}
-
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
 {
     ClipperLib::PolyTree interior_segments_tree;
