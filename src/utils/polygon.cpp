@@ -312,7 +312,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
 
     ClipperLib::Path new_path;
     Point previous = path->back();
-    Point previous_previous = path->at(path->size() -3);
+    Point previous_previous = path->at(path->size() - 2);
     Point current = path->at(0);
 
     /* When removing a vertex, we check the height of the triangle of the area
