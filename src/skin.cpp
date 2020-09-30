@@ -12,6 +12,7 @@
 #include "settings/types/Ratio.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
+#include "WallToolPaths.h"
 
 #define MIN_AREA_SIZE (0.4 * 0.4) 
 
@@ -372,6 +373,13 @@ void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerP
  */
 void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
 {
+    if (skin_inset_count > 0)
+    {
+        // Call on libArachne:
+        WallToolPaths wall_tool_paths(skin_part.outline, skin_line_width, skin_inset_count, mesh.settings);
+        skin_part.inset_paths = wall_tool_paths.generate();
+    }
+
     for (size_t inset_idx = 0; inset_idx < skin_inset_count; inset_idx++)
     {
         skin_part.insets.push_back(Polygons());
