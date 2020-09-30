@@ -407,7 +407,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                     // New point seems like a valid one.
                     current = intersection_point;
                     // If there was a previous point added, remove it.
-                    if(new_path.size() > 0)
+                    if(!new_path.empty())
                     {
                         new_path.pop_back();
                     }
