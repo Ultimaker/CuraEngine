@@ -241,7 +241,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
     }
 
-    const Polygons outline = outer_contour.offset(outline_offset + infill_overlap);
+    const Polygons outline = outer_contour.offset(outline_offset);
 
     // Get the first offset these are mirrored from the original center line
     Polygons result;
@@ -606,8 +606,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         perimeter_gaps->add(outer_contour.difference(gaps_outline));
     }
 
-    const coord_t offset = (zig_zaggify) ? outline_offset + infill_overlap - infill_multiplier * infill_line_width/2 + infill_line_width/2  : outline_offset + infill_overlap;
-    Polygons outline = outer_contour.offset(offset);
+    Polygons outline = outer_contour.offset(outline_offset + infill_overlap);
 
     if (outline.size() == 0)
     {
