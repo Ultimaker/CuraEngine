@@ -165,7 +165,7 @@ protected:
      * \param skin_part The part where the skin outline information (input) is stored and
      * where the skin insets (output) are stored.
      */
-    void generateSkinInsets(SkinPart& skin_part);
+    void generateSkinInsets(SkinPart& skin_part, const bool concentric_skinfill_patern);
 
     /*!
      * Generate the inner_infill_area of a skin part

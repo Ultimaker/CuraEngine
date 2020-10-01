@@ -2113,15 +2113,15 @@ void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPla
     // add skin walls aka skin perimeters
     if (extruder_nr == skin_extruder_nr)
     {
-        for (const Polygons& skin_perimeter : skin_part.insets)
+        bool added_something = false;
+
+        const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(skin_part.inset_paths);
+        for (const PathJunctions& paths : bins)
         {
-            if (skin_perimeter.size() > 0)
-            {
-                added_something = true;
-                setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-                gcode_layer.setIsInside(true); // going to print stuff inside print object
-                gcode_layer.addWalls(skin_perimeter, mesh, mesh_config.skin_config, mesh_config.bridge_skin_config); // add polygons to gcode in inward order
-            }
+            added_something = true;
+            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+            gcode_layer.addWalls(paths, mesh, mesh_config.skin_config, mesh_config.bridge_skin_config);
         }
     }
 }

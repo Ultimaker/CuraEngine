@@ -379,7 +379,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     logDebug("Processing gaps\n");
     processOutlineGaps(storage);
-    processPerimeterGaps(storage);
 
     logDebug("Meshes post-processing\n");
     // meshes post processing
@@ -538,71 +537,6 @@ void FffPolygonGenerator::processOutlineGaps(SliceDataStorage& storage)
                     Polygons outline_gaps = outer.difference(inner);
                     outline_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
                     part.outline_gaps.add(outline_gaps);
-                }
-            }
-        }
-    }
-}
-
-void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
-{
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    for (SliceMeshStorage& mesh : storage.meshes)
-    {
-        constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
-        const bool fill_perimeter_gaps = mesh.settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
-            && !mesh_group_settings.get<bool>("magic_spiralize");
-        bool filter_out_tiny_gaps = mesh.settings.get<bool>("filter_out_tiny_gaps");
-
-        if (!fill_perimeter_gaps)
-        {
-            continue;
-        }
-        for (LayerIndex layer_nr = 0; layer_nr < static_cast<LayerIndex>(mesh.layers.size()); layer_nr++)
-        {
-            const ExtruderTrain& train_wall_x = mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr");
-            bool fill_gaps_between_inner_wall_and_skin_or_infill =
-                mesh.settings.get<coord_t>("infill_line_distance") > 0
-                && mesh.settings.get<coord_t>("infill_overlap_mm") >= 0
-                && !(mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CONCENTRIC
-                    && (mesh.settings.get<bool>("alternate_extra_perimeter") || (layer_nr == 0 && train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor") > 1.0))
-                );
-            SliceLayer& layer = mesh.layers[layer_nr];
-            coord_t wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
-            coord_t wall_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x");
-            coord_t skin_line_width = mesh.settings.get<coord_t>("skin_line_width");
-            if (layer_nr == 0)
-            {
-                const ExtruderTrain& train_wall_0 = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr");
-                wall_line_width_0 *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
-                const ExtruderTrain& train_wall_x = mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr");
-                wall_line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
-                const ExtruderTrain& train_skin = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr");
-                skin_line_width *= train_skin.settings.get<Ratio>("initial_layer_line_width_factor");
-            }
-            for (SliceLayerPart& part : layer.parts)
-            {
-                // add perimeter gaps for skin insets
-                for (SkinPart& skin_part : part.skin_parts)
-                {
-                    if (skin_part.insets.size() > 0)
-                    {
-                        // add perimeter gaps between the outer skin inset and the innermost wall
-                        const Polygons outer = skin_part.outline;
-                        const Polygons inner = skin_part.insets[0].offset(skin_line_width / 2 + perimeter_gaps_extra_offset);
-                        skin_part.perimeter_gaps.add(outer.difference(inner));
-
-                        for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
-                        { // add perimeter gaps between consecutive skin walls
-                            const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * skin_line_width / 2 - perimeter_gaps_extra_offset);
-                            const Polygons inner = skin_part.insets[inset_idx].offset(skin_line_width / 2);
-                            skin_part.perimeter_gaps.add(outer.difference(inner));
-                        }
-
-                        if (filter_out_tiny_gaps) {
-                            skin_part.perimeter_gaps.removeSmallAreas(2 * INT2MM(skin_line_width) * INT2MM(skin_line_width)); // remove small outline gaps to reduce blobs on outside of model
-                        }
-                    }
                 }
             }
         }

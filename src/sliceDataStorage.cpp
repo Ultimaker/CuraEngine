@@ -246,7 +246,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             }
             for (const SkinPart& skin_part : part.skin_parts)
             {
-                if (!skin_part.insets.empty())
+                if (!skin_part.inset_paths.empty())
                 {
                     return true;
                 }

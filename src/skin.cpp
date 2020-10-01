@@ -12,6 +12,7 @@
 #include "settings/types/Ratio.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
+#include "WallToolPaths.h"
 
 #define MIN_AREA_SIZE (0.4 * 0.4) 
 
@@ -353,14 +354,16 @@ void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerP
 {
     for (SkinPart& skin_part : part->skin_parts)
     {
-        // Do not generate insets if the Bottom Pattern Initial Layer (for layer 0) and the Top/Bottom Layer Pattern
+        // Do not generate skinfill if the Bottom Pattern Initial Layer (for layer 0) and the Top/Bottom Layer Pattern
         // (for the rest of the layers) are concentric
-        if ((layer_nr == 0 && mesh.settings.get<EFillMethod>("top_bottom_pattern_0") != EFillMethod::CONCENTRIC)
-            || (layer_nr > 0 && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC))
+        const bool concentric_skinfill_patern =
+               (layer_nr == 0 && mesh.settings.get<EFillMethod>("top_bottom_pattern_0") == EFillMethod::CONCENTRIC)
+            || (layer_nr > 0  && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC);
+        generateSkinInsets(skin_part, concentric_skinfill_patern);
+        if (! concentric_skinfill_patern)
         {
-            generateSkinInsets(skin_part);
+            generateInnerSkinInfill(skin_part);
         }
-        generateInnerSkinInfill(skin_part);
     }
 }
 
@@ -370,28 +373,14 @@ void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerP
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
+void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part, const bool concentric_skinfill_patern)
 {
-    for (size_t inset_idx = 0; inset_idx < skin_inset_count; inset_idx++)
+    const EFillMethod fill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+    if (skin_inset_count > 0 || concentric_skinfill_patern)
     {
-        skin_part.insets.push_back(Polygons());
-        if (inset_idx == 0)
-        {
-            //The 10 micron reduced inset is to prevent rounding errors from creating gaps that get filled by the fill small gaps routine.
-            skin_part.insets[0] = skin_part.outline.offset(-skin_line_width / 2 + 10);
-        }
-        else
-        {
-            skin_part.insets[inset_idx] = skin_part.insets[inset_idx - 1].offset(-skin_line_width);
-        }
-
-        // optimize polygons: remove unnecessary verts
-        skin_part.insets[inset_idx].simplify();
-        if (skin_part.insets[inset_idx].size() < 1)
-        {
-            skin_part.insets.pop_back();
-            return; // don't generate inner_infill areas if the innermost inset was too small
-        }
+        // Call on libArachne:
+        WallToolPaths wall_tool_paths(skin_part.outline, skin_line_width, concentric_skinfill_patern ? -1 : skin_inset_count, mesh.settings);
+        skin_part.inset_paths = wall_tool_paths.generate();
     }
 }
 
@@ -403,13 +392,12 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
  */
 void SkinInfillAreaComputation::generateInnerSkinInfill(SkinPart& skin_part)
 {
-    if (skin_part.insets.empty())
+    if (skin_part.inset_paths.empty())
     {
         skin_part.inner_infill = skin_part.outline;
         return;
     }
-    const Polygons& innermost_inset = skin_part.insets.back();
-    skin_part.inner_infill = innermost_inset.offset(-skin_line_width / 2);
+    skin_part.inner_infill = skin_part.outline.offset(-skin_line_width * skin_inset_count);
 }
 
 /*
@@ -482,31 +470,22 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
             skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
 
-            // Insets are NOT generated for any layer if the top/bottom pattern is concentric.
-            // In this case, we still want to generate insets for the roofing layers based on the extra skin wall count,
-            // if the roofing pattern is not concentric.
-            if (!skin_part.roofing_fill.empty()
-                && layer_nr > 0
-                && mesh.settings.get<EFillMethod>("roofing_pattern") != EFillMethod::CONCENTRIC
-                && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC)
+            // If the pattern is concentric, ONLY use insets.
+            // In this case, we still want to generate skinfill for the roofing layers,
+            // but only if the roofing pattern is not concentric.
+            if (!skin_part.roofing_fill.empty() && layer_nr > 0)
             {
+                const bool concentric_skinfill_patern =
+                       mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
+                    && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC;
+
                 // Generate skin insets, regenerate the no_air_above, and recalculate the inner and roofing infills, 
                 // taking into account the extra skin wall count (only for the roofing layers).
-                generateSkinInsets(skin_part);
-                regenerateRoofingFillAndInnerInfill(part, skin_part);
-            }
-            // On the contrary, unwanted insets are generated for roofing layers because of the non-concentric top/bottom pattern.
-            // In such cases we want to clear the skin insets first and then regenerate the proper roofing fill and inner infill
-            // in the concentric roofing_pattern.
-            else if (!skin_part.roofing_fill.empty()
-                    && layer_nr > 0 
-                    && mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
-                    && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC)
-            {
-                // Clear the skin insets for the roofing layers and regenerate the roofing fill and inner infill without taking into
-                // account the Extra Skin Wall Count.
-                skin_part.insets.clear();
-                regenerateRoofingFillAndInnerInfill(part, skin_part);
+                generateSkinInsets(skin_part, concentric_skinfill_patern);
+                if (! concentric_skinfill_patern)
+                {
+                    regenerateRoofingFillAndInnerInfill(part, skin_part);
+                }
             }
         }
     }
