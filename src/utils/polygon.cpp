@@ -312,7 +312,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
 
     ClipperLib::Path new_path;
     Point previous = path->back();
-    Point previous_previous = path->at(path->size() -3);
+    Point previous_previous = path->at(path->size() - 2);
     Point current = path->at(0);
 
     /* When removing a vertex, we check the height of the triangle of the area
@@ -350,7 +350,6 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             next = path->at((point_idx + 1) % size());
         }
-
         const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Twice the Shoelace formula for area of polygon per line segment.
         const coord_t negative_area_closing = next.X * previous.Y - next.Y * previous.X; // area between the origin and the short-cutting segment
         accumulated_area_removed += removed_area_next;
@@ -386,11 +385,14 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
             {
                 // Special case; The next line is long. If we were to remove this, it could happen that we get quite noticeable artifacts.
                 // We should instead move this point to a location where both edges are kept and then remove the previous point that we wanted to keep.
-                // By taking the intersection of these two lines, we get a point that perseves the direction (so it makes the corner a bit more pointy)
+                // By taking the intersection of these two lines, we get a point that preserves the direction (so it makes the corner a bit more pointy).
+                // We just need to be sure that the intersection point does not introduce an artifact itself.
                 Point intersection_point;
                 bool has_intersection = LinearAlg2D::lineLineIntersection(previous_previous, previous, current, next, intersection_point);
-                
-                if (!has_intersection || LinearAlg2D::getDist2FromLine(intersection_point, previous, current) > allowed_error_distance_squared)
+                if (!has_intersection
+                    || LinearAlg2D::getDist2FromLine(intersection_point, previous, current) > allowed_error_distance_squared
+                    || vSize2(intersection_point - previous) > smallest_line_segment_squared  // The intersection point is way too far from the 'previous'
+                    || vSize2(intersection_point - next) > smallest_line_segment_squared)     // and 'next' points, so it shouldn't replace 'current'
                 {
                     if(length2 < 25)
                     {
@@ -404,9 +406,8 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                 {
                     // New point seems like a valid one.
                     current = intersection_point;
-                    
                     // If there was a previous point added, remove it.
-                    if(new_path.size() > 0)
+                    if(!new_path.empty())
                     {
                         new_path.pop_back();
                     }
@@ -417,7 +418,6 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                 continue; //Remove the vertex.
             }
         }
-
         //Don't remove the vertex.
         accumulated_area_removed = removed_area_next; // so that in the next iteration it's the area between the origin, [previous] and [current]
         previous_previous = previous;
