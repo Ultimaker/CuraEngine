@@ -1712,9 +1712,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             {
                 near_start_location = infill_lines[static_cast<size_t>(rand()) % infill_lines.size()][0];
             }
-            else
+            else if (!infill_polygons.empty())
             {
-                // TODO: libArachne randomize infill walls
                 PolygonRef start_poly = infill_polygons[static_cast<unsigned int>(rand()) % infill_polygons.size()];
                 near_start_location = start_poly[static_cast<unsigned long>(rand()) % start_poly.size()];
             }
