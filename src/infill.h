@@ -308,7 +308,6 @@ private:
      * \param[out] result_lines The resulting lines
      */
     void generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines);
-    void generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule

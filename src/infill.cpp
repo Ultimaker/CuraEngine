@@ -241,7 +241,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
     }
 
-    const Polygons outline = outer_contour.offset(outline_offset + infill_overlap);
+    const Polygons outline = outer_contour.offset(outline_offset);
 
     // Get the first offset these are mirrored from the original center line
     Polygons result;
@@ -458,29 +458,6 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     }
 }
 
-void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_lines)
-{
-    Polygons result_polygons;
-    if (mirror_offset)
-    {
-        const coord_t offset = infill_multiplier % 2 == 0 ? outline_offset : outline_offset + infill_line_width / 2 ;
-        result_polygons.add(outer_contour.offset(offset));
-        generateCrossInfill(cross_fill_provider, result_polygons, result_lines);
-        for (PolygonRef poly_line : result_polygons)
-        {
-            for (size_t point_idx = 1; point_idx < poly_line.size(); point_idx++)
-            {
-                result_lines.addLine(poly_line[static_cast<unsigned int>(point_idx - 1)],
-                                     poly_line[static_cast<unsigned int>(point_idx)]);
-            }
-        }
-    }
-    else
-    {
-        generateCrossInfill(cross_fill_provider, result_polygons, result_lines);
-    }
-}
-
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
 {
     ClipperLib::PolyTree interior_segments_tree;
@@ -606,8 +583,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         perimeter_gaps->add(outer_contour.difference(gaps_outline));
     }
 
-    const coord_t offset = (zig_zaggify) ? outline_offset + infill_overlap - infill_multiplier * infill_line_width/2 + infill_line_width/2  : outline_offset + infill_overlap;
-    Polygons outline = outer_contour.offset(offset);
+    Polygons outline = outer_contour.offset(outline_offset + infill_overlap);
 
     if (outline.size() == 0)
     {
@@ -797,7 +773,8 @@ void Infill::connectLines(Polygons& result_lines)
                     return vSize(left_hand_point - to_point) < vSize(right_hand_point - to_point);
                 }
             };
-            assert(("crossings on line should not be empty", !crossings_on_line.empty()));
+            assert(("crossings dimension should be bigger then polygon index", crossings_on_line.size() > polygon_index));
+            assert(("crossings on line for the current polygon should be bigger then vertex index", crossings_on_line[polygon_index].size() > vertex_index));
             std::sort(crossings_on_line[polygon_index][vertex_index].begin(), crossings_on_line[polygon_index][vertex_index].end(), CompareByDistance(vertex_before, polygon_index, vertex_index));
 
             for (InfillLineSegment* crossing : crossings_on_line[polygon_index][vertex_index])
