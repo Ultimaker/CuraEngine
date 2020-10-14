@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
@@ -434,7 +434,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                 }
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
-                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
+                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(MM2INT(0.1)));
                 }
                 maximum_resolution = std::min(maximum_resolution, mesh.settings.get<coord_t>("meshfix_maximum_resolution"));
                 maximum_deviation = std::min(maximum_deviation, mesh.settings.get<coord_t>("meshfix_maximum_deviation"));
