@@ -380,7 +380,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
     { // mid-case
         in_or_mid = dest_point;
     }
-};
+}
 
 bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, Comb& comber)
 {

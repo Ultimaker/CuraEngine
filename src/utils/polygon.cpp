@@ -89,7 +89,7 @@ Polygons Polygons::approxConvexHull(int extra_outset)
     //Perform the offset for each polygon one at a time.
     //This is necessary because the polygons may overlap, in which case the offset could end up in an infinite loop.
     //See http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/_Body.htm
-    for (const ClipperLib::Path path : paths)
+    for (const ClipperLib::Path& path : paths)
     {
         Polygons offset_result;
         ClipperLib::ClipperOffset offsetter(1.2, 10.0);
