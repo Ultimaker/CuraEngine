@@ -1050,12 +1050,13 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         { // join with support from layer up
             const Polygons empty;
             const Polygons* layer_above = (layer_idx < support_areas.size()) ? &support_areas[layer_idx + 1] : &empty;
+            const Polygons model_mesh_on_layer = (layer_idx > 0) && !is_support_mesh_nondrop_place_holder ? storage.getLayerOutlines(layer_idx, no_support, no_prime_tower) : empty;
             if (is_support_mesh_nondrop_place_holder)
             {
                 layer_above = &empty;
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
-            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance);
+            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance).difference(model_mesh_on_layer);
         }
 
         // make towers for small support
