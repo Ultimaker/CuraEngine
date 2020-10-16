@@ -191,6 +191,8 @@ bool LinearAlg2D::lineSegmentsCollide(const Point& a_from_transformed, const Poi
 
 coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Point& b)
 {
+    constexpr coord_t SQRT_LLONG_MAX_FLOOR = 3037000499;
+
     //  x.......a------------b
     //  :
     //  :
@@ -200,13 +202,23 @@ coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Poin
     const Point vap = p - a;
     const coord_t ab_size2 = vSize2(vab);
     const coord_t ap_size2 = vSize2(vap);
+    coord_t px_size2;
     if(ab_size2 == 0) //Line of 0 length. Assume it's a line perpendicular to the direction to p.
     {
         return ap_size2;
     }
     const coord_t dott = dot(vab, vap);
-    const coord_t ax_size2 = dott * dott / vSize2(vab);
-    const coord_t px_size2 = std::max(coord_t(0), ap_size2 - ax_size2);
+    if (dott != 0 && abs(dott) > SQRT_LLONG_MAX_FLOOR)  // dott * dott will overflow so calculate ax_size2 via its square root
+    {
+        const coord_t ax_size = dott / sqrt(ab_size2);
+        const coord_t ax_size2 = ax_size * ax_size;
+        px_size2 = std::max(coord_t(0), ap_size2 - ax_size2);
+    }
+    else
+    {
+        const coord_t ax_size2 = dott * dott / ab_size2;
+        px_size2 = std::max(coord_t(0), ap_size2 - ax_size2);
+    }
     return px_size2;
 }
 
