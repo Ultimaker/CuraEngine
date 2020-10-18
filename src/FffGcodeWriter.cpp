@@ -594,6 +594,14 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         gcode.writeBuildVolumeTemperatureCommand(mesh_group_settings.get<Temperature>("build_volume_temperature"));
     }
 
+    // select the first used extruder again, as the machine-start gcode could have left selected another one
+    if (Application::getInstance().current_slice->scene.extruders.size() > 1)
+    {
+        std::ostringstream tmp;
+        tmp << "T" << start_extruder_nr;
+        gcode.writeLine(tmp.str().c_str());
+    }
+
     Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.startExtruder(start_extruder_nr);
 
