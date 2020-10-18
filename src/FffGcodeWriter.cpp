@@ -965,7 +965,11 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     if (include_helper_parts)
     { // add prime tower if it hasn't already been added
         int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
-        addPrimeTower(storage, gcode_layer, prev_extruder);
+
+        if (gcode_layer.getLayerNr() != 0 || storage.primeTower.extruder_order[0] == prev_extruder)
+        {
+            addPrimeTower(storage, gcode_layer, prev_extruder);
+        }
     }
 
     if (!disable_path_optimisation)
@@ -2886,12 +2890,6 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, int prev_extruder) const
 {
     if (!Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("prime_tower_enable"))
-    {
-        return;
-    }
-
-    const size_t outermost_prime_tower_extruder = storage.primeTower.extruder_order[0];
-    if (gcode_layer.getLayerNr() == 0 && outermost_prime_tower_extruder != gcode_layer.getExtruder())
     {
         return;
     }
