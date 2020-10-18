@@ -348,13 +348,27 @@ unsigned int FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
         }
         else
         {
+            // select the extruder with the material with the highest adhesion tendency
+
+            bool found_one = false;
+            Ratio found_tendency;
+
             std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+
             for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
             {
-                start_extruder_nr = extruder_nr;
                 if (extruder_is_used[extruder_nr])
                 {
-                    break;
+                    Ratio curr_tendency = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings.get<Ratio>("material_adhesion_tendency");
+
+                    if ((found_one == false) || ((found_one == true) && (curr_tendency > found_tendency)))
+                    {
+                        found_one = true;
+
+                        found_tendency = curr_tendency;
+
+                        start_extruder_nr = extruder_nr;
+                    }
                 }
             }
         }
