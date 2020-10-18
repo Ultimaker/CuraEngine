@@ -47,9 +47,32 @@ PrimeTower::PrimeTower()
     const Scene* scene_pointer = &scene; //Communicate to lambda via pointer to prevent copy.
     std::stable_sort(extruder_order.begin(), extruder_order.end(), [scene_pointer](const unsigned int& extruder_nr_a, const unsigned int& extruder_nr_b) -> bool
     {
+        bool retval;
+
         const Ratio adhesion_a = scene_pointer->extruders[extruder_nr_a].settings.get<Ratio>("material_adhesion_tendency");
         const Ratio adhesion_b = scene_pointer->extruders[extruder_nr_b].settings.get<Ratio>("material_adhesion_tendency");
-        return adhesion_a < adhesion_b;
+
+        EPlatformAdhesion adhesion_type = scene_pointer->current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type");
+        const unsigned int adhesion_extr = scene_pointer->current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
+
+        if (adhesion_type == EPlatformAdhesion::RAFT)
+        {
+            retval = (extruder_nr_a == adhesion_extr);
+        }
+        else if (adhesion_a != adhesion_b)
+        {
+            retval = (adhesion_a > adhesion_b);
+        }
+        else if (adhesion_type != EPlatformAdhesion::NONE)
+        {
+            retval = (extruder_nr_a == adhesion_extr);
+        }
+        else
+        {
+            retval = (extruder_nr_a < extruder_nr_b);
+        }
+
+        return retval;
     });
 }
 
