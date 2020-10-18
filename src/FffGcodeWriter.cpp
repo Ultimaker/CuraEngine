@@ -575,6 +575,16 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 
     gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
     gcode.writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
+
+    // in case of shared nozzle assume that the machine-start gcode reset the extruders as per machine description
+    if (Application::getInstance().current_slice->scene.settings.get<bool>("machine_extruders_share_nozzle"))
+    {
+        for (const ExtruderTrain& train : Application::getInstance().current_slice->scene.extruders)
+        {
+            gcode.resetExtruderToPrimed(train.extruder_nr, train.settings.get<double>("machine_extruders_shared_nozzle_initial_retraction"));
+        }
+    }
+
     if (mesh_group_settings.get<bool>("machine_heated_build_volume"))
     {
         gcode.writeBuildVolumeTemperatureCommand(mesh_group_settings.get<Temperature>("build_volume_temperature"));
