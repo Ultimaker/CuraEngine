@@ -219,7 +219,7 @@ coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Poin
         }
         else
         {
-            px_size2 = LLONG_MAX;
+            px_size2 = std::numeric_limits<long long>::max();
         }
     }
     else
