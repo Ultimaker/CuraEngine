@@ -353,6 +353,19 @@ public:
     static coord_t getDist2FromLine(const Point& p, const Point& a, const Point& b);
 
     /*!
+     * Get the distance from a point \p p to the line on which \p a and \p b lie.
+     * It calculates that distance via the area of the triangle (pab): dist=2*Area(pab)/size(ab).
+     * This approach is less overflow-prone but more computationally-expensive compared to
+     * calculating the distance via the dot product.
+     *
+     * \param p The point to measure the distance from.
+     * \param a One of the points through which the line goes.
+     * \param b One of the points through which the line goes.
+     * \return The distance between the point and the line.
+     */
+    static coord_t getDistFromLine(const Point& p, const Point& a, const Point& b);
+
+    /*!
      * Check whether a corner is acute or obtuse.
      * 
      * This function is irrespective of the order between \p a and \p c;
