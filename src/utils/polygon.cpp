@@ -385,14 +385,15 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
             {
                 // Special case; The next line is long. If we were to remove this, it could happen that we get quite noticeable artifacts.
                 // We should instead move this point to a location where both edges are kept and then remove the previous point that we wanted to keep.
-                // By taking the intersection of these two lines, we get a point that preserves the direction (so it makes the corner a bit more pointy).
+                // By taking the average of the projections of the original points on the outer lines, we get a point that mostly preserves the direction (so it makes the corner a bit more pointy).
                 // We just need to be sure that the intersection point does not introduce an artifact itself.
-                Point intersection_point;
-                bool has_intersection = LinearAlg2D::lineLineIntersection(previous_previous, previous, current, next, intersection_point);
-                if (!has_intersection
-                    || LinearAlg2D::getDist2FromLine(intersection_point, previous, current) > allowed_error_distance_squared
-                    || vSize2(intersection_point - previous) > smallest_line_segment_squared  // The intersection point is way too far from the 'previous'
-                    || vSize2(intersection_point - next) > smallest_line_segment_squared)     // and 'next' points, so it shouldn't replace 'current'
+                const Point mid = (previous + current) / 2;
+                const Point a = LinearAlg2D::projectPointOnLine(mid, previous_previous, previous);
+                const Point b = LinearAlg2D::projectPointOnLine(mid, current, next);
+                const Point intersection_point = (a + b) / 2;
+                if (LinearAlg2D::getDist2FromLine(intersection_point, previous, current) > allowed_error_distance_squared
+                     || vSize2(intersection_point - previous) > smallest_line_segment_squared  // The intersection point is way too far from the 'previous'
+                     || vSize2(intersection_point - next) > smallest_line_segment_squared)     // and 'next' points, so it shouldn't replace 'current'
                 {
                     if(length2 < 25)
                     {
