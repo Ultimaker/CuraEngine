@@ -361,7 +361,7 @@ public:
      * \param p The point to measure the distance from.
      * \param a One of the points through which the line goes.
      * \param b One of the points through which the line goes.
-     * \return The distance between the point and the line, squared.
+     * \return The distance between the point and the line.
      */
     static coord_t getDistFromLine(const Point& p, const Point& a, const Point& b);
 
