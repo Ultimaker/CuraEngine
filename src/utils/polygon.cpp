@@ -355,6 +355,11 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         accumulated_area_removed += removed_area_next;
 
         const coord_t length2 = vSize2(current - previous);
+        if (length2 < 25)
+        {
+            // We're allowed to always delete segments of less than 5 micron.
+            continue;
+        }
 
         const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shortcut area polygon
         const coord_t base_length_2 = vSize2(next - previous);
@@ -395,11 +400,6 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                      || vSize2(intersection_point - previous) > smallest_line_segment_squared  // The intersection point is way too far from the 'previous'
                      || vSize2(intersection_point - next) > smallest_line_segment_squared)     // and 'next' points, so it shouldn't replace 'current'
                 {
-                    if(length2 < 25)
-                    {
-                        // We're allowed to always delete segments of less than 5 micron.
-                        continue;
-                    }
                     // We can't find a better spot for it, but the size of the line is more than 5 micron.
                     // So the only thing we can do here is leave it in...
                 }
