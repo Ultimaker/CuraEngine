@@ -2112,7 +2112,7 @@ void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPla
     // add skin walls aka skin perimeters
     if (extruder_nr == skin_extruder_nr)
     {
-        bool added_something = false;
+        added_something = false;
 
         const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(skin_part.inset_paths);
         for (const PathJunctions& paths : bins)
