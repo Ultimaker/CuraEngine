@@ -245,7 +245,7 @@ coord_t LinearAlg2D::getDistFromLine(const Point& p, const Point& a, const Point
     {
         return ap_size;
     }
-    const coord_t area_times_two = abs((b.Y - a.Y) * p.X - (b.X - a.X) * p.Y + b.X * a.Y - b.Y * a.X);
+    const coord_t area_times_two = abs((p.X - b.X) * (p.Y - a.Y) + (a.X - p.X) * (p.Y - b.Y)); // Shoelace formula, factored
     const coord_t px_size = area_times_two / ab_size;
     return px_size;
 }
