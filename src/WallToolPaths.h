@@ -82,9 +82,9 @@ private:
     const coord_t bead_width_x; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor this is the same as bead_width_0
     const coord_t inset_count; //<! The maximum number of walls to generate
     const StrategyType strategy_type; //<! The wall generating strategy
-    const bool widening_beading_enabled; //<! Is the widening beading setting enabled
-    std::unique_ptr<coord_t> min_bead_width;  //<! The minimum bead size to use when the widening beading setting is enabled
-    std::unique_ptr<coord_t> min_feature_size; //<! The minimum feature size to us when the widening beading setting is enabled
+    const bool print_thin_walls; //<! Whether to enable the widening beading meta-strategy for thin features
+    std::unique_ptr<coord_t> min_feature_size; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
+    std::unique_ptr<coord_t> min_bead_width;  //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
     const double small_area_length; //<! The length of the small features which are to be filtered out, this is squared into a surface
     const coord_t transition_length; //<! The transitioning length when the amount of extrusion lines changes
     bool toolpaths_generated; //<! Are the toolpaths generated
