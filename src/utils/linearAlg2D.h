@@ -92,12 +92,6 @@ public:
         return true;
     }
 
-    inline static Point projectPointOnLine(const Point& p, const Point& a, const Point& b)
-    {
-        const Point vec = b - a;
-        return a + ((dot(p - a, vec) * vec) / vSize2(vec));
-    }
-
     /*!
      * Find whether a point projected on a line segment would be projected to
      * - properly on the line : zero returned
