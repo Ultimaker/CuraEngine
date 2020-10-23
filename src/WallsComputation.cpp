@@ -100,7 +100,10 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         }
 
         //Finally optimize all the polygons. Every point removed saves time in the long run.
-        part->insets[i].simplify();
+        const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>(i == 0 ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
+        const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
+        part->insets[i].simplify(maximum_resolution, maximum_deviation, layer_nr);
         part->insets[i].removeDegenerateVerts();
         if (i == 0)
         {
