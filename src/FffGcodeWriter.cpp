@@ -1345,8 +1345,6 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
 
     added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
-    processOutlineGaps(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, added_something);
-
     if (!mesh.settings.get<bool>("infill_before_walls"))
     {
         added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
@@ -1993,53 +1991,6 @@ std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fil
     {
         bool bs_arg = true;
         return std::optional<Point>(bs_arg, pb.p());
-    }
-}
-
-void FffGcodeWriter::processOutlineGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, bool& added_something) const
-{
-    size_t wall_0_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
-    if (extruder_nr != wall_0_extruder_nr || !mesh.settings.get<bool>("fill_outline_gaps"))
-    {
-        return;
-    }
-    const coord_t perimeter_gaps_line_width = mesh_config.perimeter_gap_config.getLineWidth();
-    int skin_angle = 45;
-    if (mesh.skin_angles.size() > 0)
-    {
-        skin_angle = mesh.skin_angles.at(gcode_layer.getLayerNr() % mesh.skin_angles.size());
-    }
-    Polygons gap_polygons; // unused
-    Polygons gap_lines; // soon to be generated gap filler lines
-    int offset = 0;
-    int extra_infill_shift = 0;
-    constexpr coord_t outline_gap_overlap = 0;
-    constexpr int infill_multiplier = 1;
-    constexpr bool zig_zaggify_infill = false;
-    constexpr bool connect_polygons = false; // not applicable
-
-    constexpr int wall_line_count = 0;
-    const Point& infill_origin = Point();
-    Polygons* perimeter_gaps = nullptr;
-    constexpr bool connected_zigzags = false;
-    constexpr bool use_endpieces = true;
-    constexpr bool skip_some_zags = false;
-    constexpr int zag_skip_count = 0;
-    constexpr coord_t pocket_size = 0;
-
-    Infill infill_comp(
-        EFillMethod::LINES, zig_zaggify_infill, connect_polygons, part.outline_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, outline_gap_overlap, infill_multiplier, skin_angle, gcode_layer.z, extra_infill_shift,
-        wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
-        );
-    infill_comp.generate(gap_polygons, gap_lines);
-
-    if (gap_lines.size() > 0)
-    {
-        assert(extruder_nr == wall_0_extruder_nr); // Should already be the case because of fill_perimeter_gaps check
-        added_something = true;
-        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-        gcode_layer.setIsInside(false); // going to print stuff outside print object
-        gcode_layer.addLinesByOptimizer(gap_lines, mesh_config.perimeter_gap_config, SpaceFillType::Lines);
     }
 }
 
