@@ -1517,7 +1517,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     }
     const Point3 mesh_middle = mesh.bounding_box.getMiddle();
     const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
-    for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
+    const size_t  last_idx = part.infill_area_per_combine_per_density.size() - 1;
+    for (size_t density_idx = last_idx; static_cast<int>(density_idx) >= 0; density_idx--)
     {
         int infill_line_distance_here = infill_line_distance << (density_idx + 1); // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_shift = infill_line_distance_here / 2;
@@ -1535,7 +1536,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 // : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
 // >>>>>>>>"""""""""""""""""
 
-        if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D)
+        if (density_idx == last_idx || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D)
         { // the least dense infill should fill up all remaining gaps
 // :       |       :       |       :       |       :       |       :  > furthest from top
 // :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |   :  > further from top
@@ -1716,16 +1717,14 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
         if (zig_zaggify_infill)
         {
-            if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+            if (density_idx == last_idx)
             {
                 first_dense_lines = infill_lines;
                 infill_lines.clear();
             }
-            if (density_idx >= 0 && density_idx < part.infill_area_per_combine_per_density.size() - 1)
+            if (density_idx >= 0 && density_idx < last_idx)
             {
-                Polygons base =
-                    part.infill_area_per_combine_per_density[part.infill_area_per_combine_per_density.size() - 1][0];
-                Polygons tool = base.offset(-infill_line_width * 0.75);
+                Polygons tool = part.infill_area_per_combine_per_density[last_idx][0].offset(-infill_line_width * 0.75);
                 infill_lines.cut(tool);
             }
             if (density_idx == 0)
