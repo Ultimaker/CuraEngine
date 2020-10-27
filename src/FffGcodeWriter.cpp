@@ -1658,18 +1658,18 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
             infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
 
-            if (infill_below_skin.size())
+            if (!infill_below_skin.empty())
             {
                 // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
                 const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
 
-                if (infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset)).size())
+                if (!infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset)).empty())
                 {
                     // there is infill below skin, is there also infill that isn't below skin?
                     Polygons infill_not_below_skin = in_outline.difference(infill_below_skin);
                     infill_not_below_skin.removeSmallAreas(min_area);
 
-                    if (infill_not_below_skin.size())
+                    if (!infill_not_below_skin.empty())
                     {
                         constexpr Polygons* perimeter_gaps = nullptr;
                         constexpr bool connected_zigzags = false;
@@ -1733,7 +1733,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             }
         }
     }
-    if (infill_lines.size() > 0 || infill_polygons.size() > 0)
+    if (!infill_lines.empty() || !infill_polygons.empty())
     {
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
