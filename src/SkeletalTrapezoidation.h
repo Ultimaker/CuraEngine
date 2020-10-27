@@ -458,7 +458,15 @@ protected:
      */
     void generateExtraRibs();
 
-    // ^ transitioning | v toolpath generation
+    // ^ transitioning ^
+
+    /*!
+     * It's useful to know when the paths get back to the consumer, to (what part of) a polygon the paths 'belong'.
+     * A single polygon without a hole is one region, a polygon with (a) hole(s) has 2 regions.
+     */
+    void markRegions();
+
+    // v toolpath generation v
 
     /*!
      * \param[out] segments the generated segments

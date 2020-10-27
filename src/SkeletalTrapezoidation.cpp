@@ -492,6 +492,8 @@ void SkeletalTrapezoidation::generateToolpaths(VariableWidthPaths& generated_too
 
     generateExtraRibs();
 
+    markRegions();
+
     generateSegments();
 }
 
@@ -1318,7 +1320,48 @@ void SkeletalTrapezoidation::generateExtraRibs()
 // ^^^^^^^^^^^^^^^^^^^^^
 //    TRANSTISIONING
 // =====================
-//
+
+void SkeletalTrapezoidation::markRegions()
+{
+    size_t region = 0;
+    for (edge_t& edge : graph.edges)
+    {
+        if (edge.data.regionIsSet())
+        {
+            continue;
+        }
+
+        ++region;
+        std::queue<STHalfEdge*> worklist;
+        worklist.push(&edge);
+
+        while (!worklist.empty())
+        {
+            edge_t* p_side = worklist.front();
+            worklist.pop();
+
+            edge_t* p_next = p_side;
+            do
+            {
+                if (!p_next->data.regionIsSet())
+                {
+                    p_next->data.setRegion(region);
+                    if (p_next->twin != nullptr && !p_next->data.isCentral())
+                    {
+                        worklist.push(p_next->twin);
+                    }
+                }
+                else
+                {
+                    assert(region == p_next->data.getRegion());
+                }
+
+                p_next = p_next->next;
+            } while (p_next != nullptr && p_next != p_side);
+        }
+    }
+}
+
 // =====================
 //  TOOLPATH GENERATION
 // vvvvvvvvvvvvvvvvvvvvv
@@ -1836,7 +1879,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 ExtrusionJunction& from = from_junctions[from_junctions.size() - 1 - junction_rev_idx];
                 ExtrusionJunction& to = to_junctions[to_junctions.size() - 1 - junction_rev_idx];
                 assert(from.perimeter_index == to.perimeter_index);
-                bool is_odd_segment = edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
+                const bool is_odd_segment = edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
                     && edge_to_peak->to->data.transition_ratio == 0 && edge_to_peak->from->data.transition_ratio == 0 && edge_from_peak->to->data.transition_ratio == 0 // We're not in a transition
                     && junction_rev_idx == segment_count - 1 // Is single bead segment
                     && shorterThen(from.p - quad_start->to->p, 5) && shorterThen(to.p - quad_end->from->p, 5);
@@ -1870,7 +1913,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true) && !node.isCentral())
         {
             size_t inset_index = beading.bead_widths.size() / 2;
-            bool is_odd = true;
+            constexpr bool is_odd = true;
             if (inset_index >= generated_toolpaths.size())
             {
                 generated_toolpaths.resize(inset_index + 1);
