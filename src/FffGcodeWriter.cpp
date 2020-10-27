@@ -1714,20 +1714,24 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             , /*int zag_skip_count =*/ 0
             , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
         infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
-        if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+        if (zig_zaggify_infill)
         {
-            first_dense_lines = infill_lines;
-            infill_lines.clear();
-        }
-        if (density_idx >= 0 && density_idx < part.infill_area_per_combine_per_density.size() - 1)
-        {
-            Polygons base = part.infill_area_per_combine_per_density[part.infill_area_per_combine_per_density.size() - 1][0];
-            Polygons tool = base.offset(-infill_line_width*0.75);
-            infill_lines.cut(tool);
-        }
-        if (density_idx == 0)
-        {
-            infill_lines.add(first_dense_lines);
+            if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+            {
+                first_dense_lines = infill_lines;
+                infill_lines.clear();
+            }
+            if (density_idx >= 0 && density_idx < part.infill_area_per_combine_per_density.size() - 1)
+            {
+                Polygons base =
+                    part.infill_area_per_combine_per_density[part.infill_area_per_combine_per_density.size() - 1][0];
+                Polygons tool = base.offset(-infill_line_width * 0.75);
+                infill_lines.cut(tool);
+            }
+            if (density_idx == 0)
+            {
+                infill_lines.add(first_dense_lines);
+            }
         }
     }
     if (infill_lines.size() > 0 || infill_polygons.size() > 0)
