@@ -495,6 +495,12 @@ void SkeletalTrapezoidation::generateToolpaths(VariableWidthPaths& generated_too
     markRegions();
 
     generateSegments();
+
+    std::for_each(generated_toolpaths.begin(), generated_toolpaths.end(),
+        [](VariableWidthLines& lines) { std::for_each(lines.begin(), lines.end(),
+            [](ExtrusionLine& line) { line.region_id = line.junctions.front().region_id;
+        });
+    });
 }
 
 void SkeletalTrapezoidation::updateIsCentral()
@@ -1678,11 +1684,10 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
             { // Snap to start node if it is really close, in order to be able to see 3-way intersection later on more robustly
                 junction = a;
             }
-            ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx);
+            ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx, edge_.data.getRegion());
         }
     }
 }
-
 
 std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezoidation::getOrCreateBeading(node_t* node, ptr_vector_t<BeadingPropagation>& node_beadings)
 {
@@ -1912,7 +1917,8 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         Beading& beading = node.data.getBeading()->beading;
         if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true) && !node.isCentral())
         {
-            size_t inset_index = beading.bead_widths.size() / 2;
+            const size_t inset_index = beading.bead_widths.size() / 2;
+            const size_t& region_id = node.incident_edge->data.getRegion();
             constexpr bool is_odd = true;
             if (inset_index >= generated_toolpaths.size())
             {
@@ -1920,8 +1926,8 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             }
             generated_toolpaths[inset_index].emplace_back(inset_index, is_odd);
             ExtrusionLine& line = generated_toolpaths[inset_index].back();
-            line.junctions.emplace_back(node.p, beading.bead_widths[inset_index], inset_index);
-            line.junctions.emplace_back(node.p + Point(50, 0), beading.bead_widths[inset_index], inset_index);
+            line.junctions.emplace_back(node.p, beading.bead_widths[inset_index], inset_index, region_id);
+            line.junctions.emplace_back(node.p + Point(50, 0), beading.bead_widths[inset_index], inset_index, region_id);
             // TODO: ^^^ magic value ... + Point(50, 0) ^^^
         }
     }

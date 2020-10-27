@@ -276,7 +276,7 @@ void BeadingOrderOptimizer::reduceIntersectionOverlap(ExtrusionLine& polyline, d
         const Point mid = a + ab * std::max(static_cast<coord_t>(0), std::min(length, reduction_left)) / length;
         const std::vector<ExtrusionJunction>::iterator forward_it = getInsertPosIt(next_junction_it);
         const coord_t mid_w = start_junction.w + (next_junction.w - start_junction.w) * reduction_left / length;
-        polyline.junctions.insert(forward_it, ExtrusionJunction(mid, mid_w, start_junction.perimeter_index));
+        polyline.junctions.insert(forward_it, ExtrusionJunction(mid, mid_w, start_junction.perimeter_index, start_junction.region_id));
     }
     else
     {

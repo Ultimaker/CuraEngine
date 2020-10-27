@@ -27,6 +27,13 @@ struct ExtrusionLine
     size_t inset_idx;
 
     /*!
+     * Which region this line is part of. A solid polygon without holes has only one region.
+     * A polygon with holes has 2. Disconnected parts of the polygon are also separate regions.
+     * Will be 0 if no region was given.
+     */
+    size_t region_id;
+
+    /*!
      * If a thin piece needs to be printed with an odd number of walls (e.g. 5
      * walls) then there will be one wall in the middle that is not a loop. This
      * field indicates whether this path is such a line through the middle, that
@@ -42,9 +49,10 @@ struct ExtrusionLine
      */
     std::vector<ExtrusionJunction> junctions;
 
-    ExtrusionLine(const size_t inset_idx, const bool is_odd)
+    ExtrusionLine(const size_t inset_idx, const bool is_odd, const size_t region_id = 0)
     : inset_idx(inset_idx)
     , is_odd(is_odd)
+    , region_id(region_id)
     {}
 
     /*!
