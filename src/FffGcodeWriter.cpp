@@ -1724,7 +1724,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             }
             if (density_idx >= 0 && density_idx < last_idx)
             {
-                Polygons tool = part.infill_area_per_combine_per_density[last_idx][0].offset(-infill_line_width * 0.75);
+                const int cut_offset = - static_cast<int>(infill_line_width) / 2 - 5;
+                Polygons tool = part.infill_area_per_combine_per_density[last_idx][0].offset(cut_offset);
                 infill_lines.cut(tool);
             }
             if (density_idx == 0)
