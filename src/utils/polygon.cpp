@@ -249,6 +249,20 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines) const
     return ret;
 }
 
+Polygons& Polygons::cut(const Polygons& tool)
+{
+    ClipperLib::PolyTree interior_segments_tree;
+    tool.lineSegmentIntersection(*this, interior_segments_tree);
+    ClipperLib::Paths interior_segments;
+    ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
+    this->clear();
+    for (const std::vector<ClipperLib::IntPoint>& interior_segment : interior_segments)
+    {
+        this->addLine(interior_segment[0], interior_segment[1]);
+    }
+    return *this;
+}
+
 coord_t Polygons::polyLineLength() const
 {
     coord_t length = 0;
