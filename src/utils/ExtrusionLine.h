@@ -27,13 +27,6 @@ struct ExtrusionLine
     size_t inset_idx;
 
     /*!
-     * Which region this line is part of. A solid polygon without holes has only one region.
-     * A polygon with holes has 2. Disconnected parts of the polygon are also separate regions.
-     * Will be 0 if no region was given.
-     */
-    size_t region_id;
-
-    /*!
      * If a thin piece needs to be printed with an odd number of walls (e.g. 5
      * walls) then there will be one wall in the middle that is not a loop. This
      * field indicates whether this path is such a line through the middle, that
@@ -41,6 +34,13 @@ struct ExtrusionLine
      * loop.
      */
     bool is_odd;
+
+    /*!
+     * Which region this line is part of. A solid polygon without holes has only one region.
+     * A polygon with holes has 2. Disconnected parts of the polygon are also separate regions.
+     * Will be 0 if no region was given.
+     */
+    size_t region_id;
 
     /*!
      * The list of vertices along which this path runs.
