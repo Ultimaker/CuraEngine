@@ -319,13 +319,6 @@ private:
     void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t total_shift);
 
     /*!
-     * Crop line segments by the infill polygon using Clipper
-     * \param[out] result (output) The resulting lines
-     * \param input The line segments to be cropped
-     */
-    void addLineSegmentsInfill(Polygons& result, Polygons& input);
-
-    /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p line_distance
      * 
      * idea:
