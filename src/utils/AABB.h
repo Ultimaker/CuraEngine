@@ -36,6 +36,17 @@ public:
     bool contains(const Point& point) const;
 
     /*!
+     * Whether this bounding box contains the other bounding box.
+     */
+    bool contains(const AABB& other) const;
+
+    /*!
+     * Returns the area of this bounding box.
+     * Note: Area is negative for uninitialized, and 0 for empty.
+     */
+    coord_t area() const;
+
+    /*!
      * Get the middle of the bounding box
      */
     Point getMiddle() const;

@@ -64,6 +64,19 @@ bool AABB::contains(const Point& point) const
     return point.X >= min.X && point.X <= max.X && point.Y >= min.Y && point.Y <= max.Y;
 }
 
+bool AABB::contains(const AABB& other) const
+{
+    if (area() < 0) { return false; }
+    if (other.area() < 0) { return true; }
+    return other.min.X >= min.X && other.max.X <= max.X && other.min.Y >= min.Y && other.max.Y <= max.Y;
+}
+
+coord_t AABB::area() const
+{
+    if (max.X < min.X || max.Y < min.Y) { return -1; }  // Do the unititialized check explicitly, so there aren't any problems with over/underflow and POINT_MAX/POINT_MIN.
+    return (max.X - min.X) * (max.Y - min.Y);
+}
+
 bool AABB::hit(const AABB& other) const
 {
     if (max.X < other.min.X) return false;
