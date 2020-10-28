@@ -1501,7 +1501,6 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Polygons infill_polygons;
     Polygons infill_lines;
-    Polygons first_dense_lines;
 
     const EFillMethod pattern = mesh.settings.get<EFillMethod>("infill_pattern");
     const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
@@ -1520,6 +1519,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const size_t  last_idx = part.infill_area_per_combine_per_density.size() - 1;
     for (size_t density_idx = last_idx; static_cast<int>(density_idx) >= 0; density_idx--)
     {
+        Polygons infill_lines_here;
         int infill_line_distance_here = infill_line_distance << (density_idx + 1); // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_shift = infill_line_distance_here / 2;
         // infill shift explanation: [>]=shift ["]=line_dist
@@ -1727,25 +1727,25 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            /*bool skip_some_zags =*/ false,
                            /*int zag_skip_count =*/ 0,
                            mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
-        if (zig_zaggify_infill)
+        infill_comp.generate(infill_polygons, infill_lines_here, mesh.cross_fill_provider, &mesh);
+        if (density_idx < last_idx)
         {
-            if (density_idx == last_idx)
+            auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
             {
-                first_dense_lines = infill_lines;
-                infill_lines.clear();
-            }
-            if (density_idx >= 0 && density_idx < last_idx)
-            {
-                const int cut_offset = - static_cast<int>(infill_line_width) / 2 - wall_line_count * static_cast<int>(infill_line_width) - 5;
-                Polygons tool = part.infill_area_per_combine_per_density[last_idx][0].offset(cut_offset);
-                infill_lines.cut(tool);
-            }
-            if (density_idx == 0)
-            {
-                infill_lines.add(first_dense_lines);
-            }
+                if (zig_zaggify)
+                {
+                    return - line_width / 2 - static_cast<coord_t>(line_count) * line_width - 5;
+                }
+                else
+                {
+                    return - static_cast<coord_t>(line_count) * line_width;
+                }
+            };
+            const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
+            Polygons tool = part.infill_area_per_combine_per_density[last_idx][0].offset(static_cast<int>(cut_offset));
+            infill_lines_here.cut(tool);
         }
+        infill_lines.add(infill_lines_here);
     }
     if (!infill_lines.empty() || !infill_polygons.empty())
     {
