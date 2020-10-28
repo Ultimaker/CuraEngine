@@ -1517,6 +1517,25 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const Point3 mesh_middle = mesh.bounding_box.getMiddle();
     const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
     const size_t  last_idx = part.infill_area_per_combine_per_density.size() - 1;
+
+    auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
+    {
+      if (zig_zaggify)
+      {
+          return - line_width / 2 - static_cast<coord_t>(line_count) * line_width - 5;
+      }
+      else
+      {
+          return - static_cast<coord_t>(line_count) * line_width;
+      }
+    };
+
+    Polygons sparse_in_outline = part.infill_area_per_combine_per_density[last_idx][0];
+    Polygons skin_above_combined;  // skin regions on the layers above combined with small gaps between
+    Polygons infill_below_skin;
+    constexpr double min_area_multiplier = 25;
+    const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
+
     for (size_t density_idx = last_idx; static_cast<int>(density_idx) >= 0; density_idx--)
     {
         // Only process dense areas when they're initialized
@@ -1526,6 +1545,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         }
 
         Polygons infill_lines_here;
+        Polygons infill_polygons_here;
         int infill_line_distance_here = infill_line_distance << (density_idx + 1); // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_shift = infill_line_distance_here / 2;
         // infill shift explanation: [>]=shift ["]=line_dist
@@ -1566,103 +1586,101 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         size_t skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
         if (skin_edge_support_layers > 0)
         {
-            Polygons skin_above_combined;  // skin regions on the layers above combined with small gaps between
 
             constexpr coord_t tiny_infill_offset = 20;
 
             // working from the highest layer downwards, combine the regions of skin on all the layers but don't let the regions merge together
             // otherwise "terraced" skin regions on separate layers will look like a single region of unbroken skin
-
-            for (size_t i = skin_edge_support_layers; i > 0; --i)
+            if (density_idx == last_idx)
             {
-                const size_t skin_layer_nr = gcode_layer.getLayerNr() + i;
-                if (skin_layer_nr < mesh.layers.size())
+                for (size_t i = skin_edge_support_layers; i > 0; --i)
                 {
-                    for (const SliceLayerPart& part : mesh.layers[skin_layer_nr].parts)
+                    const size_t skin_layer_nr = gcode_layer.getLayerNr() + i;
+                    if (skin_layer_nr < mesh.layers.size())
                     {
-                        for (const SkinPart& skin_part : part.skin_parts)
+                        for (const SliceLayerPart& part : mesh.layers[skin_layer_nr].parts)
                         {
-                            if (skin_above_combined.size())
+                            for (const SkinPart& skin_part : part.skin_parts)
                             {
-                                // does this skin part overlap with any of the skin parts on the layers above?
-                                const Polygons overlap = skin_above_combined.intersection(skin_part.outline);
-                                if (overlap.size())
+                                if (skin_above_combined.size())
                                 {
-                                    // yes, it overlaps, need to leave a gap between this skin part and the others
-                                    if (i > 1)
+                                    // does this skin part overlap with any of the skin parts on the layers above?
+                                    const Polygons overlap = skin_above_combined.intersection(skin_part.outline);
+                                    if (overlap.size())
                                     {
-                                        // this layer is the 2nd or higher layer above the layer whose infill we're printing
+                                        // yes, it overlaps, need to leave a gap between this skin part and the others
+                                        if (i > 1)
+                                        {
+                                            // this layer is the 2nd or higher layer above the layer whose infill we're printing
 
-                                        // looking from the side, if the combined regions so far look like this...
-                                        //
-                                        //     ----------------------------------
-                                        //
-                                        // and the new skin part looks like this...
-                                        //
-                                        //             -------------------------------------
-                                        //
-                                        // the result should be like this...
-                                        //
-                                        //     ------- -------------------------- ----------
+                                            // looking from the side, if the combined regions so far look like this...
+                                            //
+                                            //     ----------------------------------
+                                            //
+                                            // and the new skin part looks like this...
+                                            //
+                                            //             -------------------------------------
+                                            //
+                                            // the result should be like this...
+                                            //
+                                            //     ------- -------------------------- ----------
 
-                                        // expand the overlap region slightly to make a small gap
-                                        const Polygons overlap_expanded = overlap.offset(tiny_infill_offset);
-                                        // subtract the expanded overlap region from the regions accumulated from higher layers
-                                        skin_above_combined = skin_above_combined.difference(overlap_expanded);
-                                        // subtract the expanded overlap region from this skin part and add the remainder to the overlap region
-                                        skin_above_combined.add(skin_part.outline.difference(overlap_expanded));
-                                        // and add the overlap area as well
-                                        skin_above_combined.add(overlap);
+                                            // expand the overlap region slightly to make a small gap
+                                            const Polygons overlap_expanded = overlap.offset(tiny_infill_offset);
+                                            // subtract the expanded overlap region from the regions accumulated from higher layers
+                                            skin_above_combined = skin_above_combined.difference(overlap_expanded);
+                                            // subtract the expanded overlap region from this skin part and add the remainder to the overlap region
+                                            skin_above_combined.add(skin_part.outline.difference(overlap_expanded));
+                                            // and add the overlap area as well
+                                            skin_above_combined.add(overlap);
+                                        }
+                                        else
+                                        {
+                                            // this layer is the 1st layer above the layer whose infill we're printing
+
+                                            // add this layer's skin region without subtracting the overlap but still make a gap between this skin region and what has been accumulated so far
+                                            // we do this so that these skin region edges will definitely have infill walls below them
+
+                                            // looking from the side, if the combined regions so far look like this...
+                                            //
+                                            //     ----------------------------------
+                                            //
+                                            // and the new skin part looks like this...
+                                            //
+                                            //             -------------------------------------
+                                            //
+                                            // the result should be like this...
+                                            //
+                                            //     ------- -------------------------------------
+
+                                            skin_above_combined = skin_above_combined.difference(
+                                                skin_part.outline.offset(tiny_infill_offset));
+                                            skin_above_combined.add(skin_part.outline);
+                                        }
                                     }
                                     else
                                     {
-                                        // this layer is the 1st layer above the layer whose infill we're printing
-
-                                        // add this layer's skin region without subtracting the overlap but still make a gap between this
-                                        // skin region and what has been accumulated so far
-                                        // we do this so that these skin region edges will definitely have infill walls below them
-
-                                        // looking from the side, if the combined regions so far look like this...
-                                        //
-                                        //     ----------------------------------
-                                        //
-                                        // and the new skin part looks like this...
-                                        //
-                                        //             -------------------------------------
-                                        //
-                                        // the result should be like this...
-                                        //
-                                        //     ------- -------------------------------------
-
-                                        skin_above_combined = skin_above_combined.difference(skin_part.outline.offset(tiny_infill_offset));
+                                        // no overlap
                                         skin_above_combined.add(skin_part.outline);
                                     }
                                 }
                                 else
                                 {
-                                    // no overlap
+                                    // this is the first skin region we have looked at
                                     skin_above_combined.add(skin_part.outline);
                                 }
-                            }
-                            else
-                            {
-                                // this is the first skin region we have looked at
-                                skin_above_combined.add(skin_part.outline);
                             }
                         }
                     }
                 }
+
+                // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls otherwise the infill walls could merge and form a bump
+                infill_below_skin =  skin_above_combined.intersection(in_outline).offset(-infill_line_width).offset(infill_line_width);
+
+                constexpr bool remove_small_holes_from_infill_below_skin = true;
+
+                infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
             }
-
-            // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls
-            // otherwise the infill walls could merge and form a bump
-            Polygons infill_below_skin = skin_above_combined.intersection(in_outline).offset(-infill_line_width).offset(infill_line_width);
-
-            constexpr double min_area_multiplier = 25;
-            const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
-            constexpr bool remove_small_holes_from_infill_below_skin = true;
-
-            infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
 
             if (!infill_below_skin.empty())
             {
@@ -1684,18 +1702,42 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                         constexpr int zag_skip_count = 0;
 
                         // infill region with skin above has to have at least one infill wall line
-                        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin, /*outline_offset =*/ 0
-                            , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, std::max(1, (int)wall_line_count), infill_origin
-                            , perimeter_gaps
-                            , connected_zigzags
-                            , use_endpieces
-                            , skip_some_zags
-                            , zag_skip_count
-                            , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-                        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
-
+                        const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
+                        const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
+                        Infill infill_comp(pattern,
+                                           zig_zaggify_infill,
+                                           connect_polygons,
+                                           infill_below_skin,
+                                           /*outline_offset =*/ 0,
+                                           infill_line_width,
+                                           infill_line_distance_here,
+                                           infill_overlap,
+                                           infill_multiplier,
+                                           infill_angle,
+                                           gcode_layer.z,
+                                           infill_shift,
+                                           skin_below_wall_count,
+                                           infill_origin,
+                                           perimeter_gaps,
+                                           connected_zigzags,
+                                           use_endpieces,
+                                           skip_some_zags,
+                                           zag_skip_count,
+                                           mesh.settings.get<coord_t>("cross_infill_pocket_size"));
+                        infill_comp.generate(infill_polygons, infill_lines_here, mesh.cross_fill_provider, &mesh);
+                        if (density_idx < last_idx)
+                        {
+                            const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
+                            Polygons tool = infill_below_skin.offset(static_cast<int>(cut_offset));
+                            infill_lines_here.cut(tool);
+                        }
+                        infill_lines.add(infill_lines_here);
                         // normal processing for the infill that isn't below skin
                         in_outline = infill_not_below_skin;
+                        if (density_idx == last_idx)
+                        {
+                            sparse_in_outline = infill_not_below_skin;
+                        }
                     }
                 }
             }
@@ -1733,22 +1775,11 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            /*bool skip_some_zags =*/ false,
                            /*int zag_skip_count =*/ 0,
                            mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-        infill_comp.generate(infill_polygons, infill_lines_here, mesh.cross_fill_provider, &mesh);
+        infill_comp.generate(infill_polygons_here, infill_lines_here, mesh.cross_fill_provider, &mesh);
         if (density_idx < last_idx)
         {
-            auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
-            {
-                if (zig_zaggify)
-                {
-                    return - line_width / 2 - static_cast<coord_t>(line_count) * line_width - 5;
-                }
-                else
-                {
-                    return - static_cast<coord_t>(line_count) * line_width;
-                }
-            };
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
-            Polygons tool = part.infill_area_per_combine_per_density[last_idx][0].offset(static_cast<int>(cut_offset));
+            Polygons tool = sparse_in_outline.offset(static_cast<int>(cut_offset));
             infill_lines_here.cut(tool);
         }
         infill_lines.add(infill_lines_here);
