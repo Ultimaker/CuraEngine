@@ -1519,6 +1519,12 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const size_t  last_idx = part.infill_area_per_combine_per_density.size() - 1;
     for (size_t density_idx = last_idx; static_cast<int>(density_idx) >= 0; density_idx--)
     {
+        // Only process dense areas when they're initialized
+        if (part.infill_area_per_combine_per_density[density_idx][0].empty())
+        {
+            continue;
+        }
+
         Polygons infill_lines_here;
         int infill_line_distance_here = infill_line_distance << (density_idx + 1); // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_shift = infill_line_distance_here / 2;
