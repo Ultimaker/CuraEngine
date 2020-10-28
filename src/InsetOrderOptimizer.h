@@ -61,48 +61,11 @@ private:
     Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
 
     /*!
-     * Print the insets in an order based on their inset index.
-     *
-     * For instance, it will first print all insets with index 0, then all
-     * insets with index 1, and so on. Which index to start from depends on the
-     * ``outer_inset_first`` setting.
-     * Within the set of walls with the same index, the walls are ordered to
-     * minimize travel distance.
-     * \return Whether this added anything to the layer plan or not.
-     */
-    bool processInsetsIndexedOrdering();
-
-    /*!
-     * Generate the insets for the holes of a given layer part after optimizing the ordering.
-     */
-    void processHoleInsets();
-
-    /*!
-     * Generate the insets for the outer walls of a given layer part after optimizing the ordering.
-     * \param include_outer true if the outermost inset is to be output
-     * \param include_inners true if the innermost insets are to be output
-     */
-    void processOuterWallInsets(const bool include_outer, const bool include_inners);
-
-    /*!
-     * Generate a travel move from the current position to inside the part.
-     * This is used after generating an outer wall so that if a retraction occurs immediately afterwards,
-     * the extruder won't be on the outer wall.
-     */
-    void moveInside();
-
-    /*!
      * Retrieves the region-id of the outer region (belongs to the outer outline, not to a hole).
      */
     static size_t getOuterRegionId(const VariableWidthPaths& toolpaths);
 
 public:
-    /*!
-     * Generate the insets for all of the walls of a given layer part after optimizing the ordering.
-     * \return Whether this function added anything to the layer plan
-     */
-    bool processInsetsWithOptimizedOrdering();
-
     /*!
      * Test whether it looks to be worthwhile to optimize the inset order of a given layer part.
      * \param mesh The mesh to be added to the layer plan.
