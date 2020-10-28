@@ -1329,7 +1329,8 @@ void SkeletalTrapezoidation::generateExtraRibs()
 
 void SkeletalTrapezoidation::markRegions()
 {
-    size_t region = 0;
+    // Painters algorithm, loop over all edges and skip those that have already been 'painted' with a region.
+    size_t region = 0; // <- Region zero is 'None', it will be incremented before the first edge.
     for (edge_t& edge : graph.edges)
     {
         if (edge.data.regionIsSet())
@@ -1337,10 +1338,12 @@ void SkeletalTrapezoidation::markRegions()
             continue;
         }
 
+        // An edge that didn't have a region painted is encountered, so make a new region and start a worklist:
         ++region;
         std::queue<STHalfEdge*> worklist;
         worklist.push(&edge);
 
+        // Loop over all edges that are connected to this one, except don't cross any medial axis edges:
         while (!worklist.empty())
         {
             edge_t* p_side = worklist.front();
@@ -1352,7 +1355,7 @@ void SkeletalTrapezoidation::markRegions()
                 if (!p_next->data.regionIsSet())
                 {
                     p_next->data.setRegion(region);
-                    if (p_next->twin != nullptr && !p_next->data.isCentral())
+                    if(p_next->twin != nullptr && (p_next->next == nullptr || p_next->prev == nullptr))
                     {
                         worklist.push(p_next->twin);
                     }
