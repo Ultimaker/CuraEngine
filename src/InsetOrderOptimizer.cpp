@@ -44,7 +44,9 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, con
 bool InsetOrderOptimizer::optimize()
 {
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
-    BinJunctions insets = variableWidthPathToBinJunctions(part.wall_toolpaths, InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part));
+    const bool optimize = InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part);
+    std::set<size_t> bins_with_index_zero_insets;
+    BinJunctions insets = variableWidthPathToBinJunctions(part.wall_toolpaths, optimize, &bins_with_index_zero_insets);
 
     //If printing the outer inset first, start with the lowest inset.
     //Otherwise start with the highest inset and iterate backwards.
@@ -80,7 +82,7 @@ bool InsetOrderOptimizer::optimize()
         gcode_layer.setIsInside(true); //Going to print walls, which are always inside.
         ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
 
-        if(inset == 0) //Print using outer wall config.
+        if(bins_with_index_zero_insets.count(inset) > 0) //Print using outer wall config.
         {
             gcode_layer.addWalls(insets[inset], mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
         }
@@ -148,7 +150,7 @@ size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths
     return outer_region_id;
 }
 
-BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool& optimize)
+BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool& optimize, std::set<size_t>* p_bins_with_index_zero_insets)
 {
     // Find the largest inset-index:
     size_t max_inset_index = 0;
@@ -178,6 +180,12 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
             const bool in_hole_region = optimize && line.region_id != outer_region_id && line.region_id != 0;
             const size_t bin_index = in_hole_region ? (max_bin - inset_index) : inset_index;
             insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
+
+            // Collect all bins that have zero-inset indices in them, if needed:
+            if (inset_index == 0 && p_bins_with_index_zero_insets != nullptr)
+            {
+                p_bins_with_index_zero_insets->insert(bin_index);
+            }
         }
     }
     return insets;

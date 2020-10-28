@@ -78,9 +78,11 @@ public:
      * Converts the VariableWidthPath to a bin of walls, consisting of a vector of paths, consisting of a vector of
      * lines
      * \param toolpaths The toolpaths to convert
+     * \param optimize Wether to optimize or not
+     * \param p_bins_with_index_zero_insets When optimizing, not all inset zero indices are in the zeroth bin. (Can be set to nullptr, which won't negate optimize.)
      * \return A bin of walls, consisting of a vector of paths consisting of vector of lines
      */
-    static BinJunctions variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool& optimize = false);
+    static BinJunctions variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool& optimize = false, std::set<size_t>* p_bins_with_index_zero_insets = nullptr);
 };
 
 } //namespace cura
