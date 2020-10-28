@@ -11,21 +11,6 @@
 namespace cura
 {
 
-static int findAdjacentEnclosingPoly(const ConstPolygonRef& enclosed_inset, const std::vector<ConstPolygonPointer>& possible_enclosing_polys, const coord_t max_gap)
-{
-    // given an inset, search a collection of insets for the adjacent enclosing inset
-    for (unsigned int enclosing_poly_idx = 0; enclosing_poly_idx < possible_enclosing_polys.size(); ++enclosing_poly_idx)
-    {
-        const ConstPolygonRef& enclosing = *possible_enclosing_polys[enclosing_poly_idx];
-        // as holes don't overlap, if the insets intersect, it is safe to assume that the enclosed inset is inside the enclosing inset
-        if (PolygonUtils::polygonsIntersect(enclosing, enclosed_inset) && PolygonUtils::polygonOutlinesAdjacent(enclosed_inset, enclosing, max_gap))
-        {
-            return enclosing_poly_idx;
-        }
-    }
-    return -1;
-}
-
 InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) :
     gcode_writer(gcode_writer),
     storage(storage),
