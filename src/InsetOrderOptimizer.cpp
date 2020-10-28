@@ -43,20 +43,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, con
 
 bool InsetOrderOptimizer::optimize()
 {
-    if (InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part))
-    {
-        return processInsetsWithOptimizedOrdering();
-    }
-    else
-    {
-        return processInsetsIndexedOrdering();
-    }
-}
-
-bool InsetOrderOptimizer::processInsetsIndexedOrdering()
-{
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
-    BinJunctions insets = variableWidthPathToBinJunctions(part.wall_toolpaths);
+    BinJunctions insets = variableWidthPathToBinJunctions(part.wall_toolpaths, InsetOrderOptimizer::optimizingInsetsIsWorthwhile(mesh, part));
 
     //If printing the outer inset first, start with the lowest inset.
     //Otherwise start with the highest inset and iterate backwards.
@@ -610,8 +598,6 @@ bool InsetOrderOptimizer::processInsetsWithOptimizedOrdering()
 
 bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part)
 {
-    return false; //TODO: The optimized inset order is broken due to libArachne.
-
     if (!mesh.settings.get<bool>("optimize_wall_printing_order"))
     {
         // optimization disabled
@@ -631,19 +617,15 @@ bool InsetOrderOptimizer::optimizingInsetsIsWorthwhile(const SliceMeshStorage& m
     return true;
 }
 
-BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths)
+size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths)
 {
     // Polygons show up here one by one, so there are always only a) the outer lines and b) the lines that are part of the holes.
     // Therefore, the outer-regions' lines will always have the region-id that is larger then all of the other ones.
 
     // First, build the bounding boxes:
     std::map<size_t, AABB> region_ids_to_bboxes;
-    size_t max_inset_index = 0; // Also find the largest inset-index.
     for (const VariableWidthLines& path : toolpaths)
     {
-        const size_t inset_index = path.front().inset_idx;
-        max_inset_index = std::max(inset_index, max_inset_index);
-
         for (const ExtrusionLine& line : path)
         {
             if (region_ids_to_bboxes.count(line.region_id) == 0)
@@ -667,8 +649,23 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
         }
     }
 
-    // Since we're (potentially) splitting off in the outer and inner regions, it may need twice as many bins as inset-indices.
-    const size_t max_bin = (max_inset_index + 1) * 2;
+    return outer_region_id;
+}
+
+BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool& optimize)
+{
+    // Find the largest inset-index:
+    size_t max_inset_index = 0;
+    for (const VariableWidthLines& path : toolpaths)
+    {
+        max_inset_index = std::max(path.front().inset_idx, max_inset_index);
+    }
+
+    // Find optimize-info (which region is the one the rest is holes inside of) if necesary:
+    const size_t outer_region_id = optimize ? getOuterRegionId(toolpaths) : 0;
+
+    // Since we're (optionally!) splitting off in the outer and inner regions, it may need twice as many bins as inset-indices.
+    const size_t max_bin = optimize ? (max_inset_index + 1) * 2 : max_inset_index;
     BinJunctions insets(max_bin + 1);
     for (const VariableWidthLines& path : toolpaths)
     {
@@ -682,7 +679,8 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
         for (const ExtrusionLine& line : path)
         {
             // Sort into the right bin, from the actual outer rim (0), through the middle (max_inset_index), and then back to the hole-regions (2 * max_inset_index (-1 if odd)):
-            const size_t bin_index = (line.region_id == outer_region_id) ? inset_index : (line.region_id == 0 ? max_inset_index : (max_bin - inset_index));
+            const bool in_hole_region = optimize && line.region_id != outer_region_id && line.region_id != 0;
+            const size_t bin_index = in_hole_region ? (max_bin - inset_index) : inset_index;
             insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
         }
     }

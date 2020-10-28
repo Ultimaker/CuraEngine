@@ -91,6 +91,11 @@ private:
      */
     void moveInside();
 
+    /*!
+     * Retrieves the region-id of the outer region (belongs to the outer outline, not to a hole).
+     */
+    static size_t getOuterRegionId(const VariableWidthPaths& toolpaths);
+
 public:
     /*!
      * Generate the insets for all of the walls of a given layer part after optimizing the ordering.
@@ -112,7 +117,7 @@ public:
      * \param toolpaths The toolpaths to convert
      * \return A bin of walls, consisting of a vector of paths consisting of vector of lines
      */
-    static BinJunctions variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths);
+    static BinJunctions variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool& optimize = false);
 };
 
 } //namespace cura
