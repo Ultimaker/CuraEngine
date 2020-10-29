@@ -502,7 +502,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             // On the contrary, unwanted insets are generated for roofing layers because of the non-concentric top/bottom pattern.
             // In such cases we want to clear the skin insets first and then regenerate the proper roofing fill and inner infill
             // in the concentric roofing_pattern.
-            else if (!skin_part.roofing_fill.empty()
+            else if (!skin_part.roofing_fill.empty() && skin_part.inner_infill.empty()
                     && layer_nr > 0
                     && mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
                     && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC)
