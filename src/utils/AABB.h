@@ -47,9 +47,19 @@ public:
     coord_t area() const;
 
     /*!
-     * Get the middle of the bounding box
+     * Get the middle of the bounding box.
      */
     Point getMiddle() const;
+
+    /*!
+     * If point outside of bounding box: positive distance-squared to the bounding box edges, otherwise negative.
+     */
+    coord_t distanceSquared(const Point& p) const;
+
+    /*!
+     * If other aabb outside of this bounding box: positive distance-squared to the bounding box edges, otherwise negative distance squared for the most inner point included.
+     */
+    coord_t distanceSquared(const AABB& other) const;
 
     /*!
      * Check whether this aabb overlaps with another.
