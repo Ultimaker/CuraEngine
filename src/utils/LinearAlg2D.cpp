@@ -240,12 +240,11 @@ coord_t LinearAlg2D::getDistFromLine(const Point& p, const Point& a, const Point
     const Point vab = b - a;
     const Point vap = p - a;
     const double ab_size = vSize(vab);
-    const coord_t ap_size = vSize(vap);
     if(ab_size == 0) //Line of 0 length. Assume it's a line perpendicular to the direction to p.
     {
-        return ap_size;
+        return vSize(vap);
     }
-    const coord_t area_times_two = abs((b.Y - a.Y) * p.X - (b.X - a.X) * p.Y + b.X * a.Y - b.Y * a.X);
+    const coord_t area_times_two = abs((p.X - b.X) * (p.Y - a.Y) + (a.X - p.X) * (p.Y - b.Y)); // Shoelace formula, factored
     const coord_t px_size = area_times_two / ab_size;
     return px_size;
 }
