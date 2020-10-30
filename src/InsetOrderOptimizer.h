@@ -63,26 +63,19 @@ private:
     /*!
      * Retrieves the region-id of the outer region (belongs to the outer outline, not to a hole).
      */
-    static size_t getOuterRegionId(const VariableWidthPaths& toolpaths);
+    static size_t getOuterRegionId(const VariableWidthPaths& toolpaths, size_t* p_number_of_regions);
 
 public:
-    /*!
-     * Test whether it looks to be worthwhile to optimize the inset order of a given layer part.
-     * \param mesh The mesh to be added to the layer plan.
-     * \param part The part for which to create gcode
-     * \return true if it is worth optimizing the inset order, false if not
-     */
-    static bool optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part);
-
     /*!
      * Converts the VariableWidthPath to a bin of walls, consisting of a vector of paths, consisting of a vector of
      * lines
      * \param toolpaths The toolpaths to convert
+     * \param optimize True: Bins per region (not per inset, except for the 0 insets), in an optimized order. False: Do bin by inset, and only distinguish 'everything in the outer region' and 'the inner regions'.
      * \param pack_by_inset Pack regions by inset, otherwise, pack insets by region. Useful for outer/inner first situations.
      * \param p_bins_with_index_zero_insets When optimizing, not all inset zero indices are in the zeroth bin. (Can be set to nullptr, which won't negate optimize.)
      * \return A bin of walls, consisting of a vector of paths consisting of vector of lines
      */
-    static BinJunctions variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool& pack_regions_by_inset = true, std::set<size_t>* p_bins_with_index_zero_insets = nullptr);
+    static BinJunctions variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool& optimize = false, const bool& pack_regions_by_inset = true, std::set<size_t>* p_bins_with_index_zero_insets = nullptr);
 };
 
 } //namespace cura
