@@ -77,6 +77,6 @@ private:
     void handleInitialLayerSpeedup(const SliceDataStorage& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count);
 };
 
-}; // namespace cura
+} // namespace cura
 
 #endif // SETTINGS_PATH_CONFIGS_H

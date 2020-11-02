@@ -14,9 +14,9 @@
 #include "utils/polygonUtils.h"
 #include "WallToolPaths.h"
 
-#define MIN_AREA_SIZE (0.4 * 0.4) 
+#define MIN_AREA_SIZE (0.4 * 0.4)
 
-namespace cura 
+namespace cura
 {
 
 coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
@@ -118,7 +118,7 @@ Polygons SkinInfillAreaComputation::getWalls(const SliceLayerPart& part_here, in
         }
     }
     return result;
-};
+}
 
 int SkinInfillAreaComputation::getReferenceWallIdx(coord_t& preshrink) const
 {
@@ -375,7 +375,6 @@ void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerP
  */
 void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part, const bool concentric_skinfill_patern)
 {
-    const EFillMethod fill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
     if (skin_inset_count > 0 || concentric_skinfill_patern)
     {
         // Call on libArachne:
@@ -461,31 +460,41 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 {
     const size_t roofing_layer_count = mesh.settings.get<size_t>("roofing_layer_count");
 
-    for (SkinPart& skin_part : part.skin_parts)
+    for(SkinPart& skin_part : part.skin_parts)
     {
         Polygons roofing;
-        if (roofing_layer_count > 0)
+        if(roofing_layer_count > 0)
         {
             Polygons no_air_above = generateNoAirAbove(part);
             skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
             skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
+            const bool concentric_skinfill_pattern =
+                   mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
+                && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC;
 
             // If the pattern is concentric, ONLY use insets.
             // In this case, we still want to generate skinfill for the roofing layers,
             // but only if the roofing pattern is not concentric.
-            if (!skin_part.roofing_fill.empty() && layer_nr > 0)
+            if(!skin_part.roofing_fill.empty() && layer_nr > 0)
             {
-                const bool concentric_skinfill_patern =
-                       mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
-                    && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC;
 
                 // Generate skin insets, regenerate the no_air_above, and recalculate the inner and roofing infills, 
                 // taking into account the extra skin wall count (only for the roofing layers).
-                generateSkinInsets(skin_part, concentric_skinfill_patern);
-                if (! concentric_skinfill_patern)
+                generateSkinInsets(skin_part, concentric_skinfill_pattern);
+                if(!concentric_skinfill_pattern)
                 {
                     regenerateRoofingFillAndInnerInfill(part, skin_part);
                 }
+            }
+            // On the contrary, unwanted insets are generated for roofing layers because of the non-concentric top/bottom pattern.
+            // In such cases we want to clear the skin insets first and then regenerate the proper roofing fill and inner infill
+            // in the concentric roofing_pattern.
+            else if(!skin_part.roofing_fill.empty() && skin_part.inner_infill.empty() && layer_nr > 0 && concentric_skinfill_pattern)
+            {
+                // Clear the skin insets for the roofing layers and regenerate the roofing fill and inner infill without taking into
+                // account the Extra Skin Wall Count.
+                skin_part.inset_paths.clear();
+                regenerateRoofingFillAndInnerInfill(part, skin_part);
             }
         }
     }
@@ -555,7 +564,7 @@ void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
         SliceLayer& layer_above = mesh.layers[layer_idx + 1];
-        
+
         Polygons inside_above;
         Polygons infill_above;
         for (SliceLayerPart& part_above : layer_above.parts)

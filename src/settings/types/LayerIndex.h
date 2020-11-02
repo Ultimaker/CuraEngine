@@ -89,7 +89,7 @@ struct LayerIndex
         operator++(); //Increment myself.
         return original_value;
     }
-    LayerIndex operator --()
+    LayerIndex& operator --()
     {
         value--;
         return *this;

@@ -522,22 +522,22 @@ private:
      * \param z The Z coordinate of the layer to intersect with.
      * \return A slicer segment.
      */
-    static SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z);;
+    static SlicerSegment project2D(const Point3& p0, const Point3& p1, const Point3& p2, const coord_t z);
 
-    /*! Creates an array of "z bounding boxes" for each face. 
+    /*! Creates an array of "z bounding boxes" for each face.
     * \param[in] mesh The mesh which is analyzed.
     * \return z heights aka z bounding boxes of the faces.
     */
     static std::vector<std::pair<int32_t, int32_t>> buildZHeightsForFaces(const Mesh &mesh);
 
-    /*! Creates the polygons in layers. 
+    /*! Creates the polygons in layers.
     * \param[in] mesh The mesh which is analyzed.
     * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
     * \param[in, out] layers The polygon are created here.
     */
     static void makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers);
 
-    /*! Creates a vector of layers and set their z value. 
+    /*! Creates a vector of layers and set their z value.
     * \param[in] mesh The mesh which is analyzed.
     * \param[in] slice_layer_count The amount of layers which shall be sliced.
     * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
@@ -551,7 +551,7 @@ private:
         coord_t initial_layer_thickness, coord_t thickness, bool use_variable_layer_heights,
         const std::vector<AdaptiveLayer>* adaptive_layers);
 
-    /*! Creates the segments and write them into the layers. 
+    /*! Creates the segments and write them into the layers.
     * \param[in] mesh The mesh which is analyzed.
     * \param[in] zbboxes The z part of the bounding boxes of the faces of the mesh.
     * \param[in, out] layers The segments are created here.
