@@ -432,6 +432,8 @@ private:
      */
     bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
+
+
     /*!
      * Generate the insets for the walls of a given layer part.
      * \param[in] storage where the slice data is stored.
@@ -712,6 +714,10 @@ private:
      * \return layer seam vertex index
      */
     unsigned int findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr);
+
+    static bool partitionInfillBySkinAbove(Polygons& infill_below_skin, Polygons& infill_not_below_skin,
+                                           const LayerPlan& gcode_layer, const SliceMeshStorage& mesh,
+                                           const SliceLayerPart& part, const coord_t infill_line_width);
 };
 
 }//namespace cura
