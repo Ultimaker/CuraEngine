@@ -1658,10 +1658,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
             if (infill_below_skin.size())
             {
-                // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
-                const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
-
-                if (infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset)).size())
+                if (infill_below_skin.offset(-tiny_infill_offset).size())
                 {
                     // there is infill below skin, is there also infill that isn't below skin?
                     Polygons infill_not_below_skin = in_outline.difference(infill_below_skin);
