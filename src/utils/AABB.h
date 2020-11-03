@@ -57,7 +57,8 @@ public:
     coord_t distanceSquared(const Point& p) const;
 
     /*!
-     * If other aabb outside of this bounding box: positive distance-squared to the bounding box edges, otherwise negative distance squared for the most inner point included.
+     * If other aabb outside of this bounding box: positive distance-squared to the bounding box edges,
+     * otherwise negative distance squared for the most inner point included.
      */
     coord_t distanceSquared(const AABB& other) const;
 

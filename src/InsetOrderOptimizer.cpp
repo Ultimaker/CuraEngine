@@ -80,7 +80,7 @@ bool InsetOrderOptimizer::optimize()
     return added_something;
 }
 
-size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths, size_t* p_number_of_regions)
+size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths, size_t& out_number_of_regions)
 {
     // Polygons show up here one by one, so there are always only a) the outer lines and b) the lines that are part of the holes.
     // Therefore, the outer-regions' lines will always have the region-id that is larger then all of the other ones.
@@ -96,7 +96,10 @@ size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths
                 region_ids_to_bboxes[line.region_id] = AABB();
             }
             AABB& aabb = region_ids_to_bboxes[line.region_id];
-            std::for_each(line.junctions.begin(), line.junctions.end(), [&aabb](const ExtrusionJunction& j) { aabb.include(j.p); });
+            for (const auto& junction : line.junctions)
+            {
+                aabb.include(junction.p);
+            }
         }
     }
 
@@ -112,7 +115,7 @@ size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths
         }
     }
 
-    p_number_of_regions[0] = region_ids_to_bboxes.size();
+    out_number_of_regions = region_ids_to_bboxes.size();
     return outer_region_id;
 }
 
@@ -126,8 +129,8 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
     }
 
     // Find which regions are associated with the outer-outer walls (which region is the one the rest is holes inside of):
-    size_t number_of_regions;
-    const size_t outer_region_id = getOuterRegionId(toolpaths, &number_of_regions);
+    size_t number_of_regions = 0;
+    const size_t outer_region_id = getOuterRegionId(toolpaths, number_of_regions);
 
     // Since we're (optionally!) splitting off in the outer and inner regions, it may need twice as many bins as inset-indices.
     const size_t max_bin = ignore_inner_inset_order ? (number_of_regions * 2) + 2 : (max_inset_index + 1) * 2;
