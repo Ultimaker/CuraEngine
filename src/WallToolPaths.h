@@ -48,6 +48,13 @@ public:
     const VariableWidthPaths& getToolPaths();
 
     /*!
+     * Compute the inner contour of the walls. This contour indicates where the walled area ends and its infill begins.
+     * The inside can then be filled, e.g. with skin/infill for the walls of a part, or with a pattern in the case of
+     * infill with extra infill walls.
+     */
+    void computeInnerContour();
+
+    /*!
      * Gets the inner contour of the area which is inside of the generated ToolPaths. This is for now a simple offset
      * of the outline. But after the implementation of CURA-7681 this will return the actual inside contour.
      * If this is called before \p generate() it will first generate the ToolPaths

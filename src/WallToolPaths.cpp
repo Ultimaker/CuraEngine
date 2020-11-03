@@ -1,6 +1,8 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <algorithm> //For std::partition_copy.
+
 #include "WallToolPaths.h"
 
 #include "SkeletalTrapezoidation.h"
@@ -67,6 +69,7 @@ const VariableWidthPaths& WallToolPaths::generate()
             min_feature_size, max_bead_count));
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(toolpaths);
+        computeInnerContour();
     }
     removeEmptyToolPaths(toolpaths);
     toolpaths_generated = true;
@@ -82,23 +85,47 @@ const VariableWidthPaths& WallToolPaths::getToolPaths()
     return toolpaths;
 }
 
+void WallToolPaths::computeInnerContour()
+{
+    //We'll remove all 0-width paths from the original toolpaths and store them separately as polygons.
+    VariableWidthPaths actual_toolpaths;
+    actual_toolpaths.reserve(toolpaths.size()); //A bit too much, but the correct order of magnitude.
+    VariableWidthPaths contour_paths;
+    contour_paths.reserve(toolpaths.size() / inset_count);
+    std::partition_copy(toolpaths.begin(), toolpaths.end(), std::back_inserter(actual_toolpaths), std::back_inserter(contour_paths),
+        [](const VariableWidthLines& path)
+        {
+            for(const ExtrusionLine& line : path)
+            {
+                for(const ExtrusionJunction& junction : line.junctions)
+                {
+                    return junction.w != 0; //On the first actual junction, decide: If it's got 0 width, this is a contour. Otherwise it is an actual toolpath.
+                }
+            }
+            return true; //No junctions with any vertices? Classify it as a toolpath then.
+        });
+    toolpaths = actual_toolpaths; //Filtered out the 0-width paths.
+
+    //Now convert the contour_paths to Polygons to denote the inner contour of the walled areas.
+    inner_contour.clear();
+    for(const VariableWidthLines& path : contour_paths)
+    {
+        for(const ExtrusionLine& line : path)
+        {
+            inner_contour.emplace_back();
+            for(const ExtrusionJunction& junction : line.junctions)
+            {
+                inner_contour.back().add(junction.p);
+            }
+        }
+    }
+}
+
 const Polygons& WallToolPaths::getInnerContour()
 {
     if (!toolpaths_generated && inset_count > 0)
     {
         generate();
-    }
-    else
-    {
-        return outline;
-    }
-    // TODO: CURA-7681  -> inner_contour = innerContourFromToolpaths(toolpaths);
-    // TODO: Check to make sure if this "correctly generated for now"
-    if (inner_contour.empty())
-    {
-        const coord_t offset_distance = bead_width_0 * inset_count;
-        inner_contour = outline.offset(-static_cast<int>(offset_distance));
-        inner_contour.simplify();
     }
     return inner_contour;
 }
