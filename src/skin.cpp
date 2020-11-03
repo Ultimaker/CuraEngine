@@ -431,7 +431,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     const size_t wall_line_count = mesh.settings.get<size_t>("wall_line_count");
     const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
 
-    coord_t offset_from_inner_wall = -infill_skin_overlap;
+    coord_t offset_from_inner_wall = -innermost_wall_line_width / 2;
     if (wall_line_count > 0)
     { // calculate offset_from_inner_wall
         coord_t extra_perimeter_offset = 0; // to align concentric polygons across layers
@@ -457,14 +457,13 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
                 }
             }
         }
-        offset_from_inner_wall += extra_perimeter_offset - innermost_wall_line_width / 2;
+        offset_from_inner_wall += extra_perimeter_offset;
     }
     Polygons infill = part.insets.back().offset(offset_from_inner_wall);
-
-    infill = infill.difference(skin.offset(infill_skin_overlap));
+    infill = infill.difference(skin);
     infill.removeSmallAreas(MIN_AREA_SIZE);
 
-    part.infill_area = infill.offset(infill_skin_overlap);
+    part.infill_area = infill;
 }
 
 /*
