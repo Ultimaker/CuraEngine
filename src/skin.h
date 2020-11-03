@@ -167,14 +167,6 @@ protected:
      */
     void generateSkinInsets(SkinPart& skin_part, const bool concentric_skinfill_patern);
 
-    /*!
-     * Generate the inner_infill_area of a skin part
-     * 
-     * \param skin_part The part where the skin outline information (input) is stored and
-     * where the inner infill area (output) is stored.
-     */
-    void generateInnerSkinInfill(SkinPart& skin_part);
-
 protected:
     const LayerIndex layer_nr; //!< The index of the layer for which to generate the skins and infill.
     SliceMeshStorage& mesh; //!< The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.

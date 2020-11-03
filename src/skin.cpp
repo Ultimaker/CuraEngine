@@ -360,10 +360,6 @@ void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerP
                (layer_nr == 0 && mesh.settings.get<EFillMethod>("top_bottom_pattern_0") == EFillMethod::CONCENTRIC)
             || (layer_nr > 0  && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC);
         generateSkinInsets(skin_part, concentric_skinfill_patern);
-        if (! concentric_skinfill_patern)
-        {
-            generateInnerSkinInfill(skin_part);
-        }
     }
 }
 
@@ -379,24 +375,9 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part, const bo
     {
         // Call on libArachne:
         WallToolPaths wall_tool_paths(skin_part.outline, skin_line_width, concentric_skinfill_patern ? -1 : skin_inset_count, mesh.settings);
-        skin_part.inset_paths = wall_tool_paths.generate();
+        skin_part.inset_paths = wall_tool_paths.getToolPaths();
+        skin_part.inner_infill = wall_tool_paths.getInnerContour();
     }
-}
-
-/*
- * This function is executed in a parallel region based on layer_nr.
- * When modifying make sure any changes does not introduce data races.
- *
- * this function may only read/write the skin and infill from the *current* layer.
- */
-void SkinInfillAreaComputation::generateInnerSkinInfill(SkinPart& skin_part)
-{
-    if (skin_part.inset_paths.empty())
-    {
-        skin_part.inner_infill = skin_part.outline;
-        return;
-    }
-    skin_part.inner_infill = skin_part.outline.offset(-skin_line_width * skin_inset_count);
 }
 
 /*
@@ -547,7 +528,6 @@ Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part)
  */
 void SkinInfillAreaComputation::regenerateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part)
 {
-    generateInnerSkinInfill(skin_part);
     Polygons no_air_above = generateNoAirAbove(part);
     skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
     skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
