@@ -44,13 +44,13 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
 
 const VariableWidthPaths& WallToolPaths::generate()
 {
-    assert(("inset count should be more then 0", inset_count > 0));
+    assert(inset_count > 0 && "inset count should be more than 0");
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
     constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
     constexpr float transitioning_angle = 0.5;
 
-    // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self instersections allowed:
+    // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
     Polygons prepared_outline = outline.offset(-epsilon_offset).offset(epsilon_offset);
     prepared_outline.simplify(smallest_segment, allowed_distance);

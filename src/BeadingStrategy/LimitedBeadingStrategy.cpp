@@ -21,7 +21,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
     ret.left_over += thickness - ret.total_thickness;
     ret.total_thickness = thickness;
     
-    // Enforece symmetry
+    // Enforce symmetry
     if (bead_count % 2 == 1)
     {
         ret.toolpath_locations[bead_count / 2] = thickness / 2;
@@ -31,6 +31,20 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
     {
         ret.toolpath_locations[bead_count - 1 - bead_idx] = thickness - ret.toolpath_locations[bead_idx];
     }
+
+    //Create a "fake" inner wall with 0 width to indicate the edge of the walled area.
+    //This wall can then be used by other structures to e.g. fill the infill area adjacent to the variable-width walls.
+    coord_t innermost_toolpath_location = ret.toolpath_locations[max_bead_count / 2 - 1];
+    coord_t innermost_toolpath_width = ret.bead_widths[max_bead_count / 2 - 1];
+    ret.toolpath_locations.insert(ret.toolpath_locations.begin() + max_bead_count / 2, innermost_toolpath_location + innermost_toolpath_width / 2);
+    ret.bead_widths.insert(ret.bead_widths.begin() + max_bead_count / 2, 0);
+
+    //Symmetry on both sides. Symmetry is guaranteed since this code is stopped if the bead_count <= max_bead_count.
+    innermost_toolpath_location = ret.toolpath_locations[bead_count - (max_bead_count / 2 - 1)];
+    innermost_toolpath_width = ret.bead_widths[bead_count - (max_bead_count / 2 - 1)];
+    ret.toolpath_locations.insert(ret.toolpath_locations.begin() + bead_count - (max_bead_count / 2 - 1), innermost_toolpath_location - innermost_toolpath_width / 2);
+    ret.bead_widths.insert(ret.bead_widths.begin() + bead_count - (max_bead_count / 2 - 1), 0);
+
     return ret;
 }
 
