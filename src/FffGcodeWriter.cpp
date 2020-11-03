@@ -1534,10 +1534,9 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
     // if infill walls are required below the boundaries of skin regions above, partition the infill along the
     // boundary edge
-    const auto skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
     Polygons infill_below_skin;
     Polygons infill_not_below_skin;
-    const bool hasSkinEdgeSupport = partitionInfillBySkinAbove( infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
+    const bool hasSkinEdgeSupport = partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
 
     const auto pocket_size = mesh.settings.get<coord_t>("cross_infill_pocket_size");
     constexpr coord_t outline_offset = 0;
@@ -1710,7 +1709,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     return added_something;
 }
 
-bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Polygons& infill_not_below_skin, const LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const SliceLayerPart& part, const coord_t infill_line_width)
+bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Polygons& infill_not_below_skin, const LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const SliceLayerPart& part, coord_t infill_line_width)
 {
     constexpr coord_t tiny_infill_offset = 20;
     const auto skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
@@ -1800,17 +1799,16 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
         const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
         infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
 
-        // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
-        const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
-
         // there is infill below skin, is there also infill that isn't below skin?
         infill_not_below_skin = part.infill_area_per_combine_per_density.back().front().difference(infill_below_skin);
         infill_not_below_skin.removeSmallAreas(min_area);
-
-        return !infill_below_skin.empty()
-               && !infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset)).empty()
-               && !infill_not_below_skin.empty();
     }
+
+    // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
+    const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
+    const Polygons infill_below_skin_overlap = infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset));
+
+    return !infill_below_skin_overlap.empty() && !infill_not_below_skin.empty();
 }
 
 void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh) const

@@ -717,7 +717,7 @@ private:
 
     static bool partitionInfillBySkinAbove(Polygons& infill_below_skin, Polygons& infill_not_below_skin,
                                            const LayerPlan& gcode_layer, const SliceMeshStorage& mesh,
-                                           const SliceLayerPart& part, const coord_t infill_line_width);
+                                           const SliceLayerPart& part, coord_t infill_line_width) ;
 };
 
 }//namespace cura
