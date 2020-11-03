@@ -59,6 +59,7 @@ public:
     SkeletalTrapezoidationEdge(const EdgeType& type)
     : type(type)
     , is_central(Central::UNKNOWN)
+    , region(0)
     {}
 
     bool isCentral() const
@@ -73,6 +74,21 @@ public:
     bool centralIsSet() const
     {
         return is_central != Central::UNKNOWN;
+    }
+
+    size_t getRegion() const
+    {
+        assert(region != 0);
+        return region;
+    }
+    void setRegion(const size_t& r)
+    {
+        assert(region == 0);
+        region = r;
+    }
+    bool regionIsSet() const
+    {
+        return region > 0;
     }
 
     bool hasTransitions(bool ignore_empty = false) const
@@ -116,6 +132,7 @@ public:
 
 private:
     Central is_central; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown
+    size_t region; //! what 'region' this edge is in ... if the originating polygon has no holes, there's one region -- useful for later algorithms that need to know where the paths came from 
 
     std::weak_ptr<std::list<TransitionMiddle>> transitions;
     std::weak_ptr<std::list<TransitionEnd>> transition_ends;
