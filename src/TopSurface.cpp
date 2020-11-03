@@ -75,8 +75,9 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         ironing_inset -= ironing_flow * line_width / 2;
     }
     const coord_t outline_offset = ironing_inset;
+    areas.offset(outline_offset);
 
-    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, outline_offset, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift);
+    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift);
     Polygons ironing_polygons;
     Polygons ironing_lines;
     infill_generator.generate(ironing_polygons, ironing_lines);

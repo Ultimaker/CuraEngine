@@ -50,8 +50,7 @@ class Infill
 public:
     /*!
      * \warning If \p perimeter_gaps is given, then the difference between the \p in_outline
-     * and the polygons which result from offsetting it by the \p outline_offset
-     * and then expanding it again by half the \p infill_line_width
+     * and the polygons which result from expanding it again by half the \p infill_line_width
      * is added to the \p perimeter_gaps
      * 
      * \param[out] perimeter_gaps (optional output) The areas in between consecutive insets when Concentric infill is used.
@@ -60,7 +59,6 @@ public:
         , bool zig_zaggify
         , bool connect_polygons
         , const Polygons& in_outline
-        , coord_t outline_offset
         , coord_t infill_line_width
         , coord_t line_distance
         , coord_t infill_overlap
@@ -81,7 +79,7 @@ public:
     , zig_zaggify(zig_zaggify)
     , connect_polygons(connect_polygons)
     , outer_contour(in_outline)
-    , outline_offset(outline_offset)
+    , outline_offset(0)
     , infill_line_width(infill_line_width)
     , line_distance(line_distance)
     , infill_overlap(infill_overlap)
