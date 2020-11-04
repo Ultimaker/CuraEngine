@@ -163,7 +163,7 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
 			    || pattern == EFillMethod::CROSS_3D))
 			|| infill_multiplier % 2 == 0) //Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
     {
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
+        inner_contour = inner_contour.offset(-infill_line_width / 2);
     }
 
     switch(pattern)
