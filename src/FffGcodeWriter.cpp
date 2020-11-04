@@ -1520,26 +1520,14 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
     auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
     {
-
-    };
-
-    auto cut_polygon = [](const Polygons& here, const Polygons& collection, const coord_t width)
-    {
-      Polygons result = here.breakApart();
-      Polygons tool = collection.intersection(collection.offset(-width/2));
-      tool.simplify();
-      result.cut(tool);
-      return result;
-    };
-
-    auto cut_lines = [](const Polygons& here, const Polygons& collection, const Polygons& below_skin, const bool zig_zaggify, const coord_t line_width, const size_t line_count)
-    {
-        Polygons result;
-        result.add(here);
-        const coord_t cut_offset = zig_zaggify ? - line_width / 2 - static_cast<coord_t>(line_count) * line_width - 5 : - static_cast<coord_t>(line_count) * line_width;
-        Polygons tool = below_skin.offset(static_cast<int>(cut_offset));
-        result.cut(collection.tubeShape(line_width, line_width).difference(collection));
-        return result;
+      if (zig_zaggify)
+      {
+          return - line_width / 2 - static_cast<coord_t>(line_count) * line_width - 5;
+      }
+      else
+      {
+          return - static_cast<coord_t>(line_count) * line_width;
+      }
     };
 
     Polygons sparse_in_outline = part.infill_area_per_combine_per_density[last_idx][0];
@@ -1623,14 +1611,12 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             infill_comp.generate(infill_polygons, infill_lines_here, mesh.cross_fill_provider, &mesh);
             if (density_idx < last_idx)
             {
-                infill_lines.add(cut_lines(infill_lines_here, sparse_in_outline, infill_below_skin, zig_zaggify_infill, infill_line_width, wall_line_count));
-                infill_polygons.add(cut_polygon(infill_polygons_here, infill_polygons, infill_line_width));
+                const coord_t cut_offset =
+                    get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
+                Polygons tool = infill_below_skin.offset(static_cast<int>(cut_offset));
+                infill_lines_here.cut(tool);
             }
-            else
-            {
-                infill_lines.add(infill_lines_here);
-                infill_polygons.add(infill_polygons_here);
-            }
+            infill_lines.add(infill_lines_here);
             // normal processing for the infill that isn't below skin
             in_outline = infill_not_below_skin;
             if (density_idx == last_idx)
@@ -1650,23 +1636,36 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         // especially on vertical surfaces
         in_outline.removeSmallAreas(minimum_small_area);
         const size_t wall_line_count_here = (density_idx < last_idx) ? 0 : wall_line_count;
-
-        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, outline_offset, infill_line_width,
-                           infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
-                           infill_shift, wall_line_count_here, infill_origin, perimeter_gaps, connected_zigzags,
-                           use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
+        
+        Infill infill_comp(pattern,
+                           zig_zaggify_infill,
+                           connect_polygons,
+                           in_outline,
+                           outline_offset,
+                           infill_line_width,
+                           infill_line_distance_here,
+                           infill_overlap,
+                           infill_multiplier,
+                           infill_angle,
+                           gcode_layer.z,
+                           infill_shift,
+                           wall_line_count_here,
+                           infill_origin,
+                           perimeter_gaps,
+                           connected_zigzags,
+                           use_endpieces,
+                           skip_some_zags,
+                           zag_skip_count,
+                           pocket_size);
         infill_comp.generate(infill_polygons_here, infill_lines_here, mesh.cross_fill_provider, &mesh);
-
         if (density_idx < last_idx)
         {
-            infill_lines.add(cut_lines(infill_lines_here, sparse_in_outline, infill_below_skin, zig_zaggify_infill, infill_line_width, wall_line_count));
-            infill_polygons.add(cut_polygon(infill_polygons_here, infill_polygons, infill_line_width));
+            const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
+            Polygons tool = sparse_in_outline.offset(static_cast<int>(cut_offset));
+            infill_lines_here.cut(tool);
         }
-        else
-        {
-            infill_lines.add(infill_lines_here);
-            infill_polygons.add(infill_polygons_here);
-        }
+        infill_lines.add(infill_lines_here);
+        infill_polygons.add(infill_polygons_here);
     }
 
     if (!infill_lines.empty() || !infill_polygons.empty())

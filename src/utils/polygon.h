@@ -788,8 +788,6 @@ public:
      */
     Polygons& cut(const Polygons& tool);
 
-    Polygons breakApart() const;
-
     Polygons xorPolygons(const Polygons& other) const
     {
         Polygons ret;

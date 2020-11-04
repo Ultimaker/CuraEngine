@@ -263,21 +263,6 @@ Polygons& Polygons::cut(const Polygons& tool)
     return *this;
 }
 
-Polygons Polygons::breakApart() const
-{
-    Polygons result;
-    for (const auto& poly : *this)
-    {
-        Polygons part;
-        for (size_t i = 1; i < poly.size(); ++i)
-        {
-            part.addLine(poly[i - 1], poly[i]);
-        }
-        result.add(part);
-    }
-    return result;
-}
-
 coord_t Polygons::polyLineLength() const
 {
     coord_t length = 0;
