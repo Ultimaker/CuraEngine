@@ -58,6 +58,10 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         toolpaths = wall_toolpaths.getToolPaths();
         inner_contour = wall_toolpaths.getInnerContour();
     }
+    else
+    {
+        inner_contour = outer_contour;
+    }
 
     if (infill_multiplier > 1)
     {
