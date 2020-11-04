@@ -243,8 +243,6 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
     bool odd_multiplier = infill_multiplier % 2 == 1;
     coord_t offset = (odd_multiplier)? infill_line_width : infill_line_width / 2;
 
-    const Polygons outline = inner_contour.offset(outline_offset);
-
     // Get the first offset these are mirrored from the original center line
     Polygons result;
     Polygons first_offset;
@@ -256,7 +254,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         first_offset = first_offset_lines.unionPolygons(first_offset_polygons); // usually we only have either lines or polygons, but this code also handles an infill pattern which generates both
         if (zig_zaggify)
         {
-            first_offset = outline.difference(first_offset);
+            first_offset = inner_contour.difference(first_offset);
         }
     }
     result.add(first_offset);
@@ -278,7 +276,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
     }
     if (zig_zaggify)
     {
-        result = result.intersection(outline);
+        result = result.intersection(inner_contour);
     }
 
     // Remove the original center lines when there are an even number of lines required.
@@ -298,7 +296,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
             }
             poly.add(poly[0]);
         }
-        Polygons polylines = outline.intersectionPolyLines(result_polygons);
+        Polygons polylines = inner_contour.intersectionPolyLines(result_polygons);
         for (PolygonRef polyline : polylines)
         {
             Point last_point = no_point;
@@ -320,12 +318,12 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
 void Infill::generateGyroidInfill(Polygons& result_lines)
 {
-    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset, infill_line_width, line_distance, inner_contour, z);
+    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, line_distance, inner_contour, z);
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
-    Polygons first_concentric_wall = inner_contour.offset(outline_offset - line_distance);
+    Polygons first_concentric_wall = inner_contour.offset(-line_distance + infill_line_width);
 
     if (perimeter_gaps)
     {
@@ -421,8 +419,6 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
 {
-    Polygons outline = inner_contour.offset(outline_offset);
-
     Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern, z, infill_line_width, pocket_size);
 
     if (cross_pattern_polygon.empty())
@@ -434,7 +430,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     {
         Polygons cross_pattern_polygons;
         cross_pattern_polygons.add(cross_pattern_polygon);
-        result_polygons.add(outline.intersection(cross_pattern_polygons));
+        result_polygons.add(inner_contour.intersection(cross_pattern_polygons));
     }
     else
     {
@@ -443,7 +439,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
         Polygons cross_pattern_polygons;
         cross_pattern_polygons.add(cross_pattern_polygon);
-        Polygons poly_lines = outline.intersectionPolyLines(cross_pattern_polygons);
+        Polygons poly_lines = inner_contour.intersectionPolyLines(cross_pattern_polygons);
 
         for (PolygonRef poly_line : poly_lines)
         {
@@ -524,7 +520,7 @@ void Infill::generateLineInfill(Polygons& result, int line_distance, const doubl
     PointMatrix rotation_matrix(infill_rotation);
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
     bool connected_zigzags = false;
-    generateLinearBasedInfill(outline_offset, result, line_distance, rotation_matrix, lines_processor, connected_zigzags, shift);
+    generateLinearBasedInfill(result, line_distance, rotation_matrix, lines_processor, connected_zigzags, shift);
 }
 
 
@@ -534,7 +530,7 @@ void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance,
 
     PointMatrix rotation_matrix(infill_rotation);
     ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
-    generateLinearBasedInfill(outline_offset, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
+    generateLinearBasedInfill(result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
 }
 
 /* 
@@ -560,7 +556,7 @@ void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance,
  * Edit: the term scansegment is wrong, since I call a boundary segment leaving from an even scanline to the left as belonging to an even scansegment, 
  *  while I also call a boundary segment leaving from an even scanline toward the right as belonging to an even scansegment.
  */
-void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift)
+void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift)
 {
     if (line_distance == 0)
     {
@@ -573,15 +569,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 
     coord_t shift = extra_shift + this->shift;
 
-    if (outline_offset != 0 && perimeter_gaps)
-    {
-        const Polygons gaps_outline =
-            inner_contour.offset(outline_offset + infill_line_width / 2 + perimeter_gaps_extra_offset);
-        perimeter_gaps->add(inner_contour.difference(gaps_outline));
-    }
-
-    Polygons outline = inner_contour.offset(outline_offset);
-
+    Polygons outline = inner_contour; //Make a copy. We'll be rotating this outline to make intersections always horizontal, for better performance.
     if (outline.size() == 0)
     {
         return;
@@ -723,9 +711,6 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 
 void Infill::connectLines(Polygons& result_lines)
 {
-    //TODO: We're reconstructing the outline here. We should store it and compute it only once.
-    Polygons outline = inner_contour.offset(outline_offset);
-
     UnionFind<InfillLineSegment*> connected_lines; //Keeps track of which lines are connected to which.
     for (std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line)
     {
@@ -741,19 +726,19 @@ void Infill::connectLines(Polygons& result_lines)
         }
     }
 
-    for (size_t polygon_index = 0; polygon_index < outline.size(); polygon_index++)
+    for (size_t polygon_index = 0; polygon_index < inner_contour.size(); polygon_index++)
     {
-        if (outline[polygon_index].empty())
+        if (inner_contour[polygon_index].empty())
         {
             continue;
         }
 
         InfillLineSegment* previous_crossing = nullptr; //The crossing that we should connect to. If nullptr, we have been skipping until we find the next crossing.
         InfillLineSegment* previous_segment = nullptr; //The last segment we were connecting while drawing a line along the border.
-        Point vertex_before = outline[polygon_index].back();
-        for (size_t vertex_index = 0; vertex_index < outline[polygon_index].size(); vertex_index++)
+        Point vertex_before = inner_contour[polygon_index].back();
+        for (size_t vertex_index = 0; vertex_index < inner_contour[polygon_index].size(); vertex_index++)
         {
-            Point vertex_after = outline[polygon_index][vertex_index];
+            Point vertex_after = inner_contour[polygon_index][vertex_index];
 
             //Sort crossings on every line by how far they are from their initial point.
             struct CompareByDistance
@@ -853,7 +838,7 @@ void Infill::connectLines(Polygons& result_lines)
                     }
                     else
                     {
-                        new_segment = new InfillLineSegment(previous_segment->start, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size(), polygon_index);
+                        new_segment = new InfillLineSegment(previous_segment->start, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % inner_contour[polygon_index].size(), polygon_index);
                         previous_segment->previous = new_segment;
                         new_segment->previous = previous_segment;
                         previous_segment = new_segment;
@@ -869,7 +854,7 @@ void Infill::connectLines(Polygons& result_lines)
                     }
                     else
                     {
-                        new_segment = new InfillLineSegment(previous_segment->end, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size(), polygon_index);
+                        new_segment = new InfillLineSegment(previous_segment->end, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % inner_contour[polygon_index].size(), polygon_index);
                         previous_segment->next = new_segment;
                         new_segment->previous = previous_segment;
                         previous_segment = new_segment;

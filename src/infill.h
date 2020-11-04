@@ -29,7 +29,6 @@ class Infill
     bool connect_polygons; //!< Whether to connect as much polygons together into a single path
     Polygons outer_contour; //!< The area that originally needs to be filled with infill. The input of the algorithm.
     Polygons inner_contour; //!< The part of the contour that will get filled with an infill pattern. Equals outer_contour minus the extra infill walls.
-    coord_t outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
     coord_t infill_line_width; //!< The line width of the infill lines to generate
     coord_t line_distance; //!< The distance between two infill lines / polygons
     coord_t infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
@@ -80,7 +79,6 @@ public:
     , zig_zaggify(zig_zaggify)
     , connect_polygons(connect_polygons)
     , outer_contour(in_outline)
-    , outline_offset(0)
     , infill_line_width(infill_line_width)
     , line_distance(line_distance)
     , infill_overlap(infill_overlap)
@@ -348,7 +346,6 @@ private:
      * 
      * It is called only from Infill::generateLineinfill and Infill::generateZigZagInfill.
      * 
-     * \param outline_offset An offset from the reference polygon (Infill::in_outline) to get the actual outline within which to generate infill
      * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
@@ -356,7 +353,7 @@ private:
      * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
      */
-    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift);
+    void generateLinearBasedInfill(Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift);
 
     /*!
      * 
