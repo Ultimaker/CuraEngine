@@ -50,6 +50,8 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     {
         return;
     }
+	outer_contour = outer_contour.offset(infill_overlap);
+
     if (wall_line_count > 0)
     {
         WallToolPaths wall_toolpaths(outer_contour, infill_line_width, wall_line_count, settings);
@@ -317,12 +319,12 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
 void Infill::generateGyroidInfill(Polygons& result_lines)
 {
-    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset + infill_overlap, infill_line_width, line_distance, outer_contour, z);
+    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset, infill_line_width, line_distance, outer_contour, z);
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
-    Polygons first_concentric_wall = outer_contour.offset(outline_offset + infill_overlap - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
+    Polygons first_concentric_wall = outer_contour.offset(outline_offset - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
 
     if (perimeter_gaps)
     {
@@ -418,7 +420,6 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
 {
-    outline_offset += infill_overlap;
     if (zig_zaggify)
     {
         outline_offset += -infill_line_width / 2;
@@ -460,7 +461,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
 {
     ClipperLib::PolyTree interior_segments_tree;
-    outer_contour.offset(infill_overlap).lineSegmentIntersection(input, interior_segments_tree);
+    outer_contour.lineSegmentIntersection(input, interior_segments_tree);
     ClipperLib::Paths interior_segments;
     ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
     for (size_t idx = 0; idx < interior_segments.size(); idx++)
@@ -582,7 +583,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
         perimeter_gaps->add(outer_contour.difference(gaps_outline));
     }
 
-    Polygons outline = outer_contour.offset(outline_offset + infill_overlap);
+    Polygons outline = outer_contour.offset(outline_offset);
 
     if (outline.size() == 0)
     {
@@ -726,7 +727,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 void Infill::connectLines(Polygons& result_lines)
 {
     //TODO: We're reconstructing the outline here. We should store it and compute it only once.
-    Polygons outline = outer_contour.offset(outline_offset + infill_overlap);
+    Polygons outline = outer_contour.offset(outline_offset);
 
     UnionFind<InfillLineSegment*> connected_lines; //Keeps track of which lines are connected to which.
     for (std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line)
