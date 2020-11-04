@@ -101,9 +101,6 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
 
 void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
-    coord_t outline_offset_raw = outline_offset;
-    outline_offset -= wall_line_count * infill_line_width; // account for extra walls
-
     if (infill_multiplier > 1)
     {
         bool zig_zaggify_real = zig_zaggify;
@@ -130,13 +127,6 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         result_lines.add(generated_result_lines);
     }
 
-    // generate walls around infill pattern
-    for (size_t wall_idx = 0; wall_idx < wall_line_count; wall_idx++)
-    {
-        const coord_t distance_from_outline_to_wall = outline_offset_raw - infill_line_width / 2 - wall_idx * infill_line_width;
-        result_polygons.add(outer_contour.offset(distance_from_outline_to_wall));
-    }
-
     if (connect_polygons)
     {
         // remove too small polygons
@@ -155,7 +145,22 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
     if (outer_contour.empty()) return;
     if (line_distance == 0) return;
 
-    if (pattern == EFillMethod::ZIG_ZAG || (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON || pattern == EFillMethod::GYROID)))
+	//Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
+	//The lines along the edge must lie next to the border, not on it.
+	//This makes those algorithms a lot simpler.
+    if (pattern == EFillMethod::ZIG_ZAG //Zig-zag prints the zags along the walls.
+		    || pattern == EFillMethod::CONCENTRIC //Concentric at high densities needs to print alongside the walls, not overlapping them.
+			|| (zig_zaggify && (pattern == EFillMethod::LINES //Zig-zaggified infill patterns print their zags along the walls.
+				|| pattern == EFillMethod::TRIANGLES
+			    || pattern == EFillMethod::GRID
+			    || pattern == EFillMethod::CUBIC
+			    || pattern == EFillMethod::TETRAHEDRAL
+			    || pattern == EFillMethod::QUARTER_CUBIC
+			    || pattern == EFillMethod::TRIHEXAGON
+			    || pattern == EFillMethod::GYROID
+			    || pattern == EFillMethod::CROSS
+			    || pattern == EFillMethod::CROSS_3D))
+			|| infill_multiplier % 2 == 0) //Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
     {
         outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
     }
@@ -236,11 +241,6 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
     bool odd_multiplier = infill_multiplier % 2 == 1;
     coord_t offset = (odd_multiplier)? infill_line_width : infill_line_width / 2;
-
-    if (zig_zaggify && !odd_multiplier)
-    {
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
-    }
 
     const Polygons outline = outer_contour.offset(outline_offset);
 
@@ -324,7 +324,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
-    Polygons first_concentric_wall = outer_contour.offset(outline_offset - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
+    Polygons first_concentric_wall = outer_contour.offset(outline_offset - line_distance);
 
     if (perimeter_gaps)
     {
@@ -420,10 +420,6 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
 {
-    if (zig_zaggify)
-    {
-        outline_offset += -infill_line_width / 2;
-    }
     Polygons outline = outer_contour.offset(outline_offset);
 
     Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern, z, infill_line_width, pocket_size);
