@@ -27,7 +27,8 @@ class Infill
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
     bool zig_zaggify; //!< Whether to connect the end pieces of the support lines via the wall
     bool connect_polygons; //!< Whether to connect as much polygons together into a single path
-    Polygons outer_contour; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
+    Polygons outer_contour; //!< The area that originally needs to be filled with infill. The input of the algorithm.
+    Polygons inner_contour; //!< The part of the contour that will get filled with an infill pattern. Equals outer_contour minus the extra infill walls.
     coord_t outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
     coord_t infill_line_width; //!< The line width of the infill lines to generate
     coord_t line_distance; //!< The distance between two infill lines / polygons

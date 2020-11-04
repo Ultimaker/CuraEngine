@@ -56,6 +56,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     {
         WallToolPaths wall_toolpaths(outer_contour, infill_line_width, wall_line_count, settings);
         toolpaths = wall_toolpaths.getToolPaths();
+        inner_contour = wall_toolpaths.getInnerContour();
     }
 
     if (infill_multiplier > 1)
@@ -142,7 +143,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
 
 void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
-    if (outer_contour.empty()) return;
+    if (inner_contour.empty()) return;
     if (line_distance == 0) return;
 
 	//Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
@@ -242,7 +243,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
     bool odd_multiplier = infill_multiplier % 2 == 1;
     coord_t offset = (odd_multiplier)? infill_line_width : infill_line_width / 2;
 
-    const Polygons outline = outer_contour.offset(outline_offset);
+    const Polygons outline = inner_contour.offset(outline_offset);
 
     // Get the first offset these are mirrored from the original center line
     Polygons result;
@@ -319,17 +320,17 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
 void Infill::generateGyroidInfill(Polygons& result_lines)
 {
-    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset, infill_line_width, line_distance, outer_contour, z);
+    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset, infill_line_width, line_distance, inner_contour, z);
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
-    Polygons first_concentric_wall = outer_contour.offset(outline_offset - line_distance);
+    Polygons first_concentric_wall = inner_contour.offset(outline_offset - line_distance);
 
     if (perimeter_gaps)
     {
         const Polygons inner = first_concentric_wall.offset(infill_line_width / 2 + perimeter_gaps_extra_offset);
-        const Polygons gaps_here = outer_contour.difference(inner);
+        const Polygons gaps_here = inner_contour.difference(inner);
         perimeter_gaps->add(gaps_here);
     }
     generateConcentricInfill(first_concentric_wall, result, inset_value);
@@ -420,7 +421,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
 {
-    Polygons outline = outer_contour.offset(outline_offset);
+    Polygons outline = inner_contour.offset(outline_offset);
 
     Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern, z, infill_line_width, pocket_size);
 
@@ -457,7 +458,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
 {
     ClipperLib::PolyTree interior_segments_tree;
-    outer_contour.lineSegmentIntersection(input, interior_segments_tree);
+    inner_contour.lineSegmentIntersection(input, interior_segments_tree);
     ClipperLib::Paths interior_segments;
     ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
     for (size_t idx = 0; idx < interior_segments.size(); idx++)
@@ -565,7 +566,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
     {
         return;
     }
-    if (outer_contour.size() == 0)
+    if (inner_contour.empty())
     {
         return;
     }
@@ -575,11 +576,11 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
     if (outline_offset != 0 && perimeter_gaps)
     {
         const Polygons gaps_outline =
-            outer_contour.offset(outline_offset + infill_line_width / 2 + perimeter_gaps_extra_offset);
-        perimeter_gaps->add(outer_contour.difference(gaps_outline));
+            inner_contour.offset(outline_offset + infill_line_width / 2 + perimeter_gaps_extra_offset);
+        perimeter_gaps->add(inner_contour.difference(gaps_outline));
     }
 
-    Polygons outline = outer_contour.offset(outline_offset);
+    Polygons outline = inner_contour.offset(outline_offset);
 
     if (outline.size() == 0)
     {
@@ -723,7 +724,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 void Infill::connectLines(Polygons& result_lines)
 {
     //TODO: We're reconstructing the outline here. We should store it and compute it only once.
-    Polygons outline = outer_contour.offset(outline_offset);
+    Polygons outline = inner_contour.offset(outline_offset);
 
     UnionFind<InfillLineSegment*> connected_lines; //Keeps track of which lines are connected to which.
     for (std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line)
