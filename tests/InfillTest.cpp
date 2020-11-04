@@ -165,11 +165,13 @@ namespace cura
             shift
         ); // There are some optional parameters, but these will do for now (future improvement?).
 
+        Settings infill_settings;
+        VariableWidthPaths result_paths;
         Polygons result_polygons;
         Polygons result_lines;
-        infill.generate(result_polygons, result_lines, nullptr, nullptr);
+        infill.generate(result_paths, result_polygons, result_lines, nullptr, nullptr);
 
-        InfillTestParameters result = InfillTestParameters(params, test_polygon_id, outline_polygons, result_lines, result_polygons);
+        InfillTestParameters result = InfillTestParameters(params, test_polygon_id, outline_polygons, infill_settings, result_lines, result_polygons);
         return result;
     }
 

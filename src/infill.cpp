@@ -104,47 +104,6 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     }
 }
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
-{
-    if (infill_multiplier > 1)
-    {
-        bool zig_zaggify_real = zig_zaggify;
-        if (infill_multiplier % 2 == 0)
-        {
-            zig_zaggify = false; // generate the basic infill pattern without going via the borders
-        }
-        Polygons generated_result_polygons;
-        Polygons generated_result_lines;
-        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
-        zig_zaggify = zig_zaggify_real;
-        multiplyInfill(generated_result_polygons, generated_result_lines);
-        result_polygons.add(generated_result_polygons);
-        result_lines.add(generated_result_lines);
-    }
-    else
-    {
-        //_generate may clear() the generated_result_lines, but this is an output variable that may contain data before we start.
-        //So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
-        Polygons generated_result_polygons;
-        Polygons generated_result_lines;
-        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
-        result_polygons.add(generated_result_polygons);
-        result_lines.add(generated_result_lines);
-    }
-
-    if (connect_polygons)
-    {
-        // remove too small polygons
-        coord_t snap_distance = infill_line_width * 2; // polygons with a span of max 1 * nozzle_size are too small
-        auto it = std::remove_if(result_polygons.begin(), result_polygons.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
-        result_polygons.erase(it, result_polygons.end());
-
-        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
-        connector.add(result_polygons);
-        result_polygons = connector.connect();
-    }
-}
-
 void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
     if (inner_contour.empty()) return;
