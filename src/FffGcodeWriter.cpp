@@ -1506,7 +1506,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const auto zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
     const auto connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
     const auto infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
-    const auto infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
+    const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
+    const auto infill_multiplier = (zig_zaggify_infill && last_idx != 0) ? 1 : mesh.settings.get<size_t>("infill_multiplier");
     const auto wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
     AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
     if (mesh.infill_angles.size() > 0)
@@ -1516,7 +1517,6 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     }
     const Point3 mesh_middle = mesh.bounding_box.getMiddle();
     const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
-    const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
 
     auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
     {
@@ -1636,27 +1636,11 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         // especially on vertical surfaces
         in_outline.removeSmallAreas(minimum_small_area);
         const size_t wall_line_count_here = (density_idx < last_idx) ? 0 : wall_line_count;
-        
-        Infill infill_comp(pattern,
-                           zig_zaggify_infill,
-                           connect_polygons,
-                           in_outline,
-                           outline_offset,
-                           infill_line_width,
-                           infill_line_distance_here,
-                           infill_overlap,
-                           infill_multiplier,
-                           infill_angle,
-                           gcode_layer.z,
-                           infill_shift,
-                           wall_line_count_here,
-                           infill_origin,
-                           perimeter_gaps,
-                           connected_zigzags,
-                           use_endpieces,
-                           skip_some_zags,
-                           zag_skip_count,
-                           pocket_size);
+
+        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, outline_offset, infill_line_width,
+                           infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
+                           infill_shift, wall_line_count_here, infill_origin, perimeter_gaps, connected_zigzags,
+                           use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
         infill_comp.generate(infill_polygons_here, infill_lines_here, mesh.cross_fill_provider, &mesh);
         if (density_idx < last_idx)
         {
