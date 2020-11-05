@@ -537,14 +537,8 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
     {
         return;
     }
-    //TODO: Currently we find the outline every time for each rotation.
-    //We should compute it only once and rotate that accordingly.
-    //We'll also have the guarantee that they have the same size every time.
-    //Currently we assume that the above operations are all rotation-invariant,
-    //which they aren't if vertices fall on the same coordinate due to rounding.
-    crossings_on_line.resize(outline.size()); //One for each polygon.
-
     outline.applyMatrix(rotation_matrix);
+    crossings_on_line.resize(outline.size()); //One for each polygon.
 
     if (shift < 0)
     {
