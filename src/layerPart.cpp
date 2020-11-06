@@ -27,6 +27,10 @@ namespace cura {
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
 {
     storageLayer.openPolyLines = layer->openPolylines;
+    
+    const coord_t maximum_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t maximum_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
+    storageLayer.openPolyLines.simplifyPolylines(maximum_resolution, maximum_deviation);
 
     const bool union_all_remove_holes = settings.get<bool>("meshfix_union_all_remove_holes");
     if (union_all_remove_holes)
