@@ -413,42 +413,44 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     {
         return; // the last wall is not present, the part should only get inter perimeter gaps, but no infill.
     }
-    const size_t wall_line_count = mesh.settings.get<size_t>("wall_line_count");
-    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
 
-    coord_t offset_from_inner_wall = 0;
-    if (wall_line_count > 0)
-    { // calculate offset_from_inner_wall
-        coord_t extra_perimeter_offset = 0; // to align concentric polygons across layers
-        const EFillMethod fill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
-        if (fill_pattern == EFillMethod::CONCENTRIC
-            && infill_line_distance > mesh.settings.get<coord_t>("infill_line_width") * 2)
-        {
-            if (mesh.settings.get<bool>("alternate_extra_perimeter")
-                && layer_nr % 2 == 0)
-            { // compensate shifts otherwise caused by alternating an extra perimeter
-                extra_perimeter_offset = -innermost_wall_line_width;
-            }
-            if (layer_nr == 0)
-            { // compensate for shift caused by walls being expanded by the initial line width multiplier
-                const coord_t normal_wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
-                const coord_t normal_wall_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x");
-                const coord_t normal_walls_width = normal_wall_line_width_0 + (wall_line_count - 1) * normal_wall_line_width_x;
-                const coord_t walls_width = normal_walls_width * mesh.settings.get<Ratio>("initial_layer_line_width_factor");
-                extra_perimeter_offset += walls_width - normal_walls_width;
-                while (extra_perimeter_offset > 0)
-                {
-                    extra_perimeter_offset -= infill_line_distance;
+    auto get_offset = [this]()
+    {
+        const auto infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
+        if (wall_line_count > 0)
+        { // calculate offset_from_inner_wall
+            coord_t extra_perimeter_offset = 0; // to align concentric polygons across layers
+            const auto fill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+            if (fill_pattern == EFillMethod::CONCENTRIC
+                && infill_line_distance > mesh.settings.get<coord_t>("infill_line_width") * 2)
+            {
+                if (mesh.settings.get<bool>("alternate_extra_perimeter")
+                    && layer_nr % 2 == 0)
+                { // compensate shifts otherwise caused by alternating an extra perimeter
+                    extra_perimeter_offset = -innermost_wall_line_width;
+                }
+                if (layer_nr == 0)
+                { // compensate for shift caused by walls being expanded by the initial line width multiplier
+                    const auto normal_wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
+                    const auto normal_wall_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x");
+                    const coord_t normal_walls_width = normal_wall_line_width_0 + (wall_line_count - 1) * normal_wall_line_width_x;
+                    const coord_t walls_width = normal_walls_width * mesh.settings.get<Ratio>("initial_layer_line_width_factor");
+                    extra_perimeter_offset += walls_width - normal_walls_width;
+                    while (extra_perimeter_offset > 0)
+                    {
+                        extra_perimeter_offset -= infill_line_distance;
+                    }
                 }
             }
+            return extra_perimeter_offset - innermost_wall_line_width / 2;
         }
-        offset_from_inner_wall += extra_perimeter_offset - innermost_wall_line_width / 2;
-    }
-    Polygons infill = part.insets.back().offset(offset_from_inner_wall);
-    infill = infill.difference(skin);
-    infill.removeSmallAreas(MIN_AREA_SIZE);
+        return coord_t(0);
+    };
 
-    part.infill_area = infill;
+    const coord_t offset_from_inner_wall = get_offset();
+
+    part.infill_area = part.insets.back().offset(offset_from_inner_wall).difference(skin);
+    part.infill_area.removeSmallAreas(MIN_AREA_SIZE);
 }
 
 /*

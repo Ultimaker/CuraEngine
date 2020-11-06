@@ -1658,7 +1658,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
             if (infill_below_skin.size())
             {
-                if (infill_below_skin.offset(-tiny_infill_offset).size())
+                if (!infill_below_skin.offset(-tiny_infill_offset).empty())
                 {
                     // there is infill below skin, is there also infill that isn't below skin?
                     Polygons infill_not_below_skin = in_outline.difference(infill_below_skin);
