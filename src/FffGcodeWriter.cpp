@@ -1652,7 +1652,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         infill_polygons.add(infill_polygons_here);
     }
 
-    if (!infill_lines.empty() || !infill_polygons.empty())
+    if (! infill_lines.empty() || ! infill_polygons.empty())
     {
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
@@ -1661,7 +1661,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         if (mesh.settings.get<bool>("infill_randomize_start_location"))
         {
             srand(gcode_layer.getLayerNr());
-            if(!infill_lines.empty())
+            if(! infill_lines.empty())
             {
                 near_start_location = infill_lines[rand() % infill_lines.size()][0];
             }
@@ -1671,7 +1671,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                 near_start_location = start_poly[rand() % start_poly.size()];
             }
         }
-        if (!infill_polygons.empty())
+        if (! infill_polygons.empty())
         {
             constexpr bool force_comb_retract = false;
             // start the infill polygons at the nearest vertex to the current location
@@ -1711,11 +1711,11 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
             {
                 for (const SkinPart& skin_part : part.skin_parts)
                 {
-                    if (!skin_above_combined.empty())
+                    if (! skin_above_combined.empty())
                     {
                         // does this skin part overlap with any of the skin parts on the layers above?
                         const Polygons overlap = skin_above_combined.intersection(skin_part.outline);
-                        if (!overlap.empty())
+                        if (! overlap.empty())
                         {
                             // yes, it overlaps, need to leave a gap between this skin part and the others
                             if (i > 1) // this layer is the 2nd or higher layer above the layer whose infill we're printing
@@ -1792,7 +1792,7 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
     const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
     const Polygons infill_below_skin_overlap = infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset));
 
-    return !infill_below_skin_overlap.empty() && !infill_not_below_skin.empty();
+    return ! infill_below_skin_overlap.empty() && ! infill_not_below_skin.empty();
 }
 
 void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh) const

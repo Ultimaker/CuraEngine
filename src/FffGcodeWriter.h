@@ -718,7 +718,7 @@ private:
     /*!
      * Partition the Infill regions by the skin at N layers above.
      *
-     * When skind edge support layers is set this function will check N layers above the infill layer to see if there is
+     * When skin edge support layers is set this function will check N layers above the infill layer to see if there is
      * skin above. If this skin needs to be supported by a wall it will return true else it returns false. The Infill
      * outline of the Sparse density layer is partitioned into two polygons, either below the skin regions or outside
      * of the skin region.
