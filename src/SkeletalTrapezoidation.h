@@ -458,7 +458,15 @@ protected:
      */
     void generateExtraRibs();
 
-    // ^ transitioning | v toolpath generation
+    // ^ transitioning ^
+
+    /*!
+     * It's useful to know when the paths get back to the consumer, to (what part of) a polygon the paths 'belong'.
+     * A single polygon without a hole is one region, a polygon with (a) hole(s) has 2 regions.
+     */
+    void markRegions();
+
+    // v toolpath generation v
 
     /*!
      * \param[out] segments the generated segments
@@ -580,6 +588,11 @@ protected:
      * Genrate small segments for local maxima where the beading would only result in a single bead
      */
     void generateLocalMaximaSingleBeads();
+
+    /*!
+     * Extract region information from the junctions, for easier access to that info directly from the lines.
+     */
+    void liftRegionInfoToLines();
 };
 
 } // namespace cura
