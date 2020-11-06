@@ -370,6 +370,8 @@ class PolygonPointer;
 class PolygonRef : public ConstPolygonRef
 {
     friend class PolygonPointer;
+    friend class Polygons;
+    friend class PolygonsPart;
 public:
     PolygonRef(ClipperLib::Path& polygon)
     : ConstPolygonRef(polygon)
@@ -506,6 +508,19 @@ public:
      */
     void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
 
+    /*!
+     * See simplify(.)
+     */
+    void simplifyPolyline(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25);
+protected:
+    /*!
+     * Private implementation for both simplify and simplifyPolygons.
+     * 
+     * Made private to avoid accidental use of the wrong function.
+     */
+    void _simplify(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25, bool processing_polylines = false);
+
+public:
     void pop_back()
     {
         path->pop_back();
@@ -1004,19 +1019,30 @@ public:
      */
     void simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5)
     {
+        _simplify(smallest_line_segment, allowed_error_distance, false);
+    }
+    void simplifyPolylines(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5) 
+    {
+        _simplify(smallest_line_segment, allowed_error_distance, true);
+    }
+private:
+    void _simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5, bool processing_polylines = false) 
+    {
         const coord_t allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
         const coord_t smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
         Polygons& thiss = *this;
         for (size_t p = 0; p < size(); p++)
         {
-            thiss[p].simplify(smallest_line_segment_squared, allowed_error_distance_squared);
-            if (thiss[p].size() < 3)
+            thiss[p]._simplify(smallest_line_segment_squared, allowed_error_distance_squared, processing_polylines);
+            if (thiss[p].size() < 3 // remove polygons with 2 verts
+                - static_cast<size_t>(processing_polylines)) // remove polylines with 1 vert
             {
                 remove(p);
                 p--;
             }
         }
     }
+public:
 
     void scale(const Ratio& ratio)
     {

@@ -410,12 +410,20 @@ void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
 
 void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared)
 {
-    if (size() < 3)
+    _simplify(smallest_line_segment_squared, allowed_error_distance_squared, false);
+}
+void PolygonRef::simplifyPolyline(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared)
+{
+    _simplify(smallest_line_segment_squared, allowed_error_distance_squared, true);
+}
+void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, bool processing_polylines)
+{
+    if (size() < 3 - static_cast<size_t>(processing_polylines))
     {
         clear();
         return;
     }
-    if (size() == 3)
+    if (size() == 3 - static_cast<size_t>(processing_polylines))
     {
         return;
     }
@@ -445,7 +453,7 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
     for (size_t point_idx = 0; point_idx < size(); point_idx++)
     {
         current = path->at(point_idx % size());
-
+        
         //Check if the accumulated area doesn't exceed the maximum.
         Point next;
         if (point_idx + 1 < size())
@@ -460,12 +468,18 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         {
             next = path->at((point_idx + 1) % size());
         }
+        bool bypass = processing_polylines && (point_idx == 0 || point_idx + 1 == size()); // bypass all checks for deleting a vertex when processing the start or end of a polyline
+
         const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Twice the Shoelace formula for area of polygon per line segment.
         const coord_t negative_area_closing = next.X * previous.Y - next.Y * previous.X; // area between the origin and the short-cutting segment
         accumulated_area_removed += removed_area_next;
 
+
+        if (!processing_polylines || (point_idx != 0 && point_idx + 1 != size()))
+        { // bypass all checks for deleting a vertex when processing the start or end of a polyline
         const coord_t length2 = vSize2(current - previous);
-        if (length2 < 25)
+        if (length2 < 25
+            && !bypass) // never delete when bypassing 
         {
             // We're allowed to always delete segments of less than 5 micron.
             continue;
@@ -474,7 +488,8 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shortcut area polygon
         const coord_t base_length_2 = vSize2(next - previous);
 
-        if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
+        if (base_length_2 == 0 //Two line segments form a line back and forth with no area.
+             && !bypass) // never delete when bypassing 
         {
             continue; //Remove the vertex.
         }
@@ -487,13 +502,15 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
         if ((height_2 <= 5 * 5 //Almost exactly colinear (barring rounding errors).
-            && LinearAlg2D::getDistFromLine(current, previous, next) <= 5)) // make sure that height_2 is not small because of cancellation of positive and negative areas
+            && LinearAlg2D::getDistFromLine(current, previous, next) <= 5) // make sure that height_2 is not small because of cancellation of positive and negative areas
+            && !bypass) // never delete when bypassing 
         {
             continue;
         }
 
         if (length2 < smallest_line_segment_squared
-            && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.)
+            && height_2 <= allowed_error_distance_squared // removing the vertex doesn't introduce too much error.)
+            && !bypass) // never delete when bypassing 
         {
             const coord_t next_length2 = vSize2(current - next);
             if (next_length2 > smallest_line_segment_squared)
@@ -517,7 +534,9 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                     // New point seems like a valid one.
                     current = intersection_point;
                     // If there was a previous point added, remove it.
-                    if(!new_path.empty())
+                    if (!new_path.empty()
+                        && (!processing_polylines || new_path.size() > 1) // never delete the first point of a polyline
+                    )
                     {
                         new_path.pop_back();
                         previous = previous_previous;
@@ -529,11 +548,30 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
                 continue; //Remove the vertex.
             }
         }
+        }
         //Don't remove the vertex.
         accumulated_area_removed = removed_area_next; // so that in the next iteration it's the area between the origin, [previous] and [current]
         previous_previous = previous;
         previous = current; //Note that "previous" is only updated if we don't remove the vertex.
         new_path.push_back(current);
+    }
+
+    if (processing_polylines)
+    { // make sure the last segment is not 5u short
+        size_t second_to_last_idx = new_path.size() - 2;
+        if (vSize2(new_path.back() - new_path[second_to_last_idx]) < 25)
+        {
+            new_path.erase(new_path.begin() + second_to_last_idx);
+        }
+    }
+
+    if (processing_polylines)
+    { // make sure the last segment is not 5u short
+        size_t second_to_last_idx = new_path.size() - 2;
+        if (vSize2(new_path.back() - new_path[second_to_last_idx]) < 25)
+        {
+            new_path.erase(new_path.begin() + second_to_last_idx);
+        }
     }
 
     *path = new_path;
