@@ -123,14 +123,14 @@ public:
         return path->end();
     }
 
-    ClipperLib::Path::const_reference back() const
-    {
-        return path->back();
-    }
-
     ClipperLib::Path::const_reference front() const
     {
         return path->front();
+    }
+
+    ClipperLib::Path::const_reference back() const
+    {
+        return path->back();
     }
 
     const void* data() const
@@ -151,11 +151,16 @@ public:
 
     Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
-    int64_t polygonLength() const
+    coord_t polygonLength() const
     {
-        int64_t length = 0;
-        Point p0 = (*path)[path->size()-1];
-        for(unsigned int n=0; n<path->size(); n++)
+        return polylineLength() + vSize(path->front() - path->back());
+    }
+
+    coord_t polylineLength() const
+    {
+        coord_t length = 0;
+        Point p0 = path->front();
+        for (unsigned int n = 1; n < path->size(); n++)
         {
             Point p1 = (*path)[n];
             length += vSize(p0 - p1);
@@ -421,6 +426,11 @@ public:
     ClipperLib::Path::iterator end()
     {
         return path->end();
+    }
+
+    ClipperLib::Path::reference front()
+    {
+        return path->front();
     }
 
     ClipperLib::Path::reference back()
@@ -764,6 +774,14 @@ public:
     {
         paths.emplace_back();
         return PolygonRef(paths.back());
+    }
+    PolygonRef front()
+    {
+        return PolygonRef(paths.front());
+    }
+    ConstPolygonRef front() const
+    {
+        return ConstPolygonRef(paths.front());
     }
     PolygonRef back()
     {
@@ -1270,15 +1288,9 @@ public:
     coord_t polygonLength() const
     {
         coord_t length = 0;
-        for(unsigned int i=0; i<paths.size(); i++)
+        for (ConstPolygonRef poly : *this)
         {
-            Point p0 = paths[i][paths[i].size()-1];
-            for(unsigned int n=0; n<paths[i].size(); n++)
-            {
-                Point p1 = paths[i][n];
-                length += vSize(p0 - p1);
-                p0 = p1;
-            }
+            length += poly.polygonLength();
         }
         return length;
     }
