@@ -242,12 +242,13 @@ void LineOrderOptimizer::optimize(bool find_chains)
 
     loc_to_line = nullptr;
 
+    // initialize the [polyStart]s to use the end point closest to the start point of the layer. NOTE: will be updated with every newly chosen polyline
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++) /// find closest point to initial starting point within each polygon +initialize picked
     {
         int best_point_idx = -1;
         float best_point_dist = std::numeric_limits<float>::infinity();
         ConstPolygonRef poly = *polygons[poly_idx];
-        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++) /// get closest point from polygon
+        for (unsigned int point_idx : {static_cast<size_t>(0), poly.size() - 1}) /// get closest of either end point of the polyline
         {
             float dist = vSize2f(poly[point_idx] - startPoint);
             if (dist < best_point_dist)
@@ -258,10 +259,8 @@ void LineOrderOptimizer::optimize(bool find_chains)
         }
         polyStart.push_back(best_point_idx);
 
-        assert(poly.size() == 2);
-
-        line_bucket_grid.insert(poly[0], poly_idx);
-        line_bucket_grid.insert(poly[1], poly_idx);
+        line_bucket_grid.insert(poly.front(), poly_idx);
+        line_bucket_grid.insert(poly.back(), poly_idx);
     }
 
     // a map with an entry for each chain end discovered
@@ -290,7 +289,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 // look at each of the lines that finish close to this line to see if either of its vertices are coincident this vertex
                 for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, 10))
                 {
-                    if (close_line_idx != poly_idx && (pointsAreCoincident(p, (*polygons[close_line_idx])[0]) || pointsAreCoincident(p, (*polygons[close_line_idx])[1])))
+                    if (close_line_idx != poly_idx && (pointsAreCoincident(p, polygons[close_line_idx]->front()) || pointsAreCoincident(p, polygons[close_line_idx]->back())))
                     {
                         joined_lines.insert(close_line_idx);
                     }
@@ -345,7 +344,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
             for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, 10))
             {
                 if (picked[close_line_idx]
-                    || !(pointsAreCoincident(prev_point,(*polygons[close_line_idx])[0]) || pointsAreCoincident(prev_point, (*polygons[close_line_idx])[1])))
+                    || !(pointsAreCoincident(prev_point, polygons[close_line_idx]->front()) || pointsAreCoincident(prev_point, polygons[close_line_idx]->back())))
                 {
                     continue;
                 }
@@ -442,8 +441,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
             ConstPolygonRef best_line = *polygons[best_line_idx];
 
             int line_start_point_idx = polyStart[best_line_idx];
-            int line_end_point_idx = line_start_point_idx * -1 + 1; /// 1 -> 0 , 0 -> 1
-            const Point& line_end = best_line[line_end_point_idx];
+            const Point& line_end = (line_start_point_idx == 0) ? best_line.back() : best_line.front();
             prev_point = line_end;
 
             picked[best_line_idx] = true;
@@ -500,8 +498,8 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     // when looking at a chain end, just_point will be either 0 or 1 depending on which vertex we are currently interested in testing
     // if just_point is -1, it means that we are not looking at a chain end and we will test both vertices to see if either is best
 
-    const Point& p0 = (*polygons[poly_idx])[0];
-    const Point& p1 = (*polygons[poly_idx])[1];
+    const Point& p0 = polygons[poly_idx]->front();
+    const Point& p1 = polygons[poly_idx]->back();
 
     if (just_point != 1)
     { /// check distance to first point on line (0)
@@ -534,7 +532,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
         {
             best = poly_idx;
             best_score = score;
-            polyStart[poly_idx] = 1;
+            polyStart[poly_idx] = polygons[poly_idx]->size() - 1;
         }
     }
 }
