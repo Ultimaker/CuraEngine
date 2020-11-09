@@ -1081,18 +1081,29 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     for (unsigned int order_idx = 0; order_idx < orderOptimizer.polyOrder.size(); order_idx++)
     {
         const unsigned int poly_idx = orderOptimizer.polyOrder[order_idx];
-        ConstPolygonRef polygon = polygons[poly_idx];
-        const size_t start = orderOptimizer.polyStart[poly_idx];
-        const size_t end = 1 - start;
-        const Point& p0 = polygon[start];
-        const Point& p1 = polygon[end];
-        // ignore line segments that are less than 5uM long
-        if(vSize2(p1 - p0) < MINIMUM_SQUARED_LINE_LENGTH)
+        ConstPolygonRef polyline = polygons[poly_idx];
+        const size_t start_idx = orderOptimizer.polyStart[poly_idx];
+        const Point start = polyline[start_idx];
+
+        addTravel(start);
+
+        Point p0 = start;
+        for (size_t idx = 0; idx < polyline.size(); idx++)
         {
-            continue;
+            size_t point_idx = (start_idx == 0) ? idx : polyline.size() - 1 - idx;
+            Point p1 = polyline[point_idx];
+
+            // ignore line segments that are less than 5uM long
+            if (vSize2(p1 - p0) >= MINIMUM_SQUARED_LINE_LENGTH)
+            {
+                addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+            }
+            p0 = p1;
         }
-        addTravel(p0);
-        addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+        
+        p0 = polyline[(start_idx == 0) ? polyline.size() - 1 : 0];
+        Point p1 = (polyline.size() <= 1) ? p0
+            : polyline[(start_idx == 0) ? polyline.size() - 2 : 1];
 
         // Wipe
         if (wipe_dist != 0)
@@ -1100,13 +1111,14 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
             bool wipe = true;
             int line_width = config.getLineWidth();
 
-            // Don't wipe is current extrusion is too small
+            // Don't wipe if current extrusion is too small
             if (vSize2(p1 - p0) <= line_width * line_width * 4)
             {
                 wipe = false;
             }
 
             // Don't wipe if next starting point is very near
+            // TODO: remove this condition once all polylines are properly chained
             if (wipe && (order_idx < orderOptimizer.polyOrder.size() - 1))
             {
                 const unsigned int next_poly_idx = orderOptimizer.polyOrder[order_idx + 1];
