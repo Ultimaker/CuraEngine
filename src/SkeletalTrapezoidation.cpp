@@ -982,30 +982,30 @@ void SkeletalTrapezoidation::generateAllTransitionEnds(ptr_vector_t<std::list<Tr
 
 void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_pos, coord_t lower_bead_count, ptr_vector_t<std::list<TransitionEnd>>& edge_transition_ends)
 {
-    Point a = edge.from->p;
-    Point b = edge.to->p;
-    Point ab = b - a;
-    coord_t ab_size = vSize(ab);
+    const Point a = edge.from->p;
+    const Point b = edge.to->p;
+    const Point ab = b - a;
+    const coord_t ab_size = vSize(ab);
 
-    coord_t transition_length = beading_strategy.getTransitioningLength(lower_bead_count);
-    float transition_mid_position = beading_strategy.getTransitionAnchorPos(lower_bead_count);
-    float inner_bead_width_ratio_after_transition = 1.0;
+    const coord_t transition_length = beading_strategy.getTransitioningLength(lower_bead_count);
+    const float transition_mid_position = beading_strategy.getTransitionAnchorPos(lower_bead_count);
+    constexpr float inner_bead_width_ratio_after_transition = 1.0;
 
-    coord_t start_rest = 0;
-    float mid_rest = transition_mid_position * inner_bead_width_ratio_after_transition;
-    float end_rest = inner_bead_width_ratio_after_transition;
+    constexpr coord_t start_rest = 0;
+    const float mid_rest = transition_mid_position * inner_bead_width_ratio_after_transition;
+    constexpr float end_rest = inner_bead_width_ratio_after_transition;
 
     { // Lower bead count transition end
-        coord_t start_pos = ab_size - mid_pos;
-        coord_t transition_half_length = transition_mid_position * transition_length;
-        coord_t end_pos = start_pos + transition_half_length;
+        const coord_t start_pos = ab_size - mid_pos;
+        const coord_t transition_half_length = transition_mid_position * transition_length;
+        const coord_t end_pos = start_pos + transition_half_length;
         generateTransitionEnd(*edge.twin, start_pos, end_pos, transition_half_length, mid_rest, start_rest, lower_bead_count, edge_transition_ends);
     }
 
     { // Upper bead count transition end
-        coord_t start_pos = mid_pos;
-        coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
-        coord_t end_pos = mid_pos +  transition_half_length;
+        const coord_t start_pos = mid_pos;
+        const coord_t transition_half_length = (1.0 - transition_mid_position) * transition_length;
+        const coord_t end_pos = mid_pos + transition_half_length;
 #ifdef DEBUG
         if (! generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends))
         {
