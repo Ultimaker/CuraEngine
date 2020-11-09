@@ -110,7 +110,7 @@ private:
      * Distances smaller than this distance get neglected and printed in one go
      * without travel move.
      */
-    static constexpr coord_t snap_dist = 10;
+    static constexpr coord_t snap_dist = MM2INT(0.01);
 
     /*!
      * All of the polylines that must be optimized.
