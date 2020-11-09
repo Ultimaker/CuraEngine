@@ -235,7 +235,7 @@ static inline bool pointsAreCoincident(const Point& a, const Point& b)
 */
 void LineOrderOptimizer::optimize(bool find_chains)
 {
-    const int grid_size = 100; // the size of the cells in the hash grid. TODO
+    const coord_t grid_size = 100_mu; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(grid_size);
     // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:
     std::vector<bool> picked(polygons.size(), false);
