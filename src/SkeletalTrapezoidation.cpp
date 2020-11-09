@@ -1613,7 +1613,14 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     Beading ret = (left.total_thickness > right.total_thickness)? left : right;
     for (size_t inset_idx = 0; inset_idx < std::min(left.bead_widths.size(), right.bead_widths.size()); inset_idx++)
     {
-        ret.bead_widths[inset_idx] = ratio_left_to_whole * left.bead_widths[inset_idx] + ratio_right_to_whole * right.bead_widths[inset_idx];
+        if(left.bead_widths[inset_idx] == 0 || right.bead_widths[inset_idx] == 0)
+        {
+            ret.bead_widths[inset_idx] = 0; //0-width wall markers stay 0-width.
+        }
+        else
+        {
+            ret.bead_widths[inset_idx] = ratio_left_to_whole * left.bead_widths[inset_idx] + ratio_right_to_whole * right.bead_widths[inset_idx];
+        }
         ret.toolpath_locations[inset_idx] = ratio_left_to_whole * left.toolpath_locations[inset_idx] + ratio_right_to_whole * right.toolpath_locations[inset_idx];
     }
     return ret;
