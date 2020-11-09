@@ -1269,18 +1269,7 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, c
 {
     const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
     
-    Polygons lines;
-    for(ConstPolygonRef polyline : layer->openPolyLines)
-    {
-        for(unsigned int point_idx = 1; point_idx<polyline.size(); point_idx++)
-        {
-            Polygon p;
-            p.add(polyline[point_idx-1]);
-            p.add(polyline[point_idx]);
-            lines.add(p);
-        }
-    }
-    gcode_layer.addLinesByOptimizer(lines, mesh_config.inset0_config, SpaceFillType::PolyLines);
+    gcode_layer.addLinesByOptimizer(layer->openPolyLines, mesh_config.inset0_config, SpaceFillType::PolyLines);
 }
 
 void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const

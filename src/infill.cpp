@@ -241,21 +241,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
             poly.add(poly[0]);
         }
         Polygons polylines = outline.intersectionPolyLines(result_polygons);
-        for (PolygonRef polyline : polylines)
-        {
-            Point last_point = no_point;
-            for (Point point : polyline)
-            {
-                Polygon line;
-                if (last_point != no_point)
-                {
-                    line.add(last_point);
-                    line.add(point);
-                    result_lines.add(line);
-                }
-                last_point = point;
-            }
-        }
+        result_lines.add(polylines);
         result_polygons.clear(); // the output should only contain polylines
     }
 }
@@ -391,14 +377,8 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
         Polygons cross_pattern_polygons;
         cross_pattern_polygons.add(cross_pattern_polygon);
         Polygons poly_lines = outline.intersectionPolyLines(cross_pattern_polygons);
-        
-        for (PolygonRef poly_line : poly_lines)
-        {
-            for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
-            {
-                result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
-            }
-        }
+
+        result_lines.add(poly_lines);
     }
 }
 
@@ -851,14 +831,16 @@ void Infill::connectLines(Polygons& result_lines)
         const Point first_vertex = (!current_infill_line->previous) ? current_infill_line->start : current_infill_line->end;
         previous_vertex =          (!current_infill_line->previous) ? current_infill_line->end : current_infill_line->start;
         current_infill_line = (first_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
-        result_lines.addLine(first_vertex, previous_vertex);
+        PolygonRef result_line = result_lines.newPoly();
+        result_line.add(first_vertex);
+        result_line.add(previous_vertex);
         delete old_line;
         while (current_infill_line)
         {
             old_line = current_infill_line; //We'll delete this after we've traversed to the next line.
             const Point next_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; //Opposite side of the line.
             current_infill_line =     (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
-            result_lines.addLine(previous_vertex, next_vertex);
+            result_line.add(next_vertex);
             previous_vertex = next_vertex;
             delete old_line;
         }
