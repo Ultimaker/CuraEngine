@@ -124,8 +124,34 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
         Slicer& cutting_mesh_volume = *volumes[carving_mesh_idx];
         for (unsigned int layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); layer_nr++)
         {
-            Polygons& cutting_mesh_layer = cutting_mesh_volume.layers[layer_nr].polygons;
+            Polygons& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons;
+            Polygons& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].openPolylines;
+            Polygons* cutting_mesh_area = &cutting_mesh_polygons;
+            Polygons cutting_mesh_area_recomputed;
+            { // compute cutting_mesh_area
+                coord_t surface_line_width = cutting_mesh.settings.get<coord_t>("wall_line_width_0");
+                if (cutting_mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::BOTH)
+                {
+                    cutting_mesh_area_recomputed = cutting_mesh_area->unionPolygons(cutting_mesh_polylines.offsetPolyLine(surface_line_width / 2));
+                    cutting_mesh_area = &cutting_mesh_area_recomputed;
+                }
+                else if (cutting_mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+                {
+                    // break up polygons into polylines
+                    // they have to be polylines, because they might break up further when doing the cutting
+                    for (PolygonRef poly : cutting_mesh_polygons)
+                    {
+                        poly.add(poly[0]);
+                    }
+                    cutting_mesh_polylines.add(cutting_mesh_polygons);
+                    cutting_mesh_polygons.clear();
+                    cutting_mesh_area_recomputed = cutting_mesh_polylines.offsetPolyLine(surface_line_width / 2);
+                    cutting_mesh_area = &cutting_mesh_area_recomputed;
+                }
+            }
+            
             Polygons new_outlines;
+            Polygons new_polylines;
             for (unsigned int carved_mesh_idx = 0; carved_mesh_idx < volumes.size(); carved_mesh_idx++)
             {
                 const Mesh& carved_mesh = meshes[carved_mesh_idx];
@@ -137,11 +163,21 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                 }
                 Slicer& carved_volume = *volumes[carved_mesh_idx];
                 Polygons& carved_mesh_layer = carved_volume.layers[layer_nr].polygons;
-                Polygons intersection = cutting_mesh_layer.intersection(carved_mesh_layer);
+
+                Polygons intersection = cutting_mesh_polygons.intersection(carved_mesh_layer);
                 new_outlines.add(intersection);
-                carved_mesh_layer = carved_mesh_layer.difference(cutting_mesh_layer);
+                if (cutting_mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // niet te geleuven
+                {
+                    new_polylines.add(carved_mesh_layer.intersectionPolyLines(cutting_mesh_polylines));
+                }
+
+                carved_mesh_layer = carved_mesh_layer.difference(*cutting_mesh_area);
             }
-            cutting_mesh_layer = new_outlines.unionPolygons();
+            cutting_mesh_polygons = new_outlines.unionPolygons();
+            if (cutting_mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+            {
+                cutting_mesh_polylines = new_polylines;
+            }
         }
     }
 }
