@@ -946,9 +946,10 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
             {
                 const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
                 const PathConfigStorage::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
-                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
+                    && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr // mesh surface mode should always only be printed with the outer wall extruder!
+                )
                 {
-                    assert(extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr && "mesh surface mode should always only be printed with the outer wall extruder!");
                     addMeshLayerToGCode_meshSurfaceMode(storage, mesh, mesh_config, gcode_layer);
                 }
                 else
