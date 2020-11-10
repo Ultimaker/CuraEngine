@@ -675,31 +675,31 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             for (SliceLayerPart& part : layer.parts)
             {
                 for (SliceLayerPart& other_part : other_layer.parts)
-                { // limit the outline of each part of this infill mesh to the infill of parts of the other mesh with lower infill mesh order
-                    if (!part.boundaryBox.hit(other_part.boundaryBox))
-                    { // early out
-                        continue;
-                    }
-                    Polygons new_outline = part.outline.intersection(other_part.getOwnInfillArea());
-                    if (new_outline.size() == 1)
-                    { // we don't have to call splitIntoParts, because a single polygon can only be a single part
-                        PolygonsPart outline_part_here;
-                        outline_part_here.add(new_outline[0]);
-                        new_parts.push_back(outline_part_here);
-                    }
-                    else if (new_outline.size() > 1)
-                    { // we don't know whether it's a multitude of parts because of newly introduced holes, or because the polygon has been split up
-                        std::vector<PolygonsPart> new_parts_here = new_outline.splitIntoParts();
-                        for (PolygonsPart& new_part_here : new_parts_here)
-                        {
-                            new_parts.push_back(new_part_here);
+                    { // limit the outline of each part of this infill mesh to the infill of parts of the other mesh with lower infill mesh order
+                        if (!part.boundaryBox.hit(other_part.boundaryBox))
+                        { // early out
+                            continue;
                         }
+                        Polygons new_outline = part.outline.intersection(other_part.getOwnInfillArea());
+                        if (new_outline.size() == 1)
+                        { // we don't have to call splitIntoParts, because a single polygon can only be a single part
+                            PolygonsPart outline_part_here;
+                            outline_part_here.add(new_outline[0]);
+                            new_parts.push_back(outline_part_here);
+                        }
+                        else if (new_outline.size() > 1)
+                        { // we don't know whether it's a multitude of parts because of newly introduced holes, or because the polygon has been split up
+                            std::vector<PolygonsPart> new_parts_here = new_outline.splitIntoParts();
+                            for (PolygonsPart& new_part_here : new_parts_here)
+                            {
+                                new_parts.push_back(new_part_here);
+                            }
+                        }
+                        // change the infill area of the non-infill mesh which is to be filled with e.g. lines
+                        other_part.infill_area_own = other_part.getOwnInfillArea().difference(part.outline);
+                        // note: don't change the part.infill_area, because we change the structure of that area, while the basic area in which infill is printed remains the same
+                        //       the infill area remains the same for combing
                     }
-                    // change the infill area of the non-infill mesh which is to be filled with e.g. lines
-                    other_part.infill_area_own = other_part.getOwnInfillArea().difference(part.outline);
-                    // note: don't change the part.infill_area, because we change the structure of that area, while the basic area in which infill is printed remains the same
-                    //       the infill area remains the same for combing
-                }
             }
         }
 
