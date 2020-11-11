@@ -53,7 +53,7 @@ coord_t DistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_co
 {
     // TODO: doesnt take min and max width into account
     const coord_t optimal_thickness = this->getOptimalThickness(lower_bead_count);
-    return optimal_thickness + (optimal_thickness < 1 ? optimal_width_outer : optimal_width_inner) / 2;
+    return optimal_thickness + (lower_bead_count < 1 ? optimal_width_outer : optimal_width_inner) / 2;
 }
 
 coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
