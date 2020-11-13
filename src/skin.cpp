@@ -186,28 +186,26 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
  */
 void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
-    Polygons original_outline = (wall_line_count < 1) ? part.outline : part.outline.offset(-(wall_line_width_0 + (wall_line_count - 1) * wall_line_width_x));
 
-    // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
-    Polygons upskin;
+    //Make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
+    Polygons top_skin;
     if (top_layer_count > 0)
     {
-        upskin = Polygons(original_outline);
+        top_skin = Polygons(part.inner_area);
     }
-    Polygons downskin;
+    Polygons bottom_skin;
     if (bottom_layer_count > 0 || layer_nr < LayerIndex(initial_bottom_layer_count))
     {
-        downskin = Polygons(original_outline);
+        bottom_skin = Polygons(part.inner_area);
     }
 
-    calculateBottomSkin(part, downskin);
+    calculateBottomSkin(part, bottom_skin);
+    calculateTopSkin(part, top_skin);
 
-    calculateTopSkin(part, upskin);
+    applySkinExpansion(part.inner_area, top_skin, bottom_skin);
 
-    applySkinExpansion(original_outline, upskin, downskin);
-
-    // now combine the resized upskin and downskin
-    Polygons skin = upskin.unionPolygons(downskin);
+    //Now combine the resized top skin and bottom skin.
+    Polygons skin = top_skin.unionPolygons(bottom_skin);
 
     skin.removeSmallAreas(MIN_AREA_SIZE);
 
