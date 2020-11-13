@@ -12,7 +12,16 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
 {
     if (bead_count <= max_bead_count)
     {
-        return parent->compute(thickness, bead_count);
+        Beading ret = parent->compute(thickness, bead_count);
+
+        if (bead_count % 2 == 0 && bead_count == max_bead_count)
+        {
+            const coord_t innermost_toolpath_location = ret.toolpath_locations[max_bead_count / 2 - 1];
+            const coord_t innermost_toolpath_width = ret.bead_widths[max_bead_count / 2 - 1];
+            ret.toolpath_locations.insert(ret.toolpath_locations.begin() + max_bead_count / 2, innermost_toolpath_location + innermost_toolpath_width / 2);
+            ret.bead_widths.insert(ret.bead_widths.begin() + max_bead_count / 2, 0);
+        }
+        return ret;
     }
     assert(bead_count == max_bead_count + 1);
 
