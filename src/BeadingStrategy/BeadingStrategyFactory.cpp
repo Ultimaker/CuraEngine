@@ -33,7 +33,7 @@ std::string to_string(StrategyType type)
     }
 }
 
-BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t preferred_bead_width_outer, coord_t preferred_bead_width_inner, coord_t preferred_transition_length, float transitioning_angle, const std::unique_ptr<coord_t>& min_bead_width, const std::unique_ptr<coord_t>& min_feature_size,  const coord_t max_bead_count)
+BeadingStrategy* BeadingStrategyFactory::makeStrategy(const StrategyType type, const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t preferred_transition_length, const float transitioning_angle, const bool print_thin_walls, const coord_t min_bead_width, const coord_t min_feature_size, const coord_t max_bead_count)
 {
     BeadingStrategy* ret = nullptr;
     switch (type)
@@ -46,12 +46,10 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy(StrategyType type, coord_t
             return nullptr;
     }
     
-    if (min_bead_width || min_feature_size)
+    if(print_thin_walls)
     {
-        const coord_t min_input_width = min_feature_size ? *min_feature_size : *min_bead_width;
-        const coord_t min_output_width = min_bead_width ? *min_bead_width : *min_feature_size;
-        logDebug("Applying the Widening Beading meta-strategy with minimum input width %d and minimum output width %d.", min_input_width, min_output_width);
-        ret = new WideningBeadingStrategy(ret, min_input_width, min_output_width);
+        logDebug("Applying the Widening Beading meta-strategy with minimum input width %d and minimum output width %d.", min_feature_size, min_bead_width);
+        ret = new WideningBeadingStrategy(ret, min_feature_size, min_bead_width);
     }
     if (max_bead_count > 0)
     {

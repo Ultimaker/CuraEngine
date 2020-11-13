@@ -23,8 +23,8 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
     , inset_count(inset_count)
     , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
-    , min_feature_size(print_thin_walls ? new coord_t(settings.get<coord_t>("min_feature_size")) : nullptr)
-    , min_bead_width(print_thin_walls ? new coord_t(settings.get<coord_t>("min_bead_width")) : nullptr)
+    , min_feature_size(settings.get<coord_t>("min_feature_size"))
+    , min_bead_width(settings.get<coord_t>("min_bead_width"))
     , small_area_length(INT2MM(static_cast<double>(nominal_bead_width) / 2))
     , transition_length(transition_length_multiplier * nominal_bead_width)
     , toolpaths_generated(false)
@@ -39,8 +39,8 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
     , inset_count(inset_count)
     , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
-    , min_feature_size(print_thin_walls ? new coord_t(settings.get<coord_t>("min_feature_size")) : nullptr)
-    , min_bead_width(print_thin_walls ? new coord_t(settings.get<coord_t>("min_bead_width")) : nullptr)
+    , min_feature_size(settings.get<coord_t>("min_feature_size"))
+    , min_bead_width(settings.get<coord_t>("min_bead_width"))
     , small_area_length(INT2MM(static_cast<double>(bead_width_0) / 2))
     , transition_length(transition_length_multiplier * bead_width_0)
     , toolpaths_generated(false)
@@ -68,7 +68,7 @@ const VariableWidthPaths& WallToolPaths::generate()
     {
         const coord_t max_bead_count = 2 * inset_count;
         const auto beading_strat = std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy(
-            strategy_type, bead_width_0, bead_width_x, transition_length, transitioning_angle, min_bead_width,
+            strategy_type, bead_width_0, bead_width_x, transition_length, transitioning_angle, print_thin_walls, min_bead_width,
             min_feature_size, max_bead_count));
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(toolpaths);
