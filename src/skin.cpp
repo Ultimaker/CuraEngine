@@ -253,21 +253,52 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
 void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
 {
     //Remove thin pieces of support for Skin Removal Width.
-    const Polygons preshrunk_bottom = downskin.offset(-bottom_skin_preshrink / 2).offset(bottom_skin_preshrink / 2);
-    const Polygons preshrunk_top = upskin.offset(-top_skin_preshrink / 2).offset(top_skin_preshrink / 2);
+    if(bottom_skin_preshrink)
+    {
+        downskin = downskin.offset(-bottom_skin_preshrink / 2).offset(bottom_skin_preshrink / 2);
+    }
+    if(top_skin_preshrink)
+    {
+        upskin = upskin.offset(-top_skin_preshrink / 2).offset(top_skin_preshrink / 2);
+    }
 
     //Expand some areas of the skin for Skin Expand Distance.
-    //This performs an opening operation by first insetting by the minimum width, then offsetting with the same width.
-    //The expansion is only applied to that opened shape.
     const coord_t min_width = mesh.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
-    downskin = preshrunk_bottom.offset(-min_width).offset(min_width + bottom_skin_expand_distance);
-    upskin = preshrunk_top.offset(-min_width).offset(min_width + top_skin_expand_distance);
-    //Afterwards the offset shape needs to be clipped with the original outline since we may only expand into infill, not across the walls.
-    downskin = downskin.intersection(original_outline);
-    upskin = upskin.intersection(original_outline);
-    //And then re-joined with the original part that was not offset, to retain parts smaller than min_width.
-    downskin = downskin.unionPolygons(preshrunk_bottom);
-    upskin = upskin.unionPolygons(preshrunk_top);
+    if(min_width)
+    {
+        //This performs an opening operation by first insetting by the minimum width, then offsetting with the same width.
+        //The expansion is only applied to that opened shape.
+        if(bottom_skin_expand_distance)
+        {
+            const Polygons expanded = downskin.offset(-min_width).offset(min_width + bottom_skin_expand_distance);
+            //And then re-joined with the original part that was not offset, to retain parts smaller than min_width.
+            downskin = downskin.unionPolygons(expanded);
+            //Afterwards the offset shape needs to be clipped with the original outline since we may only expand into infill, not across the walls.
+            downskin = downskin.intersection(original_outline);
+        }
+        if(top_skin_expand_distance)
+        {
+            const Polygons expanded = upskin.offset(-min_width).offset(min_width + top_skin_expand_distance);
+            upskin = upskin.unionPolygons(expanded);
+            upskin = upskin.intersection(original_outline);
+        }
+    }
+    else
+    {
+        //Without minimum width, it's just a simple offset. No opening operation or re-join necessary.
+        if(bottom_skin_expand_distance)
+        {
+            downskin = downskin.offset(bottom_skin_expand_distance);
+            //Afterwards the offset shape needs to be clipped with the original outline since we may only expand into infill, not across the walls.
+            downskin = downskin.intersection(original_outline);
+        }
+        if(top_skin_expand_distance)
+        {
+            upskin = upskin.offset(top_skin_expand_distance);
+            upskin = upskin.intersection(original_outline);
+        }
+    }
+
 }
 
 
