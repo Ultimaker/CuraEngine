@@ -1,11 +1,14 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <algorithm> //For std::partition_copy.
+#include <algorithm> //For std::partition_copy and std::min_element.
+#include <unordered_set>
 
 #include "WallToolPaths.h"
 
 #include "SkeletalTrapezoidation.h"
+#include "BeadingStrategy/BeadingOrderOptimizer.h"
+#include "utils/SparsePointGrid.h" //To stitch the inner contour.
 #include "utils/polygonUtils.h"
 
 namespace cura
@@ -108,14 +111,71 @@ void WallToolPaths::computeInnerContour()
 
     //Now convert the contour_paths to Polygons to denote the inner contour of the walled areas.
     inner_contour.clear();
-    for(const VariableWidthLines& path : contour_paths)
+
+    //We're going to have to stitch these paths since not all walls may be closed contours.
+    //Since these walls have 0 width they should theoretically be closed. But there may be rounding errors.
+    //Create a bucket grid to find endpoints that are close together.
+    const coord_t minimum_line_width = bead_width_0 / 2;
+    struct ExtrusionLineEndpointLocator
     {
-        for(const ExtrusionLine& line : path)
+        Point operator()(ExtrusionLine* line)
         {
-            inner_contour.emplace_back();
-            for(const ExtrusionJunction& junction : line.junctions)
+            return Point(line->junctions.front().p);
+        }
+    };
+    SparsePointGrid<ExtrusionLine*, ExtrusionLineEndpointLocator> line_endpoints(minimum_line_width); //Only find endpoints closer than minimum_line_width, so we can't ever accidentally make crossing contours.
+    for(VariableWidthLines& path : contour_paths)
+    {
+        for(ExtrusionLine& line : path)
+        {
+            line_endpoints.insert(&line);
+        }
+    }
+    //Then go through all lines and construct chains of polylines if the endpoints are nearby.
+    std::unordered_set<ExtrusionLine*> processed_lines; //Track which lines were already processed to not process them twice.
+    for(VariableWidthLines& path : contour_paths)
+    {
+        for(ExtrusionLine& line : path)
+        {
+            if(processed_lines.find(&line) != processed_lines.end()) //We already added this line before.
             {
-                inner_contour.back().add(junction.p);
+                continue;
+            }
+            inner_contour.emplace_back();
+            ExtrusionLine* nearest = &line;
+            while(nearest)
+            {
+                if(processed_lines.find(nearest) != processed_lines.end())
+                {
+                    break; //Looping. This contour is already processed.
+                }
+
+                for(const ExtrusionJunction& junction : nearest->junctions)
+                {
+                    inner_contour.back().add(junction.p);
+                }
+                processed_lines.insert(nearest);
+
+                //Find any nearby lines to attach.
+                const Point current_position = nearest->junctions.back().p;
+                const std::vector<ExtrusionLine*> nearby = line_endpoints.getNearby(current_position, minimum_line_width);
+                nearest = nullptr;
+                coord_t nearest_dist2 = std::numeric_limits<coord_t>::max();
+                for(ExtrusionLine* candidate : nearby)
+                {
+                    if(processed_lines.find(candidate) != processed_lines.end())
+                    {
+                        continue; //Already processed this line before. It's linked to something else.
+                    }
+                    
+                    const coord_t dist2 = vSize2(candidate->junctions.front().p - current_position);
+                    if(dist2 < nearest_dist2)
+                    {
+                        nearest = candidate;
+                        nearest_dist2 = dist2;
+                        continue;
+                    }
+                }
             }
         }
     }
