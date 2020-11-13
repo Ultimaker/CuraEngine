@@ -483,7 +483,7 @@ public:
 
     void removeColinearEdges(const AngleRadians max_deviation_angle);
 
-    /*! 
+    /*!
      * Removes consecutive line segments with same orientation and changes this polygon.
      * 
      * 1. Removes verts which are connected to line segments which are too small.
@@ -819,6 +819,13 @@ public:
         clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
         clipper.Execute(ClipperLib::ctIntersection, segment_tree);
     }
+
+    /*!
+     * Cut this polygon using an other polygon as a tool
+     * \param tool a closed polygon serving as boundary
+     */
+    Polygons& cut(const Polygons& tool);
+
     Polygons xorPolygons(const Polygons& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const
     {
         Polygons ret;
@@ -1219,10 +1226,10 @@ public:
      * Ensure the polygon is manifold, by removing small areas where the polygon touches itself.
      *  ____                  ____
      * |    |                |    |
-     * |    |____     ==>    |   / ____ 
+     * |    |____     ==>    |   / ____
      *  """"|    |            """ /    |
      *      |____|                |____|
-     * 
+     *
      */
     void ensureManifold();
 
