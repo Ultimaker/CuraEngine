@@ -168,16 +168,16 @@ protected:
     void generateSkinInsets(SkinPart& skin_part, const bool concentric_skinfill_patern);
 
 protected:
-    const LayerIndex layer_nr; //!< The index of the layer for which to generate the skins and infill.
+    LayerIndex layer_nr; //!< The index of the layer for which to generate the skins and infill.
     SliceMeshStorage& mesh; //!< The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
-    const size_t bottom_layer_count; //!< The number of layers of bottom skin
-    const size_t initial_bottom_layer_count; //!< Whether to make bottom skin for the initial layer
-    const size_t top_layer_count; //!< The number of layers of top skin
-    const size_t wall_line_count; //!< The number of walls, i.e. the number of the wall from which to offset.
-    const coord_t skin_line_width; //!< The line width of the skin.
-    const size_t skin_inset_count; //!< The number of perimeters to surround the skin
-    const bool no_small_gaps_heuristic; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
-    const bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
+    size_t bottom_layer_count; //!< The number of layers of bottom skin
+    size_t initial_bottom_layer_count; //!< Whether to make bottom skin for the initial layer
+    size_t top_layer_count; //!< The number of layers of top skin
+    size_t wall_line_count; //!< The number of walls, i.e. the number of the wall from which to offset.
+    coord_t skin_line_width; //!< The line width of the skin.
+    size_t skin_inset_count; //!< The number of perimeters to surround the skin
+    bool no_small_gaps_heuristic; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
+    bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
 
     coord_t top_skin_preshrink; //!< The top skin removal width, to remove thin strips of skin along nearly-vertical walls.
     coord_t bottom_skin_preshrink; //!< The bottom skin removal width, to remove thin strips of skin along nearly-vertical walls.
