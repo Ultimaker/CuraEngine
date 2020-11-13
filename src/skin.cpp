@@ -346,11 +346,6 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part, const bo
  */
 void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polygons& skin)
 {
-    if (part.insets.size() < wall_line_count)
-    {
-        return; // the last wall is not present, the part should only get inter perimeter gaps, but no infill.
-    }
-
     part.infill_area = part.inner_area.difference(skin); //Generate infill everywhere where there wasn't any skin.
     part.infill_area.removeSmallAreas(MIN_AREA_SIZE);
 }
