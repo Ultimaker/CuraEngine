@@ -109,22 +109,22 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
     if (inner_contour.empty()) return;
     if (line_distance == 0) return;
 
-	//Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
-	//The lines along the edge must lie next to the border, not on it.
-	//This makes those algorithms a lot simpler.
+    //Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
+    //The lines along the edge must lie next to the border, not on it.
+    //This makes those algorithms a lot simpler.
     if (pattern == EFillMethod::ZIG_ZAG //Zig-zag prints the zags along the walls.
-		    || pattern == EFillMethod::CONCENTRIC //Concentric at high densities needs to print alongside the walls, not overlapping them.
-			|| (zig_zaggify && (pattern == EFillMethod::LINES //Zig-zaggified infill patterns print their zags along the walls.
-				|| pattern == EFillMethod::TRIANGLES
-			    || pattern == EFillMethod::GRID
-			    || pattern == EFillMethod::CUBIC
-			    || pattern == EFillMethod::TETRAHEDRAL
-			    || pattern == EFillMethod::QUARTER_CUBIC
-			    || pattern == EFillMethod::TRIHEXAGON
-			    || pattern == EFillMethod::GYROID
-			    || pattern == EFillMethod::CROSS
-			    || pattern == EFillMethod::CROSS_3D))
-			|| infill_multiplier % 2 == 0) //Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
+            || pattern == EFillMethod::CONCENTRIC //Concentric at high densities needs to print alongside the walls, not overlapping them.
+            || (zig_zaggify && (pattern == EFillMethod::LINES //Zig-zaggified infill patterns print their zags along the walls.
+                || pattern == EFillMethod::TRIANGLES
+                || pattern == EFillMethod::GRID
+                || pattern == EFillMethod::CUBIC
+                || pattern == EFillMethod::TETRAHEDRAL
+                || pattern == EFillMethod::QUARTER_CUBIC
+                || pattern == EFillMethod::TRIHEXAGON
+                || pattern == EFillMethod::GYROID
+                || pattern == EFillMethod::CROSS
+                || pattern == EFillMethod::CROSS_3D))
+                || infill_multiplier % 2 == 0) //Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
     {
         inner_contour = inner_contour.offset(-infill_line_width / 2);
     }
