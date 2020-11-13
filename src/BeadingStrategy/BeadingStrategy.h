@@ -38,11 +38,10 @@ public:
         coord_t left_over; //! The distance not covered by any bead; gap area.
     };
 
-    coord_t optimal_width_outer; //! Optimal bead width for the outermost wall(s)
-    coord_t optimal_width_inner; //! Optimal bead width for the inner wall(s)
+    coord_t optimal_width; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
     
     std::string name;
-    
+
     coord_t default_transition_length; //! The length of the region to smoothly transfer between bead counts
 
     /*!
@@ -51,9 +50,8 @@ public:
      */
     AngleRadians transitioning_angle;
 
-    BeadingStrategy(coord_t optimal_width_outer, coord_t optimal_width_inner, coord_t default_transition_length, float transitioning_angle = M_PI / 3)
-    : optimal_width_outer(optimal_width_outer)
-    , optimal_width_inner(optimal_width_inner)
+    BeadingStrategy(coord_t optimal_width, coord_t default_transition_length, float transitioning_angle = M_PI / 3)
+    : optimal_width(optimal_width)
     , default_transition_length(default_transition_length)
     , transitioning_angle(transitioning_angle)
     {
