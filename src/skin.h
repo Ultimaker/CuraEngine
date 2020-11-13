@@ -182,38 +182,27 @@ protected:
     const bool no_small_gaps_heuristic; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
     const bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
 
-    coord_t top_reference_wall_expansion; //!< The horizontal expansion to apply to the top reference wall in order to shrink the top skin
-    coord_t bottom_reference_wall_expansion; //!< The horizontal expansion to apply to the bottom reference wall in order to shrink the bottom skin
+    coord_t top_skin_preshrink; //!< The top skin removal width, to remove thin strips of skin along nearly-vertical walls.
+    coord_t bottom_skin_preshrink; //!< The bottom skin removal width, to remove thin strips of skin along nearly-vertical walls.
     coord_t top_skin_expand_distance; //!< The distance by which the top skins should be larger than the original top skins.
     coord_t bottom_skin_expand_distance; //!< The distance by which the bottom skins should be larger than the original bottom skins.
-    const size_t top_reference_wall_idx; //!< The wall of the layer above to consider as inside. Lower index means more skin.
-    const size_t bottom_reference_wall_idx; //!< The wall of the layer below to consider as inside. Lower index means more skin.
 private:
     static coord_t getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
     static coord_t getWallLineWidth0(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the outer wall line width, which might be different for the first layer
     static coord_t getWallLineWidthX(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the inner wall line widths, which might be different for the first layer
 
     /*!
-     * Helper function to get the walls of each part which might intersect with \p part_here
-     * 
-     * \param part_here The part for which to check
-     * \param layer2_nr The layer index from which to gather the outlines
-     * \param wall_idx The 1-based wall index for the walls to grab. e.g. the outermost walls or the second walls. Zero means the outline.
+     * Helper function to get the outline of each part which might intersect
+     * with \p part_here in a different layer.
+     *
+     * This is used to determine where the air is on a different layer. Inner
+     * area that is close to air on a different layer (below air for top skin,
+     * above air for bottom skin) will be come skin. The rest will become
+     * infill.
+     * \param part_here The part for which to check.
+     * \param layer2_nr The layer index from which to gather the outlines.
      */
-    Polygons getWalls(const SliceLayerPart& part_here, int layer2_nr, unsigned int wall_idx);
-
-    /*!
-     * Get the wall index of the reference wall for either the top or bottom skin.
-     * With larger user specified preshrink come lower reference wall indices.
-     * 
-     * The \p preshrink is updated to be relative to be the offset from the resulting reference wall.
-     * A preshrink distance close to an existing wall will snap to that wall so that no offset has to be computed.
-     * 
-     * \param[in,out] preshrink The expansion to be applied to the reference wall. The input is the expansion to be applied to the innermost wall, the output is the expansion applied to the returned reference wall.
-     * \return The index of the reference wall to view as being inside the model for the skin area computation.
-     */
-    int getReferenceWallIdx(coord_t& preshrink) const;
-
+    Polygons getOutlineOnLayer(const SliceLayerPart& part_here, const LayerIndex layer2_nr);
 };
 
 }//namespace cura

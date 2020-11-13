@@ -66,12 +66,10 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr,
 , skin_inset_count(mesh.settings.get<size_t>("skin_outline_count"))
 , no_small_gaps_heuristic(mesh.settings.get<bool>("skin_no_small_gaps_heuristic"))
 , process_infill(process_infill)
-, top_reference_wall_expansion(mesh.settings.get<coord_t>("top_skin_preshrink"))
-, bottom_reference_wall_expansion(mesh.settings.get<coord_t>("bottom_skin_preshrink"))
+, top_skin_preshrink(mesh.settings.get<coord_t>("top_skin_preshrink"))
+, bottom_skin_preshrink(mesh.settings.get<coord_t>("bottom_skin_preshrink"))
 , top_skin_expand_distance(mesh.settings.get<coord_t>("top_skin_expand_distance"))
 , bottom_skin_expand_distance(mesh.settings.get<coord_t>("bottom_skin_expand_distance"))
-, top_reference_wall_idx(getReferenceWallIdx(top_reference_wall_expansion))
-, bottom_reference_wall_idx(getReferenceWallIdx(bottom_reference_wall_expansion))
 {
 }
 
@@ -81,7 +79,7 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr,
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-Polygons SkinInfillAreaComputation::getWalls(const SliceLayerPart& part_here, int layer2_nr, unsigned int wall_idx)
+Polygons SkinInfillAreaComputation::getOutlineOnLayer(const SliceLayerPart& part_here, const LayerIndex layer2_nr)
 {
     Polygons result;
     if (layer2_nr >= static_cast<int>(mesh.layers.size()))
@@ -93,39 +91,10 @@ Polygons SkinInfillAreaComputation::getWalls(const SliceLayerPart& part_here, in
     {
         if (part_here.boundaryBox.hit(part2.boundaryBox))
         {
-            if (wall_idx <= 0)
-            {
-                result.add(part2.outline);
-            }
-            else if (wall_idx <= part2.insets.size())
-            {
-                result.add(part2.insets[wall_idx - 1]); // -1 because it's a 1-based index
-            }
+            result.add(part2.outline);
         }
     }
     return result;
-}
-
-int SkinInfillAreaComputation::getReferenceWallIdx(coord_t& preshrink) const
-{
-    for (int wall_idx = wall_line_count; wall_idx > 0; wall_idx--)
-    {
-        coord_t wall_line_width = (wall_idx > 1)? wall_line_width_x : wall_line_width_0;
-        int next_wall_idx = wall_idx - 1;
-        coord_t next_wall_line_width = (next_wall_idx > 1)? wall_line_width_x : (next_wall_idx == 0)? 0 : wall_line_width_0;
-        coord_t diff_to_next_wall = (wall_line_width + next_wall_line_width) / 2;
-        if (std::abs(preshrink - diff_to_next_wall) <= 10)
-        { // snap preshrink to closest wall
-            preshrink = 0;
-            return next_wall_idx;
-        }
-        if (preshrink < diff_to_next_wall)
-        {
-            return wall_idx;
-        }
-        preshrink -= diff_to_next_wall;
-    }
-    return 0;
 }
 
 /*
@@ -238,12 +207,12 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
         return; // don't subtract anything form the downskin
     }
     LayerIndex bottom_check_start_layer_idx = std::max(LayerIndex(0), layer_nr - bottom_layer_count);
-    Polygons not_air = getWalls(part, bottom_check_start_layer_idx, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion);
+    Polygons not_air = getOutlineOnLayer(part, bottom_check_start_layer_idx);
     if (!no_small_gaps_heuristic)
     {
         for (int downskin_layer_nr = bottom_check_start_layer_idx + 1; downskin_layer_nr < layer_nr; downskin_layer_nr++)
         {
-            not_air = not_air.intersection(getWalls(part, downskin_layer_nr, bottom_reference_wall_idx).offset(bottom_reference_wall_expansion));
+            not_air = not_air.intersection(getOutlineOnLayer(part, downskin_layer_nr));
         }
     }
     const double min_infill_area = mesh.settings.get<double>("min_infill_area");
@@ -258,16 +227,17 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
 {
     if(layer_nr > LayerIndex(mesh.layers.size()) - top_layer_count || top_layer_count <= 0)
     {
-        //If we're in the very top layers (less than top_layer_count from the top of the mesh) everything will be top skin anyway, so no need to generate infill. Just take the original inner countour.
+        //If we're in the very top layers (less than top_layer_count from the top of the mesh) everything will be top skin anyway, so no need to generate infill. Just take the original inner contour.
         //If top_layer_count is 0, no need to calculate anything either.
         return;
     }
-    Polygons not_air = getWalls(part, layer_nr + top_layer_count, top_reference_wall_idx).offset(top_reference_wall_expansion);
+
+    Polygons not_air = getOutlineOnLayer(part, layer_nr + top_layer_count);
     if (!no_small_gaps_heuristic)
     {
         for (int upskin_layer_nr = layer_nr + 1; upskin_layer_nr < layer_nr + top_layer_count; upskin_layer_nr++)
         {
-            not_air = not_air.intersection(getWalls(part, upskin_layer_nr, top_reference_wall_idx).offset(top_reference_wall_expansion));
+            not_air = not_air.intersection(getOutlineOnLayer(part, upskin_layer_nr));
         }
     }
     // Prevent removing top skin layers
@@ -298,17 +268,9 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     coord_t top_min_width = mesh.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
     coord_t bottom_min_width = top_min_width;
 
-    // Compensate for the pre-shrink applied because of the Skin Removal Width.
-    // The skin removal width is satisfied by applying a close operation and
-    // it's done in the calculateTopSkin and calculateBottomSkin, by expanding the infill.
-    // The inset of that close operation is applied in calculateTopSkin and calculateBottomSkin
-    // The outset of the close operation is applied at the same time as the skin expansion.
-    top_outset += top_reference_wall_expansion;
-    bottom_outset += bottom_reference_wall_expansion;
-
     // Calculate the shrinkage needed to fulfill the minimum skin with for expansion
-    top_min_width = std::max(coord_t(0), top_min_width - top_reference_wall_expansion / 2); // if the min width is smaller than the pre-shrink then areas smaller than min_width will exist
-    bottom_min_width = std::max(coord_t(0), bottom_min_width - bottom_reference_wall_expansion / 2); // if the min width is smaller than the pre-shrink then areas smaller than min_width will exist
+    top_min_width = std::max(coord_t(0), top_min_width - top_skin_expand_distance / 2); // if the min width is smaller than the pre-shrink then areas smaller than min_width will exist
+    bottom_min_width = std::max(coord_t(0), bottom_min_width - bottom_skin_expand_distance / 2); // if the min width is smaller than the pre-shrink then areas smaller than min_width will exist
 
     // skin areas are to be enlarged by skin_expand_distance but before they are expanded
     // the skin areas are shrunk by min_width so that very narrow regions of skin
@@ -442,14 +404,13 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part)
 {
     const size_t roofing_layer_count = mesh.settings.get<size_t>("roofing_layer_count");
-    const size_t wall_idx = std::min(size_t(2), mesh.settings.get<size_t>("wall_line_count"));
 
-    Polygons no_air_above = getWalls(part, layer_nr + roofing_layer_count, wall_idx);
+    Polygons no_air_above = getOutlineOnLayer(part, layer_nr + roofing_layer_count);
     if (!no_small_gaps_heuristic)
     {
         for (int layer_nr_above = layer_nr + 1; layer_nr_above < layer_nr + roofing_layer_count; layer_nr_above++)
         {
-            Polygons outlines_above = getWalls(part, layer_nr_above, wall_idx);
+            Polygons outlines_above = getOutlineOnLayer(part, layer_nr_above);
             no_air_above = no_air_above.intersection(outlines_above);
         }
     }
@@ -461,7 +422,7 @@ Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part)
         // has air below (fixes https://github.com/Ultimaker/Cura/issues/2656)
 
         // set air_below to the skin area for the current layer that has air below it
-        Polygons air_below = getWalls(part, layer_nr, wall_idx).difference(getWalls(part, layer_nr - 1, wall_idx));
+        Polygons air_below = getOutlineOnLayer(part, layer_nr).difference(getOutlineOnLayer(part, layer_nr - 1));
 
         if (!air_below.empty())
         {
