@@ -252,34 +252,22 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
  */
 void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
 {
-    // First we set the amount of distance we want to expand, as indicated in settings
-    coord_t top_outset = top_skin_expand_distance;
-    coord_t bottom_outset = bottom_skin_expand_distance;
+    //Remove thin pieces of support for Skin Removal Width.
+    const Polygons preshrunk_bottom = downskin.offset(-bottom_skin_preshrink / 2).offset(bottom_skin_preshrink / 2);
+    const Polygons preshrunk_top = upskin.offset(-top_skin_preshrink / 2).offset(top_skin_preshrink / 2);
 
-    coord_t top_min_width = mesh.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
-    coord_t bottom_min_width = top_min_width;
-
-    // Calculate the shrinkage needed to fulfill the minimum skin with for expansion
-    top_min_width = std::max(coord_t(0), top_min_width - top_skin_expand_distance / 2); // if the min width is smaller than the pre-shrink then areas smaller than min_width will exist
-    bottom_min_width = std::max(coord_t(0), bottom_min_width - bottom_skin_expand_distance / 2); // if the min width is smaller than the pre-shrink then areas smaller than min_width will exist
-
-    // skin areas are to be enlarged by skin_expand_distance but before they are expanded
-    // the skin areas are shrunk by min_width so that very narrow regions of skin
-    // (often caused by the model's surface having a steep incline) are not expanded
-
-    top_outset += top_min_width; // increase the expansion distance to compensate for the min_width shrinkage
-    bottom_outset += bottom_min_width; // increase the expansion distance to compensate for the min_width shrinkage
-
-    // Execute shrinkage and expansion in the same operation
-    if (top_outset)
-    {
-        upskin = upskin.offset(-top_min_width).offset(top_outset).unionPolygons(upskin).intersection(original_outline);
-    }
-
-    if (bottom_outset)
-    {
-        downskin = downskin.offset(-bottom_min_width).offset(bottom_outset).unionPolygons(downskin).intersection(original_outline);
-    }
+    //Expand some areas of the skin for Skin Expand Distance.
+    //This performs an opening operation by first insetting by the minimum width, then offsetting with the same width.
+    //The expansion is only applied to that opened shape.
+    const coord_t min_width = mesh.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
+    downskin = preshrunk_bottom.offset(-min_width).offset(min_width + bottom_skin_expand_distance);
+    upskin = preshrunk_top.offset(-min_width).offset(min_width + top_skin_expand_distance);
+    //Afterwards the offset shape needs to be clipped with the original outline since we may only expand into infill, not across the walls.
+    downskin = downskin.intersection(original_outline);
+    upskin = upskin.intersection(original_outline);
+    //And then re-joined with the original part that was not offset, to retain parts smaller than min_width.
+    downskin = downskin.unionPolygons(preshrunk_bottom);
+    upskin = upskin.unionPolygons(preshrunk_top);
 }
 
 
