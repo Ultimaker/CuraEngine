@@ -175,9 +175,6 @@ protected:
     const size_t top_layer_count; //!< The number of layers of top skin
     const size_t wall_line_count; //!< The number of walls, i.e. the number of the wall from which to offset.
     const coord_t skin_line_width; //!< The line width of the skin.
-    const coord_t wall_line_width_0; //!< The line width of the outer wall
-    const coord_t wall_line_width_x; //!< The line width of the inner most wall
-    const coord_t innermost_wall_line_width; //!< width of the innermost wall lines
     const size_t skin_inset_count; //!< The number of perimeters to surround the skin
     const bool no_small_gaps_heuristic; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
     const bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
@@ -188,8 +185,6 @@ protected:
     coord_t bottom_skin_expand_distance; //!< The distance by which the bottom skins should be larger than the original bottom skins.
 private:
     static coord_t getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
-    static coord_t getWallLineWidth0(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the outer wall line width, which might be different for the first layer
-    static coord_t getWallLineWidthX(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the inner wall line widths, which might be different for the first layer
 
     /*!
      * Helper function to get the outline of each part which might intersect

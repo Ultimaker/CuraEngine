@@ -30,28 +30,6 @@ coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh
     return skin_line_width;
 }
 
-coord_t SkinInfillAreaComputation::getWallLineWidth0(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
-{
-    coord_t wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
-    if (layer_nr == 0)
-    {
-        const ExtruderTrain& train_wall_0 = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr");
-        wall_line_width_0 *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
-    }
-    return wall_line_width_0;
-}
-
-coord_t SkinInfillAreaComputation::getWallLineWidthX(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
-{
-    coord_t wall_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x");
-    if (layer_nr == 0)
-    {
-        const ExtruderTrain& train_wall_x = mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr");
-        wall_line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
-    }
-    return wall_line_width_x;
-}
-
 SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr, SliceMeshStorage& mesh, bool process_infill)
 : layer_nr(layer_nr)
 , mesh(mesh)
@@ -60,9 +38,6 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr,
 , top_layer_count(mesh.settings.get<size_t>("top_layers"))
 , wall_line_count(mesh.settings.get<size_t>("wall_line_count"))
 , skin_line_width(getSkinLineWidth(mesh, layer_nr))
-, wall_line_width_0(getWallLineWidth0(mesh, layer_nr))
-, wall_line_width_x(getWallLineWidthX(mesh, layer_nr))
-, innermost_wall_line_width((wall_line_count == 1) ? wall_line_width_0 : wall_line_width_x)
 , skin_inset_count(mesh.settings.get<size_t>("skin_outline_count"))
 , no_small_gaps_heuristic(mesh.settings.get<bool>("skin_no_small_gaps_heuristic"))
 , process_infill(process_infill)
