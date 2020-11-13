@@ -135,14 +135,8 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
         return;
     }
 
-    for (unsigned int part_nr = 0; part_nr < layer.parts.size(); part_nr++)
+    for(SliceLayerPart& part : layer.parts)
     {
-        SliceLayerPart& part = layer.parts[part_nr];
-
-        if (part.insets.size() < wall_line_count)
-        {
-            continue; // the last wall is not present, the part should only get inter perimeter gaps, but no skin or infill.
-        }
         generateSkinAndInfillAreas(part);
     }
 }
