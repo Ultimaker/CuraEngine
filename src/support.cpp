@@ -884,7 +884,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
     // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
     // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
-#if defined(__GNUC__) && __GNUC__ <= 8
+#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
     #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, sloped_areas_per_layer, storage, mesh) schedule(dynamic)
 #else
     #pragma omp parallel for default(none) \
@@ -1000,7 +1000,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     // Post-process the sloped areas's. (Skip if no stair-stepping anyway.)
     // The idea here is to 'add up' all the sloped 'areas' so they form actual areas per each stair-step height.
     // (Only the 'top' sloped area for each step is actually used in the end, see 'moveUpFromModel'.)
-    if (bottom_stair_step_layer_count > 0)
+    if (bottom_stair_step_layer_count > 1)
     {
         // We can parallelize this part, which is needed since these are potentially expensive operations,
         // but only in chunks of `bottom_stair_step_layer_count` steps, since, within such a chunk,
@@ -1009,7 +1009,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
         // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
         // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
-#if defined(__GNUC__) && __GNUC__ <= 8
+#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
 #pragma omp parallel for default(none) shared(sloped_areas_per_layer) schedule(dynamic)
 #else
 #pragma omp parallel for default(none) shared(sloped_areas_per_layer, layer_count, bottom_stair_step_layer_count) schedule(dynamic)
@@ -1050,12 +1050,13 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         { // join with support from layer up
             const Polygons empty;
             const Polygons* layer_above = (layer_idx < support_areas.size()) ? &support_areas[layer_idx + 1] : &empty;
+            const Polygons model_mesh_on_layer = (layer_idx > 0) && !is_support_mesh_nondrop_place_holder ? storage.getLayerOutlines(layer_idx, no_support, no_prime_tower) : empty;
             if (is_support_mesh_nondrop_place_holder)
             {
                 layer_above = &empty;
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
-            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance);
+            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance).difference(model_mesh_on_layer);
         }
 
         // make towers for small support
@@ -1169,7 +1170,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
     // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
     // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
-#if defined(__GNUC__) && __GNUC__ <= 8
+#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
     #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
 #else
     #pragma omp parallel for default(none) shared(support_areas, storage, max_checking_layer_idx, layer_z_distance_top) schedule(dynamic)

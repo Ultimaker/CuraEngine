@@ -187,22 +187,22 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     mesh->set_vertices(verts_as_str);
 
     // - - Add settings to the mesh:
-    cura::proto::Setting* entry = mesh->add_settings();
-    entry->set_name("extruder_nr");
-    entry->set_value("0");
-    entry = mesh->add_settings();
-    entry->set_name("center_object");
-    entry->set_value("1");
-    entry = mesh->add_settings();
-    entry->set_name("mesh_position_x");
-    entry->set_value("0");
-    entry = mesh->add_settings();
-    entry->set_name("mesh_position_y");
-    entry->set_value("0");
-    entry = mesh->add_settings();
-    entry->set_name("mesh_position_z");
-    entry->set_value("0");
-    entry = mesh->add_settings();
+    std::map<std::string, std::string> mesh_settings = {
+        {"extruder_nr", "0"},
+        {"center_object", "1"},
+        {"mesh_position_x", "0"},
+        {"mesh_position_y", "0"},
+        {"mesh_position_z", "0"},
+        {"infill_mesh", "0"},
+        {"cutting_mesh", "0"},
+        {"anti_overhang_mesh", "0"},
+    };
+    for(std::pair<std::string, std::string> key_value : mesh_settings)
+    {
+        cura::proto::Setting* entry = mesh->add_settings();
+        entry->set_name(key_value.first);
+        entry->set_value(key_value.second);
+    }
 
     // The call it's actually all about:
     instance->readMeshGroupMessage(mesh_message);

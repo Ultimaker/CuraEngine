@@ -1,11 +1,11 @@
-#Copyright (c) 2019 Ultimaker B.V.
+#Copyright (c) 2020 Ultimaker B.V.
 #CuraEngine is released under the terms of the AGPLv3 or higher.
 
 cmake_minimum_required(VERSION 3.6.0)
 
 project(CuraEngine)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 
@@ -120,9 +120,9 @@ if (ENABLE_OPENMP)
 endif()
 
 if(USE_SYSTEM_LIBS)
-    include_directories(${Polyclipping_INCLUDE_DIRS} ${CMAKE_BINARY_DIR} ${RAPIDJSON_INCLUDE_DIRS})
+    include_directories(${Polyclipping_INCLUDE_DIRS} "${CMAKE_BINARY_DIR}" ${RAPIDJSON_INCLUDE_DIRS})
 else()
-    include_directories(${CMAKE_CURRENT_BINARY_DIR} libs libs/clipper)
+    include_directories("${CMAKE_CURRENT_BINARY_DIR}" libs libs/clipper)
     add_library(clipper STATIC libs/clipper/clipper.cpp)
 endif()
 
@@ -196,6 +196,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
     src/utils/Date.cpp
+    src/utils/FMatrix4x3.cpp
     src/utils/gettime.cpp
     src/utils/getpath.cpp
     src/utils/LinearAlg2D.cpp
@@ -323,51 +324,51 @@ if (BUILD_TESTS)
 
     #To make sure that the tests are built before running them, add the building of these tests as an additional test.
     add_custom_target(build_all_tests)
-    add_test(BuildTests "${CMAKE_COMMAND}" --build ${CMAKE_CURRENT_BINARY_DIR} --target build_all_tests)
+    add_test(BuildTests "${CMAKE_COMMAND}" --build "${CMAKE_CURRENT_BINARY_DIR}" --target build_all_tests)
 
     foreach (test ${engine_TEST})
         add_executable(${test} tests/main.cpp ${engine_TEST_HELPERS} tests/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
     endforeach()
     foreach (test ${engine_TEST_INFILL})
         add_executable(${test} tests/main.cpp tests/infill/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
     endforeach()
     foreach (test ${engine_TEST_INTEGRATION})
         add_executable(${test} tests/main.cpp tests/integration/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
     endforeach()
     foreach (test ${engine_TEST_SETTINGS})
         add_executable(${test} tests/main.cpp tests/settings/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
     endforeach()
     if (ENABLE_ARCUS)
         foreach (test ${engine_TEST_ARCUS})
             add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
             target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-            add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
+            add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
             add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
         endforeach()
     endif ()
     foreach (test ${engine_TEST_UTILS})
         add_executable(${test} tests/main.cpp tests/utils/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
     endforeach()
 endif()
 
 # Installing CuraEngine.
 include(GNUInstallDirs)
-install(TARGETS CuraEngine DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS CuraEngine DESTINATION "${CMAKE_INSTALL_BINDIR}")
 # For MinGW64 cross compiling on Debian, we create a ZIP package instead of a DEB
 # Because it's the Windows build system that should install the files.
 if (CMAKE_CROSSCOMPILING AND CMAKE_SYSTEM_NAME MATCHES "Windows")

@@ -22,7 +22,7 @@ struct Temperature
     /*
      * \brief Casts a double to a Temperature instance.
      */
-    Temperature(double value) : value(value) {};
+    Temperature(double value_t) : value(value_t) {};
 
     /*
      * \brief Casts the Temperature instance to a double.

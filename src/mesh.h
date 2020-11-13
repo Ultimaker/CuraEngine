@@ -6,6 +6,8 @@
 
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
+#include "utils/floatpoint.h"
+#include "utils/FMatrix4x3.h"
 
 namespace cura
 {
@@ -91,6 +93,12 @@ public:
             v.p += offset;
         aabb.offset(offset);
     }
+
+    /*!
+     * Apply an affine transformation to this mesh's 3D data.
+     * \param transformation The transformation to apply.
+     */
+    void transform(const FMatrix4x3& transformation);
 
 private:
     mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces

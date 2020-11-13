@@ -93,6 +93,16 @@ void Mesh::expandXY(int64_t offset)
     }
 }
 
+void Mesh::transform(const FMatrix4x3& transformation)
+{
+    for(MeshVertex& v : vertices)
+    {
+        v.p = transformation.apply(v.p);
+    }
+    aabb.min = transformation.apply(aabb.min);
+    aabb.max = transformation.apply(aabb.max);
+}
+
 
 int Mesh::findIndexOfVertex(const Point3& v)
 {

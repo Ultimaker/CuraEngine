@@ -335,6 +335,14 @@ TEST_F(PolygonTest, simplifyLimitedError)
         // apply simplify iteratively for each point until nothing is simplifiable any more
         spiral_polygons.simplify(10000, max_height);
     }
+    
+    if (visualize)
+    {
+        SVG svg("output/simplifyLimitedError.svg", AABB(spiral_before));
+        svg.writePolygon(spiral_before);
+        svg.nextLayer();
+        svg.writePolygon(spiral, SVG::Color::RED);
+    }
 
     EXPECT_THAT(spiral.size(), testing::Eq(4)) << "Should simplify all spiral points except those connected to far away geometry.";
 }
