@@ -186,7 +186,6 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
  */
 void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
-
     //Make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
     Polygons top_skin;
     if (top_layer_count > 0)
@@ -257,28 +256,31 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
 
 void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Polygons& upskin)
 {
-    if (static_cast<int>(layer_nr + top_layer_count) < static_cast<int>(mesh.layers.size()) && top_layer_count > 0)
+    if(layer_nr > LayerIndex(mesh.layers.size()) - top_layer_count || top_layer_count <= 0)
     {
-        Polygons not_air = getWalls(part, layer_nr + top_layer_count, top_reference_wall_idx).offset(top_reference_wall_expansion);
-        if (!no_small_gaps_heuristic)
-        {
-            for (int upskin_layer_nr = layer_nr + 1; upskin_layer_nr < layer_nr + top_layer_count; upskin_layer_nr++)
-            {
-                not_air = not_air.intersection(getWalls(part, upskin_layer_nr, top_reference_wall_idx).offset(top_reference_wall_expansion));
-            }
-        }
-        // Prevent removing top skin layers
-        Polygons upskin_before(upskin.difference(not_air));
-
-        const double min_infill_area = mesh.settings.get<double>("min_infill_area");
-        if (min_infill_area > 0.0)
-        {
-            not_air.removeSmallAreas(min_infill_area);
-        }
-
-        upskin = upskin.difference(not_air); // skin overlaps with the walls
-        upskin = upskin.unionPolygons(upskin_before); // in some cases the top skin layer might be removed. To prevent it add them back
+        //If we're in the very top layers (less than top_layer_count from the top of the mesh) everything will be top skin anyway, so no need to generate infill. Just take the original inner countour.
+        //If top_layer_count is 0, no need to calculate anything either.
+        return;
     }
+    Polygons not_air = getWalls(part, layer_nr + top_layer_count, top_reference_wall_idx).offset(top_reference_wall_expansion);
+    if (!no_small_gaps_heuristic)
+    {
+        for (int upskin_layer_nr = layer_nr + 1; upskin_layer_nr < layer_nr + top_layer_count; upskin_layer_nr++)
+        {
+            not_air = not_air.intersection(getWalls(part, upskin_layer_nr, top_reference_wall_idx).offset(top_reference_wall_expansion));
+        }
+    }
+    // Prevent removing top skin layers
+    Polygons upskin_before(upskin.difference(not_air));
+
+    const double min_infill_area = mesh.settings.get<double>("min_infill_area");
+    if (min_infill_area > 0.0)
+    {
+        not_air.removeSmallAreas(min_infill_area);
+    }
+
+    upskin = upskin.difference(not_air); // skin overlaps with the walls
+    upskin = upskin.unionPolygons(upskin_before); // in some cases the top skin layer might be removed. To prevent it add them back
 }
 
 /*
