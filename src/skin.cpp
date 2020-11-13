@@ -252,18 +252,20 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
  */
 void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
 {
+    const coord_t min_width = mesh.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
     //Remove thin pieces of support for Skin Removal Width.
     if(bottom_skin_preshrink)
     {
-        downskin = downskin.offset(-bottom_skin_preshrink / 2).offset(bottom_skin_preshrink / 2);
+        const coord_t simple_expand_distance = min_width ? 0 : bottom_skin_expand_distance; //If there is no min_width we can immediately apply the expand distance here, saving one offset operation.
+        downskin = downskin.offset(-bottom_skin_preshrink / 2).offset(bottom_skin_preshrink / 2 + simple_expand_distance);
     }
     if(top_skin_preshrink)
     {
-        upskin = upskin.offset(-top_skin_preshrink / 2).offset(top_skin_preshrink / 2);
+        const coord_t simple_expand_distance = min_width ? 0 : top_skin_expand_distance;
+        upskin = upskin.offset(-top_skin_preshrink / 2).offset(top_skin_preshrink / 2 + simple_expand_distance);
     }
 
     //Expand some areas of the skin for Skin Expand Distance.
-    const coord_t min_width = mesh.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
     if(min_width)
     {
         //This performs an opening operation by first insetting by the minimum width, then offsetting with the same width.
@@ -286,19 +288,17 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     else
     {
         //Without minimum width, it's just a simple offset. No opening operation or re-join necessary.
+        //This offset was already applied before during the preshrink. We just need to make sure the skin stays contained in the skinfill area.
+        //We may only expand into the infill area, not across the walls.
         if(bottom_skin_expand_distance)
         {
-            downskin = downskin.offset(bottom_skin_expand_distance);
-            //Afterwards the offset shape needs to be clipped with the original outline since we may only expand into infill, not across the walls.
             downskin = downskin.intersection(original_outline);
         }
         if(top_skin_expand_distance)
         {
-            upskin = upskin.offset(top_skin_expand_distance);
             upskin = upskin.intersection(original_outline);
         }
     }
-
 }
 
 
