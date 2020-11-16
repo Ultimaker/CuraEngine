@@ -490,11 +490,11 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
 
         for (SliceLayerPart& part : layer.parts)
         {
-            assert(part.infill_area_per_combine_per_density.size() == 0 && "infill_area_per_combine_per_density is supposed to be uninitialized");
+            assert((part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is supposed to be uninitialized"));
 
             const Polygons& infill_area = part.getOwnInfillArea();
 
-            if (infill_area.size() == 0 || layer_idx < min_layer || layer_idx > max_layer)
+            if (infill_area.empty() || layer_idx < min_layer || layer_idx > max_layer)
             { // initialize infill_area_per_combine_per_density empty
                 part.infill_area_per_combine_per_density.emplace_back(); // create a new infill_area_per_combine
                 part.infill_area_per_combine_per_density.back().emplace_back(); // put empty infill area in the newly constructed infill_area_per_combine
@@ -526,7 +526,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                     }
                     less_dense_infill = less_dense_infill.intersection(relevent_upper_polygons);
                 }
-                if (less_dense_infill.size() == 0)
+                if (less_dense_infill.empty())
                 {
                     break;
                 }
@@ -540,7 +540,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
             std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
             infill_area_per_combine_current_density.push_back(infill_area);
             part.infill_area_own = nullptr; // clear infill_area_own, it's not needed any more.
-            assert(part.infill_area_per_combine_per_density.size() != 0 && "infill_area_per_combine_per_density is now initialized");
+            assert(!part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is now initialized");
         }
     }
 }

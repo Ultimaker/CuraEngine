@@ -377,7 +377,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 {
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
-    addLineSegmentsInfill(result, uncropped);
+    result = uncropped.cut(outer_contour.offset(infill_overlap));
 }
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
@@ -411,18 +411,6 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
                 result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
             }
         }
-    }
-}
-
-void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
-{
-    ClipperLib::PolyTree interior_segments_tree;
-    inner_contour.lineSegmentIntersection(input, interior_segments_tree);
-    ClipperLib::Paths interior_segments;
-    ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
-    for (size_t idx = 0; idx < interior_segments.size(); idx++)
-    {
-        result.addLine(interior_segments[idx][0], interior_segments[idx][1]);
     }
 }
 
