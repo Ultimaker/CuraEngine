@@ -194,6 +194,10 @@ const Polygons& WallToolPaths::getInnerContour()
     {
         generate();
     }
+    else if(inset_count == 0)
+    {
+        return outline;
+    }
     return inner_contour;
 }
 

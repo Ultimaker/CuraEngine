@@ -40,6 +40,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     {
         part->insets.push_back(part->outline);
         part->print_outline = part->outline;
+        part->inner_area = part->outline;
         return;
     }
 

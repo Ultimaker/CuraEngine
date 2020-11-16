@@ -311,6 +311,10 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part, const bo
         skin_part.inset_paths = wall_tool_paths.getToolPaths();
         skin_part.inner_infill = wall_tool_paths.getInnerContour();
     }
+    else
+    {
+        skin_part.inner_infill = skin_part.outline;
+    }
 }
 
 /*
