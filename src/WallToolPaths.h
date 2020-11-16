@@ -70,13 +70,6 @@ public:
     const Polygons& getOutline() const;
 
     /*!
-     * Obtains the inner contour of the generated ToolPaths. Not yet implemented. See CURA-7681
-     * \param toolpaths the toolpaths used to determine the inner contour
-     * \return
-     */
-    static Polygons innerContourFromToolpaths(const VariableWidthPaths& toolpaths);
-
-    /*!
      * Removes empty paths from the toolpaths
      * \param toolpaths the VariableWidthPaths generated with \p generate()
      * \return true if there are still paths left. If all toolpaths were removed it returns false

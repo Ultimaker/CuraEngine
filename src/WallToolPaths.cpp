@@ -202,12 +202,6 @@ const Polygons& WallToolPaths::getOutline() const
     return outline;
 }
 
-Polygons WallToolPaths::innerContourFromToolpaths(const VariableWidthPaths& toolpaths)
-{
-    // TODO: CURA-7681
-    return Polygons();
-}
-
 bool WallToolPaths::removeEmptyToolPaths(VariableWidthPaths& toolpaths)
 {
     toolpaths.erase(std::remove_if(toolpaths.begin(), toolpaths.end(), [](const VariableWidthLines& lines)
