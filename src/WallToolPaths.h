@@ -55,11 +55,16 @@ public:
     void computeInnerContour();
 
     /*!
-     * Gets the inner contour of the area which is inside of the generated ToolPaths. This is for now a simple offset
-     * of the outline. But after the implementation of CURA-7681 this will return the actual inside contour.
-     * If this is called before \p generate() it will first generate the ToolPaths
-     * If this is called when the inset count is 0 it will return a reference to the outline
-     * \return A reference to the inner contour
+     * Gets the inner contour of the area which is inside of the generated tool
+     * paths.
+     *
+     * If the walls haven't been generated yet, this will lazily call the
+     * \p generate() function to generate the walls with variable width.
+     * The resulting polygon will snugly match the inside of the variable-width
+     * walls where the walls get limited by the LimitedBeadingStrategy to a
+     * maximum wall count.
+     * If there are no walls, the outline will be returned.
+     * \return The inner contour of the generated walls.
      */
     const Polygons& getInnerContour();
 
