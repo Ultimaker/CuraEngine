@@ -169,9 +169,9 @@ namespace cura
         VariableWidthPaths result_paths;
         Polygons result_polygons;
         Polygons result_lines;
-        infill.generate(result_paths, result_polygons, result_lines, nullptr, nullptr);
+        infill.generate(result_paths, result_polygons, result_lines, infill_settings, nullptr, nullptr);
 
-        InfillTestParameters result = InfillTestParameters(params, test_polygon_id, outline_polygons, infill_settings, result_lines, result_polygons);
+        InfillTestParameters result = InfillTestParameters(params, test_polygon_id, outline_polygons, result_lines, result_polygons);
         return result;
     }
 
