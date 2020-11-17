@@ -30,7 +30,7 @@ PrimeTower::PrimeTower()
     {
         EPlatformAdhesion adhesion_type = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type");
 
-        multiple_extruders_on_first_layer = scene.settings.get<bool>("machine_extruders_share_nozzle") && ((adhesion_type == EPlatformAdhesion::RAFT) || (adhesion_type == EPlatformAdhesion::NONE));
+        multiple_extruders_on_first_layer = scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle") && ((adhesion_type == EPlatformAdhesion::RAFT) || (adhesion_type == EPlatformAdhesion::NONE));
     }
 
     enabled = scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
