@@ -76,6 +76,11 @@ public:
      */
     static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
 
+    std::string prettyPrint(VariableWidthLines& lines);
+    std::string prettyPrint();
+
+    void simplifyToolpaths();
+
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
     const coord_t bead_width_0; //<! The nominal or first extrusion line width with which libArachne generates its walls
@@ -90,6 +95,7 @@ private:
     bool toolpaths_generated; //<! Are the toolpaths generated
     VariableWidthPaths toolpaths; //<! The generated toolpaths
     Polygons inner_contour;  //<! The inner contour of the generated toolpaths
+    const Settings& settings;
 };
 } // namespace cura
 

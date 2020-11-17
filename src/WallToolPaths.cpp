@@ -5,6 +5,7 @@
 
 #include "SkeletalTrapezoidation.h"
 #include "utils/polygonUtils.h"
+#include "ExtruderTrain.h"
 
 namespace cura
 {
@@ -23,6 +24,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
     , small_area_length(INT2MM(static_cast<double>(nominal_bead_width) / 2))
     , transition_length(transition_length_multiplier * nominal_bead_width)
     , toolpaths_generated(false)
+    , settings(settings)
 {
 }
 
@@ -39,6 +41,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
     , small_area_length(INT2MM(static_cast<double>(bead_width_0) / 2))
     , transition_length(transition_length_multiplier * bead_width_0)
     , toolpaths_generated(false)
+    , settings(settings)
 {
 }
 
@@ -58,6 +61,7 @@ const VariableWidthPaths& WallToolPaths::generate()
     prepared_outline.removeDegenerateVerts();
     prepared_outline.removeColinearEdges();
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
+    std::string outline_str = prepared_outline.prettyprint();
 
     if (prepared_outline.area() > 0)
     {
@@ -68,9 +72,59 @@ const VariableWidthPaths& WallToolPaths::generate()
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(toolpaths);
     }
+    std::string toolpaths_str = prettyPrint();
+    simplifyToolpaths();
+
+    std::string toolpaths_simplified_str = prettyPrint();
     removeEmptyToolPaths(toolpaths);
     toolpaths_generated = true;
     return toolpaths;
+}
+
+void WallToolPaths::simplifyToolpaths()
+{
+    for (size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
+    {
+        const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>(toolpaths_idx == 0 ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
+        const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
+        for (auto& line : toolpaths[toolpaths_idx])
+        {
+            line.simplify(maximum_resolution, maximum_deviation);
+        }
+    }
+}
+
+
+
+std::string WallToolPaths::prettyPrint(VariableWidthLines& lines)
+{
+    std::string pretty;
+    for (unsigned int line_idx = 0; line_idx < lines.size(); line_idx++){
+        pretty += "Path(" + std::to_string(line_idx) + ")=";
+        for (ExtrusionJunction & junction : lines[line_idx].junctions)
+        {
+            pretty += "[" + std::to_string(junction.p.X) + "," + std::to_string(junction.p.Y) + "]  ";
+        }
+        pretty += "\n";
+    }
+    return pretty;
+}
+
+std::string WallToolPaths::prettyPrint()
+{
+    std::string pretty;
+    for (unsigned int toolpath_idx = 0; toolpath_idx < toolpaths.size(); toolpath_idx++){
+        pretty += "Path(" + std::to_string(toolpath_idx) + ")=";
+        for (unsigned int line_idx = 0; line_idx < toolpaths[toolpath_idx].size(); line_idx++){
+            for (ExtrusionJunction & junction : toolpaths[toolpath_idx][line_idx].junctions)
+            {
+                pretty += "[" + std::to_string(junction.p.X) + "," + std::to_string(junction.p.Y) + "]  ";
+            }
+        }
+        pretty += "\n";
+    }
+    return pretty;
 }
 
 const VariableWidthPaths& WallToolPaths::getToolPaths()
