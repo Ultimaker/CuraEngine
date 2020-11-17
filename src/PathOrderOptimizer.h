@@ -212,6 +212,10 @@ public:
         for(size_t i = 0; i < paths.size(); ++i)
         {
             const Path& path = paths[i];
+            if (path.converted->empty())
+            {
+                continue;
+            }
             if(path.is_closed)
             {
                 for(const Point& point : *path.converted)

@@ -815,6 +815,9 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
 
 void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed)
 {
+    if (wall.empty()) {
+        return;
+    }
     if(is_closed)
     {
         // make sure wall start point is not above air!
