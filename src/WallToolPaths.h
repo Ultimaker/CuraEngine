@@ -77,10 +77,11 @@ public:
     static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
 
     /*!
-     * Simplifies the generated toolpaths
+     * Simplifies The generated toolpaths
+     * \param settings The settings as provided by the user
      * \return
      */
-    void simplifyToolpaths();
+    static void simplifyToolPaths(VariableWidthPaths& toolpaths, const Settings& settings);
 
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
