@@ -17,6 +17,7 @@
 #include "utils/logoutput.h"
 #include "utils/PolygonConnector.h"
 #include "utils/polygonUtils.h"
+#include "utils/PolylineStitcher.h"
 #include "utils/UnionFind.h"
 
 /*!
@@ -168,6 +169,14 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         connectLines(result_lines);
     }
     crossings_on_line.clear();
+
+    if (zig_zaggify ||
+        pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID || pattern == EFillMethod::ZIG_ZAG)
+    { // don't stich for non-zig-zagged line infill types
+        Polygons stiched_lines;
+        PolylineStitcher::stitch(result_lines, stiched_lines, result_polygons, infill_line_width);
+        result_lines = stiched_lines;
+    }
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
