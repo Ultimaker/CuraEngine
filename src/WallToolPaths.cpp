@@ -88,9 +88,10 @@ void WallToolPaths::simplifyToolpaths()
         const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>(toolpaths_idx == 0 ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
         const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
         const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
+        const coord_t nominal_wall_width = settings.get<coord_t>(toolpaths_idx == 0 ? "wall_line_width_0" : "wall_line_width_x");
         for (auto& line : toolpaths[toolpaths_idx])
         {
-            line.simplify(maximum_resolution, maximum_deviation);
+            line.simplify(maximum_resolution, maximum_deviation, nominal_wall_width);
         }
     }
 }

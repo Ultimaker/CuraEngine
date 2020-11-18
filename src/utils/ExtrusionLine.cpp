@@ -29,12 +29,14 @@ void ExtrusionLine::appendJunctionsTo(LineJunctions& result) const
 }
 
 
-void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared)
+void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, const coord_t nominal_wall_width)
 {
     if (junctions.size() <= 3)
     {
         return;
     }
+    constexpr double maximum_width_change_ratio = 0.2; //TODO should this be a setting?
+
     /* ExtrusionLines are treated as (open) polylines, so in case an ExtrusionLine is actually a closed polygon, its
      * starting and ending points will be equal (or almost equal). Therefore, the simplification of the ExtrusionLine
      * should not touch the first and last points. As a result, start simplifying from point at index 1.
@@ -44,7 +46,8 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
     new_junctions.emplace_back(junctions.front());
 
     /* Initially, previous_previous is always the same as previous because, for open ExtrusionLines the last junction
-     * cannot be taken into consideration. For closed ExtrusionLines, the first and last junctions are anyway the same.
+     * cannot be taken into consideration when checking the points at index 1. For closed ExtrusionLines, the first and
+     * last junctions are anyway the same.
      * */
     ExtrusionJunction previous_previous = junctions.front();
     ExtrusionJunction previous = junctions.front();
@@ -88,7 +91,8 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
         const coord_t length2 = vSize2(current - previous);
         if (length2 < 25)
         {
-            // We're allowed to always delete segments of less than 5 micron.
+            // We're allowed to always delete segments of less than 5 micron. The width in this case doesn't matter that
+            // much.
             continue;
         }
 
@@ -108,9 +112,10 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
         if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
-             && LinearAlg2D::getDistFromLine(current.p, previous.p, next.p) <= 1)) // make sure that height_2 is not small because of cancellation of positive and negative areas
+             && LinearAlg2D::getDistFromLine(current.p, previous.p, next.p) <= 1) // make sure that height_2 is not small because of cancellation of positive and negative areas
+             && static_cast<double>(llabs(current.w - next.w)) / nominal_wall_width <= maximum_width_change_ratio) // We shouldn't remove middle junctions of colinear segments if they change the width distinctively
         {
-            continue; //TODO before removing the vertex in this case, we need to make sure that the bead width will not be distinctly different
+            continue;
         }
 
         if (length2 < smallest_line_segment_squared
