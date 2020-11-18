@@ -73,7 +73,7 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
 
     for (size_t point_idx = 1; point_idx < junctions.size() - 1; point_idx++)
     {
-        current = junctions.at(point_idx % junctions.size());
+        current = junctions.at(point_idx);
 
         // don't spill over if the [next] vertex will then be equal to [previous]
         if (point_idx + 1 == junctions.size() && new_junctions.size() > 1)
