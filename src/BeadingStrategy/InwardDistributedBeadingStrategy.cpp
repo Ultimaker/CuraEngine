@@ -6,61 +6,49 @@
 namespace cura
 {
 
-InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
-{
-    Beading ret;
-
-    ret.total_thickness = thickness;
-    if (bead_count == 1)
+    InwardDistributedBeadingStrategy::Beading InwardDistributedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
     {
-        ret.bead_widths.emplace_back(thickness);
-        ret.toolpath_locations.emplace_back(thickness / 2);
-        ret.left_over = 0;
-    }
-    else if (bead_count > 1)
-    {
-        const float widen_by = static_cast<float>(thickness) / (optimal_width_outer + optimal_width_inner * (bead_count - 1));
+        Beading ret;
 
-        // Outer wall:
-        const auto distributed_width_outer = static_cast<coord_t>(optimal_width_outer * widen_by);
-        ret.bead_widths.emplace_back(distributed_width_outer);
-        ret.toolpath_locations.emplace_back(distributed_width_outer / 2);
-
-        // Inwardly distributed inner walls:
-        const coord_t distributed_width_inner = (thickness - distributed_width_outer) / (bead_count - 1);
-        const coord_t to_be_divided = thickness - (distributed_width_outer + distributed_width_inner * (bead_count - 1));
-
-        float total_weight = 0;
-        const auto middle = static_cast<float>(bead_count - 2) / 2.0f;
-        
-        auto getWeight = [middle, this](coord_t bead_idx)
+        ret.total_thickness = thickness;
+        if (bead_count > 0)
         {
-            const float dev_from_middle = (bead_idx - 1) - middle;
-            return std::max(0.0f, 1.0f - one_over_distribution_radius_squared * dev_from_middle * dev_from_middle);
-        };
-        
-        for (coord_t bead_idx = 1; bead_idx < bead_count; bead_idx++)
+            const coord_t to_be_divided = thickness - bead_count * optimal_width;
+            float total_weight = 0;
+            const float middle = static_cast<float>(bead_count - 1) / 2;
+
+            const auto getWeight = [middle, this](coord_t bead_idx)
+            {
+                float dev_from_middle = bead_idx - middle;
+                return std::max(0.0f, 1.0f - one_over_distribution_radius_squared * dev_from_middle * dev_from_middle);
+            };
+
+            for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
+            {
+                total_weight += getWeight(bead_idx);
+            }
+
+            for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
+            {
+                coord_t width = optimal_width + to_be_divided * getWeight(bead_idx) / total_weight;
+                if (bead_idx == 0)
+                {
+                    ret.toolpath_locations.emplace_back(width / 2);
+                }
+                else
+                {
+                    ret.toolpath_locations.emplace_back(ret.toolpath_locations.back() + (ret.bead_widths.back() + width) / 2);
+                }
+                ret.bead_widths.emplace_back(width);
+            }
+            ret.left_over = 0;
+        }
+        else
         {
-            total_weight += getWeight(bead_idx);
+            ret.left_over = thickness;
         }
 
-        coord_t half_last_width = ret.toolpath_locations.back();
-        for (coord_t bead_idx = 1; bead_idx < bead_count; bead_idx++)
-        {
-            coord_t width = distributed_width_inner + (to_be_divided * getWeight(bead_idx)) / total_weight;
-            ret.bead_widths.emplace_back(width);
-            ret.toolpath_locations.emplace_back(ret.toolpath_locations.back() + half_last_width + width / 2);
-            half_last_width = width / 2;
-        }
-
-        ret.left_over = 0; // There should be nothing left over, as we've distributed the remaining space.
+        return ret;
     }
-    else
-    {
-        ret.left_over = thickness;
-    }
-
-    return ret;
-}
 
 } // namespace cura
