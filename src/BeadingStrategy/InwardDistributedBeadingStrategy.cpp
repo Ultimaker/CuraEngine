@@ -19,7 +19,7 @@ namespace cura
 
             const auto getWeight = [middle, this](coord_t bead_idx)
             {
-                float dev_from_middle = bead_idx - middle;
+                const float dev_from_middle = bead_idx - middle;
                 return std::max(0.0f, 1.0f - one_over_distribution_radius_squared * dev_from_middle * dev_from_middle);
             };
 
@@ -30,7 +30,7 @@ namespace cura
 
             for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
             {
-                coord_t width = optimal_width + to_be_divided * getWeight(bead_idx) / total_weight;
+                const coord_t width = optimal_width + to_be_divided * getWeight(bead_idx) / total_weight;
                 if (bead_idx == 0)
                 {
                     ret.toolpath_locations.emplace_back(width / 2);
