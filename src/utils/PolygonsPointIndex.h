@@ -135,6 +135,35 @@ public:
 };
 
 
+
+/*!
+ * Locator to extract a line segment out of a \ref PolygonsPointIndex
+ */
+struct PolygonsPointIndexSegmentLocator
+{
+    std::pair<Point, Point> operator()(const PolygonsPointIndex& val) const
+    {
+        ConstPolygonRef poly = (*val.polygons)[val.poly_idx];
+        Point start = poly[val.point_idx];
+        unsigned int next_point_idx = (val.point_idx + 1) % poly.size();
+        Point end = poly[next_point_idx];
+        return std::pair<Point, Point>(start, end);
+    }
+};
+
+
+
+/*!
+ * Locator of a \ref PolygonsPointIndex
+ */
+struct PolygonsPointIndexLocator
+{
+    Point operator()(const PolygonsPointIndex& val) const
+    {
+        return val.p();
+    }
+};
+
 }//namespace cura
 
 namespace std
