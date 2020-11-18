@@ -22,27 +22,23 @@ namespace cura
         }
 
         // Calculate the factors with which to multiply the outer and inner walls:
-        // (There may be a way to do this with all-integer math, but the speedup won't probably be that much and this will be easier to maintain).
-        const float current_total_outer_walls_width = ret.bead_widths.front() + ret.bead_widths.back();
-        const float current_total_inner_walls_width = thickness - current_total_outer_walls_width;
-        const float current_outer_factor = current_total_outer_walls_width / thickness;
-        const float current_inner_factor = current_total_inner_walls_width / thickness;
+        const coord_t current_total_outer_walls_width = ret.bead_widths.front() + ret.bead_widths.back();
+        const coord_t current_total_inner_walls_width = thickness - current_total_outer_walls_width;
+        const coord_t optimal_total_outer_walls_width = optimal_width_outer * 2;
+        const coord_t optimal_total_inner_walls_width = optimal_width_inner * (bead_count - 2);
 
-        const float optimal_total_outer_walls_width = optimal_width_outer * 2;
-        const float optimal_total_inner_walls_width = optimal_width_inner * (bead_count - 2);
-        const float optimal_outer_factor = optimal_total_outer_walls_width / (optimal_total_outer_walls_width + optimal_total_inner_walls_width);
-        const float optimal_inner_factor = optimal_total_inner_walls_width / (optimal_total_outer_walls_width + optimal_total_inner_walls_width);
-
-        const float outer_factor = optimal_outer_factor / current_outer_factor;
-        const float inner_factor = optimal_inner_factor / current_inner_factor;
+        const coord_t outer_factor_numerator = optimal_total_outer_walls_width * thickness;
+        const coord_t outer_factor_denominator = current_total_outer_walls_width * (optimal_total_outer_walls_width + optimal_total_inner_walls_width);
+        const coord_t inner_factor_numerator = optimal_total_inner_walls_width * thickness;
+        const coord_t inner_factor_denominator = current_total_inner_walls_width * (optimal_total_outer_walls_width + optimal_total_inner_walls_width);
 
         // Multiply the bead-widths with the right factors:
-        ret.bead_widths[0] *= outer_factor;
+        ret.bead_widths[0] = (ret.bead_widths[0] * outer_factor_numerator) / outer_factor_denominator;
         for (coord_t i_width = 1; i_width < (bead_count - 1); ++i_width)
         {
-            ret.bead_widths[i_width] *= inner_factor;
+            ret.bead_widths[i_width] = (ret.bead_widths[i_width] * inner_factor_numerator) / inner_factor_denominator;
         }
-        ret.bead_widths[bead_count - 1] *= outer_factor;
+        ret.bead_widths[bead_count - 1] = (ret.bead_widths[bead_count - 1] * outer_factor_numerator) / outer_factor_denominator;
 
         // Update the first half of the toolpath-locations with the updated bead-widths (starting from 0, up to half):
         coord_t last_coord = 0;
