@@ -76,9 +76,10 @@ public:
      */
     static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
 
-    std::string prettyPrint(VariableWidthLines& lines);
-    std::string prettyPrint();
-
+    /*!
+     * Simplifies the generated toolpaths
+     * \return
+     */
     void simplifyToolpaths();
 
 private:

@@ -61,7 +61,6 @@ const VariableWidthPaths& WallToolPaths::generate()
     prepared_outline.removeDegenerateVerts();
     prepared_outline.removeColinearEdges();
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
-    std::string outline_str = prepared_outline.prettyprint();
 
     if (prepared_outline.area() > 0)
     {
@@ -72,10 +71,8 @@ const VariableWidthPaths& WallToolPaths::generate()
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
         wall_maker.generateToolpaths(toolpaths);
     }
-    std::string toolpaths_str = prettyPrint();
     simplifyToolpaths();
 
-    std::string toolpaths_simplified_str = prettyPrint();
     removeEmptyToolPaths(toolpaths);
     toolpaths_generated = true;
     return toolpaths;
@@ -94,38 +91,6 @@ void WallToolPaths::simplifyToolpaths()
             line.simplify(maximum_resolution, maximum_deviation, nominal_wall_width);
         }
     }
-}
-
-
-
-std::string WallToolPaths::prettyPrint(VariableWidthLines& lines)
-{
-    std::string pretty;
-    for (unsigned int line_idx = 0; line_idx < lines.size(); line_idx++){
-        pretty += "Path(" + std::to_string(line_idx) + ")=";
-        for (ExtrusionJunction & junction : lines[line_idx].junctions)
-        {
-            pretty += "[" + std::to_string(junction.p.X) + "," + std::to_string(junction.p.Y) + "]  ";
-        }
-        pretty += "\n";
-    }
-    return pretty;
-}
-
-std::string WallToolPaths::prettyPrint()
-{
-    std::string pretty;
-    for (unsigned int toolpath_idx = 0; toolpath_idx < toolpaths.size(); toolpath_idx++){
-        pretty += "Path(" + std::to_string(toolpath_idx) + ")=";
-        for (unsigned int line_idx = 0; line_idx < toolpaths[toolpath_idx].size(); line_idx++){
-            for (ExtrusionJunction & junction : toolpaths[toolpath_idx][line_idx].junctions)
-            {
-                pretty += "[" + std::to_string(junction.p.X) + "," + std::to_string(junction.p.Y) + "]  ";
-            }
-        }
-        pretty += "\n";
-    }
-    return pretty;
 }
 
 const VariableWidthPaths& WallToolPaths::getToolPaths()
