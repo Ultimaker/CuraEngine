@@ -28,6 +28,18 @@ inline unsigned int round_up_divide(unsigned int dividend, unsigned int divisor)
     return (dividend + divisor - 1) / divisor;
 }
 
+template<typename T>
+constexpr T pi_div(const T div)
+{
+    return  static_cast<T>(M_PI) / div;
+}
+
+template<typename T>
+constexpr T pi_mul(const T mul)
+{
+    return  static_cast<T>(M_PI) / mul;
+}
+
 }//namespace cura
 #endif // UTILS_MATH_H
 

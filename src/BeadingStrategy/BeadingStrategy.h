@@ -50,7 +50,7 @@ public:
      */
     AngleRadians transitioning_angle;
 
-    BeadingStrategy(coord_t optimal_width, coord_t default_transition_length, float transitioning_angle = M_PI / 3)
+    BeadingStrategy(coord_t optimal_width, coord_t default_transition_length, float transitioning_angle = pi_div(3))
     : optimal_width(optimal_width)
     , default_transition_length(default_transition_length)
     , transitioning_angle(transitioning_angle)

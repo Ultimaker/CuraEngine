@@ -71,10 +71,7 @@ namespace cura
         {
             return naive_count + 1;
         }
-        else
-        {
-            return naive_count;
-        }
+        return naive_count;
     }
 
 } // namespace cura

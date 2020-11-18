@@ -12,7 +12,7 @@ namespace cura
         Beading ret = parent->compute(thickness, bead_count);
 
         // Actual count and thickness as represented by extant walls. Don't count any potential zero-width 'signalling' walls.
-        bead_count = std::count_if(ret.bead_widths.begin(), ret.bead_widths.end(), [](const coord_t& width) { return width > 0; });
+        bead_count = std::count_if(ret.bead_widths.begin(), ret.bead_widths.end(), [](const coord_t width) { return width > 0; });
         thickness -= ret.left_over;
 
         // Early out when the only walls are outer, the parent can have been trusted to handle it.

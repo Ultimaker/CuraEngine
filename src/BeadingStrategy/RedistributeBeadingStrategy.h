@@ -14,7 +14,7 @@ namespace cura
      * The idea is as follows: Initially, for the parent (base) beading strategy, set the 'optimum' width as a weighted average defined by
      * 'what the total thickness of the fill would be if max-bead width is always reached' (so take the situation where the actually
      * requested total wall width is reached as the ground truth we base all the rest on). The base beading-strategy will thus produce the
-     * 'right' number of walls but the wrong bead-widths (and locations) -- becasue it assumes the walls are some average. This is then
+     * 'right' number of walls but the wrong bead-widths (and locations) -- because it assumes the walls are some average. This is then
      * rectified by the newly introduced meta-strategy, which redistributes the bead-widths. It takes a look at the factor of the thickness
      * the outer and inner walls would have occupied in the ideal situation and applies that to the current situation. This keeps a) the
      * original beadings simple to understand and debug b) the meanings and behaviour of the original beadings intact while still
@@ -39,7 +39,7 @@ namespace cura
             name = "RedistributeBeadingStrategy";
         }
 
-        virtual ~RedistributeBeadingStrategy() override {}
+        virtual ~RedistributeBeadingStrategy() = default;
 
         Beading compute(coord_t thickness, coord_t bead_count) const override;
 
@@ -49,7 +49,7 @@ namespace cura
         coord_t getTransitioningLength(coord_t lower_bead_count) const override { return parent->getTransitioningLength(lower_bead_count); }
         float getTransitionAnchorPos(coord_t lower_bead_count) const override { return parent->getTransitionAnchorPos(lower_bead_count); }
 
-        virtual std::string toString() const override { return std::string("RedistributeBeadingStrategy+") + parent->toString(); }
+        virtual std::string toString() const { return std::string("RedistributeBeadingStrategy+") + parent->toString(); }
 
     private:
         BeadingStrategy* parent;
