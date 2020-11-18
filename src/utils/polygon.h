@@ -104,6 +104,16 @@ public:
         return path->end();
     }
 
+    ClipperLib::Path::const_reverse_iterator rbegin() const
+    {
+        return path->rbegin();
+    }
+
+    ClipperLib::Path::const_reverse_iterator rend() const
+    {
+        return path->rend();
+    }
+
     ClipperLib::Path::const_reference front() const
     {
         return path->front();
@@ -374,6 +384,12 @@ public:
     void reserve(size_t min_size)
     {
         path->reserve(min_size);
+    }
+
+    template <class iterator>
+    ClipperLib::Path::iterator insert(ClipperLib::Path::const_iterator pos, iterator first, iterator last)
+    {
+        return path->insert(pos, first, last);
     }
 
     PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
