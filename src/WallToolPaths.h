@@ -69,12 +69,6 @@ public:
     const Polygons& getInnerContour();
 
     /*!
-     * Gets the outline
-     * \return a reference to the outline
-     */
-    const Polygons& getOutline() const;
-
-    /*!
      * Removes empty paths from the toolpaths
      * \param toolpaths the VariableWidthPaths generated with \p generate()
      * \return true if there are still paths left. If all toolpaths were removed it returns false

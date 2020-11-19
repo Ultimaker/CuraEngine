@@ -137,11 +137,6 @@ const Polygons& WallToolPaths::getInnerContour()
     return inner_contour;
 }
 
-const Polygons& WallToolPaths::getOutline() const
-{
-    return outline;
-}
-
 bool WallToolPaths::removeEmptyToolPaths(VariableWidthPaths& toolpaths)
 {
     toolpaths.erase(std::remove_if(toolpaths.begin(), toolpaths.end(), [](const VariableWidthLines& lines)
