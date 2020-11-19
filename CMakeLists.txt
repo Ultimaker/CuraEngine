@@ -217,6 +217,7 @@ set(engine_SRCS # Except main.cpp.
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp.
 set(engine_TEST
+    ClipperTest
     GCodeExportTest
     InfillTest
     LayerPlanTest
