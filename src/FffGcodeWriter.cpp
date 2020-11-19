@@ -1609,11 +1609,6 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         // especially on vertical surfaces
         in_outline.removeSmallAreas(minimum_small_area);
 
-        constexpr Polygons* perimeter_gaps = nullptr;
-        constexpr bool connected_zigzags = false;
-        constexpr bool use_endpieces = false;
-        constexpr bool skip_some_zags = false;
-        constexpr size_t zag_skip_count = 0;
         const size_t wall_line_count_here = (density_idx < last_idx) ? 0 : wall_line_count;
         wall_tool_paths.emplace_back(VariableWidthPaths());
 
