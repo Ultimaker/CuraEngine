@@ -160,6 +160,20 @@ public:
         return length;
     }
 
+    /*!
+     * Split these poly line objects into several line segment objects consisting of only two verts
+     * and store them in the \p result
+     */
+    void splitPolylineIntoSegments(Polygons& result) const;
+    Polygons splitPolylineIntoSegments() const;
+
+    /*!
+     * Split these polygon objects into several line segment objects consisting of only two verts
+     * and store them in the \p result
+     */
+    void splitPolygonIntoSegments(Polygons& result) const;
+    Polygons splitPolygonIntoSegments() const;
+
     bool shorterThan(const coord_t check_length) const;
 
     Point min() const
@@ -812,6 +826,20 @@ public:
      * Intersect polylines with this area Polygons object.
      */
     Polygons intersectionPolyLines(const Polygons& polylines) const;
+
+    /*!
+     * Split this poly line object into several line segment objects
+     * and store them in the \p result
+     */
+    void splitPolylinesIntoSegments(Polygons& result) const;
+    Polygons splitPolylinesIntoSegments() const;
+
+    /*!
+     * Split this polygon object into several line segment objects
+     * and store them in the \p result
+     */
+    void splitPolygonsIntoSegments(Polygons& result) const;
+    Polygons splitPolygonsIntoSegments() const;
 
     Polygons xorPolygons(const Polygons& other) const
     {
