@@ -244,10 +244,16 @@ namespace cura
         writeTestcaseSVG(params);
 #endif //TEST_INFILL_SVG_OUTPUT
 
+        double worst_case_zig_zag_added_area = 0;
+        if (params.params.zig_zagify || params.params.pattern == EFillMethod::ZIG_ZAG)
+        {
+            worst_case_zig_zag_added_area = params.outline_polygons.polygonLength() * infill_line_width;
+        }
+        
         const double min_available_area = std::abs(params.outline_polygons.offset(-params.params.line_distance / 2).area());
-        const double max_available_area = std::abs(params.outline_polygons.offset( params.params.line_distance / 2).area());
+        const double max_available_area = std::abs(params.outline_polygons.offset( params.params.line_distance / 2).area()) + worst_case_zig_zag_added_area;
         const double min_expected_infill_area = (min_available_area * infill_line_width) / params.params.line_distance;
-        const double max_expected_infill_area = (max_available_area * infill_line_width) / params.params.line_distance;
+        const double max_expected_infill_area = (max_available_area * infill_line_width) / params.params.line_distance + worst_case_zig_zag_added_area;
 
         const double out_infill_area = ((params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * infill_line_width) / getPatternMultiplier(params.params.pattern);
 
