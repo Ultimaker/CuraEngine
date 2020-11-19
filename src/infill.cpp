@@ -517,10 +517,6 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
     coord_t shift = extra_shift + this->shift;
 
     Polygons outline = inner_contour; //Make a copy. We'll be rotating this outline to make intersections always horizontal, for better performance.
-    if (outline.size() == 0)
-    {
-        return;
-    }
     outline.applyMatrix(rotation_matrix);
     crossings_on_line.resize(outline.size()); //One for each polygon.
 
