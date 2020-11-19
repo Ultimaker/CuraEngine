@@ -138,8 +138,10 @@ namespace cura
 
         SVG svgFile(filename.c_str(), aabb);
         svgFile.writePolygons(params.outline_polygons , SVG::Color::BLUE);
-        svgFile.writePolygons(params.result_lines, SVG::Color::RED);
-        svgFile.writePolygons(params.result_polygons, SVG::Color::RED);
+        svgFile.nextLayer();
+        svgFile.writePolylines(params.result_lines, SVG::Color::RED);
+        svgFile.nextLayer();
+        svgFile.writePolygons(params.result_polygons, SVG::Color::MAGENTA);
         // Note: SVG writes 'itself' when the object is destroyed.
     }
 #endif //TEST_INFILL_SVG_OUTPUT
