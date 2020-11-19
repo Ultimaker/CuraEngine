@@ -139,8 +139,10 @@ namespace cura
 
         SVG svgFile(filename.c_str(), aabb);
         svgFile.writePolygons(params.outline_polygons , SVG::Color::BLUE);
-        svgFile.writePolygons(params.result_lines, SVG::Color::RED);
-        svgFile.writePolygons(params.result_polygons, SVG::Color::RED);
+        svgFile.nextLayer();
+        svgFile.writePolylines(params.result_lines, SVG::Color::RED);
+        svgFile.nextLayer();
+        svgFile.writePolygons(params.result_polygons, SVG::Color::MAGENTA);
         // Note: SVG writes 'itself' when the object is destroyed.
     }
 #endif //TEST_INFILL_SVG_OUTPUT
@@ -241,12 +243,13 @@ namespace cura
     TEST_P(InfillTest, TestInfillSanity)
     {
         InfillTestParameters params = GetParam();
-        ASSERT_TRUE(params.valid) << params.fail_reason;
-        ASSERT_FALSE(params.result_polygons.empty() && params.result_lines.empty()) << "Infill should have been generated.";
 
 #ifdef TEST_INFILL_SVG_OUTPUT
         writeTestcaseSVG(params);
 #endif //TEST_INFILL_SVG_OUTPUT
+
+        ASSERT_TRUE(params.valid) << params.fail_reason;
+        ASSERT_FALSE(params.result_polygons.empty() && params.result_lines.empty()) << "Infill should have been generated.";
 
         const double min_available_area = std::abs(params.outline_polygons.offset(-params.params.line_distance / 2).area());
         const double max_available_area = std::abs(params.outline_polygons.offset( params.params.line_distance / 2).area());
