@@ -106,7 +106,7 @@ void WallToolPaths::computeInnerContour()
             }
             return true; //No junctions with any vertices? Classify it as a toolpath then.
         });
-    toolpaths = actual_toolpaths; //Filtered out the 0-width paths.
+    toolpaths = std::move(actual_toolpaths); //Filtered out the 0-width paths.
 
     //Now convert the contour_paths to Polygons to denote the inner contour of the walled areas.
     inner_contour.clear();
