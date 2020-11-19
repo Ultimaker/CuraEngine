@@ -15,7 +15,7 @@ namespace cura
 {
 constexpr coord_t transition_length_multiplier = 2;
 
-WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const coord_t inset_count,
+WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count,
                              const Settings& settings)
     : outline(outline)
     , bead_width_0(nominal_bead_width)
@@ -32,7 +32,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
 }
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x,
-                             const coord_t inset_count, const Settings& settings)
+                             const size_t inset_count, const Settings& settings)
     : outline(outline)
     , bead_width_0(bead_width_0)
     , bead_width_x(bead_width_x)
@@ -49,7 +49,6 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
 
 const VariableWidthPaths& WallToolPaths::generate()
 {
-    assert(inset_count > 0 && "inset count should be more than 0");
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
     constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
@@ -66,7 +65,7 @@ const VariableWidthPaths& WallToolPaths::generate()
 
     if (prepared_outline.area() > 0)
     {
-        const coord_t max_bead_count = 2 * inset_count;
+        const size_t max_bead_count = 2 * inset_count;
         const auto beading_strat = std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy(
             strategy_type, bead_width_0, bead_width_x, transition_length, transitioning_angle, print_thin_walls, min_bead_width,
             min_feature_size, max_bead_count));

@@ -23,7 +23,7 @@ public:
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param settings The settings as provided by the user
      */
-    WallToolPaths(const Polygons& outline, coord_t nominal_bead_width, coord_t inset_count, const Settings& settings);
+    WallToolPaths(const Polygons& outline, coord_t nominal_bead_width, size_t inset_count, const Settings& settings);
 
     /*!
      * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
@@ -33,7 +33,7 @@ public:
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param settings The settings as provided by the user
      */
-    WallToolPaths(const Polygons& outline, coord_t bead_width_0, coord_t bead_width_x, coord_t inset_count, const Settings& settings);
+    WallToolPaths(const Polygons& outline, coord_t bead_width_0, coord_t bead_width_x, size_t inset_count, const Settings& settings);
 
     /*!
      * Generates the Toolpaths
@@ -102,7 +102,7 @@ private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
     coord_t bead_width_0; //<! The nominal or first extrusion line width with which libArachne generates its walls
     coord_t bead_width_x; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor this is the same as bead_width_0
-    coord_t inset_count; //<! The maximum number of walls to generate
+    size_t inset_count; //<! The maximum number of walls to generate
     StrategyType strategy_type; //<! The wall generating strategy
     bool print_thin_walls; //<! Whether to enable the widening beading meta-strategy for thin features
     coord_t min_feature_size; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
