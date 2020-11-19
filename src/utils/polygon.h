@@ -828,18 +828,6 @@ public:
      */
     Polygons intersectionPolyLines(const Polygons& polylines) const;
 
-    /*!
-     * Clips input line segments by this Polygons.
-     * \param other Input line segments to be cropped
-     * \param segment_tree the resulting interior line segments
-     */
-    void lineSegmentIntersection(const Polygons& other, ClipperLib::PolyTree& segment_tree) const
-    {
-        ClipperLib::Clipper clipper(clipper_init);
-        clipper.AddPaths(paths, ClipperLib::ptClip, true);
-        clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
-        clipper.Execute(ClipperLib::ctIntersection, segment_tree);
-    }
     Polygons xorPolygons(const Polygons& other) const
     {
         Polygons ret;
@@ -1050,11 +1038,6 @@ private:
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
 
-    /*!
-     * Convert a node from a ClipperLib::PolyTree and add it to a Polygons object,
-     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
-     */
-    void addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node);
 public:
     /*!
      * Split up the polygons into groups according to the even-odd rule.

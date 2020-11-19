@@ -393,14 +393,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
 void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
 {
-    ClipperLib::PolyTree interior_segments_tree;
-    in_outline.offset(infill_overlap).lineSegmentIntersection(input, interior_segments_tree);
-    ClipperLib::Paths interior_segments;
-    ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
-    for (size_t idx = 0; idx < interior_segments.size(); idx++)
-    {
-        result.addLine(interior_segments[idx][0], interior_segments[idx][1]);
-    }
+    result.add(in_outline.offset(infill_overlap).intersectionPolyLines(input));
 }
 
 void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t shift)

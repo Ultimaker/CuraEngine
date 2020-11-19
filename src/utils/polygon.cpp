@@ -245,7 +245,7 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines) const
     clipper.AddPaths(paths, ClipperLib::ptClip, true);
     clipper.Execute(ClipperLib::ctIntersection, result);
     Polygons ret;
-    ret.addPolyTreeNodeRecursive(result);
+    ClipperLib::OpenPathsFromPolyTree(result, ret.paths);
     return ret;
 }
 
@@ -585,19 +585,8 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
 Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
 {
     Polygons ret;
-    ret.addPolyTreeNodeRecursive(poly_tree);
+    ClipperLib::PolyTreeToPaths(poly_tree, ret.paths);
     return ret;
-}
-
-
-void Polygons::addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node)
-{
-    for (int outer_poly_idx = 0; outer_poly_idx < node.ChildCount(); outer_poly_idx++)
-    {
-        ClipperLib::PolyNode* child = node.Childs[outer_poly_idx];
-        paths.push_back(child->Contour);
-        addPolyTreeNodeRecursive(*child);
-    }
 }
 
 bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
