@@ -509,11 +509,7 @@ void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance,
  */
 void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift)
 {
-    if (line_distance == 0)
-    {
-        return;
-    }
-    if (inner_contour.empty())
+    if (line_distance == 0 || inner_contour.empty()) //No infill to generate (0% density) or no area to generate it in.
     {
         return;
     }
