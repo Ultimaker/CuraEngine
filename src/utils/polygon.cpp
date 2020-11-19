@@ -249,6 +249,34 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines) const
     return ret;
 }
 
+void Polygons::splitPolylinesIntoSegments(Polygons& result) const
+{
+    for (ConstPolygonRef poly : *this)
+    {
+        poly.splitPolylineIntoSegments(result);
+    }
+}
+Polygons Polygons::splitPolylinesIntoSegments() const
+{
+    Polygons ret;
+    splitPolylinesIntoSegments(ret);
+    return ret;
+}
+
+void Polygons::splitPolygonsIntoSegments(Polygons& result) const
+{
+    for (ConstPolygonRef poly : *this)
+    {
+        poly.splitPolygonIntoSegments(result);
+    }
+}
+Polygons Polygons::splitPolygonsIntoSegments() const
+{
+    Polygons ret;
+    splitPolygonsIntoSegments(ret);
+    return ret;
+}
+
 coord_t Polygons::polyLineLength() const
 {
     coord_t length = 0;
@@ -1020,6 +1048,39 @@ Polygons Polygons::smooth_outward(const AngleDegrees max_angle, int shortcut_len
     return ret;
 }
 
+
+
+
+void ConstPolygonRef::splitPolylineIntoSegments(Polygons& result) const 
+{
+    Point last = front();
+    for (size_t idx = 1; idx < size(); idx++)
+    {
+        Point p = (*this)[idx];
+        result.addLine(last, p);
+        last = p;
+    }
+}
+
+Polygons ConstPolygonRef::splitPolylineIntoSegments() const 
+{
+    Polygons ret;
+    splitPolylineIntoSegments(ret);
+    return ret;
+}
+
+void ConstPolygonRef::splitPolygonIntoSegments(Polygons& result) const
+{
+    splitPolylineIntoSegments(result);
+    result.addLine(back(), front());
+}
+
+Polygons ConstPolygonRef::splitPolygonIntoSegments() const 
+{
+    Polygons ret;
+    splitPolygonIntoSegments(ret);
+    return ret;
+}
 
 void ConstPolygonRef::smooth(int remove_length, PolygonRef result) const
 {
