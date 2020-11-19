@@ -81,6 +81,23 @@ public:
      */
     static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
 
+protected:
+    /*!
+     * Stitches toolpaths together to form contours.
+     *
+     * All toolpaths are used. Paths that are not closed will get closed in the
+     * output by virtue of becoming polygons. As such, the input is expected to
+     * consist of almost completely closed contours, which may be split up into
+     * different polylines.
+     * This function combines those polylines into the polygons they are
+     * probably intended to depict.
+     * \param input The paths to stitch together.
+     * \param stitch_distance Any endpoints closer than this distance can be
+     * stitched together. An additional line segment will bridge the gap.
+     * \param output Where to store the output polygons.
+     */
+    void stitchContours(const VariableWidthPaths& input, const coord_t stitch_distance, Polygons& output) const;
+
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
     coord_t bead_width_0; //<! The nominal or first extrusion line width with which libArachne generates its walls
