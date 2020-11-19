@@ -49,10 +49,11 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
     ret.bead_widths.insert(ret.bead_widths.begin() + max_bead_count / 2, 0);
 
     //Symmetry on both sides. Symmetry is guaranteed since this code is stopped early if the bead_count <= max_bead_count, and never reaches this point then.
-    innermost_toolpath_location = ret.toolpath_locations[bead_count - (max_bead_count / 2 - 1)];
-    innermost_toolpath_width = ret.bead_widths[bead_count - (max_bead_count / 2 - 1)];
-    ret.toolpath_locations.insert(ret.toolpath_locations.begin() + bead_count - (max_bead_count / 2 - 1), innermost_toolpath_location - innermost_toolpath_width / 2);
-    ret.bead_widths.insert(ret.bead_widths.begin() + bead_count - (max_bead_count / 2 - 1), 0);
+    const size_t opposite_bead = bead_count - (max_bead_count / 2 - 1);
+    innermost_toolpath_location = ret.toolpath_locations[opposite_bead];
+    innermost_toolpath_width = ret.bead_widths[opposite_bead];
+    ret.toolpath_locations.insert(ret.toolpath_locations.begin() + opposite_bead, innermost_toolpath_location - innermost_toolpath_width / 2);
+    ret.bead_widths.insert(ret.bead_widths.begin() + opposite_bead, 0);
 
     return ret;
 }
