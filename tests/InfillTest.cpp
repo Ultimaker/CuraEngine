@@ -258,7 +258,10 @@ namespace cura
 
         const Polygons padded_shape_outline = params.outline_polygons.offset(infill_line_width / 2);
         ASSERT_EQ(padded_shape_outline.intersectionPolyLines(params.result_lines.splitPolylinesIntoSegments()).polyLineLength(), params.result_lines.polyLineLength()) << "Infill (lines) should not be outside target polygon.";
-        ASSERT_EQ(params.result_polygons.difference(padded_shape_outline).area(), 0) << "Infill (polys) should not be outside target polygon.";
+        Polygons result_polygon_lines = params.result_polygons;
+        for (PolygonRef poly : result_polygon_lines)
+            poly.add(poly.front());
+        ASSERT_EQ(padded_shape_outline.intersectionPolyLines(result_polygon_lines.splitPolylinesIntoSegments()).polyLineLength(), result_polygon_lines.polyLineLength()) << "Infill (lines) should not be outside target polygon.";
     }
 
 } //namespace cura
