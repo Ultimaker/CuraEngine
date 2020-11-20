@@ -8,6 +8,7 @@
 #include "settings/Settings.h"
 #include "progress/Progress.h"
 
+#include "utils/PolylineStitcher.h"
 #include "utils/SVG.h" // debug output
 
 /*
@@ -26,7 +27,7 @@ namespace cura {
 
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
 {
-    storageLayer.openPolyLines = layer->openPolylines;
+    PolylineStitcher::stitch(layer->openPolylines, storageLayer.openPolyLines, layer->polygons, settings.get<coord_t>("wall_line_width_0"));
     
     const coord_t maximum_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t maximum_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
