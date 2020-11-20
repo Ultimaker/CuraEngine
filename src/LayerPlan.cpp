@@ -1190,7 +1190,6 @@ void LayerPlan::addLinesByOptimizer
             }
 
             // Don't wipe if next starting point is very near
-            // TODO: remove this condition once all polylines are properly chained
             if(wipe && (order_idx < order_optimizer.paths.size() - 1))
             {
                 const PathOrderOptimizer<ConstPolygonRef>::Path& next_path = order_optimizer.paths[order_idx + 1];
