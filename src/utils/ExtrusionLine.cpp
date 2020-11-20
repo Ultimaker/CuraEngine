@@ -29,13 +29,12 @@ void ExtrusionLine::appendJunctionsTo(LineJunctions& result) const
 }
 
 
-void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, const coord_t nominal_wall_width)
+void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, const coord_t maximum_extrusion_area_deviation)
 {
     if (junctions.size() <= 3)
     {
         return;
     }
-    constexpr double maximum_width_change_ratio = 0.2; //TODO should this be a setting?
 
     /* ExtrusionLines are treated as (open) polylines, so in case an ExtrusionLine is actually a closed polygon, its
      * starting and ending points will be equal (or almost equal). Therefore, the simplification of the ExtrusionLine
@@ -111,10 +110,18 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
         //h^2 = (L / b)^2     [square it]
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
+        const coord_t extrusion_area_error = extrusionAreaDeviationError(previous, current, next);
         if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
              && LinearAlg2D::getDistFromLine(current.p, previous.p, next.p) <= 1) // make sure that height_2 is not small because of cancellation of positive and negative areas
-             && static_cast<double>(llabs(current.w - next.w)) / nominal_wall_width <= maximum_width_change_ratio) // We shouldn't remove middle junctions of colinear segments if they change the width distinctively
+            // We shouldn't remove middle junctions of colinear segments if the area changed for the C-P segment is exceeding the maximum allowed
+             && extrusion_area_error <= maximum_extrusion_area_deviation)
         {
+            // Adjust the width of the entire P-N line as a weighted average of the widths of the P-C and C-N lines and
+            // then remove the current junction.
+            if (extrusion_area_error > 0)
+            {
+                next.w = (vSize(current - previous) * current.w + vSize(next - current) * next.w) / vSize(next - previous);
+            }
             continue;
         }
 
@@ -165,6 +172,21 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
     // Ending junction should always exist in the simplified path
     new_junctions.emplace_back(junctions.back());
     junctions = new_junctions;
+}
+
+coord_t ExtrusionLine::extrusionAreaDeviationError(ExtrusionJunction A, ExtrusionJunction B, ExtrusionJunction C)
+{
+    /*
+     * A             B                          C              A                                        C
+     * ---------------                                         ************** deviation_error / 2
+     * |             |---------------------------  B removed   ------------------------------------------
+     * |             |                          |  --------->  |            |                           |
+     * |             |---------------------------              ------------------------------------------
+     * ---------------             ^                           **************     ^
+     *       ^                    C.w                                            C.w
+     *      B.w
+     * */
+    return llabs(B.w - C.w) * vSize(B - A);
 }
 
 }
