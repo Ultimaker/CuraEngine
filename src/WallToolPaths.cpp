@@ -179,71 +179,122 @@ void WallToolPaths::stitchContours(const VariableWidthPaths& input, const coord_
     {
         for(const ExtrusionLine& line : path)
         {
-            if(processed_lines.find(&line) != processed_lines.end()) //We already added this line before.
+            if(processed_lines.find(&line) != processed_lines.end()) //We already added this line before. It got added as a nearby line.
             {
                 continue;
             }
-            const ExtrusionLine* nearest = &line;
-            bool nearest_reverse = false; //Whether the nearest path needs to be reversed in order to be inserted in the correct order.
-            output.emplace_back();
+            //We'll create a chain of polylines that get joined together. We can add polylines on both ends!
+            std::deque<const ExtrusionLine*> chain;
+            std::deque<bool> is_reversed; //Lines could need to be inserted in reverse. Must coincide with the `chain` deque.
+            const ExtrusionLine* nearest = &line; //At every iteration, add the polyline that joins together most closely.
+            bool nearest_reverse = false; //Whether the next line to insert must be inserted in reverse.
+            bool nearest_before = false; //Whether the next line to insert must be inserted in the front of the chain.
             while(nearest)
             {
                 if(processed_lines.find(nearest) != processed_lines.end())
                 {
                     break; //Looping. This contour is already processed.
                 }
-
-                if(!nearest_reverse)
+                processed_lines.insert(nearest);
+                if(nearest_before)
                 {
-                    for(const ExtrusionJunction& junction : nearest->junctions)
+                    chain.push_front(nearest);
+                    is_reversed.push_front(nearest_reverse);
+                }
+                else
+                {
+                    chain.push_back(nearest);
+                    is_reversed.push_back(nearest_reverse);
+                }
+
+                //Find any nearby lines to attach. Look on both ends of our current chain and find both ends of polylines.
+                const Point chain_start = is_reversed.front() ? chain.front()->junctions.back().p : chain.front()->junctions.front().p;
+                const Point chain_end = is_reversed.back() ? chain.back()->junctions.front().p : chain.back()->junctions.back().p;
+                std::vector<const ExtrusionLine*> starts_near_start = line_starts.getNearby(chain_start, stitch_distance);
+                std::vector<const ExtrusionLine*> ends_near_start = line_ends.getNearby(chain_start, stitch_distance);
+                std::vector<const ExtrusionLine*> starts_near_end = line_starts.getNearby(chain_end, stitch_distance);
+                std::vector<const ExtrusionLine*> ends_near_end = line_ends.getNearby(chain_end, stitch_distance);
+
+                nearest = nullptr;
+                coord_t nearest_dist2 = std::numeric_limits<coord_t>::max();
+                for(const ExtrusionLine* candidate : starts_near_start)
+                {
+                    if(processed_lines.find(candidate) != processed_lines.end())
+                    {
+                        continue; //Already processed this line before. It's linked to something else.
+                    }
+                    const coord_t dist2 = vSize2(candidate->junctions.front().p - chain_start);
+                    if(dist2 < nearest_dist2)
+                    {
+                        nearest = candidate;
+                        nearest_dist2 = dist2;
+                        nearest_reverse = true;
+                        nearest_before = true;
+                    }
+                }
+                for(const ExtrusionLine* candidate : ends_near_start)
+                {
+                    if(processed_lines.find(candidate) != processed_lines.end())
+                    {
+                        continue;
+                    }
+                    const coord_t dist2 = vSize2(candidate->junctions.back().p - chain_start);
+                    if(dist2 < nearest_dist2)
+                    {
+                        nearest = candidate;
+                        nearest_dist2 = dist2;
+                        nearest_reverse = false;
+                        nearest_before = true;
+                    }
+                }
+                for(const ExtrusionLine* candidate : starts_near_end)
+                {
+                    if(processed_lines.find(candidate) != processed_lines.end())
+                    {
+                        continue; //Already processed this line before. It's linked to something else.
+                    }
+                    const coord_t dist2 = vSize2(candidate->junctions.front().p - chain_start);
+                    if(dist2 < nearest_dist2)
+                    {
+                        nearest = candidate;
+                        nearest_dist2 = dist2;
+                        nearest_reverse = false;
+                        nearest_before = false;
+                    }
+                }
+                for(const ExtrusionLine* candidate : ends_near_end)
+                {
+                    if(processed_lines.find(candidate) != processed_lines.end())
+                    {
+                        continue;
+                    }
+                    const coord_t dist2 = vSize2(candidate->junctions.back().p - chain_start);
+                    if(dist2 < nearest_dist2)
+                    {
+                        nearest = candidate;
+                        nearest_dist2 = dist2;
+                        nearest_reverse = true;
+                        nearest_before = false;
+                    }
+                }
+            }
+
+            //Now serialize the entire chain into one polygon.
+            output.emplace_back();
+            for(size_t i = 0; i < chain.size(); ++i)
+            {
+                if(!is_reversed[i])
+                {
+                    for(const ExtrusionJunction& junction : chain[i]->junctions)
                     {
                         output.back().add(junction.p);
                     }
                 }
                 else
                 {
-                    //Insert in reverse.
-                    for(auto junction = nearest->junctions.rbegin(); junction != nearest->junctions.rend(); ++junction)
+                    for(auto junction = chain[i]->junctions.rbegin(); junction != chain[i]->junctions.rend(); ++junction)
                     {
                         output.back().add(junction->p);
-                    }
-                }
-                processed_lines.insert(nearest);
-
-                //Find any nearby lines to attach.
-                const Point current_position = nearest->junctions.back().p;
-                const std::vector<const ExtrusionLine*> nearby_starts = line_starts.getNearby(current_position, stitch_distance);
-                const std::vector<const ExtrusionLine*> nearby_ends = line_ends.getNearby(current_position, stitch_distance);
-                nearest = nullptr;
-                coord_t nearest_dist2 = std::numeric_limits<coord_t>::max();
-                for(const ExtrusionLine* candidate : nearby_starts)
-                {
-                    if(processed_lines.find(candidate) != processed_lines.end())
-                    {
-                        continue; //Already processed this line before. It's linked to something else.
-                    }
-                    
-                    const coord_t dist2 = vSize2(candidate->junctions.front().p - current_position);
-                    if(dist2 < nearest_dist2)
-                    {
-                        nearest = candidate;
-                        nearest_dist2 = dist2;
-                        nearest_reverse = false;
-                    }
-                }
-                for(const ExtrusionLine* candidate : nearby_ends)
-                {
-                    if(processed_lines.find(candidate) != processed_lines.end())
-                    {
-                        continue;
-                    }
-
-                    const coord_t dist2 = vSize2(candidate->junctions.back().p - current_position);
-                    if(dist2 < nearest_dist2)
-                    {
-                        nearest = candidate;
-                        nearest_dist2 = dist2;
-                        nearest_reverse = true;
                     }
                 }
             }
