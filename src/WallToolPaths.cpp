@@ -149,19 +149,28 @@ bool WallToolPaths::removeEmptyToolPaths(VariableWidthPaths& toolpaths)
 void WallToolPaths::stitchContours(const VariableWidthPaths& input, const coord_t stitch_distance, Polygons& output) const
 {
     //Create a bucket grid to find endpoints that are close together.
-    struct ExtrusionLineEndpointLocator
+    struct ExtrusionLineStartLocator
     {
         Point operator()(const ExtrusionLine* line)
         {
             return Point(line->junctions.front().p);
         }
     };
-    SparsePointGrid<const ExtrusionLine*, ExtrusionLineEndpointLocator> line_endpoints(stitch_distance); //Only find endpoints closer than minimum_line_width, so we can't ever accidentally make crossing contours.
+    struct ExtrusionLineEndLocator
+    {
+        Point operator()(const ExtrusionLine* line)
+        {
+            return Point(line->junctions.back().p);
+        }
+    };
+    SparsePointGrid<const ExtrusionLine*, ExtrusionLineStartLocator> line_starts(stitch_distance); //Only find endpoints closer than minimum_line_width, so we can't ever accidentally make crossing contours.
+    SparsePointGrid<const ExtrusionLine*, ExtrusionLineEndLocator> line_ends(stitch_distance);
     for(const VariableWidthLines& path : input)
     {
         for(const ExtrusionLine& line : path)
         {
-            line_endpoints.insert(&line);
+            line_starts.insert(&line);
+            line_ends.insert(&line);
         }
     }
     //Then go through all lines and construct chains of polylines if the endpoints are nearby.
@@ -174,8 +183,9 @@ void WallToolPaths::stitchContours(const VariableWidthPaths& input, const coord_
             {
                 continue;
             }
-            output.emplace_back();
             const ExtrusionLine* nearest = &line;
+            bool nearest_reverse = false; //Whether the nearest path needs to be reversed in order to be inserted in the correct order.
+            output.emplace_back();
             while(nearest)
             {
                 if(processed_lines.find(nearest) != processed_lines.end())
@@ -183,18 +193,30 @@ void WallToolPaths::stitchContours(const VariableWidthPaths& input, const coord_
                     break; //Looping. This contour is already processed.
                 }
 
-                for(const ExtrusionJunction& junction : nearest->junctions)
+                if(!nearest_reverse)
                 {
-                    output.back().add(junction.p);
+                    for(const ExtrusionJunction& junction : nearest->junctions)
+                    {
+                        output.back().add(junction.p);
+                    }
+                }
+                else
+                {
+                    //Insert in reverse.
+                    for(auto junction = nearest->junctions.rbegin(); junction != nearest->junctions.rend(); ++junction)
+                    {
+                        output.back().add(junction->p);
+                    }
                 }
                 processed_lines.insert(nearest);
 
                 //Find any nearby lines to attach.
                 const Point current_position = nearest->junctions.back().p;
-                const std::vector<const ExtrusionLine*> nearby = line_endpoints.getNearby(current_position, stitch_distance);
+                const std::vector<const ExtrusionLine*> nearby_starts = line_starts.getNearby(current_position, stitch_distance);
+                const std::vector<const ExtrusionLine*> nearby_ends = line_ends.getNearby(current_position, stitch_distance);
                 nearest = nullptr;
                 coord_t nearest_dist2 = std::numeric_limits<coord_t>::max();
-                for(const ExtrusionLine* candidate : nearby)
+                for(const ExtrusionLine* candidate : nearby_starts)
                 {
                     if(processed_lines.find(candidate) != processed_lines.end())
                     {
@@ -206,7 +228,22 @@ void WallToolPaths::stitchContours(const VariableWidthPaths& input, const coord_
                     {
                         nearest = candidate;
                         nearest_dist2 = dist2;
+                        nearest_reverse = false;
+                    }
+                }
+                for(const ExtrusionLine* candidate : nearby_ends)
+                {
+                    if(processed_lines.find(candidate) != processed_lines.end())
+                    {
                         continue;
+                    }
+
+                    const coord_t dist2 = vSize2(candidate->junctions.back().p - current_position);
+                    if(dist2 < nearest_dist2)
+                    {
+                        nearest = candidate;
+                        nearest_dist2 = dist2;
+                        nearest_reverse = true;
                     }
                 }
             }
