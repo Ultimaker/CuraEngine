@@ -124,12 +124,10 @@ public:
 
     /*!
      * Do the optimization
-     *
-     * \param find_chains Whether to determine when lines are chained together (i.e. zigzag infill)
-     *
-     * \return The squared travel distance between the two points
+     * 
+     * sets #polyStart and #polyOrder
      */
-    void optimize(bool find_chains = true); //!< sets #polyStart and #polyOrder
+    void optimize();
 
 private:
     /*!
