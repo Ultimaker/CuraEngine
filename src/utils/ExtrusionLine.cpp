@@ -110,17 +110,18 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
         //h^2 = (L / b)^2     [square it]
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
-        const coord_t extrusion_area_error = extrusionAreaDeviationError(previous, current, next);
+        coord_t weighted_average_width;
+        const coord_t extrusion_area_error = extrusionAreaDeviationError(previous, current, next, weighted_average_width);
         if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
              && LinearAlg2D::getDistFromLine(current.p, previous.p, next.p) <= 1) // make sure that height_2 is not small because of cancellation of positive and negative areas
             // We shouldn't remove middle junctions of colinear segments if the area changed for the C-P segment is exceeding the maximum allowed
              && extrusion_area_error <= maximum_extrusion_area_deviation)
         {
             // Adjust the width of the entire P-N line as a weighted average of the widths of the P-C and C-N lines and
-            // then remove the current junction.
+            // then remove the current junction. Make the adjustment only if the error is greater than 0 due to the
             if (extrusion_area_error > 0)
             {
-                next.w = (vSize(current - previous) * current.w + vSize(next - current) * next.w) / vSize(next - previous);
+                next.w = weighted_average_width;
             }
             continue;
         }
@@ -174,19 +175,36 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
     junctions = new_junctions;
 }
 
-coord_t ExtrusionLine::extrusionAreaDeviationError(ExtrusionJunction A, ExtrusionJunction B, ExtrusionJunction C)
+coord_t ExtrusionLine::extrusionAreaDeviationError(const ExtrusionJunction A, const ExtrusionJunction B, const ExtrusionJunction C, coord_t& weighted_average_width)
 {
     /*
      * A             B                          C              A                                        C
-     * ---------------                                         ************** deviation_error / 2
-     * |             |---------------------------  B removed   ------------------------------------------
+     * ---------------                                         **************
+     * |             |                                         ------------------------------------------
+     * |             |--------------------------|  B removed   |            |***************************|
      * |             |                          |  --------->  |            |                           |
-     * |             |---------------------------              ------------------------------------------
-     * ---------------             ^                           **************     ^
-     *       ^                    C.w                                            C.w
-     *      B.w
+     * |             |--------------------------|              |            |***************************|
+     * |             |                                         ------------------------------------------
+     * ---------------             ^                           **************
+     *       ^                    C.w                                             ^
+     *      B.w                                                     new_width = weighted_average_width
      * */
-    return llabs(B.w - C.w) * vSize(B - A);
+    const coord_t ab_length = vSize(B - A);
+    const coord_t bc_length = vSize(C - B);
+    const coord_t width_diff = llabs(B.w - C.w);
+    if (width_diff > 1)
+    {
+        // Adjust the width only if there is a difference, or else the rounding errors may produce the wrong
+        // weighted average value.
+        weighted_average_width = (ab_length * B.w + bc_length * C.w) / vSize(C - A);
+        return llabs(B.w - weighted_average_width) * ab_length + llabs(C.w - weighted_average_width) * bc_length;
+    }
+    else
+    {
+        // If the width difference is very small, then select the width of the segment that is longer
+        weighted_average_width = ab_length > bc_length ? B.w : C.w;
+        return ab_length > bc_length ? width_diff * bc_length : width_diff * ab_length;
+    }
 }
 
 }
