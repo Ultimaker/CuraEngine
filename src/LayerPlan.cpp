@@ -716,11 +716,8 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
 
             // determine which segments of the line are bridges
 
-            Polygon line_poly;
-            line_poly.add(p0);
-            line_poly.add(p1);
             Polygons line_polys;
-            line_polys.add(line_poly);
+            line_polys.addLine(p0, p1);
             line_polys = bridge_wall_mask.intersectionPolyLines(line_polys);
 
             // line_polys now contains the wall lines that need to be printed using bridge_config
@@ -837,11 +834,8 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
 
                     // determine which segments of the line are bridges
 
-                    Polygon line_poly;
-                    line_poly.add(p0);
-                    line_poly.add(p1);
                     Polygons line_polys;
-                    line_polys.add(line_poly);
+                    line_polys.addLine(p0, p1);
                     line_polys = bridge_wall_mask.intersectionPolyLines(line_polys);
 
                     while (line_polys.size() > 0)
