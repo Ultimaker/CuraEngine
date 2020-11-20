@@ -111,18 +111,15 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
         coord_t weighted_average_width;
-        const coord_t extrusion_area_error = extrusionAreaDeviationError(previous, current, next, weighted_average_width);
+        const coord_t extrusion_area_error = calculateExtrusionAreaDeviationError(previous, current, next, weighted_average_width);
         if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
              && LinearAlg2D::getDistFromLine(current.p, previous.p, next.p) <= 1) // make sure that height_2 is not small because of cancellation of positive and negative areas
             // We shouldn't remove middle junctions of colinear segments if the area changed for the C-P segment is exceeding the maximum allowed
              && extrusion_area_error <= maximum_extrusion_area_deviation)
         {
             // Adjust the width of the entire P-N line as a weighted average of the widths of the P-C and C-N lines and
-            // then remove the current junction. Make the adjustment only if the error is greater than 0 due to the
-            if (extrusion_area_error > 0)
-            {
-                next.w = weighted_average_width;
-            }
+            // then remove the current junction.
+            next.w = weighted_average_width;
             continue;
         }
 
@@ -175,7 +172,7 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
     junctions = new_junctions;
 }
 
-coord_t ExtrusionLine::extrusionAreaDeviationError(const ExtrusionJunction A, const ExtrusionJunction B, const ExtrusionJunction C, coord_t& weighted_average_width)
+coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A, ExtrusionJunction B, ExtrusionJunction C, coord_t& weighted_average_width)
 {
     /*
      * A             B                          C              A                                        C
