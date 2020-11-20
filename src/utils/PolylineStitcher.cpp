@@ -104,14 +104,24 @@ void PolylineStitcher::stitch(const Polygons& lines, Polygons& result_lines, Pol
                 }
                 
 
+                coord_t segment_dist = vSize(chain.back() - closest.p());
+                assert(segment_dist <= max_stitch_distance + 10);
                 if (closest.point_idx == 0)
                 {
-                    assert(vSize(chain.back() - *closest.getPolygon().begin()) <= max_stitch_distance + 10);
-                    chain.insert(chain.end(), closest.getPolygon().begin(), closest.getPolygon().end());
+                    auto start_pos = closest.getPolygon().begin();
+                    if (segment_dist < snap_distance)
+                    {
+                        ++start_pos;
+                    }
+                    chain.insert(chain.end(), start_pos, closest.getPolygon().end());
                 }
                 else
                 {
-                    assert(vSize(chain.back() - *closest.getPolygon().rbegin()) <= max_stitch_distance + 10);
+                    auto start_pos = closest.getPolygon().rbegin();
+                    if (segment_dist < snap_distance)
+                    {
+                        ++start_pos;
+                    }
                     chain.insert(chain.end(), closest.getPolygon().rbegin(), closest.getPolygon().rend());
                 }
                 assert( ! processed[closest.poly_idx]);

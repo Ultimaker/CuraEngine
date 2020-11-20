@@ -17,10 +17,8 @@ class PolylineStitcher
 public:
     /*!
      * Stitch together the separate \p lines into \p result_lines and if they can be closed into \p result_polygons.
-     * Only introduce new segments shorter than \p max_stitch_distance,
-     * but always try to make the shortest segment possible,
-     * unless the segment is smaller than \p snap_distance.
-     * When the first connection smaller than \p snap_distance is found no other nearby connections will be considered.
+     * Only introduce new segments shorter than \p max_stitch_distance, and larger then \p snap_distance
+     * but always try to take the shortest connection possible.
      * 
      * Only stitch polylines into closed polygons if they are larger than 3 * \p max_stitch_distance,
      * in order to prevent small segments to accidentally get closed into a polygon.
