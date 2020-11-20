@@ -163,8 +163,8 @@ Polygons LayerPlan::computeCombBoundaryInside(const size_t max_inset)
             if (mesh.settings.get<bool>("infill_mesh")) {
                 continue;
             }
-            const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
-            if (combing_mode == CombingMode::NO_SKIN)
+            const CombingMode combing_mode_setting = mesh.settings.get<CombingMode>("retraction_combing");
+            if (combing_mode_setting == CombingMode::NO_SKIN)
             {
                 // we need to include the walls in the comb boundary otherwise it's not possible to tell if a travel move crosses a skin region
 
@@ -236,7 +236,7 @@ Polygons LayerPlan::computeCombBoundaryInside(const size_t max_inset)
                     }
                 }
             }
-            else if (combing_mode == CombingMode::INFILL)
+            else if (combing_mode_setting == CombingMode::INFILL)
             {
                 for (const SliceLayerPart& part : layer.parts)
                 {
