@@ -690,6 +690,11 @@ public:
         return paths.size();
     }
 
+    void set(const ClipperLib::Paths& new_paths)
+    {
+        paths = new_paths;
+    }
+
     /*!
      * Convenience function to check if the polygon has no points.
      *
