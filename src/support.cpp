@@ -338,7 +338,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
                     Polygons result;
                     for (SupportInfillPart& lower_layer_part : lower_layer.support_infill_parts)
                     {
-                        if (lower_layer_part.insets.empty() && part.inset_count_to_generate > 0)
+                        if (part.inset_count_to_generate > 0)
                         {
                             continue;
                         }
