@@ -1112,7 +1112,6 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
             }
 
             // Don't wipe if next starting point is very near
-            // TODO: remove this condition once all polylines are properly chained
             if (wipe && (order_idx < orderOptimizer.polyOrder.size() - 1))
             {
                 const unsigned int next_poly_idx = orderOptimizer.polyOrder[order_idx + 1];
