@@ -233,14 +233,13 @@ static inline bool pointsAreCoincident(const Point& a, const Point& b)
 /**
 *
 */
-void LineOrderOptimizer::optimize(bool find_chains)
+void LineOrderOptimizer::optimize()
 {
-    const coord_t grid_size = 100_mu; // the size of the cells in the hash grid. TODO
-    SparsePointGridInclusive<unsigned int> line_bucket_grid(grid_size);
+    const coord_t grid_size = 2000_mu; // the size of the cells in the hash grid. 
+    const coord_t close_point_radius = 5000_mu; // search radius in grid. Dont consider other options of there's a line really nearby
+    SparsePointGridInclusive<unsigned int> line_end_grid(grid_size);
     // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:
     std::vector<bool> picked(polygons.size(), false);
-
-    loc_to_line = nullptr;
 
     // initialize the [polyStart]s to use the end point closest to the start point of the layer. NOTE: will be updated with every newly chosen polyline
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++) /// find closest point to initial starting point within each polygon +initialize picked
@@ -259,71 +258,8 @@ void LineOrderOptimizer::optimize(bool find_chains)
         }
         polyStart.push_back(best_point_idx);
 
-        line_bucket_grid.insert(poly.front(), poly_idx);
-        line_bucket_grid.insert(poly.back(), poly_idx);
-    }
-
-    // a map with an entry for each chain end discovered
-    //   keys are the indices of the lines (polys) that start/end a chain of lines
-    //   values indicate which of the line's points are at the end of the chain
-    std::map<unsigned, unsigned> chain_ends;
-
-    std::vector<unsigned> singletons; // indices of the line segments that don't join any other
-
-    if (find_chains)
-    {
-        // locate the chain ends by finding lines that join exactly one other line at one end and join either 0 or 2 or more lines at the other end
-
-        // we also consider lines that meet 2 or more lines at one end and nothing at the other end as chain ends
-
-        // finally, those lines that do not join any other are added to the collection of singletons
-
-        for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
-        {
-            int num_joined_lines[2];
-            for (unsigned point_idx = 0; point_idx < 2; ++point_idx)
-            {
-                std::set<int> joined_lines; // use a set because getNearbyVals() appears to return duplicates (?)
-                num_joined_lines[point_idx] = 0;
-                const Point& p = (*polygons[poly_idx])[point_idx];
-                // look at each of the lines that finish close to this line to see if either of its vertices are coincident this vertex
-                for (unsigned int close_line_idx : line_bucket_grid.getNearbyVals(p, 10))
-                {
-                    if (close_line_idx != poly_idx && (pointsAreCoincident(p, polygons[close_line_idx]->front()) || pointsAreCoincident(p, polygons[close_line_idx]->back())))
-                    {
-                        joined_lines.insert(close_line_idx);
-                    }
-                }
-                num_joined_lines[point_idx] = joined_lines.size();
-            }
-            if (num_joined_lines[0] != 1 && num_joined_lines[1] == 1)
-            {
-                // point 0 of candidate line starts a chain of 2 or more lines
-                chain_ends[poly_idx] = 0;
-            }
-            else if (num_joined_lines[1] != 1 && num_joined_lines[0] == 1)
-            {
-                // point 1 of candidate line starts a chain of 2 or more lines
-                chain_ends[poly_idx] = 1;
-            }
-            else if (num_joined_lines[0] == 0 && num_joined_lines[1] > 1)
-            {
-                // point 0 is the free end of a line that meets 2 or more lines at a junction
-                chain_ends[poly_idx] = 0;
-            }
-            else if (num_joined_lines[1] == 0 && num_joined_lines[0] > 1)
-            {
-                // point 1 is the free end of a line that meets 2 or more lines at a junction
-                chain_ends[poly_idx] = 1;
-            }
-            else if (num_joined_lines[0] == 0 && num_joined_lines[1] == 0)
-            {
-                // line is not connected to anything but if there are chains we may want to print it
-                // before moving away to a different area so make it possible for it to be selected
-                // before all the chains have been printed
-                singletons.push_back(poly_idx);
-            }
-        }
+        line_end_grid.insert(poly.front(), poly_idx);
+        line_end_grid.insert(poly.back(), poly_idx);
     }
 
     Point prev_point = startPoint;
@@ -333,36 +269,14 @@ void LineOrderOptimizer::optimize(bool find_chains)
         int best_line_idx = -1;
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
-        const int close_point_radius = 5000;
-
-        // for the first line we would prefer a line that is at the end of a sequence of connected lines (think zigzag) and
-        // so we only consider the closest line when looking for the second line onwards
-        if (order_idx > 0)
+        // we didn't find a chained line segment so now look for any lines that start within close_point_radius
+        for (unsigned int close_line_idx : line_end_grid.getNearbyVals(prev_point, close_point_radius))
         {
-            // first check if a line segment starts (really) close to last point
-            // this will find the next line segment in a chain
-            for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, 10))
+            if (picked[close_line_idx])
             {
-                if (picked[close_line_idx]
-                    || !(pointsAreCoincident(prev_point, polygons[close_line_idx]->front()) || pointsAreCoincident(prev_point, polygons[close_line_idx]->back())))
-                {
-                    continue;
-                }
-                updateBestLine(close_line_idx, best_line_idx, best_score, prev_point);
+                continue;
             }
-        }
-
-        if (best_line_idx == -1)
-        {
-            // we didn't find a chained line segment so now look for any lines that start within close_point_radius
-            for(unsigned int close_line_idx : line_bucket_grid.getNearbyVals(prev_point, close_point_radius))
-            {
-                if (picked[close_line_idx])
-                {
-                    continue;
-                }
-                updateBestLine(close_line_idx, best_line_idx, best_score, prev_point);
-            }
+            updateBestLine(close_line_idx, best_line_idx, best_score, prev_point);
         }
 
         if (best_line_idx != -1 && best_score > (2 * close_point_radius * close_point_radius))
@@ -371,54 +285,6 @@ void LineOrderOptimizer::optimize(bool find_chains)
             // penalised due to the part boundary clashing with the straight line path so let's forget it and find something closer
             best_line_idx = -1;
             best_score = std::numeric_limits<float>::infinity();
-        }
-
-        if (best_line_idx != -1 && !pointsAreCoincident(prev_point, (*polygons[best_line_idx])[polyStart[best_line_idx]]))
-        {
-            // we found a point close to prev_point but it's not close enough for the points to be considered coincident so we would
-            // probably be better off by ditching this point and finding an end of a chain instead (let's hope it's not too far away!)
-            for (auto it = chain_ends.begin(); it != chain_ends.end(); ++it )
-            {
-                if (!picked[it->first])
-                {
-                    best_line_idx = -1;
-                    best_score = std::numeric_limits<float>::infinity();
-                    break;
-                }
-            }
-        }
-
-        if (best_line_idx == -1)
-        {
-            std::vector<std::map<unsigned, unsigned>::iterator> zombies; // chain end lines that have already been output
-
-            // no point is close to the previous point, consider the points on the chain end lines that have yet to be picked
-
-            for (auto it = chain_ends.begin(); it != chain_ends.end(); ++it )
-            {
-                if (picked[it->first])
-                {
-                    zombies.push_back(it);
-                }
-                else
-                {
-                    updateBestLine(it->first, best_line_idx, best_score, prev_point, it->second);
-                }
-            }
-
-            for (auto zombie : zombies)
-            {
-                chain_ends.erase(zombie);
-            }
-
-            // if any singletons are not yet printed, consider them as well
-            for (auto poly_idx : singletons)
-            {
-                if (!picked[poly_idx])
-                {
-                    updateBestLine(poly_idx, best_line_idx, best_score, prev_point);
-                }
-            }
         }
 
         // fallback to using the nearest unpicked line
@@ -430,9 +296,7 @@ void LineOrderOptimizer::optimize(bool find_chains)
                 {
                     continue;
                 }
-
                 updateBestLine(poly_idx, best_line_idx, best_score, prev_point);
-
             }
         }
 
@@ -451,10 +315,6 @@ void LineOrderOptimizer::optimize(bool find_chains)
         {
             logError("Failed to find next closest line.\n");
         }
-    }
-    if (loc_to_line != nullptr)
-    {
-        delete loc_to_line;
     }
 }
 
