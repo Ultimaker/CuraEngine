@@ -102,9 +102,10 @@ struct ExtrusionLine
     void simplify(coord_t smallest_line_segment_squared, coord_t allowed_error_distance_squared, coord_t maximum_extrusion_area_deviation);
 
     /*!
-     * Computes and returns the area lost from (or gained by) the AB segment of an ABC straight ExtrusionLine when the
-     * junction B with a width B.w is removed from the ExtrusionLine. The area changes due to the fact that the new
-     * simplified line AC has a uniform width of C.w.
+     * Computes and returns the total area error (in μm²) of the AB and BC segments of an ABC straight ExtrusionLine
+     * when the junction B with a width B.w is removed from the ExtrusionLine. The area changes due to the fact that the
+     * new simplified line AC has a uniform width which equals to the weighted average of the width of the subsegments
+     * (based on their length).
      *
      * \param A Start point of the 3-point-straight line
      * \param B Intermediate point of the 3-point-straight line
