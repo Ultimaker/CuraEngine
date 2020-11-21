@@ -5,6 +5,7 @@
 #include "sliceDataStorage.h"
 #include "WallsComputation.h"
 #include "settings/types/Ratio.h"
+#include "settings/EnumSettings.h"
 #include "utils/polygonUtils.h"
 
 namespace cura {
@@ -52,7 +53,9 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
     }
 
-    const bool recompute_outline_based_on_outer_wall = (settings.get<bool>("support_enable") || settings.get<bool>("support_tree_enable")) && !settings.get<bool>("fill_outline_gaps");
+    const bool recompute_outline_based_on_outer_wall =
+        settings.get<bool>("support_enable") &&
+        !settings.get<bool>("fill_outline_gaps");
     for(size_t i = 0; i < inset_count; i++)
     {
         part->insets.push_back(Polygons());
@@ -97,7 +100,10 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         }
 
         //Finally optimize all the polygons. Every point removed saves time in the long run.
-        part->insets[i].simplify();
+        const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>(i == 0 ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
+        const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
+        part->insets[i].simplify(maximum_resolution, maximum_deviation);
         part->insets[i].removeDegenerateVerts();
         if (i == 0)
         {

@@ -60,6 +60,9 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
                 }
                 AABB model_brim_covered_area_boundary_box(model_brim_covered_area);
                 support_layer.excludeAreasFromSupportInfillAreas(model_brim_covered_area, model_brim_covered_area_boundary_box);
+
+                // If the gap between the model and the BP is small enough, support starts with the interface instead, so remove it there as well:
+                support_layer.support_roof = support_layer.support_roof.difference(model_brim_covered_area);
             }
             for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
             {

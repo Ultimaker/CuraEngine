@@ -1854,7 +1854,7 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
         actual_coasting_dist = accumulated_dist * coasting_dist / coasting_min_dist;
         for (acc_dist_idx_gt_coast_dist = 0 ; acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size() ; acc_dist_idx_gt_coast_dist++)
         { // search for the correct coast_dist_idx
-            if (accumulated_dist_per_point[acc_dist_idx_gt_coast_dist] > actual_coasting_dist)
+            if (accumulated_dist_per_point[acc_dist_idx_gt_coast_dist] >= actual_coasting_dist)
             {
                 break;
             }

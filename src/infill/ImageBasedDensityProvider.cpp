@@ -92,6 +92,6 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
         }
     }
     return 1.0f - ((float)total_lightness) / value_count / 255.0f;
-};
+}
 
-}; // namespace cura
+} // namespace cura

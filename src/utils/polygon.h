@@ -449,15 +449,19 @@ public:
     /*! 
      * Removes consecutive line segments with same orientation and changes this polygon.
      * 
-     * Removes verts which are connected to line segments which are both too small.
-     * Removes verts which detour from a direct line from the previous and next vert by a too small amount.
+     * 1. Removes verts which are connected to line segments which are too small.
+     * 2. Removes verts which detour from a direct line from the previous and next vert by a too small amount.
+     * 3. Moves a vert when a small line segment is connected to a much longer one. in order to maintain the outline of the object.
+     * 4. Don't remove a vert when the impact on the outline of the object is too great.
      *
-     * Criteria:
-     * 1. Never remove a vertex if either of the connceted segments is larger than \p smallest_line_segment
-     * 2. Never remove a vertex if the distance between that vertex and the final resulting polygon would be higher than \p allowed_error_distance
-     * 3. Simplify uses a heuristic and doesn't neccesarily remove all removable vertices under the above criteria.
-     * 4. But simplify may never violate these criteria.
-     * 5. Unless the segments or the distance is smaller than the rounding error of 5 micron
+     * Note that the simplify is a best effort algorithm. It does not guarantee that no lines below the provided smallest_line_segment_squared are left.
+     *
+     * The following example (Two very long line segments (" & , respectively) that are connected by a very small line segment (i) is unsimplifable by this
+     * function, even though the actual area change of removing line segment i is very small. The reason for this is that in the case of long lines, even a small
+     * deviation from it's original direction is very noticeable in the final result, especially if the polygons above make a slightly different choice.
+     *
+     * """"""""""""""""""""""""""""""""i,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
      * 
      * \param smallest_line_segment_squared maximal squared length of removed line segments
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
@@ -916,9 +920,14 @@ public:
      * Criteria:
      * 1. Never remove a vertex if either of the connceted segments is larger than \p smallest_line_segment
      * 2. Never remove a vertex if the distance between that vertex and the final resulting polygon would be higher than \p allowed_error_distance
-     * 3. Simplify uses a heuristic and doesn't neccesarily remove all removable vertices under the above criteria.
-     * 4. But simplify may never violate these criteria.
-     * 5. Unless the segments or the distance is smaller than the rounding error of 5 micron
+     * 3. The direction of segments longer than \p smallest_line_segment always
+     * remains unaltered (but their end points may change if it is connected to
+     * a small segment)
+     *
+     * Simplify uses a heuristic and doesn't neccesarily remove all removable
+     * vertices under the above criteria, but simplify may never violate these
+     * criteria. Unless the segments or the distance is smaller than the
+     * rounding error of 5 micron.
      * 
      * Vertices which introduce an error of less than 5 microns are removed
      * anyway, even if the segments are longer than the smallest line segment.
