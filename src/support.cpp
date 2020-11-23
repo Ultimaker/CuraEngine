@@ -1287,8 +1287,9 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
     const ExtruderTrain& infill_extruder = mesh.settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
-    const coord_t max_tower_supported_diameter = mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter");
+    const int offset = - static_cast<int>(infill_extruder.settings.get<coord_t>("support_line_width")) / 2;
+    const double max_tower_supported_diameter = static_cast<double>(mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter"));
+    const double max_tower_supported_area = max_tower_supported_diameter * max_tower_supported_diameter;
 
     mesh.overhang_points.resize(storage.print_layer_count);
 
@@ -1297,29 +1298,18 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
         const SliceLayer& layer = mesh.layers[layer_idx];
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (part.outline.outerPolygon().area() < max_tower_supported_diameter * max_tower_supported_diameter)
+            if (part.outline.outerPolygon().area() < max_tower_supported_area)
             {
                 const SliceLayer& layer_below = mesh.layers[layer_idx - 1];
-                if (layer_below.getOutlines().intersection(part.outline).size() > 0)
+                if (!layer_below.getOutlines().intersection(part.outline).empty())
                 {
                     continue;
                 }
 
-                Polygons part_poly_computed;
-                const Polygons& part_poly = (part.insets.size() > 0) ? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
-                if (part.insets.size() == 0)
+                const Polygons overhang = part.outline.offset(offset).difference(storage.support.supportLayers[layer_idx].anti_overhang);
+                if (!overhang.empty())
                 {
-                    part_poly_computed = part.outline.offset(-support_line_width / 2);
-                }
-
-                if (part_poly.size() > 0)
-                {
-                    Polygons part_poly_recomputed = part_poly.difference(storage.support.supportLayers[layer_idx].anti_overhang);
-                    if (part_poly_recomputed.size() == 0)
-                    {
-                        continue;
-                    }
-                    mesh.overhang_points[layer_idx].push_back(part_poly_recomputed);
+                    mesh.overhang_points[layer_idx].push_back(overhang);
                 }
             }
         }
