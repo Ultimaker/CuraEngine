@@ -839,6 +839,9 @@ public:
 
     /*!
      * Intersect polylines with this area Polygons object.
+     * 
+     * \warning Should never be called on polylines which have several collinear segments.
+     * Call \ref splitPolylinesIntoSegments first!
      */
     Polygons intersectionPolyLines(const Polygons& polylines) const;
 
