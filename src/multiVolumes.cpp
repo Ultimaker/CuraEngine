@@ -8,6 +8,7 @@
 #include "Application.h"
 #include "Slice.h"
 #include "slicer.h"
+#include "utils/PolylineStitcher.h"
 #include "settings/EnumSettings.h"
 
 namespace cura 
@@ -128,8 +129,8 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
             Polygons& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].openPolylines;
             Polygons* cutting_mesh_area = &cutting_mesh_polygons;
             Polygons cutting_mesh_area_recomputed;
+            coord_t surface_line_width = cutting_mesh.settings.get<coord_t>("wall_line_width_0");
             { // compute cutting_mesh_area
-                coord_t surface_line_width = cutting_mesh.settings.get<coord_t>("wall_line_width_0");
                 if (cutting_mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::BOTH)
                 {
                     cutting_mesh_area_recomputed = cutting_mesh_area->unionPolygons(cutting_mesh_polylines.offsetPolyLine(surface_line_width / 2));
@@ -168,7 +169,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                 new_outlines.add(intersection);
                 if (cutting_mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // niet te geleuven
                 {
-                    new_polylines.add(carved_mesh_layer.intersectionPolyLines(cutting_mesh_polylines));
+                    new_polylines.add(carved_mesh_layer.intersectionPolyLines(cutting_mesh_polylines.splitPolylinesIntoSegments()));
                 }
 
                 carved_mesh_layer = carved_mesh_layer.difference(*cutting_mesh_area);
@@ -176,7 +177,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
             cutting_mesh_polygons = new_outlines.unionPolygons();
             if (cutting_mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
             {
-                cutting_mesh_polylines = new_polylines;
+                PolylineStitcher::stitch(new_polylines, cutting_mesh_polylines, cutting_mesh_polygons, surface_line_width);
             }
         }
     }
