@@ -75,10 +75,11 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy(const StrategyType type, c
     }
     if (max_bead_count > 0)
     {
-        logDebug("Applying the Limited Beading meta-strategy with maximum bead count = %d.", max_bead_count);
-        ret = new LimitedBeadingStrategy(max_bead_count, ret);
         logDebug("Applying the Redistribute meta-strategy with outer-wall width = %d, inner-wall width = %d", preferred_bead_width_outer, preferred_bead_width_inner);
         ret = new RedistributeBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, ret);
+        //Apply the LimitedBeadingStrategy last, since that adds a 0-width marker wall which other beading strategies shouldn't touch.
+        logDebug("Applying the Limited Beading meta-strategy with maximum bead count = %d.", max_bead_count);
+        ret = new LimitedBeadingStrategy(max_bead_count, ret);
     }
     return ret;
 }
