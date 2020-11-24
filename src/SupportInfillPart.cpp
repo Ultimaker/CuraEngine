@@ -18,10 +18,10 @@ SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t suppor
     infill_area_per_combine_per_density.clear();
 }
 
-bool SupportInfillPart::generateInsetsAndInfillAreas()
+bool SupportInfillPart::generateInsetsAndInfillAreas(const coord_t max_resolution, const coord_t max_deviation)
 {
     // generate insets, use the first inset as the wall line, and the second as the infill area
-    AreaSupport::generateOutlineInsets(insets, outline, inset_count_to_generate, support_line_width);
+    AreaSupport::generateOutlineInsets(insets, outline, inset_count_to_generate, support_line_width, max_resolution, max_deviation);
     if (inset_count_to_generate > 0 && insets.empty())
     {
         return false;
