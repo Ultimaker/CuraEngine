@@ -74,33 +74,32 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
     {
         current = junctions.at(point_idx);
 
-        // don't spill over if the [next] vertex will then be equal to [previous]
+        // Don't spill over if the [next] vertex will then be equal to [previous]
         if (point_idx + 1 == junctions.size() && new_junctions.size() > 1)
         {
-            next = new_junctions[0]; //Spill over to new polygon for checking removed area.
+            next = new_junctions[0]; // Spill over to new polygon for checking removed area.
         }
         else
         {
             next = junctions.at(point_idx + 1);
         }
         const coord_t removed_area_next = current.p.X * next.p.Y - current.p.Y * next.p.X; // Twice the Shoelace formula for area of polygon per line segment.
-        const coord_t negative_area_closing = next.p.X * previous.p.Y - next.p.Y * previous.p.X; // area between the origin and the short-cutting segment
+        const coord_t negative_area_closing = next.p.X * previous.p.Y - next.p.Y * previous.p.X; // Area between the origin and the short-cutting segment
         accumulated_area_removed += removed_area_next;
 
         const coord_t length2 = vSize2(current - previous);
         if (length2 < 25)
         {
-            // We're allowed to always delete segments of less than 5 micron. The width in this case doesn't matter that
-            // much.
+            // We're allowed to always delete segments of less than 5 micron. The width in this case doesn't matter that much.
             continue;
         }
 
-        const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shortcut area polygon
+        const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // Close the shortcut area polygon
         const coord_t base_length_2 = vSize2(next - previous);
 
-        if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
+        if (base_length_2 == 0) // Two line segments form a line back and forth with no area.
         {
-            continue; //Remove the vertex.
+            continue; // Remove the junction (vertex).
         }
         //We want to check if the height of the triangle formed by previous, current and next vertices is less than allowed_error_distance_squared.
         //1/2 L = A           [actual area is half of the computed shoelace value] // Shoelace formula is .5*(...) , but we simplify the computation and take out the .5
@@ -113,18 +112,18 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
         coord_t weighted_average_width;
         const coord_t extrusion_area_error = calculateExtrusionAreaDeviationError(previous, current, next, weighted_average_width);
         if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
-             && LinearAlg2D::getDistFromLine(current.p, previous.p, next.p) <= 1) // make sure that height_2 is not small because of cancellation of positive and negative areas
+             && LinearAlg2D::getDistFromLine(current.p, previous.p, next.p) <= 1) // Make sure that height_2 is not small because of cancellation of positive and negative areas
             // We shouldn't remove middle junctions of colinear segments if the area changed for the C-P segment is exceeding the maximum allowed
              && extrusion_area_error <= maximum_extrusion_area_deviation)
         {
             // Adjust the width of the entire P-N line as a weighted average of the widths of the P-C and C-N lines and
-            // then remove the current junction.
+            // then remove the current junction (vertex).
             next.w = weighted_average_width;
             continue;
         }
 
         if (length2 < smallest_line_segment_squared
-            && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.)
+            && height_2 <= allowed_error_distance_squared) // Removing the junction (vertex) doesn't introduce too much error.
         {
             const coord_t next_length2 = vSize2(current - next);
             if (next_length2 > smallest_line_segment_squared)
@@ -157,17 +156,17 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
             }
             else
             {
-                continue; //Remove the vertex.
+                continue; // Remove the junction (vertex).
             }
         }
-        //Don't remove the vertex.
-        accumulated_area_removed = removed_area_next; // so that in the next iteration it's the area between the origin, [previous] and [current]
+        // The junction (vertex) isn't removed.
+        accumulated_area_removed = removed_area_next; // So that in the next iteration it's the area between the origin, [previous] and [current]
         previous_previous = previous;
-        previous = current; //Note that "previous" is only updated if we don't remove the vertex.
+        previous = current; // Note that "previous" is only updated if we don't remove the junction (vertex).
         new_junctions.push_back(current);
     }
 
-    // Ending junction should always exist in the simplified path
+    // Ending junction (vertex) should always exist in the simplified path
     new_junctions.emplace_back(junctions.back());
     junctions = new_junctions;
 }
@@ -185,6 +184,11 @@ coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A,
      * ---------------             ^                           **************
      *       ^                    C.w                                             ^
      *      B.w                                                     new_width = weighted_average_width
+     *
+     *
+     * ******** denote the total extrusion area deviation error in the consecutive segments as a result of using the
+     * weighted-average width for the entire extrusion line.
+     *
      * */
     const coord_t ab_length = vSize(B - A);
     const coord_t bc_length = vSize(C - B);

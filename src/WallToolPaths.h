@@ -77,7 +77,8 @@ public:
     static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
 
     /*!
-     * Simplifies The generated toolpaths
+     * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
+     * settings.
      * \param settings The settings as provided by the user
      * \return
      */
