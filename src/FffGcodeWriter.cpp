@@ -2194,9 +2194,9 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
         Polygons supported_skin_part_regions;
 
-        const int angle = bridgeAngle(mesh.settings, skin_part.outline, storage, layer_nr, bridge_layer, support_layer, supported_skin_part_regions);
+        const int angle = bridgeAngle(mesh.settings, skin_part.skin_fill, storage, layer_nr, bridge_layer, support_layer, supported_skin_part_regions);
 
-        if (angle > -1 || (supported_skin_part_regions.area() / (skin_part.outline.area() + 1) < support_threshold))
+        if (angle > -1 || (supported_skin_part_regions.area() / (skin_part.skin_fill.area() + 1) < support_threshold))
         {
             if (angle > -1)
             {
@@ -2260,7 +2260,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     {
         // skin isn't a bridge but is it above support and we need to modify the fan speed?
 
-        AABB skin_bb(skin_part.outline);
+        AABB skin_bb(skin_part.skin_fill);
 
         support_layer = &storage.support.supportLayers[support_layer_nr];
 
@@ -2271,7 +2271,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
             AABB support_roof_bb(support_layer->support_roof);
             if (skin_bb.hit(support_roof_bb))
             {
-                supported = !skin_part.outline.intersection(support_layer->support_roof).empty();
+                supported = !skin_part.skin_fill.intersection(support_layer->support_roof).empty();
             }
         }
         else
@@ -2281,7 +2281,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
                 AABB support_part_bb(support_part.getInfillArea());
                 if (skin_bb.hit(support_part_bb))
                 {
-                    supported = !skin_part.outline.intersection(support_part.getInfillArea()).empty();
+                    supported = !skin_part.skin_fill.intersection(support_part.getInfillArea()).empty();
 
                     if (supported)
                     {
@@ -2300,7 +2300,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     // calculate polygons and lines
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps) ? &concentric_perimeter_gaps : nullptr;
 
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.outline, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed) const

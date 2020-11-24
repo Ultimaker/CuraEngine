@@ -298,12 +298,11 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 
     for(SkinPart& skin_part : part.skin_parts)
     {
-        Polygons roofing;
         if(roofing_layer_count > 0)
         {
             Polygons no_air_above = generateNoAirAbove(part);
-            skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
-            skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
+            skin_part.roofing_fill = skin_part.outline.difference(no_air_above);
+            skin_part.skin_fill = skin_part.outline.intersection(no_air_above);
             const bool concentric_skinfill_pattern =
                    mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
                 && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC;
@@ -323,13 +322,17 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             // On the contrary, unwanted insets are generated for roofing layers because of the non-concentric top/bottom pattern.
             // In such cases we want to clear the skin insets first and then regenerate the proper roofing fill and inner infill
             // in the concentric roofing_pattern.
-            else if(!skin_part.roofing_fill.empty() && skin_part.inner_infill.empty() && layer_nr > 0 && concentric_skinfill_pattern)
+            else if(!skin_part.roofing_fill.empty() && skin_part.skin_fill.empty() && layer_nr > 0 && concentric_skinfill_pattern)
             {
                 // Clear the skin insets for the roofing layers and regenerate the roofing fill and inner infill without taking into
                 // account the Extra Skin Wall Count.
                 skin_part.inset_paths.clear();
                 regenerateRoofingFillAndInnerInfill(part, skin_part);
             }
+        }
+        else
+        {
+            skin_part.skin_fill = skin_part.outline;
         }
     }
 }
@@ -381,8 +384,8 @@ Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part)
 void SkinInfillAreaComputation::regenerateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part)
 {
     Polygons no_air_above = generateNoAirAbove(part);
-    skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
-    skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
+    skin_part.roofing_fill = skin_part.outline.difference(no_air_above);
+    skin_part.skin_fill = skin_part.outline.intersection(no_air_above);
 }
 
 void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
