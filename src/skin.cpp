@@ -38,7 +38,6 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr,
 , top_layer_count(mesh.settings.get<size_t>("top_layers"))
 , wall_line_count(mesh.settings.get<size_t>("wall_line_count"))
 , skin_line_width(getSkinLineWidth(mesh, layer_nr))
-, skin_inset_count(mesh.settings.get<size_t>("skin_outline_count"))
 , no_small_gaps_heuristic(mesh.settings.get<bool>("skin_no_small_gaps_heuristic"))
 , process_infill(process_infill)
 , top_skin_preshrink(mesh.settings.get<coord_t>("top_skin_preshrink"))
@@ -89,7 +88,6 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
     for (unsigned int part_nr = 0; part_nr < layer->parts.size(); part_nr++)
     {
         SliceLayerPart& part = layer->parts[part_nr];
-        generateSkinInsetsAndInnerSkinInfill(&part);
 
         generateRoofing(part);
     }
@@ -276,47 +274,6 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     }
 }
 
-
-/*
- * This function is executed in a parallel region based on layer_nr.
- * When modifying make sure any changes does not introduce data races.
- *
- * this function may only read/write the skin and infill from the *current* layer.
- */
-void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerPart* part)
-{
-    for (SkinPart& skin_part : part->skin_parts)
-    {
-        // Do not generate skinfill if the Bottom Pattern Initial Layer (for layer 0) and the Top/Bottom Layer Pattern
-        // (for the rest of the layers) are concentric
-        const bool concentric_skinfill_patern =
-               (layer_nr == 0 && mesh.settings.get<EFillMethod>("top_bottom_pattern_0") == EFillMethod::CONCENTRIC)
-            || (layer_nr > 0  && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC);
-        generateSkinInsets(skin_part, concentric_skinfill_patern);
-    }
-}
-
-/*
- * This function is executed in a parallel region based on layer_nr.
- * When modifying make sure any changes does not introduce data races.
- *
- * this function may only read/write the skin and infill from the *current* layer.
- */
-void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part, const bool concentric_skinfill_patern)
-{
-    if (skin_inset_count > 0 || concentric_skinfill_patern)
-    {
-        // Call on libArachne:
-        WallToolPaths wall_tool_paths(skin_part.outline, skin_line_width, concentric_skinfill_patern ? -1 : skin_inset_count, mesh.settings);
-        skin_part.inset_paths = wall_tool_paths.getToolPaths();
-        skin_part.inner_infill = wall_tool_paths.getInnerContour();
-    }
-    else
-    {
-        skin_part.inner_infill = skin_part.outline;
-    }
-}
-
 /*
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
@@ -356,10 +313,8 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             // but only if the roofing pattern is not concentric.
             if(!skin_part.roofing_fill.empty() && layer_nr > 0)
             {
-
-                // Generate skin insets, regenerate the no_air_above, and recalculate the inner and roofing infills, 
+                // Regenerate the no_air_above, and recalculate the inner and roofing infills, 
                 // taking into account the extra skin wall count (only for the roofing layers).
-                generateSkinInsets(skin_part, concentric_skinfill_pattern);
                 if(!concentric_skinfill_pattern)
                 {
                     regenerateRoofingFillAndInnerInfill(part, skin_part);

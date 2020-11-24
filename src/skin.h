@@ -76,6 +76,7 @@ public:
      * \param mesh The mesh for which to recalculate the infill areas
      */
     static void generateInfillSupport(SliceMeshStorage& mesh);
+
 protected:
     /*!
      * Generate the skin areas (outlines) and the infill areas
@@ -150,22 +151,6 @@ protected:
      * where the inner infill and roofing infill areas (output) is stored.
      */
     void regenerateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part);
-
-    /*!
-     * Generate the skin insets and the inner infill area
-     * 
-     * \param part The part where the skin outline information (input) is stored and
-     * where the skin insets (output) are stored.
-     */
-    void generateSkinInsetsAndInnerSkinInfill(SliceLayerPart* part);
-
-    /*!
-     * Generate the skin insets of a skin part
-     * 
-     * \param skin_part The part where the skin outline information (input) is stored and
-     * where the skin insets (output) are stored.
-     */
-    void generateSkinInsets(SkinPart& skin_part, const bool concentric_skinfill_patern);
 
 protected:
     LayerIndex layer_nr; //!< The index of the layer for which to generate the skins and infill.
