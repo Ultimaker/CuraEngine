@@ -163,7 +163,8 @@ Polygons LayerPlan::computeMinimumCombBoundary()
                 {
                     continue;
                 }
-                const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                const coord_t inner_walls_offset = (mesh.settings.get<coord_t>("wall_line_count") - 1) / 2 * mesh.settings.get<coord_t>("wall_line_width_x") / 2;
+                const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - inner_walls_offset;
                 for (const SliceLayerPart& part : layer.parts)
                 {
                     comb_boundary.add(part.outline.offset(offset));
@@ -202,7 +203,8 @@ Polygons LayerPlan::computePreferredCombBoundary()
                 }
                 else if (combing_mode == CombingMode::NO_SKIN)
                 {
-                    const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                    const coord_t inner_walls_offset = (mesh.settings.get<coord_t>("wall_line_count") - 1) / 2 * mesh.settings.get<coord_t>("wall_line_width_x") / 2;
+                    const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - inner_walls_offset;
                     for (const SliceLayerPart& part : layer.parts)
                     {
                         comb_boundary.add(part.outline.offset(offset).difference(part.inner_area));
