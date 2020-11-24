@@ -3,6 +3,13 @@
 
 #include "BeadingStrategyFactory.h"
 
+#include "InwardDistributedBeadingStrategy.h"
+#include "LimitedBeadingStrategy.h"
+#include "CenterDeviationBeadingStrategy.h"
+#include "WideningBeadingStrategy.h"
+#include "DistributedBeadingStrategy.h"
+#include "RedistributeBeadingStrategy.h"
+
 namespace cura
 {
 
@@ -33,14 +40,29 @@ std::string to_string(StrategyType type)
     }
 }
 
+
+coord_t get_weighted_average(const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t max_bead_count)
+{
+    if (max_bead_count > 2)
+    {
+        return ((preferred_bead_width_outer * 2) + preferred_bead_width_inner * (max_bead_count - 2)) / max_bead_count;
+    }
+    if (max_bead_count <= 0)
+    {
+        return preferred_bead_width_inner;
+    }
+    return preferred_bead_width_outer;
+}
+
 BeadingStrategy* BeadingStrategyFactory::makeStrategy(const StrategyType type, const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t preferred_transition_length, const float transitioning_angle, const bool print_thin_walls, const coord_t min_bead_width, const coord_t min_feature_size, const coord_t max_bead_count)
 {
+    const coord_t bar_preferred_wall_width = get_weighted_average(preferred_bead_width_outer, preferred_bead_width_inner, max_bead_count);
     BeadingStrategy* ret = nullptr;
     switch (type)
     {
-        case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, transitioning_angle);       break;
-        case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, preferred_transition_length, transitioning_angle);     break;
-        case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, preferred_transition_length, transitioning_angle, inward_distributed_center_size);  break;
+        case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(bar_preferred_wall_width, transitioning_angle);       break;
+        case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle);     break;
+        case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, inward_distributed_center_size);  break;
         default:
             logError("Cannot make strategy!\n");
             return nullptr;
@@ -55,6 +77,8 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy(const StrategyType type, c
     {
         logDebug("Applying the Limited Beading meta-strategy with maximum bead count = %d.", max_bead_count);
         ret = new LimitedBeadingStrategy(max_bead_count, ret);
+        logDebug("Applying the Redistribute meta-strategy with outer-wall width = %d, inner-wall width = %d", preferred_bead_width_outer, preferred_bead_width_inner);
+        ret = new RedistributeBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, ret);
     }
     return ret;
 }

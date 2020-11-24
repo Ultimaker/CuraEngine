@@ -9,11 +9,6 @@
 #include "../utils/optional.h"  // until the move to C++17
 
 #include "BeadingStrategy.h"
-#include "InwardDistributedBeadingStrategy.h"
-#include "LimitedBeadingStrategy.h"
-#include "CenterDeviationBeadingStrategy.h"
-#include "WideningBeadingStrategy.h"
-#include "DistributedBeadingStrategy.h"
 
 namespace cura
 {
