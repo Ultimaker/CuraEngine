@@ -56,6 +56,8 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     constexpr coord_t infill_overlap = 0;
     constexpr int infill_multiplier = 1;
     constexpr coord_t shift = 0;
+    const coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const Ratio ironing_flow = mesh.settings.get<Ratio>("ironing_flow");
 
     coord_t ironing_inset = -mesh.settings.get<coord_t>("ironing_inset");
@@ -76,7 +78,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     }
     const coord_t outline_offset = ironing_inset;
 
-    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, outline_offset, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift);
+    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, outline_offset, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation);
     Polygons ironing_polygons;
     Polygons ironing_lines;
     infill_generator.generate(ironing_polygons, ironing_lines);
