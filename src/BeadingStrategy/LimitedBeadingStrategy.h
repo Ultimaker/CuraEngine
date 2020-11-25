@@ -18,6 +18,12 @@ namespace cura
  *
  * The width of the wall is limited to the maximum number of contours times the
  * maximum width of each of these contours.
+ *
+ * If the width of the wall gets limited, this strategy outputs one additional
+ * bead with 0 width. This bead is used to denote the limits of the walled area.
+ * Other structures can then use this border to align their structures to, such
+ * as to create correctly overlapping infill or skin, or to align the infill
+ * pattern to any extra infill walls.
  */
 class LimitedBeadingStrategy : public BeadingStrategy
 {

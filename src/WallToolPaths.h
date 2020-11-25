@@ -48,26 +48,25 @@ public:
     const VariableWidthPaths& getToolPaths();
 
     /*!
-     * Gets the inner contour of the area which is inside of the generated ToolPaths. This is for now a simple offset
-     * of the outline. But after the implementation of CURA-7681 this will return the actual inside contour.
-     * If this is called before \p generate() it will first generate the ToolPaths
-     * If this is called when the inset count is 0 it will return a reference to the outline
-     * \return A reference to the inner contour
+     * Compute the inner contour of the walls. This contour indicates where the walled area ends and its infill begins.
+     * The inside can then be filled, e.g. with skin/infill for the walls of a part, or with a pattern in the case of
+     * infill with extra infill walls.
+     */
+    void computeInnerContour();
+
+    /*!
+     * Gets the inner contour of the area which is inside of the generated tool
+     * paths.
+     *
+     * If the walls haven't been generated yet, this will lazily call the
+     * \p generate() function to generate the walls with variable width.
+     * The resulting polygon will snugly match the inside of the variable-width
+     * walls where the walls get limited by the LimitedBeadingStrategy to a
+     * maximum wall count.
+     * If there are no walls, the outline will be returned.
+     * \return The inner contour of the generated walls.
      */
     const Polygons& getInnerContour();
-
-    /*!
-     * Gets the outline
-     * \return a reference to the outline
-     */
-    const Polygons& getOutline() const;
-
-    /*!
-     * Obtains the inner contour of the generated ToolPaths. Not yet implemented. See CURA-7681
-     * \param toolpaths the toolpaths used to determine the inner contour
-     * \return
-     */
-    static Polygons innerContourFromToolpaths(const VariableWidthPaths& toolpaths);
 
     /*!
      * Removes empty paths from the toolpaths
@@ -75,6 +74,23 @@ public:
      * \return true if there are still paths left. If all toolpaths were removed it returns false
      */
     static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
+
+protected:
+    /*!
+     * Stitches toolpaths together to form contours.
+     *
+     * All toolpaths are used. Paths that are not closed will get closed in the
+     * output by virtue of becoming polygons. As such, the input is expected to
+     * consist of almost completely closed contours, which may be split up into
+     * different polylines.
+     * This function combines those polylines into the polygons they are
+     * probably intended to depict.
+     * \param input The paths to stitch together.
+     * \param stitch_distance Any endpoints closer than this distance can be
+     * stitched together. An additional line segment will bridge the gap.
+     * \param output Where to store the output polygons.
+     */
+    void stitchContours(const VariableWidthPaths& input, const coord_t stitch_distance, Polygons& output) const;
 
     /*!
      * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
@@ -86,15 +102,15 @@ public:
 
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
-    const coord_t bead_width_0; //<! The nominal or first extrusion line width with which libArachne generates its walls
-    const coord_t bead_width_x; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor this is the same as bead_width_0
-    const coord_t inset_count; //<! The maximum number of walls to generate
-    const StrategyType strategy_type; //<! The wall generating strategy
-    const bool print_thin_walls; //<! Whether to enable the widening beading meta-strategy for thin features
-    std::unique_ptr<coord_t> min_feature_size; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
-    std::unique_ptr<coord_t> min_bead_width;  //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
-    const double small_area_length; //<! The length of the small features which are to be filtered out, this is squared into a surface
-    const coord_t transition_length; //<! The transitioning length when the amount of extrusion lines changes
+    coord_t bead_width_0; //<! The nominal or first extrusion line width with which libArachne generates its walls
+    coord_t bead_width_x; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor this is the same as bead_width_0
+    size_t inset_count; //<! The maximum number of walls to generate
+    StrategyType strategy_type; //<! The wall generating strategy
+    bool print_thin_walls; //<! Whether to enable the widening beading meta-strategy for thin features
+    coord_t min_feature_size; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
+    coord_t min_bead_width;  //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
+    double small_area_length; //<! The length of the small features which are to be filtered out, this is squared into a surface
+    coord_t transition_length; //<! The transitioning length when the amount of extrusion lines changes
     bool toolpaths_generated; //<! Are the toolpaths generated
     VariableWidthPaths toolpaths; //<! The generated toolpaths
     Polygons inner_contour;  //<! The inner contour of the generated toolpaths

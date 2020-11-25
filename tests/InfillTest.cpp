@@ -109,7 +109,6 @@ namespace cura
         }
     };
 
-    constexpr coord_t outline_offset = 0;
     constexpr coord_t infill_line_width = 350;
     constexpr coord_t infill_overlap = 0;
     constexpr size_t infill_multiplier = 1;
@@ -157,7 +156,6 @@ namespace cura
             zig_zagify,
             connect_polygons,
             outline_polygons,
-            outline_offset,
             infill_line_width,
             line_distance,
             infill_overlap,
@@ -167,9 +165,11 @@ namespace cura
             shift
         ); // There are some optional parameters, but these will do for now (future improvement?).
 
+        Settings infill_settings;
+        VariableWidthPaths result_paths;
         Polygons result_polygons;
         Polygons result_lines;
-        infill.generate(result_polygons, result_lines, nullptr, nullptr);
+        infill.generate(result_paths, result_polygons, result_lines, infill_settings, nullptr, nullptr);
 
         InfillTestParameters result = InfillTestParameters(params, test_polygon_id, outline_polygons, result_lines, result_polygons);
         return result;

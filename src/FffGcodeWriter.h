@@ -9,6 +9,7 @@
 #include "gcodeExport.h"
 #include "LayerPlanBuffer.h"
 #include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
+#include "utils/ExtrusionLine.h" //Processing variable-width paths.
 #include "utils/NoCopy.h"
 
 namespace std
@@ -432,8 +433,6 @@ private:
      */
     bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
-
-
     /*!
      * Generate the insets for the walls of a given layer part.
      * \param[in] storage where the slice data is stored.
@@ -506,7 +505,7 @@ private:
      * \param skin_part The skin part for which to create gcode
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processSkinInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const;
+    void processSkinInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const VariableWidthPaths& skin_wall_paths, bool& added_something) const;
 
     /*!
      * Add the roofing which is the area inside the innermost skin inset which has air 'directly' above
