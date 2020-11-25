@@ -230,13 +230,13 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     coord_t top_total_expansion = 0;
 
     //Remove thin pieces of support for Skin Removal Width.
-    if(bottom_skin_preshrink)
+    if(bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance))
     {
         const coord_t simple_expand_distance = min_width > 0 ? 0 : bottom_skin_expand_distance; //If there is no min_width we can immediately apply the expand distance here, saving one offset operation.
         downskin = downskin.offset(-bottom_skin_preshrink / 2).offset(bottom_skin_preshrink / 2 + simple_expand_distance);
         bottom_total_expansion += simple_expand_distance;
     }
-    if(top_skin_preshrink)
+    if(top_skin_preshrink > 0 || (min_width == 0 && top_skin_expand_distance != 0))
     {
         const coord_t simple_expand_distance = min_width > 0 ? 0 : top_skin_expand_distance;
         upskin = upskin.offset(-top_skin_preshrink / 2).offset(top_skin_preshrink / 2 + simple_expand_distance);
