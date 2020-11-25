@@ -2052,8 +2052,6 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     {
         const SkinPart& skin_part = *path.vertices;
 
-        processSkinInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
-
         added_something = added_something |
             processSkinPart(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part);
     }
@@ -2092,7 +2090,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     return added_something;
 }
 
-void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const
+void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const VariableWidthPaths& skin_wall_paths, bool& added_something) const
 {
     const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
     // add skin walls aka skin perimeters
@@ -2100,13 +2098,13 @@ void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPla
     {
         added_something = false;
 
-        const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(skin_part.inset_paths);
+        const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(skin_wall_paths);
         for (const PathJunctions& paths : bins)
         {
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addWalls(paths, mesh, mesh_config.skin_config, mesh_config.bridge_skin_config);
+            gcode_layer.addWalls(paths, mesh, non_bridge_config, bridge_config);
         }
     }
 }
@@ -2196,9 +2194,9 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
         Polygons supported_skin_part_regions;
 
-        const int angle = bridgeAngle(mesh.settings, skin_part.outline, storage, layer_nr, bridge_layer, support_layer, supported_skin_part_regions);
+        const int angle = bridgeAngle(mesh.settings, skin_part.skin_fill, storage, layer_nr, bridge_layer, support_layer, supported_skin_part_regions);
 
-        if (angle > -1 || (supported_skin_part_regions.area() / (skin_part.outline.area() + 1) < support_threshold))
+        if (angle > -1 || (supported_skin_part_regions.area() / (skin_part.skin_fill.area() + 1) < support_threshold))
         {
             if (angle > -1)
             {
@@ -2262,7 +2260,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     {
         // skin isn't a bridge but is it above support and we need to modify the fan speed?
 
-        AABB skin_bb(skin_part.outline);
+        AABB skin_bb(skin_part.skin_fill);
 
         support_layer = &storage.support.supportLayers[support_layer_nr];
 
@@ -2273,7 +2271,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
             AABB support_roof_bb(support_layer->support_roof);
             if (skin_bb.hit(support_roof_bb))
             {
-                supported = !skin_part.outline.intersection(support_layer->support_roof).empty();
+                supported = !skin_part.skin_fill.intersection(support_layer->support_roof).empty();
             }
         }
         else
@@ -2283,7 +2281,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
                 AABB support_part_bb(support_part.getInfillArea());
                 if (skin_bb.hit(support_part_bb))
                 {
-                    supported = !skin_part.outline.intersection(support_part.getInfillArea()).empty();
+                    supported = !skin_part.skin_fill.intersection(support_part.getInfillArea()).empty();
 
                     if (supported)
                     {
@@ -2302,7 +2300,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     // calculate polygons and lines
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps) ? &concentric_perimeter_gaps : nullptr;
 
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed) const
@@ -2313,7 +2311,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
 
     constexpr int infill_multiplier = 1;
     constexpr int extra_infill_shift = 0;
-    constexpr int wall_line_count = 0;
+    const size_t wall_line_count = mesh.settings.get<size_t>("skin_outline_count");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = mesh.settings.get<bool>("connect_skin_polygons");
     const Point infill_origin;
@@ -2330,12 +2328,16 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings);
 
     // add paths
-    if (skin_polygons.size() > 0 || skin_lines.size() > 0)
+    if(!skin_polygons.empty() || !skin_lines.empty() || !skin_paths.empty())
     {
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
-        if (!skin_polygons.empty())
+        if(!skin_paths.empty())
+        {
+            processSkinInsets(storage, gcode_layer, mesh, extruder_nr, config, config, skin_paths, added_something);
+        }
+        if(!skin_polygons.empty())
         {
             constexpr bool force_comb_retract = false;
             gcode_layer.addTravel(skin_polygons[0][0], force_comb_retract);

@@ -179,6 +179,7 @@ set(engine_SRCS # Except main.cpp.
     src/BeadingStrategy/DistributedBeadingStrategy.cpp
     src/BeadingStrategy/InwardDistributedBeadingStrategy.cpp
     src/BeadingStrategy/LimitedBeadingStrategy.cpp
+    src/BeadingStrategy/RedistributeBeadingStrategy.cpp
     src/BeadingStrategy/WideningBeadingStrategy.cpp
     
     src/communication/ArcusCommunication.cpp

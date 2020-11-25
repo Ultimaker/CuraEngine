@@ -38,7 +38,6 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr,
 , top_layer_count(mesh.settings.get<size_t>("top_layers"))
 , wall_line_count(mesh.settings.get<size_t>("wall_line_count"))
 , skin_line_width(getSkinLineWidth(mesh, layer_nr))
-, skin_inset_count(mesh.settings.get<size_t>("skin_outline_count"))
 , no_small_gaps_heuristic(mesh.settings.get<bool>("skin_no_small_gaps_heuristic"))
 , process_infill(process_infill)
 , top_skin_preshrink(mesh.settings.get<coord_t>("top_skin_preshrink"))
@@ -89,7 +88,6 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
     for (unsigned int part_nr = 0; part_nr < layer->parts.size(); part_nr++)
     {
         SliceLayerPart& part = layer->parts[part_nr];
-        generateSkinInsetsAndInnerSkinInfill(&part);
 
         generateRoofing(part);
     }
@@ -228,92 +226,51 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
 void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
 {
     const coord_t min_width = mesh.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
+    coord_t bottom_total_expansion = 0; //Track if these end up being expanded beyond their original shape. If so, we need to clip to the original shape at the end.
+    coord_t top_total_expansion = 0;
+
     //Remove thin pieces of support for Skin Removal Width.
-    if(bottom_skin_preshrink)
+    if(bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance))
     {
-        const coord_t simple_expand_distance = min_width ? 0 : bottom_skin_expand_distance; //If there is no min_width we can immediately apply the expand distance here, saving one offset operation.
+        const coord_t simple_expand_distance = min_width > 0 ? 0 : bottom_skin_expand_distance; //If there is no min_width we can immediately apply the expand distance here, saving one offset operation.
         downskin = downskin.offset(-bottom_skin_preshrink / 2).offset(bottom_skin_preshrink / 2 + simple_expand_distance);
+        bottom_total_expansion += simple_expand_distance;
     }
-    if(top_skin_preshrink)
+    if(top_skin_preshrink > 0 || (min_width == 0 && top_skin_expand_distance != 0))
     {
-        const coord_t simple_expand_distance = min_width ? 0 : top_skin_expand_distance;
+        const coord_t simple_expand_distance = min_width > 0 ? 0 : top_skin_expand_distance;
         upskin = upskin.offset(-top_skin_preshrink / 2).offset(top_skin_preshrink / 2 + simple_expand_distance);
+        top_total_expansion += simple_expand_distance;
     }
 
     //Expand some areas of the skin for Skin Expand Distance.
-    if(min_width)
+    if(min_width > 0)
     {
         //This performs an opening operation by first insetting by the minimum width, then offsetting with the same width.
         //The expansion is only applied to that opened shape.
-        if(bottom_skin_expand_distance)
+        if(bottom_skin_expand_distance != 0)
         {
             const Polygons expanded = downskin.offset(-min_width).offset(min_width + bottom_skin_expand_distance);
             //And then re-joined with the original part that was not offset, to retain parts smaller than min_width.
             downskin = downskin.unionPolygons(expanded);
-            //Afterwards the offset shape needs to be clipped with the original outline since we may only expand into infill, not across the walls.
-            downskin = downskin.intersection(original_outline);
+            bottom_total_expansion += bottom_skin_expand_distance;
         }
-        if(top_skin_expand_distance)
+        if(top_skin_expand_distance != 0)
         {
             const Polygons expanded = upskin.offset(-min_width).offset(min_width + top_skin_expand_distance);
             upskin = upskin.unionPolygons(expanded);
-            upskin = upskin.intersection(original_outline);
+            top_total_expansion += top_skin_expand_distance;
         }
     }
-    else
-    {
-        //Without minimum width, it's just a simple offset. No opening operation or re-join necessary.
-        //This offset was already applied before during the preshrink. We just need to make sure the skin stays contained in the skinfill area.
-        //We may only expand into the infill area, not across the walls.
-        if(bottom_skin_expand_distance)
-        {
-            downskin = downskin.intersection(original_outline);
-        }
-        if(top_skin_expand_distance)
-        {
-            upskin = upskin.intersection(original_outline);
-        }
-    }
-}
 
-
-/*
- * This function is executed in a parallel region based on layer_nr.
- * When modifying make sure any changes does not introduce data races.
- *
- * this function may only read/write the skin and infill from the *current* layer.
- */
-void SkinInfillAreaComputation::generateSkinInsetsAndInnerSkinInfill(SliceLayerPart* part)
-{
-    for (SkinPart& skin_part : part->skin_parts)
+    //If the skin was expanded beyond its original size, clip to make sure it stays within the skin/infill area.
+    if(bottom_total_expansion > 0)
     {
-        // Do not generate skinfill if the Bottom Pattern Initial Layer (for layer 0) and the Top/Bottom Layer Pattern
-        // (for the rest of the layers) are concentric
-        const bool concentric_skinfill_patern =
-               (layer_nr == 0 && mesh.settings.get<EFillMethod>("top_bottom_pattern_0") == EFillMethod::CONCENTRIC)
-            || (layer_nr > 0  && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC);
-        generateSkinInsets(skin_part, concentric_skinfill_patern);
+        downskin = downskin.intersection(original_outline);
     }
-}
-
-/*
- * This function is executed in a parallel region based on layer_nr.
- * When modifying make sure any changes does not introduce data races.
- *
- * this function may only read/write the skin and infill from the *current* layer.
- */
-void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part, const bool concentric_skinfill_patern)
-{
-    if (skin_inset_count > 0 || concentric_skinfill_patern)
+    if(top_total_expansion > 0)
     {
-        // Call on libArachne:
-        WallToolPaths wall_tool_paths(skin_part.outline, skin_line_width, concentric_skinfill_patern ? -1 : skin_inset_count, mesh.settings);
-        skin_part.inset_paths = wall_tool_paths.getToolPaths();
-        skin_part.inner_infill = wall_tool_paths.getInnerContour();
-    }
-    else
-    {
-        skin_part.inner_infill = skin_part.outline;
+        upskin = upskin.intersection(original_outline);
     }
 }
 
@@ -341,12 +298,11 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 
     for(SkinPart& skin_part : part.skin_parts)
     {
-        Polygons roofing;
         if(roofing_layer_count > 0)
         {
             Polygons no_air_above = generateNoAirAbove(part);
-            skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
-            skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
+            skin_part.roofing_fill = skin_part.outline.difference(no_air_above);
+            skin_part.skin_fill = skin_part.outline.intersection(no_air_above);
             const bool concentric_skinfill_pattern =
                    mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
                 && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC;
@@ -356,10 +312,8 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             // but only if the roofing pattern is not concentric.
             if(!skin_part.roofing_fill.empty() && layer_nr > 0)
             {
-
-                // Generate skin insets, regenerate the no_air_above, and recalculate the inner and roofing infills, 
+                // Regenerate the no_air_above, and recalculate the inner and roofing infills, 
                 // taking into account the extra skin wall count (only for the roofing layers).
-                generateSkinInsets(skin_part, concentric_skinfill_pattern);
                 if(!concentric_skinfill_pattern)
                 {
                     regenerateRoofingFillAndInnerInfill(part, skin_part);
@@ -368,13 +322,17 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             // On the contrary, unwanted insets are generated for roofing layers because of the non-concentric top/bottom pattern.
             // In such cases we want to clear the skin insets first and then regenerate the proper roofing fill and inner infill
             // in the concentric roofing_pattern.
-            else if(!skin_part.roofing_fill.empty() && skin_part.inner_infill.empty() && layer_nr > 0 && concentric_skinfill_pattern)
+            else if(!skin_part.roofing_fill.empty() && skin_part.skin_fill.empty() && layer_nr > 0 && concentric_skinfill_pattern)
             {
                 // Clear the skin insets for the roofing layers and regenerate the roofing fill and inner infill without taking into
                 // account the Extra Skin Wall Count.
                 skin_part.inset_paths.clear();
                 regenerateRoofingFillAndInnerInfill(part, skin_part);
             }
+        }
+        else
+        {
+            skin_part.skin_fill = skin_part.outline;
         }
     }
 }
@@ -426,8 +384,8 @@ Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part)
 void SkinInfillAreaComputation::regenerateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part)
 {
     Polygons no_air_above = generateNoAirAbove(part);
-    skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
-    skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
+    skin_part.roofing_fill = skin_part.outline.difference(no_air_above);
+    skin_part.skin_fill = skin_part.outline.intersection(no_air_above);
 }
 
 void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
