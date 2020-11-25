@@ -76,6 +76,14 @@ public:
      */
     static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
 
+    /*!
+     * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
+     * settings.
+     * \param settings The settings as provided by the user
+     * \return
+     */
+    static void simplifyToolPaths(VariableWidthPaths& toolpaths, const Settings& settings);
+
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
     const coord_t bead_width_0; //<! The nominal or first extrusion line width with which libArachne generates its walls
@@ -90,6 +98,7 @@ private:
     bool toolpaths_generated; //<! Are the toolpaths generated
     VariableWidthPaths toolpaths; //<! The generated toolpaths
     Polygons inner_contour;  //<! The inner contour of the generated toolpaths
+    const Settings& settings;
 };
 } // namespace cura
 
