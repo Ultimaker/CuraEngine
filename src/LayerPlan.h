@@ -269,8 +269,8 @@ private:
     bool first_travel_destination_is_inside; //!< Whether the destination of the first planned travel move is inside a layer part
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
-    Polygons comb_boundary_inside1; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
-    Polygons comb_boundary_inside2; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
+    Polygons comb_boundary_minimum; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
+    Polygons comb_boundary_preferred; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
     Comb* comb;
     coord_t comb_move_inside_distance;  //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Polygons bridge_wall_mask; //!< The regions of a layer part that are not supported, used for bridging
@@ -334,17 +334,40 @@ public:
 
     const Polygons* getCombBoundaryInside() const
     {
-        return &comb_boundary_inside2;
+        return &comb_boundary_preferred;
     }
 
 private:
     /*!
-     * \brief Compute the boundary within which to comb, or to move into when
-     * performing a retraction.
-     * \param max_inset The greatest inset index.
-     * \return the comb_boundary_inside
+     * Determines if the combing boundary need to be computed
+     * \return true if there should be a combing designated surface on this layer, otherwise false.
      */
-    Polygons computeCombBoundaryInside(const size_t max_inset);
+    bool CombBoundaryRequired();
+
+    /*!
+     * Compute the minimum combing boundary.
+     *
+     * This is in most cases within half a wall line width smaller then the part outlines. Except for raft layers.
+     * It will then return a boundary 0.1 mm bigger then the raft outline. When combing mode is OFF it
+     * will return an empty Polygon.
+     *
+     * \return The minimum combing boundary
+     */
+    Polygons computeMinimumCombBoundary();
+
+    /*!
+     * Compute the preferred combing boundary
+     *
+     * It will different boundaries depending on the requested combing mode:
+     *  - OFF: an empty Polygon
+     *  - ALL: a boundary half a wall line width smaller then the part outline
+     *  - NOT_SKIN: a boundary half a wall line width smaller then the part outline and the inside of the inner wall,
+     *    including the infill area
+     *  - INFILL: the infill area
+     *
+     * \return the preferred boundary or an empty Polygons if no combing is required
+     */
+    Polygons computePreferredCombBoundary();
 
 public:
     int getLayerNr() const

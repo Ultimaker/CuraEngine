@@ -8,7 +8,7 @@ namespace cura
 
 WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
-    if (thickness < optimal_width_outer)
+    if (thickness < optimal_width)
     {
         Beading ret;
         ret.total_thickness = thickness;

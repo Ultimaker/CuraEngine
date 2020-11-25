@@ -95,8 +95,8 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
-, comb_boundary_inside1(computeCombBoundaryInside(1))
-, comb_boundary_inside2(computeCombBoundaryInside(2))
+, comb_boundary_minimum(computeMinimumCombBoundary())
+, comb_boundary_preferred(computePreferredCombBoundary())
 , comb_move_inside_distance(comb_move_inside_distance)
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
@@ -105,7 +105,7 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing") != CombingMode::OFF)
     {
-        comb = new Comb(storage, layer_nr, comb_boundary_inside1, comb_boundary_inside2, comb_boundary_offset, travel_avoid_distance, comb_move_inside_distance);
+        comb = new Comb(storage, layer_nr, comb_boundary_minimum, comb_boundary_preferred, comb_boundary_offset, travel_avoid_distance, comb_move_inside_distance);
     }
     else
     {
@@ -135,121 +135,93 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
     return last_planned_extruder;
 }
 
-
-Polygons LayerPlan::computeCombBoundaryInside(const size_t max_inset)
+bool LayerPlan::CombBoundaryRequired()
 {
     const CombingMode combing_mode = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
-    if (combing_mode == CombingMode::OFF)
+    if (combing_mode == CombingMode::OFF || (layer_nr < 0 && combing_mode == CombingMode::NO_SKIN))
     {
-        return Polygons();
+        return false;
     }
-    if (layer_nr < 0)
-    { // when a raft is present
-        if (combing_mode == CombingMode::NO_SKIN)
+    return true;
+}
+
+Polygons LayerPlan::computeMinimumCombBoundary()
+{
+    Polygons comb_boundary;
+    if (CombBoundaryRequired())
+    {
+        if (layer_nr < 0)
         {
-            return Polygons();
+            comb_boundary = storage.raftOutline.offset(MM2INT(0.1));
         }
         else
         {
-            return storage.raftOutline.offset(MM2INT(0.1));
+            for (const SliceMeshStorage& mesh : storage.meshes)
+            {
+                const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr)];
+                if (mesh.settings.get<bool>("infill_mesh")) // don't process infill_mesh
+                {
+                    continue;
+                }
+                const coord_t inner_walls_offset = (mesh.settings.get<coord_t>("wall_line_count") - 1) / 2 * mesh.settings.get<coord_t>("wall_line_width_x") / 2;
+                const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - inner_walls_offset;
+                for (const SliceLayerPart& part : layer.parts)
+                {
+                    comb_boundary.add(part.outline.offset(offset));
+                }
+            }
         }
     }
-    else 
+    return comb_boundary;
+}
+
+Polygons LayerPlan::computePreferredCombBoundary()
+{
+    Polygons comb_boundary;
+    if (CombBoundaryRequired())
     {
-        Polygons comb_boundary;
-        for (const SliceMeshStorage& mesh : storage.meshes)
+        if (layer_nr < 0)
         {
-            const SliceLayer& layer = mesh.layers[layer_nr];
-            if (mesh.settings.get<bool>("infill_mesh")) {
-                continue;
-            }
-            const CombingMode combing_mode_setting = mesh.settings.get<CombingMode>("retraction_combing");
-            if (combing_mode_setting == CombingMode::NO_SKIN)
+            comb_boundary = storage.raftOutline.offset(MM2INT(0.1));
+        }
+        else
+        {
+            for (const SliceMeshStorage& mesh : storage.meshes)
             {
-                // we need to include the walls in the comb boundary otherwise it's not possible to tell if a travel move crosses a skin region
-
-                const coord_t line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
-
-                for (const SliceLayerPart& part : layer.parts)
+                const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr)];
+                if (mesh.settings.get<bool>("infill_mesh")) // don't process infill_mesh
                 {
-                    const size_t num_insets = part.insets.size();
-                    Polygons outer = part.outline; // outer boundary of wall combing region
-                    coord_t outer_to_outline_dist = 0; // distance from outer to the part's outline
-
-                    if (num_insets > 1 && part.insets[1].size() == part.outline.size())
+                    continue;
+                }
+                const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
+                if (combing_mode == CombingMode::ALL)
+                {
+                    for (const SliceLayerPart& part : layer.parts)
                     {
-                        // part's wall has multiple lines and the 2nd wall line is complete
-                        // set the outer boundary to the inside edge of the outer wall
-
-                        outer = part.insets[0].offset(-line_width_0/2);
-                        outer_to_outline_dist = line_width_0;
-                    }
-                    else if (num_insets > 0)
-                    {
-                        // set the outer boundary to be 1/4 line width inside the centre line of the outer wall
-
-                        outer = part.insets[0].offset(-line_width_0/4);
-                        outer_to_outline_dist = line_width_0*3/4;
-                    }
-
-                    // finally, check that outer actually has the same number of polygons as the part's outline
-                    // if it doesn't it means that the outer wall is missing where the part narrows so in those
-                    // regions we need to use the part outline for the outer boundary of the combing region
-                    // (expect poor results due to the nozzle being allowed to go right to the part's edge)
-
-                    if (outer.size() != part.outline.size())
-                    {
-                        // first we calculate the part outline for those portions of the part where outer is missing
-                        // this is done by shrinking the part outline so that it is very slightly smaller than outer, then expanding it again so it is very
-                        // slightly larger than its original size and subtracting that from the original part outline
-                        // NOTE - the additional small shrink/expands are required to ensure that the polygons overlap a little so we do not rely on exact results
-
-                        Polygons outline_where_outer_is_missing(part.outline.difference(part.outline.offset(-(outer_to_outline_dist+5)).offset(outer_to_outline_dist+10)));
-
-                        // merge outer with the portions of the part outline we just calculated
-                        // the trick here is to expand the outlines sufficiently so that they overlap when unioned and then the result is shrunk back to the correct size
-
-                        outer = outer.offset(outer_to_outline_dist/2+10).unionPolygons(outline_where_outer_is_missing.offset(outer_to_outline_dist/2+10)).offset(-(outer_to_outline_dist/2+10));
-                    }
-
-                    if (num_insets == 0)
-                    {
-                        comb_boundary.add(outer);
-                    }
-                    else
-                    {
-                        Polygons inner; // inner boundary of wall combing region
-
-                        // the inside of the wall combing region is just inside the wall's inner edge so it can meet up with the infill (if any)
-
-                        if (num_insets == 1)
-                        {
-                            inner = part.insets[0].offset(-10-line_width_0/2);
-                        }
-                        else
-                        {
-                            inner = part.insets[num_insets - 1].offset(-10 - mesh.settings.get<coord_t>("wall_line_width_x") / 2);
-                        }
-
-                        // combine the wall combing region (outer - inner) with the infill (if any)
-                        comb_boundary.add(part.infill_area.unionPolygons(outer.difference(inner)));
+                        comb_boundary.add(part.inner_area);
                     }
                 }
-            }
-            else if (combing_mode_setting == CombingMode::INFILL)
-            {
-                for (const SliceLayerPart& part : layer.parts)
+                else if (combing_mode == CombingMode::NO_SKIN)
                 {
-                    comb_boundary.add(part.infill_area);
+                    const coord_t inner_walls_offset = (mesh.settings.get<coord_t>("wall_line_count") - 1) / 2 * mesh.settings.get<coord_t>("wall_line_width_x") / 2;
+                    const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - inner_walls_offset;
+                    for (const SliceLayerPart& part : layer.parts)
+                    {
+                        comb_boundary.add(part.outline.offset(offset).difference(part.inner_area));
+                        comb_boundary.add(part.infill_area);
+                    }
                 }
-            }
-            else
-            {
-                comb_boundary.add(layer.getInnermostWalls(max_inset, mesh));
+                else // combing mode == infill
+                {
+                    for (const SliceLayerPart& part : layer.parts)
+                    {
+                        comb_boundary.add(part.infill_area);
+                    }
+                }
             }
         }
-        return comb_boundary;
     }
+    return comb_boundary;
 }
 
 void LayerPlan::setIsInside(bool _is_inside)
@@ -323,11 +295,11 @@ void LayerPlan::moveInsideCombBoundary(const coord_t distance)
     constexpr coord_t max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boudary of a part to inside the part
     Point p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
-    if (PolygonUtils::moveInside(comb_boundary_inside2, p, distance, max_dist2) != NO_INDEX)
+    if (PolygonUtils::moveInside(comb_boundary_preferred, p, distance, max_dist2) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners
-        PolygonUtils::moveInside(comb_boundary_inside2, p, distance, max_dist2);
-        if (comb_boundary_inside2.inside(p))
+        PolygonUtils::moveInside(comb_boundary_preferred, p, distance, max_dist2);
+        if (comb_boundary_preferred.inside(p))
         {
             addTravel_simple(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
@@ -815,6 +787,9 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
 
 void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed)
 {
+    if (wall.empty()) {
+        return;
+    }
     if(is_closed)
     {
         // make sure wall start point is not above air!
@@ -1059,7 +1034,7 @@ void LayerPlan::addWalls(const PathJunctions& walls, const SliceMeshStorage& mes
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, double fan_speed)
 {
     Polygons boundary;
-    if (enable_travel_optimization && comb_boundary_inside2.size() > 0)
+    if (enable_travel_optimization && comb_boundary_preferred.size() > 0)
     {
         // use the combing boundary inflated so that all infill lines are inside the boundary
         int dist = 0;
@@ -1076,7 +1051,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
             }
             dist += 100; // ensure boundary is slightly outside all skin/infill lines
         }
-        boundary.add(comb_boundary_inside2.offset(dist));
+        boundary.add(comb_boundary_preferred.offset(dist));
         // simplify boundary to cut down processing time
         boundary.simplify(100, 100);
     }

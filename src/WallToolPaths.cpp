@@ -10,6 +10,7 @@
 #include "BeadingStrategy/BeadingOrderOptimizer.h"
 #include "utils/SparsePointGrid.h" //To stitch the inner contour.
 #include "utils/polygonUtils.h"
+#include "ExtruderTrain.h"
 
 namespace cura
 {
@@ -28,6 +29,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
     , small_area_length(INT2MM(static_cast<double>(nominal_bead_width) / 2))
     , transition_length(transition_length_multiplier * nominal_bead_width)
     , toolpaths_generated(false)
+    , settings(settings)
 {
 }
 
@@ -44,6 +46,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
     , small_area_length(INT2MM(static_cast<double>(bead_width_0) / 2))
     , transition_length(transition_length_multiplier * bead_width_0)
     , toolpaths_generated(false)
+    , settings(settings)
 {
 }
 
@@ -73,9 +76,26 @@ const VariableWidthPaths& WallToolPaths::generate()
         wall_maker.generateToolpaths(toolpaths);
         computeInnerContour();
     }
+    simplifyToolPaths(toolpaths, settings);
+
     removeEmptyToolPaths(toolpaths);
     toolpaths_generated = true;
     return toolpaths;
+}
+
+void WallToolPaths::simplifyToolPaths(VariableWidthPaths& toolpaths, const Settings& settings)
+{
+    for (size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
+    {
+        const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>(toolpaths_idx == 0 ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
+        const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
+        const coord_t maximum_extrusion_area_deviation = train_wall.settings.get<int>("meshfix_maximum_extrusion_area_deviation"); // unit: μm²
+        for (auto& line : toolpaths[toolpaths_idx])
+        {
+            line.simplify(maximum_resolution, maximum_deviation, maximum_extrusion_area_deviation);
+        }
+    }
 }
 
 const VariableWidthPaths& WallToolPaths::getToolPaths()
