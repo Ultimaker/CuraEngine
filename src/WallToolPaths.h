@@ -23,7 +23,7 @@ public:
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param settings The settings as provided by the user
      */
-    WallToolPaths(const Polygons& outline, coord_t nominal_bead_width, coord_t inset_count, const Settings& settings);
+    WallToolPaths(const Polygons& outline, coord_t nominal_bead_width, size_t inset_count, const Settings& settings);
 
     /*!
      * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
@@ -33,7 +33,7 @@ public:
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param settings The settings as provided by the user
      */
-    WallToolPaths(const Polygons& outline, coord_t bead_width_0, coord_t bead_width_x, coord_t inset_count, const Settings& settings);
+    WallToolPaths(const Polygons& outline, coord_t bead_width_0, coord_t bead_width_x, size_t inset_count, const Settings& settings);
 
     /*!
      * Generates the Toolpaths
