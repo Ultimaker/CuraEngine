@@ -56,6 +56,7 @@ const VariableWidthPaths& WallToolPaths::generate()
     constexpr coord_t allowed_distance = 50;
     constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
     constexpr float transitioning_angle = 0.5;
+    constexpr coord_t discretization_step_size = 200;
 
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
@@ -72,7 +73,8 @@ const VariableWidthPaths& WallToolPaths::generate()
         const auto beading_strat = std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy(
             strategy_type, bead_width_0, bead_width_x, transition_length, transitioning_angle, print_thin_walls, min_bead_width,
             min_feature_size, max_bead_count));
-        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle);
+        const coord_t transition_filter_dist = beading_strat->optimal_width * 5;
+        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist);
         wall_maker.generateToolpaths(toolpaths);
         computeInnerContour();
     }
