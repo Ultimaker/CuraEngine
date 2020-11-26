@@ -659,7 +659,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     SkinInfillAreaComputation::combineInfillLayers(mesh);
 
     // fuzzy skin
-    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled"))
+    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled") && false) //TODO make fuzzy skin work with libArachne (CURA-7887) and then re-enable it
     {
         processFuzzyWalls(mesh);
     }
@@ -984,7 +984,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
 
 void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
-{
+{//TODO make fuzzy skin work with libArachne (CURA-7887)
     if (mesh.settings.get<size_t>("wall_line_count") == 0)
     {
         return;
@@ -1000,7 +1000,8 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         for (SliceLayerPart& part : layer.parts)
         {
             Polygons results;
-            Polygons& skin = (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0];
+//            Polygons& skin = (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0]; insets no longer used in libArachne
+            Polygons& skin = part.outline;
             for (PolygonRef poly : skin)
             {
                 if (mesh.settings.get<bool>("magic_fuzzy_skin_outside_only") && poly.area() < 0)
