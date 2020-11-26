@@ -57,6 +57,17 @@ private:
      */
     void generateInsets(SliceLayerPart* part);
 
+    /*!
+     * Generates the outer inset / perimeter used in spiralize mode for a single layer part. The spiral inset is
+     * generated using offsets.
+     *
+     * \param part The part for which to generate the spiral inset.
+     * \param line_width_0 The width of the outer (spiralized) wall.
+     * \param wall_0_inset The part for which to generate the spiral inset.
+     * \param recompute_outline_based_on_outer_wall Whether we need to recompute the print outline according to the
+     *        generated spiral inset.
+     */
+    void generateSpiralInsets(SliceLayerPart *part, coord_t line_width_0, coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
 };
 }//namespace cura
 

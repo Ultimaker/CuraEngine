@@ -683,7 +683,10 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, size_t layer_nr)
     {
         for (SliceLayerPart& part : layer->parts)
         {
-            part.insets.push_back(part.outline); // Fake an inset
+            if (mesh.settings.get<bool>("magic_spiralize"))
+            {
+                part.spiral_insets.emplace_back(part.outline); // Fake a spiral inset
+            }
             part.print_outline = part.outline;
         }
     }
