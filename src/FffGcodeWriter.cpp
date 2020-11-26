@@ -1789,7 +1789,7 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
 
 void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh) const
 {
-    if (part.spiral_insets.size() == 0 || part.spiral_insets[0].size() == 0)
+    if (part.spiral_insets.empty() || part.spiral_insets[0].empty())
     {
         // wall doesn't have usable outline
         return;
