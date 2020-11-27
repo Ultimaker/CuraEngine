@@ -163,8 +163,7 @@ Polygons LayerPlan::computeMinimumCombBoundary()
                 {
                     continue;
                 }
-                const coord_t inner_walls_offset = (mesh.settings.get<coord_t>("wall_line_count") - 1) / 2 * mesh.settings.get<coord_t>("wall_line_width_x") / 2;
-                const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - inner_walls_offset;
+                const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0");
                 for (const SliceLayerPart& part : layer.parts)
                 {
                     comb_boundary.add(part.outline.offset(offset));
@@ -204,7 +203,7 @@ Polygons LayerPlan::computePreferredCombBoundary()
                 else if (combing_mode == CombingMode::NO_SKIN)
                 {
                     const coord_t inner_walls_offset = (mesh.settings.get<coord_t>("wall_line_count") - 1) / 2 * mesh.settings.get<coord_t>("wall_line_width_x") / 2;
-                    const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - inner_walls_offset;
+                    const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") - inner_walls_offset;
                     for (const SliceLayerPart& part : layer.parts)
                     {
                         comb_boundary.add(part.outline.offset(offset).difference(part.inner_area));
@@ -1034,7 +1033,7 @@ void LayerPlan::addWalls(const PathJunctions& walls, const SliceMeshStorage& mes
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, double fan_speed)
 {
     Polygons boundary;
-    if (enable_travel_optimization && comb_boundary_preferred.size() > 0)
+    if (enable_travel_optimization && !comb_boundary_preferred.empty())
     {
         // use the combing boundary inflated so that all infill lines are inside the boundary
         int dist = 0;
