@@ -50,6 +50,24 @@ const Polygons& SliceLayerPart::getOwnInfillArea() const
     }
 }
 
+bool SliceLayerPart::hasWallAtInsetIndex(size_t inset_idx) const
+{
+    if(!wall_toolpaths.empty())
+    {
+        for (const VariableWidthLines& lines : wall_toolpaths)
+        {
+            for (const ExtrusionLine& line : lines)
+            {
+                if (line.inset_idx == inset_idx)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 SliceLayer::~SliceLayer()
 {
 }
@@ -240,7 +258,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     {
         for (const SliceLayerPart& part : layer.parts)
         {
-            if ((!part.wall_toolpaths.empty() && !part.wall_toolpaths[0].empty()) || (!part.spiral_insets.empty() && !part.spiral_insets[0].empty()))
+            if ((!part.wall_toolpaths.empty() && part.hasWallAtInsetIndex(0)) || (!part.spiral_insets.empty() && !part.spiral_insets[0].empty()))
             {
                 return true;
             }
@@ -272,7 +290,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     {
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (part.wall_toolpaths.size() > 1 && !part.wall_toolpaths[1].empty())
+            if (!part.wall_toolpaths.empty() && part.hasWallAtInsetIndex(1))
             {
                 return true;
             }

@@ -140,6 +140,13 @@ public:
      * \return the own infill area
      */
     const Polygons& getOwnInfillArea() const;
+
+    /*!
+     * Searches whether the part has any walls in the specified inset index
+     * \param inset_idx The index of the wall
+     * \return true if there is at least one ExtrusionLine at the specified wall index, false otherwise
+     */
+    bool hasWallAtInsetIndex(size_t inset_idx) const;
 };
 
 /*!
