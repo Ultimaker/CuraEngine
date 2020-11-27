@@ -4,6 +4,7 @@
 #include <cmath> // std::ceil
 
 #include "Application.h" //To get settings.
+#include "Slice.h"
 #include "ExtruderTrain.h"
 #include "skin.h"
 #include "sliceDataStorage.h"
@@ -387,9 +388,10 @@ void SkinInfillAreaComputation::generateSkinInsets(SkinPart& skin_part)
         }
 
         // optimize polygons: remove unnecessary verts
-        const ExtruderTrain& train_wall = mesh.settings.get<ExtruderTrain&>(inset_idx == 0 ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
-        const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
-        const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
+        int wall_extruder_nr = mesh.settings.get<int>(inset_idx == 0 ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
+        const Settings& resolution_settings = wall_extruder_nr < 0 ? mesh.settings : Application::getInstance().current_slice->scene.extruders[wall_extruder_nr].settings;
+        const coord_t maximum_resolution = resolution_settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t maximum_deviation = resolution_settings.get<coord_t>("meshfix_maximum_deviation");
         skin_part.insets[inset_idx].simplify(maximum_resolution, maximum_deviation);
         if (skin_part.insets[inset_idx].size() < 1)
         {

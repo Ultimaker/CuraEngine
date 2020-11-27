@@ -34,6 +34,8 @@ class Infill
     AngleDegrees fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     coord_t z; //!< height of the layer for which we generate infill
     coord_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
+    coord_t max_resolution; //!< Min feature size of the output
+    coord_t max_deviation; //!< Max deviation fro the original poly when enforcing max_resolution
     size_t wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     const Point infill_origin; //!< origin of the infill pattern
     Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
@@ -66,6 +68,8 @@ public:
         , AngleDegrees fill_angle
         , coord_t z
         , coord_t shift
+        , coord_t max_resolution
+        , coord_t max_deviation
         , size_t wall_line_count = 0
         , const Point& infill_origin = Point()
         , Polygons* perimeter_gaps = nullptr
@@ -87,6 +91,8 @@ public:
     , fill_angle(fill_angle)
     , z(z)
     , shift(shift)
+    , max_resolution(max_resolution)
+    , max_deviation(max_deviation)
     , wall_line_count(wall_line_count)
     , infill_origin(infill_origin)
     , perimeter_gaps(perimeter_gaps)
