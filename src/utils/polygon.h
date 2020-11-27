@@ -781,6 +781,13 @@ public:
         clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
         clipper.Execute(ClipperLib::ctIntersection, segment_tree);
     }
+
+    /*!
+     * Cut this polygon using an other polygon as a tool
+     * \param tool a closed polygon serving as boundary
+     */
+    Polygons& cut(const Polygons& tool);
+
     Polygons xorPolygons(const Polygons& other) const
     {
         Polygons ret;
