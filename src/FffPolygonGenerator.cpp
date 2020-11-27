@@ -377,9 +377,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         processPlatformAdhesion(storage);
     }
 
-    logDebug("Processing gaps\n");
-    processOutlineGaps(storage);
-
     logDebug("Meshes post-processing\n");
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
@@ -499,46 +496,6 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             }
 #pragma omp atomic
                 processed_layer_count++;
-        }
-    }
-}
-
-void FffPolygonGenerator::processOutlineGaps(SliceDataStorage& storage)
-{
-    for (SliceMeshStorage& mesh : storage.meshes)
-    {
-        constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
-        const coord_t wall_0_inset = mesh.settings.get<coord_t>("wall_0_inset");
-        if (!mesh.settings.get<bool>("fill_outline_gaps") || mesh.settings.get<size_t>("wall_line_count") <= 0)
-        {
-            continue;
-        }
-        for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
-        {
-            SliceLayer& layer = mesh.layers[layer_nr];
-            coord_t wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
-            if (layer_nr == 0)
-            {
-                const ExtruderTrain& train = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr");
-                Ratio initial_layer_line_width_factor = train.settings.get<Ratio>("initial_layer_line_width_factor");
-                wall_line_width_0 *= initial_layer_line_width_factor;
-            }
-            for (SliceLayerPart& part : layer.parts)
-            {
-                // handle outline gaps
-                if (mesh.settings.get<bool>("fill_outline_gaps"))
-                {
-                    const Polygons& outer = part.outline;
-                    Polygons inner;
-                    if (part.insets.size() > 0)
-                    {
-                        inner.add(part.insets[0].offset(wall_line_width_0 / 2 + perimeter_gaps_extra_offset + wall_0_inset));
-                    }
-                    Polygons outline_gaps = outer.difference(inner);
-                    outline_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
-                    part.outline_gaps.add(outline_gaps);
-                }
-            }
         }
     }
 }

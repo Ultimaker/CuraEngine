@@ -58,7 +58,6 @@ public:
     std::vector<Polygons> insets;         //!< The insets are generated with. The insets are also known as perimeters or the walls.
     std::vector<Polygons> spiral_insets;         //!< Outer insets used in spiralize mode.
     Polygons inner_area; //The area of the outline, minus the walls. This will be filled with either skin or infill.
-    Polygons outline_gaps; //!< The gaps between the outline of the mesh and the first wall. a.k.a. thin walls.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
 
     VariableWidthPaths wall_toolpaths;  //!< toolpaths for walls, will replace(?) the insets
