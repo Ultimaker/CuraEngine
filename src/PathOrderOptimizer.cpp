@@ -30,9 +30,25 @@ ConstPolygonRef PathOrderOptimizer<const SkinPart*>::getVertexData(const SkinPar
 template<>
 ConstPolygonRef PathOrderOptimizer<const SliceLayerPart*>::getVertexData(const SliceLayerPart* path)
 {
-    if(!path->insets.empty())
+    if(!path->wall_toolpaths.empty())
     {
-        return path->insets[0][0];
+        cached_vertices.emplace_back();
+        Polygon& poly = cached_vertices.back();
+        for (const VariableWidthLines& lines : path->wall_toolpaths)
+        {
+            for (const ExtrusionLine& line : lines)
+            {
+                if (line.inset_idx != 0)
+                {
+                    continue;
+                }
+                for (const ExtrusionJunction& junction : line.junctions)
+                {
+                    poly.add(junction.p);
+                }
+            }
+        }
+        return ConstPolygonRef(poly);
     }
     else
     {
