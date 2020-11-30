@@ -347,8 +347,8 @@ private:
     /*!
      * Compute the minimum combing boundary.
      *
-     * This is in most cases within half a wall line width smaller then the part outlines. Except for raft layers.
-     * It will then return a boundary 0.1 mm bigger then the raft outline. When combing mode is OFF it
+     * This is in most cases within half a wall line width smaller than the part outlines. Except for raft layers.
+     * It will then return a boundary 0.1 mm bigger than the raft outline. When combing mode is OFF it
      * will return an empty Polygon.
      *
      * \return The minimum combing boundary
@@ -360,8 +360,8 @@ private:
      *
      * It will different boundaries depending on the requested combing mode:
      *  - OFF: an empty Polygon
-     *  - ALL: a boundary half a wall line width smaller then the part outline
-     *  - NOT_SKIN: a boundary half a wall line width smaller then the part outline and the inside of the inner wall,
+     *  - ALL: a boundary half a wall line width smaller than the part outline
+     *  - NO_SKIN: a boundary half a wall line width smaller than the part outline and the inside of the inner wall,
      *    including the infill area
      *  - INFILL: the infill area
      *
