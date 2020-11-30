@@ -61,9 +61,9 @@ struct ExtrusionLine
     coord_t getLength() const;
 
     /*!
-     * Get the width of this path
+     * Get the minimal width of this path
      */
-    coord_t getWidth() const;
+    coord_t getMinimalWidth() const;
 
     /*!
      * Export the included junctions as vector.
