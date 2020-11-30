@@ -72,7 +72,7 @@ const VariableWidthPaths& WallToolPaths::generate()
             strategy_type, bead_width_0, bead_width_x, wall_transition_length, transitioning_angle, print_thin_walls, min_bead_width,
             min_feature_size, max_bead_count));
         const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
-        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist);
+        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist, wall_transition_length);
         wall_maker.generateToolpaths(toolpaths);
         computeInnerContour();
     }
