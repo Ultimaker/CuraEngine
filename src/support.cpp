@@ -1287,9 +1287,9 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
     const ExtruderTrain& infill_extruder = mesh.settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    const int offset = - static_cast<int>(infill_extruder.settings.get<coord_t>("support_line_width")) / 2;
-    const double max_tower_supported_diameter = static_cast<double>(mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter"));
-    const double max_tower_supported_area = max_tower_supported_diameter * max_tower_supported_diameter;
+    const coord_t offset = - infill_extruder.settings.get<coord_t>("support_line_width") / 2;
+    const coord_t max_tower_supported_diameter = mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter");
+    const coord_t max_tower_supported_area = max_tower_supported_diameter * max_tower_supported_diameter;
 
     mesh.overhang_points.resize(storage.print_layer_count);
 
