@@ -52,7 +52,7 @@ const VariableWidthPaths& WallToolPaths::generate()
     constexpr coord_t smallest_segment = 50;
     constexpr coord_t allowed_distance = 50;
     constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
-    constexpr float transitioning_angle = 0.5;
+    const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
     constexpr coord_t discretization_step_size = 200;
 
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
