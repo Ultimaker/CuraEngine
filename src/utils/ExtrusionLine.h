@@ -61,6 +61,11 @@ struct ExtrusionLine
     coord_t getLength() const;
 
     /*!
+     * Get the width of this path
+     */
+    coord_t getWidth() const;
+
+    /*!
      * Export the included junctions as vector.
      */
     void appendJunctionsTo(LineJunctions& result) const;

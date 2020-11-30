@@ -3,6 +3,7 @@
 
 #include "PathOrderOptimizer.h" //The definitions we're implementing here.
 #include "sliceDataStorage.h" //For SliceLayerPart.
+#include "WallToolPaths.h"
 
 //Since the PathOrderOptimizer is a template class, we will only implement the template specializations in this file.
 
@@ -32,23 +33,21 @@ ConstPolygonRef PathOrderOptimizer<const SliceLayerPart*>::getVertexData(const S
 {
     if(!path->wall_toolpaths.empty())
     {
-        cached_vertices.emplace_back();
-        Polygon& poly = cached_vertices.back();
-        for (const VariableWidthLines& lines : path->wall_toolpaths)
-        {
-            for (const ExtrusionLine& line : lines)
-            {
-                if (line.inset_idx != 0)
-                {
-                    continue;
-                }
-                for (const ExtrusionJunction& junction : line.junctions)
-                {
-                    poly.add(junction.p);
-                }
-            }
-        }
-        return ConstPolygonRef(poly);
+        Polygons poly;
+        // Assuming the first wall tool path is always the outer wall
+        VariableWidthPaths outer_wall { path->wall_toolpaths.front() };
+
+        // Half the minimum wall line width, should be the minimum required stitch distance
+        const coord_t stitch_distance = std::min_element(outer_wall.back().cbegin(), outer_wall.back().cend(),
+                                       [](const ExtrusionLine& l, const ExtrusionLine& r)
+                                       {
+                                           return l.getWidth() < r.getWidth();
+                                       })->getWidth() / 2;
+
+        // Stitch the outer_wall contour to a polygon and store it in the cached vertices
+        WallToolPaths::stitchContours(outer_wall, stitch_distance, poly);
+        cached_vertices.emplace_back(poly.back());
+        return ConstPolygonRef(cached_vertices.back());
     }
     else
     {

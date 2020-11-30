@@ -23,6 +23,11 @@ coord_t ExtrusionLine::getLength() const
     return len;
 }
 
+coord_t ExtrusionLine::getWidth() const
+{
+    return junctions.front().w;
+}
+
 void ExtrusionLine::appendJunctionsTo(LineJunctions& result) const
 {
     result.insert(result.end(), junctions.begin(), junctions.end());
