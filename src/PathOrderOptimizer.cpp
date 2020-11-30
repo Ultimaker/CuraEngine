@@ -31,28 +31,7 @@ ConstPolygonRef PathOrderOptimizer<const SkinPart*>::getVertexData(const SkinPar
 template<>
 ConstPolygonRef PathOrderOptimizer<const SliceLayerPart*>::getVertexData(const SliceLayerPart* path)
 {
-    if(!path->wall_toolpaths.empty())
-    {
-        Polygons poly;
-        // Assuming the first wall tool path is always the outer wall
-        VariableWidthPaths outer_wall { path->wall_toolpaths.front() };
-
-        // Half the minimum wall line width, should be the minimum required stitch distance
-        const coord_t stitch_distance = std::min_element(outer_wall.back().cbegin(), outer_wall.back().cend(),
-                                       [](const ExtrusionLine& l, const ExtrusionLine& r)
-                                       {
-                                           return l.getWidth() < r.getWidth();
-                                       })->getWidth() / 2;
-
-        // Stitch the outer_wall contour to a polygon and store it in the cached vertices
-        WallToolPaths::stitchContours(outer_wall, stitch_distance, poly);
-        cached_vertices.emplace_back(poly.back());
-        return ConstPolygonRef(cached_vertices.back());
-    }
-    else
-    {
-        return path->outline.outerPolygon();
-    }
+    return path->outline.outerPolygon();
 }
 
 template<>
