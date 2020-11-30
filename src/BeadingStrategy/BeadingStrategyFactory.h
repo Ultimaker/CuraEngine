@@ -6,6 +6,7 @@
 
 #include <memory>
 
+#include "../settings/types/Ratio.h"
 #include "../utils/optional.h"  // until the move to C++17
 
 #include "BeadingStrategy.h"
@@ -39,6 +40,7 @@ public:
         const bool print_thin_walls = false,
         const coord_t min_bead_width = 0,
         const coord_t min_feature_size = 0,
+        const Ratio wall_transition_thresold = 0.5_r,
         const coord_t max_bead_count = 0);
 };
 

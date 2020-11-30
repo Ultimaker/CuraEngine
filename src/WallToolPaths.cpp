@@ -67,10 +67,11 @@ const VariableWidthPaths& WallToolPaths::generate()
     if (prepared_outline.area() > 0)
     {
         const coord_t wall_transition_length = settings.get<coord_t>("wall_transition_length");
+        const Ratio wall_transition_threshold = settings.get<Ratio>("wall_transition_threshold");
         const size_t max_bead_count = 2 * inset_count;
         const auto beading_strat = std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy(
             strategy_type, bead_width_0, bead_width_x, wall_transition_length, transitioning_angle, print_thin_walls, min_bead_width,
-            min_feature_size, max_bead_count));
+            min_feature_size, wall_transition_threshold, max_bead_count));
         const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist, wall_transition_length);
         wall_maker.generateToolpaths(toolpaths);
