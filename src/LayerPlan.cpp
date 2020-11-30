@@ -138,11 +138,7 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
 bool LayerPlan::CombBoundaryRequired()
 {
     const CombingMode combing_mode = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
-    if (combing_mode == CombingMode::OFF || (layer_nr < 0 && combing_mode == CombingMode::NO_SKIN))
-    {
-        return false;
-    }
-    return true;
+    return combing_mode != CombingMode::OFF && (layer_nr >=0 || combing_mode != CombingMode::NO_SKIN);
 }
 
 Polygons LayerPlan::computeMinimumCombBoundary()
