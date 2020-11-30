@@ -58,7 +58,6 @@ public:
     std::vector<Polygons> insets;         //!< The insets are generated with. The insets are also known as perimeters or the walls.
     std::vector<Polygons> spiral_insets;         //!< Outer insets used in spiralize mode.
     Polygons inner_area; //The area of the outline, minus the walls. This will be filled with either skin or infill.
-    Polygons outline_gaps; //!< The gaps between the outline of the mesh and the first wall. a.k.a. thin walls.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
 
     VariableWidthPaths wall_toolpaths;  //!< toolpaths for walls, will replace(?) the insets
@@ -141,6 +140,13 @@ public:
      * \return the own infill area
      */
     const Polygons& getOwnInfillArea() const;
+
+    /*!
+     * Searches whether the part has any walls in the specified inset index
+     * \param inset_idx The index of the wall
+     * \return true if there is at least one ExtrusionLine at the specified wall index, false otherwise
+     */
+    bool hasWallAtInsetIndex(size_t inset_idx) const;
 };
 
 /*!
