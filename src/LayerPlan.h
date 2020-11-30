@@ -18,6 +18,7 @@
 #include "utils/optional.h"
 #include "utils/polygon.h"
 
+#include "InsetOrderOptimizer.h"
 #include "utils/ExtrusionJunction.h"
 
 namespace cura 
@@ -338,36 +339,23 @@ public:
     }
 
 private:
-    /*!
-     * Determines if the combing boundary need to be computed
-     * \return true if there should be a combing designated surface on this layer, otherwise false.
-     */
-    bool CombBoundaryRequired();
 
     /*!
-     * Compute the minimum combing boundary.
+     * Compute the preferred or minimum combing boundary
      *
-     * This is in most cases within half a wall line width smaller then the part outlines. Except for raft layers.
-     * It will then return a boundary 0.1 mm bigger then the raft outline. When combing mode is OFF it
-     * will return an empty Polygon.
+     * Minimum combing boundary:
+     *  - If CombingMode::ALL: Add the outline offset (skin, infill and inner walls).
+     *  - If CombingMode::NO_SKIN: Add the outline offset, subtract skin (infill and inner walls).
+     *  - If CombingMode::INFILL: Add the infill (infill only).
      *
-     * \return The minimum combing boundary
+     * Preferred combing boundary:
+     *  - If CombingMode::ALL: Add the increased outline offset (skin, infill and part of the inner walls).
+     *  - If CombingMode::NO_SKIN: Add the increased outline offset, subtract skin (infill and part of the inner walls).
+     *  - If CombingMode::INFILL: Add the infill (infill only).
+     *
+     * \return the combing boundary or an empty Polygons if no combing is required
      */
-    Polygons computeMinimumCombBoundary();
-
-    /*!
-     * Compute the preferred combing boundary
-     *
-     * It will different boundaries depending on the requested combing mode:
-     *  - OFF: an empty Polygon
-     *  - ALL: a boundary half a wall line width smaller then the part outline
-     *  - NOT_SKIN: a boundary half a wall line width smaller then the part outline and the inside of the inner wall,
-     *    including the infill area
-     *  - INFILL: the infill area
-     *
-     * \return the preferred boundary or an empty Polygons if no combing is required
-     */
-    Polygons computePreferredCombBoundary();
+    Polygons computeCombBoundary(const bool minimumBoundary);
 
 public:
     int getLayerNr() const
