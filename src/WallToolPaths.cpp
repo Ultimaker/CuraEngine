@@ -49,9 +49,9 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
 
 const VariableWidthPaths& WallToolPaths::generate()
 {
-    constexpr coord_t smallest_segment = 50;
-    constexpr coord_t allowed_distance = 50;
-    constexpr coord_t epsilon_offset = (allowed_distance / 2) - 1;
+    const coord_t smallest_segment = settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t allowed_distance = settings.get<coord_t>("meshfix_maximum_deviation");
+    const coord_t epsilon_offset = (allowed_distance / 2) - 1;
     const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
     constexpr coord_t discretization_step_size = MM2INT(0.8);
 
