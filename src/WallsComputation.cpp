@@ -38,7 +38,6 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
 
     if (inset_count == 0)
     {
-        part->insets.push_back(part->outline);
         part->spiral_insets.push_back(part->outline);
         part->print_outline = part->outline;
         part->inner_area = part->outline;
@@ -58,74 +57,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
 
     // TODO recompute the outline according to the outer wall after the "Outer Wall Inset" is applied
     const bool recompute_outline_based_on_outer_wall =
-        settings.get<bool>("support_enable") &&
-        !settings.get<bool>("fill_outline_gaps");
-    for(size_t i = 0; i < inset_count; i++)
-    {
-        part->insets.push_back(Polygons());
-        if (i == 0)
-        {
-            part->insets[0] = part->outline.offset(-line_width_0 / 2 - wall_0_inset);
-        }
-        else if (i == 1)
-        {
-            part->insets[1] = part->insets[0].offset(-line_width_0 / 2 + wall_0_inset - line_width_x / 2);
-        }
-        else
-        {
-            part->insets[i] = part->insets[i - 1].offset(-line_width_x);
-        }
-
-        const size_t inset_part_count = part->insets[i].size();
-        constexpr size_t minimum_part_saving = 3; //Only try if the part has more pieces than the previous inset and saves at least this many parts.
-        constexpr coord_t try_smaller = 10; //How many micrometres to inset with the try with a smaller inset.
-        if (inset_part_count > minimum_part_saving + 1 && (i == 0 || (i > 0 && inset_part_count > part->insets[i - 1].size() + minimum_part_saving)))
-        {
-            //Try a different line thickness and see if this fits better, based on these criteria:
-            // - There are fewer parts to the polygon (fits better in slim areas).
-            // - The polygon area is largely unaffected.
-            Polygons alternative_inset;
-            if (i == 0)
-            {
-                alternative_inset = part->outline.offset(-(line_width_0 - try_smaller) / 2 - wall_0_inset);
-            }
-            else if (i == 1)
-            {
-                alternative_inset = part->insets[0].offset(-(line_width_0 - try_smaller) / 2 + wall_0_inset - line_width_x / 2);
-            }
-            else
-            {
-                alternative_inset = part->insets[i - 1].offset(-(line_width_x - try_smaller));
-            }
-            if (alternative_inset.size() < inset_part_count - minimum_part_saving) //Significantly fewer parts (saves more than 3 parts).
-            {
-                part->insets[i] = alternative_inset;
-            }
-        }
-
-        //Finally optimize all the polygons. Every point removed saves time in the long run.
-        const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>(i == 0 ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
-        const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
-        const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
-        part->insets[i].simplify(maximum_resolution, maximum_deviation);
-        part->insets[i].removeDegenerateVerts();
-        if (i == 0)
-        {
-            if (recompute_outline_based_on_outer_wall)
-            {
-                part->print_outline = part->insets[0].offset(line_width_0 / 2, ClipperLib::jtSquare);
-            }
-            else
-            {
-                part->print_outline = part->outline;
-            }
-        }
-        if (part->insets[i].size() < 1)
-        {
-            part->insets.pop_back();
-            break;
-        }
-    }
+        settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
 
     // When spiralizing, generate the spiral insets using simple offsets instead of generating toolpaths
     if (spiralize)
