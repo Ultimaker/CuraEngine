@@ -1299,7 +1299,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
 
     const SliceLayer& layer = mesh.layers[gcode_layer.getLayerNr()];
 
-    if (layer.parts.size() == 0)
+    if (layer.parts.empty())
     {
         return;
     }
