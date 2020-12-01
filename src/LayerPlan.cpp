@@ -95,8 +95,8 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
-, comb_boundary_minimum(computeCombBoundary(true))
-, comb_boundary_preferred(computeCombBoundary(false))
+, comb_boundary_minimum(computeCombBoundary(CombBoundary::MINIMUM))
+, comb_boundary_preferred(computeCombBoundary(CombBoundary::PREFERRED))
 , comb_move_inside_distance(comb_move_inside_distance)
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
@@ -135,7 +135,7 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
     return last_planned_extruder;
 }
 
-Polygons LayerPlan::computeCombBoundary(const bool minimumBoundary)
+Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
 {
     Polygons comb_boundary;
     const CombingMode mesh_combing_mode = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
@@ -155,7 +155,7 @@ Polygons LayerPlan::computeCombBoundary(const bool minimumBoundary)
                     continue;
                 }
                 const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
-                const coord_t inner_walls_offset = minimumBoundary
+                const coord_t inner_walls_offset = boundary_type == CombBoundary::MINIMUM
                                                        ? 0
                                                        : mesh.settings.get<coord_t>("wall_line_width_x")
                                                              * (mesh.settings.get<size_t>("wall_line_count") - 1)

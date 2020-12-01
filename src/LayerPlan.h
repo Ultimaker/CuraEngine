@@ -279,6 +279,12 @@ private:
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
 
+    enum CombBoundary
+    {
+        MINIMUM,
+        PREFERRED
+    };
+
 private:
     /*!
      * Either create a new path with the given config or return the last path if it already had that config.
@@ -341,7 +347,7 @@ public:
 private:
 
     /*!
-     * Compute the preferred or minimum combing boundary
+     * \brief Compute the preferred or minimum combing boundary
      *
      * Minimum combing boundary:
      *  - If CombingMode::ALL: Add the outline offset (skin, infill and inner walls).
@@ -353,9 +359,11 @@ private:
      *  - If CombingMode::NO_SKIN: Add the increased outline offset, subtract skin (infill and part of the inner walls).
      *  - If CombingMode::INFILL: Add the infill (infill only).
      *
+     * \param boundary_type The boundary type to compute.
+     *
      * \return the combing boundary or an empty Polygons if no combing is required
      */
-    Polygons computeCombBoundary(const bool minimumBoundary);
+    Polygons computeCombBoundary(const CombBoundary boundary_type);
 
 public:
     int getLayerNr() const
