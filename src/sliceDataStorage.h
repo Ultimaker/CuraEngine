@@ -58,7 +58,6 @@ public:
     std::vector<Polygons> insets;         //!< The insets are generated with. The insets are also known as perimeters or the walls.
     std::vector<Polygons> spiral_insets;         //!< Outer insets used in spiralize mode.
     Polygons inner_area; //The area of the outline, minus the walls. This will be filled with either skin or infill.
-    Polygons outline_gaps; //!< The gaps between the outline of the mesh and the first wall. a.k.a. thin walls.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
 
     VariableWidthPaths wall_toolpaths;  //!< toolpaths for walls, will replace(?) the insets
@@ -141,6 +140,13 @@ public:
      * \return the own infill area
      */
     const Polygons& getOwnInfillArea() const;
+
+    /*!
+     * Searches whether the part has any walls in the specified inset index
+     * \param inset_idx The index of the wall
+     * \return true if there is at least one ExtrusionLine at the specified wall index, false otherwise
+     */
+    bool hasWallAtInsetIndex(size_t inset_idx) const;
 };
 
 /*!
@@ -153,8 +159,6 @@ public:
     coord_t thickness;  //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
-    mutable std::map<size_t, Polygons> innermost_walls_cache; //!< Cache for the in some cases computationaly expensive calculations in 'getInnermostWalls'.
-        // ^^^^ NOTE: Caching function-results like this, when they don't change but are expensive to calculate, is generally considered one of the few 'acceptable uses' of the 'mutable' keyword.
 
     /*!
      * \brief The parts of the model that are exposed at the very top of the
@@ -180,14 +184,6 @@ public:
      * \param result The result: a collection of all the outline polygons
      */
     void getOutlines(Polygons& result, bool external_polys_only = false) const;
-
-    /*!
-     * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
-     * \result The collection of all polygons thus obtained.
-     * \param max_inset If <= 1, use (up to) the 1st inner wall, if >= 2, use the 2nd inner wall.
-     * \param mesh Pass mesh to let the function have access to wall-line-width settings.
-     */
-    Polygons& getInnermostWalls(const size_t max_inset, const SliceMeshStorage& mesh) const;
 
     ~SliceLayer();
 };

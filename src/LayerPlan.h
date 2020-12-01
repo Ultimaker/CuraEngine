@@ -360,7 +360,6 @@ private:
      *  - If CombingMode::INFILL: Add the infill (infill only).
      *
      * \param boundary_type The boundary type to compute.
-     *
      * \return the combing boundary or an empty Polygons if no combing is required
      */
     Polygons computeCombBoundary(const CombBoundary boundary_type);
