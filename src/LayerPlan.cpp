@@ -95,8 +95,8 @@ LayerPlan::LayerPlan(const SliceDataStorage& storage, LayerIndex layer_nr, coord
 , last_extruder_previous_layer(start_extruder)
 , last_planned_extruder(&Application::getInstance().current_slice->scene.extruders[start_extruder])
 , first_travel_destination_is_inside(false) // set properly when addTravel is called for the first time (otherwise not set properly)
-, comb_boundary_minimum(computeMinimumCombBoundary())
-, comb_boundary_preferred(computePreferredCombBoundary())
+, comb_boundary_minimum(computeCombBoundary(CombBoundary::MINIMUM))
+, comb_boundary_preferred(computeCombBoundary(CombBoundary::PREFERRED))
 , comb_move_inside_distance(comb_move_inside_distance)
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
@@ -135,49 +135,11 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
     return last_planned_extruder;
 }
 
-bool LayerPlan::CombBoundaryRequired()
-{
-    const CombingMode combing_mode = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
-    if (combing_mode == CombingMode::OFF || (layer_nr < 0 && combing_mode == CombingMode::NO_SKIN))
-    {
-        return false;
-    }
-    return true;
-}
-
-Polygons LayerPlan::computeMinimumCombBoundary()
+Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
 {
     Polygons comb_boundary;
-    if (CombBoundaryRequired())
-    {
-        if (layer_nr < 0)
-        {
-            comb_boundary = storage.raftOutline.offset(MM2INT(0.1));
-        }
-        else
-        {
-            for (const SliceMeshStorage& mesh : storage.meshes)
-            {
-                const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr)];
-                if (mesh.settings.get<bool>("infill_mesh")) // don't process infill_mesh
-                {
-                    continue;
-                }
-                const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0");
-                for (const SliceLayerPart& part : layer.parts)
-                {
-                    comb_boundary.add(part.outline.offset(offset));
-                }
-            }
-        }
-    }
-    return comb_boundary;
-}
-
-Polygons LayerPlan::computePreferredCombBoundary()
-{
-    Polygons comb_boundary;
-    if (CombBoundaryRequired())
+    const CombingMode mesh_combing_mode = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
+    if (mesh_combing_mode != CombingMode::OFF && (layer_nr >=0 || mesh_combing_mode != CombingMode::NO_SKIN))
     {
         if (layer_nr < 0)
         {
@@ -193,26 +155,24 @@ Polygons LayerPlan::computePreferredCombBoundary()
                     continue;
                 }
                 const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
-                if (combing_mode == CombingMode::ALL)
+                const coord_t inner_walls_offset = boundary_type == CombBoundary::MINIMUM
+                                                       ? 0
+                                                       : mesh.settings.get<coord_t>("wall_line_width_x")
+                                                             * (mesh.settings.get<size_t>("wall_line_count") - 1)
+                                                             / 4;
+                const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") - inner_walls_offset;
+
+                for (const SliceLayerPart& part : layer.parts)
                 {
-                    for (const SliceLayerPart& part : layer.parts)
+                    if (combing_mode == CombingMode::ALL) // Add the increased outline offset (skin, infill and part of the inner walls)
                     {
-                        comb_boundary.add(part.inner_area);
+                        comb_boundary.add(part.outline.offset(offset));
                     }
-                }
-                else if (combing_mode == CombingMode::NO_SKIN)
-                {
-                    const coord_t inner_walls_offset = (mesh.settings.get<coord_t>("wall_line_count") - 1) / 2 * mesh.settings.get<coord_t>("wall_line_width_x") / 2;
-                    const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") - inner_walls_offset;
-                    for (const SliceLayerPart& part : layer.parts)
+                    else if (combing_mode == CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
                     {
-                        comb_boundary.add(part.outline.offset(offset).difference(part.inner_area));
-                        comb_boundary.add(part.infill_area);
+                        comb_boundary.add(part.outline.offset(offset).difference(part.inner_area.difference(part.infill_area)));
                     }
-                }
-                else // combing mode == infill
-                {
-                    for (const SliceLayerPart& part : layer.parts)
+                    else if (combing_mode == CombingMode::INFILL) // Add the infill (infill only)
                     {
                         comb_boundary.add(part.infill_area);
                     }
