@@ -417,7 +417,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
     {
         logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
-        processInsets(mesh, layer_number);
+        processWalls(mesh, layer_number);
 #ifdef _OPENMP
         if (omp_get_thread_num() == 0)
 #endif
@@ -628,13 +628,13 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
  *
  * processInsets only reads and writes data for the current layer
  */
-void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, size_t layer_nr)
+void FffPolygonGenerator::processWalls(SliceMeshStorage& mesh, size_t layer_nr)
 {
     SliceLayer* layer = &mesh.layers[layer_nr];
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
     {
         WallsComputation walls_computation(mesh.settings, layer_nr);
-        walls_computation.generateInsets(layer);
+        walls_computation.generateWalls(layer);
     }
     else
     {

@@ -21,22 +21,22 @@ WallsComputation::WallsComputation(const Settings& settings, const LayerIndex la
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
- * generateInsets only reads and writes data for the current layer
+ * generateWalls only reads and writes data for the current layer
  */
-void WallsComputation::generateInsets(SliceLayerPart* part)
+void WallsComputation::generateWalls(SliceLayerPart* part)
 {
-    size_t inset_count = settings.get<size_t>("wall_line_count");
+    size_t wall_count = settings.get<size_t>("wall_line_count");
     const bool spiralize = settings.get<bool>("magic_spiralize");
     if (spiralize && layer_nr < LayerIndex(settings.get<size_t>("initial_bottom_layers")) && ((layer_nr % 2) + 2) % 2 == 1) //Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
     {
-        inset_count += 5;
+        wall_count += 5;
     }
     if (settings.get<bool>("alternate_extra_perimeter"))
     {
-        inset_count += ((layer_nr % 2) + 2) % 2;
+        wall_count += ((layer_nr % 2) + 2) % 2;
     }
 
-    if (inset_count == 0)
+    if (wall_count == 0)
     {
         part->spiral_insets.push_back(part->outline);
         part->print_outline = part->outline;
@@ -65,32 +65,32 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
     }
     // Call on libArachne:
-    WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, inset_count, settings);
+    WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, settings);
     part->wall_toolpaths = wall_tool_paths.getToolPaths();
     part->inner_area = wall_tool_paths.getInnerContour();
     part->print_outline = part->outline;
-    // TODO Recompute the print_outline of the part according to the generated wall_toolpaths
+    // TODO Recompute the print_outline of the part according to the Outer Wall Inset
 }
 
 /*
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
- * generateInsets only reads and writes data for the current layer
+ * generateWalls only reads and writes data for the current layer
  */
-void WallsComputation::generateInsets(SliceLayer* layer)
+void WallsComputation::generateWalls(SliceLayer* layer)
 {
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
     {
-        generateInsets(&layer->parts[partNr]);
+        generateWalls(&layer->parts[partNr]);
     }
 
-    const bool remove_parts_with_no_insets = !settings.get<bool>("fill_outline_gaps");
-    //Remove the parts which did not generate an inset. As these parts are too small to print,
-    // and later code can now assume that there is always minimal 1 inset line.
+    const bool remove_parts_without_walls = !settings.get<bool>("fill_outline_gaps");
+    //Remove the parts which did not generate a wall. As these parts are too small to print,
+    // and later code can now assume that there is always minimal 1 wall line.
     for (unsigned int part_idx = 0; part_idx < layer->parts.size(); part_idx++)
     {
-        if (layer->parts[part_idx].wall_toolpaths.empty() && layer->parts[part_idx].spiral_insets.empty() && remove_parts_with_no_insets)
+        if (layer->parts[part_idx].wall_toolpaths.empty() && layer->parts[part_idx].spiral_insets.empty() && remove_parts_without_walls)
         {
             if (part_idx != layer->parts.size() - 1)
             { // move existing part into part to be deleted

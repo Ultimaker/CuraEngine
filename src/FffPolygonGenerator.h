@@ -128,7 +128,7 @@ private:
      * \brief Generate the inset polygons which form the walls.
      * \param layer_nr The layer for which to generate the insets.
      */
-    void processInsets(SliceMeshStorage& mesh, size_t layer_nr);
+    void processWalls(SliceMeshStorage& mesh, size_t layer_nr);
 
     /*!
      * Generate the outline of the ooze shield.
