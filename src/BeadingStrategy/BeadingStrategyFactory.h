@@ -39,7 +39,8 @@ public:
         const bool print_thin_walls = false,
         const coord_t min_bead_width = 0,
         const coord_t min_feature_size = 0,
-        const coord_t max_bead_count = 0);
+        const coord_t max_bead_count = 0,
+        const coord_t outer_wall_offset = 0);
 };
 
 } // namespace cura
