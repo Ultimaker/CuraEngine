@@ -14,7 +14,6 @@
 
 namespace cura
 {
-constexpr coord_t transition_length_multiplier = 2;
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count,
                              const Settings& settings)
@@ -27,7 +26,6 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
     , min_bead_width(settings.get<coord_t>("min_bead_width"))
     , small_area_length(INT2MM(static_cast<double>(nominal_bead_width) / 2))
-    , transition_length(transition_length_multiplier * nominal_bead_width)
     , toolpaths_generated(false)
     , settings(settings)
 {
@@ -44,7 +42,6 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
     , min_bead_width(settings.get<coord_t>("min_bead_width"))
     , small_area_length(INT2MM(static_cast<double>(bead_width_0) / 2))
-    , transition_length(transition_length_multiplier * bead_width_0)
     , toolpaths_generated(false)
     , settings(settings)
 {
@@ -55,8 +52,8 @@ const VariableWidthPaths& WallToolPaths::generate()
     const coord_t smallest_segment = settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t allowed_distance = settings.get<coord_t>("meshfix_maximum_deviation");
     const coord_t epsilon_offset = (allowed_distance / 2) - 1;
-    constexpr float transitioning_angle = 0.5;
-    constexpr coord_t discretization_step_size = 200;
+    const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
+    constexpr coord_t discretization_step_size = MM2INT(0.8);
 
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
@@ -69,12 +66,14 @@ const VariableWidthPaths& WallToolPaths::generate()
 
     if (prepared_outline.area() > 0)
     {
+        const coord_t wall_transition_length = settings.get<coord_t>("wall_transition_length");
+        const Ratio wall_transition_threshold = settings.get<Ratio>("wall_transition_threshold");
         const size_t max_bead_count = 2 * inset_count;
         const auto beading_strat = std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy(
-            strategy_type, bead_width_0, bead_width_x, transition_length, transitioning_angle, print_thin_walls, min_bead_width,
-            min_feature_size, max_bead_count));
-        const coord_t transition_filter_dist = beading_strat->optimal_width * 5;
-        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist);
+            strategy_type, bead_width_0, bead_width_x, wall_transition_length, transitioning_angle, print_thin_walls, min_bead_width,
+            min_feature_size, wall_transition_threshold, max_bead_count));
+        const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
+        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist, wall_transition_length);
         wall_maker.generateToolpaths(toolpaths);
         computeInnerContour();
     }

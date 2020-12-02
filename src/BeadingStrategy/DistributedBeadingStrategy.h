@@ -4,6 +4,7 @@
 #ifndef DISTRIBUTED_BEADING_STRATEGY_H
 #define DISTRIBUTED_BEADING_STRATEGY_H
 
+#include "../settings/types/Ratio.h" //For the wall transition threshold.
 #include "BeadingStrategy.h"
 
 namespace cura
@@ -16,9 +17,17 @@ namespace cura
  */
 class DistributedBeadingStrategy : public BeadingStrategy
 {
+private:
+    /*!
+     * Threshold line width at which it will use fewer, wider lines instead of
+     * reducing the line width further.
+     */
+    Ratio wall_transition_threshold;
+
 public:
-    DistributedBeadingStrategy(const coord_t optimal_width, coord_t default_transition_length, float transitioning_angle)
+    DistributedBeadingStrategy(const coord_t optimal_width, const coord_t default_transition_length, const AngleRadians transitioning_angle, const Ratio wall_transition_threshold)
     : BeadingStrategy(optimal_width, default_transition_length, transitioning_angle)
+    , wall_transition_threshold(wall_transition_threshold)
     {
         name = "DistributedBeadingStrategy";
     }

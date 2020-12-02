@@ -5,6 +5,7 @@
 #ifndef CENTER_DEVIATION_BEADING_STRATEGY_H
 #define CENTER_DEVIATION_BEADING_STRATEGY_H
 
+#include "../settings/types/Ratio.h" //For the wall transition threshold.
 #include "BeadingStrategy.h"
 
 namespace cura
@@ -21,10 +22,10 @@ class CenterDeviationBeadingStrategy : public BeadingStrategy
     coord_t overfill_bound; // Amount of overfill before the two innermost beads are replaced by a single in the middle.
     coord_t underfill_bound; // Amount of underfil before a single bead in the middle is placed
 public:
-    CenterDeviationBeadingStrategy(const coord_t pref_bead_width, float transitioning_angle, float min_diameter = 0.8, float max_diameter = 1.25)
+    CenterDeviationBeadingStrategy(const coord_t pref_bead_width, const AngleRadians transitioning_angle, const Ratio wall_transition_threshold)
     : BeadingStrategy(pref_bead_width, pref_bead_width / 2, transitioning_angle)
-    , overfill_bound(pref_bead_width * (1.0f - min_diameter))
-    , underfill_bound(pref_bead_width * (max_diameter - 1.0f))
+    , overfill_bound(pref_bead_width * (1.0f - wall_transition_threshold))
+    , underfill_bound(pref_bead_width * (1.0f - (wall_transition_threshold * 0.95f)))
     {
         name = "CenterDeviationBeadingStrategy";
     }
