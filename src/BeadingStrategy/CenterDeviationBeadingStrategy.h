@@ -25,7 +25,7 @@ public:
     CenterDeviationBeadingStrategy(const coord_t pref_bead_width, const AngleRadians transitioning_angle, const Ratio wall_transition_threshold)
     : BeadingStrategy(pref_bead_width, pref_bead_width / 2, transitioning_angle)
     , overfill_bound(pref_bead_width * (1.0f - wall_transition_threshold))
-    , underfill_bound(pref_bead_width * (1.0f / wall_transition_threshold - 1.0f))
+    , underfill_bound(pref_bead_width * (1.0f - (wall_transition_threshold * 0.95f)))
     {
         name = "CenterDeviationBeadingStrategy";
     }
