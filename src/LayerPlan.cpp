@@ -150,7 +150,8 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
             for (const SliceMeshStorage& mesh : storage.meshes)
             {
                 const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr)];
-                if (mesh.settings.get<bool>("infill_mesh")) // don't process infill_mesh
+                // don't process infill_mesh or anti_overhang_mesh
+                if (mesh.settings.get<bool>("infill_mesh") && mesh.settings.get<bool>("anti_overhang_mesh"))
                 {
                     continue;
                 }
