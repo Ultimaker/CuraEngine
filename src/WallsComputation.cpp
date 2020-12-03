@@ -26,50 +26,54 @@ WallsComputation::WallsComputation(const Settings& settings, const LayerIndex la
 void WallsComputation::generateWalls(SliceLayerPart* part)
 {
     size_t wall_count = settings.get<size_t>("wall_line_count");
-    const bool spiralize = settings.get<bool>("magic_spiralize");
-    if (spiralize && layer_nr < LayerIndex(settings.get<size_t>("initial_bottom_layers")) && ((layer_nr % 2) + 2) % 2 == 1) //Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
+    if (wall_count == 0) // Early out if no walls are to be generated
     {
-        wall_count += 5;
-    }
-    if (settings.get<bool>("alternate_extra_perimeter"))
-    {
-        wall_count += ((layer_nr % 2) + 2) % 2;
-    }
-
-    if (wall_count == 0)
-    {
-        part->spiral_insets.push_back(part->outline);
         part->print_outline = part->outline;
         part->inner_area = part->outline;
         return;
     }
 
-    const coord_t wall_0_inset = settings.get<coord_t>("wall_0_inset"); // TODO: Apply the Outer Wall Inset in libArachne toolpaths (CURA-7830)
-    coord_t line_width_0 = settings.get<coord_t>("wall_line_width_0");
-    coord_t line_width_x = settings.get<coord_t>("wall_line_width_x");
-    if (layer_nr == 0)
+    const bool spiralize = settings.get<bool>("magic_spiralize");
+    const size_t alternate = ((layer_nr % 2) + 2) % 2;
+    if (spiralize && layer_nr < LayerIndex(settings.get<size_t>("initial_bottom_layers")) && alternate == 1) //Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
     {
-        const ExtruderTrain& train_wall_0 = settings.get<ExtruderTrain&>("wall_0_extruder_nr");
-        line_width_0 *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
-        const ExtruderTrain& train_wall_x = settings.get<ExtruderTrain&>("wall_x_extruder_nr");
-        line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
+        wall_count += 5;
+    }
+    if (settings.get<bool>("alternate_extra_perimeter"))
+    {
+        wall_count += alternate;
     }
 
-    // TODO recompute the outline according to the outer wall after the "Outer Wall Inset" is applied
-    const bool recompute_outline_based_on_outer_wall =
-        settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
+    const bool first_layer = layer_nr == 0;
+    const Ratio line_width_0_factor = first_layer ? 1.0_r : settings.get<ExtruderTrain&>("wall_0_extruder_nr").settings.get<Ratio>("initial_layer_line_width_factor");
+    const coord_t line_width_0 = settings.get<coord_t>("wall_line_width_0") * line_width_0_factor;
+
+    const Ratio line_width_x_factor = first_layer ? 1.0_r : settings.get<ExtruderTrain&>("wall_line_width_x").settings.get<Ratio>("initial_layer_line_width_factor");
+    const coord_t line_width_x = settings.get<coord_t>("wall_line_width_x") * line_width_x_factor;
+
+    // TODO: Apply the Outer Wall Inset in libArachne toolpaths (CURA-7830)
+    const coord_t wall_0_inset = settings.get<coord_t>("wall_0_inset");
 
     // When spiralizing, generate the spiral insets using simple offsets instead of generating toolpaths
     if (spiralize)
     {
+        const bool recompute_outline_based_on_outer_wall =
+            settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
+        if (layer_nr <= settings.get<size_t>("bottom_layers"))
+        {
+            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, settings);
+            part->wall_toolpaths = wall_tool_paths.getToolPaths();
+            part->inner_area = wall_tool_paths.getInnerContour();
+        }
     }
-    // Call on libArachne:
-    WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, settings);
-    part->wall_toolpaths = wall_tool_paths.getToolPaths();
-    part->inner_area = wall_tool_paths.getInnerContour();
+    else
+    {
+        WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, settings);
+        part->wall_toolpaths = wall_tool_paths.getToolPaths();
+        part->inner_area = wall_tool_paths.getInnerContour();
+    }
     part->print_outline = part->outline;
-    // TODO Recompute the print_outline of the part according to the Outer Wall Inset
 }
 
 /*
@@ -80,9 +84,9 @@ void WallsComputation::generateWalls(SliceLayerPart* part)
  */
 void WallsComputation::generateWalls(SliceLayer* layer)
 {
-    for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
+    for(SliceLayerPart& part : layer->parts)
     {
-        generateWalls(&layer->parts[partNr]);
+        generateWalls(&part);
     }
 
     const bool remove_parts_without_walls = !settings.get<bool>("fill_outline_gaps");

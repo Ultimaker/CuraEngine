@@ -631,22 +631,8 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 void FffPolygonGenerator::processWalls(SliceMeshStorage& mesh, size_t layer_nr)
 {
     SliceLayer* layer = &mesh.layers[layer_nr];
-    if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
-    {
-        WallsComputation walls_computation(mesh.settings, layer_nr);
-        walls_computation.generateWalls(layer);
-    }
-    else
-    {
-        for (SliceLayerPart& part : layer->parts)
-        {
-            if (mesh.settings.get<bool>("magic_spiralize"))
-            {
-                part.spiral_insets.emplace_back(part.outline); // Fake a spiral inset
-            }
-            part.print_outline = part.outline;
-        }
-    }
+    WallsComputation walls_computation(mesh.settings, layer_nr);
+    walls_computation.generateWalls(layer);
 }
 
 bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned int layer_idx)
