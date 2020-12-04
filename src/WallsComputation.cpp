@@ -129,6 +129,10 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
     WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, inset_count, settings, wall_0_inset);
     part->wall_toolpaths = wall_tool_paths.getToolPaths();
     part->inner_area = wall_tool_paths.getInnerContour();
+    if (recompute_outline_based_on_outer_wall)
+    {
+        part->print_outline = part->outline.offset(-wall_0_inset);
+    }
 }
 
 /*
