@@ -16,6 +16,13 @@ class LayerPlan;
 class InsetOrderOptimizer
 {
 public:
+    enum class WallType
+    {
+        OUTER_WALL,
+        EXTRA_SKIN,
+        EXTRA_INFILL
+    };
+
     /*!
      * Constructor for inset ordering optimizer.
      *
@@ -33,7 +40,7 @@ public:
      * \param part The part from which to read the previously generated insets.
      * \param layer_nr The current layer number.
      */
-    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr);
+    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const VariableWidthPaths& paths, unsigned int layer_nr);
 
     /*!
      * Adds the insets to the given layer plan.
@@ -42,7 +49,7 @@ public:
      * class, so this optimize function needs no additional information.
      * \return Whether anything was added to the layer plan.
      */
-    bool optimize();
+    bool optimize(const WallType& wall_type = WallType::OUTER_WALL);
 
 private:
 
@@ -52,7 +59,7 @@ private:
     const SliceMeshStorage& mesh;
     const size_t extruder_nr;
     const PathConfigStorage::MeshPathConfigs& mesh_config;
-    const SliceLayerPart& part;
+    const VariableWidthPaths& paths;
     const unsigned int layer_nr;
     const ZSeamConfig z_seam_config;
     bool added_something;

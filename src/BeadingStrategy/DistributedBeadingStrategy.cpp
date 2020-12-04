@@ -35,7 +35,7 @@ namespace cura
 
     coord_t DistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
     {
-        return lower_bead_count * optimal_width + optimal_width / 2; // TODO: doesnt take min and max width into account
+        return lower_bead_count * optimal_width + optimal_width * wall_transition_threshold;
     }
 
     coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
