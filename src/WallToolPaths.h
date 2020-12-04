@@ -23,7 +23,7 @@ public:
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param settings The settings as provided by the user
      */
-    WallToolPaths(const Polygons& outline, coord_t nominal_bead_width, size_t inset_count, const Settings& settings);
+    WallToolPaths(const Polygons& outline, coord_t nominal_bead_width, size_t inset_count, const Settings& settings, coord_t wall_0_inset = 0);
 
     /*!
      * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
@@ -33,7 +33,7 @@ public:
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param settings The settings as provided by the user
      */
-    WallToolPaths(const Polygons& outline, coord_t bead_width_0, coord_t bead_width_x, size_t inset_count, const Settings& settings);
+    WallToolPaths(const Polygons& outline, coord_t bead_width_0, coord_t bead_width_x, size_t inset_count, const Settings& settings, coord_t wall_0_inset = 0);
 
     /*!
      * Generates the Toolpaths
@@ -105,6 +105,7 @@ private:
     coord_t bead_width_0; //<! The nominal or first extrusion line width with which libArachne generates its walls
     coord_t bead_width_x; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor this is the same as bead_width_0
     size_t inset_count; //<! The maximum number of walls to generate
+    coord_t wall_0_inset; //<! The inset applied to the outer wall toolpath. For the normal walls it takes the value of Outer Wall Inset, while for the infill and skin walls it is 0
     StrategyType strategy_type; //<! The wall generating strategy
     bool print_thin_walls; //<! Whether to enable the widening beading meta-strategy for thin features
     coord_t min_feature_size; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
@@ -115,6 +116,17 @@ private:
     VariableWidthPaths toolpaths; //<! The generated toolpaths
     Polygons inner_contour;  //<! The inner contour of the generated toolpaths
     const Settings& settings;
+
+    /*!
+     * Prepares the outline so that it is ready to be used in the skeletal trapezoidation. The prepared outline should
+     * be simplified and contain no self-intersections or near-self-intersections. This is required before the outline
+     * polygon can be consumed by boost::voronoi.
+     *
+     * \param apply_outer_wall_inset Whether to apply the outer wall inset or not
+     *
+     * \return The outline ready to be used for skeletal trapezoidation
+     */
+    Polygons prepareOutlineForSkeletalTrapezoidation(bool apply_outer_wall_inset = false);
 };
 } // namespace cura
 

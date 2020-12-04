@@ -16,11 +16,12 @@ namespace cura
 {
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count,
-                             const Settings& settings)
+                             const Settings& settings, const coord_t wall_0_inset)
     : outline(outline)
     , bead_width_0(nominal_bead_width)
     , bead_width_x(nominal_bead_width)
     , inset_count(inset_count)
+    , wall_0_inset(wall_0_inset)
     , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
@@ -32,11 +33,12 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
 }
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x,
-                             const size_t inset_count, const Settings& settings)
+                             const size_t inset_count, const Settings& settings, const coord_t wall_0_inset)
     : outline(outline)
     , bead_width_0(bead_width_0)
     , bead_width_x(bead_width_x)
     , inset_count(inset_count)
+    , wall_0_inset(wall_0_inset)
     , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
@@ -49,32 +51,35 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
 
 const VariableWidthPaths& WallToolPaths::generate()
 {
-    const coord_t smallest_segment = settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t allowed_distance = settings.get<coord_t>("meshfix_maximum_deviation");
-    const coord_t epsilon_offset = (allowed_distance / 2) - 1;
     const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
     constexpr coord_t discretization_step_size = MM2INT(0.8);
 
-    // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
-    // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
-    Polygons prepared_outline = outline.offset(-epsilon_offset).offset(epsilon_offset);
-    prepared_outline.simplify(smallest_segment, allowed_distance);
-    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
-    prepared_outline.removeDegenerateVerts();
-    prepared_outline.removeColinearEdges();
-    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
+    Polygons prepared_outline = prepareOutlineForSkeletalTrapezoidation();
 
     if (prepared_outline.area() > 0)
     {
         const coord_t wall_transition_length = settings.get<coord_t>("wall_transition_length");
         const Ratio wall_transition_threshold = settings.get<Ratio>("wall_transition_threshold");
+        const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
         const size_t max_bead_count = 2 * inset_count;
         const auto beading_strat = std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy(
             strategy_type, bead_width_0, bead_width_x, wall_transition_length, transitioning_angle, print_thin_walls, min_bead_width,
             min_feature_size, wall_transition_threshold, max_bead_count));
-        const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
+
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist, wall_transition_length);
         wall_maker.generateToolpaths(toolpaths);
+        if (wall_0_inset > 0)
+        {
+            const bool apply_outer_wall_inset = true;
+            Polygons prepared_outline_with_inset = prepareOutlineForSkeletalTrapezoidation(apply_outer_wall_inset);
+            if (prepared_outline_with_inset.area() > 0)
+            {
+                VariableWidthPaths toolpaths_with_inset;
+                SkeletalTrapezoidation insetted_wall_maker(prepared_outline_with_inset, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist, wall_transition_length);
+                insetted_wall_maker.generateToolpaths(toolpaths_with_inset);
+                toolpaths[0] = toolpaths_with_inset[0];
+            }
+        }
         computeInnerContour();
     }
     simplifyToolPaths(toolpaths, settings);
@@ -82,6 +87,24 @@ const VariableWidthPaths& WallToolPaths::generate()
     removeEmptyToolPaths(toolpaths);
     toolpaths_generated = true;
     return toolpaths;
+}
+
+Polygons WallToolPaths::prepareOutlineForSkeletalTrapezoidation(const bool apply_outer_wall_inset)
+{
+    // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
+    // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
+    const coord_t smallest_segment = settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t allowed_distance = settings.get<coord_t>("meshfix_maximum_deviation");
+    const coord_t epsilon_offset = (allowed_distance / 2) - 1;
+    const coord_t outer_wall_inset = apply_outer_wall_inset ? wall_0_inset : 0;
+
+    Polygons prepared_outline = outline.offset(-outer_wall_inset).offset(-epsilon_offset).offset(epsilon_offset);
+    prepared_outline.simplify(smallest_segment, allowed_distance);
+    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
+    prepared_outline.removeDegenerateVerts();
+    prepared_outline.removeColinearEdges();
+    prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
+    return prepared_outline;
 }
 
 void WallToolPaths::simplifyToolPaths(VariableWidthPaths& toolpaths, const Settings& settings)
