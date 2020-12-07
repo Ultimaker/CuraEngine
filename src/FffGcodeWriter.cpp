@@ -2516,7 +2516,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const auto support_connect_zigzags = infill_extruder.settings.get<bool>("support_connect_zigzags");
     const auto support_structure = infill_extruder.settings.get<ESupportStructure>("support_structure");
     const Point infill_origin;
-    const coord_t default_support_shift = default_support_line_width / 2;
 
     constexpr bool use_endpieces = true;
     constexpr Polygons* perimeter_gaps = nullptr;
