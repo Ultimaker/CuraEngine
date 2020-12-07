@@ -89,44 +89,42 @@ void WallsComputation::generateWalls(SliceLayer* layer)
         generateWalls(&part);
     }
 
-    const bool remove_parts_without_walls = !settings.get<bool>("fill_outline_gaps");
     //Remove the parts which did not generate a wall. As these parts are too small to print,
     // and later code can now assume that there is always minimal 1 wall line.
-    for (unsigned int part_idx = 0; part_idx < layer->parts.size(); part_idx++)
+    if(!settings.get<bool>("fill_outline_gaps"))
     {
-        if (layer->parts[part_idx].wall_toolpaths.empty() && layer->parts[part_idx].spiral_insets.empty() && remove_parts_without_walls)
+        for(size_t part_idx = 0; part_idx < layer->parts.size(); part_idx++)
         {
-            if (part_idx != layer->parts.size() - 1)
-            { // move existing part into part to be deleted
-                layer->parts[part_idx] = std::move(layer->parts.back());
+            if (layer->parts[part_idx].wall_toolpaths.empty() && layer->parts[part_idx].spiral_wall.empty())
+            {
+                if (part_idx != layer->parts.size() - 1)
+                { // move existing part into part to be deleted
+                    layer->parts[part_idx] = std::move(layer->parts.back());
+                }
+                layer->parts.pop_back(); // always remove last element from array (is more efficient)
+                part_idx -= 1; // check the part we just moved here
             }
-            layer->parts.pop_back(); // always remove last element from array (is more efficient)
-            part_idx -= 1; // check the part we just moved here
         }
     }
 }
 
 void WallsComputation::generateSpiralInsets(SliceLayerPart *part, coord_t line_width_0, coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall)
 {
-    part->spiral_insets.push_back(part->outline.offset(-line_width_0 / 2 - wall_0_inset));
+    part->spiral_wall = part->outline.offset(-line_width_0 / 2 - wall_0_inset);
 
-    //Finally optimize all the polygons. Every point removed saves time in the long run.
+    //Optimize the wall. This prevents buffer underruns in the printer firmware, and reduces processing time in CuraEngine.
     const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>("wall_0_extruder_nr");
     const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
-    part->spiral_insets[0].simplify(maximum_resolution, maximum_deviation);
-    part->spiral_insets[0].removeDegenerateVerts();
+    part->spiral_wall.simplify(maximum_resolution, maximum_deviation);
+    part->spiral_wall.removeDegenerateVerts();
     if (recompute_outline_based_on_outer_wall)
     {
-        part->print_outline = part->spiral_insets[0].offset(line_width_0 / 2, ClipperLib::jtSquare);
+        part->print_outline = part->spiral_wall.offset(line_width_0 / 2, ClipperLib::jtSquare);
     }
     else
     {
         part->print_outline = part->outline;
-    }
-    if (part->spiral_insets[0].empty())
-    {
-        part->spiral_insets.pop_back();
     }
 }
 

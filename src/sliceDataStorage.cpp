@@ -172,7 +172,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     {
         for (const SliceLayerPart& part : layer.parts)
         {
-            if ((part.hasWallAtInsetIndex(0)) || (!part.spiral_insets.empty() && !part.spiral_insets[0].empty()))
+            if ((part.hasWallAtInsetIndex(0)) || !part.spiral_wall.empty())
             {
                 return true;
             }

@@ -60,7 +60,7 @@ public:
                           //!< rest are holes.
     Polygons print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
                             //!< Too small parts will be omitted compared to the outline.
-    std::vector<Polygons> spiral_insets; //!< Outer insets used in spiralize mode.
+    Polygons spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
     Polygons inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
     std::vector<SkinPart> skin_parts;  //!< The skin parts which are filled for 100% with lines and/or insets.
     VariableWidthPaths wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets

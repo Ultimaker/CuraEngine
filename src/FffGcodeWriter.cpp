@@ -167,7 +167,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         {
             seam_pos = mesh.getZSeamHint();
         }
-        return PolygonUtils::findClosest(seam_pos, layer.parts[0].spiral_insets[0][0]).point_idx;
+        return PolygonUtils::findClosest(seam_pos, layer.parts[0].spiral_wall[0]).point_idx;
     }
     else
     {
@@ -175,9 +175,11 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         // to come out pretty weird if that isn't true as it implies that there are empty layers
 
         ConstPolygonRef last_wall = (*storage.spiralize_wall_outlines[last_layer_nr])[0];
-        ConstPolygonRef wall = layer.parts[0].spiral_insets[0][0];
-        const int n_points = wall.size();
-        Point last_wall_seam_vertex = last_wall[storage.spiralize_seam_vertex_indices[last_layer_nr]];
+        //Even though this is just one (contiguous) part, the spiralize wall may still be multiple parts if the part is somewhere thinner than 1 line width.
+        //This case is so rare that we don't bother with finding the best polygon to start with. Just start with the first polygon (`spiral_wall[0]`).
+        ConstPolygonRef wall = layer.parts[0].spiral_wall[0];
+        const size_t n_points = wall.size();
+        const Point last_wall_seam_vertex = last_wall[storage.spiralize_seam_vertex_indices[last_layer_nr]];
 
         // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
         // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
@@ -240,12 +242,12 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
                 {
                     SliceLayer& layer = mesh.layers[layer_nr];
                     // if the first part in the layer (if any) has insets, process it
-                    if (!layer.parts.empty() && !layer.parts[0].spiral_insets.empty())
+                    if (!layer.parts.empty() && !layer.parts[0].spiral_wall.empty())
                     {
                         // save the seam vertex index for this layer as we need it to determine the seam vertex index for the next layer
                         storage.spiralize_seam_vertex_indices[layer_nr] = findSpiralizedLayerSeamVertexIndex(storage, mesh, layer_nr, last_layer_nr);
                         // save the wall outline for this layer so it can be used in the spiralize interpolation calculation
-                        storage.spiralize_wall_outlines[layer_nr] = &layer.parts[0].spiral_insets[0];
+                        storage.spiralize_wall_outlines[layer_nr] = &layer.parts[0].spiral_wall;
                         last_layer_nr = layer_nr;
                         // ignore any further meshes/extruders for this layer
                         done_this_layer = true;
@@ -1783,12 +1785,12 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
 
 void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh) const
 {
-    if (part.spiral_insets.empty() || part.spiral_insets[0].empty())
+    if(part.spiral_wall.empty())
     {
         // wall doesn't have usable outline
         return;
     }
-    const ClipperLib::Path* last_wall_outline = &*part.spiral_insets[0][0]; // default to current wall outline
+    const ClipperLib::Path* last_wall_outline = &*part.spiral_wall[0]; // default to current wall outline
     int last_seam_vertex_idx = -1; // last layer seam vertex index
     int layer_nr = gcode_layer.getLayerNr();
     if (layer_nr > 0)
@@ -1803,7 +1805,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
     }
     const bool is_bottom_layer = (layer_nr == mesh.settings.get<LayerIndex>("bottom_layers"));
     const bool is_top_layer = ((size_t)layer_nr == (storage.spiralize_wall_outlines.size() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr);
-    ConstPolygonRef wall_outline = part.spiral_insets[0][0]; // current layer outer wall outline
+    ConstPolygonRef wall_outline = part.spiral_wall[0]; // current layer outer wall outline
     const int seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr]; // use pre-computed seam vertex index for current layer
     // output a wall slice that is interpolated between the last and current walls
     gcode_layer.spiralizeWallSlice(mesh_config.inset0_config, wall_outline, ConstPolygonRef(*last_wall_outline), seam_vertex_idx, last_seam_vertex_idx, is_top_layer, is_bottom_layer);
@@ -1824,7 +1826,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     bool spiralize = false;
     if(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
-        if (part.spiral_insets.empty())
+        if (part.spiral_wall.empty())
         {
             // nothing to do
             return false;
@@ -1834,23 +1836,20 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         {
             spiralize = true;
         }
-        if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers) && !part.spiral_insets.empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
+        if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers) && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
         { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
-            if (!part.spiral_insets[0].empty())
+            // start this first wall at the same vertex the spiral starts
+            const ConstPolygonRef spiral_inset = part.spiral_wall[0];
+            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[initial_bottom_layers];
+            if (spiral_start_vertex < spiral_inset.size())
             {
-                // start this first wall at the same vertex the spiral starts
-                ConstPolygonRef spiral_inset = part.spiral_insets[0][0];
-                const unsigned spiral_start_vertex = storage.spiralize_seam_vertex_indices[initial_bottom_layers];
-                if (spiral_start_vertex < spiral_inset.size())
-                {
-                    gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
-                }
-                int wall_0_wipe_dist(0);
-                gcode_layer.addPolygonsByOptimizer(part.spiral_insets[0], mesh_config.inset0_config, ZSeamConfig(), wall_0_wipe_dist);
+                gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
             }
+            int wall_0_wipe_dist(0);
+            gcode_layer.addPolygonsByOptimizer(part.spiral_wall, mesh_config.inset0_config, ZSeamConfig(), wall_0_wipe_dist);
         }
     }
     // for non-spiralized layers, determine the shape of the unsupported areas below this part
@@ -1971,7 +1970,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     // one part higher up. Once all the parts have merged, layers above that level will be spiralized
     if (spiralize && &mesh.layers[gcode_layer.getLayerNr()].parts[0] == &part)
     {
-        if (!part.spiral_insets.empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
+        if (!part.spiral_wall.empty() && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
         {
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
