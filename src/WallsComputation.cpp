@@ -60,7 +60,7 @@ void WallsComputation::generateWalls(SliceLayerPart* part)
         const bool recompute_outline_based_on_outer_wall =
             settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
-        if (layer_nr <= settings.get<size_t>("bottom_layers"))
+        if (layer_nr <= static_cast<LayerIndex>(settings.get<size_t>("bottom_layers")))
         {
             WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, settings);
             part->wall_toolpaths = wall_tool_paths.getToolPaths();
