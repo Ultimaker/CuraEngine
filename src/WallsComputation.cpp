@@ -110,23 +110,6 @@ void WallsComputation::generateSpiralInsets(SliceLayerPart *part, coord_t line_w
 {
     part->spiral_insets.push_back(part->outline.offset(-line_width_0 / 2 - wall_0_inset));
 
-    const size_t inset_part_count = part->spiral_insets[0].size();
-    constexpr size_t minimum_part_saving = 3; //Only try if the part has more pieces than the previous inset and saves at least this many parts.
-    constexpr coord_t try_smaller = 10; //How many micrometres to inset with the try with a smaller inset.
-    if (inset_part_count > minimum_part_saving + 1)
-    {
-        //Try a different line thickness and see if this fits better, based on these criteria:
-        // - There are fewer parts to the polygon (fits better in slim areas).
-        // - The polygon area is largely unaffected.
-        Polygons alternative_inset;
-        alternative_inset = part->outline.offset(-(line_width_0 - try_smaller) / 2 - wall_0_inset);
-
-        if (alternative_inset.size() < inset_part_count - minimum_part_saving) //Significantly fewer parts (saves more than 3 parts).
-        {
-            part->spiral_insets[0] = alternative_inset;
-        }
-    }
-
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>("wall_0_extruder_nr");
     const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
