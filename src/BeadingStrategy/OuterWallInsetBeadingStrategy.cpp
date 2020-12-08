@@ -14,7 +14,7 @@ namespace cura
         // Actual count and thickness as represented by extant walls. Don't count any potential zero-width 'signalling' walls.
         bead_count = std::count_if(ret.bead_widths.begin(), ret.bead_widths.end(), [](const coord_t width) { return width > 0; });
 
-        // Early out when the only walls are outer. 
+        // No need to apply any inset if there is just a single wall.
         if (bead_count < 2)
         {
             return ret;
