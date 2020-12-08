@@ -15,12 +15,13 @@
 namespace cura
 {
 
-WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count,
+WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count, const coord_t wall_0_inset,
                              const Settings& settings)
     : outline(outline)
     , bead_width_0(nominal_bead_width)
     , bead_width_x(nominal_bead_width)
     , inset_count(inset_count)
+    , wall_0_inset(wall_0_inset)
     , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
@@ -32,11 +33,12 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
 }
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x,
-                             const size_t inset_count, const Settings& settings)
+                             const size_t inset_count, const coord_t wall_0_inset, const Settings& settings)
     : outline(outline)
     , bead_width_0(bead_width_0)
     , bead_width_x(bead_width_x)
     , inset_count(inset_count)
+    , wall_0_inset(wall_0_inset)
     , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
@@ -52,7 +54,6 @@ const VariableWidthPaths& WallToolPaths::generate()
     const coord_t smallest_segment = settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t allowed_distance = settings.get<coord_t>("meshfix_maximum_deviation");
     const coord_t epsilon_offset = (allowed_distance / 2) - 1;
-    const coord_t wall_0_inset = settings.get<coord_t>("wall_0_inset");
     const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
     constexpr coord_t discretization_step_size = MM2INT(0.8);
 
