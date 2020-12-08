@@ -65,6 +65,13 @@ void WallsComputation::generateWalls(SliceLayerPart* part)
             WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, settings);
             part->wall_toolpaths = wall_tool_paths.getToolPaths();
             part->inner_area = wall_tool_paths.getInnerContour();
+            // The generateSpiralInsets offsets the outline by half a line width to generate the spiral_wall.
+            // This can lead to an empty spiral wall if the outline is already too small, thus leading to an empty layer,
+            // even though libArachne can still create a toolpath for that. In this case, use the outline as the spiral wall.
+            if (part->spiral_wall.empty() && !part->wall_toolpaths.empty())
+            {
+                part->spiral_wall = part->outline;
+            }
         }
     }
     else
