@@ -194,6 +194,7 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         connectLines(result_lines);
     }
     crossings_on_line.clear();
+    result_polygons.simplify(max_resolution, max_deviation);
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)

@@ -652,6 +652,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     constexpr double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
     constexpr int infill_multiplier = 1; // rafts use single lines
     constexpr int extra_infill_shift = 0;
+    coord_t max_resolution = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings.get<coord_t>("meshfix_maximum_deviation");
+
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
     VariableWidthPaths raft_paths;
     std::optional<Point> last_planned_position = std::optional<Point>();
@@ -680,7 +683,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
         Polygons wall = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_base_config.getLineWidth() / 2);
-        wall.simplify(); //Simplify because of a micron-movement created in corners when insetting a polygon that was offset with round joint type.
+        wall.simplify(max_resolution, max_deviation); //Simplify because of a micron-movement created in corners when insetting a polygon that was offset with round joint type.
         gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.raft_base_config);
 
         Polygons raftLines;
@@ -700,6 +703,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Infill infill_comp(
             EFillMethod::LINES, zig_zaggify_infill, connect_polygons, wall, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train.settings.get<coord_t>("raft_base_line_spacing"),
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
+            max_resolution, max_deviation,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         infill_comp.generate(raft_paths, raft_polygons, raftLines, train.settings);
@@ -760,6 +764,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Infill infill_comp(
             EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, infill_outline_width, train.settings.get<coord_t>("raft_interface_line_spacing"),
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
+            max_resolution, max_deviation,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         infill_comp.generate(raft_paths, raft_polygons, raftLines, train.settings);
@@ -794,10 +799,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
-        const coord_t maximum_resolution = train.settings.get<coord_t>("meshfix_maximum_resolution");
-        const coord_t maximum_deviation = train.settings.get<coord_t>("meshfix_maximum_deviation");
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        raft_outline_path.simplify(maximum_resolution, maximum_deviation); //Remove those micron-movements.
+        raft_outline_path.simplify(); //Remove those micron-movements.
         constexpr coord_t infill_outline_width = 0;
         Polygons raft_lines;
         AngleDegrees fill_angle = 90 * raft_surface_layer;
@@ -816,6 +819,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Infill infill_comp(
             EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, infill_outline_width, train.settings.get<coord_t>("raft_surface_line_spacing"),
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
+            max_resolution, max_deviation,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         infill_comp.generate(raft_paths, raft_polygons, raft_lines, train.settings);
@@ -1386,7 +1390,8 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
     {
         return false;
     }
-
+    coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
     if (!mesh.infill_angles.empty())
@@ -1427,7 +1432,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
             constexpr size_t zag_skip_count = 0;
 
             Infill infill_comp(infill_pattern, zig_zaggify_infill, connect_polygons, part.infill_area_per_combine_per_density[density_idx][combine_idx]
-                , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin
+                , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, max_resolution, max_deviation, wall_line_count, infill_origin
                 , perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count
                 , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
             infill_comp.generate(infill_paths, infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
@@ -1483,6 +1488,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const auto infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
     const auto wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
     const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
+    const auto max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
     if (!mesh.infill_angles.empty())
     {
@@ -1576,7 +1583,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             wall_tool_paths.emplace_back(VariableWidthPaths());
             Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin,
                                infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier,
-                               infill_angle, gcode_layer.z, infill_shift, skin_below_wall_count, infill_origin,
+                               infill_angle, gcode_layer.z, infill_shift, max_resolution, max_deviation, skin_below_wall_count, infill_origin,
                                perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count,
                                pocket_size);
             infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
@@ -1614,7 +1621,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, infill_line_width,
                            infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
-                           infill_shift, wall_line_count_here, infill_origin, perimeter_gaps, connected_zigzags,
+                           infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin, perimeter_gaps, connected_zigzags,
                            use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
         infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
 
@@ -1653,14 +1660,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         {
             for(const VariableWidthPaths& tool_paths: wall_tool_paths)
             {
-                const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(tool_paths);
-                for (const PathJunctions& paths : bins)
-                {
-                    for (const LineJunctions& line : paths)
-                    {
-                        gcode_layer.addInfillWall(line, mesh_config.infill_config[0], false);
-                    }
-                }
+                InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, tool_paths, gcode_layer.getLayerNr());
+                added_something |= inset_order_optimizer.optimize(InsetOrderOptimizer::WallType::EXTRA_INFILL);
             }
         }
         if (!infill_polygons.empty())
@@ -1988,7 +1989,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     else
     {
         //Main case: Optimize the insets with the InsetOrderOptimizer.
-        InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, gcode_layer.getLayerNr());
+        InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part.wall_toolpaths, gcode_layer.getLayerNr());
         added_something |= inset_order_optimizer.optimize();
     }
     return added_something;
@@ -2090,25 +2091,6 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
     return added_something;
 }
 
-void FffGcodeWriter::processSkinInsets(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const VariableWidthPaths& skin_wall_paths, bool& added_something) const
-{
-    const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
-    // add skin walls aka skin perimeters
-    if (extruder_nr == skin_extruder_nr)
-    {
-        added_something = false;
-
-        const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(skin_wall_paths);
-        for (const PathJunctions& paths : bins)
-        {
-            added_something = true;
-            setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-            gcode_layer.setIsInside(true); // going to print stuff inside print object
-            gcode_layer.addWalls(paths, mesh, non_bridge_config, bridge_config);
-        }
-    }
-}
-
 void FffGcodeWriter::processRoofing(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const
 {
     const size_t roofing_extruder_nr = mesh.settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr;
@@ -2132,7 +2114,7 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage, LayerPlan& 
     const Ratio skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
     Polygons* perimeter_gaps_output = (fill_perimeter_gaps) ? &concentric_perimeter_gaps : nullptr;
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something);
+    processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something);
 }
 
 void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const
@@ -2300,10 +2282,10 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     // calculate polygons and lines
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps) ? &concentric_perimeter_gaps : nullptr;
 
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
+    processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
 }
 
-void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed) const
+void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed) const
 {
     Polygons skin_polygons;
     Polygons skin_lines;
@@ -2314,6 +2296,8 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     const size_t wall_line_count = mesh.settings.get<size_t>("skin_outline_count");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = mesh.settings.get<bool>("connect_skin_polygons");
+    coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const Point infill_origin;
     constexpr bool connected_zigzags = false;
     constexpr bool use_endpieces = true;
@@ -2322,7 +2306,9 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     constexpr coord_t pocket_size = 0;
 
     Infill infill_comp(
-        pattern, zig_zaggify_infill, connect_polygons, area, config.getLineWidth(), config.getLineWidth() / skin_density, skin_overlap, infill_multiplier, skin_angle, gcode_layer.z, extra_infill_shift, wall_line_count, infill_origin, perimeter_gaps_output,
+        pattern, zig_zaggify_infill, connect_polygons, area, config.getLineWidth(), config.getLineWidth() / skin_density, skin_overlap, infill_multiplier, skin_angle, gcode_layer.z, extra_infill_shift
+        , max_resolution, max_deviation
+        , wall_line_count, infill_origin, perimeter_gaps_output,
         connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
         );
     infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings);
@@ -2335,7 +2321,13 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         if(!skin_paths.empty())
         {
-            processSkinInsets(storage, gcode_layer, mesh, extruder_nr, config, config, skin_paths, added_something);
+            // Add skin-walls a.k.a. skin-perimeters, skin-insets.
+            const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
+            if (extruder_nr == skin_extruder_nr)
+            {
+                InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, skin_extruder_nr, mesh_config, skin_paths, gcode_layer.getLayerNr());
+                added_something |= inset_order_optimizer.optimize(InsetOrderOptimizer::WallType::EXTRA_SKIN);
+            }
         }
         if(!skin_polygons.empty())
         {
@@ -2390,9 +2382,12 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
+    coord_t max_resolution = 10; // we don't need to simplify line based infill
+    coord_t max_deviation = 5;
 
     Infill infill_comp(
         EFillMethod::LINES, zig_zaggify_infill, connect_polygons, perimeter_gaps, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, infill_multiplier, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift,
+        max_resolution, max_deviation,
         wall_line_count, infill_origin, perimeter_gaps_polyons, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
     infill_comp.generate(gap_paths, gap_polygons, gap_lines, mesh.settings);
     if (gap_lines.size() > 0)
@@ -2493,6 +2488,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
     constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
     const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
+    const coord_t max_resolution = infill_extruder.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = infill_extruder.settings.get<coord_t>("meshfix_maximum_deviation");
     coord_t default_support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
     if (gcode_layer.getLayerNr() == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
@@ -2586,6 +2583,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, area,
                                    support_line_width, support_line_distance_here, current_support_infill_overlap,
                                    infill_multiplier, support_infill_angle, gcode_layer.z, support_shift,
+                                   max_resolution, max_deviation,
                                    wall_line_count, infill_origin, perimeter_gaps, support_connect_zigzags,
                                    use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
                 infill_comp.generate(wall_toolpaths, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
@@ -2664,6 +2662,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr bool skip_some_zags = false;
     constexpr size_t zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
+    const coord_t max_resolution = roof_extruder.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = roof_extruder.settings.get<coord_t>("meshfix_maximum_deviation");
 
     coord_t support_roof_line_distance = roof_extruder.settings.get<coord_t>("support_roof_line_distance");
     const coord_t support_roof_line_width = roof_extruder.settings.get<coord_t>("support_roof_line_width");
@@ -2684,6 +2684,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     Infill roof_computation(
         pattern, zig_zaggify_infill, connect_polygons, infill_outline, gcode_layer.configs_storage.support_roof_config.getLineWidth(),
         support_roof_line_distance, support_roof_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
+        max_resolution, max_deviation,
         wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
         );
     Polygons roof_polygons;
@@ -2746,11 +2747,14 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
+    const coord_t max_resolution = bottom_extruder.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = bottom_extruder.settings.get<coord_t>("meshfix_maximum_deviation");
 
     const coord_t support_bottom_line_distance = bottom_extruder.settings.get<coord_t>("support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
     Infill bottom_computation(
         pattern, zig_zaggify_infill, connect_polygons, support_layer.support_bottom, gcode_layer.configs_storage.support_bottom_config.getLineWidth(),
         support_bottom_line_distance, support_bottom_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
+        max_resolution, max_deviation,
         wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
         );
     Polygons bottom_polygons;

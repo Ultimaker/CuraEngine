@@ -11,14 +11,14 @@
 namespace cura
 {
 
-InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) :
+InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const VariableWidthPaths& paths, unsigned int layer_nr) :
     gcode_writer(gcode_writer),
     storage(storage),
     gcode_layer(gcode_layer),
     mesh(mesh),
     extruder_nr(extruder_nr),
     mesh_config(mesh_config),
-    part(part),
+    paths(paths),
     layer_nr(layer_nr),
     z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
     added_something(false),
@@ -26,14 +26,22 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, con
 {
 }
 
-bool InsetOrderOptimizer::optimize()
+bool InsetOrderOptimizer::optimize(const WallType& wall_type)
 {
+    // Settings & configs:
+    const GCodePathConfig& skin_or_infill_config = wall_type == WallType::EXTRA_SKIN ? mesh_config.skin_config : mesh_config.infill_config[0];
+    const bool do_outer_wall = wall_type == WallType::OUTER_WALL;
+    const GCodePathConfig& inset_0_non_bridge_config = do_outer_wall ? mesh_config.inset0_config : skin_or_infill_config;
+    const GCodePathConfig& inset_X_non_bridge_config = do_outer_wall ? mesh_config.insetX_config : skin_or_infill_config;
+    const GCodePathConfig& inset_0_bridge_config = do_outer_wall ? mesh_config.bridge_inset0_config : skin_or_infill_config;
+    const GCodePathConfig& inset_X_bridge_config = do_outer_wall ? mesh_config.bridge_insetX_config : skin_or_infill_config;
+
     const bool ignore_inner_insets = !mesh.settings.get<bool>("optimize_wall_printing_order");
     const bool outer_inset_first = mesh.settings.get<bool>("outer_inset_first");
 
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
     std::set<size_t> bins_with_index_zero_insets;
-    BinJunctions insets = variableWidthPathToBinJunctions(part.wall_toolpaths, ignore_inner_insets, outer_inset_first, &bins_with_index_zero_insets);
+    BinJunctions insets = variableWidthPathToBinJunctions(paths, ignore_inner_insets, outer_inset_first, &bins_with_index_zero_insets);
 
     //If printing the outer inset first, start with the lowest inset.
     //Otherwise start with the highest inset and iterate backwards.
@@ -70,11 +78,11 @@ bool InsetOrderOptimizer::optimize()
 
         if(bins_with_index_zero_insets.count(inset) > 0) //Print using outer wall config.
         {
-            gcode_layer.addWalls(insets[inset], mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+            gcode_layer.addWalls(insets[inset], mesh, inset_0_non_bridge_config, inset_0_bridge_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
         }
         else
         {
-            gcode_layer.addWalls(insets[inset], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, z_seam_config, 0, flow, false);
+            gcode_layer.addWalls(insets[inset], mesh, inset_X_non_bridge_config, inset_X_bridge_config, z_seam_config, 0, flow, false);
         }
     }
     return added_something;
