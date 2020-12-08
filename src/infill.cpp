@@ -50,7 +50,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     {
         return;
     }
-	outer_contour = outer_contour.offset(infill_overlap);
+    outer_contour = outer_contour.offset(infill_overlap);
 
     if (wall_line_count > 0)
     {
@@ -61,6 +61,58 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     else
     {
         inner_contour = outer_contour;
+    }
+
+    //Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
+    //The lines along the edge must lie next to the border, not on it.
+    //This makes those algorithms a lot simpler.
+    if (pattern == EFillMethod::ZIG_ZAG //Zig-zag prints the zags along the walls.
+        || pattern == EFillMethod::CONCENTRIC //Concentric at high densities needs to print alongside the walls, not overlapping them.
+        || (zig_zaggify && (pattern == EFillMethod::LINES //Zig-zaggified infill patterns print their zags along the walls.
+            || pattern == EFillMethod::TRIANGLES
+            || pattern == EFillMethod::GRID
+            || pattern == EFillMethod::CUBIC
+            || pattern == EFillMethod::TETRAHEDRAL
+            || pattern == EFillMethod::QUARTER_CUBIC
+            || pattern == EFillMethod::TRIHEXAGON
+            || pattern == EFillMethod::GYROID
+            || pattern == EFillMethod::CROSS
+            || pattern == EFillMethod::CROSS_3D))
+        || infill_multiplier % 2 == 0) //Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
+    {
+        // Get gaps beforehand (that are caused when the 1/2 line width inset is done after this):
+        WallToolPaths wall_toolpaths(inner_contour, infill_line_width, 1, settings);
+        VariableWidthPaths gap_fill_paths = wall_toolpaths.getToolPaths();
+
+        // Add the gap filling to the toolpaths and make the new inner contour 'aware' of the gap infill:
+        // (Can't use getContours here, becasue only _some_ of the lines Arachne has generated are needed.)
+        Polygons gap_filled_areas;
+        for (const auto& var_width_line : gap_fill_paths)
+        {
+            VariableWidthLines thin_walls_only;
+            for (const auto& extrusion : var_width_line)
+            {
+                if (extrusion.is_odd && extrusion.inset_idx == 0)
+                {
+                    thin_walls_only.push_back(extrusion);
+
+                    Polygon path;
+                    for (const auto& junction : extrusion.junctions)
+                    {
+                        path.add(junction.p);
+                    }
+                    gap_filled_areas.add(path);
+                }
+            }
+            if (! thin_walls_only.empty())
+            {
+                toolpaths.push_back(thin_walls_only);
+            }
+        }
+        gap_filled_areas = gap_filled_areas.offsetPolyLine(infill_line_width / 2).unionPolygons();
+
+        // Now do the actual inset, to make place for the extra 'zig-zagify' lines:
+        inner_contour = inner_contour.difference(gap_filled_areas).offset(-infill_line_width / 2);
     }
 
     if (infill_multiplier > 1)
@@ -108,26 +160,6 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
 {
     if (inner_contour.empty()) return;
     if (line_distance == 0) return;
-
-    //Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
-    //The lines along the edge must lie next to the border, not on it.
-    //This makes those algorithms a lot simpler.
-    if (pattern == EFillMethod::ZIG_ZAG //Zig-zag prints the zags along the walls.
-            || pattern == EFillMethod::CONCENTRIC //Concentric at high densities needs to print alongside the walls, not overlapping them.
-            || (zig_zaggify && (pattern == EFillMethod::LINES //Zig-zaggified infill patterns print their zags along the walls.
-                || pattern == EFillMethod::TRIANGLES
-                || pattern == EFillMethod::GRID
-                || pattern == EFillMethod::CUBIC
-                || pattern == EFillMethod::TETRAHEDRAL
-                || pattern == EFillMethod::QUARTER_CUBIC
-                || pattern == EFillMethod::TRIHEXAGON
-                || pattern == EFillMethod::GYROID
-                || pattern == EFillMethod::CROSS
-                || pattern == EFillMethod::CROSS_3D))
-                || infill_multiplier % 2 == 0) //Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
-    {
-        inner_contour = inner_contour.offset(-infill_line_width / 2);
-    }
 
     switch(pattern)
     {
