@@ -15,14 +15,13 @@ namespace cura
         bead_count = std::count_if(ret.bead_widths.begin(), ret.bead_widths.end(), [](const coord_t width) { return width > 0; });
 
         // Early out when the only walls are outer. 
-        if (bead_count < 3)
+        if (bead_count < 2)
         {
             return ret;
         }
         
-        // Actually move the outer wall inside. 
-        ret.toolpath_locations[0] = ret.toolpath_locations[0] + outer_wall_offset;
-        
+        // Actually move the outer wall inside. Ensure that the outer wall never goes beyond the middle line.
+        ret.toolpath_locations[0] = std::min(ret.toolpath_locations[0] + outer_wall_offset, thickness / 2);
         return ret;
     }
 
