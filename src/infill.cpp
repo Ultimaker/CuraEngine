@@ -54,7 +54,8 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
 
     if (wall_line_count > 0)
     {
-        WallToolPaths wall_toolpaths(outer_contour, infill_line_width, wall_line_count, settings);
+        constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
+        WallToolPaths wall_toolpaths(outer_contour, infill_line_width, wall_line_count, wall_0_inset, settings);
         toolpaths = wall_toolpaths.getToolPaths();
         inner_contour = wall_toolpaths.getInnerContour();
     }
