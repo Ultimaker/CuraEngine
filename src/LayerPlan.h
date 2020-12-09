@@ -18,6 +18,7 @@
 #include "utils/optional.h"
 #include "utils/polygon.h"
 
+#include "InsetOrderOptimizer.h"
 #include "utils/ExtrusionJunction.h"
 
 namespace cura 
@@ -269,14 +270,20 @@ private:
     bool first_travel_destination_is_inside; //!< Whether the destination of the first planned travel move is inside a layer part
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
-    Polygons comb_boundary_inside1; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
-    Polygons comb_boundary_inside2; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
+    Polygons comb_boundary_minimum; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
+    Polygons comb_boundary_preferred; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
     Comb* comb;
     coord_t comb_move_inside_distance;  //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Polygons bridge_wall_mask; //!< The regions of a layer part that are not supported, used for bridging
     Polygons overhang_mask; //!< The regions of a layer part where the walls overhang
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
+
+    enum CombBoundary
+    {
+        MINIMUM,
+        PREFERRED
+    };
 
 private:
     /*!
@@ -334,17 +341,28 @@ public:
 
     const Polygons* getCombBoundaryInside() const
     {
-        return &comb_boundary_inside2;
+        return &comb_boundary_preferred;
     }
 
 private:
+
     /*!
-     * \brief Compute the boundary within which to comb, or to move into when
-     * performing a retraction.
-     * \param max_inset The greatest inset index.
-     * \return the comb_boundary_inside
+     * \brief Compute the preferred or minimum combing boundary
+     *
+     * Minimum combing boundary:
+     *  - If CombingMode::ALL: Add the outline offset (skin, infill and inner walls).
+     *  - If CombingMode::NO_SKIN: Add the outline offset, subtract skin (infill and inner walls).
+     *  - If CombingMode::INFILL: Add the infill (infill only).
+     *
+     * Preferred combing boundary:
+     *  - If CombingMode::ALL: Add the increased outline offset (skin, infill and part of the inner walls).
+     *  - If CombingMode::NO_SKIN: Add the increased outline offset, subtract skin (infill and part of the inner walls).
+     *  - If CombingMode::INFILL: Add the infill (infill only).
+     *
+     * \param boundary_type The boundary type to compute.
+     * \return the combing boundary or an empty Polygons if no combing is required
      */
-    Polygons computeCombBoundaryInside(const size_t max_inset);
+    Polygons computeCombBoundary(const CombBoundary boundary_type);
 
 public:
     int getLayerNr() const

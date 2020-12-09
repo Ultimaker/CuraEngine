@@ -13,6 +13,5 @@ SupportInfillPart::SupportInfillPart(const PolygonsPart& outline, coord_t suppor
 , support_line_width(support_line_width)
 , inset_count_to_generate(inset_count_to_generate)
 {
-    insets.clear();
     infill_area_per_combine_per_density.clear();
 }

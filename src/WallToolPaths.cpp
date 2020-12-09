@@ -82,6 +82,11 @@ const VariableWidthPaths& WallToolPaths::generate()
     simplifyToolPaths(toolpaths, settings);
 
     removeEmptyToolPaths(toolpaths);
+    assert(std::is_sorted(toolpaths.cbegin(), toolpaths.cend(),
+                          [](const VariableWidthLines& l, const VariableWidthLines& r)
+                          {
+                              return l.front().inset_idx < r.front().inset_idx;
+                          }) && "WallToolPaths should be sorted from the outer 0th to inner_walls");
     toolpaths_generated = true;
     return toolpaths;
 }
@@ -168,7 +173,7 @@ bool WallToolPaths::removeEmptyToolPaths(VariableWidthPaths& toolpaths)
     return toolpaths.empty();
 }
 
-void WallToolPaths::stitchContours(const VariableWidthPaths& input, const coord_t stitch_distance, Polygons& output) const
+void WallToolPaths::stitchContours(const VariableWidthPaths& input, const coord_t stitch_distance, Polygons& output)
 {
     //Create a bucket grid to find endpoints that are close together.
     struct ExtrusionLineStartLocator

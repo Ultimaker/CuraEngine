@@ -3,6 +3,7 @@
 
 #include "PathOrderOptimizer.h" //The definitions we're implementing here.
 #include "sliceDataStorage.h" //For SliceLayerPart.
+#include "WallToolPaths.h"
 
 //Since the PathOrderOptimizer is a template class, we will only implement the template specializations in this file.
 
@@ -30,14 +31,7 @@ ConstPolygonRef PathOrderOptimizer<const SkinPart*>::getVertexData(const SkinPar
 template<>
 ConstPolygonRef PathOrderOptimizer<const SliceLayerPart*>::getVertexData(const SliceLayerPart* path)
 {
-    if(!path->insets.empty())
-    {
-        return path->insets[0][0];
-    }
-    else
-    {
-        return path->outline.outerPolygon();
-    }
+    return path->outline.outerPolygon();
 }
 
 template<>
