@@ -7,7 +7,6 @@
 #include "gcodeExport.h"
 #include "LayerPlan.h"
 #include "LayerPlanBuffer.h"
-#include "MergeInfillLines.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "utils/logoutput.h"

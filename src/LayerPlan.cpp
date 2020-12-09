@@ -6,7 +6,6 @@
 #include "Application.h" //To communicate layer view data.
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
-#include "MergeInfillLines.h"
 #include "raft.h" // getTotalExtraLayers
 #include "Slice.h"
 #include "sliceDataStorage.h"
@@ -1838,16 +1837,6 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
         gcode.writeTravel(path.points[point_idx], speed);
     }
     return true;
-}
-
-void LayerPlan::optimizePaths(const Point& starting_position)
-{
-    for (ExtruderPlan& extr_plan : extruder_plans)
-    {
-        //Merge paths whose endpoints are very close together into one line.
-        MergeInfillLines merger(extr_plan);
-        merger.mergeInfillLines(extr_plan.paths, starting_position);
-    }
 }
 
 }//namespace cura
