@@ -121,7 +121,7 @@ private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
-    void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
+    void _generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
@@ -243,15 +243,7 @@ private:
      * \param result (output) The resulting polygons
      * \param inset_value The offset between each consecutive two polygons
      */
-    void generateConcentricInfill(Polygons& result, int inset_value);
-
-    /*!
-     * Generate sparse concentric infill starting from a specific outer wall
-     * \param first_wall The outer wall from which to start
-     * \param result (output) The resulting polygons
-     * \param inset_value The offset between each consecutive two polygons
-     */
-    void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value);
+    void generateConcentricInfill(VariableWidthPaths& toolpaths, int inset_value, const Settings& settings);
 
     /*!
      * Generate a rectangular grid of infill lines

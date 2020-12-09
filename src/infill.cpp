@@ -82,6 +82,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         || infill_multiplier % 2 == 0) //Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
     {
         // Get gaps beforehand (that are caused when the 1/2 line width inset is done after this):
+        // (Note that we give it a _full_ line width here, because unlike the old situation this can produce walls that are actually smaller than that.)
         constexpr coord_t gap_wall_count = 1; // Only need one wall here, less even, in a sense.
         constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
         WallToolPaths wall_toolpaths(inner_contour, infill_line_width, gap_wall_count, wall_0_inset, settings);
@@ -127,7 +128,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         }
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
-        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, mesh);
         zig_zaggify = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
         result_polygons.add(generated_result_polygons);
@@ -139,7 +140,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         //So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
-        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, mesh);
         result_polygons.add(generated_result_polygons);
         result_lines.add(generated_result_lines);
     }
@@ -159,7 +160,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     }
 }
 
-void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
     if (inner_contour.empty()) return;
     if (line_distance == 0) return;
@@ -188,7 +189,7 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         generateTrihexagonInfill(result_lines);
         break;
     case EFillMethod::CONCENTRIC:
-        generateConcentricInfill(result_polygons, line_distance);
+        generateConcentricInfill(toolpaths, line_distance, settings);
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle);
@@ -320,42 +321,24 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
     GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, line_distance, inner_contour, z);
 }
 
-void Infill::generateConcentricInfill(Polygons& result, int inset_value)
+void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const int inset_value, const Settings& settings)
 {
-    Polygons first_concentric_wall = inner_contour.offset(-line_distance + infill_line_width);
+    const coord_t min_area = infill_line_width * infill_line_width;
 
-    if (perimeter_gaps)
+    Polygons current_inset = inner_contour.offset(-line_distance + infill_line_width);
+    while(current_inset.area() > min_area)
     {
-        const Polygons inner = first_concentric_wall.offset(infill_line_width / 2 + perimeter_gaps_extra_offset);
-        const Polygons gaps_here = inner_contour.difference(inner);
-        perimeter_gaps->add(gaps_here);
-    }
-    generateConcentricInfill(first_concentric_wall, result, inset_value);
-}
+        current_inset.simplify();
 
-void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value)
-{
-    result.add(first_concentric_wall);
-    Polygons* prev_inset = &first_concentric_wall;
-    Polygons next_inset;
-    Polygons new_inset;  // This intermediate inset variable is needed because prev_inset is referencing
-    while (prev_inset->size() > 0)
-    {
-        new_inset = prev_inset->offset(-inset_value);
-        new_inset.simplify();
-        result.add(new_inset);
-        if (perimeter_gaps)
-        {
-            const Polygons outer = prev_inset->offset(-infill_line_width / 2 - perimeter_gaps_extra_offset);
-            const Polygons inner = new_inset.offset(infill_line_width / 2);
-            const Polygons gaps_here = outer.difference(inner);
-            perimeter_gaps->add(gaps_here);
-        }
-        // This operation helps to prevent the variable "prev_inset" changes whenever next_inset changes
-        next_inset = new_inset;
-        prev_inset = &next_inset;
+        constexpr coord_t inset_wall_count = 1; // Only need one wall here, less even, in a sense.
+        constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
+        WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings);
+        const VariableWidthPaths inset_paths = wall_toolpaths.getToolPaths();
+
+        toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
+
+        current_inset = wall_toolpaths.getInnerContour().offset(-inset_value);
     }
-    std::reverse(std::begin(result), std::end(result));
 }
 
 void Infill::generateGridInfill(Polygons& result)
