@@ -77,7 +77,6 @@ public:
      */
     static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
 
-protected:
     /*!
      * Stitches toolpaths together to form contours.
      *
@@ -92,8 +91,9 @@ protected:
      * stitched together. An additional line segment will bridge the gap.
      * \param output Where to store the output polygons.
      */
-    void stitchContours(const VariableWidthPaths& input, const coord_t stitch_distance, Polygons& output) const;
+    static void stitchContours(const VariableWidthPaths& input, const coord_t stitch_distance, Polygons& output) ;
 
+protected:
     /*!
      * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
      * settings.

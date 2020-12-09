@@ -1,6 +1,8 @@
 //Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <algorithm>
+
 #include "ExtrusionLine.h"
 #include "linearAlg2D.h"
 
@@ -21,6 +23,15 @@ coord_t ExtrusionLine::getLength() const
         prev = next;
     }
     return len;
+}
+
+coord_t ExtrusionLine::getMinimalWidth() const
+{
+    return std::min_element(junctions.cbegin(), junctions.cend(),
+                            [](const ExtrusionJunction& l, const ExtrusionJunction& r)
+                            {
+                                return l.w < r.w;
+                            })->w;
 }
 
 void ExtrusionLine::appendJunctionsTo(LineJunctions& result) const
