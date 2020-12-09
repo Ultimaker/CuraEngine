@@ -15,12 +15,13 @@
 namespace cura
 {
 
-WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count,
+WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count, const coord_t wall_0_inset,
                              const Settings& settings)
     : outline(outline)
     , bead_width_0(nominal_bead_width)
     , bead_width_x(nominal_bead_width)
     , inset_count(inset_count)
+    , wall_0_inset(wall_0_inset)
     , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
@@ -32,11 +33,12 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
 }
 
 WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x,
-                             const size_t inset_count, const Settings& settings)
+                             const size_t inset_count, const coord_t wall_0_inset, const Settings& settings)
     : outline(outline)
     , bead_width_0(bead_width_0)
     , bead_width_x(bead_width_x)
     , inset_count(inset_count)
+    , wall_0_inset(wall_0_inset)
     , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
@@ -71,7 +73,7 @@ const VariableWidthPaths& WallToolPaths::generate()
         const size_t max_bead_count = 2 * inset_count;
         const auto beading_strat = std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy(
             strategy_type, bead_width_0, bead_width_x, wall_transition_length, transitioning_angle, print_thin_walls, min_bead_width,
-            min_feature_size, wall_transition_threshold, max_bead_count));
+            min_feature_size, wall_transition_threshold, max_bead_count, wall_0_inset));
         const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
         SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->transitioning_angle, discretization_step_size, transition_filter_dist, wall_transition_length);
         wall_maker.generateToolpaths(toolpaths);
@@ -88,10 +90,9 @@ void WallToolPaths::simplifyToolPaths(VariableWidthPaths& toolpaths, const Setti
 {
     for (size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
     {
-        const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>(toolpaths_idx == 0 ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
-        const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
-        const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
-        const coord_t maximum_extrusion_area_deviation = train_wall.settings.get<int>("meshfix_maximum_extrusion_area_deviation"); // unit: μm²
+        const coord_t maximum_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t maximum_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
+        const coord_t maximum_extrusion_area_deviation = settings.get<int>("meshfix_maximum_extrusion_area_deviation"); // unit: μm²
         for (auto& line : toolpaths[toolpaths_idx])
         {
             line.simplify(maximum_resolution, maximum_deviation, maximum_extrusion_area_deviation);

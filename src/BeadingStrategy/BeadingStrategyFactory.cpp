@@ -9,6 +9,7 @@
 #include "WideningBeadingStrategy.h"
 #include "DistributedBeadingStrategy.h"
 #include "RedistributeBeadingStrategy.h"
+#include "OuterWallInsetBeadingStrategy.h"
 
 namespace cura
 {
@@ -41,7 +42,7 @@ std::string to_string(StrategyType type)
 }
 
 
-coord_t get_weighted_average(const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t max_bead_count)
+coord_t getWeightedAverage(const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t max_bead_count)
 {
     if (max_bead_count > 2)
     {
@@ -54,9 +55,9 @@ coord_t get_weighted_average(const coord_t preferred_bead_width_outer, const coo
     return preferred_bead_width_outer;
 }
 
-BeadingStrategy* BeadingStrategyFactory::makeStrategy(const StrategyType type, const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t preferred_transition_length, const float transitioning_angle, const bool print_thin_walls, const coord_t min_bead_width, const coord_t min_feature_size, const Ratio wall_transition_threshold, const coord_t max_bead_count)
+BeadingStrategy* BeadingStrategyFactory::makeStrategy(const StrategyType type, const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t preferred_transition_length, const float transitioning_angle, const bool print_thin_walls, const coord_t min_bead_width, const coord_t min_feature_size, const Ratio wall_transition_threshold, const coord_t max_bead_count, const coord_t outer_wall_offset)
 {
-    const coord_t bar_preferred_wall_width = get_weighted_average(preferred_bead_width_outer, preferred_bead_width_inner, max_bead_count);
+    const coord_t bar_preferred_wall_width = getWeightedAverage(preferred_bead_width_outer, preferred_bead_width_inner, max_bead_count);
     BeadingStrategy* ret = nullptr;
     switch (type)
     {
@@ -80,6 +81,12 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy(const StrategyType type, c
         //Apply the LimitedBeadingStrategy last, since that adds a 0-width marker wall which other beading strategies shouldn't touch.
         logDebug("Applying the Limited Beading meta-strategy with maximum bead count = %d.", max_bead_count);
         ret = new LimitedBeadingStrategy(max_bead_count, ret);
+    }
+    
+    if (outer_wall_offset > 0)
+    {
+        logDebug("Applying the OuterWallOffset meta-strategy with offset = %d.", outer_wall_offset);
+        ret = new OuterWallInsetBeadingStrategy(outer_wall_offset, ret);
     }
     return ret;
 }
