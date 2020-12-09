@@ -82,7 +82,9 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         || infill_multiplier % 2 == 0) //Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
     {
         // Get gaps beforehand (that are caused when the 1/2 line width inset is done after this):
-        WallToolPaths wall_toolpaths(inner_contour, infill_line_width, 1, settings);
+        constexpr coord_t gap_wall_count = 1; // Only need one wall here, less even, in a sense.
+        constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
+        WallToolPaths wall_toolpaths(inner_contour, infill_line_width, gap_wall_count, wall_0_inset, settings);
         VariableWidthPaths gap_fill_paths = wall_toolpaths.getToolPaths();
 
         // Add the gap filling to the toolpaths and make the new inner contour 'aware' of the gap infill:
