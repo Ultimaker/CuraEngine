@@ -189,7 +189,7 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
         generateTrihexagonInfill(result_lines);
         break;
     case EFillMethod::CONCENTRIC:
-        generateConcentricInfill(toolpaths, line_distance, settings);
+        generateConcentricInfill(toolpaths, settings);
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle);
@@ -321,24 +321,24 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
     GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, line_distance, inner_contour, z);
 }
 
-void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const int inset_value, const Settings& settings)
+void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const Settings& settings)
 {
+    constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
+    const bool iterative = line_distance > infill_line_width; // Do it all at once if there is not need for a gap, otherwise, iterate.
     const coord_t min_area = infill_line_width * infill_line_width;
-
-    Polygons current_inset = inner_contour.offset(-line_distance + infill_line_width);
-    while(current_inset.area() > min_area)
+    Polygons current_inset = inner_contour.offset(infill_line_width / 2);
+    do
     {
         current_inset.simplify();
 
-        constexpr coord_t inset_wall_count = 1; // Only need one wall here, less even, in a sense.
-        constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
+        const coord_t inset_wall_count = iterative ? 1 : std::numeric_limits<coord_t>::max();
         WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings);
         const VariableWidthPaths inset_paths = wall_toolpaths.getToolPaths();
 
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
-
-        current_inset = wall_toolpaths.getInnerContour().offset(-inset_value);
+        current_inset = wall_toolpaths.getInnerContour().offset((infill_line_width / 2) - line_distance);
     }
+    while (iterative && current_inset.area() > min_area);
 }
 
 void Infill::generateGridInfill(Polygons& result)
