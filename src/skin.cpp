@@ -4,6 +4,7 @@
 #include <cmath> // std::ceil
 
 #include "Application.h" //To get settings.
+#include "Slice.h"
 #include "ExtruderTrain.h"
 #include "skin.h"
 #include "sliceDataStorage.h"
@@ -229,20 +230,6 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     coord_t bottom_total_expansion = 0; //Track if these end up being expanded beyond their original shape. If so, we need to clip to the original shape at the end.
     coord_t top_total_expansion = 0;
 
-    //Remove thin pieces of support for Skin Removal Width.
-    if(bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance))
-    {
-        const coord_t simple_expand_distance = min_width > 0 ? 0 : bottom_skin_expand_distance; //If there is no min_width we can immediately apply the expand distance here, saving one offset operation.
-        downskin = downskin.offset(-bottom_skin_preshrink / 2).offset(bottom_skin_preshrink / 2 + simple_expand_distance);
-        bottom_total_expansion += simple_expand_distance;
-    }
-    if(top_skin_preshrink > 0 || (min_width == 0 && top_skin_expand_distance != 0))
-    {
-        const coord_t simple_expand_distance = min_width > 0 ? 0 : top_skin_expand_distance;
-        upskin = upskin.offset(-top_skin_preshrink / 2).offset(top_skin_preshrink / 2 + simple_expand_distance);
-        top_total_expansion += simple_expand_distance;
-    }
-
     //Expand some areas of the skin for Skin Expand Distance.
     if(min_width > 0)
     {
@@ -253,14 +240,35 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
             const Polygons expanded = downskin.offset(-min_width).offset(min_width + bottom_skin_expand_distance);
             //And then re-joined with the original part that was not offset, to retain parts smaller than min_width.
             downskin = downskin.unionPolygons(expanded);
-            bottom_total_expansion += bottom_skin_expand_distance;
         }
         if(top_skin_expand_distance != 0)
         {
             const Polygons expanded = upskin.offset(-min_width).offset(min_width + top_skin_expand_distance);
             upskin = upskin.unionPolygons(expanded);
-            top_total_expansion += top_skin_expand_distance;
         }
+    }
+    else //No need to pay attention to minimum width. Just expand.
+    {
+        if(bottom_skin_expand_distance != 0)
+        {
+            downskin = downskin.offset(bottom_skin_expand_distance);
+        }
+        if(top_skin_expand_distance != 0)
+        {
+            upskin = upskin.offset(top_skin_expand_distance);
+        }
+    }
+    bottom_total_expansion += bottom_skin_expand_distance;
+    top_total_expansion += top_skin_expand_distance;
+
+    //Remove thin pieces of support for Skin Removal Width.
+    if(bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance))
+    {
+        downskin = downskin.offset(-bottom_skin_preshrink / 2).offset(bottom_skin_preshrink / 2);
+    }
+    if(top_skin_preshrink > 0 || (min_width == 0 && top_skin_expand_distance != 0))
+    {
+        upskin = upskin.offset(-top_skin_preshrink / 2).offset(top_skin_preshrink / 2);
     }
 
     //If the skin was expanded beyond its original size, clip to make sure it stays within the skin/infill area.

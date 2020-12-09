@@ -122,7 +122,6 @@ void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
     AreaSupport::cleanup(storage);
 }
 
-
 void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 {
     //
@@ -382,7 +381,6 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
         }
     }
 }
-
 
 void AreaSupport::cleanup(SliceDataStorage& storage)
 {

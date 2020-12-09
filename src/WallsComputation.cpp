@@ -5,9 +5,10 @@
 #include "sliceDataStorage.h"
 #include "WallsComputation.h"
 #include "settings/types/Ratio.h"
-
-// libArachne
 #include "WallToolPaths.h"
+#include "utils/polygonUtils.h"
+#include "Application.h"
+#include "Slice.h"
 
 namespace cura {
 
