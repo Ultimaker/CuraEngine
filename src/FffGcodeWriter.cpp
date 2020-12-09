@@ -1835,12 +1835,14 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     bool spiralize = false;
     if(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
-        if (part.spiral_wall.empty())
+        const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
+        const int layer_nr = gcode_layer.getLayerNr();
+        if ((layer_nr < static_cast<LayerIndex>(initial_bottom_layers) && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
+            || (layer_nr >= static_cast<LayerIndex>(initial_bottom_layers) && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
         {
             // nothing to do
             return false;
         }
-        const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
         if (gcode_layer.getLayerNr() >= static_cast<LayerIndex>(initial_bottom_layers))
         {
             spiralize = true;
