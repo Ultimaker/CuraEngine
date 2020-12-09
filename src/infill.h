@@ -22,8 +22,6 @@ class Infill
 {
     friend class InfillTest;
 
-    static constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
-
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
     bool zig_zaggify; //!< Whether to connect the end pieces of the support lines via the wall
     bool connect_polygons; //!< Whether to connect as much polygons together into a single path
@@ -40,7 +38,6 @@ class Infill
     coord_t max_deviation; //!< Max deviation fro the original poly when enforcing max_resolution
     size_t wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     const Point infill_origin; //!< origin of the infill pattern
-    Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
@@ -50,13 +47,6 @@ class Infill
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
-    /*!
-     * \warning If \p perimeter_gaps is given, then the difference between the \p in_outline
-     * and the polygons which result from expanding it again by half the \p infill_line_width
-     * is added to the \p perimeter_gaps
-     * 
-     * \param[out] perimeter_gaps (optional output) The areas in between consecutive insets when Concentric infill is used.
-     */
     Infill(EFillMethod pattern
         , bool zig_zaggify
         , bool connect_polygons
@@ -72,7 +62,6 @@ public:
         , coord_t max_deviation
         , size_t wall_line_count = 0
         , const Point& infill_origin = Point()
-        , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
         , bool use_endpieces = false
         , bool skip_some_zags = false
@@ -94,7 +83,6 @@ public:
     , max_deviation(max_deviation)
     , wall_line_count(wall_line_count)
     , infill_origin(infill_origin)
-    , perimeter_gaps(perimeter_gaps)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
     , skip_some_zags(skip_some_zags)
@@ -238,9 +226,7 @@ private:
     /*!
      * Generate sparse concentric infill
      * 
-     * Also adds \ref Infill::perimeter_gaps between \ref Infill::in_outline and the first wall
-     * 
-     * \param result (output) The resulting polygons
+     * \param toolpaths (output) The resulting toolpaths
      * \param inset_value The offset between each consecutive two polygons
      */
     void generateConcentricInfill(VariableWidthPaths& toolpaths, const Settings& settings);

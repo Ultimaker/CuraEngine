@@ -39,7 +39,6 @@ class SkinPart
 public:
     PolygonsPart outline;           //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both roofing and non-roofing.
     VariableWidthPaths inset_paths;       //!< The insets represented as variable line-width paths. The insets are also known as perimeters or the walls.
-    Polygons perimeter_gaps; //!< The gaps between the extra skin walls and gaps between the outer skin wall and the inner part inset
     Polygons skin_fill; //!< The part of the skin which is not roofing.
     Polygons roofing_fill; //!< The inner infill which has air directly above
 };
