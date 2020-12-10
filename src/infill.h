@@ -229,7 +229,7 @@ private:
      * \param toolpaths (output) The resulting toolpaths
      * \param inset_value The offset between each consecutive two polygons
      */
-    void generateConcentricInfill(VariableWidthPaths& toolpaths, const Settings& settings);
+    void generateConcentricInfill(VariableWidthPaths& toolpaths, int inset_value, const Settings& settings);
 
     /*!
      * Generate a rectangular grid of infill lines
