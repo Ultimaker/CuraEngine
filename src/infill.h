@@ -232,14 +232,6 @@ private:
     void generateConcentricInfill(Polygons& result, int inset_value);
 
     /*!
-     * Generate sparse concentric infill starting from a specific outer wall
-     * \param first_wall The outer wall from which to start
-     * \param result (output) The resulting polygons
-     * \param inset_value The offset between each consecutive two polygons
-     */
-    void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value);
-
-    /*!
      * Generate a rectangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
