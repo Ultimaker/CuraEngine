@@ -145,7 +145,6 @@ set(engine_SRCS # Except main.cpp.
     src/layerPart.cpp
     src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
-    src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
     src/Mold.cpp
@@ -242,8 +241,7 @@ set(engine_TEST
     GCodeExportTest
     InfillTest
     LayerPlanTest
-    MergeInfillLinesTest
-	PathOrderOptimizerTest
+    PathOrderOptimizerTest
     TimeEstimateCalculatorTest
 )
 set(engine_TEST_INFILL

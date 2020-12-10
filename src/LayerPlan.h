@@ -151,24 +151,6 @@ public:
     double getExtrudeSpeedFactor();
 
     /*!
-     * Set the travel speed factor. This is used for performing non-extrusion travel moves slower than normal.
-     * 
-     * Leaves the extrusion speed as is for values of 1.0
-     * 
-     * \param speedFactor The factor by which to alter the non-extrusion move speed
-     */
-    void setTravelSpeedFactor(Ratio speed_factor);
-
-    /*!
-     * Get the travel speed factor. This is used for travelling slower than normal.
-     * 
-     * Limited to at most 1.0
-     * 
-     * \return The factor by which to alter the non-extrusion move speed
-     */
-    double getTravelSpeedFactor();
-
-    /*!
      * Get the fan speed computed for this extruder plan
      * 
      * \warning assumes ExtruderPlan::processFanSpeedAndMinimalLayerTime has already been called
@@ -209,7 +191,7 @@ protected:
     void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
 
     /*!
-     * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
+     * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
      * and store them in each ExtruderPlan and each GCodePath.
      * 
      * \param starting_position The position the head was in before starting this layer
@@ -760,12 +742,6 @@ public:
      * \param distance The distance to the comb boundary after we moved inside it.
      */
     void moveInsideCombBoundary(const coord_t distance);
-
-    /*!
-     * Having all extruder plans ready including travels, we can now optimize the final result by merging some lines together
-     * \param starting_position Start from this coordinate.
-     * */
-    void optimizePaths(const Point& starting_position);
 };
 
 }//namespace cura

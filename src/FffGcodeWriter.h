@@ -458,9 +458,6 @@ private:
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
      * 
-     * Perimeter gaps are handled for skin outlines and printed after the skin fill of the skin part is printed by calling \ref processSkinPart.
-     * Perimeter gaps between the walls are added to the gcode afterwards.
-     * 
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
@@ -469,7 +466,7 @@ private:
      * \param part The part for which to create gcode
      * \return Whether this function added anything to the layer plan
      */
-    bool processSkinAndPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+    bool processSkin(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
 
     /*!
      * Add the gcode of the top/bottom skin of the given skin part and of the perimeter gaps.
@@ -497,45 +494,29 @@ private:
     /*!
      * Add the roofing which is the area inside the innermost skin inset which has air 'directly' above
      * 
-     * Perimeter gaps are generated when the pattern is concentric
-     * These gaps are generated here, but not printed here because printing all perimeter gaps at the same time is more efficient.
-     * There are already some perimeter gaps from the skin outline walls.
-     * This function adds more perimeter gaps for the roofing concentric pattern.
-     * The gaps will be filled in \ref concentric_perimeter_gaps
-     * That way we can choose the fastest route between all perimeter gaps of this skin part.
-     * 
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param skin_part The skin part for which to create gcode
-     * \param[out] concentric_perimeter_gaps The perimeter gaps output which are generated when the pattern is concentric
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processRoofing(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const;
+    void processRoofing(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const;
 
     /*!
      * Add the normal skinfill which is the area inside the innermost skin inset
      * which doesn't have air directly above it if we're printing roofing
      * 
-     * Perimeter gaps are generated when the pattern is concentric.
-     * These gaps are generated here, but not printed here because printing all perimeter gaps at the same time is more efficient.
-     * There are already some perimeter gaps from the skin outline walls.
-     * This function adds more perimeter gaps for the skin concentric pattern.
-     * The gaps will be filled in \ref concentric_perimeter_gaps
-     * That way we can choose the fastest route between all perimeter gaps of this skin part.
-     * 
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param skin_part The skin part for which to create gcode
-     * \param[out] concentric_perimeter_gaps The perimeter gaps output which are generated when the pattern is concentric
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const;
+    void processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const;
 
     /*!
      * Process a dense skin feature like roofing or top/bottom
@@ -551,24 +532,10 @@ private:
      * \param skin_angle the angle to use for linear infill types
      * \param skin_overlap The amount by which to expand the \p area
      * \param skin density Sets the density of the the skin lines by adjusting the distance between them (normal skin is 1.0)
-     * \param[out] perimeter_gaps_output Optional output to store the gaps which occur if the pattern is concentric
      * \param[out] added_something Whether this function added anything to the layer plan
      * \param fan_speed fan speed override for this skin area
      */
-    void processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
-
-    /*!
-     * Add perimeter gaps of a mesh with the given extruder.
-     * 
-     * \param[in] storage where the slice data is stored.
-     * \param gcode_layer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
-     * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
-     * \param perimeter_gaps The generated perimeter gaps to fill
-     * \param perimeter_gap_config the line config with which to print the perimeter gaps print feature
-     * \param[out] added_something Whether this function added anything to the layer plan
-     */
-    void processPerimeterGaps(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& perimeter_gaps, const GCodePathConfig& perimeter_gap_config, bool& added_something) const;
+    void processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, bool& added_something, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to

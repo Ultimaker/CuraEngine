@@ -31,26 +31,6 @@ std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerI
     return ret;
 }
 
-GCodePathConfig createPerimeterGapConfig(const SliceMeshStorage& mesh, int layer_thickness, const LayerIndex& layer_nr)
-{
-    // The perimeter gap config follows the skin config, but has a different line width:
-    // wall_line_width_x divided by two because the gaps are between 0 and 1 times the wall line width
-    const coord_t perimeter_gaps_line_width = mesh.settings.get<coord_t>("wall_line_width_0") / 2;
-    Velocity perimeter_gaps_speed = mesh.settings.get<Velocity>("speed_topbottom");
-    if (mesh.settings.get<bool>("speed_equalize_flow_enabled"))
-    {
-        const coord_t skin_line_width = mesh.settings.get<coord_t>("skin_line_width");
-        perimeter_gaps_speed *= skin_line_width / perimeter_gaps_line_width;
-    }
-    return GCodePathConfig(
-            PrintFeatureType::Skin
-            , perimeter_gaps_line_width
-            , layer_thickness
-            , mesh.settings.get<Ratio>("wall_x_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
-            , GCodePathConfig::SpeedDerivatives{perimeter_gaps_speed, mesh.settings.get<Velocity>("acceleration_topbottom"), mesh.settings.get<Velocity>("jerk_topbottom")}
-        );
-}
-
 PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t layer_thickness, const LayerIndex& layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder)
 : inset0_config(
     PrintFeatureType::OuterWall
@@ -133,7 +113,6 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     , GCodePathConfig::SpeedDerivatives{mesh.settings.get<Velocity>("speed_ironing"), mesh.settings.get<Acceleration>("acceleration_ironing"), mesh.settings.get<Velocity>("jerk_ironing")}
 )
 
-, perimeter_gap_config(createPerimeterGapConfig(mesh, layer_thickness, layer_nr))
 {
     infill_config.reserve(MAX_INFILL_COMBINE);
 
@@ -259,7 +238,6 @@ void PathConfigStorage::MeshPathConfigs::smoothAllSpeeds(GCodePathConfig::SpeedD
     insetX_config.smoothSpeed(              first_layer_config, layer_nr, max_speed_layer);
     skin_config.smoothSpeed(                first_layer_config, layer_nr, max_speed_layer);
     ironing_config.smoothSpeed(             first_layer_config, layer_nr, max_speed_layer);
-    perimeter_gap_config.smoothSpeed(       first_layer_config, layer_nr, max_speed_layer);
     for (size_t idx = 0; idx < MAX_INFILL_COMBINE; idx++)
     {
         //Infill speed (per combine part per mesh).

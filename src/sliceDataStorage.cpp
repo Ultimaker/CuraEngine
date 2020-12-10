@@ -136,7 +136,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
     {
         return true;
     }
-    if ((settings.get<size_t>("wall_line_count") > 1 || settings.get<bool>("alternate_extra_perimeter") || settings.get<bool>("fill_perimeter_gaps"))
+    if ((settings.get<size_t>("wall_line_count") > 1 || settings.get<bool>("alternate_extra_perimeter"))
         && settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr == extruder_nr)
     {
         return true;
@@ -179,21 +179,6 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             for (const SkinPart& skin_part : part.skin_parts)
             {
                 if (!skin_part.inset_paths.empty())
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    if (settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
-        && (settings.get<size_t>("wall_line_count") > 0 || settings.get<size_t>("skin_outline_count") > 0)
-        && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr)
-    {
-        for (const SliceLayerPart& part : layer.parts)
-        {
-            for (const SkinPart& skin_part : part.skin_parts)
-            {
-                if (skin_part.perimeter_gaps.size() > 0)
                 {
                     return true;
                 }

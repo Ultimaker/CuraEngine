@@ -59,7 +59,8 @@ void WallsComputation::generateWalls(SliceLayerPart* part)
     if (spiralize)
     {
         const bool recompute_outline_based_on_outer_wall =
-            settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
+                settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
+
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
         if (layer_nr <= static_cast<LayerIndex>(settings.get<size_t>("bottom_layers")))
         {
