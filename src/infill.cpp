@@ -329,7 +329,15 @@ void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const Setti
     Polygons current_inset = inner_contour.offset(infill_line_width / 2);
     do
     {
+        if (iterative)
+        {
+            current_inset = current_inset.offset(-infill_line_width * 2).offset(infill_line_width * 2);
+        }
         current_inset.simplify();
+        if (current_inset.area() <= min_area)
+        {
+            break;
+        }
 
         const coord_t inset_wall_count = iterative ? 1 : std::numeric_limits<coord_t>::max();
         WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings);
@@ -337,8 +345,7 @@ void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const Setti
 
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
         current_inset = wall_toolpaths.getInnerContour().offset((infill_line_width / 2) - line_distance);
-    }
-    while (iterative && current_inset.area() > min_area);
+    } while (iterative);
 }
 
 void Infill::generateGridInfill(Polygons& result)
