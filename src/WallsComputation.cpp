@@ -58,7 +58,9 @@ void WallsComputation::generateWalls(SliceLayerPart* part)
     // When spiralizing, generate the spiral insets using simple offsets instead of generating toolpaths
     if (spiralize)
     {
-        const bool recompute_outline_based_on_outer_wall = settings.get<bool>("support_enable");
+        const bool recompute_outline_based_on_outer_wall =
+                settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
+
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
         if (layer_nr <= static_cast<LayerIndex>(settings.get<size_t>("bottom_layers")))
         {
@@ -91,16 +93,19 @@ void WallsComputation::generateWalls(SliceLayer* layer)
 
     //Remove the parts which did not generate a wall. As these parts are too small to print,
     // and later code can now assume that there is always minimal 1 wall line.
-    for(size_t part_idx = 0; part_idx < layer->parts.size(); part_idx++)
+    if(!settings.get<bool>("fill_outline_gaps"))
     {
-        if (layer->parts[part_idx].wall_toolpaths.empty() && layer->parts[part_idx].spiral_wall.empty())
+        for(size_t part_idx = 0; part_idx < layer->parts.size(); part_idx++)
         {
-            if (part_idx != layer->parts.size() - 1)
-            { // move existing part into part to be deleted
-                layer->parts[part_idx] = std::move(layer->parts.back());
+            if (layer->parts[part_idx].wall_toolpaths.empty() && layer->parts[part_idx].spiral_wall.empty())
+            {
+                if (part_idx != layer->parts.size() - 1)
+                { // move existing part into part to be deleted
+                    layer->parts[part_idx] = std::move(layer->parts.back());
+                }
+                layer->parts.pop_back(); // always remove last element from array (is more efficient)
+                part_idx -= 1; // check the part we just moved here
             }
-            layer->parts.pop_back(); // always remove last element from array (is more efficient)
-            part_idx -= 1; // check the part we just moved here
         }
     }
 }
