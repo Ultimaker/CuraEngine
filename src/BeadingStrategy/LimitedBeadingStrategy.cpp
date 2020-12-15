@@ -13,6 +13,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
     if (bead_count <= max_bead_count)
     {
         Beading ret = parent->compute(thickness, bead_count);
+        bead_count = ret.toolpath_locations.size();
 
         if (bead_count % 2 == 0 && bead_count == max_bead_count)
         {
@@ -27,6 +28,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
 
     coord_t optimal_thickness = parent->getOptimalThickness(max_bead_count);
     Beading ret = parent->compute(optimal_thickness, max_bead_count);
+    bead_count = ret.toolpath_locations.size();
     ret.left_over += thickness - ret.total_thickness;
     ret.total_thickness = thickness;
     
