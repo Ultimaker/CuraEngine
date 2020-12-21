@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "utils/linearAlg2D.h"
+#include "utils/macros.h"
 
 namespace cura
 {
@@ -254,6 +255,11 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         if (quad_mid && should_collapse(quad_mid->from, quad_mid->to))
         {
             assert(quad_mid->twin);
+            if(!quad_mid->twin)
+            {
+                RUN_ONCE(logWarning("Encountered quad edge without a twin."));
+                continue; //Prevent accessing unallocated memory.
+            }
             int count = 0;
             for (edge_t* edge_from_3 = quad_end; edge_from_3 && edge_from_3 != quad_mid->twin; edge_from_3 = edge_from_3->twin->next)
             {

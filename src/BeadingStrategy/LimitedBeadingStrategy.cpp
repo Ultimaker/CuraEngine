@@ -25,6 +25,10 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
         return ret;
     }
     assert(bead_count == max_bead_count + 1);
+    if(bead_count != max_bead_count + 1)
+    {
+        RUN_ONCE(logWarning("Too many beads! %i != %i", bead_count, max_bead_count + 1));
+    }
 
     coord_t optimal_thickness = parent->getOptimalThickness(max_bead_count);
     Beading ret = parent->compute(optimal_thickness, max_bead_count);

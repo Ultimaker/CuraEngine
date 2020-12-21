@@ -4,6 +4,7 @@
 #include <stack>
 
 #include "linearAlg2D.h"
+#include "logoutput.h"
 #include "VoronoiUtils.h"
 #include "optional.h"
 
@@ -44,6 +45,10 @@ coord_t VoronoiUtils::getDistance(Point p, const vd_t::cell_type& cell, const st
 Point VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_point());
+    if(!cell.contains_point())
+    {
+        logWarning("Voronoi cell doesn't contain a source point!");
+    }
     switch (cell.source_category())
     {
         case boost::polygon::SOURCE_CATEGORY_SINGLE_POINT:
@@ -67,6 +72,10 @@ Point VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::vecto
 PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_point());
+    if(!cell.contains_point())
+    {
+        logWarning("Voronoi cell doesn't contain a source point!");
+    }
     assert(cell.source_category() != boost::polygon::SOURCE_CATEGORY_SINGLE_POINT);
     switch (cell.source_category())
     {
@@ -95,6 +104,10 @@ PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell
 const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_segment());
+    if(!cell.contains_segment())
+    {
+        logWarning("Voronoi cell doesn't contain a source segment!");
+    }
     return segments[cell.source_index() - points.size()];
 }
 
@@ -149,6 +162,10 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
     bool add_apex = (sx - px) * dir < 0 && (ex - px) * dir > 0;
 
     assert(!(add_marking_start && add_marking_end) || add_apex);
+    if(add_marking_start && add_marking_end && !add_apex)
+    {
+        logWarning("Failing to discretize parabola! Must add an apex or one of the endpoints.");
+    }
     
     const coord_t step_count = static_cast<coord_t>(static_cast<float>(std::abs(ex - sx)) / approximate_step_size + 0.5);
     

@@ -8,6 +8,8 @@
 #include <vector>
 #include <list>
 
+#include "../utils/logoutput.h"
+#include "../utils/macros.h"
 #include "../utils/SparsePointGridInclusive.h"
 
 namespace cura
@@ -28,8 +30,9 @@ BeadingOrderOptimizer::BeadingOrderOptimizer(VariableWidthPaths& polylines_per_i
         {
             ExtrusionLine& polyline = *polyline_it;
             assert(polyline.junctions.size() >= 2); // Otherwise the front and back ExtrusionLineEndRef would be mapped to from the same location
-            if (polyline.junctions.empty()) 
+            if(polyline.junctions.empty())
             {
+                RUN_ONCE(logWarning("BeadingOrderOptimizer is given empty polylines."));
                 continue; // Shouldn't happen 
             }
             polyline_end_points.emplace(polyline.junctions.front().p, ExtrusionLineEndRef(polyline.inset_idx, polyline_it, true));
@@ -96,6 +99,10 @@ void BeadingOrderOptimizer::fuzzyConnect(VariableWidthPaths& polygons_per_index,
                 }
                 
                 assert(poly_it->junctions.size() > 1);
+                if(poly_it->junctions.size() <= 1)
+                {
+                    RUN_ONCE(logWarning("fuzzyConnect is trying to connect polylines with 1 or 0 vertices."));
+                }
                 for (bool front : { true, false })
                 {
                     end_points_to_check.emplace_back(poly_it->inset_idx, poly_it, front);
