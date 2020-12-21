@@ -747,7 +747,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_interface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
         raft_outline_path.simplify(); //Remove those micron-movements.
-        constexpr coord_t infill_outline_width = 0;
+        const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
         Polygons raftLines;
         AngleDegrees fill_angle = train.settings.get<size_t>("raft_surface_layers") > 0 ? 45 : 90;
         constexpr bool zig_zaggify_infill = true;
@@ -801,7 +801,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
         raft_outline_path.simplify(); //Remove those micron-movements.
-        constexpr coord_t infill_outline_width = 0;
+        const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
         Polygons raft_lines;
         AngleDegrees fill_angle = 90 * raft_surface_layer;
         constexpr bool zig_zaggify_infill = true;
