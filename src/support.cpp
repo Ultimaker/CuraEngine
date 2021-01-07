@@ -143,6 +143,26 @@ void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataS
             }
         }
     }
+
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
+    if (infill_extruder.settings.get<bool>("alternate_wall_direction"))
+    {
+        for (size_t layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
+        {
+            SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+            for (SupportInfillPart& part : support_layer.support_infill_parts)
+            {
+                for (size_t inset_idx = layer_nr % 2; inset_idx < part.insets.size(); inset_idx += 2)
+                {
+                    for (PolygonRef poly : part.insets[inset_idx])
+                    {
+                        poly.reverse();
+                    }
+                }
+            }
+        }
+    }
 }
 
 
