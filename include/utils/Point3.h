@@ -113,6 +113,12 @@ public:
         return x*p.x + y*p.y + z*p.z;
     }
 
+    coord_t& operator[] (unsigned int index)
+    {
+        if (index <= 0) return x;
+        if (index == 1) return y;
+        if (index >= 2) return z;
+    }
 };
 
 /*!
