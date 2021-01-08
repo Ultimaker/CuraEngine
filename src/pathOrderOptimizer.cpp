@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <map>
@@ -155,14 +155,14 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
         const Point& p1 = poly[point_idx];
         const Point& p2 = poly[(point_idx + 1) % poly.size()];
         // when type is SHARPEST_CORNER, actual distance is ignored, we use a fixed distance and decision is based on curvature only
-        float dist_score = (config.type == EZSeamType::SHARPEST_CORNER && config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)? 10000 : vSize2(p1 - prev_point);
+        float dist_score = (config.type == EZSeamType::SHARPEST_CORNER && config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? MM2INT(10) : vSize2(p1 - prev_point);
         const float corner_angle = LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI; // 0 -> 2
         float corner_shift;
         if (config.type == EZSeamType::SHORTEST)
         {
             // the more a corner satisfies our criteria, the closer it appears to be
             // shift 10mm for a very acute corner
-            corner_shift = 10000 * 10000;
+            corner_shift = MM2INT(10) * MM2INT(10);
         }
         else
         {
@@ -465,7 +465,7 @@ float LineOrderOptimizer::combingDistance2(const Point &p0, const Point &p1)
     if (loc_to_line == nullptr)
     {
         // do the initialisation required to be able to calculate realistic travel distances to the start of new paths
-        loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, 1000); // 1mm grid to reduce computation time
+        loc_to_line = PolygonUtils::createLocToLineGrid(*combing_boundary, MM2INT(1)); // 1mm grid to reduce computation time
     }
 
     CombPath comb_path;
@@ -483,7 +483,7 @@ float LineOrderOptimizer::combingDistance2(const Point &p0, const Point &p1)
 
     // couldn't comb, fall back to a large distance
 
-    return vSize2f(p1 - p0) * 10000;
+    return vSize2f(p1 - p0) * MM2INT(10);
 }
 
 /*

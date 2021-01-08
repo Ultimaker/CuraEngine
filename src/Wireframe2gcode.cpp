@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
@@ -111,7 +111,7 @@ void Wireframe2gcode::writeGCode()
             {
                 if (vSize2(gcode.getPositionXY() - part.connection.from) > connectionHeight)
                 {
-                    Point3 point_same_height(part.connection.from.x, part.connection.from.y, layer.z1+100);
+                    Point3 point_same_height(part.connection.from.x, part.connection.from.y, layer.z1 + MM2INT(0.1));
                     writeMoveWithRetract(point_same_height);
                 }
                 writeMoveWithRetract(part.connection.from);
@@ -258,7 +258,7 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
     retraction_config.retraction_min_travel_distance = scene_settings.get<coord_t>("retraction_min_travel");
 
     double top_retract_pause = 2.0;
-    int retract_hop_dist = 1000;
+    const coord_t retract_hop_dist = MM2INT(1);
     bool after_retract_hop = false;
     //bool go_horizontal_first = true;
     bool lower_retract_start = true;
@@ -636,7 +636,7 @@ void Wireframe2gcode::processSkirt()
     {
         return;
     }
-    Polygons skirt = wireFrame.bottom_outline.offset(100000+5000).offset(-100000);
+    Polygons skirt = wireFrame.bottom_outline.offset(MM2INT(100 + 5)).offset(MM2INT(-100));
     PathOrderOptimizer order(Point(INT32_MIN, INT32_MIN));
     order.addPolygons(skirt);
     order.optimize();

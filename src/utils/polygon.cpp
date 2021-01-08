@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "polygon.h"
@@ -83,7 +83,7 @@ bool Polygons::empty() const
 
 Polygons Polygons::approxConvexHull(int extra_outset)
 {
-    constexpr int overshoot = 100000; //10cm (hard-coded value).
+    constexpr int overshoot = MM2INT(100); //10cm (hard-coded value).
 
     Polygons convex_hull;
     //Perform the offset for each polygon one at a time.

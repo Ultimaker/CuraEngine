@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
@@ -103,7 +103,7 @@ void PrimeTower::generatePaths_denseInfill()
     for (size_t extruder_nr : extruder_order)
     {
         const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
-        const coord_t required_volume = scene.extruders[extruder_nr].settings.get<double>("prime_tower_min_volume") * 1000000000; //To cubic microns.
+        const coord_t required_volume = MM3_2INT(scene.extruders[extruder_nr].settings.get<double>("prime_tower_min_volume"));
         const Ratio flow = scene.extruders[extruder_nr].settings.get<Ratio>("prime_tower_flow");
         coord_t current_volume = 0;
         ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
