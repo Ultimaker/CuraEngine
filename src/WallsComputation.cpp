@@ -49,7 +49,7 @@ void WallsComputation::generateWalls(SliceLayerPart* part)
     const Ratio line_width_0_factor = first_layer ? 1.0_r : settings.get<ExtruderTrain&>("wall_0_extruder_nr").settings.get<Ratio>("initial_layer_line_width_factor");
     const coord_t line_width_0 = settings.get<coord_t>("wall_line_width_0") * line_width_0_factor;
 
-    const Ratio line_width_x_factor = first_layer ? 1.0_r : settings.get<ExtruderTrain&>("wall_line_width_x").settings.get<Ratio>("initial_layer_line_width_factor");
+    const Ratio line_width_x_factor = first_layer ? 1.0_r : settings.get<ExtruderTrain&>("wall_x_extruder_nr").settings.get<Ratio>("initial_layer_line_width_factor");
     const coord_t line_width_x = settings.get<coord_t>("wall_line_width_x") * line_width_x_factor;
 
     // TODO: Apply the Outer Wall Inset in libArachne toolpaths (CURA-7830)
