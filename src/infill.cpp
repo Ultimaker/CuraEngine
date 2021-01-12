@@ -98,14 +98,16 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
             {
                 if (extrusion.is_odd && extrusion.inset_idx == 0)
                 {
-                    thin_walls_only.push_back(extrusion);
-
                     Polygon path;
                     for (const auto& junction : extrusion.junctions)
                     {
                         path.add(junction.p);
                     }
-                    gap_filled_areas.add(path);
+                    if(path.polygonLength() >= infill_line_width * 4) //Don't fill gaps that are very small (with paths less than 2 line widths long, 4 back and forth).
+                    {
+                        gap_filled_areas.add(path);
+                        thin_walls_only.push_back(extrusion);
+                    }
                 }
             }
             if (! thin_walls_only.empty())
