@@ -248,7 +248,7 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
     Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
     RetractionConfig retraction_config;
     // TODO: get these from the settings!
-    retraction_config.distance = 500; //INT2MM(getSettingInt("retraction_amount"))
+    retraction_config.distance = INT2MM(0.5); //INT2MM(getSettingInt("retraction_amount"))
     retraction_config.prime_volume = 0;//INT2MM(getSettingInt("retractionPrime
     retraction_config.speed = 20; // 40;
     retraction_config.primeSpeed = 15; // 30;
