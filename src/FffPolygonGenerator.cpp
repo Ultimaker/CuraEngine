@@ -31,6 +31,7 @@
 #include "WallsComputation.h"
 #include "infill/DensityProvider.h"
 #include "infill/ImageBasedDensityProvider.h"
+#include "infill/RibbedSupportVaultGenerator.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
@@ -469,6 +470,13 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     if (mesh_group_settings.get<bool>("magic_spiralize"))
     {
         mesh_max_initial_bottom_layer_count = std::max(mesh_max_initial_bottom_layer_count, mesh.settings.get<size_t>("initial_bottom_layers"));
+    }
+
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::RIBBED_VAULT)
+    {
+        // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
+        const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
+        mesh.ribbed_vault_generator = new RibbedSupportVaultGenerator(infill_line_width, mesh);
     }
 
     processed_layer_count = 0;

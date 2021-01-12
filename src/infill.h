@@ -13,6 +13,7 @@ namespace cura
 {
 
 class AABB;
+class RibbedSupportVaultGenerator;
 class SierpinskiFillProvider;
 class SliceMeshStorage;
 
@@ -113,13 +114,13 @@ public:
      * \param mesh The mesh for which to generate infill (should only be used for non-helper objects)
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
-    void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, RibbedSupportVaultGenerator* ribbed_support_vault_generator = nullptr, const SliceMeshStorage* mesh = nullptr);
 
 private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
-    void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, RibbedSupportVaultGenerator* ribbed_support_vault_generator = nullptr, const SliceMeshStorage* mesh = nullptr);
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
@@ -233,6 +234,12 @@ private:
      */
     void generateGyroidInfill(Polygons& result);
     
+    /*!
+     * Generate 'Ribbed Support Vault Infill', see Tricard,Claux,Lefebvre/'Ribbed Support Vaults for 3D Printing of Hollowed Objects'
+     * \param result (output) The resulting polygons
+     */
+    void generateRibbedInfill(RibbedSupportVaultGenerator& generator, Polygons& result_lines);
+
     /*!
      * Generate sparse concentric infill
      * 

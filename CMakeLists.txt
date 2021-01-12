@@ -174,6 +174,7 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ImageBasedDensityProvider.cpp
     src/infill/NoZigZagConnectorProcessor.cpp
     src/infill/ZigzagConnectorProcessor.cpp
+    src/infill/RibbedSupportVaultGenerator.cpp
     src/infill/SierpinskiFill.cpp
     src/infill/SierpinskiFillProvider.cpp
     src/infill/SubDivCube.cpp
