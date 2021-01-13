@@ -1461,7 +1461,34 @@ void ExtruderPlan::flowAdvance()
 {
     const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
     const Duration advance = settings.get<Duration>("material_flow_advance");
-    std::cout << "Applying flow advance to extruder " << extruder_nr << " with advancement of " << advance << "s." << std::endl;
+    computeNaiveTimeEstimates(Point(0, 0)); //TODO: Find correct starting position.
+
+    //First find all of the time stamps where we want to introduce path splits.
+    std::vector<Duration> split_timestamps;
+    Point position(0, 0);
+    Duration current_time = 0;
+    double last_flowrate = 0; //In um^3/s.
+    for(const GCodePath& path : paths)
+    {
+        coord_t path_length = 0;
+        for(const Point& vertex : path.points)
+        {
+            path_length += vSize(vertex - position);
+            position = vertex;
+        }
+        const coord_t material_volume = path.config->getLineWidth() * path.config->getLayerThickness() * path_length * path.flow * path.config->getFlowRatio();
+        const Duration duration = path.estimates.getTotalTime();
+        if(duration > 0)
+        {
+            const double flowrate = material_volume / duration;
+            if(flowrate != last_flowrate && current_time >= advance) //We have a flow change here.
+            {
+                split_timestamps.push_back(current_time - advance);
+            }
+            current_time += duration;
+            last_flowrate = flowrate;
+        }
+    }
 }
 
 void LayerPlan::writeGCode(GCodeExport& gcode)
