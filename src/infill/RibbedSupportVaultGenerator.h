@@ -4,14 +4,17 @@
 #ifndef RIBBED_SUPPORT_VAULT_GENERATOR_H
 #define RIBBED_SUPPORT_VAULT_GENERATOR_H
 
-#include "../sliceDataStorage.h"
+#include "../utils/polygonUtils.h"
 
 #include <functional>
 #include <memory>
 #include <vector>
+#include <map>
 
 namespace cura 
 {
+    class SliceMeshStorage;
+
     // NOTE: As written, this struct will only be valid for a single layer, will have to be updated for the next.
     // NOTE: Reasons for implementing this with some separate closures:
     //       - keep clear deliniation during development
@@ -75,6 +78,8 @@ namespace cura
         std::vector<std::shared_ptr<RibbedVaultTree>> nodes;
     };
 
+    typedef std::vector<std::shared_ptr<RibbedVaultTree>> ribbed_vault_layer_trees_t;
+
     // NOTE: Currently, the following class is just scaffolding so the entirety can be run during development, while other parts are made in sync.
     //       No particular attention is paid to efficiency & the like. Might be _very_ slow!
     class RibbedVaultDistanceMeasure
@@ -101,10 +106,11 @@ namespace cura
     class RibbedSupportVaultGenerator
     {
     public:
+        static bool convertTreesToLines(const ribbed_vault_layer_trees_t& trees, Polygons& result_lines);
+
         RibbedSupportVaultGenerator(const coord_t& radius, const SliceMeshStorage& mesh);
 
-        // Returns 'added someting'.
-        bool addLayerToResult(const coord_t& z, Polygons& result_lines);
+        void getTreesForLayer(const size_t& layer_id, ribbed_vault_layer_trees_t* p_trees);
 
     protected:
         //  TODO: Proper, actual, version! ... should probably not be here even (only non static because the radius is used now).
@@ -119,7 +125,7 @@ namespace cura
         coord_t radius;
         std::map<coord_t, size_t> layer_id_by_height;
         std::vector<Polygons> overhang_per_layer;
-        std::vector<std::vector<std::shared_ptr<RibbedVaultTree>>> trees_per_layer;
+        std::vector<ribbed_vault_layer_trees_t> trees_per_layer;
     };
 
 } // namespace cura

@@ -232,12 +232,15 @@ RibbedSupportVaultGenerator::RibbedSupportVaultGenerator(const coord_t& radius, 
     generateTrees(mesh);  // NOTE: Ideally, these would not be in the constructor. TODO?: Rewrite 'Generator' as loose functions and perhaps a struct.
 }
 
-// Returns 'added someting'.
-bool RibbedSupportVaultGenerator::addLayerToResult(const coord_t& z, Polygons& result_lines)
+void RibbedSupportVaultGenerator::getTreesForLayer(const size_t& layer_id, ribbed_vault_layer_trees_t* p_trees)
 {
-    const size_t n_layer = layer_id_by_height[z];
+    assert(layer_id < trees_per_layer.size());
+    p_trees[0] = trees_per_layer[layer_id];
+}
 
-    std::vector<std::shared_ptr<RibbedVaultTree>>& trees = trees_per_layer[n_layer];
+// Returns 'added someting'.
+bool RibbedSupportVaultGenerator::convertTreesToLines(const ribbed_vault_layer_trees_t& trees, Polygons& result_lines)
+{
     if (trees.empty())
     {
         return false;
