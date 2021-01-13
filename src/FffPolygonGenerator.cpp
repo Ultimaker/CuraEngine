@@ -239,10 +239,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     if (scene.current_mesh_group->settings.get<bool>("carve_multiple_volumes"))
     {
-        carveMultipleVolumes(slicerList);
+//         carveMultipleVolumes(slicerList);
     }
 
-    generateMultipleVolumesOverlap(slicerList);
+    MultiVolumes::generateInterlockingStructure(slicerList);
+    
+//     generateMultipleVolumesOverlap(slicerList);
 
     storage.print_layer_count = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)

@@ -38,6 +38,8 @@ public:
      * \param meshes The meshes which contain the settings for each volume
      */
     static void carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::vector<Mesh>& meshes);
+
+    static void generateInterlockingStructure(std::vector<Slicer*>& volumes);
 };
 
 }//namespace cura

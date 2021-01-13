@@ -11,6 +11,8 @@
 #include "utils/PolylineStitcher.h"
 #include "settings/EnumSettings.h"
 
+#include "utils/SparseCellGrid3D.h"
+
 namespace cura 
 {
  
@@ -191,5 +193,89 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
     }
 }
 
+void MultiVolumes::generateInterlockingStructure(std::vector<Slicer*>& volumes)
+{
+    /*
+    if ( ! Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("interlocking_structure_gen"))
+    {
+        return;
+    }
+    */
+    struct Cell
+    {
+        std::vector<bool> has_extruder;
+        Cell()
+        : has_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
+        {
+            assert(has_extruder.size() >= 1);
+        }
+    };
+    
+    
+    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
+    coord_t cell_size = extruders[0].settings.get<coord_t>("wall_line_width_0") + extruders[1].settings.get<coord_t>("wall_line_width_0");
+    // TODO make robust against if there's only 1 extruder
+    
+    SparseCellGrid3D<Cell> grid(cell_size);
+
+    const Cell default_cell;
+    
+    for (Slicer* mesh : volumes)
+    {
+        size_t extruder_nr = mesh->mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").settings.get<size_t>("extruder_nr");
+        std::cerr << "extruder_nr = " << extruder_nr << '\n';
+        for (unsigned int layer_nr = 0; layer_nr < mesh->layers.size(); layer_nr++)
+        {
+            SlicerLayer& layer = mesh->layers[layer_nr];
+            coord_t z = layer.z;
+            for (ConstPolygonRef poly : layer.polygons)
+            {
+                Point last = poly.back();
+                for (Point p : poly)
+                {
+                    grid.processLineCells(std::make_pair(Point3(last.X, last.Y, z), Point3(p.X, p.Y, z)),
+                                          [extruder_nr, &grid, &default_cell](SparseCellGrid3D<Cell>::GridPoint3 grid_loc) -> bool
+                                          {
+                                              Cell& cell = grid.getCell(grid_loc, default_cell);
+                                              assert(extruder_nr < cell.has_extruder.size());
+                                              cell.has_extruder[extruder_nr] = true;
+                                              return true; // keep going marking cells along this line
+                                          }
+                         );
+                    
+                    last = p;
+                }
+            }
+        }
+    }
+    
+    std::cerr << "cells: " << grid.m_grid.size() << "\n";
+
+    for (auto key_val : grid.m_grid)
+    {
+        Point3 grid_loc = key_val.first;
+        const Cell& cell = key_val.second;
+        Point3 bottom_corner = grid.toLowerCorner(grid_loc);
+        for (Slicer* mesh : volumes)
+        {
+            for (unsigned int layer_nr = 0; layer_nr < mesh->layers.size(); layer_nr++)
+            {
+                SlicerLayer& layer = mesh->layers[layer_nr];
+                coord_t z = layer.z;
+                if (z < bottom_corner.z) continue;
+                if (z > bottom_corner.z + cell_size) break;
+                
+                Polygons polys;
+                PolygonRef poly = polys.newPoly();
+                poly.emplace_back(bottom_corner.x, bottom_corner.y);
+                poly.emplace_back(bottom_corner.x, bottom_corner.y + cell_size);
+                poly.emplace_back(bottom_corner.x + cell_size / 2, bottom_corner.y + cell_size);
+                poly.emplace_back(bottom_corner.x + cell_size / 2, bottom_corner.y);
+                
+                layer.polygons = layer.polygons.difference(polys);
+            }
+        }
+    }
+}
 
 }//namespace cura
