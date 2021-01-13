@@ -163,7 +163,7 @@ bool RibbedVaultTree::prune(const coord_t& distance)
 // -- -- -- -- -- --
 // -- -- -- -- -- --
 
-void SillyRibbedVaultDistanceField::reinit
+void RibbedVaultDistanceMeasure::reinit
 (
     const coord_t& radius,
     const Polygons& current_outline,
@@ -190,7 +190,7 @@ void SillyRibbedVaultDistanceField::reinit
     unsupported = current_overhang.difference(supported);
 }
 
-bool SillyRibbedVaultDistanceField::tryGetNextPoint(Point* p) const
+bool RibbedVaultDistanceMeasure::tryGetNextPoint(Point* p) const
 {
     if (unsupported.area() < 25)
     {
@@ -205,7 +205,7 @@ bool SillyRibbedVaultDistanceField::tryGetNextPoint(Point* p) const
     return true;
 }
 
-void SillyRibbedVaultDistanceField::update(const Point& to_node, const Point& added_leaf)
+void RibbedVaultDistanceMeasure::update(const Point& to_node, const Point& added_leaf)
 {
     Polygons line;
     line.addLine(to_node, added_leaf);
@@ -301,7 +301,7 @@ void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMe
 
 void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
 {
-    std::shared_ptr<IRibbedVaultDistanceField> p_distance_field = std::make_shared<SillyRibbedVaultDistanceField>();
+    RibbedVaultDistanceMeasure distance_measure;
 
     const auto& tree_point_dist_func = RibbedVaultTree::getPointDistanceFunction();
 
@@ -320,7 +320,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             std::vector<std::shared_ptr<RibbedVaultTree>>& current_trees = trees_per_layer[layer_id];
 
             // Have (next) area in need of support.
-            p_distance_field->reinit(radius, current_outlines, current_overhang, current_trees);
+            distance_measure.reinit(radius, current_outlines, current_overhang, current_trees);
 
             constexpr size_t debug_max_iterations = 32;
             size_t i_debug = 0;
@@ -328,7 +328,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             // Until no more points need to be added to support all:
             // Determine next point from tree/outline areas via distance-field
             Point next;
-            while(p_distance_field->tryGetNextPoint(&next)    && i_debug < debug_max_iterations)
+            while(distance_measure.tryGetNextPoint(&next)    && i_debug < debug_max_iterations)
             {
 
                 ++i_debug;
@@ -360,7 +360,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 {
                     sub_tree->addNode(next);
                 }
-                p_distance_field->update(node, next);
+                distance_measure.update(node, next);
             }
 
             // Initialize trees for next lower layer from the current one.

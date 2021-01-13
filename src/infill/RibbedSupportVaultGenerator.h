@@ -75,34 +75,12 @@ namespace cura
         std::vector<std::shared_ptr<RibbedVaultTree>> nodes;
     };
 
-    // NOTE: Reasons for interface:
-    //       - closure would be possible (like point_distance_func_t for example), but required state would be cumbersome to handle
-    //       - keep clear deliniation during development
-    //       - possibility of multiple distance field strategies
-    class IRibbedVaultDistanceField
-    {
-    public:
-        virtual void reinit
-        (
-            const coord_t& radius,
-            const Polygons& current_outline,
-            const Polygons& current_overhang,
-            const std::vector<std::shared_ptr<RibbedVaultTree>>& initial_trees
-        ) = 0;
-        virtual bool tryGetNextPoint(Point* p) const = 0;
-        virtual void update(const Point& to_node, const Point& added_leaf) = 0;
-
-    protected:
-        IRibbedVaultDistanceField() = default;
-        virtual ~IRibbedVaultDistanceField() = default;
-    };
-
-    // NOTE: The following class is just scaffolding so the entirety can be run during development, while other parts are made in sync.
+    // NOTE: Currently, the following class is just scaffolding so the entirety can be run during development, while other parts are made in sync.
     //       No particular attention is paid to efficiency & the like. Might be _very_ slow!
-    class SillyRibbedVaultDistanceField : public IRibbedVaultDistanceField
+    class RibbedVaultDistanceMeasure
     {
     public:
-        virtual void reinit
+        void reinit
         (
             const coord_t& radius,
             const Polygons& current_outline,
@@ -110,9 +88,9 @@ namespace cura
             const std::vector<std::shared_ptr<RibbedVaultTree>>& initial_trees
         );
 
-        virtual bool tryGetNextPoint(Point* p) const;
+        bool tryGetNextPoint(Point* p) const;
 
-        virtual void update(const Point& to_node, const Point& added_leaf);
+        void update(const Point& to_node, const Point& added_leaf);
 
     protected:
         coord_t r;
