@@ -44,12 +44,6 @@ RibbedVaultTree::point_distance_func_t RibbedVaultTree::getPointDistanceFunction
             return vSize2(b - a);
         });
 }
-// TODO??: Move/make-settable somehow or merge completely with this class (same as previous getter).
-RibbedVaultTree::sequence_smooth_func_t RibbedVaultTree::getSequenceSmoothFunction()
-{
-    // NOTE: Not implemented, as smoothing isn't implemented either (TODO)
-    return sequence_smooth_func_t([](const float& magnitude, std::vector<Point>& sequence){});
-}
 
 const Point& RibbedVaultTree::getNode() const
 {
@@ -74,8 +68,7 @@ void RibbedVaultTree::initNextLayer
     std::vector<std::shared_ptr<RibbedVaultTree>>& next_trees,
     const Polygons& next_outlines,
     const coord_t& prune_distance,
-    const float& smooth_magnitude,
-    const sequence_smooth_func_t& smooth_heuristic
+    const float& smooth_magnitude
 ) const
 {
     next_trees.push_back(deepCopy());
@@ -83,7 +76,7 @@ void RibbedVaultTree::initNextLayer
 
     // TODO: What is the correct order of the following operations?
     result->prune(prune_distance);
-    result->smooth(smooth_magnitude, smooth_heuristic);
+    result->smooth(smooth_magnitude);
     result->truncate(next_outlines, next_trees);
 }
 
@@ -142,7 +135,7 @@ void RibbedVaultTree::truncate(const Polygons& outlines, std::vector<std::shared
     // NOT IMPLEMENTED YET! (See TODO's near the top of the file.)
 }
 
-void RibbedVaultTree::smooth(const float& magnitude, const sequence_smooth_func_t& heuristic)
+void RibbedVaultTree::smooth(const float& magnitude)
 {
     // NOT IMPLEMENTED YET! (See TODO's near the top of the file.)
 }
@@ -311,7 +304,6 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
     std::shared_ptr<IRibbedVaultDistanceField> p_distance_field = std::make_shared<SillyRibbedVaultDistanceField>();
 
     const auto& tree_point_dist_func = RibbedVaultTree::getPointDistanceFunction();
-    const auto& tree_smooth_func = RibbedVaultTree::getSequenceSmoothFunction();
 
     // For-each layer:
     std::for_each(mesh.layers.rbegin(), mesh.layers.rend(),
@@ -385,8 +377,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                     lower_trees,
                     current_outlines,
                     radius,
-                    0.1,  // TODO: smooth-factor should be parameter! ... or at least not a random OK seeming magic value.
-                    RibbedVaultTree::getSequenceSmoothFunction()
+                    0.1  // TODO: smooth-factor should be parameter! ... or at least not a random OK seeming magic value.
                 );
             }
         });

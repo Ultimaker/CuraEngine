@@ -25,17 +25,12 @@ namespace cura
         // Input: Two points. Output: Distance between those points.
         typedef std::function<coord_t(const Point&, const Point&)> point_distance_func_t;
 
-        // For use with initNextLayer.
-        // Input: Smoothing magnitude, branch-chain. Expected to alter the input branch-chain.
-        typedef std::function<void(const float&, std::vector<Point>&)> sequence_smooth_func_t;
-
         // For use with the 'visit___' function(s).
         // Input: Uptree junction point (closer to root), downtree branch point (closer to leaves).
         typedef std::function<void(const Point&, const Point&)> visitor_func_t;
 
         // TODO??: Move/make-settable somehow or merge completely with this class (same as next getter).
         static point_distance_func_t getPointDistanceFunction();
-        static sequence_smooth_func_t getSequenceSmoothFunction();
 
         // Constructs a node, for insertion into a tree:
         RibbedVaultTree(const Point& p);
@@ -54,8 +49,7 @@ namespace cura
             std::vector<std::shared_ptr<RibbedVaultTree>>& next_trees,
             const Polygons& next_outlines,
             const coord_t& prune_distance,
-            const float& smooth_magnitude,
-            const sequence_smooth_func_t& smooth_heuristic
+            const float& smooth_magnitude
         ) const;
 
         // NOTE: Depth-first, as currently implemented.
@@ -71,7 +65,7 @@ namespace cura
 
         void truncate(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTree>>& rerooted_parts);
 
-        void smooth(const float& magnitude, const sequence_smooth_func_t& heuristic);
+        void smooth(const float& magnitude);
 
         // Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
         bool prune(const coord_t& distance);
