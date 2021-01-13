@@ -225,7 +225,9 @@ void SillyRibbedVaultDistanceField::update(const Point& to_node, const Point& ad
 
 
 RibbedSupportVaultGenerator::RibbedSupportVaultGenerator(const coord_t& radius, const SliceMeshStorage& mesh) :
-    radius(radius)
+    radius(radius),
+    overhang_per_layer(mesh.layer_nr_max_filled_layer),
+    trees_per_layer(mesh.layer_nr_max_filled_layer)
 {
     size_t layer_id = 0;
     for (const auto& layer : mesh.layers)
@@ -242,7 +244,6 @@ bool RibbedSupportVaultGenerator::addLayerToResult(const coord_t& z, Polygons& r
 {
     const size_t n_layer = layer_id_by_height[z];
 
-    assert(trees_per_layer.count(n_layer) > 0);
     std::vector<std::shared_ptr<RibbedVaultTree>>& trees = trees_per_layer[n_layer];
     if (trees.empty())
     {
@@ -284,7 +285,7 @@ void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMe
     // Quick and dirty, TODO: the real deal?
 
     std::shared_ptr<Polygons> p_last_outlines = std::shared_ptr<Polygons>(nullptr);
-    std::shared_ptr<Polygons> p_current_outlines = std::shared_ptr<Polygons>(nullptr); //std::make_shared<Polygons>();
+    std::shared_ptr<Polygons> p_current_outlines = std::shared_ptr<Polygons>(nullptr);
 
     std::for_each(mesh.layers.rbegin(), mesh.layers.rend(),
         [&](const SliceLayer& current_layer)
@@ -299,7 +300,8 @@ void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMe
             std::swap(p_last_outlines, p_current_outlines);
             current_layer.getOutlines(*p_current_outlines);
 
-            overhang_per_layer.insert({layer_id_by_height[current_layer.printZ], p_current_outlines->intersection(*p_current_outlines)});
+            const size_t layer_id = layer_id_by_height[current_layer.printZ];
+            overhang_per_layer[layer_id] = p_current_outlines->intersection(*p_current_outlines);
         }
     );
 }
@@ -319,9 +321,9 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             const Polygons& current_overhang = overhang_per_layer[layer_id];
             const Polygons current_outlines = current_layer.getOutlines();  // TODO: Cache current outline of layer somewhere
 
-            if (trees_per_layer.count(layer_id) == 0)
+            if (layer_id == mesh.layer_nr_max_filled_layer)
             {
-                trees_per_layer.insert({layer_id, std::vector<std::shared_ptr<RibbedVaultTree>>()});
+                trees_per_layer[layer_id] = std::vector<std::shared_ptr<RibbedVaultTree>>();
             }
             std::vector<std::shared_ptr<RibbedVaultTree>>& current_trees = trees_per_layer[layer_id];
 
@@ -375,10 +377,6 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 return;
             }
             const size_t lower_layer_id = layer_id - 1;
-            if (trees_per_layer.count(lower_layer_id) == 0)
-            {
-                trees_per_layer.insert({layer_id, std::vector<std::shared_ptr<RibbedVaultTree>>()});
-            }
             std::vector<std::shared_ptr<RibbedVaultTree>>& lower_trees = trees_per_layer[lower_layer_id];
             for (auto& tree : current_trees)
             {

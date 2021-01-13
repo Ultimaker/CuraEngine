@@ -146,8 +146,8 @@ namespace cura
 
         coord_t radius;
         std::map<coord_t, size_t> layer_id_by_height;
-        std::map<size_t, Polygons> overhang_per_layer;
-        std::map<size_t, std::vector<std::shared_ptr<RibbedVaultTree>>> trees_per_layer;
+        std::vector<Polygons> overhang_per_layer;
+        std::vector<std::vector<std::shared_ptr<RibbedVaultTree>>> trees_per_layer;
     };
 
 } // namespace cura
