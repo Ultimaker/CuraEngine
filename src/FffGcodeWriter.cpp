@@ -964,6 +964,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         // ensure we print the prime tower with this extruder, because the next layer begins with this extruder!
         // If this is not performed, the next layer might get two extruder switches...
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+        gcode_layer.flowAdvance(extruder_nr);
     }
 
     if (include_helper_parts)

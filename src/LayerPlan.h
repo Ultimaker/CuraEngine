@@ -133,6 +133,17 @@ public:
     void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position);
 
     /*!
+     * Transform all motion commands in the extruder plan such that the flow
+     * rate is adjusted in advance of when the flow rate actually needs to be
+     * changed.
+     *
+     * This will split up some motion commands into multiple. It should not
+     * affect the time estimates of the motion command, but it might if the
+     * extrusion jerk is not high enough.
+     */
+    void flowAdvance();
+
+    /*!
      * Set the extrude speed factor. This is used for printing slower than normal.
      * 
      * Leaves the extrusion speed as is for values of 1.0
@@ -685,6 +696,12 @@ public:
      * \param starting_position Start from this coordinate.
      * */
     void optimizePaths(const Point& starting_position);
+
+    /*!
+     * Process Flow Advance for a certain extruder plan in this layer plan.
+     * \param extruder_nr The extruder to process Flow Advance for.
+     */
+    void flowAdvance(const size_t extruder_nr);
 };
 
 }//namespace cura

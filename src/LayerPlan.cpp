@@ -1449,7 +1449,20 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
     }
 }
 
+void LayerPlan::flowAdvance(const size_t extruder_nr)
+{
+    if(extruder_nr < extruder_plans.size())
+    {
+        extruder_plans[extruder_nr].flowAdvance();
+    }
+}
 
+void ExtruderPlan::flowAdvance()
+{
+    const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+    const Duration advance = settings.get<Duration>("material_flow_advance");
+    std::cout << "Applying flow advance to extruder " << extruder_nr << " with advancement of " << advance << "s." << std::endl;
+}
 
 void LayerPlan::writeGCode(GCodeExport& gcode)
 {
