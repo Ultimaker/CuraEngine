@@ -63,7 +63,7 @@ namespace cura
 
         std::shared_ptr<RibbedVaultTree> deepCopy() const;
 
-        void truncate(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTree>>& rerooted_parts);
+        void realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTree>>& rerooted_parts);
 
         void smooth(const float& magnitude);
 

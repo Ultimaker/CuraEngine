@@ -77,7 +77,7 @@ void RibbedVaultTree::initNextLayer
     // TODO: What is the correct order of the following operations?
     result->prune(prune_distance);
     result->smooth(smooth_magnitude);
-    result->truncate(next_outlines, next_trees);
+    result->realign(next_outlines, next_trees);
 }
 
 // NOTE: Depth-first, as currently implemented.
@@ -127,7 +127,7 @@ std::shared_ptr<RibbedVaultTree> RibbedVaultTree::deepCopy() const
     return local_root;
 }
 
-void RibbedVaultTree::truncate(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTree>>& rerooted_parts)
+void RibbedVaultTree::realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTree>>& rerooted_parts)
 {
     // NOTE: Is it neccesary to 'reroot' parts further up the tree, or can it just be done from the root onwards
     //       and ignore any further altercations once the outline is crossed (from the outside) for the first time?
