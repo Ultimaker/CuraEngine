@@ -134,6 +134,23 @@ inline Point3 operator*(const num_t i, const Point3& rhs)
     return rhs * i;
 }
 
+} // namespace cura
+
+
+namespace std {
+    template <>
+    struct hash<cura::Point3> {
+        size_t operator()(const cura::Point3 & pp) const
+        {
+            static int prime = 31;
+            int result = 89;
+            result = result * prime + pp.x;
+            result = result * prime + pp.y;
+            result = result * prime + pp.z;
+            return result;
+        }
+    };
 }
+
 
 #endif //UTILS_POINT3_H
