@@ -1481,7 +1481,7 @@ void ExtruderPlan::flowAdvance()
         if(duration > 0)
         {
             const double flowrate = material_volume / duration;
-            if(flowrate != last_flowrate && current_time >= advance) //We have a flow change here.
+            if(flowrate != last_flowrate && current_time >= advance) //We have a flow change here. Don't try to advance before start of extruder plan.
             {
                 split_timestamps.push_back(current_time - advance);
             }
@@ -1489,6 +1489,48 @@ void ExtruderPlan::flowAdvance()
             last_flowrate = flowrate;
         }
     }
+
+    //Split the paths up on those timestamps.
+    std::vector<GCodePath> new_paths;
+    new_paths.reserve(paths.size() + split_timestamps.size());
+
+    current_time = 0;
+    size_t path_index = 0;
+    size_t split_index = 0;
+    
+    position = Point(0, 0);
+    for(; path_index < paths.size(); ++path_index)
+    {
+        const GCodePath& path = paths[path_index];
+        const Velocity path_speed = path.config->getSpeed() * path.speed_factor;
+        new_paths.emplace_back(*path.config, path.mesh_id, path.space_fill_type, path.flow, path.spiralize, path.speed_factor);
+
+        Duration time_in_path = 0;
+        for(size_t vertex_index = 0; vertex_index < path.points.size(); ++vertex_index)
+        {
+            const Point& vertex = path.points[vertex_index];
+            const coord_t distance = vSize(vertex - position);
+            const Duration segment_time = INT2MM(distance) / path_speed;
+            if(split_index >= split_timestamps.size() || time_in_path + segment_time <= split_timestamps[split_index] - current_time) //No split here.
+            {
+                new_paths.back().points.push_back(vertex);
+                position = vertex;
+                time_in_path += segment_time;
+                continue;
+            }
+            //This segment is split up across multiple paths!
+            const double segment_fraction = (split_timestamps[split_index] - current_time - time_in_path) / segment_time;
+            const Point split_position = position * (1.0 - segment_fraction) + vertex * segment_fraction; //Linear interpolation across the segment.
+            new_paths.back().points.push_back(split_position);
+            new_paths.emplace_back(*path.config, path.mesh_id, path.space_fill_type, path.flow, path.spiralize, path.speed_factor); //And start a next path.
+            position = split_position;
+            time_in_path = split_timestamps[split_index] - current_time;
+            split_index += 1;
+        }
+        current_time += time_in_path;
+    }
+
+    paths = std::move(new_paths);
 }
 
 void LayerPlan::writeGCode(GCodeExport& gcode)
