@@ -1283,7 +1283,7 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, c
             lines.add(p);
         }
     }
-    const bool reverse_printing_order = (mesh.settings.get<bool>("alternate_infill_direction"))? gcode_layer.getLayerNr() % 2 : false;
+    const bool reverse_printing_order = (mesh.settings.get<bool>("alternate_infill_direction") && mesh.infill_angles.size() < 2)? gcode_layer.getLayerNr() % 2 : false;
     gcode_layer.addLinesByOptimizer(lines, mesh_config.inset0_config, SpaceFillType::PolyLines, /*enable_travel_optimization*/ false, /*wipe_dist*/0, /*flow*/1.0, reverse_printing_order);
 }
 
@@ -1481,7 +1481,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 near_start_location = infill_lines[rand() % infill_lines.size()][0];
             }
             const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
-            const bool reverse_printing_order = (mesh.settings.get<bool>("alternate_infill_direction"))? gcode_layer.getLayerNr() % 2 : false;
+            const bool reverse_printing_order = (mesh.settings.get<bool>("alternate_infill_direction") && mesh.infill_angles.size() < 2)? gcode_layer.getLayerNr() % 2 : false;
             gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[combine_idx], zig_zaggify_infill ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization
                 , /*wipe_dist = */ 0, /* flow = */ 1.0, reverse_printing_order, near_start_location);
         }
@@ -1745,7 +1745,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], nullptr, ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
         }
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
-        const bool reverse_printing_order = (mesh.settings.get<bool>("alternate_infill_direction"))? gcode_layer.getLayerNr() % 2 : false;
+        const bool reverse_printing_order = (mesh.settings.get<bool>("alternate_infill_direction") && mesh.infill_angles.size() < 2)? gcode_layer.getLayerNr() % 2 : false;
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
         {
             gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], SpaceFillType::Lines, enable_travel_optimization
