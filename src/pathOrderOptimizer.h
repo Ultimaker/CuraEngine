@@ -131,6 +131,8 @@ public:
      */
     void optimize(bool find_chains = true); //!< sets #polyStart and #polyOrder
 
+    void reverse(); //!< reverses the computed order
+
 private:
     /*!
      * Update LineOrderOptimizer::polyStart if the current line is better than the current best.

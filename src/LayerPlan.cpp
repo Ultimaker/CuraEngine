@@ -1047,7 +1047,7 @@ unsigned LayerPlan::locateFirstSupportedVertex(ConstPolygonRef wall, const unsig
     }
 }
 
-void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, double fan_speed)
+void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, bool reverse_order, std::optional<Point> near_start_location, double fan_speed)
 {
     Polygons boundary;
     if (enable_travel_optimization && comb_boundary_inside2.size() > 0)
@@ -1077,6 +1077,10 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         orderOptimizer.addPolygon(polygons[line_idx]);
     }
     orderOptimizer.optimize();
+    if (reverse_order)
+    {
+        orderOptimizer.reverse();
+    }
 
     for (unsigned int order_idx = 0; order_idx < orderOptimizer.polyOrder.size(); order_idx++)
     {

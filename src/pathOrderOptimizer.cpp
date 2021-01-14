@@ -539,4 +539,13 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
     }
 }
 
+void LineOrderOptimizer::reverse()
+{
+    std::reverse(polyOrder.begin(), polyOrder.end());
+    for (int poly_idx = 0; poly_idx < polyStart.size(); poly_idx++)
+    {
+        polyStart[poly_idx] = 1 - polyStart[poly_idx];
+    }
+}
+
 }//namespace cura
