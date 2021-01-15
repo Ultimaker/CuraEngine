@@ -93,8 +93,6 @@ namespace cura
         std::vector<std::shared_ptr<RibbedVaultTreeNode>> children;
     };
 
-    typedef std::vector<std::shared_ptr<RibbedVaultTreeNode>> ribbed_vault_layer_trees_t;
-
     // NOTE: Currently, the following class is just scaffolding so the entirety can be run during development, while other parts are made in sync.
     //       No particular attention is paid to efficiency & the like. Might be _very_ slow!
     class RibbedVaultDistanceField
@@ -112,6 +110,11 @@ namespace cura
             const std::vector<std::shared_ptr<RibbedVaultTreeNode>>& initial_trees
         );
 
+        /*!
+         * Gets the next unsupported location to be supported by a new branch.
+         * 
+         * Returns false if \ref RibbedVaultDistanceField::unsupported is empty
+         */
         bool tryGetNextPoint(Point* p) const;
 
         /*! update the distance field with a newly added branch
@@ -125,14 +128,30 @@ namespace cura
         Polygons supported;
     };
 
+    //
+    // TODO: sugggestion:
+    //  Introduce a new class RibbedVaultLayer,
+    //  which contains both:
+    //    Polygons overhang;
+    //    std::vector<RibbedVaultTreeNode> tree_roots;
+    //  and maybe
+    //    RibbedVaultDistanceField distance_field;
+    //
+    // That way we can extend the amount of data we pass around through FffGcodeWriter more easily
+    typedef std::vector<std::shared_ptr<RibbedVaultTreeNode>> ribbed_vault_layer_tree_roots_t;
+
     class RibbedSupportVaultGenerator
     {
     public:
-        static bool convertTreesToLines(const ribbed_vault_layer_trees_t& trees, Polygons& result_lines);
+        static bool convertTreesToLines(const ribbed_vault_layer_tree_roots_t& roots, Polygons& result_lines);
 
+        /*!
+         * TODO: instead of radius we should pass around the overhang_angle
+         * and compute the radius from the tangent of the angle and the local (adaptive) layer thickness
+         */
         RibbedSupportVaultGenerator(const coord_t& radius, const SliceMeshStorage& mesh);
 
-        void getTreesForLayer(const size_t& layer_id, ribbed_vault_layer_trees_t* p_trees);
+        void getTreesForLayer(const size_t& layer_id, ribbed_vault_layer_tree_roots_t* p_roots);
 
     protected:
         //  TODO: Proper, actual, version! ... should probably not be here even (only non static because the radius is used now).
@@ -147,7 +166,7 @@ namespace cura
         coord_t radius;
         std::map<coord_t, size_t> layer_id_by_height;
         std::map<size_t, Polygons> overhang_per_layer;
-        std::map<size_t, ribbed_vault_layer_trees_t> trees_per_layer;
+        std::map<size_t, ribbed_vault_layer_tree_roots_t> tree_roots_per_layer;
     };
 
 } // namespace cura

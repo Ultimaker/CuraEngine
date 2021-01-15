@@ -1458,7 +1458,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
             constexpr bool skip_some_zags = false;
             constexpr size_t zag_skip_count = 0;
 
-            ribbed_vault_layer_trees_t ribbed_vault_trees;
+            ribbed_vault_layer_tree_roots_t ribbed_vault_trees;
             if (mesh.ribbed_vault_generator)
             {
                 mesh.ribbed_vault_generator->getTreesForLayer(gcode_layer.getLayerNr(), &ribbed_vault_trees);
@@ -1613,7 +1613,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
         Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
 
-        ribbed_vault_layer_trees_t ribbed_vault_trees;
+        ribbed_vault_layer_tree_roots_t ribbed_vault_trees;
         if (mesh.ribbed_vault_generator)
         {
             mesh.ribbed_vault_generator->getTreesForLayer(gcode_layer.getLayerNr(), &ribbed_vault_trees);
