@@ -289,8 +289,8 @@ Polygons RibbedVaultLayer::convertToLines() const
 // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
 void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh, coord_t supporting_radius)
 {
-    Polygons infill_area_below;
-    for (size_t layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
+    Polygons infill_area_above;
+    for (int layer_nr = mesh.layers.size() - 1; layer_nr >= 0; layer_nr--)
     {
         const SliceLayer& current_layer = mesh.layers[layer_nr];
         Polygons infill_area_here;
@@ -299,10 +299,10 @@ void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMe
             infill_area_here.add(part.getOwnInfillArea());
         }
 
-        Polygons overhang = infill_area_here.intersection(infill_area_below.offset(-supporting_radius));
+        Polygons overhang = infill_area_here.offset(-supporting_radius).difference(infill_area_above);
 
         overhang_per_layer.emplace(layer_nr, overhang);
-        infill_area_below = std::move(infill_area_here);
+        infill_area_above = std::move(infill_area_here);
     }
 }
 
