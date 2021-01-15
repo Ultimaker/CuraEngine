@@ -287,22 +287,6 @@ Polygons RibbedVaultLayer::convertToLines() const
     return result_lines;
 }
 
-//  TODO: Proper, actual, version! ... should probably not be here even (only non static because the radius is used now).
-//        (Make sure random is chosen when difference between epsilon or completely equal).
-Point RibbedSupportVaultGenerator::getClosestOnOutline(const Point& p, const Polygons& pols) const
-{
-    Polygon p_offset;
-    p_offset.add(p);
-    p_offset.add(p + Point(0, 1));
-    p_offset.add(p + Point(1, 0));
-    Polygons temp = p_offset.offset(radius + 5);
-    temp = pols.intersection(temp);
-
-    assert(temp.area() != 0);
-
-    return temp[0][std::rand() % temp[0].size()];
-}
-
 // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
 void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh)
 {
@@ -362,7 +346,8 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 ++i_debug;
 
                 // Determine & conect to connection point in tree/outline.
-                Point node = getClosestOnOutline(next, current_outlines);
+                ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
+                Point node_location = cpp.p();
 
                 std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
                 coord_t current_dist = tree_point_dist_func(node, next);

@@ -161,10 +161,6 @@ namespace cura
         const RibbedVaultLayer& getTreesForLayer(const size_t& layer_id);
 
     protected:
-        //  TODO: Proper, actual, version! ... should probably not be here even (only non static because the radius is used now).
-        //        (Make sure random is chosen when difference between epsilon or completely equal).
-        Point getClosestOnOutline(const Point& p, const Polygons& pols) const;
-
         // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
         void generateInitialInternalOverhangs(const SliceMeshStorage& mesh);
 
