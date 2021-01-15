@@ -68,7 +68,7 @@ std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::findClosestNode(const 
     return closest_node;
 }
 
-void RibbedVaultTreeNode::computeNextLayer
+void RibbedVaultTreeNode::propagateToNextLayer
 (
     std::vector<std::shared_ptr<RibbedVaultTreeNode>>& next_trees,
     const Polygons& next_outlines,
@@ -406,7 +406,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = tree_roots_per_layer[lower_layer_id].tree_roots;
             for (auto& tree : current_trees)
             {
-                tree->computeNextLayer
+                tree->propagateToNextLayer
                 (
                     lower_trees,
                     current_outlines,

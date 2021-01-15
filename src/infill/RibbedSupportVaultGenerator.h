@@ -50,13 +50,13 @@ namespace cura
         std::shared_ptr<RibbedVaultTreeNode> findClosestNode(const Point& x, const point_distance_func_t& heuristic);
 
         /*!
-         * Compute the next layer down.
+         * Propagate this tree to the next layer.
          * 
          * Create a copy of this tree,
          * realign it to the new layer boundaries \p next_outlines
          * and reduce (i.e. prune and smoothen) it.
          */
-        void computeNextLayer
+        void propagateToNextLayer
         (
             std::vector<std::shared_ptr<RibbedVaultTreeNode>>& next_trees,
             const Polygons& next_outlines,
