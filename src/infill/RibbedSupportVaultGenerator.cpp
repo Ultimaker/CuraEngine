@@ -331,13 +331,13 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             // Have (next) area in need of support.
             RibbedVaultDistanceField distance_field(radius, current_outlines, current_overhang, current_trees);
 
-            constexpr size_t debug_max_iterations = 32;
+            constexpr size_t debug_max_iterations = 999;
             size_t i_debug = 0;
 
             // Until no more points need to be added to support all:
             // Determine next point from tree/outline areas via distance-field
-            Point next;
-            while(distance_measure.tryGetNextPoint(&next)    && i_debug < debug_max_iterations)
+            Point unsupported_location;
+            while (distance_field.tryGetNextPoint(&unsupported_location)    && i_debug < debug_max_iterations)
             {
 
                 ++i_debug;
@@ -347,13 +347,13 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 Point node_location = cpp.p();
 
                 std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
-                coord_t current_dist = tree_point_dist_func(node, next);
+                coord_t current_dist = tree_point_dist_func(node_location, unsupported_location);
                 for (auto& tree : current_trees)
                 {
                     assert(tree);
 
-                    auto candidate_sub_tree = tree->findClosestNode(next, tree_point_dist_func);
-                    const coord_t candidate_dist = tree_point_dist_func(candidate_sub_tree->getLocation(), next);
+                    auto candidate_sub_tree = tree->findClosestNode(unsupported_location, tree_point_dist_func);
+                    const coord_t candidate_dist = tree_point_dist_func(candidate_sub_tree->getLocation(), unsupported_location);
                     if (candidate_dist < current_dist)
                     {
                         current_dist = candidate_dist;
@@ -364,13 +364,13 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 // Update trees & distance fields.
                 if (! sub_tree)
                 {
-                    current_trees.push_back(std::make_shared<RibbedVaultTreeNode>(node, next));
+                    current_trees.push_back(std::make_shared<RibbedVaultTreeNode>(node_location, unsupported_location));
                 }
                 else
                 {
-                    sub_tree->addChild(next);
+                    sub_tree->addChild(unsupported_location);
                 }
-                distance_measure.update(node, next);
+                distance_field.update(node_location, unsupported_location);
             }
 
             // Initialize trees for next lower layer from the current one.
