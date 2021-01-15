@@ -316,7 +316,11 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
         {
             const size_t layer_id = layer_id_by_height[current_layer.printZ];
             const Polygons& current_overhang = overhang_per_layer[layer_id];
-            const Polygons current_outlines = current_layer.getOutlines();  // TODO: Cache current outline of layer somewhere
+            Polygons current_outlines;
+            for (const auto& part : current_layer.parts)
+            {
+                current_outlines.add(part.getOwnInfillArea());
+            }
 
             if (tree_roots_per_layer.count(layer_id) == 0)
             {
