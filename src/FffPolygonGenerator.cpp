@@ -472,13 +472,6 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
         mesh_max_initial_bottom_layer_count = std::max(mesh_max_initial_bottom_layer_count, mesh.settings.get<size_t>("initial_bottom_layers"));
     }
 
-    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::RIBBED_VAULT)
-    {
-        // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
-        const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
-        mesh.ribbed_vault_generator = new RibbedSupportVaultGenerator(infill_line_width, mesh);
-    }
-
     processed_layer_count = 0;
 #pragma omp parallel default(none) shared(mesh_layer_count, mesh, mesh_max_initial_bottom_layer_count, process_infill, inset_skin_progress_estimate, processed_layer_count, mesh_group_settings)
     {
@@ -766,6 +759,14 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
             }
             mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
         }
+    }
+
+    // Pre-compute Ribbed Vault support (aka minfill)
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::RIBBED_VAULT)
+    {
+        // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
+        const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
+        mesh.ribbed_vault_generator = new RibbedSupportVaultGenerator(infill_line_width, mesh);
     }
 
     // combine infill
