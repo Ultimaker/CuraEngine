@@ -192,7 +192,7 @@ coord_t RibbedVaultTreeNode::prune(const coord_t& pruning_distance)
 // -- -- -- -- -- --
 // -- -- -- -- -- --
 
-void RibbedVaultDistanceField::reinit
+RibbedVaultDistanceField::RibbedVaultDistanceField
 (
     const coord_t& radius,
     const Polygons& current_outline,
@@ -331,11 +331,9 @@ void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMe
 
 void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
 {
-    RibbedVaultDistanceField distance_measure;
-
     const auto& tree_point_dist_func = RibbedVaultTreeNode::getPointDistanceFunction();
 
-    // For-each layer:
+    // For-each layer from top to bottom:
     std::for_each(mesh.layers.rbegin(), mesh.layers.rend(),
         [&](const SliceLayer& current_layer)
         {
@@ -350,7 +348,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = tree_roots_per_layer[layer_id].tree_roots;
 
             // Have (next) area in need of support.
-            distance_measure.reinit(radius, current_outlines, current_overhang, current_trees);
+            RibbedVaultDistanceField distance_field(radius, current_outlines, current_overhang, current_trees);
 
             constexpr size_t debug_max_iterations = 32;
             size_t i_debug = 0;

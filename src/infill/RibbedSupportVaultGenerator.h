@@ -103,10 +103,9 @@ namespace cura
     {
     public:
         /*!
-         * TODO: explain this function because I don't get it
-         * also rename it to something more descriptive of what it does
+         * constructor
          */
-        void reinit
+        RibbedVaultDistanceField
         (
             const coord_t& radius,
             const Polygons& current_outline,
