@@ -331,7 +331,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             // Have (next) area in need of support.
             RibbedVaultDistanceField distance_field(radius, current_outlines, current_overhang, current_trees);
 
-            constexpr size_t debug_max_iterations = 999;
+            constexpr size_t debug_max_iterations = 9999;
             size_t i_debug = 0;
 
             // Until no more points need to be added to support all:
@@ -390,7 +390,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 (
                     lower_trees,
                     current_outlines,
-                    radius,
+                    100, // TODO make pruning distance a separate parameter (ideally also as an anglem from which the tanget is used to compute the actual distance for a given layer)
                     0.1  // TODO: smooth-factor should be parameter! ... or at least not a random OK seeming magic value.
                 );
             }
