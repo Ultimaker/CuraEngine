@@ -201,21 +201,25 @@ RibbedVaultDistanceField::RibbedVaultDistanceField
 )
 {
     supporting_radius = radius;
-    supported = current_outline.tubeShape(supporting_radius, 0);
+    Polygons supporting_polylines = current_outline;
+    for (PolygonRef poly : supporting_polylines)
+    {
+        if ( ! poly.empty())
+        {
+            poly.add(poly[0]); // add start so that the polyline is closed
+        }
+    }
 
+    const RibbedVaultTreeNode::visitor_func_t add_offset_branch_func =
+        [&](const Point& parent, const Point& child)
+        {
+            supporting_polylines.addLine(parent, child);
+        };
     for (const auto& tree : initial_trees)
     {
-        const RibbedVaultTreeNode::visitor_func_t add_offset_branch_func =
-            [&](const Point& junction, const Point& branch)
-            {
-                Polygon line;
-                line.add(junction);
-                line.add(branch);
-                supported.add(line.offset(supporting_radius));
-            };
         tree->visitBranches(add_offset_branch_func);
     }
-    supported = supported.unionPolygons();
+    supported = supporting_polylines.offsetPolyLine(supporting_radius);
     unsupported = current_overhang.difference(supported);
 }
 
