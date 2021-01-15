@@ -237,7 +237,7 @@ void RibbedVaultDistanceField::update(const Point& to_node, const Point& added_l
 {
     Polygons line;
     line.addLine(to_node, added_leaf);
-    supported = supported.unionPolygons(line.offset(supporting_radius));
+    supported = supported.unionPolygons(line.offsetPolyLine(supporting_radius, ClipperLib::jtRound));
     unsupported = unsupported.difference(supported);
 }
 
