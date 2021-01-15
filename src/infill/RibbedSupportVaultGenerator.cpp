@@ -50,6 +50,11 @@ const Point& RibbedVaultTreeNode::getLocation() const
     return p;
 }
 
+void RibbedVaultTreeNode::setLocation(Point loc)
+{
+    p = loc;
+}
+
 void RibbedVaultTreeNode::addChild(const Point& p)
 {
     children.push_back(std::make_shared<RibbedVaultTreeNode>(p));
@@ -141,23 +146,47 @@ void RibbedVaultTreeNode::smoothen(const float& magnitude)
 }
 
 // Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
-bool RibbedVaultTreeNode::prune(const coord_t& distance)
+coord_t RibbedVaultTreeNode::prune(const coord_t& pruning_distance)
 {
-    if (distance <= 0)
+    if (pruning_distance <= 0)
     {
-        return false;
+        return 0;
     }
 
-    const Point& local_p = p;
-    children.erase(std::remove_if(children.begin(), children.end(),
-        [&distance, &local_p](const std::shared_ptr<RibbedVaultTreeNode>& node)
-        {
-            const coord_t branch_length = vSize(node->p - local_p);
-            return node->prune(distance - branch_length) && branch_length < distance;
+    coord_t distance_pruned = 0;
+    for (auto child_it = children.begin(); child_it != children.end(); )
+    {
+        auto& child = *child_it;
+        coord_t dist_pruned_child = child->prune(pruning_distance);
+        if (dist_pruned_child >= pruning_distance)
+        { // pruning is finished for child; dont modify further
+            distance_pruned = std::max(distance_pruned, dist_pruned_child);
+            ++child_it;
         }
-    ), children.end());
+        else
+        {
+            Point a = getLocation();
+            Point b = child->getLocation();
+            Point ba = a - b;
+            coord_t ab_len = vSize(ba);
+            if (dist_pruned_child + ab_len <= pruning_distance)
+            { // we're still in the process of pruning
+                assert(child->children.empty() && "when pruning away a node all it's children must already have been pruned away");
+                distance_pruned = std::max(distance_pruned, dist_pruned_child + ab_len);
+                child_it = children.erase(child_it);
+            }
+            else
+            { // pruning stops in between this node and the child
+                Point n = b + normal(ba, pruning_distance - dist_pruned_child);
+                assert(std::abs(vSize(n - b) + dist_pruned_child - pruning_distance) < 10 && "total pruned distance must be equal to the pruning_distance");
+                distance_pruned = std::max(distance_pruned, pruning_distance);
+                child->setLocation(n);
+                ++child_it;
+            }
+        }
+    }
 
-    return children.empty();
+    return distance_pruned;
 }
 
 // -- -- -- -- -- --

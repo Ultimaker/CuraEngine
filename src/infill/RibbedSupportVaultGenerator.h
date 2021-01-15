@@ -42,6 +42,7 @@ namespace cura
         RibbedVaultTreeNode(const Point& a, const Point& b);
 
         const Point& getLocation() const;
+        void setLocation(Point p);
 
         void addChild(const Point& p);
 
@@ -85,11 +86,14 @@ namespace cura
          */
         void smoothen(const float& magnitude);
 
-        //! Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
-        bool prune(const coord_t& distance);
+        /*! Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
+         * \return The distance that has been pruned. If less than \p distance, then the whole tree was puned away.
+         */
+        coord_t prune(const coord_t& distance);
 
         bool is_root = false;
         Point p;
+        
         std::vector<std::shared_ptr<RibbedVaultTreeNode>> children;
     };
 
