@@ -162,7 +162,7 @@ namespace cura
 
     protected:
         // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
-        void generateInitialInternalOverhangs(const SliceMeshStorage& mesh);
+        void generateInitialInternalOverhangs(const SliceMeshStorage& mesh, coord_t supporting_radius);
 
         void generateTrees(const SliceMeshStorage& mesh);
 

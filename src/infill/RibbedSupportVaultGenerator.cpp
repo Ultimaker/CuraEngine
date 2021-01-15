@@ -254,7 +254,7 @@ RibbedSupportVaultGenerator::RibbedSupportVaultGenerator(const coord_t& radius, 
         layer_id_by_height.insert({layer.printZ, layer_id});
         ++layer_id;
     }
-    generateInitialInternalOverhangs(mesh);  // NOTE: Question: How to deal if it's (actual) support that is generated instead of infill?
+    generateInitialInternalOverhangs(mesh, radius);
     generateTrees(mesh);  // NOTE: Ideally, these would not be in the constructor. TODO?: Rewrite 'Generator' as loose functions and perhaps a struct.
 }
 
@@ -287,29 +287,23 @@ Polygons RibbedVaultLayer::convertToLines() const
 }
 
 // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
-void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh)
+void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh, coord_t supporting_radius)
 {
-    // Quick and dirty, TODO: the real deal?
-
-    std::shared_ptr<Polygons> p_last_outlines = std::shared_ptr<Polygons>(nullptr);
-    std::shared_ptr<Polygons> p_current_outlines = std::shared_ptr<Polygons>(nullptr);
-
-    std::for_each(mesh.layers.rbegin(), mesh.layers.rend(),
-        [&](const SliceLayer& current_layer)
+    Polygons infill_area_below;
+    for (size_t layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
+    {
+        const SliceLayer& current_layer = mesh.layers[layer_nr];
+        Polygons infill_area_here;
+        for (auto& part : current_layer.parts)
         {
-            if (! p_current_outlines)
-            {
-                p_last_outlines = std::make_shared<Polygons>();
-                p_current_outlines = std::make_shared<Polygons>();
-                mesh.layers[mesh.layer_nr_max_filled_layer].getOutlines(*p_current_outlines);
-                return;
-            }
-            std::swap(p_last_outlines, p_current_outlines);
-            current_layer.getOutlines(*p_current_outlines);
-
-            overhang_per_layer.insert({layer_id_by_height[current_layer.printZ], p_current_outlines->intersection(*p_current_outlines)});
+            infill_area_here.add(part.getOwnInfillArea());
         }
-    );
+
+        Polygons overhang = infill_area_here.intersection(infill_area_below.offset(-supporting_radius));
+
+        overhang_per_layer.emplace(layer_nr, overhang);
+        infill_area_below = std::move(infill_area_here);
+    }
 }
 
 void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
