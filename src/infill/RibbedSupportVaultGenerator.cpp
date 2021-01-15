@@ -35,7 +35,7 @@
 using namespace cura;
 
 // TODO??: Move/make-settable somehow or merge completely with this class (same as next getter).
-RibbedVaultTree::point_distance_func_t RibbedVaultTree::getPointDistanceFunction()
+RibbedVaultTreeNode::point_distance_func_t RibbedVaultTreeNode::getPointDistanceFunction()
 {
     // NOTE: The following closure is too simple compared to the paper, used during development, and will be reimplemented.
     return point_distance_func_t(
@@ -45,27 +45,27 @@ RibbedVaultTree::point_distance_func_t RibbedVaultTree::getPointDistanceFunction
         });
 }
 
-const Point& RibbedVaultTree::getNode() const
+const Point& RibbedVaultTreeNode::getNode() const
 {
     return p;
 }
 
-void RibbedVaultTree::addNode(const Point& p)
+void RibbedVaultTreeNode::addNode(const Point& p)
 {
-    nodes.push_back(std::make_shared<RibbedVaultTree>(p));
+    nodes.push_back(std::make_shared<RibbedVaultTreeNode>(p));
 }
 
-std::shared_ptr<RibbedVaultTree> RibbedVaultTree::findClosestNode(const Point& x, const point_distance_func_t& heuristic)
+std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::findClosestNode(const Point& x, const point_distance_func_t& heuristic)
 {
     coord_t closest_distance = heuristic(p, x);
-    std::shared_ptr<RibbedVaultTree> closest_node = shared_from_this();
+    std::shared_ptr<RibbedVaultTreeNode> closest_node = shared_from_this();
     findClosestNodeHelper(x, heuristic, closest_distance, closest_node);
     return closest_node;
 }
 
-void RibbedVaultTree::initNextLayer
+void RibbedVaultTreeNode::initNextLayer
 (
-    std::vector<std::shared_ptr<RibbedVaultTree>>& next_trees,
+    std::vector<std::shared_ptr<RibbedVaultTreeNode>>& next_trees,
     const Polygons& next_outlines,
     const coord_t& prune_distance,
     const float& smooth_magnitude
@@ -82,7 +82,7 @@ void RibbedVaultTree::initNextLayer
 
 // NOTE: Depth-first, as currently implemented.
 //       Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
-void RibbedVaultTree::visitBranches(const visitor_func_t& visitor) const
+void RibbedVaultTreeNode::visitBranches(const visitor_func_t& visitor) const
 {
     for (const auto& node : nodes)
     {
@@ -92,16 +92,16 @@ void RibbedVaultTree::visitBranches(const visitor_func_t& visitor) const
 }
 
 // Node:
-RibbedVaultTree::RibbedVaultTree(const Point& p) : p(p) {}
+RibbedVaultTreeNode::RibbedVaultTreeNode(const Point& p) : p(p) {}
 
 // Root (and Trunk):
-RibbedVaultTree::RibbedVaultTree(const Point& a, const Point& b) : RibbedVaultTree(a)
+RibbedVaultTreeNode::RibbedVaultTreeNode(const Point& a, const Point& b) : RibbedVaultTreeNode(a)
 {
-    nodes.push_back(std::make_shared<RibbedVaultTree>(b));
+    nodes.push_back(std::make_shared<RibbedVaultTreeNode>(b));
     is_root = true;
 }
 
-void RibbedVaultTree::findClosestNodeHelper(const Point& x, const point_distance_func_t& heuristic, coord_t& closest_distance, std::shared_ptr<RibbedVaultTree>& closest_node)
+void RibbedVaultTreeNode::findClosestNodeHelper(const Point& x, const point_distance_func_t& heuristic, coord_t& closest_distance, std::shared_ptr<RibbedVaultTreeNode>& closest_node)
 {
     for (const auto& node : nodes)
     {
@@ -115,9 +115,9 @@ void RibbedVaultTree::findClosestNodeHelper(const Point& x, const point_distance
     }
 }
 
-std::shared_ptr<RibbedVaultTree> RibbedVaultTree::deepCopy() const
+std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::deepCopy() const
 {
-    std::shared_ptr<RibbedVaultTree> local_root = std::make_shared<RibbedVaultTree>(p);
+    std::shared_ptr<RibbedVaultTreeNode> local_root = std::make_shared<RibbedVaultTreeNode>(p);
     local_root->is_root = is_root;
     local_root->nodes.reserve(nodes.size());
     for (const auto& node : nodes)
@@ -127,7 +127,7 @@ std::shared_ptr<RibbedVaultTree> RibbedVaultTree::deepCopy() const
     return local_root;
 }
 
-void RibbedVaultTree::realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTree>>& rerooted_parts)
+void RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts)
 {
     // NOTE: Is it neccesary to 'reroot' parts further up the tree, or can it just be done from the root onwards
     //       and ignore any further altercations once the outline is crossed (from the outside) for the first time?
@@ -135,13 +135,13 @@ void RibbedVaultTree::realign(const Polygons& outlines, std::vector<std::shared_
     // NOT IMPLEMENTED YET! (See TODO's near the top of the file.)
 }
 
-void RibbedVaultTree::smooth(const float& magnitude)
+void RibbedVaultTreeNode::smooth(const float& magnitude)
 {
     // NOT IMPLEMENTED YET! (See TODO's near the top of the file.)
 }
 
 // Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
-bool RibbedVaultTree::prune(const coord_t& distance)
+bool RibbedVaultTreeNode::prune(const coord_t& distance)
 {
     if (distance <= 0)
     {
@@ -150,7 +150,7 @@ bool RibbedVaultTree::prune(const coord_t& distance)
 
     const Point& local_p = p;
     nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
-        [&distance, &local_p](const std::shared_ptr<RibbedVaultTree>& node)
+        [&distance, &local_p](const std::shared_ptr<RibbedVaultTreeNode>& node)
         {
             const coord_t branch_length = vSize(node->p - local_p);
             return node->prune(distance - branch_length) && branch_length < distance;
@@ -168,7 +168,7 @@ void RibbedVaultDistanceMeasure::reinit
     const coord_t& radius,
     const Polygons& current_outline,
     const Polygons& current_overhang,
-    const std::vector<std::shared_ptr<RibbedVaultTree>>& initial_trees
+    const std::vector<std::shared_ptr<RibbedVaultTreeNode>>& initial_trees
 )
 {
     r = radius;
@@ -176,7 +176,7 @@ void RibbedVaultDistanceMeasure::reinit
 
     for (const auto& tree : initial_trees)
     {
-        const RibbedVaultTree::visitor_func_t add_offset_branch_func =
+        const RibbedVaultTreeNode::visitor_func_t add_offset_branch_func =
             [&](const Point& junction, const Point& branch)
             {
                 Polygon line;
@@ -245,7 +245,7 @@ bool RibbedSupportVaultGenerator::convertTreesToLines(const ribbed_vault_layer_t
     }
 
     // TODO: The convert trees to lines 'algorithm' is way too simple right now (unless they're already going to be connected later).
-    RibbedVaultTree::visitor_func_t convert_trees_to_lines =
+    RibbedVaultTreeNode::visitor_func_t convert_trees_to_lines =
         [&result_lines](const Point& node, const Point& leaf)
         {
             result_lines.addLine(node, leaf);
@@ -303,7 +303,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
 {
     RibbedVaultDistanceMeasure distance_measure;
 
-    const auto& tree_point_dist_func = RibbedVaultTree::getPointDistanceFunction();
+    const auto& tree_point_dist_func = RibbedVaultTreeNode::getPointDistanceFunction();
 
     // For-each layer:
     std::for_each(mesh.layers.rbegin(), mesh.layers.rend(),
@@ -315,9 +315,9 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
 
             if (trees_per_layer.count(layer_id) == 0)
             {
-                trees_per_layer.insert({ layer_id, std::vector<std::shared_ptr<RibbedVaultTree>>()});
+                trees_per_layer.insert({ layer_id, std::vector<std::shared_ptr<RibbedVaultTreeNode>>()});
             }
-            std::vector<std::shared_ptr<RibbedVaultTree>>& current_trees = trees_per_layer[layer_id];
+            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = trees_per_layer[layer_id];
 
             // Have (next) area in need of support.
             distance_measure.reinit(radius, current_outlines, current_overhang, current_trees);
@@ -336,7 +336,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 // Determine & conect to connection point in tree/outline.
                 Point node = getClosestOnOutline(next, current_outlines);
 
-                std::shared_ptr<RibbedVaultTree> sub_tree(nullptr);
+                std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
                 coord_t current_dist = tree_point_dist_func(node, next);
                 for (auto& tree : current_trees)
                 {
@@ -354,7 +354,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 // Update trees & distance fields.
                 if (! sub_tree)
                 {
-                    current_trees.push_back(std::make_shared<RibbedVaultTree>(node, next));
+                    current_trees.push_back(std::make_shared<RibbedVaultTreeNode>(node, next));
                 }
                 else
                 {
@@ -371,9 +371,9 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             const size_t lower_layer_id = layer_id - 1;
             if (trees_per_layer.count(layer_id) == 0)
             {
-                trees_per_layer.insert({lower_layer_id, std::vector<std::shared_ptr<RibbedVaultTree>>()});
+                trees_per_layer.insert({lower_layer_id, std::vector<std::shared_ptr<RibbedVaultTreeNode>>()});
             }
-            std::vector<std::shared_ptr<RibbedVaultTree>>& lower_trees = trees_per_layer[lower_layer_id];
+            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = trees_per_layer[lower_layer_id];
             for (auto& tree : current_trees)
             {
                 tree->initNextLayer

@@ -19,10 +19,10 @@ namespace cura
     // NOTE: Reasons for implementing this with some separate closures:
     //       - keep clear deliniation during development
     //       - possibility of multiple distance field strategies
-    class RibbedVaultTree : public std::enable_shared_from_this<RibbedVaultTree>
+    class RibbedVaultTreeNode : public std::enable_shared_from_this<RibbedVaultTreeNode>
     {
     public:
-        friend class std::shared_ptr<RibbedVaultTree>;
+        friend class std::shared_ptr<RibbedVaultTreeNode>;
 
         // For use with findClosestNode.
         // Input: Two points. Output: Distance between those points.
@@ -36,20 +36,20 @@ namespace cura
         static point_distance_func_t getPointDistanceFunction();
 
         // Constructs a node, for insertion into a tree:
-        RibbedVaultTree(const Point& p);
+        RibbedVaultTreeNode(const Point& p);
 
         // Constructs a root (and initial trunk):
-        RibbedVaultTree(const Point& a, const Point& b);
+        RibbedVaultTreeNode(const Point& a, const Point& b);
 
         const Point& getNode() const;
 
         void addNode(const Point& p);
 
-        std::shared_ptr<RibbedVaultTree> findClosestNode(const Point& x, const point_distance_func_t& heuristic);
+        std::shared_ptr<RibbedVaultTreeNode> findClosestNode(const Point& x, const point_distance_func_t& heuristic);
 
         void initNextLayer
         (
-            std::vector<std::shared_ptr<RibbedVaultTree>>& next_trees,
+            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& next_trees,
             const Polygons& next_outlines,
             const coord_t& prune_distance,
             const float& smooth_magnitude
@@ -60,13 +60,13 @@ namespace cura
         void visitBranches(const visitor_func_t& visitor) const;
 
     protected:
-        RibbedVaultTree() = delete;
+        RibbedVaultTreeNode() = delete;
 
-        void findClosestNodeHelper(const Point& x, const point_distance_func_t& heuristic, coord_t& closest_distance, std::shared_ptr<RibbedVaultTree>& closest_node);
+        void findClosestNodeHelper(const Point& x, const point_distance_func_t& heuristic, coord_t& closest_distance, std::shared_ptr<RibbedVaultTreeNode>& closest_node);
 
-        std::shared_ptr<RibbedVaultTree> deepCopy() const;
+        std::shared_ptr<RibbedVaultTreeNode> deepCopy() const;
 
-        void realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTree>>& rerooted_parts);
+        void realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts);
 
         void smooth(const float& magnitude);
 
@@ -75,10 +75,10 @@ namespace cura
 
         bool is_root = false;
         Point p;
-        std::vector<std::shared_ptr<RibbedVaultTree>> nodes;
+        std::vector<std::shared_ptr<RibbedVaultTreeNode>> nodes;
     };
 
-    typedef std::vector<std::shared_ptr<RibbedVaultTree>> ribbed_vault_layer_trees_t;
+    typedef std::vector<std::shared_ptr<RibbedVaultTreeNode>> ribbed_vault_layer_trees_t;
 
     // NOTE: Currently, the following class is just scaffolding so the entirety can be run during development, while other parts are made in sync.
     //       No particular attention is paid to efficiency & the like. Might be _very_ slow!
@@ -90,7 +90,7 @@ namespace cura
             const coord_t& radius,
             const Polygons& current_outline,
             const Polygons& current_overhang,
-            const std::vector<std::shared_ptr<RibbedVaultTree>>& initial_trees
+            const std::vector<std::shared_ptr<RibbedVaultTreeNode>>& initial_trees
         );
 
         bool tryGetNextPoint(Point* p) const;
