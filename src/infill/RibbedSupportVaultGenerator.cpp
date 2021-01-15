@@ -229,12 +229,7 @@ bool RibbedVaultDistanceField::tryGetNextPoint(Point* p) const
     {
         return false;
     }
-    const Polygons pick_area = supported.offset(supporting_radius + 2).intersection(unsupported.offset(2 - supporting_radius));
-    if (pick_area.area() < 25)
-    {
-        return false;
-    }
-    p[0] = pick_area[0][std::rand() % pick_area[0].size()];
+    *p = unsupported[0][std::rand() % unsupported[0].size()];
     return true;
 }
 
