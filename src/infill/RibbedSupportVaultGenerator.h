@@ -41,13 +41,21 @@ namespace cura
         // Constructs a root (and initial trunk):
         RibbedVaultTreeNode(const Point& a, const Point& b);
 
-        const Point& getNode() const;
+        const Point& getLocation() const;
 
-        void addNode(const Point& p);
+        void addChild(const Point& p);
 
+        // TODO: should be moved outside of this class, because we want to efficiently find pairs of close nodes
         std::shared_ptr<RibbedVaultTreeNode> findClosestNode(const Point& x, const point_distance_func_t& heuristic);
 
-        void initNextLayer
+        /*!
+         * Compute the next layer down.
+         * 
+         * Create a copy of this tree,
+         * realign it to the new layer boundaries \p next_outlines
+         * and reduce (i.e. prune and smoothen) it.
+         */
+        void computeNextLayer
         (
             std::vector<std::shared_ptr<RibbedVaultTreeNode>>& next_trees,
             const Polygons& next_outlines,
@@ -60,31 +68,42 @@ namespace cura
         void visitBranches(const visitor_func_t& visitor) const;
 
     protected:
-        RibbedVaultTreeNode() = delete;
+        RibbedVaultTreeNode() = delete; // Don't allow empty contruction
 
+        /*!
+         * What does this function do?!
+         */
         void findClosestNodeHelper(const Point& x, const point_distance_func_t& heuristic, coord_t& closest_distance, std::shared_ptr<RibbedVaultTreeNode>& closest_node);
 
-        std::shared_ptr<RibbedVaultTreeNode> deepCopy() const;
+        std::shared_ptr<RibbedVaultTreeNode> deepCopy() const; //!< Copy this node and all its children
 
+        /*! Reconnect trees from the layer above to the new outlines of the lower layer
+         */
         void realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts);
 
-        void smooth(const float& magnitude);
+        /*! Smoothen the tree to make it a bit more printable, while still supporting the trees above.
+         */
+        void smoothen(const float& magnitude);
 
-        // Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
+        //! Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
         bool prune(const coord_t& distance);
 
         bool is_root = false;
         Point p;
-        std::vector<std::shared_ptr<RibbedVaultTreeNode>> nodes;
+        std::vector<std::shared_ptr<RibbedVaultTreeNode>> children;
     };
 
     typedef std::vector<std::shared_ptr<RibbedVaultTreeNode>> ribbed_vault_layer_trees_t;
 
     // NOTE: Currently, the following class is just scaffolding so the entirety can be run during development, while other parts are made in sync.
     //       No particular attention is paid to efficiency & the like. Might be _very_ slow!
-    class RibbedVaultDistanceMeasure
+    class RibbedVaultDistanceField
     {
     public:
+        /*!
+         * TODO: explain this function because I don't get it
+         * also rename it to something more descriptive of what it does
+         */
         void reinit
         (
             const coord_t& radius,
@@ -95,10 +114,13 @@ namespace cura
 
         bool tryGetNextPoint(Point* p) const;
 
+        /*! update the distance field with a newly added branch
+         * TODO: check whether this explanation is correct
+         */
         void update(const Point& to_node, const Point& added_leaf);
 
     protected:
-        coord_t r;
+        coord_t supporting_radius; //!< The radius of the area of the layer above supported by a point on a branch of a tree
         Polygons unsupported;
         Polygons supported;
     };
