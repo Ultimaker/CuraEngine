@@ -1458,10 +1458,10 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
             constexpr bool skip_some_zags = false;
             constexpr size_t zag_skip_count = 0;
 
-            ribbed_vault_layer_tree_roots_t ribbed_vault_trees;
+            const RibbedVaultLayer* ribbed_vault_layer = nullptr;
             if (mesh.ribbed_vault_generator)
             {
-                mesh.ribbed_vault_generator->getTreesForLayer(gcode_layer.getLayerNr(), &ribbed_vault_trees);
+                ribbed_vault_layer = &mesh.ribbed_vault_generator->getTreesForLayer(gcode_layer.getLayerNr());
             }
             Infill infill_comp(infill_pattern, zig_zaggify_infill, connect_polygons, part.infill_area_per_combine_per_density[density_idx][combine_idx], /*outline_offset =*/ 0
                 , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift
@@ -1469,7 +1469,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 , wall_line_count, infill_origin
                 , perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count
                 , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-            infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &ribbed_vault_trees, &mesh);
+            infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, ribbed_vault_layer, &mesh);
         }
         if (!infill_lines.empty() || !infill_polygons.empty())
         {
@@ -1613,10 +1613,10 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
         Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
 
-        ribbed_vault_layer_tree_roots_t ribbed_vault_trees;
+        const RibbedVaultLayer* ribbed_vault_layer = nullptr;
         if (mesh.ribbed_vault_generator)
         {
-            mesh.ribbed_vault_generator->getTreesForLayer(gcode_layer.getLayerNr(), &ribbed_vault_trees);
+            ribbed_vault_layer = &mesh.ribbed_vault_generator->getTreesForLayer(gcode_layer.getLayerNr());
         }
 
         if (hasSkinEdgeSupport)
@@ -1629,7 +1629,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                                infill_angle, gcode_layer.z, infill_shift, max_resolution, max_deviation, skin_below_wall_count, infill_origin,
                                perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count,
                                pocket_size);
-            infill_comp.generate(infill_polygons, infill_lines_here, mesh.cross_fill_provider, &ribbed_vault_trees, &mesh);
+            infill_comp.generate(infill_polygons, infill_lines_here, mesh.cross_fill_provider, ribbed_vault_layer, &mesh);
             if (density_idx < last_idx)
             {
                 const coord_t cut_offset =
@@ -1662,7 +1662,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
                            infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin, perimeter_gaps, connected_zigzags,
                            use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
-        infill_comp.generate(infill_polygons_here, infill_lines_here, mesh.cross_fill_provider, &ribbed_vault_trees, &mesh);
+        infill_comp.generate(infill_polygons_here, infill_lines_here, mesh.cross_fill_provider, ribbed_vault_layer, &mesh);
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);

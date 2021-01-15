@@ -138,20 +138,24 @@ namespace cura
     //    RibbedVaultDistanceField distance_field;
     //
     // That way we can extend the amount of data we pass around through FffGcodeWriter more easily
-    typedef std::vector<std::shared_ptr<RibbedVaultTreeNode>> ribbed_vault_layer_tree_roots_t;
+    class RibbedVaultLayer
+    {
+    public:
+        std::vector<std::shared_ptr<RibbedVaultTreeNode>> tree_roots;
+        
+        Polygons convertToLines() const;
+    };
 
     class RibbedSupportVaultGenerator
     {
     public:
-        static bool convertTreesToLines(const ribbed_vault_layer_tree_roots_t& roots, Polygons& result_lines);
-
         /*!
          * TODO: instead of radius we should pass around the overhang_angle
          * and compute the radius from the tangent of the angle and the local (adaptive) layer thickness
          */
         RibbedSupportVaultGenerator(const coord_t& radius, const SliceMeshStorage& mesh);
 
-        void getTreesForLayer(const size_t& layer_id, ribbed_vault_layer_tree_roots_t* p_roots);
+        const RibbedVaultLayer& getTreesForLayer(const size_t& layer_id);
 
     protected:
         //  TODO: Proper, actual, version! ... should probably not be here even (only non static because the radius is used now).
@@ -166,7 +170,7 @@ namespace cura
         coord_t radius;
         std::map<coord_t, size_t> layer_id_by_height;
         std::map<size_t, Polygons> overhang_per_layer;
-        std::map<size_t, ribbed_vault_layer_tree_roots_t> tree_roots_per_layer;
+        std::map<size_t, RibbedVaultLayer> tree_roots_per_layer;
     };
 
 } // namespace cura

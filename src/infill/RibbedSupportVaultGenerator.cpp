@@ -230,18 +230,19 @@ RibbedSupportVaultGenerator::RibbedSupportVaultGenerator(const coord_t& radius, 
     generateTrees(mesh);  // NOTE: Ideally, these would not be in the constructor. TODO?: Rewrite 'Generator' as loose functions and perhaps a struct.
 }
 
-void RibbedSupportVaultGenerator::getTreesForLayer(const size_t& layer_id, ribbed_vault_layer_tree_roots_t* p_trees)
+const RibbedVaultLayer& RibbedSupportVaultGenerator::getTreesForLayer(const size_t& layer_id)
 {
     assert(tree_roots_per_layer.count(layer_id));
-    p_trees[0] = tree_roots_per_layer[layer_id];
+    return tree_roots_per_layer[layer_id];
 }
 
 // Returns 'added someting'.
-bool RibbedSupportVaultGenerator::convertTreesToLines(const ribbed_vault_layer_tree_roots_t& trees, Polygons& result_lines)
+Polygons RibbedVaultLayer::convertToLines() const
 {
-    if (trees.empty())
+    Polygons result_lines;
+    if (tree_roots.empty())
     {
-        return false;
+        return result_lines;
     }
 
     // TODO: The convert trees to lines 'algorithm' is way too simple right now (unless they're already going to be connected later).
@@ -250,11 +251,11 @@ bool RibbedSupportVaultGenerator::convertTreesToLines(const ribbed_vault_layer_t
         {
             result_lines.addLine(node, leaf);
         };
-    for (const auto& tree : trees)
+    for (const auto& tree : tree_roots)
     {
         tree->visitBranches(convert_trees_to_lines);
     }
-    return true;
+    return result_lines;
 }
 
 //  TODO: Proper, actual, version! ... should probably not be here even (only non static because the radius is used now).
@@ -315,9 +316,9 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
 
             if (tree_roots_per_layer.count(layer_id) == 0)
             {
-                tree_roots_per_layer.insert({ layer_id, std::vector<std::shared_ptr<RibbedVaultTreeNode>>()});
+                tree_roots_per_layer.emplace(layer_id, RibbedVaultLayer());
             }
-            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = tree_roots_per_layer[layer_id];
+            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = tree_roots_per_layer[layer_id].tree_roots;
 
             // Have (next) area in need of support.
             distance_measure.reinit(radius, current_outlines, current_overhang, current_trees);
@@ -371,9 +372,9 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             const size_t lower_layer_id = layer_id - 1;
             if (tree_roots_per_layer.count(layer_id) == 0)
             {
-                tree_roots_per_layer.insert({lower_layer_id, std::vector<std::shared_ptr<RibbedVaultTreeNode>>()});
+                tree_roots_per_layer.emplace(lower_layer_id, RibbedVaultLayer());
             }
-            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = tree_roots_per_layer[lower_layer_id];
+            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = tree_roots_per_layer[lower_layer_id].tree_roots;
             for (auto& tree : current_trees)
             {
                 tree->computeNextLayer

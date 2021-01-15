@@ -43,7 +43,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const ribbed_vault_layer_tree_roots_t* ribbed_support_vault_trees, const SliceMeshStorage* mesh)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const RibbedVaultLayer* ribbed_support_vault_trees, const SliceMeshStorage* mesh)
 {
     coord_t outline_offset_raw = outline_offset;
     outline_offset -= wall_line_count * infill_line_width; // account for extra walls
@@ -94,7 +94,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     }
 }
 
-void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const ribbed_vault_layer_tree_roots_t* ribbed_support_vault_trees, const SliceMeshStorage* mesh)
+void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const RibbedVaultLayer* ribbed_support_vault_trees, const SliceMeshStorage* mesh)
 {
     if (in_outline.empty()) return;
     if (line_distance == 0) return;
@@ -275,14 +275,14 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
     GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset + infill_overlap, infill_line_width, line_distance, in_outline, z);
 }
 
-void Infill::generateRibbedInfill(const ribbed_vault_layer_tree_roots_t* trees, Polygons& result_lines)
+void Infill::generateRibbedInfill(const RibbedVaultLayer* trees, Polygons& result_lines)
 {
     // Don't need to support areas smaller than line width, as they are always within radius:
     if(std::abs(in_outline.area()) < infill_line_width || ! trees)
     {
         return;
     }
-    RibbedSupportVaultGenerator::convertTreesToLines(*trees, result_lines);
+    result_lines.add(trees->convertToLines());
 }
 
 void Infill::generateConcentricInfill(Polygons& result, int inset_value)
