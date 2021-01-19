@@ -642,7 +642,7 @@ void SkeletalTrapezoidation::updateBeadCount()
     }
 }
 
-void SkeletalTrapezoidation:: filterNoncentralRegions()
+void SkeletalTrapezoidation::filterNoncentralRegions()
 {
     for (edge_t& edge : graph.edges)
     {
@@ -650,9 +650,9 @@ void SkeletalTrapezoidation:: filterNoncentralRegions()
         {
             continue;
         }
-        if(edge.to->data.bead_count == 0 && edge.to->data.distance_to_boundary != 0)
+        if(edge.to->data.bead_count < 0 && edge.to->data.distance_to_boundary != 0)
         {
-            logWarning("Encountered an edge going towards bead count 0, but which is not at the boundary yet. Distance: %i", edge.to->data.distance_to_boundary);
+            logWarning("Encountered an uninitialized bead at the boundary!\n");
         }
         assert(edge.to->data.bead_count >= 0 || edge.to->data.distance_to_boundary == 0);
         constexpr coord_t max_dist = 400;
