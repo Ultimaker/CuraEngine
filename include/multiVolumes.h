@@ -55,9 +55,9 @@ protected:
         Cell();
     };
 
-    static void populateGridWithBoundaryVoxels(const std::vector<Slicer*>& volumes, SparseCellGrid3D<Cell>& grid);
+    static void populateGridWithBoundaryVoxels(const std::vector<Slicer*>& volumes, const PointMatrix& rotation, SparseCellGrid3D<Cell>& grid);
     
-    static void computeLayerRegions(const std::vector<Slicer*>& volumes, std::vector<Polygons>& layer_regions, std::vector<coord_t>& layer_heights);
+    static void computeLayerRegions(const std::vector<Slicer*>& volumes, const PointMatrix& rotation, std::vector<Polygons>& layer_regions, std::vector<coord_t>& layer_heights);
     
     static void computeLayerSkins(const std::vector<Polygons>& layer_regions, std::vector<Polygons>& layer_skins);
     
@@ -72,7 +72,7 @@ protected:
     
     static void generateMicrostructure(std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, const std::vector<coord_t>& line_width_per_extruder, coord_t cell_size);
     
-    static void applyMicrostructureToOutlines(SparseCellGrid3D<Cell>& grid, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, std::vector<Slicer*>& volumes, coord_t cell_size);
+    static void applyMicrostructureToOutlines(SparseCellGrid3D<Cell>& grid, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, std::vector<Slicer*>& volumes, const PointMatrix& rotation, coord_t cell_size);
 };
 
 }//namespace cura

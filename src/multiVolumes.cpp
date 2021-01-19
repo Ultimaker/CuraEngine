@@ -223,14 +223,20 @@ void MultiVolumes::generateInterlockingStructure(std::vector<Slicer*>& volumes)
         max_layer_count = std::max(max_layer_count, mesh->layers.size());
     }
     
+    // TODO: fix for > 2 extruders (apply first to extruder 0 & 1, then to 0 & 2, etc.)
+    
+    // TODO: implement lesser dilation based on translated polygons
+    // TODO: make dilation user parameter
+    
+    PointMatrix rotation(45.0);
     
     SparseCellGrid3D<Cell> grid(cell_size);
 
-    populateGridWithBoundaryVoxels(volumes, grid);
+    populateGridWithBoundaryVoxels(volumes, rotation, grid);
     
     std::vector<Polygons> layer_regions(max_layer_count);
     std::vector<coord_t> layer_heights(max_layer_count);
-    computeLayerRegions(volumes, layer_regions, layer_heights);
+    computeLayerRegions(volumes, rotation, layer_regions, layer_heights);
 
     std::vector<Polygons> layer_skins(max_layer_count);
     computeLayerSkins(layer_regions, layer_skins);
@@ -246,7 +252,7 @@ void MultiVolumes::generateInterlockingStructure(std::vector<Slicer*>& volumes)
     std::vector<std::vector<Polygon>> cell_area_per_extruder_per_layer;
     generateMicrostructure(cell_area_per_extruder_per_layer, line_width_per_extruder, cell_size);
 
-    applyMicrostructureToOutlines(grid, cell_area_per_extruder_per_layer, volumes, cell_size);
+    applyMicrostructureToOutlines(grid, cell_area_per_extruder_per_layer, volumes, rotation, cell_size);
 }
 
 MultiVolumes::Cell::Cell()
@@ -255,7 +261,7 @@ MultiVolumes::Cell::Cell()
     assert(has_extruder.size() >= 1);
 }
 
-void MultiVolumes::populateGridWithBoundaryVoxels(const std::vector<Slicer*>& volumes, SparseCellGrid3D<Cell>& grid)
+void MultiVolumes::populateGridWithBoundaryVoxels(const std::vector<Slicer*>& volumes, const PointMatrix& rotation, SparseCellGrid3D<Cell>& grid)
 {
     const Cell default_cell;
 
@@ -267,7 +273,9 @@ void MultiVolumes::populateGridWithBoundaryVoxels(const std::vector<Slicer*>& vo
         {
             SlicerLayer& layer = mesh->layers[layer_nr];
             coord_t z = layer.z;
-            for (ConstPolygonRef poly : layer.polygons)
+            Polygons rotated_layer_polygons = layer.polygons;
+            rotated_layer_polygons.applyMatrix(rotation);
+            for (ConstPolygonRef poly : rotated_layer_polygons)
             {
                 Point last = poly.back();
                 for (Point p : poly)
@@ -289,7 +297,7 @@ void MultiVolumes::populateGridWithBoundaryVoxels(const std::vector<Slicer*>& vo
     }
 }
 
-void MultiVolumes::computeLayerRegions(const std::vector<Slicer*>& volumes, std::vector<Polygons>& layer_regions, std::vector<coord_t>& layer_heights)
+void MultiVolumes::computeLayerRegions(const std::vector<Slicer*>& volumes, const PointMatrix& rotation, std::vector<Polygons>& layer_regions, std::vector<coord_t>& layer_heights)
 {
     for (unsigned int layer_nr = 0; layer_nr < layer_regions.size(); layer_nr++)
     {
@@ -303,6 +311,7 @@ void MultiVolumes::computeLayerRegions(const std::vector<Slicer*>& volumes, std:
             layer_region.add(layer.polygons);
         }
         layer_region = layer_region.offset(100).offset(-100); // TODO hardcoded value
+        layer_region.applyMatrix(rotation);
         layer_heights[layer_nr] = z;
     }
 }
@@ -446,8 +455,10 @@ void MultiVolumes::generateMicrostructure(std::vector<std::vector<Polygon>>& cel
     }
 }
 
-void MultiVolumes::applyMicrostructureToOutlines(SparseCellGrid3D<Cell>& grid, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, std::vector<Slicer*>& volumes, coord_t cell_size)
+void MultiVolumes::applyMicrostructureToOutlines(SparseCellGrid3D<Cell>& grid, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, std::vector<Slicer*>& volumes, const PointMatrix& rotation, coord_t cell_size)
 {
+    PointMatrix unapply_rotation = rotation.inverse();
+
     for (auto key_val : grid.m_grid)
     {
         Point3 grid_loc = key_val.first;
@@ -461,18 +472,21 @@ void MultiVolumes::applyMicrostructureToOutlines(SparseCellGrid3D<Cell>& grid, s
                 coord_t z = layer.z;
                 if (z < bottom_corner.z) continue;
                 if (z > bottom_corner.z + cell_size) break;
-                
+
                 Polygon area_here = cell_area_per_extruder_per_layer[layer_nr % 2][extruder_nr];
                 Polygon area_other = cell_area_per_extruder_per_layer[layer_nr % 2][ ! extruder_nr];
-                
+
                 area_here.translate(Point(bottom_corner.x, bottom_corner.y));
                 area_other.translate(Point(bottom_corner.x, bottom_corner.y));
-                
+
                 Polygons areas_here;
                 areas_here.add(area_here);
                 Polygons areas_other;
                 areas_other.add(area_other);
-                
+
+                areas_here.applyMatrix(unapply_rotation);
+                areas_other.applyMatrix(unapply_rotation);
+
                 layer.polygons = layer.polygons.unionPolygons(areas_here).difference(areas_other);
             }
         }
