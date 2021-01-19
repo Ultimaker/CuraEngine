@@ -5,6 +5,10 @@
 #define MULTIVOLUMES_H
 
 #include <vector>
+#include <cassert>
+
+#include "utils/polygon.h"
+#include "utils/SparseCellGrid3D.h"
 
 /* This file contains code to help fixing up and changing layers that are built from multiple volumes. */
 namespace cura
@@ -40,6 +44,35 @@ public:
     static void carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::vector<Mesh>& meshes);
 
     static void generateInterlockingStructure(std::vector<Slicer*>& volumes);
+
+protected:
+    /*!
+     * Voxel cell for interlocking microstructure
+     */
+    struct Cell
+    {
+        std::vector<bool> has_extruder;
+        Cell();
+    };
+
+    static void populateGridWithBoundaryVoxels(const std::vector<Slicer*>& volumes, SparseCellGrid3D<Cell>& grid);
+    
+    static void computeLayerRegions(const std::vector<Slicer*>& volumes, std::vector<Polygons>& layer_regions, std::vector<coord_t>& layer_heights);
+    
+    static void computeLayerSkins(const std::vector<Polygons>& layer_regions, std::vector<Polygons>& layer_skins);
+    
+    static void removeBoundaryCells(SparseCellGrid3D<Cell>& grid, const std::vector<Polygons>& layer_regions, std::vector<coord_t>& layer_heights);
+    
+    static void removeSkinCells(SparseCellGrid3D<Cell>& grid, const std::vector<Polygons>& layer_skin, std::vector<coord_t>& layer_heights, coord_t cell_size);
+    
+    static void dilateCells(SparseCellGrid3D<Cell>& grid, size_t extruder_count);
+    
+    //! remove cells which are not in the intersection region
+    static void cleanUpNonInterface(SparseCellGrid3D<Cell>& grid);
+    
+    static void generateMicrostructure(std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, const std::vector<coord_t>& line_width_per_extruder, coord_t cell_size);
+    
+    static void applyMicrostructureToOutlines(SparseCellGrid3D<Cell>& grid, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, std::vector<Slicer*>& volumes, coord_t cell_size);
 };
 
 }//namespace cura
