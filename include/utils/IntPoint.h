@@ -220,9 +220,23 @@ public:
         return Point(p.X * matrix[0] + p.Y * matrix[1], p.X * matrix[2] + p.Y * matrix[3]);
     }
 
+    /*!
+     * \warning only works on a rotation matrix! Output is incorrect for other types of matrix
+     */
     Point unapply(const Point p) const
     {
         return Point(p.X * matrix[0] + p.Y * matrix[2], p.X * matrix[1] + p.Y * matrix[3]);
+    }
+
+    PointMatrix inverse() const
+    {
+        PointMatrix ret;
+        double det = matrix[0] * matrix[3] - matrix[1] * matrix[2];
+        ret.matrix[0] = matrix[3] / det;
+        ret.matrix[1] = - matrix[1] / det;
+        ret.matrix[2] = - matrix[2] / det;
+        ret.matrix[3] = matrix[0] / det;
+        return ret;
     }
 };
 
