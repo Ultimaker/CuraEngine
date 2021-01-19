@@ -1040,7 +1040,7 @@ void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_po
 #ifdef DEBUG
         if (! generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends))
         {
-            logWarning("There must have been at least one direction in which the bead count is increasing enough for the transition to happen!\n");
+            RUN_ONCE(logWarning("There must have been at least one direction in which the bead count is increasing enough for the transition to happen!\n"));
         }
 #else
         generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends);
@@ -1951,7 +1951,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 assert(!edge_from_peak->next->next);
                 if(edge_to_peak->next->next)
                 {
-                    RUN_ONCE(logWarning("The edge we're about to connect is already connected!"));
+                    RUN_ONCE(logWarning("The edge we're about to connect is already connected!\n"));
                 }
             }
             assert(std::abs(int(from_junctions.size()) - int(to_junctions.size())) <= 1); // at transitions one end has more beads
