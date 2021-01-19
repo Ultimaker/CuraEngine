@@ -1464,7 +1464,7 @@ void ExtruderPlan::flowAdvance()
     computeNaiveTimeEstimates(paths.front().points.front()); //TODO: Find correct starting position.
 
     //First find all of the time stamps where we want to introduce path splits, and what the flow rates should be.
-    std::vector<std::pair<Duration, double>> split_timestamps; //At each timestamp, store the flow rate that should be used AFTER the split.
+    std::vector<std::pair<Duration, double>> splits; //At each timestamp, store the flow rate that should be used AFTER the split.
     Point position(0, 0);
     Duration current_time = 0;
     double last_flowrate = 0; //In mm^3/s.
@@ -1476,7 +1476,7 @@ void ExtruderPlan::flowAdvance()
             const double flowrate = path.getExtrusionMM3perS();
             if(flowrate != last_flowrate && current_time >= advance) //We have a flow change here. Don't try to advance before start of extruder plan.
             {
-                split_timestamps.push_back(std::pair<Duration, double>(current_time - advance, flowrate));
+                splits.push_back(std::pair<Duration, double>(current_time - advance, flowrate));
                 last_flowrate = flowrate;
             }
             current_time += duration;
@@ -1485,7 +1485,7 @@ void ExtruderPlan::flowAdvance()
 
     //Split the paths up on those timestamps.
     std::vector<GCodePath> new_paths;
-    new_paths.reserve(paths.size() + split_timestamps.size());
+    new_paths.reserve(paths.size() + splits.size());
 
     current_time = 0;
     size_t path_index = 0;
@@ -1504,7 +1504,7 @@ void ExtruderPlan::flowAdvance()
             const Point& vertex = path.points[vertex_index];
             const coord_t distance = vSize(vertex - position);
             const Duration segment_time = INT2MM(distance) / path_speed;
-            if(split_index >= split_timestamps.size() || current_time + time_in_path + segment_time <= split_timestamps[split_index].first) //No split here.
+            if(split_index >= splits.size() || current_time + time_in_path + segment_time <= splits[split_index].first) //No split here.
             {
                 new_paths.back().points.push_back(vertex);
                 position = vertex;
@@ -1512,13 +1512,13 @@ void ExtruderPlan::flowAdvance()
                 continue;
             }
             //This segment is split up across multiple paths!
-            const double segment_fraction = (split_timestamps[split_index].first - current_time - time_in_path) / segment_time;
+            const double segment_fraction = (splits[split_index].first - current_time - time_in_path) / segment_time;
             const Point split_position = position * (1.0 - segment_fraction) + vertex * segment_fraction; //Linear interpolation across the segment.
             new_paths.back().points.push_back(split_position);
             new_paths.emplace_back(*path.config, path.mesh_id, path.space_fill_type, path.flow, path.spiralize, path.speed_factor); //And start a next path.
             vertex_index--; //Don't continue to the next vertex yet! There might be more splits to come in this fragment.
             position = split_position;
-            time_in_path = split_timestamps[split_index].first - current_time;
+            time_in_path = splits[split_index].first - current_time;
             split_index += 1;
         }
         current_time += time_in_path;
