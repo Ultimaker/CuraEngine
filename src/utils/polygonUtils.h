@@ -136,6 +136,11 @@ public:
     static void spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPolygonPoint>& result);
 
     /*!
+     * Generate a grid of dots inside of the area of the \p polygons.
+     */
+    static std::vector<Point> spreadDotsArea(const Polygons& polygons, coord_t grid_size);
+
+    /*!
      * Get the normal of a boundary point, pointing outward.
      * Only the direction is set.
      * Nothing is said about the length of the vector returned.
