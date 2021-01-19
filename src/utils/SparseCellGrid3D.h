@@ -123,6 +123,11 @@ public:
 
     ElemT& getCell(GridPoint3 loc, const ElemT& default_cell);
 
+    /*!
+     * \return whether there was a cell to be removed
+     */
+    bool removeCell(GridPoint3 loc);
+
     /*! \brief Compute the grid coordinates of a point.
      *
      * \param[in] point The actual location.
@@ -301,6 +306,12 @@ ElemT& SGI_THIS::getCell(GridPoint3 loc, const ElemT& default_cell)
     }
     assert(m_grid.find(loc) != m_grid.end());
     return m_grid.at(loc);
+}
+
+SGI_TEMPLATE
+bool SGI_THIS::removeCell(GridPoint3 loc)
+{
+    return m_grid.erase(loc);
 }
 
 SGI_TEMPLATE
