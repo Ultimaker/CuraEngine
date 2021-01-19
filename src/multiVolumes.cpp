@@ -11,7 +11,7 @@
 #include "slicer.h"
 #include "utils/PolylineStitcher.h"
 #include "settings/EnumSettings.h"
-#include "utils/PolygonUtils.h"
+#include "utils/polygonUtils.h"
 
 #include "utils/SparseCellGrid3D.h"
 
