@@ -272,7 +272,7 @@ bool SGI_THIS::processLineCells(
         if (current_cell == end_cell) break;
         
         int stepping_dim = -1; // dimension in which the line next exits the current cell
-        float percentage_along_line = 1.0;
+        float percentage_along_line = 1.1;
         for (int dim = 0; dim < 3; dim++)
         {
             if (diff[dim] == 0) continue;
