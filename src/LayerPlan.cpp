@@ -1523,6 +1523,7 @@ void ExtruderPlan::flowAdvance()
             const Point split_position = position * (1.0 - segment_fraction) + vertex * segment_fraction; //Linear interpolation across the segment.
             new_paths.back().points.push_back(split_position);
             new_paths.emplace_back(*path.config, path.mesh_id, path.space_fill_type, path.flow, path.spiralize, path.speed_factor); //And start a next path.
+            vertex_index--; //Don't continue to the next vertex yet! There might be more splits to come in this fragment.
             position = split_position;
             time_in_path = split_timestamps[split_index] - current_time;
             split_index += 1;
