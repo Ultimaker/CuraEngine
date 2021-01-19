@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring>
@@ -1467,20 +1467,13 @@ void ExtruderPlan::flowAdvance()
     std::vector<std::pair<Duration, double>> split_timestamps; //At each timestamp, store the flow rate that should be used AFTER the split.
     Point position(0, 0);
     Duration current_time = 0;
-    double last_flowrate = 0; //In um^3/s.
+    double last_flowrate = 0; //In mm^3/s.
     for(const GCodePath& path : paths)
     {
-        coord_t path_length = 0;
-        for(const Point& vertex : path.points)
-        {
-            path_length += vSize(vertex - position);
-            position = vertex;
-        }
-        const coord_t material_volume = path.config->getLineWidth() * path.config->getLayerThickness() * path_length * path.flow * path.config->getFlowRatio();
         const Duration duration = path.estimates.getTotalTime();
         if(duration > 0)
         {
-            const double flowrate = material_volume / duration;
+            const double flowrate = path.getExtrusionMM3perS();
             if(flowrate != last_flowrate && current_time >= advance) //We have a flow change here. Don't try to advance before start of extruder plan.
             {
                 split_timestamps.push_back(std::pair<Duration, double>(current_time - advance, flowrate));

@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PATH_PLANNING_G_CODE_PATH_H
@@ -75,6 +75,15 @@ public:
      * \return The flow
      */
     double getExtrusionMM3perMM() const;
+
+    /*!
+     * Get the material flow rate in mm^3 per second.
+     *
+     * This uses naive time estimation for the printing speeds, so acceleration
+     * and jerk are not taken into account.
+     * \return The flow rate in cubic mm per second.
+     */
+    double getExtrusionMM3perS() const;
 
     /*!
      * Get the actual line width (modulated by the flow)

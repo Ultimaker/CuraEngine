@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "GCodePath.h"
@@ -32,6 +32,14 @@ bool GCodePath::isTravelPath() const
 double GCodePath::getExtrusionMM3perMM() const
 {
     return flow * config->getExtrusionMM3perMM();
+}
+
+double GCodePath::getExtrusionMM3perS() const
+{
+    //We want to know how much material is extruded per second of extrusion in this type of path.
+    //So we can calculate how long the path would be if we were to travel along it at the path's speed for 1 second.
+    //Multiply this by the amount of material per unit of length, and we get the amount of material extruded in 1 second.
+    return getExtrusionMM3perMM() * config->getSpeed() * speed_factor;
 }
 
 coord_t GCodePath::getLineWidthForLayerView() const
