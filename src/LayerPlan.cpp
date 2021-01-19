@@ -1511,7 +1511,7 @@ void ExtruderPlan::flowAdvance()
             const Point& vertex = path.points[vertex_index];
             const coord_t distance = vSize(vertex - position);
             const Duration segment_time = INT2MM(distance) / path_speed;
-            if(split_index >= split_timestamps.size() || time_in_path + segment_time <= split_timestamps[split_index] - current_time) //No split here.
+            if(split_index >= split_timestamps.size() || current_time + time_in_path + segment_time <= split_timestamps[split_index]) //No split here.
             {
                 new_paths.back().points.push_back(vertex);
                 position = vertex;
