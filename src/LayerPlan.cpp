@@ -1496,7 +1496,21 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config)
     {
         const GCodePath& path = paths[path_index];
         const Velocity path_speed = path.config->getSpeed() * path.speed_factor;
+
+        //Create a copy of the original path and adjust its flow rate to be the flow rate before the last split.
+        const double previous_path_flow = (split_index == 0 || splits.empty()) ? path.getExtrusionMM3perS() : splits[split_index - 1].second;
         new_paths.emplace_back(*path.config, path.mesh_id, path.space_fill_type, path.flow, path.spiralize, path.speed_factor);
+        double original_flowrate = new_paths.back().getExtrusionMM3perS();
+        if(original_flowrate == 0) //Previously a travel move. Turn this into an extruding travel move.
+        {
+            new_paths.back().config = &extruding_travel_config;
+            original_flowrate = extruding_travel_config.getExtrusionMM3perMM() * extruding_travel_config.getSpeed(); //With a hypothetical line width of 1mm.
+            new_paths.back().flow = previous_path_flow / original_flowrate;
+        }
+        else
+        {
+            new_paths.back().flow *= previous_path_flow / original_flowrate;
+        }
 
         Duration time_in_path = 0;
         for(size_t vertex_index = 0; vertex_index < path.points.size(); ++vertex_index)
@@ -1517,7 +1531,7 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config)
             new_paths.back().points.push_back(split_position);
             new_paths.emplace_back(*path.config, path.mesh_id, path.space_fill_type, path.flow, path.spiralize, path.speed_factor); //And start a next path.
 
-            double original_flowrate = new_paths.back().getExtrusionMM3perS();
+            original_flowrate = new_paths.back().getExtrusionMM3perS();
             if(original_flowrate == 0) //Previously a travel move. Turn this into an extruding travel move.
             {
                 new_paths.back().config = &extruding_travel_config;
