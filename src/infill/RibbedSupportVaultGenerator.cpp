@@ -365,12 +365,13 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 if (! sub_tree)
                 {
                     current_trees.push_back(std::make_shared<RibbedVaultTreeNode>(node_location, unsupported_location));
+                    distance_field.update(node_location, unsupported_location);
                 }
                 else
                 {
                     sub_tree->addChild(unsupported_location);
+                    distance_field.update(sub_tree->getLocation(), unsupported_location);
                 }
-                distance_field.update(node_location, unsupported_location);
             }
 
             // Initialize trees for next lower layer from the current one.
