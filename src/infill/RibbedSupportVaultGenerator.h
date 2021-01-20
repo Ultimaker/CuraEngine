@@ -176,6 +176,8 @@ namespace cura
 
         void generateTrees(const SliceMeshStorage& mesh);
 
+        void generateNewTrees(const SliceMeshStorage& mesh, size_t layer_id, Polygons& current_outlines);
+
         coord_t supporting_radius;
         std::vector<Polygons> overhang_per_layer;
         std::vector<RibbedVaultLayer> tree_roots_per_layer;
