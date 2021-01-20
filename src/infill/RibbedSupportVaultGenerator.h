@@ -47,14 +47,14 @@ namespace cura
          * 
          * Create a copy of this tree,
          * realign it to the new layer boundaries \p next_outlines
-         * and reduce (i.e. prune and smoothen) it.
+         * and reduce (i.e. prune and straighten) it.
          */
         void propagateToNextLayer
         (
             std::vector<std::shared_ptr<RibbedVaultTreeNode>>& next_trees,
             const Polygons& next_outlines,
             const coord_t& prune_distance,
-            const float& smooth_magnitude
+            const coord_t& smooth_magnitude
         ) const;
 
         // NOTE: Depth-first, as currently implemented.
@@ -76,9 +76,22 @@ namespace cura
          */
         void realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts);
 
+        struct RectilinearJunction
+        {
+            coord_t total_recti_dist; //!< rectilinear distance along the tree from the last junction above to the junction below
+            Point junction_loc; //!< junction location below
+        };
+        
         /*! Smoothen the tree to make it a bit more printable, while still supporting the trees above.
          */
-        void smoothen(const float& magnitude);
+        void straighten(const coord_t& magnitude);
+
+        /*! Recursive part of \ref straighten(.)
+         * \param junction_above The last seen junction with multiple children above
+         * \param accumulated_dist The distance along the tree from the last seen junction to this node
+         * \return the total distance along the tree from the last junction above to the first next junction below and the location of the next junction below
+         */
+        RectilinearJunction straighten(const coord_t& magnitude, Point junction_above, coord_t accumulated_dist);
 
         /*! Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
          * \return The distance that has been pruned. If less than \p distance, then the whole tree was puned away.

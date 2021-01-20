@@ -74,7 +74,7 @@ void RibbedVaultTreeNode::propagateToNextLayer
     std::vector<std::shared_ptr<RibbedVaultTreeNode>>& next_trees,
     const Polygons& next_outlines,
     const coord_t& prune_distance,
-    const float& smooth_magnitude
+    const coord_t& smooth_magnitude
 ) const
 {
     next_trees.push_back(deepCopy());
@@ -82,7 +82,7 @@ void RibbedVaultTreeNode::propagateToNextLayer
 
     // TODO: What is the correct order of the following operations?
     result->prune(prune_distance);
-    result->smoothen(smooth_magnitude);
+    result->straighten(smooth_magnitude);
     result->realign(next_outlines, next_trees);
 }
 
@@ -141,9 +141,41 @@ void RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::sha
     // NOT IMPLEMENTED YET! (See TODO's near the top of the file.)
 }
 
-void RibbedVaultTreeNode::smoothen(const float& magnitude)
+void RibbedVaultTreeNode::straighten(const coord_t& magnitude)
 {
-    // NOT IMPLEMENTED YET! (See TODO's near the top of the file.)
+    straighten(magnitude, p, 0);
+}
+RibbedVaultTreeNode::RectilinearJunction RibbedVaultTreeNode::straighten(const coord_t& magnitude, Point junction_above, coord_t accumulated_dist)
+{
+    if (children.size() == 1)
+    {
+        auto child_p = children.front();
+        coord_t child_dist = vSize(p - child_p->p);
+        RectilinearJunction junction_below = child_p->straighten(magnitude, junction_above, accumulated_dist + child_dist);
+        coord_t total_dist_to_junction_below = junction_below.total_recti_dist;
+        Point a = junction_above;
+        Point b = junction_below.junction_loc;
+        Point ab = b - a;
+        Point destination = a + ab * accumulated_dist / total_dist_to_junction_below;
+        if (shorterThen(destination - p, magnitude))
+        {
+            p = destination;
+        }
+        else
+        {
+            p = p + normal(destination - p, magnitude);
+        }
+        return junction_below;
+    }
+    else
+    {
+        for (auto child_p : children)
+        {
+            coord_t child_dist = vSize(p - child_p->p);
+            child_p->straighten(magnitude, p, child_dist);
+        }
+        return RectilinearJunction{accumulated_dist, p};
+    }
 }
 
 // Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
@@ -394,7 +426,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                     lower_trees,
                     current_outlines,
                     100, // TODO make pruning distance a separate parameter (ideally also as an anglem from which the tanget is used to compute the actual distance for a given layer)
-                    0.1  // TODO: smooth-factor should be parameter! ... or at least not a random OK seeming magic value.
+                    supporting_radius / 2 // TODO: should smooth-factor be a bit less tan the supporting radius?
                 );
             }
         });
