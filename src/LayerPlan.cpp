@@ -1462,6 +1462,10 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config)
     const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
     const Duration advance = settings.get<Duration>("material_flow_advance");
     computeNaiveTimeEstimates(paths.front().points.front()); //TODO: Find correct starting position.
+    if(advance == 0)
+    {
+        return; //No need to do any splitting or adjusting flows.
+    }
 
     //First find all of the time stamps where we want to introduce path splits, and what the flow rates should be.
     std::vector<std::pair<Duration, double>> splits; //At each timestamp, store the flow rate that should be used AFTER the split.
