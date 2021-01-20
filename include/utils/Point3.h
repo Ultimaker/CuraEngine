@@ -9,6 +9,7 @@
 #include <limits> //For numeric_limits::min and max.
 #include <stdint.h> //For int32_t and int64_t.
 #include <type_traits> // for operations on any arithmetic number type
+#include <cassert>
 
 #include "Coord_t.h"
 
@@ -113,11 +114,19 @@ public:
         return x*p.x + y*p.y + z*p.z;
     }
 
-    coord_t& operator[] (unsigned int index)
+    coord_t& operator[] (const size_t index)
     {
-        if (index <= 0) return x;
-        if (index == 1) return y;
-        if (index >= 2) return z;
+        assert(index < 3);
+        switch(index)
+        {
+            case 0: return x;
+            case 1: return y;
+            default: return z;
+        }
+    }
+    const coord_t& operator[] (const size_t index) const
+    {
+        return const_cast<Point3*>(this)->operator[] (index);
     }
 };
 
