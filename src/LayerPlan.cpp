@@ -1449,12 +1449,12 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
     }
 }
 
-void LayerPlan::flowAdvance(const size_t extruder_nr)
+void LayerPlan::flowAdvance(const size_t extruder_nr, const double estimated_flow_next_layer)
 {
     if(extruder_nr < extruder_plans.size())
     {
         //For the last extruder plan of the layer, estimate the flow by what the next layer starts with. Otherwise end with a flow of 0 (signifying that the extruder will be on stand-by for a while).
-        double estimated_next_flow = (extruder_nr < extruder_plans.size() - 1) ? 0 : 2.0; //TODO: Next layer starting flow hard-coded to 2.0mm3/s now.
+        double estimated_next_flow = (extruder_nr < extruder_plans.size() - 1) ? 0 : estimated_flow_next_layer;
         extruder_plans[extruder_nr].flowAdvance(configs_storage.extruding_travel_config_per_extruder[extruder_nr], estimated_next_flow);
     }
 }

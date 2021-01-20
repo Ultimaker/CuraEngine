@@ -964,7 +964,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
         // ensure we print the prime tower with this extruder, because the next layer begins with this extruder!
         // If this is not performed, the next layer might get two extruder switches...
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-        gcode_layer.flowAdvance(extruder_nr);
+        gcode_layer.flowAdvance(extruder_nr, estimatedStartingFlowRate(storage, layer_nr + 1));
     }
 
     if (include_helper_parts)
@@ -3039,6 +3039,175 @@ void FffGcodeWriter::finalize()
     gcode.writeComment("Cura profile string:");
     gcode.writeComment(FffProcessor::getInstance()->getAllLocalSettingsString() + FffProcessor::getInstance()->getProfileString());
     */
+}
+
+double FffGcodeWriter::estimatedStartingFlowRate(const SliceDataStorage& storage, const LayerIndex layer_nr) const
+{
+    if(static_cast<size_t>(layer_nr) >= extruder_order_per_layer.size())
+    {
+        return 0; //At the end of the print, go to 0 flow.
+    }
+    const size_t extruder_nr = (layer_nr < 0)
+        ? extruder_order_per_layer_negative_layers[layer_nr + extruder_order_per_layer_negative_layers.size()][0]
+        : extruder_order_per_layer[layer_nr][0];
+    const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+
+    //Find the layer thickness.
+    coord_t layer_thickness = extruder_settings.get<coord_t>("layer_height");
+    if(layer_nr < 0)
+    {
+        layer_thickness = Raft::getFillerLayerHeight();
+    }
+    else
+    {
+        for(const SliceMeshStorage& mesh : storage.meshes) //Any mesh's layer thickness.
+        {
+            if(layer_nr >= static_cast<LayerIndex>(mesh.layers.size())
+                || mesh.settings.get<bool>("support_mesh")
+                || mesh.settings.get<bool>("anti_overhang_mesh")
+                || mesh.settings.get<bool>("cutting_mesh")
+                || mesh.settings.get<bool>("infill_mesh"))
+            {
+                continue;
+            }
+            layer_thickness = mesh.layers[layer_nr].thickness;
+        }
+    }
+
+    //Create a config storage by which we can calculate the flow rates of various types of lines.
+    //This storage will fill itself automatically with the correct setting values.
+    const PathConfigStorage config_storage(storage, layer_nr, layer_thickness);
+
+    //If there's a raft here, use the raft's settings.
+    if(layer_nr < 0)
+        {
+        if(layer_nr == 0 - static_cast<LayerIndex>(extruder_order_per_layer_negative_layers.size()))
+        {
+            return config_storage.raft_base_config.getExtrusionMM3perMM() * config_storage.raft_base_config.getSpeed();
+        }
+        if(layer_nr == 1 - static_cast<LayerIndex>(extruder_order_per_layer_negative_layers.size()))
+        {
+            return config_storage.raft_interface_config.getExtrusionMM3perMM() * config_storage.raft_interface_config.getSpeed();
+        }
+        return config_storage.raft_surface_config.getExtrusionMM3perMM() * config_storage.raft_surface_config.getSpeed();
+    }
+
+    //If prime tower is enabled and active on the layer, and the outer shell of the prime tower is printed with the starting extruder, this prime tower will be the first printed object.
+    if(storage.primeTower.enabled && storage.max_print_height_second_to_last_extruder <= layer_nr && extruder_nr == storage.primeTower.extruder_order[0])
+    {
+        return config_storage.prime_tower_config_per_extruder[extruder_nr].getExtrusionMM3perMM() * config_storage.prime_tower_config_per_extruder[extruder_nr].getSpeed();
+    }
+
+    //On the first layer we'll start with the brim or skirt.
+    if(layer_nr == 0 && (extruder_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM || extruder_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::SKIRT))
+    {
+        return config_storage.skirt_brim_config_per_extruder[extruder_nr].getExtrusionMM3perMM() * config_storage.skirt_brim_config_per_extruder[extruder_nr].getSpeed();
+    }
+
+    //If there's an ooze shield on this layer, that one is next.
+    if(!storage.oozeShield.empty() && layer_nr < static_cast<LayerIndex>(storage.oozeShield.size()))
+    {
+        return config_storage.skirt_brim_config_per_extruder[0].getExtrusionMM3perMM() * config_storage.skirt_brim_config_per_extruder[0].getSpeed(); //Always uses extruder 0.
+    }
+
+    //If there's a draft shield on this layer, that one is next.
+    if(!storage.draft_protection_shield.empty() && extruder_settings.get<bool>("draft_shield_enabled"))
+    {
+        const coord_t draft_shield_height = extruder_settings.get<coord_t>("draft_shield_height");
+        const coord_t layer_height_0 = extruder_settings.get<coord_t>("layer_height_0");
+        const coord_t layer_height = extruder_settings.get<coord_t>("layer_height");
+        const LayerIndex max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
+        if(extruder_settings.get<DraftShieldHeightLimitation>("draft_shield_height_limitation") != DraftShieldHeightLimitation::LIMITED
+            || layer_nr <= max_screen_layer)
+        {
+            return config_storage.skirt_brim_config_per_extruder[0].getExtrusionMM3perMM() * config_storage.skirt_brim_config_per_extruder[0].getSpeed(); //Always uses extruder 0.
+        }
+    }
+
+    //Support is up next.
+    if(layer_nr < static_cast<LayerIndex>(storage.support.supportLayers.size()))
+    {
+        const SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+
+        const size_t support_infill_extruder_nr = (layer_nr == 0) ? extruder_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr : extruder_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
+        if(extruder_nr == support_infill_extruder_nr && !support_layer.support_infill_parts.empty() && (!support_layer.support_infill_parts[0].insets.empty() || (!support_layer.support_infill_parts[0].infill_area_per_combine_per_density.empty() && !support_layer.support_infill_parts[0].infill_area_per_combine_per_density[0].empty())))
+        {
+            return config_storage.support_infill_config[0].getExtrusionMM3perMM() * config_storage.support_infill_config[0].getSpeed();
+        }
+        const size_t support_roof_extruder_nr = extruder_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
+        if(extruder_nr == support_roof_extruder_nr && !support_layer.support_roof.empty())
+        {
+            return config_storage.support_roof_config.getExtrusionMM3perMM() * config_storage.support_roof_config.getSpeed();
+        }
+        const size_t support_bottom_extruder_nr = extruder_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr;
+        if(extruder_nr == support_bottom_extruder_nr && !support_layer.support_bottom.empty())
+        {
+            return config_storage.support_bottom_config.getExtrusionMM3perMM() * config_storage.support_bottom_config.getSpeed();
+        }
+    }
+
+    //Then it's going to print the meshes in the mesh order.
+    if(!mesh_order_per_extruder.empty())
+    {
+        //Find the first mesh that is actually printed.
+        size_t i = 0;
+        for(size_t i = 0; i < mesh_order_per_extruder[extruder_nr].size(); ++i)
+        {
+            const SliceMeshStorage& mesh = storage.meshes[mesh_order_per_extruder[extruder_nr][i]];
+            if(layer_nr <= mesh.layer_nr_max_filled_layer && mesh.isPrinted() && !mesh.settings.get<bool>("support_mesh") && !mesh.layers[layer_nr].parts.empty())
+            {
+                break;
+            }
+        }
+        const SliceMeshStorage& mesh = storage.meshes[mesh_order_per_extruder[extruder_nr][i]];
+        PathConfigStorage::MeshPathConfigs mesh_config_storage(mesh, layer_thickness, layer_nr, config_storage.line_width_factor_per_extruder);
+
+        //If we're in surface mode, the mesh will always just have outer walls (even if it's an infill mesh or whatever).
+        if(mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+        {
+            return mesh_config_storage.inset0_config.getExtrusionMM3perMM() * mesh_config_storage.inset0_config.getSpeed();
+        }
+
+        //Take any part. It should be optimised to find the FIRST part, but that requires extensive computation and knowledge of the current position and such.
+        //So here we accept that we may choose a part that is not the starting part and thus we may start with the wrong line type.
+        const SliceLayerPart& part = mesh.layers[layer_nr].parts[0];
+        if(mesh.settings.get<bool>("infill_before_walls"))
+        {
+            if(!part.infill_area.empty())
+            {
+                return mesh_config_storage.infill_config[0].getExtrusionMM3perMM() * mesh_config_storage.infill_config[0].getSpeed();
+            }
+        }
+        if(!part.insets.empty())
+        {
+            if(mesh.settings.get<bool>("outer_inset_first") || part.insets.size() == 1)
+            {
+                return mesh_config_storage.inset0_config.getExtrusionMM3perMM() * mesh_config_storage.inset0_config.getSpeed();
+            }
+            else
+            {
+                return mesh_config_storage.insetX_config.getExtrusionMM3perMM() * mesh_config_storage.insetX_config.getSpeed();
+            }
+        }
+        if(!mesh.settings.get<bool>("infill_before_walls"))
+        {
+            if(!part.infill_area.empty())
+            {
+                return mesh_config_storage.infill_config[0].getExtrusionMM3perMM() * mesh_config_storage.infill_config[0].getSpeed();
+            }
+        }
+        if(!part.skin_parts.empty())
+        {
+            return mesh_config_storage.skin_config.getExtrusionMM3perMM() * mesh_config_storage.skin_config.getSpeed();
+        }
+        if(!part.perimeter_gaps.empty())
+        {
+            return mesh_config_storage.perimeter_gap_config.getExtrusionMM3perMM() * mesh_config_storage.perimeter_gap_config.getSpeed(); //Probably wildly inaccurate since these lines are combined to create different flow rates.
+        }
+    }
+
+    //No meshes have anything printable either. Nothing on this layer as far as we can predict!
+    return 0;
 }
 
 

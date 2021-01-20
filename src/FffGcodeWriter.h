@@ -732,6 +732,15 @@ private:
      * \return true if there needs to be a skin edge support wall in this layer, otherwise false
      */
     static bool partitionInfillBySkinAbove(Polygons& infill_below_skin, Polygons& infill_not_below_skin, const LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const SliceLayerPart& part, coord_t infill_line_width) ;
+
+    /*!
+     * Estimate the flow rate that a specified layer will start with.
+     * \param storage Pre-sliced layers, divided up into parts and areas of the
+     * various printed structures.
+     * \param layer_nr The layer number to estimate the starting flow rate of.
+     * \return The flow rate in mm3/s.
+     */
+    double estimatedStartingFlowRate(const SliceDataStorage& storage, const LayerIndex layer_nr) const;
 };
 
 }//namespace cura

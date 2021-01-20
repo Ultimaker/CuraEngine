@@ -710,8 +710,10 @@ public:
     /*!
      * Process Flow Advance for a certain extruder plan in this layer plan.
      * \param extruder_nr The extruder to process Flow Advance for.
+     * \param estimated_flow_next_layer An estimate for the flow rate to end up
+     * with after this layer is completed.
      */
-    void flowAdvance(const size_t extruder_nr);
+    void flowAdvance(const size_t extruder_nr, const double estimated_flow_next_layer);
 };
 
 }//namespace cura

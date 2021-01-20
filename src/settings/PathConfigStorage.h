@@ -31,7 +31,6 @@ private:
     const ExtruderTrain& support_roof_train;
     const ExtruderTrain& support_bottom_train;
 
-    const std::vector<Ratio> line_width_factor_per_extruder;
     static std::vector<Ratio> getLineWidthFactorPerExtruder(const LayerIndex& layer_nr);
 public:
     class MeshPathConfigs
@@ -53,6 +52,8 @@ public:
         MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t layer_thickness, const LayerIndex& layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder);
         void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer);
     };
+
+    const std::vector<Ratio> line_width_factor_per_extruder;
 
     GCodePathConfig raft_base_config;
     GCodePathConfig raft_interface_config;
