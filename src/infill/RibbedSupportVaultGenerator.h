@@ -139,20 +139,17 @@ namespace cura
         Polygons supported;
     };
 
-    //
-    // TODO: sugggestion:
-    //  Introduce a new class RibbedVaultLayer,
-    //  which contains both:
-    //    Polygons overhang;
-    //    std::vector<RibbedVaultTreeNode> tree_roots;
-    //  and maybe
-    //    RibbedVaultDistanceField distance_field;
-    //
-    // That way we can extend the amount of data we pass around through FffGcodeWriter more easily
+    /*!
+     * A layer of the ribbed vault infill support.
+     * 
+     * Contains the trees to be printed and propagated to the next layer below.
+     */
     class RibbedVaultLayer
     {
     public:
         std::vector<std::shared_ptr<RibbedVaultTreeNode>> tree_roots;
+
+        void generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius);
 
         Polygons convertToLines() const;
 
@@ -176,11 +173,9 @@ namespace cura
 
         void generateTrees(const SliceMeshStorage& mesh);
 
-        void generateNewTrees(const SliceMeshStorage& mesh, size_t layer_id, Polygons& current_outlines);
-
         coord_t supporting_radius;
         std::vector<Polygons> overhang_per_layer;
-        std::vector<RibbedVaultLayer> tree_roots_per_layer;
+        std::vector<RibbedVaultLayer> ribbed_vault_layers;
     };
 
 } // namespace cura

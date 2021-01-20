@@ -306,18 +306,57 @@ void RibbedVaultDistanceField::update(const Point& to_node, const Point& added_l
 // -- -- -- -- -- --
 // -- -- -- -- -- --
 
-
-RibbedSupportVaultGenerator::RibbedSupportVaultGenerator(const coord_t& radius, const SliceMeshStorage& mesh) :
-    supporting_radius (radius)
+void RibbedVaultLayer::generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius)
 {
-    generateInitialInternalOverhangs(mesh, radius);
-    generateTrees(mesh);  // NOTE: Ideally, these would not be in the constructor. TODO?: Rewrite 'Generator' as loose functions and perhaps a struct.
+    RibbedVaultDistanceField distance_field(supporting_radius, current_outlines, current_overhang, tree_roots);
+
+    constexpr size_t debug_max_iterations = 9999;
+    size_t i_debug = 0;
+
+    // Until no more points need to be added to support all:
+    // Determine next point from tree/outline areas via distance-field
+    Point unsupported_location;
+    while (distance_field.tryGetNextPoint(&unsupported_location)    && i_debug < debug_max_iterations)
+    {
+        ++i_debug;
+        
+        // Determine & conect to connection point in tree/outline.
+        ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
+        Point node_location = cpp.p();
+        
+        std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
+        coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
+        for (auto& tree : tree_roots)
+        {
+            assert(tree);
+            
+            auto candidate_sub_tree = tree->findClosestNode(unsupported_location, supporting_radius);
+            const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
+            if (candidate_dist < current_dist)
+            {
+                current_dist = candidate_dist;
+                sub_tree = candidate_sub_tree;
+            }
+        }
+        
+        // Update trees & distance fields.
+        if ( ! sub_tree)
+        {
+            tree_roots.push_back(std::make_shared<RibbedVaultTreeNode>(node_location, unsupported_location));
+            distance_field.update(node_location, unsupported_location);
+        }
+        else
+        {
+            sub_tree->addChild(unsupported_location);
+            distance_field.update(sub_tree->getLocation(), unsupported_location);
+        }
+    }
 }
 
 const RibbedVaultLayer& RibbedSupportVaultGenerator::getTreesForLayer(const size_t& layer_id)
 {
-    assert(layer_id < tree_roots_per_layer.size());
-    return tree_roots_per_layer[layer_id];
+    assert(layer_id < ribbed_vault_layers.size());
+    return ribbed_vault_layers[layer_id];
 }
 
 // Returns 'added someting'.
@@ -342,6 +381,17 @@ Polygons RibbedVaultLayer::convertToLines() const
     return result_lines;
 }
 
+// -- -- -- -- -- --
+// -- -- -- -- -- --
+
+
+RibbedSupportVaultGenerator::RibbedSupportVaultGenerator(const coord_t& radius, const SliceMeshStorage& mesh) :
+supporting_radius (radius)
+{
+    generateInitialInternalOverhangs(mesh, radius);
+    generateTrees(mesh);  // NOTE: Ideally, these would not be in the constructor. TODO?: Rewrite 'Generator' as loose functions and perhaps a struct.
+}
+
 // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
 void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh, coord_t supporting_radius)
 {
@@ -364,61 +414,9 @@ void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMe
     }
 }
 
-void RibbedSupportVaultGenerator::generateNewTrees(const SliceMeshStorage& mesh, size_t layer_id, Polygons& current_outlines)
-{
-    const Polygons& current_overhang = overhang_per_layer[layer_id];
-
-    RibbedVaultLayer& current_vault_layer = tree_roots_per_layer[layer_id];
-
-    // Have (next) area in need of support.
-    RibbedVaultDistanceField distance_field(supporting_radius, current_outlines, current_overhang, current_vault_layer.tree_roots);
-
-    constexpr size_t debug_max_iterations = 9999;
-    size_t i_debug = 0;
-
-    // Until no more points need to be added to support all:
-    // Determine next point from tree/outline areas via distance-field
-    Point unsupported_location;
-    while (distance_field.tryGetNextPoint(&unsupported_location)    && i_debug < debug_max_iterations)
-    {
-        ++i_debug;
-
-        // Determine & conect to connection point in tree/outline.
-        ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
-        Point node_location = cpp.p();
-
-        std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
-        coord_t current_dist = current_vault_layer.getWeightedDistance(node_location, unsupported_location);
-        for (auto& tree : current_vault_layer.tree_roots)
-        {
-            assert(tree);
-
-            auto candidate_sub_tree = tree->findClosestNode(unsupported_location, supporting_radius);
-            const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
-            if (candidate_dist < current_dist)
-            {
-                current_dist = candidate_dist;
-                sub_tree = candidate_sub_tree;
-            }
-        }
-
-        // Update trees & distance fields.
-        if (! sub_tree)
-        {
-            current_vault_layer.tree_roots.push_back(std::make_shared<RibbedVaultTreeNode>(node_location, unsupported_location));
-            distance_field.update(node_location, unsupported_location);
-        }
-        else
-        {
-            sub_tree->addChild(unsupported_location);
-            distance_field.update(sub_tree->getLocation(), unsupported_location);
-        }
-    }
-}
-
 void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
 {
-    tree_roots_per_layer.resize(mesh.layers.size());
+    ribbed_vault_layers.resize(mesh.layers.size());
 
     // For-each layer from top to bottom:
     for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
@@ -429,16 +427,16 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             current_outlines.add(part.getOwnInfillArea());
         }
 
-        generateNewTrees(mesh, layer_id, current_outlines);
-        
+        ribbed_vault_layers[layer_id].generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius);
+
         // Initialize trees for next lower layer from the current one.
         if (layer_id == 0)
         {
             return;
         }
-        RibbedVaultLayer& current_vault_layer = tree_roots_per_layer[layer_id];
+        RibbedVaultLayer& current_vault_layer = ribbed_vault_layers[layer_id];
         std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = current_vault_layer.tree_roots;
-        std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = tree_roots_per_layer[layer_id - 1].tree_roots;
+        std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = ribbed_vault_layers[layer_id - 1].tree_roots;
         for (auto& tree : current_trees)
         {
             tree->propagateToNextLayer
