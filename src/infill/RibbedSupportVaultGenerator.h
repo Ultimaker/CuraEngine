@@ -78,9 +78,10 @@ namespace cura
 
         std::shared_ptr<RibbedVaultTreeNode> deepCopy() const; //!< Copy this node and all its children
 
-        /*! Reconnect trees from the layer above to the new outlines of the lower layer
+        /*! Reconnect trees from the layer above to the new outlines of the lower layer.
+         * \return Wether or not the root is kept (false is no, true is yes).
          */
-        void realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts);
+        bool realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts);
 
         /*! Smoothen the tree to make it a bit more printable, while still supporting the trees above.
          */

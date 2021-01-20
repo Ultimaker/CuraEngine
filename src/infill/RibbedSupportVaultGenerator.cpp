@@ -4,6 +4,8 @@
 #include "RibbedSupportVaultGenerator.h"
 
 #include "../sliceDataStorage.h"
+#include "../utils/polygonUtils.h"
+#include "../utils/linearAlg2D.h"
 
 #include <functional>
 #include <memory>
@@ -76,13 +78,16 @@ void RibbedVaultTreeNode::propagateToNextLayer
     const float& smooth_magnitude
 ) const
 {
-    next_trees.push_back(deepCopy());
-    auto& result = next_trees.back();
+    auto layer_copy = deepCopy();
 
     // TODO: What is the correct order of the following operations?
-    result->prune(prune_distance);
-    result->smoothen(smooth_magnitude);
-    result->realign(next_outlines, next_trees);
+    //       (NOTE: in case realign turns out _not_ to be last, would need to rewrite a few things, see the 'rerooted_parts' parameter of that function).
+    layer_copy->prune(prune_distance);
+    layer_copy->smoothen(smooth_magnitude);
+    if (layer_copy->realign(next_outlines, next_trees))
+    {
+        next_trees.push_back(layer_copy);
+    }
 }
 
 // NOTE: Depth-first, as currently implemented.
@@ -132,12 +137,35 @@ std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::deepCopy() const
     return local_root;
 }
 
-void RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts)
+bool RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts)
 {
     // NOTE: Is it neccesary to 'reroot' parts further up the tree, or can it just be done from the root onwards
     //       and ignore any further altercations once the outline is crossed (from the outside) for the first time?
 
-    // NOT IMPLEMENTED YET! (See TODO's near the top of the file.)
+    if (outlines.empty())
+    {
+        return false;
+    }
+    else if (outlines.inside(p, true))
+    {
+        return true;
+    }
+    else if (children.size() == 1 && outlines.inside(children.front()->p, true))
+    {
+        p = PolygonUtils::findClosest(p, outlines).p();
+        return true;
+    }
+    else
+    {
+        for (auto& child : children)
+        {
+            if (child->realign(outlines, rerooted_parts))
+            {
+                rerooted_parts.push_back(child);
+            }
+        }
+    }
+    return false;
 }
 
 void RibbedVaultTreeNode::smoothen(const float& magnitude)
