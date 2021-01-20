@@ -237,7 +237,8 @@ void RibbedVaultDistanceField::update(const Point& to_node, const Point& added_l
 {
     Polygons line;
     line.addLine(to_node, added_leaf);
-    supported = supported.unionPolygons(line.offsetPolyLine(supporting_radius, ClipperLib::jtRound));
+    Polygons offsetted = line.offsetPolyLine(supporting_radius, ClipperLib::jtRound);
+    supported = supported.unionPolygons(offsetted);
     unsupported = unsupported.difference(supported);
 }
 
@@ -326,7 +327,8 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             {
                 tree_roots_per_layer.emplace(layer_id, RibbedVaultLayer());
             }
-            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = tree_roots_per_layer[layer_id].tree_roots;
+            RibbedVaultLayer& current_vault_layer = tree_roots_per_layer[layer_id];
+            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = current_vault_layer.tree_roots;
 
             // Have (next) area in need of support.
             RibbedVaultDistanceField distance_field(radius, current_outlines, current_overhang, current_trees);
