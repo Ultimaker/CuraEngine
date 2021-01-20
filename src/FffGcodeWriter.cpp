@@ -3151,13 +3151,18 @@ double FffGcodeWriter::estimatedStartingFlowRate(const SliceDataStorage& storage
     {
         //Find the first mesh that is actually printed.
         size_t i = 0;
-        for(size_t i = 0; i < mesh_order_per_extruder[extruder_nr].size(); ++i)
+        for(; i < mesh_order_per_extruder[extruder_nr].size(); ++i)
         {
             const SliceMeshStorage& mesh = storage.meshes[mesh_order_per_extruder[extruder_nr][i]];
-            if(layer_nr <= mesh.layer_nr_max_filled_layer && mesh.isPrinted() && !mesh.settings.get<bool>("support_mesh") && !mesh.layers[layer_nr].parts.empty())
+            if(layer_nr <= mesh.layer_nr_max_filled_layer && static_cast<size_t>(layer_nr) < mesh.layers.size() && mesh.isPrinted() && !mesh.settings.get<bool>("support_mesh") && !mesh.layers[layer_nr].parts.empty())
             {
                 break;
             }
+        }
+        if(i >= mesh_order_per_extruder[extruder_nr].size())
+        {
+            //None of the meshes had a printable part here.
+            return 0;
         }
         const SliceMeshStorage& mesh = storage.meshes[mesh_order_per_extruder[extruder_nr][i]];
         PathConfigStorage::MeshPathConfigs mesh_config_storage(mesh, layer_thickness, layer_nr, config_storage.line_width_factor_per_extruder);
