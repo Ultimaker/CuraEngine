@@ -1480,12 +1480,14 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config)
             const double flowrate = path.getExtrusionMM3perS();
             if(flowrate != last_flowrate && current_time >= advance) //We have a flow change here. Don't try to advance before start of extruder plan.
             {
-                splits.push_back(std::pair<Duration, double>(current_time - advance, flowrate));
+                splits.emplace_back(current_time - advance, flowrate);
                 last_flowrate = flowrate;
             }
             current_time += duration;
         }
     }
+    const double guessed_flowrate_next_plan = 1.8; //TODO: Guess the flow rate of the next extruder plan.
+    splits.emplace_back(current_time - advance, guessed_flowrate_next_plan); //Add a split at the end to continue with the flow rate that we think will be in the next plan.
 
     //Split the paths up on those timestamps.
     std::vector<GCodePath> new_paths;
