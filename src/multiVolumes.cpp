@@ -340,16 +340,18 @@ void MultiVolumes::removeBoundaryCells(SparseCellGrid3D<Cell>& grid, const std::
             for (Point p : poly)
             {
                 grid.processLineCells(std::make_pair(Point3(last.X, last.Y, z), Point3(p.X, p.Y, z)),
-                                      [&grid](SparseCellGrid3D<Cell>::GridPoint3 grid_loc) -> bool
-                                      {
-                                          for (coord_t offset_x : {-1, 0, 1})
-                                              for (coord_t offset_y : {-1, 0, 1})
-                                                  for (coord_t offset_z : {-1, 0, 1})
-                                                  {
-                                                      grid.removeCell(grid_loc + Point3(offset_x, offset_y, offset_z));
-                                                  }
-                                                  return true; // keep going removing cells
-                                      }
+                    [&grid](SparseCellGrid3D<Cell>::GridPoint3 grid_loc) -> bool
+                    {
+                        for (coord_t offset_x : {-1, 0, 1})
+                        {
+                            for (coord_t offset_y : {-1, 0, 1})
+                            {
+                                for (coord_t offset_z : {-1, 0, 1})
+                                {
+                                    grid.removeCell(grid_loc + Point3(offset_x, offset_y, offset_z));
+                        }   }   }
+                        return true; // keep going removing cells
+                    }
                 );
                 last = p;
             }
