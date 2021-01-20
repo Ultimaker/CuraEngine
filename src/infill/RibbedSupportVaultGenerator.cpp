@@ -13,13 +13,13 @@
 
 //____v
 
-// TODO: Shortest distance to polygons function, and/or write/reuse distancefield things.
+// TODO: improve tryGetNextPoint
 //       Idea maybe something can be done with isolines for the distance function?
-// TODO: Properly implement the distance heuristic for 'closest node' (it's now just 'euclidian_sqd_distance'), this is different from the distance field!
-// TODO: Implement 'Simplify' ... also heuristic? Also: Should the 'sequence_smooth_func' _really_ accept a vector of Points? (Probably a better way.)
 // TODO: Implement 'Truncate' ... is it needed to do it within the tree as well (see note-comment in function itself).
 // TODO: The convert trees to lines 'algorithm' is way too simple right now (unless they're already going to be connected later).
+// TODO: Merge RibbedVaultDistanceField into RibbedVaultLayer
 // TODO: Lots of smaller TODO's in code itself, put on list!
+// TODO: split radius into several parameters based on infill_line_distance, internal_overhang_angle, infill_overhang_angle, etc.
 
 // Implementation in Infill classes & elsewhere (not here):
 // TODO: Outline offset, infill-overlap & perimeter gaps.
@@ -31,6 +31,11 @@
 // TODO: Also generate support instead of just infill (and enable that in frontend).
 // TODO: Find a way to parallelize part(s) of it??
 // TODO: G2/G3 to make trees properly curved? -> Should be in Arachne, not here, but still ;-)
+// TODO: Generate double lined trees. -> mare stable and better printable without retractions or travels
+// TODO: Generate all to-be-supported points at once instead of sequentially.
+//       See branch interlocking_gen PolygonUtils::spreadDots
+//       Or work with sparse grids.
+// TODO: also straighten or smoothen junctions in trees
 
 //____^
 
