@@ -370,80 +370,80 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
 
     // For-each layer from top to bottom:
     for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
+    {
+        const SliceLayer& current_layer = mesh.layers[layer_id];
+        const Polygons& current_overhang = overhang_per_layer[layer_id];
+        Polygons current_outlines;
+        for (const auto& part : current_layer.parts)
         {
-            const SliceLayer& current_layer = mesh.layers[layer_id];
-            const Polygons& current_overhang = overhang_per_layer[layer_id];
-            Polygons current_outlines;
-            for (const auto& part : current_layer.parts)
-            {
-                current_outlines.add(part.getOwnInfillArea());
-            }
+            current_outlines.add(part.getOwnInfillArea());
+        }
 
-            RibbedVaultLayer& current_vault_layer = tree_roots_per_layer[layer_id];
-            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = current_vault_layer.tree_roots;
+        RibbedVaultLayer& current_vault_layer = tree_roots_per_layer[layer_id];
+        std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = current_vault_layer.tree_roots;
 
-            // Have (next) area in need of support.
-            RibbedVaultDistanceField distance_field( supporting_radius, current_outlines, current_overhang, current_trees);
+        // Have (next) area in need of support.
+        RibbedVaultDistanceField distance_field( supporting_radius, current_outlines, current_overhang, current_trees);
 
-            constexpr size_t debug_max_iterations = 9999;
-            size_t i_debug = 0;
+        constexpr size_t debug_max_iterations = 9999;
+        size_t i_debug = 0;
 
-            // Until no more points need to be added to support all:
-            // Determine next point from tree/outline areas via distance-field
-            Point unsupported_location;
-            while (distance_field.tryGetNextPoint(&unsupported_location)    && i_debug < debug_max_iterations)
-            {
+        // Until no more points need to be added to support all:
+        // Determine next point from tree/outline areas via distance-field
+        Point unsupported_location;
+        while (distance_field.tryGetNextPoint(&unsupported_location)    && i_debug < debug_max_iterations)
+        {
 
-                ++i_debug;
+            ++i_debug;
 
-                // Determine & conect to connection point in tree/outline.
-                ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
-                Point node_location = cpp.p();
+            // Determine & conect to connection point in tree/outline.
+            ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
+            Point node_location = cpp.p();
 
-                std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
-                coord_t current_dist = current_vault_layer.getWeightedDistance(node_location, unsupported_location);
-                for (auto& tree : current_trees)
-                {
-                    assert(tree);
-
-                    auto candidate_sub_tree = tree->findClosestNode(unsupported_location, supporting_radius);
-                    const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
-                    if (candidate_dist < current_dist)
-                    {
-                        current_dist = candidate_dist;
-                        sub_tree = candidate_sub_tree;
-                    }
-                }
-
-                // Update trees & distance fields.
-                if (! sub_tree)
-                {
-                    current_trees.push_back(std::make_shared<RibbedVaultTreeNode>(node_location, unsupported_location));
-                    distance_field.update(node_location, unsupported_location);
-                }
-                else
-                {
-                    sub_tree->addChild(unsupported_location);
-                    distance_field.update(sub_tree->getLocation(), unsupported_location);
-                }
-            }
-
-            // Initialize trees for next lower layer from the current one.
-            if (layer_id == 0)
-            {
-                return;
-            }
-            const size_t lower_layer_id = layer_id - 1;
-            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = tree_roots_per_layer[lower_layer_id].tree_roots;
+            std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
+            coord_t current_dist = current_vault_layer.getWeightedDistance(node_location, unsupported_location);
             for (auto& tree : current_trees)
             {
-                tree->propagateToNextLayer
-                (
-                    lower_trees,
-                    current_outlines,
-                    100, // TODO make pruning distance a separate parameter (ideally also as an anglem from which the tanget is used to compute the actual distance for a given layer)
-                    supporting_radius / 2 // TODO: should smooth-factor be a bit less tan the supporting radius?
-                );
+                assert(tree);
+
+                auto candidate_sub_tree = tree->findClosestNode(unsupported_location, supporting_radius);
+                const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
+                if (candidate_dist < current_dist)
+                {
+                    current_dist = candidate_dist;
+                    sub_tree = candidate_sub_tree;
+                }
+            }
+
+            // Update trees & distance fields.
+            if (! sub_tree)
+            {
+                current_trees.push_back(std::make_shared<RibbedVaultTreeNode>(node_location, unsupported_location));
+                distance_field.update(node_location, unsupported_location);
+            }
+            else
+            {
+                sub_tree->addChild(unsupported_location);
+                distance_field.update(sub_tree->getLocation(), unsupported_location);
             }
         }
+
+        // Initialize trees for next lower layer from the current one.
+        if (layer_id == 0)
+        {
+            return;
+        }
+        const size_t lower_layer_id = layer_id - 1;
+        std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = tree_roots_per_layer[lower_layer_id].tree_roots;
+        for (auto& tree : current_trees)
+        {
+            tree->propagateToNextLayer
+            (
+                lower_trees,
+                current_outlines,
+                100, // TODO make pruning distance a separate parameter (ideally also as an anglem from which the tanget is used to compute the actual distance for a given layer)
+                supporting_radius / 2 // TODO: should smooth-factor be a bit less tan the supporting radius?
+            );
+        }
+    }
 }
