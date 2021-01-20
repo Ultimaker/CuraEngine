@@ -144,8 +144,14 @@ public:
      * turned extruding. This needs to have the same config as the travel moves,
      * but with a non-zero line width so that the flow rate can be adjusted in
      * the path.
+     * \param estimated_flow_next_plan An estimation of the flow rate that will
+     * immediately follow this plan for this plan's nozzle. Used to advance the
+     * flow just before the end of the extruder plan. When this plan is followed
+     * by an extruder switch (where the nozzle is going to be inactive for a
+     * while) this should be 0. Otherwise it should be the flow of a structure
+     * that the next plan will likely start with. Flow is measured in mm3/s.
      */
-    void flowAdvance(const GCodePathConfig& extruding_travel_config);
+    void flowAdvance(const GCodePathConfig& extruding_travel_config, const double estimated_flow_next_plan);
 
     /*!
      * Set the extrude speed factor. This is used for printing slower than normal.

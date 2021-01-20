@@ -1453,11 +1453,13 @@ void LayerPlan::flowAdvance(const size_t extruder_nr)
 {
     if(extruder_nr < extruder_plans.size())
     {
-        extruder_plans[extruder_nr].flowAdvance(configs_storage.extruding_travel_config_per_extruder[extruder_nr]);
+        //For the last extruder plan of the layer, estimate the flow by what the next layer starts with. Otherwise end with a flow of 0 (signifying that the extruder will be on stand-by for a while).
+        double estimated_next_flow = (extruder_nr < extruder_plans.size() - 1) ? 0 : 2.0; //TODO: Next layer starting flow hard-coded to 2.0mm3/s now.
+        extruder_plans[extruder_nr].flowAdvance(configs_storage.extruding_travel_config_per_extruder[extruder_nr], estimated_next_flow);
     }
 }
 
-void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config)
+void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, const double estimated_flow_next_plan)
 {
     const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
     const Duration advance = settings.get<Duration>("material_flow_advance");
@@ -1486,8 +1488,7 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config)
             current_time += duration;
         }
     }
-    const double guessed_flowrate_next_plan = 1.8; //TODO: Guess the flow rate of the next extruder plan.
-    splits.emplace_back(current_time - advance, guessed_flowrate_next_plan); //Add a split at the end to continue with the flow rate that we think will be in the next plan.
+    splits.emplace_back(current_time - advance, estimated_flow_next_plan); //Add a split at the end to continue with the flow rate that we think will be in the next plan.
 
     //Split the paths up on those timestamps.
     std::vector<GCodePath> new_paths;
