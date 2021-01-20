@@ -1462,7 +1462,7 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config)
     const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
     const Duration advance = settings.get<Duration>("material_flow_advance");
     computeNaiveTimeEstimates(paths.front().points.front()); //TODO: Find correct starting position.
-    if(advance == 0)
+    if(advance == 0 || paths.empty())
     {
         return; //No need to do any splitting or adjusting flows.
     }
