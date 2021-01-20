@@ -310,21 +310,14 @@ void RibbedVaultDistanceField::update(const Point& to_node, const Point& added_l
 RibbedSupportVaultGenerator::RibbedSupportVaultGenerator(const coord_t& radius, const SliceMeshStorage& mesh) :
     supporting_radius (radius)
 {
-    size_t layer_id = 0;
-    for (const auto& layer : mesh.layers)
-    {
-        layer_id_by_height.insert({layer.printZ, layer_id});
-        ++layer_id;
-    }
     generateInitialInternalOverhangs(mesh, radius);
     generateTrees(mesh);  // NOTE: Ideally, these would not be in the constructor. TODO?: Rewrite 'Generator' as loose functions and perhaps a struct.
 }
 
 const RibbedVaultLayer& RibbedSupportVaultGenerator::getTreesForLayer(const size_t& layer_id)
 {
-    auto it = tree_roots_per_layer.find(layer_id);
-    assert(it != tree_roots_per_layer.end());
-    return it->second;
+    assert(layer_id < tree_roots_per_layer.size());
+    return tree_roots_per_layer[layer_id];
 }
 
 // Returns 'added someting'.
@@ -352,6 +345,8 @@ Polygons RibbedVaultLayer::convertToLines() const
 // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
 void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh, coord_t supporting_radius)
 {
+    overhang_per_layer.resize(mesh.layers.size());
+
     Polygons infill_area_above;
     for (int layer_nr = mesh.layers.size() - 1; layer_nr >= 0; layer_nr--)
     {
@@ -364,18 +359,19 @@ void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMe
 
         Polygons overhang = infill_area_here.offset(-supporting_radius).difference(infill_area_above);
 
-        overhang_per_layer.emplace(layer_nr, overhang);
+        overhang_per_layer[layer_nr] = overhang;
         infill_area_above = std::move(infill_area_here);
     }
 }
 
 void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
 {
+    tree_roots_per_layer.resize(mesh.layers.size());
+
     // For-each layer from top to bottom:
-    std::for_each(mesh.layers.rbegin(), mesh.layers.rend(),
-        [&](const SliceLayer& current_layer)
+    for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
         {
-            const size_t layer_id = layer_id_by_height[current_layer.printZ];
+            const SliceLayer& current_layer = mesh.layers[layer_id];
             const Polygons& current_overhang = overhang_per_layer[layer_id];
             Polygons current_outlines;
             for (const auto& part : current_layer.parts)
@@ -383,10 +379,6 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 current_outlines.add(part.getOwnInfillArea());
             }
 
-            if (tree_roots_per_layer.count(layer_id) == 0)
-            {
-                tree_roots_per_layer.emplace(layer_id, RibbedVaultLayer());
-            }
             RibbedVaultLayer& current_vault_layer = tree_roots_per_layer[layer_id];
             std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = current_vault_layer.tree_roots;
 
@@ -442,10 +434,6 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 return;
             }
             const size_t lower_layer_id = layer_id - 1;
-            if (tree_roots_per_layer.count(layer_id) == 0)
-            {
-                tree_roots_per_layer.emplace(lower_layer_id, RibbedVaultLayer());
-            }
             std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = tree_roots_per_layer[lower_layer_id].tree_roots;
             for (auto& tree : current_trees)
             {
@@ -457,5 +445,5 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                     supporting_radius / 2 // TODO: should smooth-factor be a bit less tan the supporting radius?
                 );
             }
-        });
+        }
 }
