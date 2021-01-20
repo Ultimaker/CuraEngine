@@ -84,15 +84,15 @@ void RibbedVaultTreeNode::propagateToNextLayer
     const coord_t& smooth_magnitude
 ) const
 {
-    auto layer_copy = deepCopy();
+    auto tree_below = deepCopy();
 
     // TODO: What is the correct order of the following operations?
     //       (NOTE: in case realign turns out _not_ to be last, would need to rewrite a few things, see the 'rerooted_parts' parameter of that function).
-    layer_copy->prune(prune_distance);
-    layer_copy->straighten(smooth_magnitude);
-    if (layer_copy->realign(next_outlines, next_trees))
+    tree_below->prune(prune_distance);
+    tree_below->straighten(smooth_magnitude);
+    if (tree_below->realign(next_outlines, next_trees))
     {
-        next_trees.push_back(layer_copy);
+        next_trees.push_back(tree_below);
     }
 }
 
