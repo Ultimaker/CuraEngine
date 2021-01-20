@@ -35,7 +35,7 @@ public:
      * \param[in] elem_reserve Number of elements to research space for.
      * \param[in] max_load_factor Maximum average load factor before rehashing.
      */
-    SparseCellGrid3D(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
+    SparseCellGrid3D(Point3 cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
 
     /*! \brief Returns all data within radius of query_pt.
      *
@@ -85,7 +85,7 @@ public:
     bool processLine(const std::pair<Point3, Point3> query_line,
                        const std::function<bool (const Elem&)>& process_elem_func) const;
 
-    coord_t getCellSize() const;
+    Point3 getCellSize() const;
 
     using GridPoint3 = Point3;
     using grid_coord_t = coord_t;
@@ -140,7 +140,7 @@ public:
      * \param[in] coord The actual location.
      * \return The grid coordinate that corresponds to \p coord.
      */
-    grid_coord_t toGridCoord(const coord_t& coord) const;
+    grid_coord_t toGridCoord(const coord_t& coord, const size_t dim) const;
 
     /*! \brief Compute the lowest point in a grid cell.
      * The lowest point is the point in the grid cell closest to the origin.
@@ -156,7 +156,7 @@ public:
      * \param[in] grid_coord The grid coordinate.
      * \return The print space coordinate that corresponds to \p grid_coord.
      */
-    coord_t toLowerCoord(const grid_coord_t& grid_coord) const; 
+    coord_t toLowerCoord(const grid_coord_t& grid_coord, const size_t dim) const; 
 
     /*! \brief Inserts cell into the sparse grid.
      * 
@@ -167,7 +167,7 @@ public:
     /*! \brief Map from grid locations (GridPoint3) to elements (Elem). */
     GridMap m_grid;
     /*! \brief The cell (square) size. */
-    coord_t m_cell_size;
+    Point3 m_cell_size;
 
     grid_coord_t nonzero_sign(const grid_coord_t z) const;
 };
@@ -178,9 +178,11 @@ public:
 #define SGI_THIS SparseCellGrid3D<ElemT>
 
 SGI_TEMPLATE
-SGI_THIS::SparseCellGrid3D(coord_t cell_size, size_t elem_reserve, float max_load_factor)
+SGI_THIS::SparseCellGrid3D(Point3 cell_size, size_t elem_reserve, float max_load_factor)
 {
-    assert(cell_size > 0U);
+    assert(cell_size.x > 0U);
+    assert(cell_size.y > 0U);
+    assert(cell_size.z > 0U);
 
     m_cell_size = cell_size;
 
@@ -194,11 +196,11 @@ SGI_THIS::SparseCellGrid3D(coord_t cell_size, size_t elem_reserve, float max_loa
 SGI_TEMPLATE
 typename SGI_THIS::GridPoint3 SGI_THIS::toGridPoint(const Point3 &point)  const
 {
-    return Point3(toGridCoord(point.x), toGridCoord(point.y), toGridCoord(point.z));
+    return Point3(toGridCoord(point.x, 0), toGridCoord(point.y, 1), toGridCoord(point.z, 2));
 }
 
 SGI_TEMPLATE
-typename SGI_THIS::grid_coord_t SGI_THIS::toGridCoord(const coord_t& coord)  const
+typename SGI_THIS::grid_coord_t SGI_THIS::toGridCoord(const coord_t& coord, const size_t dim)  const
 {
     // This mapping via truncation results in the cells with
     // GridPoint3.x==0 being twice as large and similarly for
@@ -206,17 +208,18 @@ typename SGI_THIS::grid_coord_t SGI_THIS::toGridCoord(const coord_t& coord)  con
     // just changes the running time slightly.  The change in running
     // time from this is probably not worth doing a proper floor
     // operation.
-    return coord / m_cell_size;
+    assert(dim >= 0 && dim < 3);
+    return coord / m_cell_size[dim];
 }
 
 SGI_TEMPLATE
 typename cura::Point3 SGI_THIS::toLowerCorner(const GridPoint3& location)  const
 {
-    return cura::Point3(toLowerCoord(location.x), toLowerCoord(location.y), toLowerCoord(location.z));
+    return cura::Point3(toLowerCoord(location.x, 0), toLowerCoord(location.y, 1), toLowerCoord(location.z, 2));
 }
 
 SGI_TEMPLATE
-typename cura::coord_t SGI_THIS::toLowerCoord(const grid_coord_t& grid_coord)  const
+typename cura::coord_t SGI_THIS::toLowerCoord(const grid_coord_t& grid_coord, const size_t dim)  const
 {
     // This mapping via truncation results in the cells with
     // GridPoint3.x==0 being twice as large and similarly for
@@ -224,7 +227,8 @@ typename cura::coord_t SGI_THIS::toLowerCoord(const grid_coord_t& grid_coord)  c
     // just changes the running time slightly.  The change in running
     // time from this is probably not worth doing a proper floor
     // operation.
-    return grid_coord * m_cell_size;
+    assert(dim >= 0 && dim < 3);
+    return grid_coord * m_cell_size[dim];
 }
 
 SGI_TEMPLATE
@@ -281,7 +285,7 @@ bool SGI_THIS::processLineCells(
         for (int dim = 0; dim < 3; dim++)
         {
             if (diff[dim] == 0) continue;
-            coord_t crossing_boundary = toLowerCoord(current_cell[dim]) + (diff[dim] > 0) * m_cell_size;
+            coord_t crossing_boundary = toLowerCoord(current_cell[dim], dim) + (diff[dim] > 0) * m_cell_size[dim];
             float percentage_along_line_here = (crossing_boundary - start[dim]) / static_cast<float>(diff[dim]);
             if (percentage_along_line_here < percentage_along_line)
             {
@@ -382,7 +386,7 @@ const std::function<bool(const typename SGI_THIS::Elem &)>
     };
 
 SGI_TEMPLATE
-coord_t SGI_THIS::getCellSize() const
+Point3 SGI_THIS::getCellSize() const
 {
     return m_cell_size;
 }

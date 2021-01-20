@@ -228,9 +228,11 @@ void MultiVolumes::generateInterlockingStructure(std::vector<Slicer*>& volumes)
     // TODO: implement lesser dilation based on translated polygons
     // TODO: make dilation user parameter
     
+    // TODO: adjust voxel height to 2x layer height? or 4x? make adjustable?
+    
     PointMatrix rotation(45.0);
     
-    SparseCellGrid3D<Cell> grid(cell_size);
+    SparseCellGrid3D<Cell> grid(Point3(cell_size, cell_size, 4 * Application::getInstance().current_slice->scene.settings.get<coord_t>("layer_height")));
 
     populateGridWithBoundaryVoxels(volumes, rotation, grid);
     
