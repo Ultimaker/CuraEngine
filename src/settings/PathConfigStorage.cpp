@@ -196,6 +196,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
 {
     const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
     travel_config_per_extruder.reserve(extruder_count);
+    extruding_travel_config_per_extruder.reserve(extruder_count);
     skirt_brim_config_per_extruder.reserve(extruder_count);
     prime_tower_config_per_extruder.reserve(extruder_count);
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
@@ -205,8 +206,15 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
         travel_config_per_extruder.emplace_back(
                 PrintFeatureType::MoveCombing
                 , 0
-                , 0
+                , layer_thickness
                 , 0.0
+                , GCodePathConfig::SpeedDerivatives{train.settings.get<Velocity>("speed_travel"), train.settings.get<Acceleration>("acceleration_travel"), train.settings.get<Velocity>("jerk_travel")}
+            );
+        extruding_travel_config_per_extruder.emplace_back(
+                PrintFeatureType::NoneType
+                , 1.0
+                , layer_thickness
+                , 1.0
                 , GCodePathConfig::SpeedDerivatives{train.settings.get<Velocity>("speed_travel"), train.settings.get<Acceleration>("acceleration_travel"), train.settings.get<Velocity>("jerk_travel")}
             );
         skirt_brim_config_per_extruder.emplace_back(
@@ -313,6 +321,7 @@ void cura::PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& 
             GCodePathConfig& travel = travel_config_per_extruder[extruder_nr];
 
             travel.smoothSpeed(initial_layer_travel_speed_config, std::max(LayerIndex(0), layer_nr), initial_speedup_layer_count);
+            extruding_travel_config_per_extruder[extruder_nr].smoothSpeed(initial_layer_travel_speed_config, std::max(LayerIndex(0), layer_nr), initial_speedup_layer_count);
 
             // don't smooth speed for the skirt/brim!
             // NOTE: not smoothing skirt/brim means the speeds are also not smoothed for the draft/ooze shield

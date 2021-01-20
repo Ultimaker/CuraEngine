@@ -140,8 +140,12 @@ public:
      * This will split up some motion commands into multiple. It should not
      * affect the time estimates of the motion command, but it might if the
      * extrusion jerk is not high enough.
+     * \param extruding_travel_config A path config to use for travel moves
+     * turned extruding. This needs to have the same config as the travel moves,
+     * but with a non-zero line width so that the flow rate can be adjusted in
+     * the path.
      */
-    void flowAdvance();
+    void flowAdvance(const GCodePathConfig& extruding_travel_config);
 
     /*!
      * Set the extrude speed factor. This is used for printing slower than normal.

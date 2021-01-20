@@ -59,6 +59,7 @@ public:
     GCodePathConfig raft_surface_config;
 
     std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
+    std::vector<GCodePathConfig> extruding_travel_config_per_extruder; //!< Config used for travel moves which DO get extrusion. Speed is set, and line width is set to 1mm, allowing path flow to determine line width. Used for Flow Advance.
     std::vector<GCodePathConfig> skirt_brim_config_per_extruder; //!< Configuration for skirt and brim per extruder.
     std::vector<GCodePathConfig> prime_tower_config_per_extruder; //!< Configuration for the prime tower per extruder.
 

@@ -1453,11 +1453,11 @@ void LayerPlan::flowAdvance(const size_t extruder_nr)
 {
     if(extruder_nr < extruder_plans.size())
     {
-        extruder_plans[extruder_nr].flowAdvance();
+        extruder_plans[extruder_nr].flowAdvance(configs_storage.extruding_travel_config_per_extruder[extruder_nr]);
     }
 }
 
-void ExtruderPlan::flowAdvance()
+void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config)
 {
     const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
     const Duration advance = settings.get<Duration>("material_flow_advance");
@@ -1518,9 +1518,11 @@ void ExtruderPlan::flowAdvance()
             new_paths.emplace_back(*path.config, path.mesh_id, path.space_fill_type, path.flow, path.spiralize, path.speed_factor); //And start a next path.
 
             double original_flowrate = new_paths.back().getExtrusionMM3perS();
-            if(original_flowrate == 0) //Previously a travel move. Skip for now.
+            if(original_flowrate == 0) //Previously a travel move. Turn this into an extruding travel move.
             {
-                //TODO: Turn travel move into an extrusion move. Create a new path config?
+                new_paths.back().config = &extruding_travel_config;
+                original_flowrate = extruding_travel_config.getExtrusionMM3perMM() * extruding_travel_config.getSpeed(); //With a hypothetical line width of 1mm.
+                new_paths.back().flow = splits[split_index].second / original_flowrate;
             }
             else
             {
