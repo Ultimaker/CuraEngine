@@ -167,6 +167,7 @@ bool RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::sha
         {
             if (child->realign(outlines, rerooted_parts))
             {
+                child->is_root = true;
                 rerooted_parts.push_back(child);
             }
         }
