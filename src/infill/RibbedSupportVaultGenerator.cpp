@@ -34,15 +34,16 @@
 
 using namespace cura;
 
-// TODO??: Move/make-settable somehow or merge completely with this class (same as next getter).
-RibbedVaultTreeNode::point_distance_func_t RibbedVaultTreeNode::getPointDistanceFunction()
+coord_t RibbedVaultLayer::getWeightedDistance(const Point boundary_loc, const Point unsupported_loc)
 {
-    // NOTE: The following closure is too simple compared to the paper, used during development, and will be reimplemented.
-    return point_distance_func_t(
-        [](const Point& a, const Point& b)
-        {
-            return vSize2(b - a);
-        });
+    return vSize(boundary_loc - unsupported_loc);
+}
+
+coord_t RibbedVaultTreeNode::getWeightedDistance(const Point unsupported_loc, const coord_t supporting_radius)
+{
+    size_t valence = ( ! is_root) + children.size();
+    coord_t boost = (0 < valence && valence < 4)? 4 * supporting_radius : 0;
+    return vSize(getLocation() - unsupported_loc) - boost;
 }
 
 const Point& RibbedVaultTreeNode::getLocation() const
@@ -60,11 +61,11 @@ void RibbedVaultTreeNode::addChild(const Point& p)
     children.push_back(std::make_shared<RibbedVaultTreeNode>(p));
 }
 
-std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::findClosestNode(const Point& x, const point_distance_func_t& heuristic)
+std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::findClosestNode(const Point& x, const coord_t supporting_radius)
 {
-    coord_t closest_distance = heuristic(p, x);
+    coord_t closest_distance = getWeightedDistance(x, supporting_radius);
     std::shared_ptr<RibbedVaultTreeNode> closest_node = shared_from_this();
-    findClosestNodeHelper(x, heuristic, closest_distance, closest_node);
+    findClosestNodeHelper(x, supporting_radius, closest_distance, closest_node);
     return closest_node;
 }
 
@@ -106,12 +107,12 @@ RibbedVaultTreeNode::RibbedVaultTreeNode(const Point& a, const Point& b) : Ribbe
     is_root = true;
 }
 
-void RibbedVaultTreeNode::findClosestNodeHelper(const Point& x, const point_distance_func_t& heuristic, coord_t& closest_distance, std::shared_ptr<RibbedVaultTreeNode>& closest_node)
+void RibbedVaultTreeNode::findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<RibbedVaultTreeNode>& closest_node)
 {
     for (const auto& node : children)
     {
-        node->findClosestNodeHelper(x, heuristic, closest_distance, closest_node);
-        const coord_t distance = heuristic(node->p, x);
+        node->findClosestNodeHelper(x, supporting_radius, closest_distance, closest_node);
+        const coord_t distance = node->getWeightedDistance(x, supporting_radius);
         if (distance < closest_distance)
         {
             closest_node = node;
@@ -247,7 +248,7 @@ void RibbedVaultDistanceField::update(const Point& to_node, const Point& added_l
 
 
 RibbedSupportVaultGenerator::RibbedSupportVaultGenerator(const coord_t& radius, const SliceMeshStorage& mesh) :
-    radius(radius)
+    supporting_radius (radius)
 {
     size_t layer_id = 0;
     for (const auto& layer : mesh.layers)
@@ -261,8 +262,9 @@ RibbedSupportVaultGenerator::RibbedSupportVaultGenerator(const coord_t& radius, 
 
 const RibbedVaultLayer& RibbedSupportVaultGenerator::getTreesForLayer(const size_t& layer_id)
 {
-    assert(tree_roots_per_layer.count(layer_id));
-    return tree_roots_per_layer[layer_id];
+    auto it = tree_roots_per_layer.find(layer_id);
+    assert(it != tree_roots_per_layer.end());
+    return it->second;
 }
 
 // Returns 'added someting'.
@@ -309,8 +311,6 @@ void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMe
 
 void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
 {
-    const auto& tree_point_dist_func = RibbedVaultTreeNode::getPointDistanceFunction();
-
     // For-each layer from top to bottom:
     std::for_each(mesh.layers.rbegin(), mesh.layers.rend(),
         [&](const SliceLayer& current_layer)
@@ -331,7 +331,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = current_vault_layer.tree_roots;
 
             // Have (next) area in need of support.
-            RibbedVaultDistanceField distance_field(radius, current_outlines, current_overhang, current_trees);
+            RibbedVaultDistanceField distance_field( supporting_radius, current_outlines, current_overhang, current_trees);
 
             constexpr size_t debug_max_iterations = 9999;
             size_t i_debug = 0;
@@ -349,13 +349,13 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
                 Point node_location = cpp.p();
 
                 std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
-                coord_t current_dist = tree_point_dist_func(node_location, unsupported_location);
+                coord_t current_dist = current_vault_layer.getWeightedDistance(node_location, unsupported_location);
                 for (auto& tree : current_trees)
                 {
                     assert(tree);
 
-                    auto candidate_sub_tree = tree->findClosestNode(unsupported_location, tree_point_dist_func);
-                    const coord_t candidate_dist = tree_point_dist_func(candidate_sub_tree->getLocation(), unsupported_location);
+                    auto candidate_sub_tree = tree->findClosestNode(unsupported_location, supporting_radius);
+                    const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
                     if (candidate_dist < current_dist)
                     {
                         current_dist = candidate_dist;

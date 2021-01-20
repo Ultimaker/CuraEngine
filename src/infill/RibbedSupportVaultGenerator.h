@@ -24,16 +24,9 @@ namespace cura
     public:
         friend class std::shared_ptr<RibbedVaultTreeNode>;
 
-        // For use with findClosestNode.
-        // Input: Two points. Output: Distance between those points.
-        typedef std::function<coord_t(const Point&, const Point&)> point_distance_func_t;
-
         // For use with the 'visit___' function(s).
         // Input: Uptree junction point (closer to root), downtree branch point (closer to leaves).
         typedef std::function<void(const Point&, const Point&)> visitor_func_t;
-
-        // TODO??: Move/make-settable somehow or merge completely with this class (same as next getter).
-        static point_distance_func_t getPointDistanceFunction();
 
         // Constructs a node, for insertion into a tree:
         RibbedVaultTreeNode(const Point& p);
@@ -47,7 +40,7 @@ namespace cura
         void addChild(const Point& p);
 
         // TODO: should be moved outside of this class, because we want to efficiently find pairs of close nodes
-        std::shared_ptr<RibbedVaultTreeNode> findClosestNode(const Point& x, const point_distance_func_t& heuristic);
+        std::shared_ptr<RibbedVaultTreeNode> findClosestNode(const Point& x, const coord_t supporting_radius);
 
         /*!
          * Propagate this tree to the next layer.
@@ -68,13 +61,14 @@ namespace cura
         //       Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
         void visitBranches(const visitor_func_t& visitor) const;
 
+        coord_t getWeightedDistance(const Point unsupported_loc, const coord_t supporting_radius);
     protected:
         RibbedVaultTreeNode() = delete; // Don't allow empty contruction
 
         /*!
          * What does this function do?!
          */
-        void findClosestNodeHelper(const Point& x, const point_distance_func_t& heuristic, coord_t& closest_distance, std::shared_ptr<RibbedVaultTreeNode>& closest_node);
+        void findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<RibbedVaultTreeNode>& closest_node);
 
         std::shared_ptr<RibbedVaultTreeNode> deepCopy() const; //!< Copy this node and all its children
 
@@ -145,8 +139,10 @@ namespace cura
     {
     public:
         std::vector<std::shared_ptr<RibbedVaultTreeNode>> tree_roots;
-        
+
         Polygons convertToLines() const;
+
+        coord_t getWeightedDistance(const Point boundary_loc, const Point unsupported_loc);
     };
 
     class RibbedSupportVaultGenerator
@@ -166,7 +162,7 @@ namespace cura
 
         void generateTrees(const SliceMeshStorage& mesh);
 
-        coord_t radius;
+        coord_t supporting_radius;
         std::map<coord_t, size_t> layer_id_by_height;
         std::map<size_t, Polygons> overhang_per_layer;
         std::map<size_t, RibbedVaultLayer> tree_roots_per_layer;
