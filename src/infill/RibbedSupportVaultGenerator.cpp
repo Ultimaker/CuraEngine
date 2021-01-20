@@ -289,13 +289,21 @@ RibbedVaultDistanceField::RibbedVaultDistanceField
     unsupported = current_overhang.difference(supported);
 }
 
-bool RibbedVaultDistanceField::tryGetNextPoint(Point* p) const
+bool RibbedVaultDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radius) const
 {
     if (unsupported.area() < 25)
     {
         return false;
     }
-    *p = unsupported[0][std::rand() % unsupported[0].size()];
+    size_t point_idx = std::rand() % unsupported[0].size();
+    Point point_on_unsupported_boundary = unsupported[0][point_idx];
+    ClosestPolygonPoint cpp(point_on_unsupported_boundary, point_idx, unsupported[0], 0);
+    *p = PolygonUtils::moveInside(cpp, supporting_radius);
+    if ( ! unsupported.inside(*p))
+    {
+        PolygonUtils::moveInside(unsupported, *p, supporting_radius / 2);
+    }
+    // NOTE: it's okay for the rare case where a point ends up outside; it's just an inefficient tree branch.
     return true;
 }
 
@@ -321,7 +329,7 @@ void RibbedVaultLayer::generateNewTrees(const Polygons& current_overhang, Polygo
     // Until no more points need to be added to support all:
     // Determine next point from tree/outline areas via distance-field
     Point unsupported_location;
-    while (distance_field.tryGetNextPoint(&unsupported_location)    && i_debug < debug_max_iterations)
+    while (distance_field.tryGetNextPoint(&unsupported_location, supporting_radius)    && i_debug < debug_max_iterations)
     {
         ++i_debug;
         

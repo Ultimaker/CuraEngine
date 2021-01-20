@@ -126,7 +126,7 @@ namespace cura
          * 
          * Returns false if \ref RibbedVaultDistanceField::unsupported is empty
          */
-        bool tryGetNextPoint(Point* p) const;
+        bool tryGetNextPoint(Point* p, coord_t supporting_radius) const;
 
         /*! update the distance field with a newly added branch
          * TODO: check whether this explanation is correct
