@@ -148,29 +148,36 @@ bool RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::sha
     // NOTE: Is it neccesary to 'reroot' parts further up the tree, or can it just be done from the root onwards
     //       and ignore any further altercations once the outline is crossed (from the outside) for the first time?
 
+    // TODO: Don't remove entire tree on single child outside (iterate further to see if there's any more inside).
+    // TODO?: Hole(s) in the _middle_ of a line-segement (unlikely?).
+    // TODO: Reconnect if not on outline.
+
     if (outlines.empty())
     {
         return false;
     }
-    else if (outlines.inside(p, true))
+
+    for (auto& child : children)
+    {
+        if (! outlines.inside(child->p, false))
+        {
+            child->children.clear();
+            child->p = PolygonUtils::findClosest(child->p, outlines).p();
+        }
+        else
+        {
+            child->realign(outlines, rerooted_parts);
+        }
+    }
+
+    if (outlines.inside(p, true))
     {
         return true;
     }
-    else if (children.size() == 1 && outlines.inside(children.front()->p, true))
+    else if (children.size() == 1 && outlines.inside(children.front()->p, false))
     {
         p = PolygonUtils::findClosest(p, outlines).p();
         return true;
-    }
-    else
-    {
-        for (auto& child : children)
-        {
-            if (child->realign(outlines, rerooted_parts))
-            {
-                child->is_root = true;
-                rerooted_parts.push_back(child);
-            }
-        }
     }
     return false;
 }
