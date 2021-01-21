@@ -1503,6 +1503,10 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
     {
         splits.emplace_back(current_time - advance_reducing, estimated_flow_next_plan);
     }
+    if(splits.empty())
+    {
+        return; //Nothing to split.
+    }
 
     //Filter out any flow changes shorter than the minimum flow change duration.
     for(size_t i = 0; i < splits.size() - 1; ++i)
