@@ -39,6 +39,8 @@ namespace cura
 
         void addChild(const Point& p);
 
+        void addChild(std::shared_ptr<RibbedVaultTreeNode> new_child);
+
         // TODO: should be moved outside of this class, because we want to efficiently find pairs of close nodes
         std::shared_ptr<RibbedVaultTreeNode> findClosestNode(const Point& x, const coord_t supporting_radius);
 
@@ -62,6 +64,8 @@ namespace cura
         void visitBranches(const visitor_func_t& visitor) const;
 
         coord_t getWeightedDistance(const Point unsupported_loc, const coord_t supporting_radius);
+
+        bool isRoot() const { return is_root; }
     protected:
         RibbedVaultTreeNode() = delete; // Don't allow empty contruction
 
@@ -169,9 +173,12 @@ namespace cura
 
         void generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius);
 
-        GroundingLocation getBestGroundingLocation(const Point unsupported_location, Polygons& current_outlines, coord_t supporting_radius);
+        //! Determine & connect to connection point in tree/outline.
+        GroundingLocation getBestGroundingLocation(const Point unsupported_location, const Polygons& current_outlines, coord_t supporting_radius, std::shared_ptr<RibbedVaultTreeNode> to_be_excluded = nullptr);
 
         void attach(Point unsupported_loc, GroundingLocation ground);
+
+        void reconnectRoots(std::vector<std::shared_ptr<RibbedVaultTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius);
 
         Polygons convertToLines() const;
 

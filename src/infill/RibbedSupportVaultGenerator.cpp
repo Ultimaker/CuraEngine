@@ -73,6 +73,11 @@ void RibbedVaultTreeNode::addChild(const Point& p)
     children.push_back(std::make_shared<RibbedVaultTreeNode>(p));
 }
 
+void RibbedVaultTreeNode::addChild(std::shared_ptr<RibbedVaultTreeNode> new_child)
+{
+    children.push_back(new_child);
+}
+
 std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::findClosestNode(const Point& x, const coord_t supporting_radius)
 {
     coord_t closest_distance = getWeightedDistance(x, supporting_radius);
@@ -364,9 +369,8 @@ void RibbedVaultLayer::generateNewTrees(const Polygons& current_overhang, Polygo
     }
 }
 
-GroundingLocation RibbedVaultLayer::getBestGroundingLocation(const Point unsupported_location, Polygons& current_outlines, coord_t supporting_radius)
+GroundingLocation RibbedVaultLayer::getBestGroundingLocation(const Point unsupported_location, const Polygons& current_outlines, coord_t supporting_radius, std::shared_ptr<RibbedVaultTreeNode> to_be_excluded)
 {
-    // Determine & connect to connection point in tree/outline.
     ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point node_location = cpp.p();
 
@@ -375,6 +379,10 @@ GroundingLocation RibbedVaultLayer::getBestGroundingLocation(const Point unsuppo
     for (auto& tree : tree_roots)
     {
         assert(tree);
+        if (tree == to_be_excluded)
+        {
+            continue;
+        }
         auto candidate_sub_tree = tree->findClosestNode(unsupported_location, supporting_radius);
         const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
         if (candidate_dist < current_dist)
@@ -404,6 +412,30 @@ void RibbedVaultLayer::attach(Point unsupported_location, GroundingLocation grou
     else
     {
         grounding_loc.tree_node->addChild(unsupported_location);
+    }
+}
+
+void RibbedVaultLayer::reconnectRoots(std::vector<std::shared_ptr<RibbedVaultTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius)
+{
+    for (auto root_ptr : to_be_reconnected_tree_roots)
+    {
+        auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
+        GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, supporting_radius, root_ptr);
+        if (ground.boundary_location)
+        {
+            auto new_root = std::make_shared<RibbedVaultTreeNode>(ground.p());
+            new_root->addChild(root_ptr);
+            *old_root_it = std::move(new_root); // replace old root with new root
+        }
+        else
+        {
+            assert(ground.tree_node);
+            assert(ground.tree_node != root_ptr);
+            ground.tree_node->addChild(root_ptr);
+            // remove old root
+            *old_root_it = std::move(tree_roots.back());
+            tree_roots.pop_back();
+        }
     }
 }
 
@@ -487,8 +519,14 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
     // For-each layer from top to bottom:
     for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
     {
+        RibbedVaultLayer& current_vault_layer = ribbed_vault_layers[layer_id];
         Polygons& current_outlines = infill_outlines[layer_id];
-        ribbed_vault_layers[layer_id].generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius);
+        // register all trees propagated from the previous layer as to-be-reconnected
+        std::vector<std::shared_ptr<RibbedVaultTreeNode>> to_be_reconnected_tree_roots = current_vault_layer.tree_roots;
+
+        current_vault_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius);
+
+        current_vault_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, supporting_radius);
 
         // Initialize trees for next lower layer from the current one.
         if (layer_id == 0)
@@ -497,10 +535,8 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
         }
         const Polygons& below_outlines = infill_outlines[layer_id - 1];
 
-        RibbedVaultLayer& current_vault_layer = ribbed_vault_layers[layer_id];
-        std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = current_vault_layer.tree_roots;
         std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = ribbed_vault_layers[layer_id - 1].tree_roots;
-        for (auto& tree : current_trees)
+        for (auto& tree : current_vault_layer.tree_roots)
         {
             tree->propagateToNextLayer
             (
