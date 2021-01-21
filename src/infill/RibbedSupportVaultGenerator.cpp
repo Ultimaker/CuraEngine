@@ -21,6 +21,9 @@
 // TODO: Lots of smaller TODO's in code itself, put on list!
 // TODO: split radius into several parameters based on infill_line_distance, internal_overhang_angle, infill_overhang_angle, etc.
 
+// TODO: improve connecting heuristic to favor connecting to shorter trees
+// TODO: smoothing of junctions
+
 // Implementation in Infill classes & elsewhere (not here):
 // TODO: Outline offset, infill-overlap & perimeter gaps.
 // TODO: Frontend, make sure it's enabled for 'actual' infill only (search for infill pattern).
