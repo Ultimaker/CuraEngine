@@ -12,6 +12,7 @@ namespace cura {
 	void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
 	{
 		const AngleRadians angle = mesh.settings.get<AngleRadians>("conical_overhang_angle");
+		const double maxHoleArea = mesh.settings.get<double>("conical_overhang_hole_size");
 		const double tan_angle = tan(angle);  // the XY-component of the angle
 		const coord_t layer_thickness = mesh.settings.get<coord_t>("layer_height");
 		coord_t max_dist_from_lower_layer = tan_angle * layer_thickness; // max dist which can be bridged
@@ -33,9 +34,6 @@ namespace cura {
 			}
 			else
 			{
-				// Coded added to avoid closing up of recessed holes in the base of a model
-				// Detects when a hole is completely covered by the layer above and removes the hole from the layer above before adding it in
-				// This should have no effect any time a hole in a layer interacts with any polygon in the layer above
 				// Get the current layer and split it into parts
 				std::vector<PolygonsPart> layerParts = layer.polygons.splitIntoParts();
 				// Get a copy of the layer above to prune away before we shrink it
@@ -51,15 +49,18 @@ namespace cura {
 						{
 							Polygons holePoly;
 							holePoly.add(layerParts[part][hole_nr]);
-							Polygons holeWithAbove = holePoly.intersection(above);
-							if (!holeWithAbove.empty())
+							if (maxHoleArea > 0.0 && INT2MM(INT2MM(fabs(holePoly.area()))) < maxHoleArea)
 							{
-								// The hole had some intersection with the above layer, check if it's a complete overlap
-								Polygons holeDifference = holePoly.xorPolygons(holeWithAbove);		// xor will return an empty result for identical polygons.
-								if (holeDifference.empty())
+								Polygons holeWithAbove = holePoly.intersection(above);
+								if (!holeWithAbove.empty())
 								{
-									// The hole was returned unchanged, so the layer above must completely cover it.  Remove the hole from the layer above.
-									above = above.difference(holePoly);
+									// The hole had some intersection with the above layer, check if it's a complete overlap
+									Polygons holeDifference = holePoly.xorPolygons(holeWithAbove);
+									if (holeDifference.empty())
+									{
+										// The hole was returned unchanged, so the layer above must completely cover it.  Remove the hole from the layer above.
+										above = above.difference(holePoly);
+									}
 								}
 							}
 						}
