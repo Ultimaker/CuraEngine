@@ -139,6 +139,24 @@ namespace cura
         Polygons supported;
     };
 
+    struct GroundingLocation
+    {
+        std::shared_ptr<RibbedVaultTreeNode> tree_node; //!< not null if the gounding location is on a tree
+        std::optional<ClosestPolygonPoint> boundary_location; //!< in case the gounding location is on the boundary
+        Point p()
+        {
+            if (tree_node != nullptr)
+            {
+                return tree_node->getLocation();
+            }
+            else
+            {
+                assert(boundary_location);
+                return boundary_location->p();
+            }
+        }
+    };
+
     /*!
      * A layer of the ribbed vault infill support.
      * 
@@ -150,6 +168,10 @@ namespace cura
         std::vector<std::shared_ptr<RibbedVaultTreeNode>> tree_roots;
 
         void generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius);
+
+        GroundingLocation getBestGroundingLocation(const Point unsupported_location, Polygons& current_outlines, coord_t supporting_radius);
+
+        void attach(Point unsupported_loc, GroundingLocation ground);
 
         Polygons convertToLines() const;
 

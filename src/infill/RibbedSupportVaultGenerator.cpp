@@ -23,6 +23,7 @@
 
 // TODO: improve connecting heuristic to favor connecting to shorter trees
 // TODO: smoothing of junctions
+// TODO: use sparse grid for efficiently looking up closest points in trees
 
 // Implementation in Infill classes & elsewhere (not here):
 // TODO: Outline offset, infill-overlap & perimeter gaps.
@@ -341,7 +342,7 @@ void RibbedVaultLayer::generateNewTrees(const Polygons& current_overhang, Polygo
 {
     RibbedVaultDistanceField distance_field(supporting_radius, current_outlines, current_overhang, tree_roots);
 
-    constexpr size_t debug_max_iterations = 9999;
+    constexpr size_t debug_max_iterations = 9999; // TODO: remove
     size_t i_debug = 0;
 
     // Until no more points need to be added to support all:
@@ -350,17 +351,26 @@ void RibbedVaultLayer::generateNewTrees(const Polygons& current_overhang, Polygo
     while (distance_field.tryGetNextPoint(&unsupported_location, supporting_radius)    && i_debug < debug_max_iterations)
     {
         ++i_debug;
-        
-        // Determine & conect to connection point in tree/outline.
+
+        GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, supporting_radius);
+        attach(unsupported_location, grounding_loc);
+
+        // update distance field
+        distance_field.update(grounding_loc.p(), unsupported_location);
+    }
+}
+
+GroundingLocation RibbedVaultLayer::getBestGroundingLocation(const Point unsupported_location, Polygons& current_outlines, coord_t supporting_radius)
+{
+        // Determine & connect to connection point in tree/outline.
         ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
         Point node_location = cpp.p();
-        
+
         std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
         coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
         for (auto& tree : tree_roots)
         {
             assert(tree);
-            
             auto candidate_sub_tree = tree->findClosestNode(unsupported_location, supporting_radius);
             const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
             if (candidate_dist < current_dist)
@@ -369,18 +379,27 @@ void RibbedVaultLayer::generateNewTrees(const Polygons& current_overhang, Polygo
                 sub_tree = candidate_sub_tree;
             }
         }
-        
-        // Update trees & distance fields.
+
         if ( ! sub_tree)
         {
-            tree_roots.push_back(std::make_shared<RibbedVaultTreeNode>(node_location, unsupported_location));
-            distance_field.update(node_location, unsupported_location);
+            return GroundingLocation{nullptr, cpp};
         }
         else
         {
-            sub_tree->addChild(unsupported_location);
-            distance_field.update(sub_tree->getLocation(), unsupported_location);
+            return GroundingLocation{sub_tree, std::optional<ClosestPolygonPoint>()};
         }
+}
+
+void RibbedVaultLayer::attach(Point unsupported_location, GroundingLocation grounding_loc)
+{
+    // Update trees & distance fields.
+    if (grounding_loc.boundary_location)
+    {
+        tree_roots.push_back(std::make_shared<RibbedVaultTreeNode>(grounding_loc.p(), unsupported_location));
+    }
+    else
+    {
+        grounding_loc.tree_node->addChild(unsupported_location);
     }
 }
 
