@@ -442,15 +442,22 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
 {
     ribbed_vault_layers.resize(mesh.layers.size());
 
+    std::vector<Polygons> infill_outlines;
+    infill_outlines.insert(infill_outlines.end(), mesh.layers.size(), Polygons());
+
     // For-each layer from top to bottom:
     for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
     {
-        Polygons current_outlines;
         for (const auto& part : mesh.layers[layer_id].parts)
         {
-            current_outlines.add(part.getOwnInfillArea());
+            infill_outlines[layer_id].add(part.getOwnInfillArea());
         }
+    }
 
+    // For-each layer from top to bottom:
+    for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
+    {
+        Polygons& current_outlines = infill_outlines[layer_id];
         ribbed_vault_layers[layer_id].generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius);
 
         // Initialize trees for next lower layer from the current one.
@@ -458,6 +465,8 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
         {
             return;
         }
+        const Polygons& below_outlines = infill_outlines[layer_id - 1];
+
         RibbedVaultLayer& current_vault_layer = ribbed_vault_layers[layer_id];
         std::vector<std::shared_ptr<RibbedVaultTreeNode>>& current_trees = current_vault_layer.tree_roots;
         std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = ribbed_vault_layers[layer_id - 1].tree_roots;
@@ -466,7 +475,7 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
             tree->propagateToNextLayer
             (
                 lower_trees,
-                current_outlines,
+                below_outlines,
                 100, // TODO make pruning distance a separate parameter (ideally also as an anglem from which the tanget is used to compute the actual distance for a given layer)
                 supporting_radius / 2 // TODO: should smooth-factor be a bit less tan the supporting radius?
             );
