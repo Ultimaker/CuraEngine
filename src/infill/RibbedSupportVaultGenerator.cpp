@@ -24,6 +24,7 @@
 // TODO: improve connecting heuristic to favor connecting to shorter trees
 // TODO: smoothing of junctions
 // TODO: use sparse grid for efficiently looking up closest points in trees
+// TODO: use swap with last trick when removing from unordered vector instead of moving all further elements back one place
 
 // Implementation in Infill classes & elsewhere (not here):
 // TODO: Outline offset, infill-overlap & perimeter gaps.
@@ -353,6 +354,9 @@ void RibbedVaultLayer::generateNewTrees(const Polygons& current_overhang, Polygo
         ++i_debug;
 
         GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, supporting_radius);
+
+        // TODO: update unsupported_location to lie closer to grounding_loc
+
         attach(unsupported_location, grounding_loc);
 
         // update distance field
