@@ -66,6 +66,8 @@ namespace cura
         coord_t getWeightedDistance(const Point unsupported_loc, const coord_t supporting_radius);
 
         bool isRoot() const { return is_root; }
+
+        bool hasOffspring(std::shared_ptr<RibbedVaultTreeNode> to_be_checked);
     protected:
         RibbedVaultTreeNode() = delete; // Don't allow empty contruction
 

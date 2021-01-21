@@ -58,6 +58,17 @@ coord_t RibbedVaultTreeNode::getWeightedDistance(const Point unsupported_loc, co
     return vSize(getLocation() - unsupported_loc) - boost;
 }
 
+
+bool RibbedVaultTreeNode::hasOffspring(std::shared_ptr<RibbedVaultTreeNode> to_be_checked)
+{
+    if (&*to_be_checked == this) return true;
+    for (auto child_ptr : children)
+    {
+        if (child_ptr->hasOffspring(to_be_checked)) return true;
+    }
+    return false;
+}
+
 const Point& RibbedVaultTreeNode::getLocation() const
 {
     return p;
@@ -68,14 +79,20 @@ void RibbedVaultTreeNode::setLocation(Point loc)
     p = loc;
 }
 
-void RibbedVaultTreeNode::addChild(const Point& p)
+void RibbedVaultTreeNode::addChild(const Point& child_loc)
 {
-    children.push_back(std::make_shared<RibbedVaultTreeNode>(p));
+    assert(p != child_loc);
+    children.push_back(std::make_shared<RibbedVaultTreeNode>(child_loc));
 }
 
 void RibbedVaultTreeNode::addChild(std::shared_ptr<RibbedVaultTreeNode> new_child)
 {
+    assert(&*new_child != this);
+//     assert(p != new_child->p);
+    if (p == new_child->p)
+        std::cerr << "wtf\n";
     children.push_back(new_child);
+    new_child->is_root = false;
 }
 
 std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::findClosestNode(const Point& x, const coord_t supporting_radius)
@@ -213,15 +230,18 @@ RibbedVaultTreeNode::RectilinearJunction RibbedVaultTreeNode::straighten(const c
         coord_t total_dist_to_junction_below = junction_below.total_recti_dist;
         Point a = junction_above;
         Point b = junction_below.junction_loc;
-        Point ab = b - a;
-        Point destination = a + ab * accumulated_dist / total_dist_to_junction_below;
-        if (shorterThen(destination - p, magnitude))
+        if (a != b) // should always be true!
         {
-            p = destination;
-        }
-        else
-        {
-            p = p + normal(destination - p, magnitude);
+            Point ab = b - a;
+            Point destination = a + ab * accumulated_dist / total_dist_to_junction_below;
+            if (shorterThen(destination - p, magnitude))
+            {
+                p = destination;
+            }
+            else
+            {
+                p = p + normal(destination - p, magnitude);
+            }
         }
         return junction_below;
     }
@@ -431,6 +451,8 @@ void RibbedVaultLayer::reconnectRoots(std::vector<std::shared_ptr<RibbedVaultTre
         {
             assert(ground.tree_node);
             assert(ground.tree_node != root_ptr);
+            assert( ! root_ptr->hasOffspring(ground.tree_node));
+            assert( ! ground.tree_node->hasOffspring(root_ptr));
             ground.tree_node->addChild(root_ptr);
             // remove old root
             *old_root_it = std::move(tree_roots.back());
