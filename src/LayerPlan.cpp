@@ -1465,6 +1465,7 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
     const Duration advance_increasing = settings.get<Duration>("material_flow_advance_increasing");
     const Duration advance_reducing = settings.get<Duration>("material_flow_advance_reducing");
     const Duration minimum_flow_change_duration = settings.get<Duration>("material_min_flow_change_duration");
+    const Ratio overcompensation_factor = settings.get<Ratio>("material_flow_advance_overcompensation");
     const Point start_position = paths.front().points.front(); //TODO: Find correct starting position.
     if(paths.empty() || (advance_increasing == 0 && advance_reducing == 0 && minimum_flow_change_duration == 0))
     {
@@ -1539,6 +1540,27 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
                 splits.erase(splits.begin() + i);
             }
             i--; //Either way, don't skip the following split either, which is now in the removed split's position.
+        }
+    }
+
+    //Adjust the flow changes so that they overcompensate for the change in flow rate, effectively reducing the time it takes to change the flow.
+    if(overcompensation_factor != 1.0_r)
+    {
+        double last_flowrate = paths[0].getExtrusionMM3perS();
+        for(size_t i = 0; i < splits.size(); ++i)
+        {
+            const double new_flowrate = splits[i].second;
+            const double flow_change = new_flowrate - last_flowrate;
+            splits[i].second = last_flowrate + flow_change * overcompensation_factor; //Adjust the flow rate of this segment to overcompensate.
+            //And then after twice the flow advance time, change it to the actual desired flow rate.
+            //We're doing twice here so that half of the flow change falls before the desired change in flow rate, and half falls afterwards.
+            const Duration advance = (flow_change > 0) ? advance_increasing : advance_reducing;
+            if(static_cast<double>(splits[i].first) + advance * 2.0 < splits[i + 1].first)
+            {
+                splits.insert(splits.begin() + i + 1, std::pair<Duration, double>(static_cast<double>(splits[i].first) + advance * 2.0, new_flowrate));
+                i++; //Don't overcompensate again for the resulting flow change to the normal flow.
+            }
+            last_flowrate = new_flowrate;
         }
     }
 

@@ -735,7 +735,7 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
     assert(currentPosition != no_point3);
     assert(Point3(x, y, z) != no_point3);
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
-    assert(extrusion_mm3_per_mm >= 0.0);
+    //assert(extrusion_mm3_per_mm >= 0.0); //Can be introduced on purpose by Flow Advance overcompensation.
 #endif //ASSERT_INSANE_OUTPUT
 #ifdef DEBUG
     if (std::isinf(extrusion_mm3_per_mm))
