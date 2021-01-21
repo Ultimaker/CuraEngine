@@ -75,7 +75,7 @@ namespace cura
         /*! Reconnect trees from the layer above to the new outlines of the lower layer.
          * \return Wether or not the root is kept (false is no, true is yes).
          */
-        bool realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts);
+        bool realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts, const bool& connected_to_parent = false);
 
         struct RectilinearJunction
         {

@@ -146,42 +146,49 @@ std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::deepCopy() const
     return local_root;
 }
 
-bool RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts)
+bool RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts, const bool& connected_to_parent)
 {
-    // NOTE: Is it neccesary to 'reroot' parts further up the tree, or can it just be done from the root onwards
-    //       and ignore any further altercations once the outline is crossed (from the outside) for the first time?
-
-    // TODO: Don't remove entire tree on single child outside (iterate further to see if there's any more inside).
-    // TODO?: Hole(s) in the _middle_ of a line-segement (unlikely?).
-    // TODO: Reconnect if not on outline.
+    // TODO: Hole(s) in the _middle_ of a line-segement, not unlikely since reconnect.
+    // TODO: Reconnect if not on outline -> plan is: yes, but not here anymore!
 
     if (outlines.empty())
     {
         return false;
     }
 
-    for (auto& child : children)
-    {
-        if (! outlines.inside(child->p, false))
-        {
-            child->children.clear();
-            child->p = PolygonUtils::findClosest(child->p, outlines).p();
-        }
-        else
-        {
-            child->realign(outlines, rerooted_parts);
-        }
-    }
-
     if (outlines.inside(p, true))
     {
+        // Only keep children that have an unbroken connection to here, realign will put the rest in rerooted parts due to recursion:
+        const std::function<bool(const std::shared_ptr<RibbedVaultTreeNode>& child)> remove_unconnected_func
+        (
+            [&outlines, &rerooted_parts](const std::shared_ptr<RibbedVaultTreeNode>& child)
+            {
+                constexpr bool argument_with_connected = true;
+                return ! child->realign(outlines, rerooted_parts, argument_with_connected);
+            }
+        );
+        children.erase(std::remove_if(children.begin(), children.end(), remove_unconnected_func), children.end());
         return true;
     }
-    else if (children.size() == 1 && outlines.inside(children.front()->p, false))
+
+    // 'Lift' any decendants out of this tree:
+    for (auto& child : children)
     {
+        constexpr bool argument_with_disconnect = false;
+        if (child->realign(outlines, rerooted_parts, argument_with_disconnect))
+        {
+            rerooted_parts.push_back(child);
+        }
+    }
+    children.clear();
+
+    if (connected_to_parent)
+    {
+        // This will now be a (new_ leaf:
         p = PolygonUtils::findClosest(p, outlines).p();
         return true;
     }
+
     return false;
 }
 
