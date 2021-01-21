@@ -1462,10 +1462,11 @@ void LayerPlan::flowAdvance(const size_t extruder_nr, const double estimated_flo
 void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, const double estimated_flow_next_plan)
 {
     const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
-    const Duration advance = settings.get<Duration>("material_flow_advance");
+    const Duration advance_increasing = settings.get<Duration>("material_flow_advance_increasing");
+    const Duration advance_reducing = settings.get<Duration>("material_flow_advance_reducing");
     const Duration minimum_flow_change_duration = settings.get<Duration>("material_min_flow_change_duration");
     computeNaiveTimeEstimates(paths.front().points.front()); //TODO: Find correct starting position.
-    if(paths.empty() || (advance == 0 && minimum_flow_change_duration == 0))
+    if(paths.empty() || (advance_increasing == 0 && advance_reducing == 0 && minimum_flow_change_duration == 0))
     {
         return; //No need to do any splitting or adjusting flows.
     }
@@ -1481,15 +1482,27 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
         if(duration > 0)
         {
             const double flowrate = path.getExtrusionMM3perS();
-            if(flowrate != last_flowrate && current_time >= advance) //We have a flow change here. Don't try to advance before start of extruder plan.
+            if(flowrate > last_flowrate && current_time > advance_increasing) //We have a flow change here. Don't try to advance before start of extruder plan.
             {
-                splits.emplace_back(current_time - advance, flowrate);
+                splits.emplace_back(current_time - advance_increasing, flowrate);
+                last_flowrate = flowrate;
+            }
+            if(flowrate < last_flowrate && current_time > advance_reducing)
+            {
+                splits.emplace_back(current_time - advance_reducing, flowrate);
                 last_flowrate = flowrate;
             }
             current_time += duration;
         }
     }
-    splits.emplace_back(current_time - advance, estimated_flow_next_plan); //Add a split at the end to continue with the flow rate that we think will be in the next plan.
+    if(estimated_flow_next_plan > last_flowrate) //Add a split at the end to continue with the flow rate that we think will be in the next plan.
+    {
+        splits.emplace_back(current_time - advance_increasing, estimated_flow_next_plan);
+    }
+    else if(estimated_flow_next_plan < last_flowrate)
+    {
+        splits.emplace_back(current_time - advance_reducing, estimated_flow_next_plan);
+    }
 
     //Filter out any flow changes shorter than the minimum flow change duration.
     for(size_t i = 0; i < splits.size() - 1; ++i)
