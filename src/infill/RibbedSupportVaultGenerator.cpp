@@ -303,9 +303,9 @@ bool RibbedVaultDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radi
     {
         return false;
     }
-    size_t point_idx = std::rand() % unsupported[0].size();
-    Point point_on_unsupported_boundary = unsupported[0][point_idx];
-    ClosestPolygonPoint cpp(point_on_unsupported_boundary, point_idx, unsupported[0], 0);
+    coord_t total_length = unsupported[0].polygonLength();
+    coord_t dist_to_point_on_boundary = std::rand() % total_length;
+    ClosestPolygonPoint cpp = PolygonUtils::walk(ClosestPolygonPoint(unsupported[0][0], 0, unsupported[0]), dist_to_point_on_boundary);
     *p = PolygonUtils::moveInside(cpp, supporting_radius);
     if ( ! unsupported.inside(*p))
     {
