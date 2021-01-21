@@ -1102,6 +1102,27 @@ bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, ConstPolyg
     return false;
 }
 
+ClosestPolygonPoint PolygonUtils::walk(const ClosestPolygonPoint& from, coord_t distance)
+{
+    ConstPolygonRef poly = *from.poly;
+    Point last_vertex = from.p();
+    Point next_vertex;
+    size_t last_point_idx = from.point_idx;
+    for (size_t point_idx = from.point_idx + 1; ; point_idx++)
+    {
+        if (point_idx == poly.size())
+        {
+            point_idx = 0;
+        }
+        next_vertex = poly[point_idx];
+        distance -= vSize(last_vertex - next_vertex);
+        if (distance <= 0) break;
+        last_vertex = next_vertex;
+        last_point_idx = point_idx;
+    }
+    Point result = next_vertex + normal(last_vertex - next_vertex, -distance);
+    return ClosestPolygonPoint(result, last_point_idx, poly, from.poly_idx);
+}
 
 std::optional<ClosestPolygonPoint> PolygonUtils::getNextParallelIntersection(const ClosestPolygonPoint& start, const Point& line_to, const coord_t dist, const bool forward)
 {

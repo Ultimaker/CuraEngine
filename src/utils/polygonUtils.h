@@ -480,6 +480,10 @@ public:
     */
     static bool getNextPointWithDistance(Point from, int64_t dist, ConstPolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
 
+    /*!
+     * Walk a given \p distance along the polygon from a given point \p from on the polygon
+     */
+    static ClosestPolygonPoint walk(const ClosestPolygonPoint& from, coord_t distance);
 
     /*!
      * Get the point on a polygon which intersects a line parallel to a line going through the starting point and through another point.
