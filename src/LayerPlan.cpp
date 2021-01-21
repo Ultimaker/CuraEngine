@@ -1465,7 +1465,7 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
     const Duration advance_increasing = settings.get<Duration>("material_flow_advance_increasing");
     const Duration advance_reducing = settings.get<Duration>("material_flow_advance_reducing");
     const Duration minimum_flow_change_duration = settings.get<Duration>("material_min_flow_change_duration");
-    computeNaiveTimeEstimates(paths.front().points.front()); //TODO: Find correct starting position.
+    const Point start_position = paths.front().points.front(); //TODO: Find correct starting position.
     if(paths.empty() || (advance_increasing == 0 && advance_reducing == 0 && minimum_flow_change_duration == 0))
     {
         return; //No need to do any splitting or adjusting flows.
@@ -1473,12 +1473,19 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
 
     //First find all of the time stamps where we want to introduce path splits, and what the flow rates should be.
     std::vector<std::pair<Duration, double>> splits; //At each timestamp, store the flow rate that should be used AFTER the split.
-    Point position(0, 0);
+    Point position = start_position;
     Duration current_time = 0;
     double last_flowrate = 0; //In mm^3/s.
     for(const GCodePath& path : paths)
     {
-        const Duration duration = path.estimates.getTotalTime();
+        const Velocity path_speed = path.config->getSpeed() * path.speed_factor;
+        coord_t path_length = 0;
+        for(const Point& vertex : path.points)
+        {
+            path_length += vSize(vertex - position);
+            position = vertex;
+        }
+        const Duration duration = INT2MM(path_length) / path_speed;
         if(duration > 0)
         {
             const double flowrate = path.getExtrusionMM3perS();
@@ -1543,7 +1550,7 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
     size_t path_index = 0;
     size_t split_index = 0;
 
-    position = paths.front().points.front();
+    position = start_position;
     for(; path_index < paths.size(); ++path_index)
     {
         const GCodePath& path = paths[path_index];
