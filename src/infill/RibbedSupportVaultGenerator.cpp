@@ -362,32 +362,32 @@ void RibbedVaultLayer::generateNewTrees(const Polygons& current_overhang, Polygo
 
 GroundingLocation RibbedVaultLayer::getBestGroundingLocation(const Point unsupported_location, Polygons& current_outlines, coord_t supporting_radius)
 {
-        // Determine & connect to connection point in tree/outline.
-        ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
-        Point node_location = cpp.p();
+    // Determine & connect to connection point in tree/outline.
+    ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
+    Point node_location = cpp.p();
 
-        std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
-        coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
-        for (auto& tree : tree_roots)
+    std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
+    coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
+    for (auto& tree : tree_roots)
+    {
+        assert(tree);
+        auto candidate_sub_tree = tree->findClosestNode(unsupported_location, supporting_radius);
+        const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
+        if (candidate_dist < current_dist)
         {
-            assert(tree);
-            auto candidate_sub_tree = tree->findClosestNode(unsupported_location, supporting_radius);
-            const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
-            if (candidate_dist < current_dist)
-            {
-                current_dist = candidate_dist;
-                sub_tree = candidate_sub_tree;
-            }
+            current_dist = candidate_dist;
+            sub_tree = candidate_sub_tree;
         }
+    }
 
-        if ( ! sub_tree)
-        {
-            return GroundingLocation{nullptr, cpp};
-        }
-        else
-        {
-            return GroundingLocation{sub_tree, std::optional<ClosestPolygonPoint>()};
-        }
+    if ( ! sub_tree)
+    {
+        return GroundingLocation{nullptr, cpp};
+    }
+    else
+    {
+        return GroundingLocation{sub_tree, std::optional<ClosestPolygonPoint>()};
+    }
 }
 
 void RibbedVaultLayer::attach(Point unsupported_location, GroundingLocation grounding_loc)
