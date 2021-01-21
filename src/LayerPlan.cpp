@@ -1519,7 +1519,7 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
     }
 
     //Filter out any flow changes shorter than the minimum flow change duration. Also filters out 0-duration flow changes.
-    for(size_t i = 0; i < splits.size() - 1; ++i)
+    for(size_t i = 0; i + 1 < splits.size(); ++i)
     {
         if(splits[i + 1].first - splits[i].first < minimum_flow_change_duration) //This flow change is very brief. Remove it.
         {
