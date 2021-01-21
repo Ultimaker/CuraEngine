@@ -1463,8 +1463,9 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
 {
     const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
     const Duration advance = settings.get<Duration>("material_flow_advance");
+    const Duration minimum_flow_change_duration = settings.get<Duration>("material_min_flow_change_duration");
     computeNaiveTimeEstimates(paths.front().points.front()); //TODO: Find correct starting position.
-    if(advance == 0 || paths.empty())
+    if(paths.empty() || (advance == 0 && minimum_flow_change_duration == 0))
     {
         return; //No need to do any splitting or adjusting flows.
     }
@@ -1489,6 +1490,30 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
         }
     }
     splits.emplace_back(current_time - advance, estimated_flow_next_plan); //Add a split at the end to continue with the flow rate that we think will be in the next plan.
+
+    //Filter out any flow changes shorter than the minimum flow change duration.
+    for(size_t i = 0; i < splits.size() - 1; ++i)
+    {
+        if(splits[i + 1].first - splits[i].first < minimum_flow_change_duration) //This flow change is very brief. Remove it.
+        {
+            const double flow_before = (i > 0) ? splits[i - 1].second : 0;
+            const double flow_after = splits[i + 1].second;
+            if(flow_before == flow_after)
+            {
+                //If the flow before the tiny flow change equals the flow afterwards, remove both the start of the flow change and the end.
+                splits.erase(splits.begin() + i);
+                splits.erase(splits.begin() + i);
+            }
+            else
+            {
+                //If the flow rate changes with a brief flow change in the middle, change the first flow change to occur halfway through the brief flow change, and remove the second one.
+                splits[i].first = (splits[i].first + splits[i + 1].first) / 2; //Timestamp halfway.
+                splits[i].second = flow_after;
+                splits.erase(splits.begin() + i);
+            }
+            i--; //Either way, don't skip the following split either, which is now in the removed split's position.
+        }
+    }
 
     //Split the paths up on those timestamps.
     std::vector<GCodePath> new_paths;
