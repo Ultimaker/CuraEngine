@@ -437,15 +437,15 @@ void MultiVolumes::cleanUpNonInterface(SparseCellGrid3D<Cell>& grid)
 
 void MultiVolumes::generateMicrostructure(std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, const std::vector<coord_t>& line_width_per_extruder, coord_t cell_size)
 {
-    cell_area_per_extruder_per_layer.resize(2);
-    for (size_t layer_nr : {0, 1})
+    cell_area_per_extruder_per_layer.resize(4);
+    for (size_t layer_nr : {0, 1, 2, 3})
     {
-        cell_area_per_extruder_per_layer[layer_nr].resize(line_width_per_extruder.size());
+        cell_area_per_extruder_per_layer[layer_nr].resize(2);
         for (size_t extruder_nr : {0, 1})
         {
-            Point offset(extruder_nr? line_width_per_extruder[0] * 2 : 0, 0);
+            Point offset((extruder_nr == layer_nr / 2)? line_width_per_extruder[ ! extruder_nr] * 2 : 0, 0);
             Point area_size(line_width_per_extruder[extruder_nr] * 2, cell_size);
-            if (layer_nr)
+            if (layer_nr % 2)
             {
                 std::swap(offset.X, offset.Y);
                 std::swap(area_size.X, area_size.Y);
@@ -477,8 +477,8 @@ void MultiVolumes::applyMicrostructureToOutlines(SparseCellGrid3D<Cell>& grid, s
                 if (z < bottom_corner.z) continue;
                 if (z > bottom_corner.z + cell_size) break;
 
-                Polygon area_here = cell_area_per_extruder_per_layer[layer_nr % 2][extruder_nr];
-                Polygon area_other = cell_area_per_extruder_per_layer[layer_nr % 2][ ! extruder_nr];
+                Polygon area_here = cell_area_per_extruder_per_layer[layer_nr % cell_area_per_extruder_per_layer.size()][extruder_nr];
+                Polygon area_other = cell_area_per_extruder_per_layer[layer_nr % cell_area_per_extruder_per_layer.size()][ ! extruder_nr];
 
                 area_here.translate(Point(bottom_corner.x, bottom_corner.y));
                 area_other.translate(Point(bottom_corner.x, bottom_corner.y));
