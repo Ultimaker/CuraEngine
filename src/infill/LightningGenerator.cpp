@@ -1,7 +1,7 @@
 //Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "RibbedSupportVaultGenerator.h"
+#include "LightningGenerator.h"
 
 #include "../sliceDataStorage.h"
 #include "../utils/polygonUtils.h"
@@ -17,7 +17,7 @@
 //       Idea maybe something can be done with isolines for the distance function?
 // TODO: Implement 'Truncate' ... is it needed to do it within the tree as well (see note-comment in function itself).
 // TODO: The convert trees to lines 'algorithm' is way too simple right now (unless they're already going to be connected later).
-// TODO: Merge RibbedVaultDistanceField into RibbedVaultLayer
+// TODO: Merge LightningDistanceField into LightningLayer
 // TODO: Lots of smaller TODO's in code itself, put on list!
 // TODO: split radius into several parameters based on infill_line_distance, internal_overhang_angle, infill_overhang_angle, etc.
 
@@ -46,12 +46,12 @@
 
 using namespace cura;
 
-coord_t RibbedVaultLayer::getWeightedDistance(const Point boundary_loc, const Point unsupported_loc)
+coord_t LightningLayer::getWeightedDistance(const Point boundary_loc, const Point unsupported_loc)
 {
     return vSize(boundary_loc - unsupported_loc);
 }
 
-coord_t RibbedVaultTreeNode::getWeightedDistance(const Point unsupported_loc, const coord_t supporting_radius)
+coord_t LightningTreeNode::getWeightedDistance(const Point unsupported_loc, const coord_t supporting_radius)
 {
     size_t valence = ( ! is_root) + children.size();
     coord_t boost = (0 < valence && valence < 4)? 4 * supporting_radius : 0;
@@ -59,7 +59,7 @@ coord_t RibbedVaultTreeNode::getWeightedDistance(const Point unsupported_loc, co
 }
 
 
-bool RibbedVaultTreeNode::hasOffspring(std::shared_ptr<RibbedVaultTreeNode> to_be_checked)
+bool LightningTreeNode::hasOffspring(std::shared_ptr<LightningTreeNode> to_be_checked)
 {
     if (&*to_be_checked == this) return true;
     for (auto child_ptr : children)
@@ -69,23 +69,23 @@ bool RibbedVaultTreeNode::hasOffspring(std::shared_ptr<RibbedVaultTreeNode> to_b
     return false;
 }
 
-const Point& RibbedVaultTreeNode::getLocation() const
+const Point& LightningTreeNode::getLocation() const
 {
     return p;
 }
 
-void RibbedVaultTreeNode::setLocation(Point loc)
+void LightningTreeNode::setLocation(Point loc)
 {
     p = loc;
 }
 
-void RibbedVaultTreeNode::addChild(const Point& child_loc)
+void LightningTreeNode::addChild(const Point& child_loc)
 {
     assert(p != child_loc);
-    children.push_back(std::make_shared<RibbedVaultTreeNode>(child_loc));
+    children.push_back(std::make_shared<LightningTreeNode>(child_loc));
 }
 
-void RibbedVaultTreeNode::addChild(std::shared_ptr<RibbedVaultTreeNode> new_child)
+void LightningTreeNode::addChild(std::shared_ptr<LightningTreeNode> new_child)
 {
     assert(&*new_child != this);
 //     assert(p != new_child->p);
@@ -95,17 +95,17 @@ void RibbedVaultTreeNode::addChild(std::shared_ptr<RibbedVaultTreeNode> new_chil
     new_child->is_root = false;
 }
 
-std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::findClosestNode(const Point& x, const coord_t supporting_radius)
+std::shared_ptr<LightningTreeNode> LightningTreeNode::findClosestNode(const Point& x, const coord_t supporting_radius)
 {
     coord_t closest_distance = getWeightedDistance(x, supporting_radius);
-    std::shared_ptr<RibbedVaultTreeNode> closest_node = shared_from_this();
+    std::shared_ptr<LightningTreeNode> closest_node = shared_from_this();
     findClosestNodeHelper(x, supporting_radius, closest_distance, closest_node);
     return closest_node;
 }
 
-void RibbedVaultTreeNode::propagateToNextLayer
+void LightningTreeNode::propagateToNextLayer
 (
-    std::vector<std::shared_ptr<RibbedVaultTreeNode>>& next_trees,
+    std::vector<std::shared_ptr<LightningTreeNode>>& next_trees,
     const Polygons& next_outlines,
     const coord_t& prune_distance,
     const coord_t& smooth_magnitude
@@ -125,7 +125,7 @@ void RibbedVaultTreeNode::propagateToNextLayer
 
 // NOTE: Depth-first, as currently implemented.
 //       Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
-void RibbedVaultTreeNode::visitBranches(const visitor_func_t& visitor) const
+void LightningTreeNode::visitBranches(const visitor_func_t& visitor) const
 {
     for (const auto& node : children)
     {
@@ -135,16 +135,16 @@ void RibbedVaultTreeNode::visitBranches(const visitor_func_t& visitor) const
 }
 
 // Node:
-RibbedVaultTreeNode::RibbedVaultTreeNode(const Point& p) : p(p) {}
+LightningTreeNode::LightningTreeNode(const Point& p) : p(p) {}
 
 // Root (and Trunk):
-RibbedVaultTreeNode::RibbedVaultTreeNode(const Point& a, const Point& b) : RibbedVaultTreeNode(a)
+LightningTreeNode::LightningTreeNode(const Point& a, const Point& b) : LightningTreeNode(a)
 {
-    children.push_back(std::make_shared<RibbedVaultTreeNode>(b));
+    children.push_back(std::make_shared<LightningTreeNode>(b));
     is_root = true;
 }
 
-void RibbedVaultTreeNode::findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<RibbedVaultTreeNode>& closest_node)
+void LightningTreeNode::findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<LightningTreeNode>& closest_node)
 {
     for (const auto& node : children)
     {
@@ -158,9 +158,9 @@ void RibbedVaultTreeNode::findClosestNodeHelper(const Point& x, const coord_t su
     }
 }
 
-std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::deepCopy() const
+std::shared_ptr<LightningTreeNode> LightningTreeNode::deepCopy() const
 {
-    std::shared_ptr<RibbedVaultTreeNode> local_root = std::make_shared<RibbedVaultTreeNode>(p);
+    std::shared_ptr<LightningTreeNode> local_root = std::make_shared<LightningTreeNode>(p);
     local_root->is_root = is_root;
     local_root->children.reserve(children.size());
     for (const auto& node : children)
@@ -170,7 +170,7 @@ std::shared_ptr<RibbedVaultTreeNode> RibbedVaultTreeNode::deepCopy() const
     return local_root;
 }
 
-bool RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts, const bool& connected_to_parent)
+bool LightningTreeNode::realign(const Polygons& outlines, std::vector<std::shared_ptr<LightningTreeNode>>& rerooted_parts, const bool& connected_to_parent)
 {
     // TODO: Hole(s) in the _middle_ of a line-segement, not unlikely since reconnect.
     // TODO: Reconnect if not on outline -> plan is: yes, but not here anymore!
@@ -183,9 +183,9 @@ bool RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::sha
     if (outlines.inside(p, true))
     {
         // Only keep children that have an unbroken connection to here, realign will put the rest in rerooted parts due to recursion:
-        const std::function<bool(const std::shared_ptr<RibbedVaultTreeNode>& child)> remove_unconnected_func
+        const std::function<bool(const std::shared_ptr<LightningTreeNode>& child)> remove_unconnected_func
         (
-            [&outlines, &rerooted_parts](const std::shared_ptr<RibbedVaultTreeNode>& child)
+            [&outlines, &rerooted_parts](const std::shared_ptr<LightningTreeNode>& child)
             {
                 constexpr bool argument_with_connected = true;
                 return ! child->realign(outlines, rerooted_parts, argument_with_connected);
@@ -216,11 +216,11 @@ bool RibbedVaultTreeNode::realign(const Polygons& outlines, std::vector<std::sha
     return false;
 }
 
-void RibbedVaultTreeNode::straighten(const coord_t& magnitude)
+void LightningTreeNode::straighten(const coord_t& magnitude)
 {
     straighten(magnitude, p, 0);
 }
-RibbedVaultTreeNode::RectilinearJunction RibbedVaultTreeNode::straighten(const coord_t& magnitude, Point junction_above, coord_t accumulated_dist)
+LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord_t& magnitude, Point junction_above, coord_t accumulated_dist)
 {
     if (children.size() == 1)
     {
@@ -257,7 +257,7 @@ RibbedVaultTreeNode::RectilinearJunction RibbedVaultTreeNode::straighten(const c
 }
 
 // Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
-coord_t RibbedVaultTreeNode::prune(const coord_t& pruning_distance)
+coord_t LightningTreeNode::prune(const coord_t& pruning_distance)
 {
     if (pruning_distance <= 0)
     {
@@ -303,12 +303,12 @@ coord_t RibbedVaultTreeNode::prune(const coord_t& pruning_distance)
 // -- -- -- -- -- --
 // -- -- -- -- -- --
 
-RibbedVaultDistanceField::RibbedVaultDistanceField
+LightningDistanceField::LightningDistanceField
 (
     const coord_t& radius,
     const Polygons& current_outline,
     const Polygons& current_overhang,
-    const std::vector<std::shared_ptr<RibbedVaultTreeNode>>& initial_trees
+    const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
 )
 {
     supporting_radius = radius;
@@ -321,7 +321,7 @@ RibbedVaultDistanceField::RibbedVaultDistanceField
         }
     }
 
-    const RibbedVaultTreeNode::visitor_func_t add_offset_branch_func =
+    const LightningTreeNode::visitor_func_t add_offset_branch_func =
         [&](const Point& parent, const Point& child)
         {
             supporting_polylines.addLine(parent, child);
@@ -334,7 +334,7 @@ RibbedVaultDistanceField::RibbedVaultDistanceField
     unsupported = current_overhang.difference(supported);
 }
 
-bool RibbedVaultDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radius) const
+bool LightningDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radius) const
 {
     if (unsupported.area() < 25)
     {
@@ -352,7 +352,7 @@ bool RibbedVaultDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radi
     return true;
 }
 
-void RibbedVaultDistanceField::update(const Point& to_node, const Point& added_leaf)
+void LightningDistanceField::update(const Point& to_node, const Point& added_leaf)
 {
     Polygons line;
     line.addLine(to_node, added_leaf);
@@ -364,9 +364,9 @@ void RibbedVaultDistanceField::update(const Point& to_node, const Point& added_l
 // -- -- -- -- -- --
 // -- -- -- -- -- --
 
-void RibbedVaultLayer::generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius)
+void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius)
 {
-    RibbedVaultDistanceField distance_field(supporting_radius, current_outlines, current_overhang, tree_roots);
+    LightningDistanceField distance_field(supporting_radius, current_outlines, current_overhang, tree_roots);
 
     constexpr size_t debug_max_iterations = 9999; // TODO: remove
     size_t i_debug = 0;
@@ -389,12 +389,12 @@ void RibbedVaultLayer::generateNewTrees(const Polygons& current_overhang, Polygo
     }
 }
 
-GroundingLocation RibbedVaultLayer::getBestGroundingLocation(const Point unsupported_location, const Polygons& current_outlines, coord_t supporting_radius, std::shared_ptr<RibbedVaultTreeNode> to_be_excluded)
+GroundingLocation LightningLayer::getBestGroundingLocation(const Point unsupported_location, const Polygons& current_outlines, coord_t supporting_radius, std::shared_ptr<LightningTreeNode> to_be_excluded)
 {
     ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point node_location = cpp.p();
 
-    std::shared_ptr<RibbedVaultTreeNode> sub_tree(nullptr);
+    std::shared_ptr<LightningTreeNode> sub_tree(nullptr);
     coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
     for (auto& tree : tree_roots)
     {
@@ -422,12 +422,12 @@ GroundingLocation RibbedVaultLayer::getBestGroundingLocation(const Point unsuppo
     }
 }
 
-void RibbedVaultLayer::attach(Point unsupported_location, GroundingLocation grounding_loc)
+void LightningLayer::attach(Point unsupported_location, GroundingLocation grounding_loc)
 {
     // Update trees & distance fields.
     if (grounding_loc.boundary_location)
     {
-        tree_roots.push_back(std::make_shared<RibbedVaultTreeNode>(grounding_loc.p(), unsupported_location));
+        tree_roots.push_back(std::make_shared<LightningTreeNode>(grounding_loc.p(), unsupported_location));
     }
     else
     {
@@ -435,7 +435,7 @@ void RibbedVaultLayer::attach(Point unsupported_location, GroundingLocation grou
     }
 }
 
-void RibbedVaultLayer::reconnectRoots(std::vector<std::shared_ptr<RibbedVaultTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius)
+void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius)
 {
     for (auto root_ptr : to_be_reconnected_tree_roots)
     {
@@ -443,7 +443,7 @@ void RibbedVaultLayer::reconnectRoots(std::vector<std::shared_ptr<RibbedVaultTre
         GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, supporting_radius, root_ptr);
         if (ground.boundary_location)
         {
-            auto new_root = std::make_shared<RibbedVaultTreeNode>(ground.p());
+            auto new_root = std::make_shared<LightningTreeNode>(ground.p());
             new_root->addChild(root_ptr);
             *old_root_it = std::move(new_root); // replace old root with new root
         }
@@ -461,14 +461,14 @@ void RibbedVaultLayer::reconnectRoots(std::vector<std::shared_ptr<RibbedVaultTre
     }
 }
 
-const RibbedVaultLayer& RibbedSupportVaultGenerator::getTreesForLayer(const size_t& layer_id)
+const LightningLayer& LightningGenerator::getTreesForLayer(const size_t& layer_id)
 {
-    assert(layer_id < ribbed_vault_layers.size());
-    return ribbed_vault_layers[layer_id];
+    assert(layer_id < lightning_layers.size());
+    return lightning_layers[layer_id];
 }
 
 // Returns 'added someting'.
-Polygons RibbedVaultLayer::convertToLines() const
+Polygons LightningLayer::convertToLines() const
 {
     Polygons result_lines;
     if (tree_roots.empty())
@@ -477,7 +477,7 @@ Polygons RibbedVaultLayer::convertToLines() const
     }
 
     // TODO: The convert trees to lines 'algorithm' is way too simple right now (unless they're already going to be connected later).
-    RibbedVaultTreeNode::visitor_func_t convert_trees_to_lines =
+    LightningTreeNode::visitor_func_t convert_trees_to_lines =
         [&result_lines](const Point& node, const Point& leaf)
         {
             result_lines.addLine(node, leaf);
@@ -493,7 +493,7 @@ Polygons RibbedVaultLayer::convertToLines() const
 // -- -- -- -- -- --
 
 
-RibbedSupportVaultGenerator::RibbedSupportVaultGenerator(const coord_t& radius, const SliceMeshStorage& mesh) :
+LightningGenerator::LightningGenerator(const coord_t& radius, const SliceMeshStorage& mesh) :
 supporting_radius (radius)
 {
     generateInitialInternalOverhangs(mesh, radius);
@@ -501,7 +501,7 @@ supporting_radius (radius)
 }
 
 // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
-void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh, coord_t supporting_radius)
+void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh, coord_t supporting_radius)
 {
     overhang_per_layer.resize(mesh.layers.size());
 
@@ -522,9 +522,9 @@ void RibbedSupportVaultGenerator::generateInitialInternalOverhangs(const SliceMe
     }
 }
 
-void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
+void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
 {
-    ribbed_vault_layers.resize(mesh.layers.size());
+    lightning_layers.resize(mesh.layers.size());
 
     std::vector<Polygons> infill_outlines;
     infill_outlines.insert(infill_outlines.end(), mesh.layers.size(), Polygons());
@@ -541,14 +541,14 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
     // For-each layer from top to bottom:
     for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
     {
-        RibbedVaultLayer& current_vault_layer = ribbed_vault_layers[layer_id];
+        LightningLayer& current_lightning_layer = lightning_layers[layer_id];
         Polygons& current_outlines = infill_outlines[layer_id];
         // register all trees propagated from the previous layer as to-be-reconnected
-        std::vector<std::shared_ptr<RibbedVaultTreeNode>> to_be_reconnected_tree_roots = current_vault_layer.tree_roots;
+        std::vector<std::shared_ptr<LightningTreeNode>> to_be_reconnected_tree_roots = current_lightning_layer.tree_roots;
 
-        current_vault_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius);
+        current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius);
 
-        current_vault_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, supporting_radius);
+        current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, supporting_radius);
 
         // Initialize trees for next lower layer from the current one.
         if (layer_id == 0)
@@ -557,8 +557,8 @@ void RibbedSupportVaultGenerator::generateTrees(const SliceMeshStorage& mesh)
         }
         const Polygons& below_outlines = infill_outlines[layer_id - 1];
 
-        std::vector<std::shared_ptr<RibbedVaultTreeNode>>& lower_trees = ribbed_vault_layers[layer_id - 1].tree_roots;
-        for (auto& tree : current_vault_layer.tree_roots)
+        std::vector<std::shared_ptr<LightningTreeNode>>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
+        for (auto& tree : current_lightning_layer.tree_roots)
         {
             tree->propagateToNextLayer
             (

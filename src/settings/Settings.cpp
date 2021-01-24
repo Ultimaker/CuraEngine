@@ -338,9 +338,9 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     {
         return EFillMethod::GYROID;
     }
-    else if (value == "ribbed_vault")
+    else if (value == "lightning")
     {
-        return EFillMethod::RIBBED_VAULT;
+        return EFillMethod::LIGHTNING;
     }
     else //Default.
     {

@@ -25,7 +25,7 @@ namespace cura
 
 class Mesh;
 class SierpinskiFillProvider;
-class RibbedSupportVaultGenerator;
+class LightningGenerator;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
@@ -254,7 +254,7 @@ public:
     SubDivCube* base_subdiv_cube;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
 
-    RibbedSupportVaultGenerator* ribbed_vault_generator; //!< 'ribbed support vault' type infill will need to be largely precomputed, as it depends on layers above
+    LightningGenerator* lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     /*!
      * \brief Creates a storage space for slice results of a mesh.

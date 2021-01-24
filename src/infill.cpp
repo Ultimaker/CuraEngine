@@ -10,7 +10,7 @@
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/GyroidInfill.h"
 #include "infill/NoZigZagConnectorProcessor.h"
-#include "infill/RibbedSupportVaultGenerator.h"
+#include "infill/LightningGenerator.h"
 #include "infill/SierpinskiFill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
@@ -43,7 +43,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const RibbedVaultLayer* ribbed_support_vault_trees, const SliceMeshStorage* mesh)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer* lightning_trees, const SliceMeshStorage* mesh)
 {
     coord_t outline_offset_raw = outline_offset;
     outline_offset -= wall_line_count * infill_line_width; // account for extra walls
@@ -57,7 +57,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         }
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
-        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, ribbed_support_vault_trees, mesh);
+        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, lightning_trees, mesh);
         zig_zaggify = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
         result_polygons.add(generated_result_polygons);
@@ -69,7 +69,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         //So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
-        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, ribbed_support_vault_trees, mesh);
+        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, lightning_trees, mesh);
         result_polygons.add(generated_result_polygons);
         result_lines.add(generated_result_lines);
     }
@@ -94,7 +94,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     }
 }
 
-void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const RibbedVaultLayer* ribbed_support_vault_trees, const SliceMeshStorage* mesh)
+void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer* lightning_trees, const SliceMeshStorage* mesh)
 {
     if (in_outline.empty()) return;
     if (line_distance == 0) return;
@@ -153,13 +153,13 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
     case EFillMethod::GYROID:
         generateGyroidInfill(result_lines);
         break;
-    case EFillMethod::RIBBED_VAULT:
-        if (! ribbed_support_vault_trees)
+    case EFillMethod::LIGHTNING:
+        if (! lightning_trees)
         {
-            logError("Cannot generate Ribbed Support Vault infill without a generator!\n");
+            logError("Cannot generate Lightning infill without a generator!\n");
             break;
         }
-        generateRibbedInfill(ribbed_support_vault_trees, result_lines);
+        generateLightningInfill(lightning_trees, result_lines);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -275,7 +275,7 @@ void Infill::generateGyroidInfill(Polygons& result_lines)
     GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset + infill_overlap, infill_line_width, line_distance, in_outline, z);
 }
 
-void Infill::generateRibbedInfill(const RibbedVaultLayer* trees, Polygons& result_lines)
+void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& result_lines)
 {
     // Don't need to support areas smaller than line width, as they are always within radius:
     if(std::abs(in_outline.area()) < infill_line_width || ! trees)

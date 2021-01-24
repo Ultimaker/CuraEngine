@@ -1,8 +1,8 @@
 //Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef RIBBED_SUPPORT_VAULT_GENERATOR_H
-#define RIBBED_SUPPORT_VAULT_GENERATOR_H
+#ifndef LIGHTNING_GENERATOR_H
+#define LIGHTNING_GENERATOR_H
 
 #include "../utils/polygonUtils.h"
 
@@ -19,30 +19,30 @@ namespace cura
     // NOTE: Reasons for implementing this with some separate closures:
     //       - keep clear deliniation during development
     //       - possibility of multiple distance field strategies
-    class RibbedVaultTreeNode : public std::enable_shared_from_this<RibbedVaultTreeNode>
+    class LightningTreeNode : public std::enable_shared_from_this<LightningTreeNode>
     {
     public:
-        friend class std::shared_ptr<RibbedVaultTreeNode>;
+        friend class std::shared_ptr<LightningTreeNode>;
 
         // For use with the 'visit___' function(s).
         // Input: Uptree junction point (closer to root), downtree branch point (closer to leaves).
         typedef std::function<void(const Point&, const Point&)> visitor_func_t;
 
         // Constructs a node, for insertion into a tree:
-        RibbedVaultTreeNode(const Point& p);
+        LightningTreeNode(const Point& p);
 
         // Constructs a root (and initial trunk):
-        RibbedVaultTreeNode(const Point& a, const Point& b);
+        LightningTreeNode(const Point& a, const Point& b);
 
         const Point& getLocation() const;
         void setLocation(Point p);
 
         void addChild(const Point& p);
 
-        void addChild(std::shared_ptr<RibbedVaultTreeNode> new_child);
+        void addChild(std::shared_ptr<LightningTreeNode> new_child);
 
         // TODO: should be moved outside of this class, because we want to efficiently find pairs of close nodes
-        std::shared_ptr<RibbedVaultTreeNode> findClosestNode(const Point& x, const coord_t supporting_radius);
+        std::shared_ptr<LightningTreeNode> findClosestNode(const Point& x, const coord_t supporting_radius);
 
         /*!
          * Propagate this tree to the next layer.
@@ -53,7 +53,7 @@ namespace cura
          */
         void propagateToNextLayer
         (
-            std::vector<std::shared_ptr<RibbedVaultTreeNode>>& next_trees,
+            std::vector<std::shared_ptr<LightningTreeNode>>& next_trees,
             const Polygons& next_outlines,
             const coord_t& prune_distance,
             const coord_t& smooth_magnitude
@@ -67,21 +67,21 @@ namespace cura
 
         bool isRoot() const { return is_root; }
 
-        bool hasOffspring(std::shared_ptr<RibbedVaultTreeNode> to_be_checked);
+        bool hasOffspring(std::shared_ptr<LightningTreeNode> to_be_checked);
     protected:
-        RibbedVaultTreeNode() = delete; // Don't allow empty contruction
+        LightningTreeNode() = delete; // Don't allow empty contruction
 
         /*!
          * What does this function do?!
          */
-        void findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<RibbedVaultTreeNode>& closest_node);
+        void findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<LightningTreeNode>& closest_node);
 
-        std::shared_ptr<RibbedVaultTreeNode> deepCopy() const; //!< Copy this node and all its children
+        std::shared_ptr<LightningTreeNode> deepCopy() const; //!< Copy this node and all its children
 
         /*! Reconnect trees from the layer above to the new outlines of the lower layer.
          * \return Wether or not the root is kept (false is no, true is yes).
          */
-        bool realign(const Polygons& outlines, std::vector<std::shared_ptr<RibbedVaultTreeNode>>& rerooted_parts, const bool& connected_to_parent = false);
+        bool realign(const Polygons& outlines, std::vector<std::shared_ptr<LightningTreeNode>>& rerooted_parts, const bool& connected_to_parent = false);
 
         struct RectilinearJunction
         {
@@ -108,29 +108,29 @@ namespace cura
         bool is_root = false;
         Point p;
         
-        std::vector<std::shared_ptr<RibbedVaultTreeNode>> children;
+        std::vector<std::shared_ptr<LightningTreeNode>> children;
     };
 
     // NOTE: Currently, the following class is just scaffolding so the entirety can be run during development, while other parts are made in sync.
     //       No particular attention is paid to efficiency & the like. Might be _very_ slow!
-    class RibbedVaultDistanceField
+    class LightningDistanceField
     {
     public:
         /*!
          * constructor
          */
-        RibbedVaultDistanceField
+        LightningDistanceField
         (
             const coord_t& radius,
             const Polygons& current_outline,
             const Polygons& current_overhang,
-            const std::vector<std::shared_ptr<RibbedVaultTreeNode>>& initial_trees
+            const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
         );
 
         /*!
          * Gets the next unsupported location to be supported by a new branch.
          * 
-         * Returns false if \ref RibbedVaultDistanceField::unsupported is empty
+         * Returns false if \ref LightningDistanceField::unsupported is empty
          */
         bool tryGetNextPoint(Point* p, coord_t supporting_radius) const;
 
@@ -147,7 +147,7 @@ namespace cura
 
     struct GroundingLocation
     {
-        std::shared_ptr<RibbedVaultTreeNode> tree_node; //!< not null if the gounding location is on a tree
+        std::shared_ptr<LightningTreeNode> tree_node; //!< not null if the gounding location is on a tree
         std::optional<ClosestPolygonPoint> boundary_location; //!< in case the gounding location is on the boundary
         Point p()
         {
@@ -164,39 +164,39 @@ namespace cura
     };
 
     /*!
-     * A layer of the ribbed vault infill support.
+     * A layer of the lightning fill.
      * 
      * Contains the trees to be printed and propagated to the next layer below.
      */
-    class RibbedVaultLayer
+    class LightningLayer
     {
     public:
-        std::vector<std::shared_ptr<RibbedVaultTreeNode>> tree_roots;
+        std::vector<std::shared_ptr<LightningTreeNode>> tree_roots;
 
         void generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius);
 
         //! Determine & connect to connection point in tree/outline.
-        GroundingLocation getBestGroundingLocation(const Point unsupported_location, const Polygons& current_outlines, coord_t supporting_radius, std::shared_ptr<RibbedVaultTreeNode> to_be_excluded = nullptr);
+        GroundingLocation getBestGroundingLocation(const Point unsupported_location, const Polygons& current_outlines, coord_t supporting_radius, std::shared_ptr<LightningTreeNode> to_be_excluded = nullptr);
 
         void attach(Point unsupported_loc, GroundingLocation ground);
 
-        void reconnectRoots(std::vector<std::shared_ptr<RibbedVaultTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius);
+        void reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius);
 
         Polygons convertToLines() const;
 
         coord_t getWeightedDistance(const Point boundary_loc, const Point unsupported_loc);
     };
 
-    class RibbedSupportVaultGenerator
+    class LightningGenerator
     {
     public:
         /*!
          * TODO: instead of radius we should pass around the overhang_angle
          * and compute the radius from the tangent of the angle and the local (adaptive) layer thickness
          */
-        RibbedSupportVaultGenerator(const coord_t& radius, const SliceMeshStorage& mesh);
+        LightningGenerator(const coord_t& radius, const SliceMeshStorage& mesh);
 
-        const RibbedVaultLayer& getTreesForLayer(const size_t& layer_id);
+        const LightningLayer& getTreesForLayer(const size_t& layer_id);
 
     protected:
         // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
@@ -206,9 +206,9 @@ namespace cura
 
         coord_t supporting_radius;
         std::vector<Polygons> overhang_per_layer;
-        std::vector<RibbedVaultLayer> ribbed_vault_layers;
+        std::vector<LightningLayer> lightning_layers;
     };
 
 } // namespace cura
 
-#endif // RIBBED_SUPPORT_VAULT_GENERATOR_H
+#endif // LIGHTNING_GENERATOR_H
