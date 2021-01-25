@@ -4,6 +4,7 @@
 #include <list>
 #include <sstream>
 #include <unordered_set>
+#include <utility> // std::in_place
 
 #include "linearAlg2D.h"
 #include "polygonUtils.h"
@@ -986,8 +987,7 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     }
     else
     {
-        bool bs_arg = true; // doesn't mean anything. Just to make clear we call the variable arguments of the constructor.
-        return std::optional<ClosestPolygonPoint>(bs_arg, best, best_point_poly_idx.point_idx, polygons[best_point_poly_idx.poly_idx], best_point_poly_idx.poly_idx);
+        return std::optional<ClosestPolygonPoint>(std::in_place, best, best_point_poly_idx.point_idx, polygons[best_point_poly_idx.poly_idx], best_point_poly_idx.poly_idx);
     }
 }
 

@@ -2,6 +2,8 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <utility>
+
 #include "ImageBasedDensityProvider.h"
 #include "UniformDensityProvider.h"
 #include "SierpinskiFillProvider.h"
@@ -14,20 +16,19 @@ namespace cura
 {
 
 
-constexpr bool SierpinskiFillProvider::get_constructor;
 constexpr bool SierpinskiFillProvider::use_dithering;
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, const coord_t line_width)
 : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
 , density_provider(new UniformDensityProvider((float)line_width / min_line_distance))
-, fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, use_dithering)
+, fill_pattern_for_all_layers(std::in_place, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, use_dithering)
 {
 }
 
 SierpinskiFillProvider::SierpinskiFillProvider(const AABB3D aabb_3d, coord_t min_line_distance, coord_t line_width, std::string cross_subdisivion_spec_image_file)
 : fractal_config(getFractalConfig(aabb_3d, min_line_distance))
 , density_provider(new ImageBasedDensityProvider(cross_subdisivion_spec_image_file, aabb_3d.flatten()))
-, fill_pattern_for_all_layers(get_constructor, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, use_dithering)
+, fill_pattern_for_all_layers(std::in_place, *density_provider, fractal_config.aabb, fractal_config.depth, line_width, use_dithering)
 {
 }
 

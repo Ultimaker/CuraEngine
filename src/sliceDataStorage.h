@@ -5,6 +5,8 @@
 #define SLICE_DATA_STORAGE_H
 
 #include <map>
+#include <optional>
+
 #include "PrimeTower.h"
 #include "RetractionConfig.h"
 #include "SupportInfillPart.h"
@@ -16,7 +18,6 @@
 #include "utils/AABB3D.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
-#include "utils/optional.h"
 #include "utils/polygon.h"
 #include "WipeScriptConfig.h"
 

@@ -684,7 +684,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
             infill_area_per_combine_current_density.push_back(infill_area);
-            part.infill_area_own = nullptr; // clear infill_area_own, it's not needed any more.
+            part.infill_area_own.reset(); // clear infill_area_own, it's not needed any more.
             assert(!part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is now initialized");
         }
     }

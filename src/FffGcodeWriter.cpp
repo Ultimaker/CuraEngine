@@ -3,6 +3,7 @@
 
 #include <list>
 #include <limits> // numeric_limits
+#include <utility> // std::in_place
 
 #include "Application.h"
 #include "bridge.h"
@@ -2094,13 +2095,11 @@ std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fil
     // now go to whichever of those vertices that is closest to where we are now
     if (vSize2(pa.p() - last_position) < vSize2(pb.p() - last_position))
     {
-        bool bs_arg = true;
-        return std::optional<Point>(bs_arg, pa.p());
+        return std::optional<Point>(std::in_place, pa.p());
     }
     else
     {
-        bool bs_arg = true;
-        return std::optional<Point>(bs_arg, pb.p());
+        return std::optional<Point>(std::in_place, pb.p());
     }
 }
 
