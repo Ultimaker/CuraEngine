@@ -7,6 +7,7 @@
 #include <unordered_set>
 
 #include "Application.h"
+#include "utils/logoutput.h"
 #include "Slice.h"
 #include "slicer.h"
 #include "utils/PolylineStitcher.h"
@@ -195,6 +196,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
     }
 }
 
+
 void MultiVolumes::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
     /*
@@ -206,6 +208,12 @@ void MultiVolumes::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 
     
     const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
+    if (extruder_count > 2)
+    {
+        // TODO: fix for > 2 extruders (apply first to extruder 0 & 1, then to 0 & 2, etc.)
+        logError("generateInterlockingStructure not implemented for >2 extruders!\n");
+        return;
+    }
     
     const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
     std::vector<coord_t> line_width_per_extruder(extruder_count);
@@ -223,12 +231,14 @@ void MultiVolumes::generateInterlockingStructure(std::vector<Slicer*>& volumes)
         max_layer_count = std::max(max_layer_count, mesh->layers.size());
     }
     
-    // TODO: fix for > 2 extruders (apply first to extruder 0 & 1, then to 0 & 2, etc.)
-    
     // TODO: implement lesser dilation based on translated polygons
     // TODO: make dilation user parameter
     
     // TODO: adjust voxel height to 2x layer height? or 4x? make adjustable?
+    
+    // TODO: implement oscillating fingers
+    
+    // TODO: option for different amount of dilation for shell removal
     
     PointMatrix rotation(45.0);
     
