@@ -55,6 +55,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
     }
     const coord_t hole_offset = settings.get<coord_t>("hole_xy_offset");
+    const coord_t max_hole_length = settings.get<coord_t>("hole_xy_offset_max_length");
     for(unsigned int i=0; i<result.size(); i++)
     {
         storageLayer.parts.emplace_back();
@@ -65,13 +66,13 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
             Polygons holes;
             for (const PolygonRef poly : result[i])
             {
-                if (poly.orientation())
+                if (!poly.orientation() && poly.shorterThan(max_hole_length))
                 {
-                    outline.add(poly);
+                    holes.add(poly.offset(hole_offset));
                 }
                 else
                 {
-                    holes.add(poly.offset(hole_offset));
+                    outline.add(poly);
                 }
             }
             for (PolygonRef hole : holes.unionPolygons().intersection(outline))
