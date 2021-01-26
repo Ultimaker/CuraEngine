@@ -88,7 +88,7 @@ void LightningTreeNode::addChild(const Point& child_loc)
 
 void LightningTreeNode::addChild(std::shared_ptr<LightningTreeNode>& new_child)
 {
-    assert(&*new_child != this);
+    assert(new_child != shared_from_this());
 //     assert(p != new_child->p);
     if (p == new_child->p)
         std::cerr << "wtf\n";
@@ -376,13 +376,18 @@ void LightningDistanceField::update(const Point& to_node, const Point& added_lea
 // -- -- -- -- -- --
 // -- -- -- -- -- --
 
-void LightningLayer::fillLocator(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator, const std::unordered_set<std::shared_ptr<LightningTreeNode>>& excluded_trees_by_root)
+LightningTreeNode::node_visitor_func_t getAddToLocatorFunc(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator)
 {
-    const LightningTreeNode::node_visitor_func_t add_node_to_locator_func =
+    return
         [&tree_node_locator](std::shared_ptr<LightningTreeNode> node)
         {
             tree_node_locator.insert(node->getLocation(), node);
         };
+}
+
+void LightningLayer::fillLocator(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator, const std::unordered_set<std::shared_ptr<LightningTreeNode>>& excluded_trees_by_root)
+{
+    const LightningTreeNode::node_visitor_func_t add_node_to_locator_func = getAddToLocatorFunc(tree_node_locator);
     for (auto& tree : tree_roots)
     {
         if (excluded_trees_by_root.count(tree) > 0)
@@ -422,28 +427,13 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
     }
 }
 
-GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator) //const std::unordered_set<std::shared_ptr<LightningTreeNode>>& excluded_trees_by_root)
+GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator)
 {
     ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point node_location = cpp.p();
 
     std::shared_ptr<LightningTreeNode> sub_tree(nullptr);
     coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
-    //for (auto& tree : tree_roots)
-    //{
-    //    assert(tree);
-    //    if (excluded_trees_by_root.count(tree) > 0)
-    //    {
-    //        continue;
-    //    }
-    //    auto candidate_sub_tree = tree->findClosestNode(unsupported_location, supporting_radius);
-    //    const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
-    //    if (candidate_dist < current_dist)
-    //    {
-    //        current_dist = candidate_dist;
-    //        sub_tree = candidate_sub_tree;
-    //    }
-    //}
     auto candidate_trees = tree_node_locator.getNearbyVals(node_location, std::min(current_dist, supporting_radius));
     for (auto& candidate_wptr : candidate_trees)
     {
@@ -487,9 +477,9 @@ void LightningLayer::reconnectRoots(std::unordered_set<std::shared_ptr<Lightning
     SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator, /* initially excluded: */ to_be_reconnected_tree_roots);
 
+    const LightningTreeNode::node_visitor_func_t add_node_to_locator_func = getAddToLocatorFunc(tree_node_locator);
     for (auto root_ptr : to_be_reconnected_tree_roots)
     {
-        //auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
         GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, supporting_radius, tree_node_locator);
         if (ground.boundary_location)
         {
@@ -501,8 +491,6 @@ void LightningLayer::reconnectRoots(std::unordered_set<std::shared_ptr<Lightning
             auto new_root = LightningTreeNode::create(ground.p());
             new_root->addChild(root_ptr);
 
-            //*old_root_it = std::move(new_root); // replace old root with new root
-
             tree_roots.insert(new_root);
         }
         else
@@ -513,13 +501,9 @@ void LightningLayer::reconnectRoots(std::unordered_set<std::shared_ptr<Lightning
             assert( ! ground.tree_node->hasOffspring(root_ptr));
 
             ground.tree_node->addChild(root_ptr);
-
-            //// remove old root
-            //*old_root_it = std::move(tree_roots.back());
-            //tree_roots.pop_back();
         }
         tree_roots.erase(root_ptr);
-        tree_node_locator.insert(root_ptr->getLocation(), root_ptr);
+        root_ptr->visitNodes(add_node_to_locator_func);
     }
 }
 

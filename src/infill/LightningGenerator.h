@@ -102,7 +102,7 @@ protected:
         coord_t total_recti_dist; //!< rectilinear distance along the tree from the last junction above to the junction below
         Point junction_loc; //!< junction location below
     };
-    
+
     /*! Smoothen the tree to make it a bit more printable, while still supporting the trees above.
      */
     void straighten(const coord_t& magnitude);
@@ -189,7 +189,7 @@ public:
     void generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius);
 
     //! Determine & connect to connection point in tree/outline.
-    GroundingLocation getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator); //const std::unordered_set<std::shared_ptr<LightningTreeNode>>& excluded_trees_by_root = {});
+    GroundingLocation getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator);
 
     void attach(const Point& unsupported_loc, const GroundingLocation& ground);
 
