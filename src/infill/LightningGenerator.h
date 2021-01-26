@@ -9,7 +9,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
-#include <map>
+#include <unordered_set>
 
 namespace cura 
 {
@@ -22,9 +22,12 @@ class SliceMeshStorage;
 class LightningTreeNode : public std::enable_shared_from_this<LightningTreeNode>
 {
 public:
-    // For use with the 'visit___' function(s).
+    // For use with the 'visitBranches' function.
     // Input: Uptree junction point (closer to root), downtree branch point (closer to leaves).
-    typedef std::function<void(const Point&, const Point&)> visitor_func_t;
+    typedef std::function<void(const Point&, const Point&)> branch_visitor_func_t;
+
+    // For use with the 'visitNodes' function. (Note that the shared_ptr isn't const).
+    typedef std::function<void(std::shared_ptr<LightningTreeNode>)> node_visitor_func_t;
 
     // Workaround for private/protected constructors and 'make_shared': https://stackoverflow.com/a/27832765
     template<typename ...Arg> std::shared_ptr<LightningTreeNode> static create(Arg&&...arg) {
@@ -53,7 +56,7 @@ public:
      */
     void propagateToNextLayer
     (
-        std::vector<std::shared_ptr<LightningTreeNode>>& next_trees,
+        std::unordered_set<std::shared_ptr<LightningTreeNode>>& next_trees,
         const Polygons& next_outlines,
         const coord_t& prune_distance,
         const coord_t& smooth_magnitude
@@ -61,13 +64,18 @@ public:
 
     // NOTE: Depth-first, as currently implemented.
     //       Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
-    void visitBranches(const visitor_func_t& visitor) const;
+    void visitBranches(const branch_visitor_func_t& visitor) const;
 
-    coord_t getWeightedDistance(const Point& unsupported_loc, const coord_t& supporting_radius);
+    // NOTE: Depth-first, as currently implemented.
+    //       Also note that, unlike the visitBranches variant, this isn't (...) const!
+    void visitNodes(const node_visitor_func_t& visitor);
+
+    coord_t getWeightedDistance(const Point& unsupported_loc, const coord_t& supporting_radius) const;
 
     bool isRoot() const { return is_root; }
 
-    bool hasOffspring(std::shared_ptr<LightningTreeNode> to_be_checked);
+    bool hasOffspring(const std::shared_ptr<LightningTreeNode>& to_be_checked) const;
+
 protected:
     LightningTreeNode() = delete; // Don't allow empty contruction
 
@@ -78,7 +86,7 @@ protected:
     LightningTreeNode(const Point& a, const Point& b);
 
     /*!
-     * What does this function do?!
+     * Recursive part of 'findClosestNode'.
      */
     void findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<LightningTreeNode>& closest_node);
 
@@ -87,7 +95,7 @@ protected:
     /*! Reconnect trees from the layer above to the new outlines of the lower layer.
      * \return Wether or not the root is kept (false is no, true is yes).
      */
-    bool realign(const Polygons& outlines, std::vector<std::shared_ptr<LightningTreeNode>>& rerooted_parts, const bool& connected_to_parent = false);
+    bool realign(const Polygons& outlines, std::unordered_set<std::shared_ptr<LightningTreeNode>>& rerooted_parts, const bool& connected_to_parent = false);
 
     struct RectilinearJunction
     {
@@ -113,7 +121,6 @@ protected:
 
     bool is_root = false;
     Point p;
-    
     std::vector<std::shared_ptr<LightningTreeNode>> children;
 };
 
@@ -130,7 +137,7 @@ public:
         const coord_t& radius,
         const Polygons& current_outline,
         const Polygons& current_overhang,
-        const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
+        const std::unordered_set<std::shared_ptr<LightningTreeNode>>& initial_trees
     );
 
     /*!
@@ -177,20 +184,22 @@ struct GroundingLocation
 class LightningLayer
 {
 public:
-    std::vector<std::shared_ptr<LightningTreeNode>> tree_roots;
+    std::unordered_set<std::shared_ptr<LightningTreeNode>> tree_roots;
 
     void generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius);
 
     //! Determine & connect to connection point in tree/outline.
-    GroundingLocation getBestGroundingLocation(const Point unsupported_location, const Polygons& current_outlines, coord_t supporting_radius, std::shared_ptr<LightningTreeNode> to_be_excluded = nullptr);
+    GroundingLocation getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator); //const std::unordered_set<std::shared_ptr<LightningTreeNode>>& excluded_trees_by_root = {});
 
     void attach(const Point& unsupported_loc, const GroundingLocation& ground);
 
-    void reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius);
+    void reconnectRoots(std::unordered_set<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius);
 
     Polygons convertToLines() const;
 
     coord_t getWeightedDistance(const Point& boundary_loc, const Point& unsupported_loc);
+
+    void fillLocator(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator, const std::unordered_set<std::shared_ptr<LightningTreeNode>>& excluded_trees_by_root = {});
 };
 
 /*
