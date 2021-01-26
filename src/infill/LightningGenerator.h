@@ -22,27 +22,27 @@ class SliceMeshStorage;
 class LightningTreeNode : public std::enable_shared_from_this<LightningTreeNode>
 {
 public:
-    friend class std::shared_ptr<LightningTreeNode>;
-
     // For use with the 'visit___' function(s).
     // Input: Uptree junction point (closer to root), downtree branch point (closer to leaves).
     typedef std::function<void(const Point&, const Point&)> visitor_func_t;
 
-    // Constructs a node, for insertion into a tree:
-    LightningTreeNode(const Point& p);
-
-    // Constructs a root (and initial trunk):
-    LightningTreeNode(const Point& a, const Point& b);
+    // Workaround for private/protected constructors and 'make_shared': https://stackoverflow.com/a/27832765
+    template<typename ...Arg> std::shared_ptr<LightningTreeNode> static create(Arg&&...arg) {
+        struct EnableMakeShared : public LightningTreeNode {
+            EnableMakeShared(Arg&&...arg) : LightningTreeNode(std::forward<Arg>(arg)...) {}
+        };
+        return std::make_shared<EnableMakeShared>(std::forward<Arg>(arg)...);
+    }
 
     const Point& getLocation() const;
-    void setLocation(Point p);
+    void setLocation(const Point& p);
 
     void addChild(const Point& p);
 
-    void addChild(std::shared_ptr<LightningTreeNode> new_child);
+    void addChild(std::shared_ptr<LightningTreeNode>& new_child);
 
     // TODO: should be moved outside of this class, because we want to efficiently find pairs of close nodes
-    std::shared_ptr<LightningTreeNode> findClosestNode(const Point& x, const coord_t supporting_radius);
+    std::shared_ptr<LightningTreeNode> findClosestNode(const Point& x, const coord_t& supporting_radius);
 
     /*!
      * Propagate this tree to the next layer.
@@ -63,13 +63,19 @@ public:
     //       Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
     void visitBranches(const visitor_func_t& visitor) const;
 
-    coord_t getWeightedDistance(const Point unsupported_loc, const coord_t supporting_radius);
+    coord_t getWeightedDistance(const Point& unsupported_loc, const coord_t& supporting_radius);
 
     bool isRoot() const { return is_root; }
 
     bool hasOffspring(std::shared_ptr<LightningTreeNode> to_be_checked);
 protected:
     LightningTreeNode() = delete; // Don't allow empty contruction
+
+    // Constructs a node, for insertion into a tree:
+    LightningTreeNode(const Point& p);
+
+    // Constructs a root (and initial trunk):
+    LightningTreeNode(const Point& a, const Point& b);
 
     /*!
      * What does this function do?!
@@ -149,7 +155,7 @@ struct GroundingLocation
 {
     std::shared_ptr<LightningTreeNode> tree_node; //!< not null if the gounding location is on a tree
     std::optional<ClosestPolygonPoint> boundary_location; //!< in case the gounding location is on the boundary
-    Point p()
+    Point p() const
     {
         if (tree_node != nullptr)
         {
@@ -178,13 +184,13 @@ public:
     //! Determine & connect to connection point in tree/outline.
     GroundingLocation getBestGroundingLocation(const Point unsupported_location, const Polygons& current_outlines, coord_t supporting_radius, std::shared_ptr<LightningTreeNode> to_be_excluded = nullptr);
 
-    void attach(Point unsupported_loc, GroundingLocation ground);
+    void attach(const Point& unsupported_loc, const GroundingLocation& ground);
 
     void reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius);
 
     Polygons convertToLines() const;
 
-    coord_t getWeightedDistance(const Point boundary_loc, const Point unsupported_loc);
+    coord_t getWeightedDistance(const Point& boundary_loc, const Point& unsupported_loc);
 };
 
 /*

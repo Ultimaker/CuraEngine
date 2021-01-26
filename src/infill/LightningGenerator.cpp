@@ -46,12 +46,12 @@
 
 using namespace cura;
 
-coord_t LightningLayer::getWeightedDistance(const Point boundary_loc, const Point unsupported_loc)
+coord_t LightningLayer::getWeightedDistance(const Point& boundary_loc, const Point& unsupported_loc)
 {
     return vSize(boundary_loc - unsupported_loc);
 }
 
-coord_t LightningTreeNode::getWeightedDistance(const Point unsupported_loc, const coord_t supporting_radius)
+coord_t LightningTreeNode::getWeightedDistance(const Point& unsupported_loc, const coord_t& supporting_radius)
 {
     size_t valence = ( ! is_root) + children.size();
     coord_t boost = (0 < valence && valence < 4)? 4 * supporting_radius : 0;
@@ -74,7 +74,7 @@ const Point& LightningTreeNode::getLocation() const
     return p;
 }
 
-void LightningTreeNode::setLocation(Point loc)
+void LightningTreeNode::setLocation(const Point& loc)
 {
     p = loc;
 }
@@ -82,10 +82,10 @@ void LightningTreeNode::setLocation(Point loc)
 void LightningTreeNode::addChild(const Point& child_loc)
 {
     assert(p != child_loc);
-    children.push_back(std::make_shared<LightningTreeNode>(child_loc));
+    children.push_back(LightningTreeNode::create(child_loc));
 }
 
-void LightningTreeNode::addChild(std::shared_ptr<LightningTreeNode> new_child)
+void LightningTreeNode::addChild(std::shared_ptr<LightningTreeNode>& new_child)
 {
     assert(&*new_child != this);
 //     assert(p != new_child->p);
@@ -95,7 +95,7 @@ void LightningTreeNode::addChild(std::shared_ptr<LightningTreeNode> new_child)
     new_child->is_root = false;
 }
 
-std::shared_ptr<LightningTreeNode> LightningTreeNode::findClosestNode(const Point& x, const coord_t supporting_radius)
+std::shared_ptr<LightningTreeNode> LightningTreeNode::findClosestNode(const Point& x, const coord_t& supporting_radius)
 {
     coord_t closest_distance = getWeightedDistance(x, supporting_radius);
     std::shared_ptr<LightningTreeNode> closest_node = shared_from_this();
@@ -135,12 +135,12 @@ void LightningTreeNode::visitBranches(const visitor_func_t& visitor) const
 }
 
 // Node:
-LightningTreeNode::LightningTreeNode(const Point& p) : p(p) {}
+LightningTreeNode::LightningTreeNode(const Point& p) : is_root(false), p(p) {}
 
 // Root (and Trunk):
 LightningTreeNode::LightningTreeNode(const Point& a, const Point& b) : LightningTreeNode(a)
 {
-    children.push_back(std::make_shared<LightningTreeNode>(b));
+    children.push_back(LightningTreeNode::create(b));
     is_root = true;
 }
 
@@ -160,7 +160,7 @@ void LightningTreeNode::findClosestNodeHelper(const Point& x, const coord_t supp
 
 std::shared_ptr<LightningTreeNode> LightningTreeNode::deepCopy() const
 {
-    std::shared_ptr<LightningTreeNode> local_root = std::make_shared<LightningTreeNode>(p);
+    std::shared_ptr<LightningTreeNode> local_root = LightningTreeNode::create(p);
     local_root->is_root = is_root;
     local_root->children.reserve(children.size());
     for (const auto& node : children)
@@ -422,12 +422,12 @@ GroundingLocation LightningLayer::getBestGroundingLocation(const Point unsupport
     }
 }
 
-void LightningLayer::attach(Point unsupported_location, GroundingLocation grounding_loc)
+void LightningLayer::attach(const Point& unsupported_location, const GroundingLocation& grounding_loc)
 {
     // Update trees & distance fields.
     if (grounding_loc.boundary_location)
     {
-        tree_roots.push_back(std::make_shared<LightningTreeNode>(grounding_loc.p(), unsupported_location));
+        tree_roots.push_back(LightningTreeNode::create(grounding_loc.p(), unsupported_location));
     }
     else
     {
@@ -443,7 +443,7 @@ void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNod
         GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, supporting_radius, root_ptr);
         if (ground.boundary_location)
         {
-            auto new_root = std::make_shared<LightningTreeNode>(ground.p());
+            auto new_root = LightningTreeNode::create(ground.p());
             new_root->addChild(root_ptr);
             *old_root_it = std::move(new_root); // replace old root with new root
         }
