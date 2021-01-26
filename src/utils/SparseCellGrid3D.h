@@ -202,7 +202,7 @@ typename SGI_THIS::GridPoint3 SGI_THIS::toGridPoint(const Point3 &point)  const
 SGI_TEMPLATE
 typename SGI_THIS::grid_coord_t SGI_THIS::toGridCoord(const coord_t& coord, const size_t dim)  const
 {
-    assert(dim >= 0 && dim < 3);
+    assert(dim < 3);
     return coord / m_cell_size[dim] - (coord < 0);
 }
 
@@ -215,13 +215,7 @@ typename cura::Point3 SGI_THIS::toLowerCorner(const GridPoint3& location)  const
 SGI_TEMPLATE
 typename cura::coord_t SGI_THIS::toLowerCoord(const grid_coord_t& grid_coord, const size_t dim)  const
 {
-    // This mapping via truncation results in the cells with
-    // GridPoint3.x==0 being twice as large and similarly for
-    // GridPoint3.y==0.  This doesn't cause any incorrect behavior,
-    // just changes the running time slightly.  The change in running
-    // time from this is probably not worth doing a proper floor
-    // operation.
-    assert(dim >= 0 && dim < 3);
+    assert(dim < 3);
     return grid_coord * m_cell_size[dim];
 }
 

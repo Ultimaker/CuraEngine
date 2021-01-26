@@ -25,6 +25,7 @@ public:
     Point3(const coord_t _x, const coord_t _y, const coord_t _z): x(_x), y(_y), z(_z) {}
 
     Point3 operator +(const Point3& p) const;
+    Point3 operator -() const;
     Point3 operator -(const Point3& p) const;
     Point3 operator *(const Point3& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
     Point3 operator /(const Point3& p) const;
@@ -37,6 +38,11 @@ public:
     Point3 operator /(const num_t i) const
     {
         return Point3(x / i, y / i, z / i);
+    }
+    template<typename num_t, typename = typename std::enable_if<std::is_arithmetic<num_t>::value, num_t>::type>
+    Point3 operator %(const num_t i) const
+    {
+        return Point3(x % i, y % i, z % i);
     }
 
     Point3& operator +=(const Point3& p);
