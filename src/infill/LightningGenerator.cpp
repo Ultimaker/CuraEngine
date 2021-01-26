@@ -434,11 +434,11 @@ GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsuppor
 
     std::shared_ptr<LightningTreeNode> sub_tree(nullptr);
     coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
-    auto candidate_trees = tree_node_locator.getNearbyVals(node_location, std::min(current_dist, supporting_radius));
+    auto candidate_trees = tree_node_locator.getNearbyVals(unsupported_location, std::min(current_dist, supporting_radius));
     for (auto& candidate_wptr : candidate_trees)
     {
         auto candidate_sub_tree = candidate_wptr.lock();
-        if (candidate_sub_tree && candidate_sub_tree != exclude_tree && ! exclude_tree->hasOffspring(candidate_sub_tree) && ! candidate_sub_tree->hasOffspring(exclude_tree))
+        if (candidate_sub_tree && candidate_sub_tree != exclude_tree && ! (exclude_tree && exclude_tree->hasOffspring(candidate_sub_tree)))
         {
             const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
             if (candidate_dist < current_dist)
