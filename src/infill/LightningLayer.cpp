@@ -149,18 +149,13 @@ Point GroundingLocation::p() const
     }
 }
 
-LightningTreeNode::node_visitor_func_t getAddToLocatorFunc(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator)
-{
-    return
-        [&tree_node_locator](std::shared_ptr<LightningTreeNode> node)
-    {
-        tree_node_locator.insert(node->getLocation(), node);
-    };
-}
-
 void LightningLayer::fillLocator(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator)
 {
-    const LightningTreeNode::node_visitor_func_t add_node_to_locator_func = getAddToLocatorFunc(tree_node_locator);
+    const LightningTreeNode::node_visitor_func_t add_node_to_locator_func =
+        [&tree_node_locator](std::shared_ptr<LightningTreeNode> node)
+        {
+            tree_node_locator.insert(node->getLocation(), node);
+        };
     for (auto& tree : tree_roots)
     {
         tree->visitNodes(add_node_to_locator_func);
@@ -173,7 +168,6 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
 
     constexpr coord_t locator_cell_size = 2000;
     SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);
-    const auto add_to_locator_func = getAddToLocatorFunc(tree_node_locator);
     fillLocator(tree_node_locator);
 
     constexpr size_t debug_max_iterations = 9999; // TODO: remove
@@ -190,7 +184,8 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
 
         // TODO: update unsupported_location to lie closer to grounding_loc
 
-        attach(unsupported_location, grounding_loc)->visitNodes(add_to_locator_func);
+        auto tree_node = attach(unsupported_location, grounding_loc);
+        tree_node_locator.insert(tree_node->getLocation(), tree_node);
 
         // update distance field
         distance_field.update(grounding_loc.p(), unsupported_location);
@@ -249,7 +244,6 @@ void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNod
     SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator);
 
-    const LightningTreeNode::node_visitor_func_t add_node_to_locator_func = getAddToLocatorFunc(tree_node_locator);
     for (auto root_ptr : to_be_reconnected_tree_roots)
     {
         auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
