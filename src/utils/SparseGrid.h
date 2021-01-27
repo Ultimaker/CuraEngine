@@ -153,25 +153,11 @@ SGI_TEMPLATE
 bool SGI_THIS::processNearby(const Point &query_pt, coord_t radius,
                              const std::function<bool (const Elem&)>& process_func) const
 {
-    Point min_loc(query_pt.X - radius, query_pt.Y - radius);
-    Point max_loc(query_pt.X + radius, query_pt.Y + radius);
-
-    GridPoint min_grid = toGridPoint(min_loc);
-    GridPoint max_grid = toGridPoint(max_loc);
-
-    for (coord_t grid_y = min_grid.Y; grid_y <= max_grid.Y; ++grid_y)
-    {
-        for (coord_t grid_x = min_grid.X; grid_x <= max_grid.X; ++grid_x)
-        {
-            GridPoint grid_pt(grid_x,grid_y);
-            bool continue_ = processFromCell(grid_pt, process_func);
-            if (!continue_)
-            {
-                return false;
-            }
-        }
-    }
-    return true;
+    return SquareGrid::processNearby(query_pt, radius,
+                                     [&process_func, this](const GridPoint& grid_pt)
+                                     {
+                                         return processFromCell(grid_pt, process_func);
+                                     });
 }
 
 SGI_TEMPLATE

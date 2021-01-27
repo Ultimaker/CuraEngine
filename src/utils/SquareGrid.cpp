@@ -119,6 +119,32 @@ bool SquareGrid::processLineCells(
 }
 
 
+bool SquareGrid::processNearby(const Point &query_pt, coord_t radius,
+                             const std::function<bool (const GridPoint&)>& process_func) const
+{
+    Point min_loc(query_pt.X - radius, query_pt.Y - radius);
+    Point max_loc(query_pt.X + radius, query_pt.Y + radius);
+
+    GridPoint min_grid = toGridPoint(min_loc);
+    GridPoint max_grid = toGridPoint(max_loc);
+
+    for (coord_t grid_y = min_grid.Y; grid_y <= max_grid.Y; ++grid_y)
+    {
+        for (coord_t grid_x = min_grid.X; grid_x <= max_grid.X; ++grid_x)
+        {
+            GridPoint grid_pt(grid_x,grid_y);
+            bool continue_ = process_func(grid_pt);
+            if (!continue_)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
+
 SquareGrid::grid_coord_t SquareGrid::nonzero_sign(const grid_coord_t z) const
 {
     return (z >= 0) - (z < 0);

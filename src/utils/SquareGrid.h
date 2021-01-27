@@ -54,6 +54,20 @@ public:
     bool processLineCells(const std::pair<Point, Point> line,
                          const std::function<bool (GridPoint)>& process_cell_func) const;
 
+    /*! \brief Process cells that might contain sought after points.
+    * 
+    * Processes cells that might be within \p radius of \p query_pt.
+    * May process elements that are up to radius + cell_size from query_pt.
+    *
+    * \param[in] query_pt The point to search around.
+    * \param[in] radius The search radius.
+    * \param[in] process_func Processes each cell.  process_func(loc) is
+    *    called for each cell coord. Processing stops if function returns false.
+    * \return Whether we need to continue processing after this function
+    */
+    bool processNearby(const Point &query_pt, coord_t radius,
+                       const std::function<bool (const GridPoint&)>& process_func) const;
+
     /*! \brief Compute the grid coordinates of a point.
      *
      * \param[in] point The actual location.
