@@ -263,6 +263,7 @@ void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNod
 
             auto new_root = LightningTreeNode::create(ground.p());
             new_root->addChild(root_ptr);
+            tree_node_locator.insert(new_root->getLocation(), new_root);
 
             *old_root_it = std::move(new_root); // replace old root with new root
         }
