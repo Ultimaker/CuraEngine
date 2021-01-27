@@ -20,7 +20,7 @@ LightningDistanceField::LightningDistanceField
     const coord_t& radius,
     const Polygons& current_outline,
     const Polygons& current_overhang,
-    const std::unordered_set<std::shared_ptr<LightningTreeNode>>& initial_trees
+    const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
 )
 {
     supporting_radius = radius;
@@ -98,15 +98,11 @@ LightningTreeNode::node_visitor_func_t getAddToLocatorFunc(SparsePointGridInclus
     };
 }
 
-void LightningLayer::fillLocator(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator, const std::unordered_set<std::shared_ptr<LightningTreeNode>>& excluded_trees_by_root)
+void LightningLayer::fillLocator(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator)
 {
     const LightningTreeNode::node_visitor_func_t add_node_to_locator_func = getAddToLocatorFunc(tree_node_locator);
     for (auto& tree : tree_roots)
     {
-        if (excluded_trees_by_root.count(tree) > 0)
-        {
-            continue;
-        }
         tree->visitNodes(add_node_to_locator_func);
     }
 }
@@ -177,7 +173,7 @@ void LightningLayer::attach(const Point& unsupported_location, const GroundingLo
     // Update trees & distance fields.
     if (grounding_loc.boundary_location)
     {
-        tree_roots.insert(LightningTreeNode::create(grounding_loc.p(), unsupported_location));
+        tree_roots.push_back(LightningTreeNode::create(grounding_loc.p(), unsupported_location));
     }
     else
     {
@@ -185,7 +181,7 @@ void LightningLayer::attach(const Point& unsupported_location, const GroundingLo
     }
 }
 
-void LightningLayer::reconnectRoots(std::unordered_set<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius)
+void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius)
 {
     constexpr coord_t locator_cell_size = 2000;
     SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);
@@ -194,6 +190,7 @@ void LightningLayer::reconnectRoots(std::unordered_set<std::shared_ptr<Lightning
     const LightningTreeNode::node_visitor_func_t add_node_to_locator_func = getAddToLocatorFunc(tree_node_locator);
     for (auto root_ptr : to_be_reconnected_tree_roots)
     {
+        auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
         GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, supporting_radius, tree_node_locator, root_ptr);
         if (ground.boundary_location)
         {
@@ -205,7 +202,7 @@ void LightningLayer::reconnectRoots(std::unordered_set<std::shared_ptr<Lightning
             auto new_root = LightningTreeNode::create(ground.p());
             new_root->addChild(root_ptr);
 
-            tree_roots.insert(new_root);
+            *old_root_it = std::move(new_root); // replace old root with new root
         }
         else
         {
@@ -215,8 +212,11 @@ void LightningLayer::reconnectRoots(std::unordered_set<std::shared_ptr<Lightning
             assert(!ground.tree_node->hasOffspring(root_ptr));
 
             ground.tree_node->addChild(root_ptr);
+
+            // remove old root
+            *old_root_it = std::move(tree_roots.back());
+            tree_roots.pop_back();
         }
-        tree_roots.erase(root_ptr);
     }
 }
 

@@ -8,7 +8,7 @@
 
 #include <functional>
 #include <memory>
-#include <unordered_set>
+#include <vector>
 
 namespace cura
 {
@@ -54,7 +54,7 @@ public:
      */
     void propagateToNextLayer
     (
-        std::unordered_set<std::shared_ptr<LightningTreeNode>>& next_trees,
+        std::vector<std::shared_ptr<LightningTreeNode>>& next_trees,
         const Polygons& next_outlines,
         const coord_t& prune_distance,
         const coord_t& smooth_magnitude
@@ -93,7 +93,7 @@ protected:
     /*! Reconnect trees from the layer above to the new outlines of the lower layer.
      * \return Wether or not the root is kept (false is no, true is yes).
      */
-    bool realign(const Polygons& outlines, std::unordered_set<std::shared_ptr<LightningTreeNode>>& rerooted_parts, const bool& connected_to_parent = false);
+    bool realign(const Polygons& outlines, std::vector<std::shared_ptr<LightningTreeNode>>& rerooted_parts, const bool& connected_to_parent = false);
 
     struct RectilinearJunction
     {

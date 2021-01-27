@@ -7,7 +7,7 @@
 #include "../utils/polygonUtils.h"
 
 #include <memory>
-#include <unordered_set>
+#include <vector>
 
 namespace cura
 {
@@ -26,7 +26,7 @@ public:
         const coord_t& radius,
         const Polygons& current_outline,
         const Polygons& current_overhang,
-        const std::unordered_set<std::shared_ptr<LightningTreeNode>>& initial_trees
+        const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
     );
 
     /*!
@@ -62,7 +62,7 @@ struct GroundingLocation
 class LightningLayer
 {
 public:
-    std::unordered_set<std::shared_ptr<LightningTreeNode>> tree_roots;
+    std::vector<std::shared_ptr<LightningTreeNode>> tree_roots;
 
     void generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius);
 
@@ -71,13 +71,13 @@ public:
 
     void attach(const Point& unsupported_loc, const GroundingLocation& ground);
 
-    void reconnectRoots(std::unordered_set<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius);
+    void reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius);
 
     Polygons convertToLines() const;
 
     coord_t getWeightedDistance(const Point& boundary_loc, const Point& unsupported_loc);
 
-    void fillLocator(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator, const std::unordered_set<std::shared_ptr<LightningTreeNode>>& excluded_trees_by_root = {});
+    void fillLocator(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator);
 };
 
 } // namespace cura

@@ -109,7 +109,7 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
         Polygons& current_outlines = infill_outlines[layer_id];
 
         // register all trees propagated from the previous layer as to-be-reconnected
-        std::unordered_set<std::shared_ptr<LightningTreeNode>> to_be_reconnected_tree_roots = current_lightning_layer.tree_roots;
+        std::vector<std::shared_ptr<LightningTreeNode>> to_be_reconnected_tree_roots = current_lightning_layer.tree_roots;
 
         current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius);
 
@@ -122,7 +122,7 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
         }
         const Polygons& below_outlines = infill_outlines[layer_id - 1];
 
-        std::unordered_set<std::shared_ptr<LightningTreeNode>>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
+        std::vector<std::shared_ptr<LightningTreeNode>>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
         for (auto& tree : current_lightning_layer.tree_roots)
         {
             tree->propagateToNextLayer

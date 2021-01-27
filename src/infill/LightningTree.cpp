@@ -60,7 +60,7 @@ std::shared_ptr<LightningTreeNode> LightningTreeNode::findClosestNode(const Poin
 
 void LightningTreeNode::propagateToNextLayer
 (
-    std::unordered_set<std::shared_ptr<LightningTreeNode>>& next_trees,
+    std::vector<std::shared_ptr<LightningTreeNode>>& next_trees,
     const Polygons& next_outlines,
     const coord_t& prune_distance,
     const coord_t& smooth_magnitude
@@ -74,7 +74,7 @@ void LightningTreeNode::propagateToNextLayer
     tree_below->straighten(smooth_magnitude);
     if (tree_below->realign(next_outlines, next_trees))
     {
-        next_trees.insert(tree_below);
+        next_trees.push_back(tree_below);
     }
 }
 
@@ -135,7 +135,7 @@ std::shared_ptr<LightningTreeNode> LightningTreeNode::deepCopy() const
     return local_root;
 }
 
-bool LightningTreeNode::realign(const Polygons& outlines, std::unordered_set<std::shared_ptr<LightningTreeNode>>& rerooted_parts, const bool& connected_to_parent)
+bool LightningTreeNode::realign(const Polygons& outlines, std::vector<std::shared_ptr<LightningTreeNode>>& rerooted_parts, const bool& connected_to_parent)
 {
     // TODO: Hole(s) in the _middle_ of a line-segement, not unlikely since reconnect.
     // TODO: Reconnect if not on outline -> plan is: yes, but not here anymore!
@@ -166,7 +166,7 @@ bool LightningTreeNode::realign(const Polygons& outlines, std::unordered_set<std
         constexpr bool argument_with_disconnect = false;
         if (child->realign(outlines, rerooted_parts, argument_with_disconnect))
         {
-            rerooted_parts.insert(child);
+            rerooted_parts.push_back(child);
         }
     }
     children.clear();

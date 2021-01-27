@@ -11,7 +11,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
-#include <unordered_set>
+#include <vector>
 
 namespace cura 
 {
