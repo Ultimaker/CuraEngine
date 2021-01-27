@@ -11,6 +11,13 @@
 
 //____v
 
+// TODO: distance field as sparse grid
+// TODO: order pixels by dist to boundary
+
+// TODO: junctions: create gap to avoid overextrusion at junctions
+
+// TODO: avoid intersections between different branches
+
 // TODO: improve tryGetNextPoint
 //       Idea maybe something can be done with isolines for the distance function?
 // TODO: Implement 'Truncate' ... is it needed to do it within the tree as well (see note-comment in function itself).
