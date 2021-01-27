@@ -34,13 +34,14 @@ void LightningTreeNode::setLocation(const Point& loc)
     p = loc;
 }
 
-void LightningTreeNode::addChild(const Point& child_loc)
+std::shared_ptr<LightningTreeNode> LightningTreeNode::addChild(const Point& child_loc)
 {
     assert(p != child_loc);
     children.push_back(LightningTreeNode::create(child_loc));
+    return children.back();
 }
 
-void LightningTreeNode::addChild(std::shared_ptr<LightningTreeNode>& new_child)
+std::shared_ptr<LightningTreeNode> LightningTreeNode::addChild(std::shared_ptr<LightningTreeNode>& new_child)
 {
     assert(new_child != shared_from_this());
     //     assert(p != new_child->p);
@@ -48,6 +49,7 @@ void LightningTreeNode::addChild(std::shared_ptr<LightningTreeNode>& new_child)
         std::cerr << "wtf\n";
     children.push_back(new_child);
     new_child->is_root = false;
+    return new_child;
 }
 
 std::shared_ptr<LightningTreeNode> LightningTreeNode::findClosestNode(const Point& x, const coord_t& supporting_radius)

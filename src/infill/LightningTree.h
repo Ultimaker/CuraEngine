@@ -38,9 +38,8 @@ public:
     const Point& getLocation() const;
     void setLocation(const Point& p);
 
-    void addChild(const Point& p);
-
-    void addChild(std::shared_ptr<LightningTreeNode>& new_child);
+    std::shared_ptr<LightningTreeNode> addChild(const Point& p);
+    std::shared_ptr<LightningTreeNode> addChild(std::shared_ptr<LightningTreeNode>& new_child);
 
     // TODO: should be moved outside of this class, because we want to efficiently find pairs of close nodes
     std::shared_ptr<LightningTreeNode> findClosestNode(const Point& x, const coord_t& supporting_radius);

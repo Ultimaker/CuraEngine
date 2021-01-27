@@ -113,6 +113,7 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
 
     constexpr coord_t locator_cell_size = 2000;
     SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);
+    const auto add_to_locator_func = getAddToLocatorFunc(tree_node_locator);
     fillLocator(tree_node_locator);
 
     constexpr size_t debug_max_iterations = 9999; // TODO: remove
@@ -129,7 +130,7 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
 
         // TODO: update unsupported_location to lie closer to grounding_loc
 
-        attach(unsupported_location, grounding_loc);
+        attach(unsupported_location, grounding_loc)->visitNodes(add_to_locator_func);
 
         // update distance field
         distance_field.update(grounding_loc.p(), unsupported_location);
@@ -168,16 +169,17 @@ GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsuppor
     }
 }
 
-void LightningLayer::attach(const Point& unsupported_location, const GroundingLocation& grounding_loc)
+std::shared_ptr<LightningTreeNode> LightningLayer::attach(const Point& unsupported_location, const GroundingLocation& grounding_loc)
 {
     // Update trees & distance fields.
     if (grounding_loc.boundary_location)
     {
         tree_roots.push_back(LightningTreeNode::create(grounding_loc.p(), unsupported_location));
+        return tree_roots.back();
     }
     else
     {
-        grounding_loc.tree_node->addChild(unsupported_location);
+        return grounding_loc.tree_node->addChild(unsupported_location);
     }
 }
 
