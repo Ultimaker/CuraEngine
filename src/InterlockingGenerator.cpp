@@ -3,16 +3,13 @@
 
 #include "InterlockingGenerator.h"
 
-#include <algorithm>
-#include <unordered_set>
+#include <algorithm> // max
 
 #include "Application.h"
 #include "Slice.h"
 #include "slicer.h"
 #include "utils/polygonUtils.h"
 #include "utils/VoxelUtils.h"
-
-#include "utils/SparseCellGrid3D.h"
 
 namespace cura 
 {
@@ -46,15 +43,22 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     // TODO make robust against if there's only 1 extruder
     
     
-    size_t max_layer_count = 0;
-    for (Slicer* mesh : volumes)
+    std::vector<coord_t> layer_heights;
     {
-        max_layer_count = std::max(max_layer_count, mesh->layers.size());
+        size_t layer_idx = 0;
+        for (Slicer* mesh : volumes)
+        {
+            layer_heights.resize(std::max(layer_heights.size(), mesh->layers.size()));
+            for ( ; layer_idx < mesh->layers.size() ; layer_idx++)
+            {
+                layer_heights[layer_idx] = mesh->layers[layer_idx].z;
+            }
+        }
     }
     
     PointMatrix rotation(45.0);
     
-    InterlockingGenerator gen(volumes, line_width_per_extruder, max_layer_count, rotation, cell_size);
+    InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size);
     
     // TODO: implement lesser dilation based on translated polygons
     // TODO: make dilation user parameter
@@ -65,30 +69,30 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     
     // TODO: option for different amount of dilation for shell removal
     
-    
-    SparseCellGrid3D<Cell> grid(cell_size);
 
-    gen.populateGridWithBoundaryVoxels(grid);
-    
-    std::vector<Polygons> layer_regions(max_layer_count);
-    std::vector<coord_t> layer_heights(max_layer_count);
-    gen.computeLayerRegions(layer_regions, layer_heights);
+    DilationKernel interface_dilation(GridPoint3(2,2,4), true);
+    std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
 
-    std::vector<Polygons> layer_skins(max_layer_count);
-    gen.computeLayerSkins(layer_regions, layer_skins);
-    
-    gen.removeBoundaryCells(grid, layer_regions, layer_heights);
-    
-    gen.removeSkinCells(grid, layer_skins, layer_heights);
-    
-    gen.dilateCells(grid, extruder_count);
-    
-    gen.cleanUpNonInterface(grid);
-    
+    std::vector<Polygons> layer_regions(layer_heights.size());
+    gen.computeLayerRegions(layer_regions);
+
+    DilationKernel air_dilation(GridPoint3(1,1,1), true);
+    std::unordered_set<GridPoint3> air_cells;
+    gen.addBoundaryCells(layer_regions, air_dilation, air_cells);
+
+    std::unordered_set<GridPoint3>& has_any_extruder = voxels_per_extruder[0];
+    std::unordered_set<GridPoint3>& has_all_extruders = voxels_per_extruder[1];
+    has_any_extruder.merge(has_all_extruders);
+
+    for (const GridPoint3& p : air_cells)
+    {
+        has_all_extruders.erase(p);
+    }
+
     std::vector<std::vector<Polygon>> cell_area_per_extruder_per_layer;
     gen.generateMicrostructure(cell_area_per_extruder_per_layer);
 
-    gen.applyMicrostructureToOutlines(grid, cell_area_per_extruder_per_layer);
+    gen.applyMicrostructureToOutlines(has_all_extruders, cell_area_per_extruder_per_layer);
 }
 
 InterlockingGenerator::Cell::Cell()
@@ -97,14 +101,18 @@ InterlockingGenerator::Cell::Cell()
     assert(has_extruder.size() >= 1);
 }
 
-void InterlockingGenerator::populateGridWithBoundaryVoxels(SparseCellGrid3D<Cell>& grid)
+std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxels(const DilationKernel& kernel)
 {
-    const Cell default_cell;
+    std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder(2);
 
     // mark all cells which contain some boundary
     for (Slicer* mesh : volumes)
     {
         size_t extruder_nr = mesh->mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").settings.get<size_t>("extruder_nr");
+        assert(extruder_nr < 2);
+        std::unordered_set<GridPoint3>& mesh_voxels = voxels_per_extruder[extruder_nr];
+        
+        
         std::vector<Polygons> rotated_polygons_per_layer(mesh->layers.size());
         for (size_t layer_nr = 0; layer_nr < mesh->layers.size(); layer_nr++)
         {
@@ -112,34 +120,32 @@ void InterlockingGenerator::populateGridWithBoundaryVoxels(SparseCellGrid3D<Cell
             rotated_polygons_per_layer[layer_nr] = layer.polygons;
             rotated_polygons_per_layer[layer_nr].applyMatrix(rotation);
         }
-        assert(extruder_nr < 2);
         
-        for (size_t layer_nr = 0; layer_nr < mesh->layers.size(); layer_nr++)
+        addBoundaryCells(rotated_polygons_per_layer, kernel, mesh_voxels);
+    }
+    
+    return voxels_per_extruder;
+}
+
+void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells)
+{
+    auto voxel_emplacer = [&cells](GridPoint3 p) { cells.emplace(p); return true; };
+
+    for (size_t layer_nr = 0; layer_nr < layers.size(); layer_nr++)
+    {
+        coord_t z = layer_heights[layer_nr];
+        vu.walkDilatedPolygons(layers[layer_nr], z, kernel, voxel_emplacer);
+        Polygons skin = layers[layer_nr];
+        if (layer_nr > 0)
         {
-            coord_t z = mesh->layers[layer_nr].z;
-            for (ConstPolygonRef poly : rotated_polygons_per_layer[layer_nr])
-            {
-                Point last = poly.back();
-                for (Point p : poly)
-                {
-                    grid.processLineCells(std::make_pair(Point3(last.X, last.Y, z), Point3(p.X, p.Y, z)),
-                                          [extruder_nr, &grid, &default_cell](SparseCellGrid3D<Cell>::GridPoint3 grid_loc) -> bool
-                                          {
-                                              Cell& cell = grid.getCell(grid_loc, default_cell);
-                                              assert(extruder_nr < cell.has_extruder.size());
-                                              cell.has_extruder[extruder_nr] = true;
-                                              return true; // keep going marking cells along this line
-                                          }
-                    );
-                    
-                    last = p;
-                }
-            }
+            skin = skin.xorPolygons(layers[layer_nr - 1]);
         }
+        skin = skin.offset(-cell_size.x / 2); // remove superfluous small areas
+        vu.walkDilatedAreas(skin, z, kernel, voxel_emplacer);
     }
 }
 
-void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_regions, std::vector<coord_t>& layer_heights)
+void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_regions)
 {
     for (unsigned int layer_nr = 0; layer_nr < layer_regions.size(); layer_nr++)
     {
@@ -155,123 +161,6 @@ void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_reg
         layer_region = layer_region.offset(100).offset(-100); // TODO hardcoded value
         layer_region.applyMatrix(rotation);
         layer_heights[layer_nr] = z;
-    }
-}
-
-void InterlockingGenerator::computeLayerSkins(const std::vector<Polygons>& layer_regions, std::vector<Polygons>& layer_skin)
-{
-    for (size_t layer_nr = 0; layer_nr < layer_regions.size(); layer_nr++)
-    {
-        Polygons empty;
-        const Polygons& below = (layer_nr >= 1)? layer_regions[layer_nr - 1] : empty;
-        const Polygons& above = (layer_nr + 1 < layer_regions.size())? layer_regions[layer_nr + 1] : empty;
-        Polygons bottom_skin = layer_regions[layer_nr].difference(below);
-        Polygons top_skin = layer_regions[layer_nr].difference(above);
-        layer_skin[layer_nr] = bottom_skin.unionPolygons(top_skin);
-    }
-}
-
-void InterlockingGenerator::removeBoundaryCells(SparseCellGrid3D<Cell>& grid, const std::vector<Polygons>& layer_regions, std::vector<coord_t>& layer_heights)
-{
-    for (size_t layer_nr = 0; layer_nr < layer_regions.size(); layer_nr++)
-    {
-        coord_t z = layer_heights[layer_nr];
-        for (ConstPolygonRef poly : layer_regions[layer_nr])
-        {
-            Point last = poly.back();
-            for (Point p : poly)
-            {
-                grid.processLineCells(std::make_pair(Point3(last.X, last.Y, z), Point3(p.X, p.Y, z)),
-                    [&grid](SparseCellGrid3D<Cell>::GridPoint3 grid_loc) -> bool
-                    {
-                        for (coord_t offset_x : {-1, 0, 1})
-                        {
-                            for (coord_t offset_y : {-1, 0, 1})
-                            {
-                                for (coord_t offset_z : {-1, 0, 1})
-                                {
-                                    grid.removeCell(grid_loc + Point3(offset_x, offset_y, offset_z));
-                        }   }   }
-                        return true; // keep going removing cells
-                    }
-                );
-                last = p;
-            }
-        }
-    }
-}
-
-void InterlockingGenerator::removeSkinCells(SparseCellGrid3D<Cell>& grid, const std::vector<Polygons>& layer_skin, std::vector<coord_t>& layer_heights)
-{
-    for (size_t layer_nr = 0; layer_nr < layer_skin.size(); layer_nr++)
-    {
-        std::vector<Point> skin_points = PolygonUtils::spreadDotsArea(layer_skin[layer_nr], cell_size.x);
-        for (Point skin_point : skin_points)
-        {
-            for (coord_t offset_x : {-1, 0, 1})
-                for (coord_t offset_y : {-1, 0, 1})
-                    for (coord_t offset_z : {-1, 0, 1})
-                    {
-                        grid.removeCell(grid.toGridPoint(Point3(skin_point.X, skin_point.Y, layer_heights[layer_nr])) + Point3(offset_x, offset_y, offset_z));
-                    }
-        }
-    }
-}
-
-void InterlockingGenerator::dilateCells(SparseCellGrid3D<Cell>& grid, size_t extruder_count)
-{
-    std::vector<std::unordered_set<Point3>> dilated_cells_per_extruder(extruder_count);
-    const std::vector<Point3> rel_dilation_locations = {
-        Point3(-1,0,0), Point3(1,0,0),
-        Point3(0,-1,0), Point3(0,1,0),
-        Point3(0,0,-1), Point3(0,0,1) };
-    for (auto& pair : grid.m_grid)
-    {
-        const Cell& cell = pair.second;
-        for (size_t extruder_nr = 0; extruder_nr < cell.has_extruder.size(); extruder_nr++)
-        {
-            if (cell.has_extruder[extruder_nr])
-            {
-                for (Point3 rel_dilation_location : rel_dilation_locations)
-                {
-                    dilated_cells_per_extruder[extruder_nr].insert(pair.first + rel_dilation_location);
-                }
-            }
-        }
-    }
-
-    const Cell default_cell;
-
-    // apply dilation
-    for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-    {
-        const std::unordered_set<Point3>& dilated_cells = dilated_cells_per_extruder[extruder_nr];
-        for (Point3 grid_loc : dilated_cells)
-        {
-            grid.getCell(grid_loc, default_cell).has_extruder[extruder_nr] = true;
-        }
-    }
-}
-
-// remove cells which are not in the intersection region
-void InterlockingGenerator::cleanUpNonInterface(SparseCellGrid3D<Cell>& grid)
-{
-    for (auto it = grid.m_grid.begin(); it != grid.m_grid.end(); )
-    {
-        int occupied_extruder_count = 0;
-        const Cell& cell = it->second;
-        for (bool has_extr : cell.has_extruder)
-        {
-            occupied_extruder_count += has_extr;
-        }
-        if (occupied_extruder_count <= 1)
-        {
-            it = grid.m_grid.erase(it);
-        }
-        else
-        {
-            ++it;
-        }
     }
 }
 
@@ -299,14 +188,13 @@ void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polyg
     }
 }
 
-void InterlockingGenerator::applyMicrostructureToOutlines(SparseCellGrid3D<Cell>& grid, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer)
+void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer)
 {
     PointMatrix unapply_rotation = rotation.inverse();
 
-    for (auto key_val : grid.m_grid)
+    for (const GridPoint3& grid_loc : cells)
     {
-        Point3 grid_loc = key_val.first;
-        Point3 bottom_corner = grid.toLowerCorner(grid_loc);
+        Point3 bottom_corner = vu.toLowerCorner(grid_loc);
         for (Slicer* mesh : volumes)
         {
             size_t extruder_nr = mesh->mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").settings.get<size_t>("extruder_nr");

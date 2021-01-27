@@ -6,9 +6,10 @@
 
 #include <vector>
 #include <cassert>
+#include <unordered_set>
 
 #include "utils/polygon.h"
-#include "utils/SparseCellGrid3D.h"
+#include "utils/VoxelUtils.h"
 
 namespace cura
 {
@@ -30,36 +31,31 @@ public:
     };
 
 protected:
-    InterlockingGenerator(std::vector<Slicer*>& volumes, std::vector<coord_t>& line_width_per_extruder, coord_t max_layer_count, const PointMatrix& rotation, Point3 cell_size)
+    InterlockingGenerator(std::vector<Slicer*>& volumes, std::vector<coord_t>& line_width_per_extruder, const std::vector<coord_t>& layer_heights, const PointMatrix& rotation, Point3 cell_size)
     : volumes(volumes)
     , line_width_per_extruder(line_width_per_extruder)
-    , max_layer_count(max_layer_count)
+    , layer_heights(layer_heights)
+    , vu(cell_size)
     , rotation(rotation)
     , cell_size(cell_size)
     {}
 
-    void populateGridWithBoundaryVoxels(SparseCellGrid3D<Cell>& grid);
+    std::vector<std::unordered_set<GridPoint3>> getShellVoxels(const DilationKernel& kernel);
+    
+    
+    void addBoundaryCells(std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells);
 
-    void computeLayerRegions(std::vector<Polygons>& layer_regions, std::vector<coord_t>& layer_heights);
-
-    void computeLayerSkins(const std::vector<Polygons>& layer_regions, std::vector<Polygons>& layer_skins);
-
-    void removeBoundaryCells(SparseCellGrid3D<Cell>& grid, const std::vector<Polygons>& layer_regions, std::vector<coord_t>& layer_heights);
-
-    void removeSkinCells(SparseCellGrid3D<Cell>& grid, const std::vector<Polygons>& layer_skin, std::vector<coord_t>& layer_heights);
-
-    void dilateCells(SparseCellGrid3D<Cell>& grid, size_t extruder_count);
-
-    //! remove cells which are not in the intersection region
-    void cleanUpNonInterface(SparseCellGrid3D<Cell>& grid);
+    void computeLayerRegions(std::vector<Polygons>& layer_regions);
 
     void generateMicrostructure(std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer);
 
-    void applyMicrostructureToOutlines(SparseCellGrid3D<Cell>& grid, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer);
+    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer);
 
     std::vector<Slicer*>& volumes;
     std::vector<coord_t> line_width_per_extruder;
-    size_t max_layer_count;
+    std::vector<coord_t> layer_heights;
+
+    VoxelUtils vu;
 
     PointMatrix rotation;
     Point3 cell_size;
