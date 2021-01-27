@@ -1544,9 +1544,9 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
     }
 
     //Adjust the flow changes so that they overcompensate for the change in flow rate, effectively reducing the time it takes to change the flow.
-    if(overcompensation_factor != 1.0_r)
+    if(overcompensation_factor != 1.0_r && !splits.empty())
     {
-        double last_flowrate = paths[0].getExtrusionMM3perS();
+        double last_flowrate = splits.back().second; //TODO: Use estimated ending flow of previous plan, instead of this plan.
         for(size_t i = 0; i < splits.size(); ++i)
         {
             const double new_flowrate = splits[i].second;
