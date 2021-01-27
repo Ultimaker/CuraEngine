@@ -3,6 +3,8 @@
 
 #include "LightningLayer.h"
 
+#include <iterator> // advance
+
 #include "LightningTree.h"
 
 #include "../sliceDataStorage.h"
@@ -98,7 +100,14 @@ LightningDistanceField::LightningDistanceField
         const coord_t dist_to_boundary = vSize(p - cpp.p());
         unsupported_points.emplace_back(p, dist_to_boundary);
     }
-    unsupported_points.sort([](const UnsupCell& a, const UnsupCell& b) { return a.dist_to_boundary < b.dist_to_boundary; });
+    unsupported_points.sort(
+        [](const UnsupCell& a, const UnsupCell& b)
+        {
+            coord_t da = a.dist_to_boundary;
+            coord_t db = b.dist_to_boundary;
+            if (da == db) return std::hash<Point>{}(a.loc) % 17 < std::hash<Point>{}(b.loc) % 17;
+            return da < db;
+        });
     for (auto it = unsupported_points.begin(); it != unsupported_points.end(); ++it)
     {
         UnsupCell& cell = *it;
