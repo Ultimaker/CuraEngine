@@ -77,7 +77,7 @@ public:
     void update(const Point& to_node, const Point& added_leaf);
     
 protected:
-    coord_t cell_size = 100; // TODO: make configurable!
+    coord_t cell_size;
     SquareGrid grid;
     coord_t supporting_radius; //!< The radius of the area of the layer above supported by a point on a branch of a tree
     

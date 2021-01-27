@@ -88,7 +88,8 @@ LightningDistanceField::LightningDistanceField
  const Polygons& current_overhang,
  const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
 )
-: grid(cell_size)
+: cell_size(radius / 6) // TODO: make configurable!
+, grid(cell_size)
 , supporting_radius(radius)
 , current_outline(current_outline)
 , current_overhang(current_overhang)
