@@ -9,6 +9,7 @@
 #include "polygonUtils.h"
 #include "SparsePointGridInclusive.h"
 #include "../utils/logoutput.h"
+#include "../infill.h"
 
 #ifdef DEBUG
 #include "AABB.h"
@@ -81,6 +82,33 @@ void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, 
         }
     }
     assert(result.size() == n_dots && "we didn't generate as many wipe locations as we asked for.");
+}
+
+
+std::vector<Point> PolygonUtils::spreadDotsArea(const Polygons& polygons, coord_t grid_size)
+{
+    Infill infill_gen(EFillMethod::LINES, false, false, polygons, 0, 0, grid_size, 0, 1, 0, 0, 0, 0, 0);
+    Polygons result_polygons;
+    Polygons result_lines;
+    infill_gen.generate(result_polygons, result_lines);
+    std::vector<Point> result;
+    for (PolygonRef line : result_lines)
+    {
+        assert(line.size() == 2);
+        Point a = line[0];
+        Point b = line[1];
+        assert(a.X == b.X);
+        if (a.Y > b.Y)
+        {
+            std::swap(a, b);
+        }
+        for (coord_t y = a.Y - (a.Y % grid_size) - grid_size; y < b.Y; y += grid_size)
+        {
+            if (y < a.Y) continue;
+            result.emplace_back(a.X, y);
+        }
+    }
+    return result;
 }
 
 Point PolygonUtils::getVertexInwardNormal(ConstPolygonRef poly, unsigned int point_idx)

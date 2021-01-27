@@ -5,9 +5,12 @@
 #define LIGHTNING_LAYER_H
 
 #include "../utils/polygonUtils.h"
+#include "../utils/SquareGrid.h"
 
 #include <memory>
 #include <vector>
+#include <list>
+#include <unordered_map>
 
 namespace cura
 {
@@ -15,6 +18,38 @@ class LightningTreeNode;
 
 // NOTE: Currently, the following class is just scaffolding so the entirety can be run during development, while other parts are made in sync.
 //       No particular attention is paid to efficiency & the like. Might be _very_ slow!
+class PolygonLightningDistanceField
+{
+public:
+    /*!
+     * constructor
+     */
+    PolygonLightningDistanceField
+    (
+        const coord_t& radius,
+     const Polygons& current_outline,
+     const Polygons& current_overhang,
+     const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
+    );
+    
+    /*!
+     * Gets the next unsupported location to be supported by a new branch.
+     *
+     * Returns false if \ref PolygonLightningDistanceField::unsupported is empty
+     */
+    bool tryGetNextPoint(Point* p, coord_t supporting_radius) const;
+    
+    /*! update the distance field with a newly added branch
+     * TODO: check whether this explanation is correct
+     */
+    void update(const Point& to_node, const Point& added_leaf);
+    
+protected:
+    coord_t supporting_radius; //!< The radius of the area of the layer above supported by a point on a branch of a tree
+    Polygons unsupported;
+    Polygons supported;
+};
+
 class LightningDistanceField
 {
 public:
@@ -24,28 +59,46 @@ public:
     LightningDistanceField
     (
         const coord_t& radius,
-        const Polygons& current_outline,
-        const Polygons& current_overhang,
-        const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
+     const Polygons& current_outline,
+     const Polygons& current_overhang,
+     const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
     );
-
+    
     /*!
      * Gets the next unsupported location to be supported by a new branch.
      *
      * Returns false if \ref LightningDistanceField::unsupported is empty
      */
     bool tryGetNextPoint(Point* p, coord_t supporting_radius) const;
-
+    
     /*! update the distance field with a newly added branch
      * TODO: check whether this explanation is correct
      */
     void update(const Point& to_node, const Point& added_leaf);
-
+    
 protected:
+    coord_t cell_size = 100; // TODO: make configurable!
+    SquareGrid grid;
     coord_t supporting_radius; //!< The radius of the area of the layer above supported by a point on a branch of a tree
-    Polygons unsupported;
-    Polygons supported;
+    
+    
+    const Polygons& current_outline;
+    const Polygons& current_overhang;
+    
+    
+    struct UnsupCell
+    {
+        UnsupCell(SquareGrid::GridPoint loc, coord_t dist_to_boundary)
+        : loc(loc)
+        , dist_to_boundary(dist_to_boundary)
+        {}
+        Point loc;
+        coord_t dist_to_boundary;
+    };
+    std::list<UnsupCell> unsupported_points;
+    std::unordered_map<SquareGrid::GridPoint, std::list<UnsupCell>::iterator> unsupported_points_grid;
 };
+
 
 struct GroundingLocation
 {

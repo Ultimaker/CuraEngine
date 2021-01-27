@@ -2,10 +2,12 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "LightningLayer.h"
+
 #include "LightningTree.h"
 
 #include "../sliceDataStorage.h"
 #include "../utils/linearAlg2D.h"
+#include "../utils/SVG.h"
 #include "../utils/SparsePointGridInclusive.h"
 
 using namespace cura;
@@ -15,12 +17,12 @@ coord_t LightningLayer::getWeightedDistance(const Point& boundary_loc, const Poi
     return vSize(boundary_loc - unsupported_loc);
 }
 
-LightningDistanceField::LightningDistanceField
+PolygonLightningDistanceField::PolygonLightningDistanceField
 (
     const coord_t& radius,
-    const Polygons& current_outline,
-    const Polygons& current_overhang,
-    const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
+ const Polygons& current_outline,
+ const Polygons& current_overhang,
+ const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
 )
 {
     supporting_radius = radius;
@@ -32,9 +34,9 @@ LightningDistanceField::LightningDistanceField
             poly.add(poly[0]); // add start so that the polyline is closed
         }
     }
-
+    
     const LightningTreeNode::branch_visitor_func_t add_offset_branch_func =
-        [&](const Point& parent, const Point& child)
+    [&](const Point& parent, const Point& child)
     {
         supporting_polylines.addLine(parent, child);
     };
@@ -46,7 +48,7 @@ LightningDistanceField::LightningDistanceField
     unsupported = current_overhang.difference(supported);
 }
 
-bool LightningDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radius) const
+bool PolygonLightningDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radius) const
 {
     if (unsupported.area() < 25)
     {
@@ -64,13 +66,71 @@ bool LightningDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radius
     return true;
 }
 
-void LightningDistanceField::update(const Point& to_node, const Point& added_leaf)
+void PolygonLightningDistanceField::update(const Point& to_node, const Point& added_leaf)
 {
     Polygons line;
     line.addLine(to_node, added_leaf);
     Polygons offsetted = line.offsetPolyLine(supporting_radius, ClipperLib::jtRound);
     supported = supported.unionPolygons(offsetted);
     unsupported = unsupported.difference(supported);
+}
+
+// -- -- -- -- -- --
+// -- -- -- -- -- --
+
+
+LightningDistanceField::LightningDistanceField
+(
+    const coord_t& radius,
+ const Polygons& current_outline,
+ const Polygons& current_overhang,
+ const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
+)
+: grid(cell_size)
+, supporting_radius(radius)
+, current_outline(current_outline)
+, current_overhang(current_overhang)
+{
+    std::vector<Point> regular_dots = PolygonUtils::spreadDotsArea(current_overhang, cell_size);
+    for (Point p : regular_dots)
+    {
+        const ClosestPolygonPoint cpp = PolygonUtils::findClosest(p, current_outline);
+        const coord_t dist_to_boundary = vSize(p - cpp.p());
+        unsupported_points.emplace_back(p, dist_to_boundary);
+    }
+    unsupported_points.sort([](const UnsupCell& a, const UnsupCell& b) { return a.dist_to_boundary < b.dist_to_boundary; });
+    for (auto it = unsupported_points.begin(); it != unsupported_points.end(); ++it)
+    {
+        UnsupCell& cell = *it;
+        unsupported_points_grid.emplace(grid.toGridPoint(cell.loc), it);
+    }
+}
+
+bool LightningDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radius) const
+{
+    if (unsupported_points.empty()) return false;
+    *p = unsupported_points.front().loc;
+    return true;
+}
+
+void LightningDistanceField::update(const Point& to_node, const Point& added_leaf)
+{
+    grid.processNearby(added_leaf, supporting_radius,
+                       [added_leaf, this](const SquareGrid::GridPoint& grid_loc)
+                       {
+                           auto it = unsupported_points_grid.find(grid_loc);
+                           if (it != unsupported_points_grid.end())
+                           {
+                               std::list<UnsupCell>::iterator& list_it = it->second;
+                               UnsupCell& cell = *list_it;
+                               if (shorterThen(cell.loc - added_leaf, supporting_radius))
+                               {
+                                   unsupported_points.erase(list_it);
+                                   unsupported_points_grid.erase(it);
+                               }
+                           }
+                           return true;
+                       });
 }
 
 // -- -- -- -- -- --

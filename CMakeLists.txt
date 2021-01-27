@@ -219,6 +219,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/ProximityPointLink.cpp
     src/utils/SVG.cpp
     src/utils/socket.cpp
+    src/utils/SquareGrid.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp.
