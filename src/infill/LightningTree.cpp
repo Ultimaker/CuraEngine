@@ -190,6 +190,7 @@ void LightningTreeNode::straighten(const coord_t& magnitude)
 
 LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord_t& magnitude, Point junction_above, coord_t accumulated_dist)
 {
+    const coord_t junction_magnitude = magnitude * 3 / 4;
     if (children.size() == 1)
     {
         auto child_p = children.front();
@@ -215,10 +216,22 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord
     }
     else
     {
+        Point junction_moving_dir = normal(junction_above - p, accumulated_dist);
         for (auto child_p : children)
         {
             coord_t child_dist = vSize(p - child_p->p);
-            child_p->straighten(magnitude, p, child_dist);
+            RectilinearJunction below = child_p->straighten(magnitude, p, child_dist);
+
+            junction_moving_dir += normal(below.junction_loc - p, below.total_recti_dist);
+        }
+        if (junction_moving_dir != Point(0, 0) && ! children.empty())
+        {
+            coord_t junction_moving_dir_len = vSize(junction_moving_dir);
+            if (junction_moving_dir_len > junction_magnitude)
+            {
+                junction_moving_dir = junction_moving_dir * junction_magnitude / junction_moving_dir_len;
+            }
+            p += junction_moving_dir;
         }
         return RectilinearJunction{ accumulated_dist, p };
     }
