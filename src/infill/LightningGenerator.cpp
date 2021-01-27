@@ -130,7 +130,7 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
                 lower_trees,
                 below_outlines,
                 100, // TODO make pruning distance a separate parameter (ideally also as an anglem from which the tanget is used to compute the actual distance for a given layer)
-                supporting_radius / 2 // TODO: should smooth-factor be a bit less tan the supporting radius?
+                100 // TODO: should smooth-factor be a bit less tan the supporting radius?
             );
         }
     }
