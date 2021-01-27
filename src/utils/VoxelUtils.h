@@ -27,6 +27,14 @@ struct GridPoint3 : public Point3
 
 using GridPoint3 = Point3;
 
+struct DilationKernel
+{
+    DilationKernel(GridPoint3 kernel_size, bool diamond_kernel);
+    GridPoint3 kernel_size;
+    bool diamond_kernel;
+    std::vector<GridPoint3> relative_cells;
+};
+
 class VoxelUtils
 {
 public:
@@ -43,7 +51,11 @@ public:
 
     bool walkPolygons(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func);
 
-    bool walkDilatedPolygons(const Polygons& polys, coord_t z, const std::vector<GridPoint3>& kernel, GridPoint3 kernel_size, const std::function<bool (GridPoint3)>& process_cell_func);
+    bool walkDilatedPolygons(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func);
+
+    bool walkAreas(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func);
+
+    bool walkDilatedAreas(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func);
 
     /*!
      * Dilate with a kernel
@@ -52,9 +64,9 @@ public:
      * 
      * If the \p kernel_size is even then the kernel is applied off center, such that \p loc is toward the lower end
      */
-    static std::vector<GridPoint3> dilationKernel(GridPoint3 kernel_size, bool diamond_kernel);
+    bool dilate(GridPoint3 loc, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func);
 
-    bool dilate(GridPoint3 loc, const std::vector<GridPoint3>& kernel, const std::function<bool (GridPoint3)>& process_cell_func);
+    std::function<bool (GridPoint3)> dilate(const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func);
     
     GridPoint3 toGridPoint(const Point3& point)  const
     {
