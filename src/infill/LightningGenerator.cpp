@@ -11,6 +11,11 @@
 
 //____v
 
+// TODO: optimization: let the square grid store the closest point on boundary
+// TODO: optimization: only compute the closest dist to / point on boundary for the outer cells and flood-fill the rest
+
+// TODO: prevent roots which are super close to the boundary from being connected to another tree
+
 // TODO: distance field as sparse grid
 // TODO: order pixels by dist to boundary
 
