@@ -2333,7 +2333,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
 
         const int angle = bridgeAngle(mesh.settings, skin_part.outline, storage, layer_nr, bridge_layer, support_layer, supported_skin_part_regions);
 
-        if (angle > -1 || (supported_skin_part_regions.area() / (skin_part.outline.area() + 1) < support_threshold))
+        if (angle > -1 || (support_threshold > 0 && (supported_skin_part_regions.area() / (skin_part.outline.area() + 1) < support_threshold)))
         {
             if (angle > -1)
             {
