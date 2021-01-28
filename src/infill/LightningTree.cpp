@@ -219,14 +219,19 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord
         coord_t small_branch = 800;
         auto weight = [magnitude, small_branch](coord_t d) { return std::max(10 * (small_branch - d), coord_t(std::sqrt(small_branch * d))); };
         Point junction_moving_dir = normal(junction_above - p, weight(accumulated_dist));
+        bool prevent_junction_moving = false;
         for (auto child_p : children)
         {
             coord_t child_dist = vSize(p - child_p->p);
             RectilinearJunction below = child_p->straighten(magnitude, p, child_dist);
 
             junction_moving_dir += normal(below.junction_loc - p, weight(below.total_recti_dist));
+            if (below.total_recti_dist < magnitude) // TODO: make configurable?
+            {
+                prevent_junction_moving = true; // prevent flipflopping in branches due to straightening and junctoin moving clashing
+            }
         }
-        if (junction_moving_dir != Point(0, 0) && ! children.empty())
+        if (junction_moving_dir != Point(0, 0) && ! children.empty() && ! prevent_junction_moving)
         {
             coord_t junction_moving_dir_len = vSize(junction_moving_dir);
             if (junction_moving_dir_len > junction_magnitude)
