@@ -209,17 +209,20 @@ GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsuppor
 
     std::shared_ptr<LightningTreeNode> sub_tree(nullptr);
     coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
-    auto candidate_trees = tree_node_locator.getNearbyVals(unsupported_location, std::min(current_dist, supporting_radius));
-    for (auto& candidate_wptr : candidate_trees)
-    {
-        auto candidate_sub_tree = candidate_wptr.lock();
-        if (candidate_sub_tree && candidate_sub_tree != exclude_tree && !(exclude_tree && exclude_tree->hasOffspring(candidate_sub_tree)))
+    if (current_dist >= supporting_radius) // don't reconnect tree roots to other trees if they are already at/near the boundary
+    { // TODO: make boundary size in which we ignore the valence rule configurable
+        auto candidate_trees = tree_node_locator.getNearbyVals(unsupported_location, std::min(current_dist, supporting_radius));
+        for (auto& candidate_wptr : candidate_trees)
         {
-            const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
-            if (candidate_dist < current_dist)
+            auto candidate_sub_tree = candidate_wptr.lock();
+            if (candidate_sub_tree && candidate_sub_tree != exclude_tree && !(exclude_tree && exclude_tree->hasOffspring(candidate_sub_tree)))
             {
-                current_dist = candidate_dist;
-                sub_tree = candidate_sub_tree;
+                const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
+                if (candidate_dist < current_dist)
+                {
+                    current_dist = candidate_dist;
+                    sub_tree = candidate_sub_tree;
+                }
             }
         }
     }
