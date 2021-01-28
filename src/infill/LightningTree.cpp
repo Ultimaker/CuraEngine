@@ -202,7 +202,7 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord
         if (a != b) // should always be true!
         {
             Point ab = b - a;
-            Point destination = a + ab * accumulated_dist / total_dist_to_junction_below;
+            Point destination = a + ab * accumulated_dist / std::max(coord_t(1), total_dist_to_junction_below);
             if (shorterThen(destination - p, magnitude))
             {
                 p = destination;
