@@ -1513,20 +1513,6 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
         return; //Nothing to split.
     }
 
-    //Move all of these flow changes ahead in time, applying the actual flow advance to them.
-    last_flowrate = 0;
-    for(size_t i = 0; i + 1 < splits.size(); ++i)
-    {
-        const double flowrate = splits[i].second;
-        Duration advance = (flowrate > last_flowrate) ? advance_increasing : advance_reducing;
-        advance = std::min(advance, splits[i].first); //Don't try to advance before start of extruder plan.
-        if(i > 0)
-        {
-            advance = std::min(advance, current_time - splits[i - 1].first); //Don't try to advance before the previous splits.
-        }
-        splits[i].first -= advance;
-    }
-
     //Filter out any flow changes shorter than the minimum flow change duration. Also filters out 0-duration flow changes.
     for(size_t i = 0; i + 1 < splits.size(); ++i)
     {
@@ -1549,6 +1535,20 @@ void ExtruderPlan::flowAdvance(const GCodePathConfig& extruding_travel_config, c
             }
             i--; //Either way, don't skip the following split either, which is now in the removed split's position.
         }
+    }
+
+    //Move all of these flow changes ahead in time, applying the actual flow advance to them.
+    last_flowrate = 0;
+    for(size_t i = 0; i + 1 < splits.size(); ++i)
+    {
+        const double flowrate = splits[i].second;
+        Duration advance = (flowrate > last_flowrate) ? advance_increasing : advance_reducing;
+        advance = std::min(advance, splits[i].first); //Don't try to advance before start of extruder plan.
+        if(i > 0)
+        {
+            advance = std::min(advance, current_time - splits[i - 1].first); //Don't try to advance before the previous splits.
+        }
+        splits[i].first -= advance;
     }
 
     //Adjust the flow changes so that they overcompensate for the change in flow rate, effectively reducing the time it takes to change the flow.
