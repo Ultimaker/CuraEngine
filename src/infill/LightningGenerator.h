@@ -49,17 +49,20 @@ public:
      * TODO: instead of radius we should pass around the overhang_angle
      * and compute the radius from the tangent of the angle and the local (adaptive) layer thickness
      */
-    LightningGenerator(const coord_t& radius, const SliceMeshStorage& mesh);
+    LightningGenerator(const SliceMeshStorage& mesh);
 
     const LightningLayer& getTreesForLayer(const size_t& layer_id);
 
 protected:
     // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
-    void generateInitialInternalOverhangs(const SliceMeshStorage& mesh, coord_t supporting_radius);
+    void generateInitialInternalOverhangs(const SliceMeshStorage& mesh);
 
     void generateTrees(const SliceMeshStorage& mesh);
 
     coord_t supporting_radius;
+    coord_t prune_length;
+    coord_t straightening_max_distance;
+
     std::vector<Polygons> overhang_per_layer;
     std::vector<LightningLayer> lightning_layers;
 };

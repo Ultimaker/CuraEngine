@@ -766,7 +766,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     {
         // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
         const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
-        mesh.lightning_generator = new LightningGenerator(infill_line_width, mesh);
+        mesh.lightning_generator = new LightningGenerator(mesh);
     }
 
     // combine infill

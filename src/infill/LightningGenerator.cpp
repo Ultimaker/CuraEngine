@@ -5,6 +5,7 @@
 #include "LightningLayer.h"
 #include "LightningTree.h"
 
+#include "../ExtruderTrain.h"
 #include "../sliceDataStorage.h"
 #include "../utils/linearAlg2D.h"
 #include "../utils/SparsePointGridInclusive.h"
@@ -56,15 +57,21 @@
 
 using namespace cura;
 
-LightningGenerator::LightningGenerator(const coord_t& radius, const SliceMeshStorage& mesh) :
-supporting_radius (radius)
+LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
 {
-    generateInitialInternalOverhangs(mesh, radius);
+    const auto infill_extruder = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr");
+    const coord_t layer_thickness = infill_extruder.settings.get<coord_t>("layer_height");  // Note: Currently no initial_layer, probably not necesary, since infill doesn't usually start on layer 0
+
+    supporting_radius = infill_extruder.settings.get<coord_t>("infill_line_distance") / 2;
+    prune_length = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_prune_angle"));
+    straightening_max_distance = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_straightening_angle"));
+
+    generateInitialInternalOverhangs(mesh);
     generateTrees(mesh);  // NOTE: Ideally, these would not be in the constructor. TODO?: Rewrite 'Generator' as loose functions and perhaps a struct.
 }
 
 // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
-void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh, coord_t supporting_radius)
+void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh)
 {
     overhang_per_layer.resize(mesh.layers.size());
 
@@ -130,13 +137,7 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
         std::vector<std::shared_ptr<LightningTreeNode>>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
         for (auto& tree : current_lightning_layer.tree_roots)
         {
-            tree->propagateToNextLayer
-            (
-                lower_trees,
-                below_outlines,
-                100, // TODO make pruning distance a separate parameter (ideally also as an anglem from which the tanget is used to compute the actual distance for a given layer)
-                100 // TODO: should smooth-factor be a bit less tan the supporting radius?
-            );
+            tree->propagateToNextLayer(lower_trees, below_outlines, prune_length, straightening_max_distance);
         }
     }
 }
