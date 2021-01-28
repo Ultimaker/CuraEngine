@@ -12,22 +12,24 @@
 
 //____v
 
+
+// TODO: uitzondering op vlantie regel als de root heel dichtbij is
+// TODO: prevent roots which are super close to the boundary from being connected to another tree
+
+// TODO: The convert trees to lines 'algorithm' is way too simple right now (unless they're already going to be connected later).
+
+
 // TODO: optimization: let the square grid store the closest point on boundary
 // TODO: optimization: only compute the closest dist to / point on boundary for the outer cells and flood-fill the rest
 
-// TODO: prevent roots which are super close to the boundary from being connected to another tree
+// TODO: more sophisticated heuristics for making nice trees
 
-// TODO: distance field as sparse grid
-// TODO: order pixels by dist to boundary
+// TODO: merge the SquareGrid and the SparseGrid into one?
 
 // TODO: junctions: create gap to avoid overextrusion at junctions
 
 // TODO: avoid intersections between different branches
 
-// TODO: improve tryGetNextPoint
-//       Idea maybe something can be done with isolines for the distance function?
-// TODO: Implement 'Truncate' ... is it needed to do it within the tree as well (see note-comment in function itself).
-// TODO: The convert trees to lines 'algorithm' is way too simple right now (unless they're already going to be connected later).
 // TODO: Merge LightningDistanceField into LightningLayer
 // TODO: Lots of smaller TODO's in code itself, put on list!
 // TODO: split radius into several parameters based on infill_line_distance, internal_overhang_angle, infill_overhang_angle, etc.
