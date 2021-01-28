@@ -282,3 +282,80 @@ coord_t LightningTreeNode::prune(const coord_t& pruning_distance)
 
     return max_distance_pruned;
 }
+
+void LightningTreeNode::convertToPolylines(Polygons& output) const
+{
+    Polygons result;
+    result.newPoly();
+    convertToPolylines(0, result);
+    removeJunctionOverlap(result);
+    output.add(result);
+}
+
+void LightningTreeNode::convertToPolylines(size_t long_line_idx, Polygons& output) const
+{
+    if (children.empty())
+    {
+        output[long_line_idx].add(p);
+        return;
+    }
+    size_t first_child_idx = rand() % children.size();
+    children[first_child_idx]->convertToPolylines(long_line_idx, output);
+    output[long_line_idx].add(p);
+
+    for (size_t idx_offset = 1; idx_offset < children.size(); idx_offset++)
+    {
+        size_t child_idx = (first_child_idx + idx_offset) % children.size();
+        const LightningTreeNode& child = *children[child_idx];
+        output.newPoly();
+        size_t child_line_idx = output.size() - 1;
+        child.convertToPolylines(child_line_idx, output);
+        output[child_line_idx].add(p);
+    }
+}
+
+void LightningTreeNode::removeJunctionOverlap(Polygons& result_lines) const
+{
+    // TODO: only reduce lines that start at junctions, not the roots!
+    const coord_t reduction = 200; // TODO make configurable!
+    for (auto poly_it = result_lines.begin(); poly_it != result_lines.end(); )
+    {
+        PolygonRef polyline = *poly_it;
+        if (polyline.size() <= 1)
+        {
+            polyline = std::move(result_lines.back());
+            result_lines.pop_back();
+            continue;
+        }
+
+        coord_t to_be_reduced = reduction;
+        Point a = polyline.back();
+        for (int point_idx = polyline.size() - 2; point_idx >= 0; point_idx--)
+        {
+            Point b = polyline[point_idx];
+            Point ab = b - a;
+            coord_t ab_len = vSize(ab);
+            if (ab_len >= to_be_reduced)
+            {
+                polyline.back() = a + ab * to_be_reduced / ab_len;
+                break;
+            }
+            else
+            {
+                to_be_reduced -= ab_len;
+                polyline.pop_back();
+            }
+            a = b;
+        }
+
+        if (polyline.size() <= 1)
+        {
+            polyline = std::move(result_lines.back());
+            result_lines.pop_back();
+        }
+        else
+        {
+            ++poly_it;
+        }
+    }
+}

@@ -659,6 +659,12 @@ public:
         }
         paths.resize(paths.size() - 1);
     }
+
+    void pop_back()
+    {
+        paths.pop_back();
+    }
+
     /*!
      * Remove a range of polygons
      */

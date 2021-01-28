@@ -299,15 +299,24 @@ Polygons LightningLayer::convertToLines() const
         return result_lines;
     }
 
-    // TODO: The convert trees to lines 'algorithm' is way too simple right now (unless they're already going to be connected later).
-    LightningTreeNode::branch_visitor_func_t convert_trees_to_lines =
-        [&result_lines](const Point& node, const Point& leaf)
-    {
-        result_lines.addLine(node, leaf);
-    };
     for (const auto& tree : tree_roots)
     {
-        tree->visitBranches(convert_trees_to_lines);
+        tree->convertToPolylines(result_lines);
     }
-    return result_lines;
+
+    // TODO: allow for polylines!
+    Polygons split_lines;
+    for (PolygonRef line : result_lines)
+    {
+        if (line.size() <= 1) continue;
+        Point last = line[0];
+        for (size_t point_idx = 1; point_idx < line.size(); point_idx++)
+        {
+            Point here = line[point_idx];
+            split_lines.addLine(last, here);
+            last = here;
+        }
+    }
+
+    return split_lines;
 }

@@ -4,11 +4,12 @@
 #ifndef LIGHTNING_TREE_H
 #define LIGHTNING_TREE_H
 
-#include "../utils/polygonUtils.h"
-
 #include <functional>
 #include <memory>
 #include <vector>
+
+#include "../utils/polygonUtils.h"
+#include "../utils/polygon.h"
 
 namespace cura
 {
@@ -115,6 +116,33 @@ protected:
      * \return The distance that has been pruned. If less than \p distance, then the whole tree was puned away.
      */
     coord_t prune(const coord_t& distance);
+
+public:
+    /*!
+     * Convert the tree into polylines
+     * 
+     * At each junction one line is chosen at random to continue
+     * 
+     * The lines start at a leaf and end in a junction
+     * 
+     * \param output all branches in this tree connected into polylines
+     */
+    void convertToPolylines(Polygons& output) const;
+
+protected:
+    /*!
+     * Convert the tree into polylines
+     * 
+     * At each junction one line is chosen at random to continue
+     * 
+     * The lines start at a leaf and end in a junction
+     * 
+     * \param long_line a reference to a polyline in \p output which to continue building on in the recursion
+     * \param output all branches in this tree connected into polylines
+     */
+    void convertToPolylines(size_t long_line_idx, Polygons& output) const;
+
+    void removeJunctionOverlap(Polygons& polylines) const;
 
     bool is_root = false;
     Point p;
