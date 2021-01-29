@@ -200,6 +200,22 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
         // update distance field
         distance_field.update(grounding_loc.p(), unsupported_location);
     }
+    if (i_debug > 3)
+    {
+        SVG svg("trees.svg", AABB(current_outlines));
+        svg.writePolygons(current_outlines, SVG::Color::GREEN);
+        svg.writePolygons(current_overhang, SVG::Color::BLUE);
+//         Polygons lines = convertToLines();
+//         svg.writePolylines(lines);
+        for (auto root : tree_roots)
+        {
+            root->visitBranches([&svg](const Point& a, const Point& b)
+            {
+                svg.writeLine(a, b);
+            });
+        }
+        
+    }
 }
 
 GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator, const std::shared_ptr<LightningTreeNode>& exclude_tree)
