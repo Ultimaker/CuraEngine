@@ -54,6 +54,13 @@ public:
     bool processLineCells(const std::pair<Point, Point> line,
                          const std::function<bool (GridPoint)>& process_cell_func) const;
 
+    /*!
+     * process all cells in between the line from,to and (to.x,from.y),to
+     */
+    bool processAxisAlignedTriangle(const Point from, const Point to, const std::function<bool (GridPoint)>& process_cell_func) const;
+
+    bool processAxisAlignedTriangle(const Point from, const Point to, bool to_the_right, const std::function<bool (GridPoint)>& process_cell_func) const;
+
     /*! \brief Process cells that might contain sought after points.
     * 
     * Processes cells that might be within \p radius of \p query_pt.

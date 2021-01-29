@@ -3,6 +3,8 @@
 
 #include "SquareGrid.h"
 
+#include "linearAlg2D.h"
+
 using namespace cura;
 
 
@@ -118,6 +120,43 @@ bool SquareGrid::processLineCells(
     return false;
 }
 
+bool SquareGrid::processAxisAlignedTriangle(const Point from, const Point to, bool to_the_right, const std::function<bool (GridPoint)>& process_cell_func) const
+{
+    Point a = from;
+    Point b = to;
+    if ((a.X < b.X == a.Y < b.Y) != to_the_right)
+    {
+        std::swap(a, b);
+    }
+    return processAxisAlignedTriangle(a, b, process_cell_func);
+}
+
+bool SquareGrid::processAxisAlignedTriangle(const Point from, const Point to, const std::function<bool (GridPoint)>& process_cell_func) const
+{
+    GridPoint last;
+    GridPoint grid_to = toGridPoint(to);
+    return processLineCells(std::make_pair(from, to), [grid_to, &last, &process_cell_func, this]
+        (const GridPoint grid_loc)
+        {
+            if (grid_loc.Y != last.Y)
+            {
+                coord_t sign = nonzero_sign(grid_to.X - grid_loc.X);
+                for (grid_coord_t x = grid_loc.X; x * sign <= grid_to.X * sign; x += sign)
+                {
+                    bool continue_ = process_cell_func(GridPoint(x, grid_loc.Y));
+                    if ( ! continue_) return false;
+                }
+            }
+            else
+            {
+                bool continue_ = process_cell_func(grid_loc); // make sure the whole line is processed
+                if ( ! continue_) return false;
+            }
+            last = grid_loc;
+            return true;
+        }
+    );
+}
 
 bool SquareGrid::processNearby(const Point &query_pt, coord_t radius,
                              const std::function<bool (const GridPoint&)>& process_func) const
