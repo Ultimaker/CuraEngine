@@ -12,31 +12,19 @@
 
 //____v
 
+// TODO: more sophisticated heuristics for making nice trees
+// TODO: improve connecting heuristic to favor connecting to shorter trees
 
-// TODO: uitzondering op vlantie regel als de root heel dichtbij is
-// TODO: prevent roots which are super close to the boundary from being connected to another tree
-
-// TODO: The convert trees to lines 'algorithm' is way too simple right now (unless they're already going to be connected later).
-
+// TODO: Lots of smaller TODO's in code itself, put on list!
 
 // TODO: optimization: let the square grid store the closest point on boundary
 // TODO: optimization: only compute the closest dist to / point on boundary for the outer cells and flood-fill the rest
 
-// TODO: more sophisticated heuristics for making nice trees
-
 // TODO: merge the SquareGrid and the SparseGrid into one?
-
-// TODO: junctions: create gap to avoid overextrusion at junctions
 
 // TODO: avoid intersections between different branches
 
 // TODO: Merge LightningDistanceField into LightningLayer
-// TODO: Lots of smaller TODO's in code itself, put on list!
-// TODO: split radius into several parameters based on infill_line_distance, internal_overhang_angle, infill_overhang_angle, etc.
-
-// TODO: improve connecting heuristic to favor connecting to shorter trees
-// TODO: smoothing of junctions
-// TODO: use sparse grid for efficiently looking up closest points in trees
 // TODO: use swap with last trick when removing from unordered vector instead of moving all further elements back one place
 
 // Implementation in Infill classes & elsewhere (not here):
