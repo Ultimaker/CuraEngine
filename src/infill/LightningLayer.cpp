@@ -122,24 +122,91 @@ bool LightningDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radius
     return true;
 }
 
+Point LightningDistanceField::getNearbyUnsupportedPoint(const Point p, const Point fall_back, coord_t supporting_radius, coord_t total_radius) const
+{
+    std::vector<GridPoint> nearby_unsupported_points;
+    grid.processNearby(p, supporting_radius,
+        [supporting_radius, p, fall_back, &nearby_unsupported_points, this](const GridPoint& grid_loc)
+        {
+            auto cell_it = unsupported_points_grid.find(grid_loc);
+            if (cell_it != unsupported_points_grid.end())
+            {
+                if (shorterThen(cell_it->second->loc - p, supporting_radius + cell_size * 2)
+                    && shorterThen(cell_it->second->loc - fall_back, supporting_radius)
+                )
+                {
+                    nearby_unsupported_points.push_back(grid_loc);
+                }
+            }
+            return true;
+        }
+        );
+    if (nearby_unsupported_points.empty())
+    {
+        std::cerr << "Couldn't find unsupported location close to leaf?!\n";
+        nearby_unsupported_points.push_back(grid.toGridPoint(fall_back));
+    }
+    GridPoint reference_grid_loc = nearby_unsupported_points[rand() % nearby_unsupported_points.size()];
+    Point reference_point = unsupported_points_grid.find(reference_grid_loc)->second->loc;
+    Point farther_away = p + normal(reference_point - p, total_radius);
+
+    GridPoint farthest_unsupported_grid_loc = reference_grid_loc;
+    const GridPoint grid_p = grid.toGridPoint(p);
+    coord_t farthest_dist2 = vSize2(grid_p - farthest_unsupported_grid_loc);
+    grid.processLineCells(std::make_pair(farther_away, reference_point), 
+        [grid_p, fall_back, supporting_radius, &farthest_dist2, &farthest_unsupported_grid_loc, this](const GridPoint& grid_loc)
+        {
+            coord_t dist2 = vSize2(grid_p - grid_loc);
+            if (dist2 < farthest_dist2)
+            {
+                auto it = unsupported_points_grid.find(grid_loc);
+                if (it != unsupported_points_grid.end())
+                {
+                    if (shorterThen(it->second->loc - fall_back, supporting_radius))
+                    {
+                        farthest_dist2 = dist2;
+                        farthest_unsupported_grid_loc = grid_loc;
+                    }
+                }
+            }
+            return true;
+        }
+    );
+    return unsupported_points_grid.find(farthest_unsupported_grid_loc)->second->loc;
+}
+
 void LightningDistanceField::update(const Point& to_node, const Point& added_leaf)
 {
-    grid.processNearby(added_leaf, supporting_radius,
-                       [added_leaf, this](const SquareGrid::GridPoint& grid_loc)
-                       {
-                           auto it = unsupported_points_grid.find(grid_loc);
-                           if (it != unsupported_points_grid.end())
-                           {
-                               std::list<UnsupCell>::iterator& list_it = it->second;
-                               UnsupCell& cell = *list_it;
-                               if (shorterThen(cell.loc - added_leaf, supporting_radius))
-                               {
-                                   unsupported_points.erase(list_it);
-                                   unsupported_points_grid.erase(it);
-                               }
-                           }
-                           return true;
-                       });
+    auto process_func = 
+        [added_leaf, this](const SquareGrid::GridPoint& grid_loc)
+        {
+            auto it = unsupported_points_grid.find(grid_loc);
+            if (it != unsupported_points_grid.end())
+            {
+                std::list<UnsupCell>::iterator& list_it = it->second;
+                UnsupCell& cell = *list_it;
+                if (shorterThen(cell.loc - added_leaf, supporting_radius))
+                {
+                    unsupported_points.erase(list_it);
+                    unsupported_points_grid.erase(it);
+                }
+            }
+            return true;
+        };
+    const Point a = to_node;
+    const Point b = added_leaf;
+    Point ab = b - a;
+    Point ab_T = turn90CCW(ab);
+    Point extent = normal(ab_T, supporting_radius);
+    grid.processLineCells(std::make_pair(a + extent, a - extent), 
+                          [this, ab, extent, &process_func]
+                          (GridPoint p)
+                          {
+                              grid.processLineCells(std::make_pair(p, p + ab), process_func);
+                              return true;
+                          }
+    );
+    grid.processNearby(added_leaf, supporting_radius, process_func);
 }
 
 // -- -- -- -- -- --
@@ -191,7 +258,10 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
 
         GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, supporting_radius, tree_node_locator);
 
-        // TODO: update unsupported_location to lie closer to grounding_loc
+        if (grounding_loc.tree_node)
+        {
+            unsupported_location = distance_field.getNearbyUnsupportedPoint(grounding_loc.p(), unsupported_location, supporting_radius, supporting_radius * 2);
+        }
 
         auto tree_node = attach(unsupported_location, grounding_loc);
         tree_node_locator.insert(tree_node->getLocation(), tree_node);

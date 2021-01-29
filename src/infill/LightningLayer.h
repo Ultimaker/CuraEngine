@@ -70,13 +70,15 @@ public:
      * Returns false if \ref LightningDistanceField::unsupported is empty
      */
     bool tryGetNextPoint(Point* p, coord_t supporting_radius) const;
-    
+
     /*! update the distance field with a newly added branch
      * TODO: check whether this explanation is correct
      */
     void update(const Point& to_node, const Point& added_leaf);
-    
+
+    Point getNearbyUnsupportedPoint(const Point p, const Point fall_back, coord_t supporting_radius, coord_t total_radius) const;
 protected:
+    using GridPoint = SquareGrid::GridPoint;
     coord_t cell_size;
     SquareGrid grid;
     coord_t supporting_radius; //!< The radius of the area of the layer above supported by a point on a branch of a tree
