@@ -263,8 +263,14 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
             unsupported_location = distance_field.getNearbyUnsupportedPoint(grounding_loc.p(), unsupported_location, supporting_radius, supporting_radius * 2);
         }
 
-        auto tree_node = attach(unsupported_location, grounding_loc);
-        tree_node_locator.insert(tree_node->getLocation(), tree_node);
+        std::shared_ptr<LightningTreeNode> new_parent;
+        std::shared_ptr<LightningTreeNode> new_child;
+        attach(unsupported_location, grounding_loc, new_child, new_parent);
+        tree_node_locator.insert(new_child->getLocation(), new_child);
+        if (new_parent)
+        {
+            tree_node_locator.insert(new_parent->getLocation(), new_parent);
+        }
 
         // update distance field
         distance_field.update(grounding_loc.p(), unsupported_location);
@@ -322,19 +328,20 @@ GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsuppor
     }
 }
 
-std::shared_ptr<LightningTreeNode> LightningLayer::attach(const Point& unsupported_location, const GroundingLocation& grounding_loc)
+bool LightningLayer::attach(const Point& unsupported_location, const GroundingLocation& grounding_loc, std::shared_ptr<LightningTreeNode>& new_child, std::shared_ptr<LightningTreeNode>& new_root)
 {
     // Update trees & distance fields.
     if (grounding_loc.boundary_location)
     {
-        std::shared_ptr<LightningTreeNode> new_root = LightningTreeNode::create(grounding_loc.p());
-        new_root->addChild(unsupported_location);
+        new_root = LightningTreeNode::create(grounding_loc.p());
+        new_child = new_root->addChild(unsupported_location);
         tree_roots.push_back(new_root);
-        return tree_roots.back();
+        return true;
     }
     else
     {
-        return grounding_loc.tree_node->addChild(unsupported_location);
+        new_child = grounding_loc.tree_node->addChild(unsupported_location);
+        return false;
     }
 }
 

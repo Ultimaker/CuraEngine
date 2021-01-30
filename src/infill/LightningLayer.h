@@ -124,7 +124,13 @@ public:
     //! Determine & connect to connection point in tree/outline.
     GroundingLocation getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator, const std::shared_ptr<LightningTreeNode>& exclude_tree = nullptr);
 
-    std::shared_ptr<LightningTreeNode> attach(const Point& unsupported_loc, const GroundingLocation& ground);
+    /*!
+     * 
+     * \param[out] new_child The new child node introduced
+     * \param[out] new_root The new root node if one had been made
+     * \return Whether a new root was added
+     */
+    bool attach(const Point& unsupported_loc, const GroundingLocation& ground, std::shared_ptr<LightningTreeNode>& new_child, std::shared_ptr<LightningTreeNode>& new_root);
 
     void reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius);
 
