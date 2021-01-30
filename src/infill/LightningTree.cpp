@@ -10,8 +10,11 @@ using namespace cura;
 coord_t LightningTreeNode::getWeightedDistance(const Point& unsupported_loc, const coord_t& supporting_radius) const
 {
     size_t valence = (!is_root) + children.size();
-    coord_t boost = (0 < valence && valence < 4) ? 4 * supporting_radius : 0;
-    return vSize(getLocation() - unsupported_loc) - boost;
+    coord_t valence_boost = (0 < valence && valence < 4) ? 4 * supporting_radius : 0;
+    coord_t dist_here = vSize(getLocation() - unsupported_loc);
+    coord_t tree_size_penalty = getDistanceToRoot() / 4;
+    assert(tree_size_penalty >= 0);
+    return dist_here + tree_size_penalty - valence_boost;
 }
 
 bool LightningTreeNode::hasOffspring(const std::shared_ptr<LightningTreeNode>& to_be_checked) const
