@@ -257,7 +257,9 @@ std::shared_ptr<LightningTreeNode> LightningLayer::attach(const Point& unsupport
     // Update trees & distance fields.
     if (grounding_loc.boundary_location)
     {
-        tree_roots.push_back(LightningTreeNode::create(grounding_loc.p(), unsupported_location));
+        std::shared_ptr<LightningTreeNode> new_root = LightningTreeNode::create(grounding_loc.p());
+        new_root->addChild(unsupported_location);
+        tree_roots.push_back(new_root);
         return tree_roots.back();
     }
     else

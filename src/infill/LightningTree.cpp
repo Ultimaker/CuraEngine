@@ -37,8 +37,8 @@ void LightningTreeNode::setLocation(const Point& loc)
 std::shared_ptr<LightningTreeNode> LightningTreeNode::addChild(const Point& child_loc)
 {
     assert(p != child_loc);
-    children.push_back(LightningTreeNode::create(child_loc));
-    return children.back();
+    std::shared_ptr<LightningTreeNode> child = LightningTreeNode::create(child_loc);
+    return addChild(child);
 }
 
 std::shared_ptr<LightningTreeNode> LightningTreeNode::addChild(std::shared_ptr<LightningTreeNode>& new_child)
@@ -48,6 +48,7 @@ std::shared_ptr<LightningTreeNode> LightningTreeNode::addChild(std::shared_ptr<L
     if (p == new_child->p)
         std::cerr << "wtf\n";
     children.push_back(new_child);
+    new_child->parent = shared_from_this();
     new_child->is_root = false;
     return new_child;
 }
@@ -104,11 +105,19 @@ void LightningTreeNode::visitNodes(const node_visitor_func_t& visitor)
 // Node:
 LightningTreeNode::LightningTreeNode(const Point& p) : is_root(false), p(p) {}
 
-// Root (and Trunk):
-LightningTreeNode::LightningTreeNode(const Point& a, const Point& b) : LightningTreeNode(a)
+coord_t LightningTreeNode::getDistanceToRoot() const
 {
-    children.push_back(LightningTreeNode::create(b));
-    is_root = true;
+    coord_t total_dist = 0;
+    std::shared_ptr<const LightningTreeNode> ancestor = parent.lock();
+    Point last = p;
+    while (ancestor)
+    {
+        total_dist += vSize(ancestor->p - last);
+        assert(total_dist >= 0);
+        last = ancestor->p;
+        ancestor = ancestor->parent.lock();
+    }
+    return total_dist;
 }
 
 void LightningTreeNode::findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<LightningTreeNode>& closest_node)
@@ -132,7 +141,9 @@ std::shared_ptr<LightningTreeNode> LightningTreeNode::deepCopy() const
     local_root->children.reserve(children.size());
     for (const auto& node : children)
     {
-        local_root->children.push_back(node->deepCopy());
+        std::shared_ptr<LightningTreeNode> child = node->deepCopy();
+        child->parent = local_root;
+        local_root->children.push_back(child);
     }
     return local_root;
 }

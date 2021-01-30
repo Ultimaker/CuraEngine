@@ -73,15 +73,13 @@ public:
     bool isRoot() const { return is_root; }
 
     bool hasOffspring(const std::shared_ptr<LightningTreeNode>& to_be_checked) const;
-
 protected:
     LightningTreeNode() = delete; // Don't allow empty contruction
 
     // Constructs a node, for insertion into a tree:
     LightningTreeNode(const Point& p);
 
-    // Constructs a root (and initial trunk):
-    LightningTreeNode(const Point& a, const Point& b);
+    coord_t getDistanceToRoot() const;
 
     /*!
      * Recursive part of 'findClosestNode'.
@@ -116,7 +114,6 @@ protected:
      * \return The distance that has been pruned. If less than \p distance, then the whole tree was puned away.
      */
     coord_t prune(const coord_t& distance);
-
 public:
     /*!
      * Convert the tree into polylines
@@ -144,8 +141,9 @@ protected:
 
     void removeJunctionOverlap(Polygons& polylines) const;
 
-    bool is_root = false;
+    bool is_root = true;
     Point p;
+    std::weak_ptr<LightningTreeNode> parent;
     std::vector<std::shared_ptr<LightningTreeNode>> children;
 };
 
