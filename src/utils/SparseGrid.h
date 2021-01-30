@@ -28,6 +28,13 @@ class SparseGrid : public SquareGrid
 public:
     using Elem = ElemT;
 
+    using GridPoint = SquareGrid::GridPoint;
+    using grid_coord_t = SquareGrid::grid_coord_t;
+    using GridMap = std::unordered_multimap<GridPoint, Elem>;
+    
+    using iterator = typename GridMap::iterator;
+    using const_iterator = typename GridMap::const_iterator;
+
     /*! \brief Constructs a sparse grid with the specified cell size.
      *
      * \param[in] cell_size The size to use for a cell (square) in the grid.
@@ -36,7 +43,27 @@ public:
      * \param[in] max_load_factor Maximum average load factor before rehashing.
      */
     SparseGrid(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
+    
+    iterator begin()
+    {
+        return m_grid.begin();
+    }
+    
+    iterator end()
+    {
+        return m_grid.end();
+    }
 
+    const_iterator begin() const
+    {
+        return m_grid.begin();
+    }
+    
+    const_iterator end() const
+    {
+        return m_grid.end();
+    }
+    
     /*! \brief Returns all data within radius of query_pt.
      *
      * Finds all elements with location within radius of \p query_pt.  May
@@ -99,10 +126,6 @@ public:
                        const std::function<bool (const Elem&)>& process_elem_func) const;
 
 protected:
-    using GridPoint = SquareGrid::GridPoint;
-    using grid_coord_t = SquareGrid::grid_coord_t;
-    using GridMap = std::unordered_multimap<GridPoint, Elem>;
-
     /*! \brief Process elements from the cell indicated by \p grid_pt.
      *
      * \param[in] grid_pt The grid coordinates of the cell.
