@@ -245,7 +245,7 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord
                 prevent_junction_moving = true; // prevent flipflopping in branches due to straightening and junctoin moving clashing
             }
         }
-        if (junction_moving_dir != Point(0, 0) && ! children.empty() && ! prevent_junction_moving)
+        if (junction_moving_dir != Point(0, 0) && ! children.empty() && ! is_root && ! prevent_junction_moving)
         {
             coord_t junction_moving_dir_len = vSize(junction_moving_dir);
             if (junction_moving_dir_len > junction_magnitude)
