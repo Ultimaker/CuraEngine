@@ -226,6 +226,20 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord
                 p = p + normal(destination - p, magnitude);
             }
         }
+        { // remove nodes on linear segments
+            const std::shared_ptr<LightningTreeNode>& parent_node = parent.lock();
+            if (parent_node && LinearAlg2D::getDist2FromLineSegment(parent_node->p, p, child_p->p) < 10)
+            {
+                child_p->parent = parent;
+                for (auto sibling : parent_node->children)
+                {
+                    if (sibling == shared_from_this())
+                    {
+                        sibling = child_p;
+                    }
+                }
+            }
+        }
         return junction_below;
     }
     else
