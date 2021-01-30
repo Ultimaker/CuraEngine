@@ -179,7 +179,7 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
     SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator);
 
-    constexpr size_t debug_max_iterations = 9999; // TODO: remove
+    constexpr size_t debug_max_iterations = 9999999; // TODO: remove
     size_t i_debug = 0;
 
     // Until no more points need to be added to support all:
