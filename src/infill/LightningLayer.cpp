@@ -106,7 +106,6 @@ LightningDistanceField::LightningDistanceField
         {
             coord_t da = a.dist_to_boundary + std::hash<Point>{}(a.loc) % 191;
             coord_t db = b.dist_to_boundary + std::hash<Point>{}(b.loc) % 191;
-            if (da == db) return std::hash<Point>{}(a.loc) % 17 < std::hash<Point>{}(b.loc) % 17;
             return da < db;
         });
     for (auto it = unsupported_points.begin(); it != unsupported_points.end(); ++it)
