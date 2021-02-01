@@ -478,42 +478,42 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
 void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 {
     const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+    if(roofing_layer_count <= 0)
+    {
+        return;
+    }
 
     for (SkinPart& skin_part : part.skin_parts)
     {
-        Polygons roofing;
-        if (roofing_layer_count > 0)
-        {
-            Polygons no_air_above = generateNoAirAbove(part);
-            skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
-            skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
+        Polygons no_air_above = generateNoAirAbove(part);
+        skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
+        skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
 
-            // Insets are NOT generated for any layer if the top/bottom pattern is concentric.
-            // In this case, we still want to generate insets for the roofing layers based on the extra skin wall count,
-            // if the roofing pattern is not concentric.
-            if (!skin_part.roofing_fill.empty()
+        // Insets are NOT generated for any layer if the top/bottom pattern is concentric.
+        // In this case, we still want to generate insets for the roofing layers based on the extra skin wall count,
+        // if the roofing pattern is not concentric.
+        if (!skin_part.roofing_fill.empty()
+            && layer_nr > 0
+            && mesh.settings.get<EFillMethod>("roofing_pattern") != EFillMethod::CONCENTRIC
+            && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC)
+        {
+            // Generate skin insets, regenerate the no_air_above, and recalculate the inner and roofing infills,
+            // taking into account the extra skin wall count (only for the roofing layers).
+            generateSkinInsets(skin_part);
+            regenerateRoofingFillAndInnerInfill(part, skin_part);
+        }
+        // On the contrary, unwanted insets are generated for roofing layers because of the non-concentric top/bottom pattern.
+        // In such cases we want to clear the skin insets first and then regenerate the proper roofing fill and inner infill
+        // in the concentric roofing_pattern.
+        else if (!skin_part.roofing_fill.empty() && skin_part.inner_infill.empty()
                 && layer_nr > 0
-                && mesh.settings.get<EFillMethod>("roofing_pattern") != EFillMethod::CONCENTRIC
-                && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC)
-            {
-                // Generate skin insets, regenerate the no_air_above, and recalculate the inner and roofing infills,
-                // taking into account the extra skin wall count (only for the roofing layers).
-                generateSkinInsets(skin_part);
-                regenerateRoofingFillAndInnerInfill(part, skin_part);
-            }
-            // On the contrary, unwanted insets are generated for roofing layers because of the non-concentric top/bottom pattern.
-            // In such cases we want to clear the skin insets first and then regenerate the proper roofing fill and inner infill
-            // in the concentric roofing_pattern.
-            else if (!skin_part.roofing_fill.empty() && skin_part.inner_infill.empty()
-                    && layer_nr > 0
-                    && mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
-                    && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC)
-            {
-                // Clear the skin insets for the roofing layers and regenerate the roofing fill and inner infill without taking into
-                // account the Extra Skin Wall Count.
-                skin_part.insets.clear();
-                regenerateRoofingFillAndInnerInfill(part, skin_part);
-            }
+                && mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
+                && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC)
+        {
+            // Clear the skin insets for the roofing layers and regenerate the roofing fill and inner infill without taking into
+            // account the Extra Skin Wall Count.
+            skin_part.insets.clear();
+            regenerateRoofingFillAndInnerInfill(part, skin_part);
         }
     }
 }
