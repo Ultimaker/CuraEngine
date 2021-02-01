@@ -199,10 +199,13 @@ bool LightningTreeNode::realign(const Polygons& outlines, std::vector<std::share
 
 void LightningTreeNode::straighten(const coord_t& magnitude)
 {
-    straighten(magnitude, p, 0);
+    for(auto& child : children)
+    {
+        child->straighten(magnitude, child->p, vSize(p - child->p));
+    }
 }
 
-LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord_t& magnitude, Point junction_above, coord_t accumulated_dist)
+LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord_t& magnitude, const Point& junction_above, const coord_t accumulated_dist)
 {
     const coord_t junction_magnitude = magnitude * 3 / 4;
     if (children.size() == 1)

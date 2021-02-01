@@ -108,7 +108,7 @@ protected:
      * \param accumulated_dist The distance along the tree from the last seen junction to this node
      * \return the total distance along the tree from the last junction above to the first next junction below and the location of the next junction below
      */
-    RectilinearJunction straighten(const coord_t& magnitude, Point junction_above, coord_t accumulated_dist);
+    RectilinearJunction straighten(const coord_t& magnitude, const Point& junction_above, const coord_t accumulated_dist);
 
     /*! Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
      * \return The distance that has been pruned. If less than \p distance, then the whole tree was puned away.
