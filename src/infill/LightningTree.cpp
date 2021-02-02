@@ -201,7 +201,7 @@ void LightningTreeNode::straighten(const coord_t& magnitude)
 {
     for(auto& child : children)
     {
-        child->straighten(magnitude, child->p, vSize(p - child->p));
+        child->straighten(magnitude, p, vSize(p - child->p));
     }
 }
 
