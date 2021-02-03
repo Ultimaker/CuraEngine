@@ -19,68 +19,6 @@ coord_t LightningLayer::getWeightedDistance(const Point& boundary_loc, const Poi
     return vSize(boundary_loc - unsupported_loc);
 }
 
-PolygonLightningDistanceField::PolygonLightningDistanceField
-(
-    const coord_t& radius,
- const Polygons& current_outline,
- const Polygons& current_overhang,
- const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
-)
-{
-    supporting_radius = radius;
-    Polygons supporting_polylines = current_outline;
-    for (PolygonRef poly : supporting_polylines)
-    {
-        if (!poly.empty())
-        {
-            poly.add(poly[0]); // add start so that the polyline is closed
-        }
-    }
-    
-    const LightningTreeNode::branch_visitor_func_t add_offset_branch_func =
-    [&](const Point& parent, const Point& child)
-    {
-        supporting_polylines.addLine(parent, child);
-    };
-    for (const auto& tree : initial_trees)
-    {
-        tree->visitBranches(add_offset_branch_func);
-    }
-    supported = supporting_polylines.offsetPolyLine(supporting_radius);
-    unsupported = current_overhang.difference(supported);
-}
-
-bool PolygonLightningDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radius) const
-{
-    if (unsupported.area() < 25)
-    {
-        return false;
-    }
-    coord_t total_length = unsupported[0].polygonLength();
-    coord_t dist_to_point_on_boundary = std::rand() % total_length;
-    ClosestPolygonPoint cpp = PolygonUtils::walk(ClosestPolygonPoint(unsupported[0][0], 0, unsupported[0]), dist_to_point_on_boundary);
-    *p = PolygonUtils::moveInside(cpp, supporting_radius);
-    if (!unsupported.inside(*p))
-    {
-        PolygonUtils::moveInside(unsupported, *p, supporting_radius / 2);
-    }
-    // NOTE: it's okay for the rare case where a point ends up outside; it's just an inefficient tree branch.
-    return true;
-}
-
-void PolygonLightningDistanceField::update(const Point& to_node, const Point& added_leaf)
-{
-    Polygons line;
-    line.addLine(to_node, added_leaf);
-    Polygons offsetted = line.offsetPolyLine(supporting_radius, ClipperLib::jtRound);
-    supported = supported.unionPolygons(offsetted);
-    unsupported = unsupported.difference(supported);
-}
-
-// -- -- -- -- -- --
-// -- -- -- -- -- --
-
-
 LightningDistanceField::LightningDistanceField
 (
     const coord_t& radius,
