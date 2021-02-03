@@ -220,7 +220,7 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
     {
         ++i_debug;
 
-        GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, supporting_radius, tree_node_locator);
+        GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, supporting_radius, 10, tree_node_locator);
 
         if (grounding_loc.tree_node)
         {
@@ -241,15 +241,15 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
     }
 }
 
-GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator, const std::shared_ptr<LightningTreeNode>& exclude_tree)
+GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t min_dist_from_boundary_for_tree, const SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator, const std::shared_ptr<LightningTreeNode>& exclude_tree)
 {
     ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point node_location = cpp.p();
 
     std::shared_ptr<LightningTreeNode> sub_tree(nullptr);
     coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
-    if (current_dist >= supporting_radius) // don't reconnect tree roots to other trees if they are already at/near the boundary
-    { // TODO: make boundary size in which we ignore the valence rule configurable
+    if (current_dist >= min_dist_from_boundary_for_tree) // don't reconnect tree roots to other trees if they are already at/near the boundary
+    {
         auto candidate_trees = tree_node_locator.getNearbyVals(unsupported_location, std::min(current_dist, supporting_radius));
         for (auto& candidate_wptr : candidate_trees)
         {
@@ -293,7 +293,7 @@ bool LightningLayer::attach(const Point& unsupported_location, const GroundingLo
     }
 }
 
-void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius)
+void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius)
 {
     constexpr coord_t locator_cell_size = 2000;
     SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);
@@ -302,7 +302,8 @@ void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNod
     for (auto root_ptr : to_be_reconnected_tree_roots)
     {
         auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
-        GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, supporting_radius, tree_node_locator, root_ptr);
+        coord_t tree_connecting_ignore_width = wall_supporting_radius - 100; // TODO: make boundary size in which we ignore the valence rule configurable
+        GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, supporting_radius, tree_connecting_ignore_width, tree_node_locator, root_ptr);
         if (ground.boundary_location)
         {
             if (ground.boundary_location.value().p() == root_ptr->getLocation())

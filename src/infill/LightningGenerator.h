@@ -56,7 +56,7 @@ protected:
     void generateTrees(const SliceMeshStorage& mesh);
 
     coord_t supporting_radius;
-    coord_t overhang_angle;
+    coord_t wall_supporting_radius;
     coord_t prune_length;
     coord_t straightening_max_distance;
 
