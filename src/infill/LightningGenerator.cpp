@@ -15,12 +15,8 @@
 // TODO: more sophisticated heuristics for making nice trees
 // TODO: improve connecting heuristic to favor connecting to shorter trees
 
-// TODO: optimization: let the square grid store the closest point on boundary
-// TODO: optimization: only compute the closest dist to / point on boundary for the outer cells and flood-fill the rest
-
-// TODO: merge the SquareGrid and the SparseGrid into one?
-
 // TODO: avoid intersections between different branches
+
 
 
 // Implementation in Infill classes & elsewhere (not here):
@@ -29,6 +25,8 @@
 
 // Stretch Goals:
 // TODO: Check Unit Tests & Documentation.
+// TODO: optimization: let the square grid store the closest point on boundary
+// TODO: optimization: only compute the closest dist to / point on boundary for the outer cells and flood-fill the rest
 // TODO: Result lines handled by Arachne insread :-)
 // TODO: Also generate support instead of just infill (and enable that in frontend).
 // TODO: Find a way to parallelize part(s) of it??
@@ -43,7 +41,6 @@
 // TODO s from in the code:
 
 // make distance field cell size configurable? Whats the best value?
-// Remove SVG output everywhere
 // LightningLayer::getBestGroundingLocation : make boundary size in which we ignore the valence rule configurable
 // LightningLayer::convertToLines : allow for polylines, i.e. merge Tims PR about polyline fixes
 //
