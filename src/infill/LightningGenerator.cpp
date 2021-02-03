@@ -17,7 +17,9 @@
 
 // TODO: avoid intersections between different branches
 
+// TODO: reconnectRoots : change which node of a tree is the root when that would be better
 
+// TODO: hardcoded value in LightningTreeNode::straighten : small_branch
 
 // Implementation in Infill classes & elsewhere (not here):
 // TODO: Outline offset, infill-overlap & perimeter gaps.
