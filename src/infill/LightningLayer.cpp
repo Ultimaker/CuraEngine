@@ -53,7 +53,7 @@ LightningDistanceField::LightningDistanceField
     }
 }
 
-bool LightningDistanceField::tryGetNextPoint(Point* p, coord_t supporting_radius) const
+bool LightningDistanceField::tryGetNextPoint(Point* p) const
 {
     if (unsupported_points.empty()) return false;
     *p = unsupported_points.front().loc;
@@ -190,7 +190,7 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
     // Until no more points need to be added to support all:
     // Determine next point from tree/outline areas via distance-field
     Point unsupported_location;
-    while (distance_field.tryGetNextPoint(&unsupported_location, supporting_radius) && i_debug < debug_max_iterations)
+    while (distance_field.tryGetNextPoint(&unsupported_location) && i_debug < debug_max_iterations)
     {
         ++i_debug;
 

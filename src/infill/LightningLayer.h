@@ -33,9 +33,9 @@ public:
     /*!
      * Gets the next unsupported location to be supported by a new branch.
      *
-     * Returns false if \ref LightningDistanceField::unsupported is empty
+     * Returns false if there are no more points to consider
      */
-    bool tryGetNextPoint(Point* p, coord_t supporting_radius) const;
+    bool tryGetNextPoint(Point* p) const;
 
     /*! update the distance field with a newly added branch
      * TODO: check whether this explanation is correct
