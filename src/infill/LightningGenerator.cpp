@@ -15,8 +15,6 @@
 // TODO: more sophisticated heuristics for making nice trees
 // TODO: improve connecting heuristic to favor connecting to shorter trees
 
-// TODO: Lots of smaller TODO's in code itself, put on list!
-
 // TODO: optimization: let the square grid store the closest point on boundary
 // TODO: optimization: only compute the closest dist to / point on boundary for the outer cells and flood-fill the rest
 
@@ -24,8 +22,6 @@
 
 // TODO: avoid intersections between different branches
 
-// TODO: Merge LightningDistanceField into LightningLayer
-// TODO: use swap with last trick when removing from unordered vector instead of moving all further elements back one place
 
 // Implementation in Infill classes & elsewhere (not here):
 // TODO: Outline offset, infill-overlap & perimeter gaps.
@@ -41,24 +37,24 @@
 // TODO: Generate all to-be-supported points at once instead of sequentially.
 //       See branch interlocking_gen PolygonUtils::spreadDots
 //       Or work with sparse grids.
-// TODO: also straighten or smoothen junctions in trees
 
 
 
 // TODO s from in the code:
 
-/* move complexer computations outside of LightningGenerator constructur
- * move LightningDistanceField to its own file
- * make distance field cell size configurable? Whats the best value?
- * LightningDistanceField::getNearbyUnsupportedPoint : flip algorithm: search nearby unsupported point instead of near leaf
- * LightningDistanceField::update : process cells only once; make use of PolygonUtils::spreadDotsArea
- * LightningLayer::generateNewTrees : remove debug_max_iterations ?
- * Remove SVG output everywhere
- * LightningLayer::getBestGroundingLocation : make boundary size in which we ignore the valence rule configurable
- * LightningLayer::convertToLines : allow for polylines, i.e. merge Tims PR about polyline fixes
- * 
- * 
- */
+// make distance field cell size configurable? Whats the best value?
+// Remove SVG output everywhere
+// LightningLayer::getBestGroundingLocation : make boundary size in which we ignore the valence rule configurable
+// LightningLayer::convertToLines : allow for polylines, i.e. merge Tims PR about polyline fixes
+//
+//
+
+// Small code style etc:
+// TODO: Merge LightningDistanceField into LightningLayer
+// TODO: use swap with last trick when removing from unordered vector instead of moving all further elements back one place
+// LightningLayer::generateNewTrees : remove debug_max_iterations ?
+// move LightningDistanceField to its own file
+// move complexer computations outside of LightningGenerator constructur
 
 //____^
 
