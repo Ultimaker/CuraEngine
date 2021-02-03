@@ -53,6 +53,7 @@ LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
     const coord_t layer_thickness = infill_extruder.settings.get<coord_t>("layer_height");  // Note: Currently no initial_layer, probably not necesary, since infill doesn't usually start on layer 0
 
     supporting_radius = infill_extruder.settings.get<coord_t>("infill_line_distance") / 2;
+    overhang_angle = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_overhang_angle"));
     prune_length = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_prune_angle"));
     straightening_max_distance = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_straightening_angle"));
 
@@ -75,7 +76,7 @@ void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage
             infill_area_here.add(part.getOwnInfillArea());
         }
 
-        Polygons overhang = infill_area_here.offset(-supporting_radius).difference(infill_area_above);
+        Polygons overhang = infill_area_here.offset(-overhang_angle).difference(infill_area_above);
 
         overhang_per_layer[layer_nr] = overhang;
         infill_area_above = std::move(infill_area_here);

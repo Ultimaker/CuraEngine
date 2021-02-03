@@ -45,10 +45,6 @@ class SliceMeshStorage;
 class LightningGenerator
 {
 public:
-    /*!
-     * TODO: instead of radius we should pass around the overhang_angle
-     * and compute the radius from the tangent of the angle and the local (adaptive) layer thickness
-     */
     LightningGenerator(const SliceMeshStorage& mesh);
 
     const LightningLayer& getTreesForLayer(const size_t& layer_id);
@@ -60,6 +56,7 @@ protected:
     void generateTrees(const SliceMeshStorage& mesh);
 
     coord_t supporting_radius;
+    coord_t overhang_angle;
     coord_t prune_length;
     coord_t straightening_max_distance;
 
