@@ -139,7 +139,6 @@ protected:
     Point p;
     std::weak_ptr<LightningTreeNode> parent;
     std::vector<std::shared_ptr<LightningTreeNode>> children;
-    mutable LazyInitialization<coord_t> dist_to_root; // lazy values should be mutable
 };
 
 } // namespace cura

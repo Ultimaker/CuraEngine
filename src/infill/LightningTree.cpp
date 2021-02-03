@@ -12,9 +12,7 @@ coord_t LightningTreeNode::getWeightedDistance(const Point& unsupported_loc, con
     size_t valence = (!is_root) + children.size();
     coord_t valence_boost = (0 < valence && valence < 4) ? 4 * supporting_radius : 0;
     coord_t dist_here = vSize(getLocation() - unsupported_loc);
-    coord_t tree_size_penalty = *dist_to_root / 4;
-    assert(tree_size_penalty >= 0);
-    return dist_here + tree_size_penalty - valence_boost;
+    return dist_here - valence_boost;
 }
 
 bool LightningTreeNode::hasOffspring(const std::shared_ptr<LightningTreeNode>& to_be_checked) const
@@ -108,17 +106,6 @@ void LightningTreeNode::visitNodes(const std::function<void(std::shared_ptr<Ligh
 LightningTreeNode::LightningTreeNode(const Point& p)
 : is_root(true)
 , p(p)
-, dist_to_root(
-    [this]() -> coord_t
-    {
-        std::shared_ptr<LightningTreeNode> parent_p = parent.lock();
-        if (is_root || ! parent_p)
-        {
-            return 0;
-        }
-        coord_t parent_dist = * parent_p->dist_to_root;
-        return parent_dist + vSize(parent_p->p - this->p);
-    })
 {}
 
 void LightningTreeNode::findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<LightningTreeNode>& closest_node)
