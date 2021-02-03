@@ -10,6 +10,7 @@
 
 #include "../utils/polygonUtils.h"
 #include "../utils/polygon.h"
+#include "../utils/LazyInitialization.h"
 
 namespace cura
 {
@@ -73,8 +74,6 @@ protected:
 
     // Constructs a node, either for insertion into a tree, or as root:
     LightningTreeNode(const Point& p);
-
-    coord_t getDistanceToRoot() const;
 
     /*!
      * Recursive part of 'findClosestNode'.
@@ -140,6 +139,7 @@ protected:
     Point p;
     std::weak_ptr<LightningTreeNode> parent;
     std::vector<std::shared_ptr<LightningTreeNode>> children;
+    mutable LazyInitialization<coord_t> dist_to_root; // lazy values should be mutable
 };
 
 } // namespace cura
