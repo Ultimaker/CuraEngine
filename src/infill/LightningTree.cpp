@@ -105,8 +105,7 @@ void LightningTreeNode::visitNodes(const node_visitor_func_t& visitor)
     }
 }
 
-// Node:
-LightningTreeNode::LightningTreeNode(const Point& p) : is_root(false), p(p) {}
+LightningTreeNode::LightningTreeNode(const Point& p) : is_root(true), p(p) {}
 
 coord_t LightningTreeNode::getDistanceToRoot() const
 {
@@ -199,10 +198,7 @@ bool LightningTreeNode::realign(const Polygons& outlines, std::vector<std::share
 
 void LightningTreeNode::straighten(const coord_t& magnitude)
 {
-    for(auto& child : children)
-    {
-        child->straighten(magnitude, p, vSize(p - child->p));
-    }
+    straighten(magnitude, p, 0);
 }
 
 LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord_t& magnitude, const Point& junction_above, const coord_t accumulated_dist)

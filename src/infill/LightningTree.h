@@ -76,7 +76,7 @@ public:
 protected:
     LightningTreeNode() = delete; // Don't allow empty contruction
 
-    // Constructs a node, for insertion into a tree:
+    // Constructs a node, either for insertion into a tree, or as root:
     LightningTreeNode(const Point& p);
 
     coord_t getDistanceToRoot() const;
@@ -141,7 +141,7 @@ protected:
 
     void removeJunctionOverlap(Polygons& polylines) const;
 
-    bool is_root = true;
+    bool is_root;
     Point p;
     std::weak_ptr<LightningTreeNode> parent;
     std::vector<std::shared_ptr<LightningTreeNode>> children;
