@@ -16,40 +16,6 @@ namespace cura
 {
 class LightningTreeNode;
 
-// NOTE: Currently, the following class is just scaffolding so the entirety can be run during development, while other parts are made in sync.
-//       No particular attention is paid to efficiency & the like. Might be _very_ slow!
-class PolygonLightningDistanceField
-{
-public:
-    /*!
-     * constructor
-     */
-    PolygonLightningDistanceField
-    (
-        const coord_t& radius,
-     const Polygons& current_outline,
-     const Polygons& current_overhang,
-     const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
-    );
-    
-    /*!
-     * Gets the next unsupported location to be supported by a new branch.
-     *
-     * Returns false if \ref PolygonLightningDistanceField::unsupported is empty
-     */
-    bool tryGetNextPoint(Point* p, coord_t supporting_radius) const;
-    
-    /*! update the distance field with a newly added branch
-     * TODO: check whether this explanation is correct
-     */
-    void update(const Point& to_node, const Point& added_leaf);
-    
-protected:
-    coord_t supporting_radius; //!< The radius of the area of the layer above supported by a point on a branch of a tree
-    Polygons unsupported;
-    Polygons supported;
-};
-
 class LightningDistanceField
 {
 public:
