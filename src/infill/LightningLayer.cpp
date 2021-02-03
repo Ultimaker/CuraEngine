@@ -140,37 +140,50 @@ Point LightningDistanceField::getNearbyUnsupportedPoint(const Point p, const Poi
 
 void LightningDistanceField::update(const Point& to_node, const Point& added_leaf)
 {
-    auto process_func = 
-        [added_leaf, this](const SquareGrid::GridPoint& grid_loc)
-        {
-            auto it = unsupported_points_grid.find(grid_loc);
-            if (it != unsupported_points_grid.end())
-            {
-                std::list<UnsupCell>::iterator& list_it = it->second;
-                UnsupCell& cell = *list_it;
-                if (shorterThen(cell.loc - added_leaf, supporting_radius))
-                {
-                    unsupported_points.erase(list_it);
-                    unsupported_points_grid.erase(it);
-                }
-            }
-            return true;
-        };
+    coord_t r = supporting_radius + cell_size / 2; // offset, because the boundary cells are not taken into account in spreadDotsArea
     const Point a = to_node;
     const Point b = added_leaf;
     Point ab = b - a;
-    Point ab_T = turn90CCW(ab);
-    Point extent = normal(ab_T, supporting_radius);
-    // TODO: process cells only once; make use of PolygonUtils::spreadDotsArea
-    grid.processLineCells(std::make_pair(a + extent, a - extent), 
-                          [this, ab, extent, &process_func]
-                          (GridPoint p)
-                          {
-                              grid.processLineCells(std::make_pair(p, p + ab), process_func);
-                              return true;
-                          }
-    );
-    grid.processNearby(added_leaf, supporting_radius, process_func);
+    Point beyond = normal(ab, r);
+    Point extent = turn90CCW(beyond);
+    Point diag_f = normal(ab, r * .5 * std::sqrt(2.0));
+    Point diag_p = normal(extent, r * .5 * std::sqrt(2.0));
+    Polygons supported_areas;
+    PolygonRef supported_area = supported_areas.newPoly();
+    /* order in which the polygon is built:
+     *    6_________5
+     * 7.-'         '-.4
+     *8/   a.......b   \3
+     * \               /
+     * 9'-._________.-'2
+     *   10         1
+     */
+    supported_area.emplace_back(b + extent);
+    supported_area.emplace_back(b + diag_f + diag_p);
+    supported_area.emplace_back(b + beyond);
+    supported_area.emplace_back(b + diag_f - diag_p);
+    supported_area.emplace_back(b - extent);
+    supported_area.emplace_back(a - extent);
+    supported_area.emplace_back(a - diag_f - diag_p);
+    supported_area.emplace_back(a - beyond);
+    supported_area.emplace_back(a - diag_f + diag_p);
+    supported_area.emplace_back(a + extent);
+
+    std::vector<Point> supported_points = PolygonUtils::spreadDotsArea(supported_areas, cell_size);
+    for (Point grid_loc : supported_points)
+    {
+        auto it = unsupported_points_grid.find(grid_loc);
+        if (it != unsupported_points_grid.end())
+        {
+            std::list<UnsupCell>::iterator& list_it = it->second;
+            UnsupCell& cell = *list_it;
+            if (shorterThen(cell.loc - added_leaf, supporting_radius))
+            {
+                unsupported_points.erase(list_it);
+                unsupported_points_grid.erase(it);
+            }
+        }
+    }
 }
 
 // -- -- -- -- -- --
