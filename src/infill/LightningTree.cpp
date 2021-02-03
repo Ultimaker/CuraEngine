@@ -86,7 +86,7 @@ void LightningTreeNode::propagateToNextLayer
 
 // NOTE: Depth-first, as currently implemented.
 //       Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
-void LightningTreeNode::visitBranches(const branch_visitor_func_t& visitor) const
+void LightningTreeNode::visitBranches(const std::function<void(const Point&, const Point&)>& visitor) const
 {
     for (const auto& node : children)
     {
@@ -96,7 +96,7 @@ void LightningTreeNode::visitBranches(const branch_visitor_func_t& visitor) cons
 }
 
 // NOTE: Depth-first, as currently implemented.
-void LightningTreeNode::visitNodes(const node_visitor_func_t& visitor)
+void LightningTreeNode::visitNodes(const std::function<void(std::shared_ptr<LightningTreeNode>)>& visitor)
 {
     visitor(shared_from_this());
     for (const auto& node : children)

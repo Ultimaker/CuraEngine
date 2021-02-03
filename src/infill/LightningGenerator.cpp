@@ -43,6 +43,23 @@
 //       Or work with sparse grids.
 // TODO: also straighten or smoothen junctions in trees
 
+
+
+// TODO s from in the code:
+
+/* move complexer computations outside of LightningGenerator constructur
+ * move LightningDistanceField to its own file
+ * make distance field cell size configurable? Whats the best value?
+ * LightningDistanceField::getNearbyUnsupportedPoint : flip algorithm: search nearby unsupported point instead of near leaf
+ * LightningDistanceField::update : process cells only once; make use of PolygonUtils::spreadDotsArea
+ * LightningLayer::generateNewTrees : remove debug_max_iterations ?
+ * Remove SVG output everywhere
+ * LightningLayer::getBestGroundingLocation : make boundary size in which we ignore the valence rule configurable
+ * LightningLayer::convertToLines : allow for polylines, i.e. merge Tims PR about polyline fixes
+ * 
+ * 
+ */
+
 //____^
 
 using namespace cura;

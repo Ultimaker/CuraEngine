@@ -21,13 +21,6 @@ namespace cura
 class LightningTreeNode : public std::enable_shared_from_this<LightningTreeNode>
 {
 public:
-    // For use with the 'visitBranches' function.
-    // Input: Uptree junction point (closer to root), downtree branch point (closer to leaves).
-    typedef std::function<void(const Point&, const Point&)> branch_visitor_func_t;
-
-    // For use with the 'visitNodes' function. (Note that the shared_ptr isn't const).
-    typedef std::function<void(std::shared_ptr<LightningTreeNode>)> node_visitor_func_t;
-
     // Workaround for private/protected constructors and 'make_shared': https://stackoverflow.com/a/27832765
     template<typename ...Arg> std::shared_ptr<LightningTreeNode> static create(Arg&&...arg) {
         struct EnableMakeShared : public LightningTreeNode {
@@ -60,13 +53,15 @@ public:
         const coord_t& smooth_magnitude
     ) const;
 
-    // NOTE: Depth-first, as currently implemented.
-    //       Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
-    void visitBranches(const branch_visitor_func_t& visitor) const;
+    /*! NOTE: Depth-first, as currently implemented.
+     *        Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
+     * \param visitor Input: Uptree junction point (closer to root), downtree branch point (closer to leaves).
+     */
+    void visitBranches(const std::function<void(const Point&, const Point&)>& visitor) const;
 
     // NOTE: Depth-first, as currently implemented.
     //       Also note that, unlike the visitBranches variant, this isn't (...) const!
-    void visitNodes(const node_visitor_func_t& visitor);
+    void visitNodes(const std::function<void(std::shared_ptr<LightningTreeNode>)>& visitor);
 
     coord_t getWeightedDistance(const Point& unsupported_loc, const coord_t& supporting_radius) const;
 

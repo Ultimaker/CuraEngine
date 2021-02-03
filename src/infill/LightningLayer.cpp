@@ -62,6 +62,13 @@ bool LightningDistanceField::tryGetNextPoint(Point* p) const
 
 Point LightningDistanceField::getNearbyUnsupportedPoint(const Point p, const Point fall_back, coord_t supporting_radius, coord_t total_radius) const
 {
+    // TODO: flip algorithm:
+    /* current:
+     * search near leaf, filter on close to fall_back
+     */
+    /* wanted:
+     * search near fall_back, only keep the ones as close as the closest + cell_size * (1 + sqrt(2))
+     */
     std::vector<GridPoint> nearby_unsupported_points;
     grid.processNearby(p, supporting_radius,
         [supporting_radius, p, fall_back, &nearby_unsupported_points, this](const GridPoint& grid_loc)
@@ -136,6 +143,7 @@ void LightningDistanceField::update(const Point& to_node, const Point& added_lea
     Point ab = b - a;
     Point ab_T = turn90CCW(ab);
     Point extent = normal(ab_T, supporting_radius);
+    // TODO: process cells only once; make use of PolygonUtils::spreadDotsArea
     grid.processLineCells(std::make_pair(a + extent, a - extent), 
                           [this, ab, extent, &process_func]
                           (GridPoint p)
@@ -165,7 +173,7 @@ Point GroundingLocation::p() const
 
 void LightningLayer::fillLocator(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator)
 {
-    const LightningTreeNode::node_visitor_func_t add_node_to_locator_func =
+    std::function<void(std::shared_ptr<LightningTreeNode>)> add_node_to_locator_func =
         [&tree_node_locator](std::shared_ptr<LightningTreeNode> node)
         {
             tree_node_locator.insert(node->getLocation(), node);
@@ -213,7 +221,7 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
         // update distance field
         distance_field.update(grounding_loc.p(), unsupported_location);
     }
-    if (i_debug > 3)
+    if (i_debug > 3) // TODO: remove
     {
         SVG svg("trees.svg", AABB(current_outlines));
         svg.writePolygons(current_outlines, SVG::Color::GREEN);
