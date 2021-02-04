@@ -2411,7 +2411,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
           // handle negative layer numbers
           const size_t divisor = support_storage.support_infill_angles_layer_0.size();
           const size_t index = ((layer_nr % divisor) + divisor) % divisor;
-          assert(("index should be positive", ((layer_nr % divisor) + divisor) % divisor >= 0));
           return support_storage.support_infill_angles_layer_0.at(index);
       }
       return support_storage.support_infill_angles.at(static_cast<size_t>(layer_nr) % support_storage.support_infill_angles.size());
