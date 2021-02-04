@@ -301,7 +301,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
  */
 void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 {
-    const size_t roofing_layer_count = mesh.settings.get<size_t>("roofing_layer_count");
+    const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
 
     for(SkinPart& skin_part : part.skin_parts)
     {
@@ -352,7 +352,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
  */
 Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part)
 {
-    const size_t roofing_layer_count = mesh.settings.get<size_t>("roofing_layer_count");
+    const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
 
     Polygons no_air_above = getOutlineOnLayer(part, layer_nr + roofing_layer_count);
     if (!no_small_gaps_heuristic)

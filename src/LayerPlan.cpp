@@ -537,12 +537,12 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     }
 }
 
-static const float max_non_bridge_line_volume = 100000.0f; // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
+static constexpr float max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
 void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start)
 {
     const coord_t min_line_len = 5; // we ignore lines less than 5um long
-    const double acceleration_segment_len = 1000; // accelerate using segments of this length
+    const double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
     const double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
 
@@ -1013,7 +1013,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         }
         boundary.add(comb_boundary_preferred.offset(dist));
         // simplify boundary to cut down processing time
-        boundary.simplify(100, 100);
+        boundary.simplify(MM2INT(0.1), MM2INT(0.1));
     }
     constexpr bool detect_loops = true;
     PathOrderOptimizer<ConstPolygonRef> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary);
@@ -1744,7 +1744,7 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
         return false;
     }
 
-    coord_t coasting_min_dist_considered = 100; // hardcoded setting for when to not perform coasting
+    coord_t coasting_min_dist_considered = MM2INT(0.1); // hardcoded setting for when to not perform coasting
 
     
     double extrude_speed = path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor() * path.speed_factor; // travel speed

@@ -22,6 +22,10 @@ if(ENABLE_ARCUS)
     find_package(Protobuf 3.0.0 REQUIRED)
     find_package(Arcus REQUIRED)
     add_definitions(-DARCUS)
+    find_program(PROTOC "protoc")
+    if(${PROTOC} STREQUAL "PROTOC-NOTFOUND")
+        message(FATAL_ERROR "Protobuf compiler missing")
+    endif()
 endif()
 
 #For reading image files.
