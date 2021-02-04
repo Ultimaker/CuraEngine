@@ -84,6 +84,28 @@ TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
     EXPECT_GT(part.print_outline.area(), 0) << "The print outline must encompass the outer wall, so it must be more than 0.";
     EXPECT_LE(part.print_outline.area(), square_shape.area()) << "The print outline must stay within the bounds of the original part.";
     EXPECT_GT(part.inner_area.area(), 0) << "The inner area must be within the innermost wall. There are not enough walls to fill the entire part, so there is a positive inner area.";
+    EXPECT_EQ(layer.parts.size(), 1) << "There is still just 1 part.";
+}
+
+/*!
+ * Tests if the inner area is properly set.
+ */
+TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
+{
+    settings.add("wall_line_count", "0");
+    SliceLayer layer;
+    layer.parts.emplace_back();
+    SliceLayerPart& part = layer.parts.back();
+    part.outline.add(square_shape);
+
+    //Run the test.
+    walls_computation.generateWalls(&layer);
+
+    //Verify that there is still an inner area, outline and parts.
+    EXPECT_EQ(part.inner_area.area(), square_shape.area()) << "There are no walls, so the inner area (for infill/skin) needs to be the entire part.";
+    EXPECT_EQ(part.print_outline.area(), square_shape.area()) << "There are no walls, so the print outline encompases the inner area exactly.";
+    EXPECT_EQ(part.outline.area(), square_shape.area()) << "The outline is not modified.";
+    EXPECT_EQ(layer.parts.size(), 1) << "There is still just 1 part.";
 }
 
 }
