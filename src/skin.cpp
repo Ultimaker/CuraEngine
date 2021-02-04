@@ -37,7 +37,6 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr,
 , bottom_layer_count(mesh.settings.get<size_t>("bottom_layers"))
 , initial_bottom_layer_count(mesh.settings.get<size_t>("initial_bottom_layers"))
 , top_layer_count(mesh.settings.get<size_t>("top_layers"))
-, wall_line_count(mesh.settings.get<size_t>("wall_line_count"))
 , skin_line_width(getSkinLineWidth(mesh, layer_nr))
 , no_small_gaps_heuristic(mesh.settings.get<bool>("skin_no_small_gaps_heuristic"))
 , process_infill(process_infill)
