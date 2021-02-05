@@ -9,6 +9,7 @@ namespace cura
 {
     // TODO: this needs to be a (class) parameter, want to make it a setting too:
     constexpr float outer_wall_lock_factor = /*0.0; //*/ 1.0;
+    constexpr float outer_wall_lock_inverse = 1.0 - outer_wall_lock_factor;
 
     BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
     {
@@ -20,7 +21,29 @@ namespace cura
         // Early out when the only walls are outer, the parent can have been trusted to handle it.
         if (bead_count < 3)
         {
-            // TODO: Outer wall lock compensation within this case (this is where it's most noticable after all ... furthermore, the line-thckness will jump if the lock is already implemented for >= 3).
+            if (bead_count == 2 && optimal_width_outer < (thickness / 2))
+            {
+                const coord_t back_pos = bead_count - 1;
+
+                // Compensate for the outer wall lock factor:
+                ret.bead_widths[0] = static_cast<coord_t>(outer_wall_lock_factor * optimal_width_outer + outer_wall_lock_inverse * ret.bead_widths[0]);
+                ret.bead_widths[back_pos] = static_cast<coord_t>(outer_wall_lock_factor * optimal_width_outer + outer_wall_lock_inverse * ret.bead_widths[back_pos]);
+                ret.toolpath_locations[0] = ret.bead_widths[0] / 2;
+                ret.toolpath_locations[back_pos] = thickness - ret.bead_widths[back_pos] / 2;
+
+                // Check if a third wall needs to be created, if so, do it, otherwise put the rest-width in leftovers:
+                coord_t left_over = std::max(static_cast<coord_t>(0), thickness - (ret.bead_widths.front() + ret.bead_widths.back()));
+                if (left_over >= this->getTransitionThickness(0))
+                {
+                    ret.bead_widths.insert(std::next(ret.bead_widths.begin()), left_over);
+                    ret.toolpath_locations.insert(std::next(ret.toolpath_locations.begin()), thickness / 2);
+                    ret.left_over = 0;
+                }
+                else
+                {
+                    ret.left_over = left_over;
+                }
+            }
             return ret;
         }
 
@@ -32,7 +55,7 @@ namespace cura
 
         // ... do some compensation for the 'outer wall lock factor' in between the calculations:
         // NOTE: The weights are inverted here, since these widhts end up in the denominator.
-        const coord_t optimal_total_thickness = static_cast<coord_t>(outer_wall_lock_factor * thickness + (1.0 - outer_wall_lock_factor) * (optimal_total_outer_walls_width + optimal_total_inner_walls_width));
+        const coord_t optimal_total_thickness = static_cast<coord_t>(outer_wall_lock_factor * thickness + outer_wall_lock_inverse * (optimal_total_outer_walls_width + optimal_total_inner_walls_width));
 
         const coord_t outer_factor_numerator = optimal_total_outer_walls_width * thickness;
         const coord_t outer_factor_denominator = current_total_outer_walls_width * optimal_total_thickness;
@@ -60,6 +83,7 @@ namespace cura
         }
 
         // NOTE: The middle toolpath --if there's any-- doesn't have to be altered; it'll already be at the half thickness mark, give or take 1 micron.
+        //       This separation is also because any 0 width walls would have presumably been in the middle, so it's dealt with properly.
 
         // Update the last half of the toolpath-locations with the updated bead-widths (starting from thickness, down to half):
         last_coord = thickness;
