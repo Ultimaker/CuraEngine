@@ -59,8 +59,6 @@ namespace cura
         const coord_t inner_factor_numerator = optimal_total_inner_walls_width * thickness;
         const coord_t inner_factor_denominator = current_total_inner_walls_width * optimal_total_thickness;
 
-        // TODO: early out if outer walls are already more than the current thickness (could this happen _before_ too? -> well it will be solved then anyway).
-
         // Multiply the bead-widths with the right factors:
         ret.bead_widths[0] = (ret.bead_widths[0] * outer_factor_numerator) / outer_factor_denominator;
         for (coord_t i_width = 1; i_width < (bead_count - 1); ++i_width)
@@ -68,6 +66,11 @@ namespace cura
             ret.bead_widths[i_width] = (ret.bead_widths[i_width] * inner_factor_numerator) / inner_factor_denominator;
         }
         ret.bead_widths[bead_count - 1] = (ret.bead_widths[bead_count - 1] * outer_factor_numerator) / outer_factor_denominator;
+
+        // Filter out any non-positive width walls:
+        ret.bead_widths.erase(std::remove_if(ret.bead_widths.begin(), ret.bead_widths.end(), [](const coord_t width){ return width <= 0; }), ret.bead_widths.end());
+        bead_count = ret.bead_widths.size();
+        ret.toolpath_locations.resize(bead_count);
 
         // Update the first half of the toolpath-locations with the updated bead-widths (starting from 0, up to half):
         coord_t last_coord = 0;
@@ -79,7 +82,11 @@ namespace cura
             last_width = ret.bead_widths[i_location];
         }
 
-        // NOTE: The middle toolpath --if there's any-- doesn't have to be altered; it'll already be at the half thickness mark, give or take 1 micron.
+        // Handle the position of any middle wall (note that the width will already have been set correctly):
+        if (bead_count % 2 == 1)
+        {
+            ret.toolpath_locations[bead_count / 2] = thickness / 2;
+        }
 
         // Update the last half of the toolpath-locations with the updated bead-widths (starting from thickness, down to half):
         last_coord = thickness;
