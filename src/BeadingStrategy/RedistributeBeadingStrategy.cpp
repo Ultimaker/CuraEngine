@@ -15,9 +15,6 @@ namespace cura
     {
         Beading ret = parent->compute(thickness, bead_count);
 
-        // Actual count and thickness as represented by extant walls. Don't count any potential zero-width 'signalling' walls.
-        bead_count = std::count_if(ret.bead_widths.begin(), ret.bead_widths.end(), [](const coord_t width) { return width > 0; });
-
         // Early out when the only walls are outer, the parent can have been trusted to handle it.
         if (bead_count < 3)
         {
@@ -83,7 +80,6 @@ namespace cura
         }
 
         // NOTE: The middle toolpath --if there's any-- doesn't have to be altered; it'll already be at the half thickness mark, give or take 1 micron.
-        //       This separation is also because any 0 width walls would have presumably been in the middle, so it's dealt with properly.
 
         // Update the last half of the toolpath-locations with the updated bead-widths (starting from thickness, down to half):
         last_coord = thickness;
