@@ -32,7 +32,9 @@ std::string to_string(StrategyType type);
 class BeadingStrategyFactory
 {
 public:
-    static BeadingStrategy* makeStrategy(const StrategyType type,
+    static BeadingStrategy* makeStrategy
+    (
+        const StrategyType type,
         const coord_t preferred_bead_width_outer = MM2INT(0.5),
         const coord_t preferred_bead_width_inner = MM2INT(0.5),
         const coord_t preferred_transition_length = MM2INT(0.4),
@@ -42,7 +44,9 @@ public:
         const coord_t min_feature_size = 0,
         const Ratio wall_transition_thresold = 0.5_r,
         const coord_t max_bead_count = 0,
-        const coord_t outer_wall_offset = 0);
+        const coord_t outer_wall_offset = 0,
+        const Ratio outer_wall_lock_factor = 0.0_r
+    );
 };
 
 } // namespace cura

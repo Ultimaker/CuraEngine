@@ -7,10 +7,6 @@
 
 namespace cura
 {
-    // TODO: this needs to be a (class) parameter, want to make it a setting too:
-    constexpr float outer_wall_lock_factor = /*0.0; //*/ 1.0;
-    constexpr float outer_wall_lock_inverse = 1.0 - outer_wall_lock_factor;
-
     BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
     {
         Beading ret = parent->compute(thickness, bead_count);

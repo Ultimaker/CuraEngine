@@ -6,6 +6,8 @@
 
 #include "BeadingStrategy.h"
 
+#include "../settings/types/Ratio.h"
+
 namespace cura
 {
     /*!
@@ -29,12 +31,16 @@ namespace cura
          *                            strategies' optimum bead width is a weighted average of the outer and inner walls at that bead count.
          * /param optimal_width_outer Inner wall width, guaranteed to be the actual (save rounding errors) at a bead count if the parent
          *                            strategies' optimum bead width is a weighted average of the outer and inner walls at that bead count.
+         * /param outer_wall_lock_factor How much the outer walls should be forced to their optimal width.
+         *                               From '1.0': always, unless impossible, to '0.0': ignore the lock factor, redistribute as normal.
          */
-        RedistributeBeadingStrategy(coord_t optimal_width_outer, coord_t optimal_width_inner, BeadingStrategy* parent) :
+        RedistributeBeadingStrategy(const coord_t optimal_width_outer, const coord_t optimal_width_inner, const Ratio outer_wall_lock_factor, BeadingStrategy* parent) :
             BeadingStrategy(parent->optimal_width, parent->default_transition_length, parent->transitioning_angle),
             parent(parent),
             optimal_width_outer(optimal_width_outer),
-            optimal_width_inner(optimal_width_inner)
+            optimal_width_inner(optimal_width_inner),
+            outer_wall_lock_factor(outer_wall_lock_factor),
+            outer_wall_lock_inverse(1.0_r - outer_wall_lock_factor)
         {
             name = "RedistributeBeadingStrategy";
         }
@@ -55,6 +61,9 @@ namespace cura
         BeadingStrategy* parent;
         coord_t optimal_width_outer;
         coord_t optimal_width_inner;
+
+        Ratio outer_wall_lock_factor;
+        Ratio outer_wall_lock_inverse;
     };
 
 } // namespace cura
