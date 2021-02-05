@@ -118,7 +118,7 @@ public:
      * 
      * \param output all branches in this tree connected into polylines
      */
-    void convertToPolylines(Polygons& output) const;
+    void convertToPolylines(Polygons& output, const coord_t line_width) const;
 
 protected:
     /*!
@@ -133,7 +133,7 @@ protected:
      */
     void convertToPolylines(size_t long_line_idx, Polygons& output) const;
 
-    void removeJunctionOverlap(Polygons& polylines) const;
+    void removeJunctionOverlap(Polygons& polylines, const coord_t line_width) const;
 
     bool is_root;
     Point p;

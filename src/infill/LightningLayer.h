@@ -119,7 +119,7 @@ public:
 
     void reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius);
 
-    Polygons convertToLines() const;
+    Polygons convertToLines(const coord_t line_width) const;
 
     coord_t getWeightedDistance(const Point& boundary_loc, const Point& unsupported_loc);
 

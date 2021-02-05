@@ -334,7 +334,7 @@ void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNod
 }
 
 // Returns 'added someting'.
-Polygons LightningLayer::convertToLines() const
+Polygons LightningLayer::convertToLines(const coord_t line_width) const
 {
     Polygons result_lines;
     if (tree_roots.empty())
@@ -344,7 +344,7 @@ Polygons LightningLayer::convertToLines() const
 
     for (const auto& tree : tree_roots)
     {
-        tree->convertToPolylines(result_lines);
+        tree->convertToPolylines(result_lines, line_width);
     }
 
     // TODO: allow for polylines!

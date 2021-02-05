@@ -300,12 +300,12 @@ coord_t LightningTreeNode::prune(const coord_t& pruning_distance)
     return max_distance_pruned;
 }
 
-void LightningTreeNode::convertToPolylines(Polygons& output) const
+void LightningTreeNode::convertToPolylines(Polygons& output, const coord_t line_width) const
 {
     Polygons result;
     result.newPoly();
     convertToPolylines(0, result);
-    removeJunctionOverlap(result);
+    removeJunctionOverlap(result, line_width);
     output.add(result);
 }
 
@@ -331,10 +331,10 @@ void LightningTreeNode::convertToPolylines(size_t long_line_idx, Polygons& outpu
     }
 }
 
-void LightningTreeNode::removeJunctionOverlap(Polygons& result_lines) const
+void LightningTreeNode::removeJunctionOverlap(Polygons& result_lines, const coord_t line_width) const
 {
     // TODO: only reduce lines that start at junctions, not the roots!
-    const coord_t reduction = 200; // TODO make configurable!
+    const coord_t reduction = line_width / 2; // TODO make configurable?
     for (auto poly_it = result_lines.begin(); poly_it != result_lines.end(); )
     {
         PolygonRef polyline = *poly_it;
