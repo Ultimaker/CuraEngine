@@ -176,7 +176,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 constexpr bool no_prime_tower = false;
                 floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
             }
-            floor_layer.unionPolygons();
+            floor_layer = floor_layer.unionPolygons();
             support_layer = support_layer.difference(floor_layer.offset(10)); //Subtract the support floor from the normal support.
         }
 
