@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <cassert>
 
 namespace cura
 {
@@ -68,17 +69,30 @@ namespace cura
         }
 
         // Filter out bead_widths that violate the transition width and recalculate if needed
+        const coord_t minimum_width = parent->getTransitionThickness(0);
         ret.bead_widths.erase(std::remove_if(ret.bead_widths.begin(), ret.bead_widths.end(),
-                                             [&](const coord_t width)
+                                             [&minimum_width](const coord_t width)
                                              {
-                                                 return width <= parent->getTransitionThickness(0);
+                                                 return width <= minimum_width;
                                              }), ret.bead_widths.end());
         if (ret.bead_widths.size() < ret.toolpath_locations.size())
         {
+            // NOTE: For now work under assumption that only 1 bead has to be added
             const coord_t left_over = thickness - std::accumulate(ret.bead_widths.cbegin(), ret.bead_widths.cend(), static_cast<coord_t>(0));
+            // remove width from other beads, to give way for newly inserted bead
+            const coord_t removal_width = (minimum_width - left_over) / ret.bead_widths.size();
+            for (auto& bead_width : ret.bead_widths)
+            {
+                bead_width -= removal_width;
+            }
+
+            // Insert new bead with minimum width
+            ret.bead_widths.insert(std::next(ret.bead_widths.begin()), minimum_width);
+            ret.toolpath_locations.insert(std::next(ret.toolpath_locations.begin()), thickness / 2);
+
             logWarning("Removed a bead -> leftover %d, no_beads -> %d, you should update!\n", left_over, ret.bead_widths.size());
         }
-        bead_count = ret.bead_widths.size();
+        bead_count = static_cast<coord_t>(ret.bead_widths.size());
         ret.toolpath_locations.resize(bead_count);
 
         // Update the first half of the toolpath-locations with the updated bead-widths (starting from 0, up to half):
@@ -108,6 +122,11 @@ namespace cura
         }
 
         ret.left_over = thickness - std::accumulate(ret.bead_widths.cbegin(), ret.bead_widths.cend(), static_cast<coord_t>(0));
+        assert(std::all_of(ret.bead_widths.begin(), ret.bead_widths.end(),
+                           [&minimum_width](const coord_t width)
+                           {
+                             return width >= minimum_width;
+                           }) && "All beads should be atleast the minimum bead width");
         return ret;
     }
 
