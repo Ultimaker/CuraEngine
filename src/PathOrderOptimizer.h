@@ -149,7 +149,7 @@ public:
     : start_point(start_point)
     , seam_config(seam_config)
     , combing_grid(nullptr)
-    , combing_boundary((combing_boundary != nullptr && combing_boundary->size() > 1) ? combing_boundary : nullptr)
+    , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
     , detect_loops(detect_loops)
     {
     }
