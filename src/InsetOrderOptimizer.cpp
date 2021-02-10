@@ -36,30 +36,70 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
     const GCodePathConfig& inset_0_bridge_config = do_outer_wall ? mesh_config.bridge_inset0_config : skin_or_infill_config;
     const GCodePathConfig& inset_X_bridge_config = do_outer_wall ? mesh_config.bridge_insetX_config : skin_or_infill_config;
 
+    const size_t wall_0_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
+    const size_t wall_x_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr;
+    const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
+    const size_t infill_extruder_nr = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr;
+
     const bool ignore_inner_insets = !mesh.settings.get<bool>("optimize_wall_printing_order");
-    const bool outer_inset_first = mesh.settings.get<bool>("outer_inset_first");
+    // If the outer wall extruder is different than the inner wall extruder, don't apply the outer_inset_first to the skin
+    // and infill insets.
+    const bool outer_inset_first = wall_0_extruder_nr == wall_x_extruder_nr && mesh.settings.get<bool>("outer_inset_first");
 
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
     std::set<size_t> bins_with_index_zero_insets;
     BinJunctions insets = variableWidthPathToBinJunctions(paths, ignore_inner_insets, outer_inset_first, &bins_with_index_zero_insets);
 
-    //If printing the outer inset first, start with the lowest inset.
-    //Otherwise start with the highest inset and iterate backwards.
     size_t start_inset;
     size_t end_inset;
     int direction;
-    if(outer_inset_first)
+    //If the entire wall is printed with the current extruder, print all of it.
+    if((wall_type == WallType::OUTER_WALL && wall_0_extruder_nr == wall_x_extruder_nr && wall_x_extruder_nr == extruder_nr) ||
+            (wall_type == WallType::EXTRA_SKIN && extruder_nr == top_bottom_extruder_nr) ||
+            (wall_type == WallType::EXTRA_INFILL && extruder_nr == infill_extruder_nr))
     {
-        start_inset = 0;
-        end_inset = insets.size();
-        direction = 1;
+        //If printing the outer inset first, start with the lowest inset.
+        //Otherwise start with the highest inset and iterate backwards.
+        if(outer_inset_first)
+        {
+            start_inset = 0;
+            end_inset = insets.size();
+            direction = 1;
+        }
+        else
+        {
+            start_inset = insets.size() - 1;
+            end_inset = -1;
+            direction = -1;
+        }
     }
-    else
+    //If the wall is partially printed with the current extruder, print the correct part.
+    else if(wall_type == WallType::OUTER_WALL && wall_0_extruder_nr != wall_x_extruder_nr)
     {
-        start_inset = insets.size() - 1;
-        end_inset = -1;
-        direction = -1;
+        //If the wall_0 and wall_x extruders are different, then only include the insets that should be printed by the
+        //current extruder_nr.
+        if(extruder_nr == wall_0_extruder_nr)
+        {
+            start_inset = 0;
+            end_inset = 1; // Ignore inner walls
+            direction = 1;
+        }
+        else if(extruder_nr == wall_x_extruder_nr)
+        {
+            start_inset = insets.size() - 1;
+            end_inset = 0; // Ignore outer wall
+            direction = -1;
+        }
+        else
+        {
+            return added_something;
+        }
     }
+    else //The wall is not printed with this extruder, not even in part. Don't print anything then.
+    {
+        return added_something;
+    }
+
 
     //Add all of the insets one by one.
     constexpr Ratio flow = 1.0_r;
