@@ -53,6 +53,7 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
     size_t start_inset;
     size_t end_inset;
     int direction;
+    //If the entire wall is printed with the current extruder, print all of it.
     if((wall_type == WallType::OUTER_WALL && wall_0_extruder_nr == wall_x_extruder_nr && wall_x_extruder_nr == extruder_nr) ||
             (wall_type == WallType::EXTRA_SKIN && extruder_nr == top_bottom_extruder_nr) ||
             (wall_type == WallType::EXTRA_INFILL && extruder_nr == infill_extruder_nr))
@@ -72,6 +73,7 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
             direction = -1;
         }
     }
+    //If the wall is partially printed with the current extruder, print the correct part.
     else if(wall_type == WallType::OUTER_WALL && wall_0_extruder_nr != wall_x_extruder_nr)
     {
         //If the wall_0 and wall_x extruders are different, then only include the insets that should be printed by the
@@ -93,7 +95,7 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
             return added_something;
         }
     }
-    else
+    else //The wall is not printed with this extruder, not even in part. Don't print anything then.
     {
         return added_something;
     }
