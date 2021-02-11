@@ -49,7 +49,7 @@ protected:
 
     void generateMicrostructure(std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer);
 
-    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer);
+    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, const std::vector<Polygons>& layer_regions);
 
     std::vector<Slicer*>& volumes;
     std::vector<coord_t> line_width_per_extruder;
