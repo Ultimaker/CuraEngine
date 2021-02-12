@@ -18,7 +18,7 @@ coord_t LightningTreeNode::getWeightedDistance(const Point& unsupported_loc, con
 bool LightningTreeNode::hasOffspring(const std::shared_ptr<LightningTreeNode>& to_be_checked) const
 {
     if (to_be_checked == shared_from_this()) return true;
-    for (auto child_ptr : children)
+    for (auto& child_ptr : children)
     {
         if (child_ptr->hasOffspring(to_be_checked)) return true;
     }
@@ -88,6 +88,7 @@ void LightningTreeNode::visitBranches(const std::function<void(const Point&, con
 {
     for (const auto& node : children)
     {
+        assert(node->parent.lock() == shared_from_this());
         visitor(p, node->p);
         node->visitBranches(visitor);
     }
@@ -99,6 +100,7 @@ void LightningTreeNode::visitNodes(const std::function<void(std::shared_ptr<Ligh
     visitor(shared_from_this());
     for (const auto& node : children)
     {
+        assert(node->parent.lock() == shared_from_this());
         node->visitNodes(visitor);
     }
 }
@@ -212,15 +214,17 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord
             }
         }
         { // remove nodes on linear segments
+            child_p = children.front(); //recursive call to straighten might have removed the child
             const std::shared_ptr<LightningTreeNode>& parent_node = parent.lock();
             if (parent_node && LinearAlg2D::getDist2FromLineSegment(parent_node->p, p, child_p->p) < 10)
             {
                 child_p->parent = parent;
-                for (auto sibling : parent_node->children)
-                {
+                for (auto& sibling : parent_node->children)
+                { // find this node among siblings
                     if (sibling == shared_from_this())
                     {
-                        sibling = child_p;
+                        sibling = child_p; // replace this node by child
+                        break;
                     }
                 }
             }
@@ -232,7 +236,7 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord
         constexpr coord_t weight = 1000;
         Point junction_moving_dir = normal(junction_above - p, weight);
         bool prevent_junction_moving = false;
-        for (auto child_p : children)
+        for (auto& child_p : children)
         {
             coord_t child_dist = vSize(p - child_p->p);
             RectilinearJunction below = child_p->straighten(magnitude, p, child_dist);
