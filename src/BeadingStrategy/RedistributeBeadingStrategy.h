@@ -27,20 +27,29 @@ namespace cura
     {
     public:
         /*!
-         * /param optimal_width_outer Outer wall width, guaranteed to be the actual (save rounding errors) at a bead count if the parent
-         *                            strategies' optimum bead width is a weighted average of the outer and inner walls at that bead count.
-         * /param optimal_width_outer Inner wall width, guaranteed to be the actual (save rounding errors) at a bead count if the parent
-         *                            strategies' optimum bead width is a weighted average of the outer and inner walls at that bead count.
-         * /param outer_wall_lock_factor How much the outer walls should be forced to their optimal width.
-         *                               From '1.0': always, unless impossible, to '0.0': ignore the lock factor, redistribute as normal.
+         * /param optimal_width_outer         Outer wall width, guaranteed to be the actual (save rounding errors) at a
+         *                                    bead count if the parent strategies' optimum bead width is a weighted
+         *                                    average of the outer and inner walls at that bead count.
+         * /param optimal_width_outer         Inner wall width, guaranteed to be the actual (save rounding errors) at a
+         *                                    bead count if the parent strategies' optimum bead width is a weighted
+         *                                    average of the outer and inner walls at that bead count.
+         * /param minimum_variable_line_width Minimum factor that the variable line might deviate from the optimal width.
+         * /param outer_wall_lock             Lock the outer wall in place and size.
          */
-        RedistributeBeadingStrategy(const coord_t optimal_width_outer, const coord_t optimal_width_inner, const Ratio outer_wall_lock_factor, BeadingStrategy* parent) :
-            BeadingStrategy(parent->optimal_width, parent->default_transition_length, parent->transitioning_angle),
-            parent(parent),
-            optimal_width_outer(optimal_width_outer),
-            optimal_width_inner(optimal_width_inner),
-            outer_wall_lock_factor(outer_wall_lock_factor),
-            outer_wall_lock_inverse(1.0_r - outer_wall_lock_factor)
+        RedistributeBeadingStrategy
+        (
+        const coord_t optimal_width_outer,
+        const coord_t optimal_width_inner,
+        const double minimum_variable_line_width,
+        const bool outer_wall_lock,
+        BeadingStrategy* parent
+        ) :
+        BeadingStrategy(parent->optimal_width, parent->default_transition_length, parent->transitioning_angle),
+        parent(parent),
+        optimal_width_outer(optimal_width_outer),
+        optimal_width_inner(optimal_width_inner),
+        outer_wall_lock(outer_wall_lock),
+        minimum_variable_line_width(minimum_variable_line_width)
         {
             name = "RedistributeBeadingStrategy";
         }
@@ -58,12 +67,15 @@ namespace cura
         virtual std::string toString() const { return std::string("RedistributeBeadingStrategy+") + parent->toString(); }
 
     private:
+        static coord_t getOptimalOuterBeadWidth(coord_t thickness, coord_t optimal_width_outer, coord_t inner_transition_width);
+        static void resetToolPathLocations(Beading& beading, coord_t thickness);
+        static bool validateInnerBeadWidths(Beading& beading, coord_t minimum_width_inner);
+
         BeadingStrategy* parent;
         coord_t optimal_width_outer;
         coord_t optimal_width_inner;
-
-        Ratio outer_wall_lock_factor;
-        Ratio outer_wall_lock_inverse;
+        double minimum_variable_line_width;
+        bool outer_wall_lock;
     };
 
 } // namespace cura
