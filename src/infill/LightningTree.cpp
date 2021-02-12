@@ -169,6 +169,8 @@ bool LightningTreeNode::realign(const Polygons& outlines, std::vector<std::share
         constexpr bool argument_with_disconnect = false;
         if (child->realign(outlines, rerooted_parts, argument_with_disconnect))
         {
+            child->parent.reset();
+            child->is_root = true;
             rerooted_parts.push_back(child);
         }
     }
