@@ -268,11 +268,11 @@ GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsuppor
 
     if (!sub_tree)
     {
-        return GroundingLocation{ nullptr, cpp };
+        return GroundingLocation{ nullptr, cpp, current_dist };
     }
     else
     {
-        return GroundingLocation{ sub_tree, std::optional<ClosestPolygonPoint>() };
+        return GroundingLocation{ sub_tree, std::optional<ClosestPolygonPoint>(), current_dist };
     }
 }
 
@@ -293,17 +293,54 @@ bool LightningLayer::attach(const Point& unsupported_location, const GroundingLo
     }
 }
 
-void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius)
+void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius, const coord_t prune_length)
 {
     constexpr coord_t locator_cell_size = 2000;
     SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator);
-
+    
+    for (auto tree : tree_roots) assert(tree->isRoot());
     for (auto root_ptr : to_be_reconnected_tree_roots)
     {
+        for (auto tree : tree_roots) assert(tree->isRoot());
+        root_ptr->sanityCheck();
         auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
         coord_t tree_connecting_ignore_width = wall_supporting_radius - 100; // TODO: make boundary size in which we ignore the valence rule configurable
         GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, supporting_radius, tree_connecting_ignore_width, tree_node_locator, root_ptr);
+        
+        root_ptr->sanityCheck();
+        if (true)
+        {
+        std::shared_ptr<LightningTreeNode> new_root;
+        if (ground.boundary_location && ground.weighted_distance >= prune_length)
+        {
+            ground.weighted_distance += wall_supporting_radius + 2 * prune_length;
+        }
+        root_ptr->visitNodes(
+            [this, &ground, &new_root, &current_outlines, supporting_radius, tree_connecting_ignore_width, &tree_node_locator, &root_ptr]
+            (std::shared_ptr<LightningTreeNode> node)
+            {
+                if (node->isLeaf())
+                {
+                    GroundingLocation ground_here = getBestGroundingLocation(node->getLocation(), current_outlines, supporting_radius, tree_connecting_ignore_width, tree_node_locator, root_ptr);
+                    if (ground_here.weighted_distance < ground.weighted_distance)
+                    {
+                        new_root = node;
+                        ground = ground_here;
+                    }
+                }
+            }
+        );
+        if (new_root && new_root != root_ptr && ground.weighted_distance < MM2INT(2.0))
+        {
+            root_ptr->sanityCheck();
+            root_ptr->reRoot(new_root);
+            root_ptr = new_root;
+            *old_root_it = std::move(new_root); 
+            root_ptr->sanityCheck();
+        }
+        }
+        
         if (ground.boundary_location)
         {
             if (ground.boundary_location.value().p() == root_ptr->getLocation())
@@ -316,6 +353,8 @@ void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNod
             tree_node_locator.insert(new_root->getLocation(), new_root);
 
             *old_root_it = std::move(new_root); // replace old root with new root
+            (*old_root_it)->sanityCheck();
+            for (auto tree : tree_roots) assert(tree->isRoot());
         }
         else
         {
@@ -329,8 +368,12 @@ void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNod
             // remove old root
             *old_root_it = std::move(tree_roots.back());
             tree_roots.pop_back();
+            (*old_root_it)->sanityCheck();
+            for (auto tree : tree_roots) assert(tree->isRoot());
         }
+        for (auto tree : tree_roots) assert(tree->isRoot());
     }
+    for (auto tree : tree_roots) assert(tree->isRoot());
 }
 
 // Returns 'added someting'.

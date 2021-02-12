@@ -89,6 +89,7 @@ struct GroundingLocation
 {
     std::shared_ptr<LightningTreeNode> tree_node; //!< not null if the gounding location is on a tree
     std::optional<ClosestPolygonPoint> boundary_location; //!< in case the gounding location is on the boundary
+    coord_t weighted_distance;
     Point p() const;
 };
 
@@ -117,7 +118,7 @@ public:
      */
     bool attach(const Point& unsupported_loc, const GroundingLocation& ground, std::shared_ptr<LightningTreeNode>& new_child, std::shared_ptr<LightningTreeNode>& new_root);
 
-    void reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius);
+    void reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius, const coord_t prune_length);
 
     Polygons convertToLines(const coord_t line_width) const;
 

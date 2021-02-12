@@ -70,16 +70,74 @@ void LightningTreeNode::propagateToNextLayer
     const coord_t& smooth_magnitude
 ) const
 {
+//     sanityCheck();
     auto tree_below = deepCopy();
 
     // TODO: What is the correct order of the following operations?
     //       (NOTE: in case realign turns out _not_ to be last, would need to rewrite a few things, see the 'rerooted_parts' parameter of that function).
+//     tree_below->sanityCheck();
+//     for (auto tree : next_trees) tree->sanityCheck();
     tree_below->prune(prune_distance);
+//     tree_below->sanityCheck();
+//     for (auto tree : next_trees) tree->sanityCheck();
     tree_below->straighten(smooth_magnitude);
+//     tree_below->sanityCheck();
+//     for (auto tree : next_trees) tree->sanityCheck();
     if (tree_below->realign(next_outlines, next_trees))
     {
         next_trees.push_back(tree_below);
+//         tree_below->sanityCheck();
+//         for (auto tree : next_trees) tree->sanityCheck();
     }
+//     tree_below->sanityCheck();
+//     for (auto tree : next_trees) tree->sanityCheck();
+}
+
+
+bool LightningTreeNode::reRoot(const std::shared_ptr<LightningTreeNode>& new_root)
+{
+    for (auto& child : children) assert(child);
+    if (new_root == shared_from_this())
+    {
+        std::shared_ptr<LightningTreeNode> parent_node = parent.lock();
+        children.emplace_back(parent_node);
+//         parent_node->parent = new_root;
+        parent.reset();
+        is_root = true;
+        for (auto& child : children) assert(child);
+        return true;
+    }
+    bool is_on_path_to_root = false;
+    for (size_t child_idx = 0; child_idx < children.size(); child_idx++)
+    {
+        for (auto& child : children) assert(child);
+        std::shared_ptr<LightningTreeNode>& child = children[child_idx];
+        bool child_is_path_to_root = child->reRoot(new_root);
+        if (child_is_path_to_root)
+        { // remove child and make it the parent
+            assert( ! is_on_path_to_root);
+            is_on_path_to_root = true;
+            std::shared_ptr<LightningTreeNode> new_parent = child;
+            if (isRoot())
+            { // remove child by replacing it with the last in the vector
+                child = children.back();
+                children.pop_back();
+                for (auto& child : children) assert(child);
+            }
+            else
+            { // remove child and replace by parent
+                std::shared_ptr<LightningTreeNode> parent_node = parent.lock();
+                child = parent_node;
+                for (auto& child : children) assert(child);
+            }
+            parent = new_parent;
+            for (auto& child : children) assert(child);
+            break;
+        }
+    }
+    is_root = false;
+    for (auto& child : children) assert(child);
+    return is_on_path_to_root;
 }
 
 // NOTE: Depth-first, as currently implemented.
@@ -134,6 +192,7 @@ std::shared_ptr<LightningTreeNode> LightningTreeNode::deepCopy() const
         std::shared_ptr<LightningTreeNode> child = node->deepCopy();
         child->parent = local_root;
         local_root->children.push_back(child);
+        child->sanityCheck();
     }
     return local_root;
 }
@@ -155,18 +214,22 @@ bool LightningTreeNode::realign(const Polygons& outlines, std::vector<std::share
         (
             [&outlines, &rerooted_parts](const std::shared_ptr<LightningTreeNode>& child)
             {
-                constexpr bool argument_with_connected = true;
+                constexpr bool argument_with_connected = false;
                 return !child->realign(outlines, rerooted_parts, argument_with_connected);
             }
         );
         children.erase(std::remove_if(children.begin(), children.end(), remove_unconnected_func), children.end());
+        if ( ! isRoot() && connected_to_parent)
+        {
+            parent.lock()->p = PolygonUtils::findClosest(parent.lock()->p, outlines).p(); // TODO: proper line-poly intersection
+        }
         return true;
     }
 
     // 'Lift' any decendants out of this tree:
     for (auto& child : children)
     {
-        constexpr bool argument_with_disconnect = false;
+        constexpr bool argument_with_disconnect = true;
         if (child->realign(outlines, rerooted_parts, argument_with_disconnect))
         {
             child->parent.reset();
@@ -175,13 +238,6 @@ bool LightningTreeNode::realign(const Polygons& outlines, std::vector<std::share
         }
     }
     children.clear();
-
-    if (connected_to_parent)
-    {
-        // This will now be a (new_ leaf:
-        p = PolygonUtils::findClosest(p, outlines).p();
-        return true;
-    }
 
     return false;
 }
@@ -381,4 +437,25 @@ void LightningTreeNode::removeJunctionOverlap(Polygons& result_lines, const coor
             ++poly_it;
         }
     }
+}
+
+
+void LightningTreeNode::sanityCheck() const
+{
+    const_cast<LightningTreeNode*>(this)->visitNodes([](std::shared_ptr<LightningTreeNode> node)
+    {
+        assert(node);
+        std::shared_ptr<LightningTreeNode> par;
+        if ( ! node->isRoot())
+        {
+            par = node->parent.lock();
+        }
+        assert(node->isRoot() != bool(node->parent.lock()));
+        for (auto& child : node->children)
+        {
+            assert(child);
+//             assert(child->parent.lock() == node);
+        }
+    }
+    );
 }

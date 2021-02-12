@@ -125,10 +125,14 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
 
         // register all trees propagated from the previous layer as to-be-reconnected
         std::vector<std::shared_ptr<LightningTreeNode>> to_be_reconnected_tree_roots = current_lightning_layer.tree_roots;
-
+        
+        for (auto tree : current_lightning_layer.tree_roots) tree->sanityCheck();
+        for (auto tree : current_lightning_layer.tree_roots) assert(tree->isRoot());
         current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius);
-
-        current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, supporting_radius, wall_supporting_radius);
+        
+        for (auto tree : current_lightning_layer.tree_roots) tree->sanityCheck();
+        for (auto tree : current_lightning_layer.tree_roots) assert(tree->isRoot());
+        current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, supporting_radius, wall_supporting_radius, prune_length);
 
         // Initialize trees for next lower layer from the current one.
         if (layer_id == 0)
@@ -136,11 +140,16 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
             return;
         }
         const Polygons& below_outlines = infill_outlines[layer_id - 1];
-
+        
+        for (auto tree : current_lightning_layer.tree_roots) tree->sanityCheck();
+        for (auto tree : current_lightning_layer.tree_roots) assert(tree->isRoot());
         std::vector<std::shared_ptr<LightningTreeNode>>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
         for (auto& tree : current_lightning_layer.tree_roots)
         {
+            assert(tree->isRoot());
             tree->propagateToNextLayer(lower_trees, below_outlines, prune_length, straightening_max_distance);
         }
+        for (auto tree : lower_trees) tree->sanityCheck();
+        for (auto tree : current_lightning_layer.tree_roots) assert(tree->isRoot());
     }
 }

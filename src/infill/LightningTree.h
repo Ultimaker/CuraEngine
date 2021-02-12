@@ -54,6 +54,12 @@ public:
         const coord_t& smooth_magnitude
     ) const;
 
+    /*!
+     * \param new_root should be one of the leaf nodes of the tree
+     * \return whether this sub tree contains the new root
+     */
+    bool reRoot(const std::shared_ptr<LightningTreeNode>& new_root);
+
     /*! NOTE: Depth-first, as currently implemented.
      *        Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
      * \param visitor Input: Uptree junction point (closer to root), downtree branch point (closer to leaves).
@@ -68,7 +74,11 @@ public:
 
     bool isRoot() const { return is_root; }
 
+    bool isLeaf() const { return children.empty(); }
+
     bool hasOffspring(const std::shared_ptr<LightningTreeNode>& to_be_checked) const;
+
+    void sanityCheck() const;
 protected:
     LightningTreeNode() = delete; // Don't allow empty contruction
 
@@ -135,7 +145,7 @@ protected:
 
     void removeJunctionOverlap(Polygons& polylines, const coord_t line_width) const;
 
-    bool is_root;
+    bool is_root; // TODO: remove. We can use bool(parent) instead
     Point p;
     std::weak_ptr<LightningTreeNode> parent;
     std::vector<std::shared_ptr<LightningTreeNode>> children;
