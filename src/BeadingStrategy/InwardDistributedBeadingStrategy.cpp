@@ -4,6 +4,7 @@
 #include <numeric>
 
 #include "InwardDistributedBeadingStrategy.h"
+#include "CenterDeviationBeadingStrategy.h"
 
 namespace cura
 {
@@ -13,7 +14,7 @@ namespace cura
         Beading ret;
 
         ret.total_thickness = thickness;
-        if (bead_count > 0)
+        if (bead_count > 2)
         {
             const coord_t to_be_divided = thickness - bead_count * optimal_width;
             const float middle = static_cast<float>(bead_count - 1) / 2;
@@ -49,6 +50,22 @@ namespace cura
             }
             ret.left_over = 0;
         }
+        else if (bead_count == 2)
+        {
+            const coord_t outer_width = thickness / 2;
+            ret.bead_widths.emplace_back(outer_width);
+            ret.bead_widths.emplace_back(outer_width);
+            ret.toolpath_locations.emplace_back(outer_width / 2);
+            ret.toolpath_locations.emplace_back(thickness - outer_width / 2);
+            ret.left_over = 0;
+        }
+        else if (bead_count == 1)
+        {
+            const coord_t outer_width = thickness;
+            ret.bead_widths.emplace_back(outer_width);
+            ret.toolpath_locations.emplace_back(outer_width / 2);
+            ret.left_over = 0;
+        }
         else
         {
             ret.left_over = thickness;
@@ -56,5 +73,4 @@ namespace cura
 
         return ret;
     }
-
 } // namespace cura

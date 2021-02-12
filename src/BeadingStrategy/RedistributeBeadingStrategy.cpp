@@ -70,6 +70,18 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness,
         return ret;
     }
     Beading ret = parent->compute(thickness, bead_count);
+
+    // Filter out beads that violate the minimum inner wall widths and recompute if necessary
+    const coord_t outer_transition_width = optimal_width_inner * minimum_variable_line_width;
+    const bool removed_inner_beads = validateInnerBeadWidths(ret, outer_transition_width);
+    if (removed_inner_beads)
+    {
+        ret = compute(thickness, bead_count - 1);
+    }
+
+    // Ensure that the positions of the beads are distributed over the thickness
+    resetToolPathLocations(ret, thickness);
+
     return ret;
 }
 
@@ -95,6 +107,14 @@ void RedistributeBeadingStrategy::resetToolPathLocations(BeadingStrategy::Beadin
 {
     const size_t bead_count = beading.bead_widths.size();
     beading.toolpath_locations.resize(bead_count);
+
+    if (bead_count < 1)
+    {
+        beading.toolpath_locations.resize(0);
+        beading.total_thickness = thickness;
+        beading.left_over = thickness;
+        return;
+    }
 
     // Update the first half of the toolpath-locations with the updated bead-widths (starting from 0, up to half):
     coord_t last_coord = 0;
