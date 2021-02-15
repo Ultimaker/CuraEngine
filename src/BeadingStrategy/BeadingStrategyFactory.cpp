@@ -68,7 +68,6 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     const Ratio wall_transition_threshold,
     const coord_t max_bead_count,
     const coord_t outer_wall_offset,
-    const bool outer_wall_lock,
     const double minimum_variable_line_width
 )
 {
@@ -92,7 +91,7 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     if (max_bead_count > 0)
     {
         logDebug("Applying the Redistribute meta-strategy with outer-wall width = %d, inner-wall width = %d", preferred_bead_width_outer, preferred_bead_width_inner);
-        ret = new RedistributeBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, minimum_variable_line_width, outer_wall_lock, ret);
+        ret = new RedistributeBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, minimum_variable_line_width, ret);
         //Apply the LimitedBeadingStrategy last, since that adds a 0-width marker wall which other beading strategies shouldn't touch.
         logDebug("Applying the Limited Beading meta-strategy with maximum bead count = %d.", max_bead_count);
         ret = new LimitedBeadingStrategy(max_bead_count, ret);

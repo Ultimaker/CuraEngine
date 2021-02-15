@@ -45,7 +45,6 @@ public:
         Ratio wall_transition_thresold = 0.5_r,
         coord_t max_bead_count = 0,
         coord_t outer_wall_offset = 0,
-        bool outer_wall_lock = true,
         double minimum_variable_line_width = 0.5
     );
 };

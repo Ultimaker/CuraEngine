@@ -34,21 +34,18 @@ namespace cura
          *                                    bead count if the parent strategies' optimum bead width is a weighted
          *                                    average of the outer and inner walls at that bead count.
          * /param minimum_variable_line_width Minimum factor that the variable line might deviate from the optimal width.
-         * /param outer_wall_lock             Lock the outer wall in place and size.
          */
         RedistributeBeadingStrategy
         (
         const coord_t optimal_width_outer,
         const coord_t optimal_width_inner,
         const double minimum_variable_line_width,
-        const bool outer_wall_lock,
         BeadingStrategy* parent
         ) :
         BeadingStrategy(parent->optimal_width, parent->default_transition_length, parent->transitioning_angle),
         parent(parent),
         optimal_width_outer(optimal_width_outer),
         optimal_width_inner(optimal_width_inner),
-        outer_wall_lock(outer_wall_lock),
         minimum_variable_line_width(minimum_variable_line_width)
         {
             name = "RedistributeBeadingStrategy";
@@ -75,7 +72,6 @@ namespace cura
         coord_t optimal_width_outer;
         coord_t optimal_width_inner;
         double minimum_variable_line_width;
-        bool outer_wall_lock;
     };
 
 } // namespace cura

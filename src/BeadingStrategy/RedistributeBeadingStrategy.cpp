@@ -5,71 +5,34 @@
 
 #include <algorithm>
 #include <numeric>
-#include <cassert>
 
 namespace cura
 {
 BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
+    Beading ret;
     if (bead_count > 2)
     {
         const coord_t inner_transition_width = optimal_width_inner * minimum_variable_line_width;
         const coord_t outer_bead_width =
             getOptimalOuterBeadWidth(thickness, optimal_width_outer, inner_transition_width);
 
-        coord_t virtual_thickness = thickness;
-        coord_t virtual_bead_count = bead_count;
-
-        if (outer_wall_lock)
-        {
-            // Outer wall is locked in size en position for wall regions of 3 and higher which have at least a
-            // thickness equal to two times the optimal outer width and the minimal inner wall width.
-            virtual_thickness -= outer_bead_width * 2;
-            virtual_bead_count -= 2;
-        }
+        // Outer wall is locked in size en position for wall regions of 3 and higher which have at least a
+        // thickness equal to two times the optimal outer width and the minimal inner wall width.
+        const coord_t virtual_thickness = thickness - outer_bead_width * 2;
+        const coord_t virtual_bead_count = bead_count - 2;
 
         // Calculate the beads and widths of the inner walls only
-        Beading ret = parent->compute(virtual_thickness, virtual_bead_count);
+        ret = parent->compute(virtual_thickness, virtual_bead_count);
 
-        if (outer_wall_lock)
-        {
-            // Insert the outer beads
-            ret.bead_widths.insert(ret.bead_widths.begin(), outer_bead_width);
-            ret.bead_widths.emplace_back(outer_bead_width);
-        }
-        else
-        {
-            const double current_total_outer_bead_width = static_cast<double>(ret.bead_widths.front() + ret.bead_widths.back());
-            const double optimal_total_outer_bead_width = static_cast<double>(outer_bead_width * 2);
-            const Ratio outer_bead_ratio = optimal_total_outer_bead_width / current_total_outer_bead_width;
-            ret.bead_widths.front() = ret.bead_widths.front() * outer_bead_ratio;
-            ret.bead_widths.back() = ret.bead_widths.back() * outer_bead_ratio;
-
-            const double current_total_inner_bead_width = static_cast<double>(thickness - current_total_outer_bead_width);
-            const double optimal_total_inner_bead_width = static_cast<double>(optimal_width_inner * (bead_count - 2));
-            const Ratio inner_bead_ratio = optimal_total_inner_bead_width / current_total_inner_bead_width;
-            auto inner_begin = std::next(ret.bead_widths.begin());
-            auto inner_end = std::prev(ret.bead_widths.end());
-            std::transform(inner_begin, inner_end, inner_begin,
-                [&inner_bead_ratio](const coord_t width)
-                           {
-                               return width * inner_bead_ratio;
-                           });
-        }
-
-        // Filter out beads that violate the minimum inner wall widths and recompute if necessary
-        const bool removed_inner_beads = validateInnerBeadWidths(ret, inner_transition_width);
-        if (removed_inner_beads)
-        {
-            ret = compute(thickness, bead_count - 1);
-        }
-
-        // Ensure that the positions of the beads are distributed over the thickness
-        resetToolPathLocations(ret, thickness);
-
-        return ret;
+        // Insert the outer beads
+        ret.bead_widths.insert(ret.bead_widths.begin(), outer_bead_width);
+        ret.bead_widths.emplace_back(outer_bead_width);
     }
-    Beading ret = parent->compute(thickness, bead_count);
+    else
+    {
+        ret = parent->compute(thickness, bead_count);
+    }
 
     // Filter out beads that violate the minimum inner wall widths and recompute if necessary
     const coord_t outer_transition_width = optimal_width_inner * minimum_variable_line_width;
@@ -150,7 +113,7 @@ void RedistributeBeadingStrategy::resetToolPathLocations(BeadingStrategy::Beadin
 bool RedistributeBeadingStrategy::validateInnerBeadWidths(BeadingStrategy::Beading& beading, const coord_t minimum_width_inner)
 {
     // Filter out bead_widths that violate the transition width and recalculate if needed
-    const size_t unfilltered_beads = beading.bead_widths.size();
+    const size_t unfiltered_beads = beading.bead_widths.size();
     auto inner_begin = std::next(beading.bead_widths.begin());
     auto inner_end = std::prev(beading.bead_widths.end());
     beading.bead_widths.erase(
@@ -160,7 +123,7 @@ bool RedistributeBeadingStrategy::validateInnerBeadWidths(BeadingStrategy::Beadi
                            return width < minimum_width_inner;
                        }),
         inner_end);
-    return unfilltered_beads != beading.bead_widths.size();
+    return unfiltered_beads != beading.bead_widths.size();
 }
 
 } // namespace cura
