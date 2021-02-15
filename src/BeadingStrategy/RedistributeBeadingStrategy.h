@@ -80,10 +80,10 @@ namespace cura
          *
          * \param thickness Thickness of the total beads.
          * \param optimal_width_outer User specified optimal outer bead width.
-         * \param inner_transition_width Inner bead width times the minimum variable line width.
+         * \param minimum_width_inner Inner bead width times the minimum variable line width.
          * \return The outer bead width.
          */
-        static coord_t getOptimalOuterBeadWidth(coord_t thickness, coord_t optimal_width_outer, coord_t inner_transition_width);
+        static coord_t getOptimalOuterBeadWidth(coord_t thickness, coord_t optimal_width_outer, coord_t minimum_width_inner);
 
         /*!
          * Moves the beads towards the outer edges of thickness and ensures that the outer walls are locked in location

@@ -48,15 +48,15 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness,
     return ret;
 }
 
-coord_t RedistributeBeadingStrategy::getOptimalOuterBeadWidth(const coord_t thickness, const coord_t optimal_width_outer, const coord_t inner_transition_width)
+coord_t RedistributeBeadingStrategy::getOptimalOuterBeadWidth(const coord_t thickness, const coord_t optimal_width_outer, const coord_t minimum_width_inner)
 {
     const coord_t total_outer_optimal_width = optimal_width_outer * 2;
     coord_t outer_bead_width = thickness / 2;
     if (total_outer_optimal_width < thickness)
     {
-        if (total_outer_optimal_width + inner_transition_width > thickness)
+        if (total_outer_optimal_width + minimum_width_inner > thickness)
         {
-            outer_bead_width -= inner_transition_width / 2;
+            outer_bead_width -= minimum_width_inner / 2;
         }
         else
         {
