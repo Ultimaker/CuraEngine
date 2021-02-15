@@ -293,7 +293,11 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell, Point&
         }
         else
         {
-            assert((VoronoiUtils::p(vd_edge->vertex0()) == source_point || !vd_edge->is_secondary()) && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
+            if(vSize2(VoronoiUtils::p(vd_edge->vertex0()) - source_point) > 1 && vd_edge->is_secondary())
+            {
+                std::cout << "Starting point too far! " << VoronoiUtils::p(vd_edge->vertex0()) << " -> " << source_point << std::endl;
+            }
+            assert((vSize2(VoronoiUtils::p(vd_edge->vertex0()) - source_point) <= 1 || !vd_edge->is_secondary()) && "point cells must end in the point! They cannot cross the point with an edge, because collinear edges are not allowed in the input.");
         }
     }
     while (vd_edge = vd_edge->next(), vd_edge != cell.incident_edge());
@@ -302,7 +306,7 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell, Point&
     return true;
 }
 
-void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
+bool SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     const Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
     Point from = source_segment.from();
@@ -340,11 +344,16 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
         }
     } while (edge = edge->next(), edge != cell.incident_edge());
     
+    if(!starting_vd_edge || !ending_vd_edge)
+    {
+        return false;
+    }
     assert(starting_vd_edge && ending_vd_edge);
     assert(starting_vd_edge != ending_vd_edge);
     
     start_source_point = source_segment.to();
     end_source_point = source_segment.from();
+    return true;
 }
 
 SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys, const BeadingStrategy& beading_strategy,
@@ -401,7 +410,11 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         }
         else
         {
-            computeSegmentCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
+            const bool keep_going = computeSegmentCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
+            if(!keep_going)
+            {
+                continue;
+            }
         }
         
         if (!starting_vonoroi_edge || !ending_vonoroi_edge)
