@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stack>
@@ -13,7 +13,7 @@ namespace cura
 
 Point VoronoiUtils::p(const vd_t::vertex_type* node)
 {
-    return Point(node->x() + 0, node->y() + 0); // gets rid of negative zero
+    return Point(node->x() + 0.5d, node->y() + 0.5d); //Round to nearest integer coordinates.
 }
 
 bool VoronoiUtils::isSourcePoint(Point p, const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments, coord_t snap_dist)
