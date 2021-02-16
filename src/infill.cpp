@@ -120,6 +120,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         // Now do the actual inset, to make place for the extra 'zig-zagify' lines:
         inner_contour = inner_contour.difference(gap_filled_areas).offset(-infill_line_width / 2);
     }
+    inner_contour.simplify(max_resolution, max_deviation);
 
     if (infill_multiplier > 1)
     {

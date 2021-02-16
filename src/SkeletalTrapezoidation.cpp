@@ -1927,7 +1927,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             if (edge_to_peak->prev)
             {
                 LineJunctions from_prev_junctions = *edge_to_peak->prev->data.getExtrusionJunctions();
-                if (!from_junctions.empty() && !from_prev_junctions.empty() && from_junctions.back().perimeter_index == from_prev_junctions.front().perimeter_index)
+                while (!from_junctions.empty() && !from_prev_junctions.empty() && from_junctions.back().perimeter_index <= from_prev_junctions.front().perimeter_index)
                 {
                     from_junctions.pop_back();
                 }
@@ -1942,7 +1942,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             if (edge_from_peak->next)
             {
                 LineJunctions to_next_junctions = *edge_from_peak->next->twin->data.getExtrusionJunctions();
-                if (!to_junctions.empty() && !to_next_junctions.empty() && to_junctions.back().perimeter_index == to_next_junctions.front().perimeter_index)
+                while (!to_junctions.empty() && !to_next_junctions.empty() && to_junctions.back().perimeter_index <= to_next_junctions.front().perimeter_index)
                 {
                     to_junctions.pop_back();
                 }
