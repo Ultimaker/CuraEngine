@@ -470,8 +470,8 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = (L / b)^2     [square it]
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
-        if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
-            && LinearAlg2D::getDistFromLine(current, previous, next) <= 1)) // make sure that height_2 is not small because of cancellation of positive and negative areas
+        if ((height_2 <= 5 * 5 //Almost exactly colinear (barring rounding errors).
+            && LinearAlg2D::getDistFromLine(current, previous, next) <= 5)) // make sure that height_2 is not small because of cancellation of positive and negative areas
         {
             continue;
         }
