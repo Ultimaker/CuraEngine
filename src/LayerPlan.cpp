@@ -994,7 +994,7 @@ void LayerPlan::addWalls(const PathJunctions& walls, const SliceMeshStorage& mes
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, double fan_speed)
 {
     Polygons boundary;
-    if (enable_travel_optimization && !comb_boundary_preferred.empty())
+    if (enable_travel_optimization && !comb_boundary_minimum.empty())
     {
         // use the combing boundary inflated so that all infill lines are inside the boundary
         int dist = 0;
@@ -1011,7 +1011,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
             }
             dist += 100; // ensure boundary is slightly outside all skin/infill lines
         }
-        boundary.add(comb_boundary_preferred.offset(dist));
+        boundary.add(comb_boundary_minimum.offset(dist));
         // simplify boundary to cut down processing time
         boundary.simplify(MM2INT(0.1), MM2INT(0.1));
     }
