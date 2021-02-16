@@ -62,7 +62,6 @@ public:
         settings.add("wall_transition_length", "1");
         settings.add("wall_transition_threshold", "50");
         settings.add("wall_x_extruder_nr", "0");
-        settings.add("wall_0_lock_factor", "0.5");
     }
 
 };

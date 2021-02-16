@@ -4,7 +4,6 @@
 #include <numeric>
 
 #include "InwardDistributedBeadingStrategy.h"
-#include "CenterDeviationBeadingStrategy.h"
 
 namespace cura
 {

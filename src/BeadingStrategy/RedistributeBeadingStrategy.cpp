@@ -17,7 +17,7 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness,
         const coord_t outer_bead_width =
             getOptimalOuterBeadWidth(thickness, optimal_width_outer, inner_transition_width);
 
-        // Outer wall is locked in size en position for wall regions of 3 and higher which have at least a
+        // Outer wall is locked in size and position for wall regions of 3 and higher which have at least a
         // thickness equal to two times the optimal outer width and the minimal inner wall width.
         const coord_t virtual_thickness = thickness - outer_bead_width * 2;
         const coord_t virtual_bead_count = bead_count - 2;
