@@ -1411,21 +1411,6 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
     }
 
     const coord_t half_epsilon = (epsilon + 1) / 2;
-    const Ratio ratio(1, epsilon);
-    const Ratio ratio_inv(epsilon, 1);
-
-    // Shrink (making _near_ self-intersections into _actual_ self-intersecrtions), fix, grow back to original size.
-    // Do this repeatedly with different offsets, so points that are close together do actually merge.
-    const std::array<Point, 4> translate_vecs = { Point(0, 0), Point(half_epsilon, 0), Point(0, half_epsilon), Point(half_epsilon, half_epsilon) };
-    for (const Point& translate_vec : translate_vecs)
-    {
-        thiss.translate(translate_vec);
-
-        thiss.scale(ratio);
-        ClipperLib::SimplifyPolygons(thiss.paths);
-        thiss.scale(ratio_inv);
-        thiss.translate(-translate_vec);
-    }
 
     // Points too close to line segments should be moved a little away from those line segments, but less than epsilon,
     //   so at least half-epsilon distance between points can still be guaranteed.
