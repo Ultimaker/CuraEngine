@@ -63,7 +63,7 @@ const VariableWidthPaths& WallToolPaths::generate()
     prepared_outline.simplify(smallest_segment, allowed_distance);
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
-    prepared_outline.removeColinearEdges();
+    prepared_outline.removeColinearEdges(AngleRadians(0.005));
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
 
     if (prepared_outline.area() > 0)
