@@ -146,6 +146,17 @@ public:
 
     void writePolyline(ConstPolygonRef poly, const Color color = Color::BLACK, const float stroke_width = 1) const;
 
+    /*!
+     * Draws a grid across the image and writes down coordinates.
+     *
+     * Coordinates are always written in millimeters.
+     * \param grid_size Size of the grid cells.
+     * \param color The colour to draw the grid with.
+     * \param stroke_width The width of the grid lines.
+     * \param font_size The size of the font to write the coordinates with.
+     */
+    void writeCoordinateGrid(const coord_t grid_size = MM2INT(1), const Color color = Color::BLACK, const float stroke_width = 0.1, const float font_size = 10) const;
+
 };
 
 template<typename... Args>
