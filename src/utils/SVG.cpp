@@ -13,7 +13,7 @@ namespace cura {
 
 
 
-std::string SVG::toString(Color color)
+std::string SVG::toString(Color color) const
 {
     switch (color)
     {
@@ -31,7 +31,7 @@ std::string SVG::toString(Color color)
     }
 }
 
-std::string SVG::toString(ColorObject& color)
+std::string SVG::toString(const ColorObject& color) const
 {
     if (color.is_enum) return toString(color.color);
     else
@@ -118,22 +118,22 @@ void SVG::nextLayer()
     fprintf(out,"    id=\"layer%zu\">\n", layer_nr );
 }
 
-Point SVG::transform(const Point& p) 
+Point SVG::transform(const Point& p) const
 {
     return Point((p.X - aabb.min.X) * scale, (p.Y - aabb.min.Y) * scale);
 }
 
-FPoint3 SVG::transformF(const Point& p) 
+FPoint3 SVG::transformF(const Point& p) const
 {
     return FPoint3((p.X - aabb.min.X) * scale, (p.Y-aabb.min.Y) * scale, 0.0);
 }
 
-void SVG::writeComment(std::string comment)
+void SVG::writeComment(const std::string& comment) const
 {
     fprintf(out, "<!-- %s -->\n", comment.c_str());
 }
 
-void SVG::writeAreas(const Polygons& polygons, ColorObject color, ColorObject outline_color, float stroke_width) 
+void SVG::writeAreas(const Polygons& polygons, const ColorObject color, const ColorObject outline_color, const float stroke_width) const
 {
     auto parts = polygons.splitIntoParts();
     for (auto part_it = parts.rbegin(); part_it != parts.rend(); ++part_it)
@@ -155,7 +155,7 @@ void SVG::writeAreas(const Polygons& polygons, ColorObject color, ColorObject ou
     }
 }
 
-void SVG::writeAreas(ConstPolygonRef polygon, ColorObject color, ColorObject outline_color, float stroke_width)
+void SVG::writeAreas(ConstPolygonRef polygon, const ColorObject color, const ColorObject outline_color, const float stroke_width) const
 {
     fprintf(out,"<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"%f\" points=\"",toString(color).c_str(),toString(outline_color).c_str(), stroke_width); //The beginning of the polygon tag.
     for (const Point& point : polygon) //Add every point to the list of points.
@@ -166,7 +166,7 @@ void SVG::writeAreas(ConstPolygonRef polygon, ColorObject color, ColorObject out
     fprintf(out,"\" />\n"); //The end of the polygon tag.
 }
 
-void SVG::writePoint(const Point& p, bool write_coords, int size, ColorObject color)
+void SVG::writePoint(const Point& p, const bool write_coords, const int size, const ColorObject color) const
 {
     FPoint3 pf = transformF(p);
     fprintf(out, "<circle cx=\"%f\" cy=\"%f\" r=\"%d\" stroke=\"%s\" stroke-width=\"1\" fill=\"%s\" />\n",pf.x, pf.y, size, toString(color).c_str(), toString(color).c_str());
@@ -177,7 +177,7 @@ void SVG::writePoint(const Point& p, bool write_coords, int size, ColorObject co
     }
 }
 
-void SVG::writePoints(ConstPolygonRef poly, bool write_coords, int size, ColorObject color)
+void SVG::writePoints(ConstPolygonRef poly, const bool write_coords, const int size, const ColorObject color) const
 {
     for (const Point& p : poly)
     {
@@ -185,15 +185,15 @@ void SVG::writePoints(ConstPolygonRef poly, bool write_coords, int size, ColorOb
     }
 }
 
-void SVG::writePoints(Polygons& polygons, bool write_coords, int size, ColorObject color)
+void SVG::writePoints(const Polygons& polygons, const bool write_coords, const int size, const ColorObject color) const
 {
-    for (PolygonRef poly : polygons)
+    for(const ConstPolygonRef& poly : polygons)
     {
         writePoints(poly, write_coords, size, color);
     }
 }
 
-void SVG::writeLines(std::vector<Point> polyline, ColorObject color)
+void SVG::writeLines(const std::vector<Point>& polyline, const ColorObject color) const
 {
     if(polyline.size() <= 1) //Need at least 2 points.
     {
@@ -201,7 +201,7 @@ void SVG::writeLines(std::vector<Point> polyline, ColorObject color)
     }
     
     FPoint3 transformed = transformF(polyline[0]); //Element 0 must exist due to the check above.
-    fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%f,%f",toString(color).c_str(), transformed.x, transformed.y); //Write the start of the path tag and the first endpoint.
+    fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%f,%f", toString(color).c_str(), transformed.x, transformed.y); //Write the start of the path tag and the first endpoint.
     for(size_t point = 1;point < polyline.size();point++)
     {
         transformed = transformF(polyline[point]);
@@ -210,14 +210,14 @@ void SVG::writeLines(std::vector<Point> polyline, ColorObject color)
     fprintf(out,"\" />\n"); //Write the end of the tag.
 }
 
-void SVG::writeLine(const Point& a, const Point& b, ColorObject color, float stroke_width)
+void SVG::writeLine(const Point& a, const Point& b, const ColorObject color, const float stroke_width) const
 {
     FPoint3 fa = transformF(a);
     FPoint3 fb = transformF(b);
     fprintf(out, "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" style=\"stroke:%s;stroke-width:%f\" />\n", fa.x, fa.y, fb.x, fb.y, toString(color).c_str(), stroke_width);
 }
 
-void SVG::writeArrow(const Point& a, const Point& b, ColorObject color, float stroke_width, int rel_head_size_divisor, coord_t offset)
+void SVG::writeArrow(const Point& a, const Point& b, const ColorObject color, const float stroke_width, const int rel_head_size_divisor, const coord_t offset) const
 {
     Point ab = b - a;
     Point nd = turn90CCW(ab) / rel_head_size_divisor / 2;
@@ -227,27 +227,27 @@ void SVG::writeArrow(const Point& a, const Point& b, ColorObject color, float st
     writeLine(b + n - d, b + n + nd - d * 3, color, stroke_width);
 }
 
-void SVG::writeLineRGB(const Point& from, const Point& to, int r, int g, int b, float stroke_width)
+void SVG::writeLineRGB(const Point& from, const Point& to, const int r, const int g, const int b, const float stroke_width) const
 {
     FPoint3 fa = transformF(from);
     FPoint3 fb = transformF(to);
     fprintf(out, "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" style=\"stroke:rgb(%i,%i,%i);stroke-width:%f\" />\n", fa.x, fa.y, fb.x, fb.y, r, g, b, stroke_width);
 }
 
-void SVG::writeDashedLine(const Point& a, const Point& b, ColorObject color)
+void SVG::writeDashedLine(const Point& a, const Point& b, ColorObject color) const
 {
     FPoint3 fa = transformF(a);
     FPoint3 fb = transformF(b);
     fprintf(out,"<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" stroke=\"%s\" stroke-width=\"1\" stroke-dasharray=\"5,5\" />\n",fa.x,fa.y,fb.x,fb.y,toString(color).c_str());
 }
 
-void SVG::writeText(Point p, std::string txt, ColorObject color, coord_t font_size)
+void SVG::writeText(const Point& p, const std::string& txt, const ColorObject color, const float font_size) const
 {
     FPoint3 pf = transformF(p);
-    fprintf(out, "<text x=\"%f\" y=\"%f\" style=\"font-size: %llipx;\" fill=\"%s\">%s</text>\n",pf.x, pf.y, font_size, toString(color).c_str(), txt.c_str());
+    fprintf(out, "<text x=\"%f\" y=\"%f\" style=\"font-size: %fpx;\" fill=\"%s\">%s</text>\n",pf.x, pf.y, font_size, toString(color).c_str(), txt.c_str());
 }
 
-void SVG::writePolygons(const Polygons& polys, ColorObject color, float stroke_width)
+void SVG::writePolygons(const Polygons& polys, const ColorObject color, const float stroke_width) const
 {
     for (ConstPolygonRef poly : polys)
     {
@@ -255,7 +255,7 @@ void SVG::writePolygons(const Polygons& polys, ColorObject color, float stroke_w
     }
 }
 
-void SVG::writePolygon(ConstPolygonRef poly, ColorObject color, float stroke_width)
+void SVG::writePolygon(ConstPolygonRef poly, const ColorObject color, const float stroke_width) const
 {
     if (poly.size() == 0)
     {
@@ -290,7 +290,7 @@ void SVG::writePolygon(ConstPolygonRef poly, ColorObject color, float stroke_wid
 }
 
 
-void SVG::writePolylines(const Polygons& polys, ColorObject color, float stroke_width)
+void SVG::writePolylines(const Polygons& polys, const ColorObject color, const float stroke_width) const
 {
     for (ConstPolygonRef poly : polys)
     {
@@ -298,7 +298,7 @@ void SVG::writePolylines(const Polygons& polys, ColorObject color, float stroke_
     }
 }
 
-void SVG::writePolyline(ConstPolygonRef poly, ColorObject color, float stroke_width)
+void SVG::writePolyline(ConstPolygonRef poly, const ColorObject color, const float stroke_width) const
 {
     if (poly.size() == 0)
     {
