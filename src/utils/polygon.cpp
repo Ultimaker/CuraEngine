@@ -347,6 +347,34 @@ Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double m
     return ret;
 }
 
+
+std::vector<Polygons> Polygons::offsetSimultaneously(const std::vector<Polygons>& to_be_offsetted, const std::vector<coord_t>& dists, coord_t resolution)
+{
+    coord_t max_dist = 0;
+    for (coord_t dist : dists)
+    {
+        max_dist = std::max(max_dist, dist);
+    }
+    std::vector<Polygons> result = to_be_offsetted;
+    for (coord_t offset_dist = resolution; offset_dist < max_dist; offset_dist += resolution)
+    {
+        for (size_t area_nr = 0; area_nr < to_be_offsetted.size(); area_nr++)
+        {
+            if (offset_dist > dists[area_nr]) continue;
+            coord_t offset_dist_here = offset_dist;
+            if (area_nr == 0) offset_dist_here -= resolution / 2; // try to improve direction of the middle line when the areas start out next to each other already
+            const Polygons& original_area = to_be_offsetted[area_nr];
+            result[area_nr] = original_area.offset(offset_dist_here, ClipperLib::jtRound);
+            for (size_t other_area_nr = 0; other_area_nr < to_be_offsetted.size(); other_area_nr++)
+            {
+                if (other_area_nr == area_nr) continue;
+                result[area_nr] = result[area_nr].difference(result[other_area_nr]);
+            }
+        }
+    }
+    return result;
+}
+
 Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (distance == 0)

@@ -952,6 +952,13 @@ public:
     }
 
     /*!
+     * Offset several areas 'simultaneously' and stop where they meet in the middle.
+     * 
+     * \warning This function may result in jagged edges where the offsetted polygons meet.
+     */
+    static std::vector<Polygons> offsetSimultaneously(const std::vector<Polygons>& to_be_offsetted, const std::vector<coord_t>& dists, coord_t resolution);
+
+    /*!
      * Check if we are inside the polygon.
      *
      * We do this by counting the number of polygons inside which this point lies.
