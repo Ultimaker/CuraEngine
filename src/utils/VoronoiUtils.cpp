@@ -15,7 +15,7 @@ Point VoronoiUtils::p(const vd_t::vertex_type* node)
 {
     const double x = node->x();
     const double y = node->y();
-    return Point(x + 0.5d - (x < 0), y + 0.5d - (y < 0)); //Round to nearest integer coordinates.
+    return Point(x + 0.5 - (x < 0), y + 0.5 - (y < 0)); //Round to nearest integer coordinates.
 }
 
 bool VoronoiUtils::isSourcePoint(Point p, const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments, coord_t snap_dist)
