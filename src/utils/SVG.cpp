@@ -217,14 +217,19 @@ void SVG::writeLine(const Point& a, const Point& b, const ColorObject color, con
     fprintf(out, "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" style=\"stroke:%s;stroke-width:%f\" />\n", fa.x, fa.y, fb.x, fb.y, toString(color).c_str(), stroke_width);
 }
 
-void SVG::writeArrow(const Point& a, const Point& b, const ColorObject color, const float stroke_width, const int rel_head_size_divisor, const coord_t offset) const
+void SVG::writeArrow(const Point& a, const Point& b, const ColorObject color, const float stroke_width, const int rel_head_size_divisor) const
 {
-    Point ab = b - a;
-    Point nd = turn90CCW(ab) / rel_head_size_divisor / 2;
-    Point n = normal(turn90CCW(ab), offset);
-    Point d = ab / rel_head_size_divisor / 2;
-    writeLine(a + n, b + n - d, color, stroke_width);
-    writeLine(b + n - d, b + n + nd - d * 3, color, stroke_width);
+    FPoint3 fa = transformF(a);
+    FPoint3 fb = transformF(b);
+    FPoint3 ab = fb - fa;
+    float head_size = ab.vSize() / rel_head_size_divisor;
+    FPoint3 normal = FPoint3(ab.y, -ab.x, 0.0).normalized();
+    FPoint3 direction = ab.normalized();
+
+    FPoint3 tip = fb + normal * head_size - direction * head_size;
+    FPoint3 b_base = fb + normal * stroke_width - direction * stroke_width * 2.41;
+    FPoint3 a_base = fa + normal * stroke_width;
+    fprintf(out, "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f %f,%f\" />", toString(color).c_str(), fa.x, fa.y, fb.x, fb.y, tip.x, tip.y, b_base.x, b_base.y, a_base.x, a_base.y);
 }
 
 void SVG::writeLineRGB(const Point& from, const Point& to, const int r, const int g, const int b, const float stroke_width) const
