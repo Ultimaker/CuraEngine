@@ -114,7 +114,7 @@ public:
 
     void writeLine(const Point& a, const Point& b, const ColorObject color = Color::BLACK, const float stroke_width = 1) const;
 
-    void writeArrow(const Point& a, const Point& b, const ColorObject color = Color::BLACK, const float stroke_width = 1, const int rel_head_size_divisor = 20) const;
+    void writeArrow(const Point& a, const Point& b, const ColorObject color = Color::BLACK, const float stroke_width = 1, const float head_size = 5.0) const;
 
     void writeLineRGB(const Point& from, const Point& to, const int r = 0, const int g = 0, const int b = 0, const float stroke_width = 1) const;
 

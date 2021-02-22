@@ -217,12 +217,11 @@ void SVG::writeLine(const Point& a, const Point& b, const ColorObject color, con
     fprintf(out, "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" style=\"stroke:%s;stroke-width:%f\" />\n", fa.x, fa.y, fb.x, fb.y, toString(color).c_str(), stroke_width);
 }
 
-void SVG::writeArrow(const Point& a, const Point& b, const ColorObject color, const float stroke_width, const int rel_head_size_divisor) const
+void SVG::writeArrow(const Point& a, const Point& b, const ColorObject color, const float stroke_width, const float head_size) const
 {
     FPoint3 fa = transformF(a);
     FPoint3 fb = transformF(b);
     FPoint3 ab = fb - fa;
-    float head_size = ab.vSize() / rel_head_size_divisor;
     FPoint3 normal = FPoint3(ab.y, -ab.x, 0.0).normalized();
     FPoint3 direction = ab.normalized();
 
