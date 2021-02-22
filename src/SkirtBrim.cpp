@@ -1,18 +1,137 @@
 //Copyright (C) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "SkirtBrim.h"
+
 #include "Application.h"
 #include "ExtruderTrain.h"
-#include "SkirtBrim.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
 #include "support.h"
 #include "settings/types/Ratio.h"
+#include "settings/EnumSettings.h"
 #include "utils/logoutput.h"
 
 namespace cura 
 {
 
+
+// TODO
+/*
+- fix min volume constraint
+- fix connection between normal brim and prime tower brim?
+- fix draft shield etc
+- fix print order?!
+
+
+
+*/
+
+void SkirtBrim::generate(SliceDataStorage& storage)
+{
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+    EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
+
+    const int prime_tower_brim_extruder = 0; // TODO
+
+    const bool is_brim = adhesion_type == EPlatformAdhesion::BRIM;
+    
+    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
+    const int extruder_count = extruders.size();
+    std::vector<coord_t> line_width(extruder_count);
+    std::vector<size_t> line_count(extruder_count);
+    std::vector<coord_t> gap(extruder_count);
+    std::vector<coord_t> max_dists(extruder_count);
+
+    auto getMaxDist = [&](const int extruder_nr)
+        {
+            constexpr coord_t max_extra_line_to_meet_min_length_constraint = 20; // TODO: this many extra lines should be enough for whatever is the skirt_brim_minimal_length
+            return (line_count[extruder_nr] + max_extra_line_to_meet_min_length_constraint) * line_width[extruder_nr];
+        };
+    
+    
+    std::vector<Polygons> starting_outlines(extruder_count + 1); // last one is for the prime tower
+    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        const ExtruderTrain& extruder = extruders[extruder_nr];
+        line_width[extruder_nr] = extruder.settings.get<coord_t>("skirt_brim_line_width");
+        line_count[extruder_nr] = extruder.settings.get<int>(is_brim? "brim_line_count" : "skirt_line_count");
+        gap[extruder_nr] = extruder.settings.get<coord_t>(is_brim? "brim_gap" : "skirt_gap");
+
+        max_dists[extruder_nr] = getMaxDist(extruder_nr);
+
+        constexpr LayerIndex layer_nr = 0;
+        const bool include_support = false; // TODO: extruder_nr == mesh_group_settings.get<int>("support_infill_extruder_nr");
+        const bool include_prime_tower = false; // extruder_nr == prime_tower_brim_extruder;
+        bool external_polys_only = false; // TODO
+        starting_outlines[extruder_nr] = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr);
+        starting_outlines[extruder_nr] = starting_outlines[extruder_nr].offset(gap[extruder_nr]);
+    }
+
+    // add prime tower brim
+    if (mesh_group_settings.get<bool>("prime_tower_brim_enable"))
+    {
+        starting_outlines.emplace_back(storage.primeTower.outer_poly);
+        max_dists.push_back(getMaxDist(prime_tower_brim_extruder));
+    }
+
+    std::vector<Polygons> allowed_areas = Polygons::offsetSimultaneously(starting_outlines, max_dists, 10);
+    for (Polygons& poly : allowed_areas)
+    {
+        poly.simplify(50, 50);
+    }
+    {
+        AABB ab0(allowed_areas[0]);
+        AABB ab1(allowed_areas[1]);
+        ab0.include(ab1);
+        SVG svg("sim_offset.svg", ab0);
+        for (size_t i = 0; i < starting_outlines.size(); i++)
+        {
+            svg.writePolygons(starting_outlines[i], SVG::Color(i+3));
+        }
+        svg.nextLayer();
+        for (size_t i = 0; i < allowed_areas.size(); i++)
+        {
+            svg.writePolygons(allowed_areas[i], SVG::Color(i+3));
+        }
+    }
+
+    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        for (size_t line_idx = 0; line_idx < line_count[extruder_nr]; line_idx++)
+        {
+            Polygons offset = starting_outlines[extruder_nr].offset(line_width[extruder_nr] / 2 + line_idx * line_width[extruder_nr], ClipperLib::jtRound);
+
+            // convert to polylines
+            for (PolygonRef poly : offset)
+            {
+                if (poly.size() == 0) continue;
+                poly.add(poly[0]);
+            }
+
+            Polygons brim_lines = allowed_areas[extruder_nr].intersectionPolyLines(offset);
+            for (PolygonRef brim_line : brim_lines)
+            {
+                storage.skirt_brim[extruder_nr].resize(std::max(storage.skirt_brim[extruder_nr].size(), line_idx + 1));
+                SkirtBrimLine& output_location = storage.skirt_brim[extruder_nr][line_idx];
+                if (brim_line.size() > 0)
+                {
+                    if (brim_line.back() == brim_line[0])
+                    {
+                        brim_line.pop_back();
+                        output_location.closed_polygons.add(brim_line);
+                    }
+                    else
+                    {
+                        output_location.open_polylines.add(brim_line);
+                    }
+                }
+            }
+        }
+    }
+}
+/*
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline)
 {
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
@@ -119,7 +238,7 @@ coord_t SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, s
     return offset_distance;
 }
 
-void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, const coord_t start_distance, size_t primary_line_count, const bool allow_helpers /*= true*/)
+void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, const coord_t start_distance, size_t primary_line_count, const bool allow_helpers)
 {
     const bool is_skirt = start_distance > 0;
     Scene& scene = Application::getInstance().current_slice->scene;
@@ -233,6 +352,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
         }
     }
 }
+*/
 
 void SkirtBrim::generateSupportBrim(SliceDataStorage& storage, const bool merge_with_model_skirtbrim)
 {
@@ -249,7 +369,12 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage, const bool merge_
     }
 
     const coord_t brim_width = brim_line_width * line_count;
-    Polygons& skirt_brim = storage.skirt_brim[support_infill_extruder.extruder_nr];
+    coord_t skirt_brim_length = 0;
+    for (const SkirtBrimLine& brim_line : storage.skirt_brim[support_infill_extruder.extruder_nr])
+    {
+        skirt_brim_length += brim_line.closed_polygons.polygonLength();
+        skirt_brim_length += brim_line.open_polylines.polyLineLength();
+    }
 
     SupportLayer& support_layer = storage.support.supportLayers[0];
 
@@ -282,7 +407,7 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage, const bool merge_
 
         support_brim.add(brim_line);
 
-        const coord_t length = skirt_brim.polygonLength() + support_brim.polygonLength();
+        const coord_t length = skirt_brim_length + support_brim.polygonLength();
         if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) //Make brim or skirt have more lines when total length is too small.
         {
             line_count++;
@@ -293,6 +418,7 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage, const bool merge_
         }
     }
 
+    /* TODO
     if (support_brim.size())
     {
         if (merge_with_model_skirtbrim)
@@ -309,6 +435,8 @@ void SkirtBrim::generateSupportBrim(SliceDataStorage& storage, const bool merge_
             skirt_brim.add(support_brim);
         }
     }
+    */
 }
+
 
 }//namespace cura

@@ -981,11 +981,36 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
+    EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
+    if (adhesion_type == EPlatformAdhesion::RAFT)
+    {
+        Raft::generate(storage);
+        return;
+    }
+
+    SkirtBrim::generate(storage);
+
+    if (mesh_group_settings.get<bool>("support_brim_enable"))
+    {
+        SkirtBrim::generateSupportBrim(storage, adhesion_type == EPlatformAdhesion::BRIM);
+    }
+
+
+    // Also apply maximum_[deviation|resolution] to skirt/brim.
+    const coord_t line_segment_resolution = train.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t line_segment_deviation = train.settings.get<coord_t>("meshfix_maximum_deviation");
+    // TODO:
+//     for (Polygons& polygons : storage.skirt_brim)
+//     {
+//         polygons.simplify(line_segment_resolution, line_segment_deviation);
+//     }
+    return;
+    
+    /*
     Polygons first_layer_outline;
     coord_t primary_line_count;
 
-    EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
     if (adhesion_type == EPlatformAdhesion::SKIRT)
     {
@@ -1029,6 +1054,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     {
         polygons.simplify(line_segment_resolution, line_segment_deviation);
     }
+    */
 }
 
 
