@@ -118,11 +118,11 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
 
         if(bins_with_index_zero_insets.count(inset) > 0) //Print using outer wall config.
         {
-            gcode_layer.addWalls(insets[inset], mesh, inset_0_non_bridge_config, inset_0_bridge_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+            gcode_layer.addWalls(insets[inset], mesh.settings, inset_0_non_bridge_config, inset_0_bridge_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
         }
         else
         {
-            gcode_layer.addWalls(insets[inset], mesh, inset_X_non_bridge_config, inset_X_bridge_config, z_seam_config, 0, flow, false);
+            gcode_layer.addWalls(insets[inset], mesh.settings, inset_X_non_bridge_config, inset_X_bridge_config, z_seam_config, 0, flow, false);
         }
     }
     return added_something;

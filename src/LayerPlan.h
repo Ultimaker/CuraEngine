@@ -555,7 +555,7 @@ public:
      * Add a single line that is part of a wall to the gcode.
      * \param p0 The start vertex of the line
      * \param p1 The end vertex of the line
-     * \param mesh The current mesh being added to the layer plan
+     * \param settings The settings which should apply to this line added to the layer plan.
      * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
      * \param flow The ratio with which to multiply the extrusion amount
@@ -564,13 +564,13 @@ public:
      * \param distance_to_bridge_start The distance along the wall from p0 to the first bridge segment
      */
 
-    void addWallLine(const Point& p0, const Point& p1, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start);
+    void addWallLine(const Point& p0, const Point& p1, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start);
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx
      * \param wall The vertices of the wall to add.
      * \param start_idx The index of the starting vertex to start at.
-     * \param mesh The current mesh being added to the layer plan.
+     * \param settings The settings which should apply to this wall added to the layer plan.
      * \param non_bridge_config The config with which to print the wall lines
      * that are not spanning a bridge.
      * \param bridge_config The config with which to print the wall lines that
@@ -581,7 +581,7 @@ public:
      * \param always_retract Whether to force a retraction when moving to the
      * start of the wall (used for outer walls).
      */
-    void addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
+    void addWall(ConstPolygonRef wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx
@@ -601,7 +601,7 @@ public:
      * polyline).
      * \param is_reversed Whether to print this wall in reverse direction.
      */
-    void addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
+    void addWall(const LineJunctions& wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
 
     /*!
      * Add an infill wall to the g-code
@@ -614,7 +614,7 @@ public:
     /*!
      * Add walls (polygons) to the gcode with optimized order.
      * \param walls The walls
-     * \param mesh The current mesh being added to the layer plan
+     * \param settings The settings which should apply to these walls added to the layer plan.
      * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
      * \param z_seam_config Optional configuration for z-seam
@@ -622,8 +622,8 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
      */
-    void addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
-    void addWalls(const PathJunctions& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
+    void addWalls(const Polygons& walls, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
+    void addWalls(const PathJunctions& walls, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
      * Add lines to the gcode with optimized order.
