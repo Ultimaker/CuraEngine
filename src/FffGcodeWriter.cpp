@@ -2622,7 +2622,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     VariableWidthPaths roof_paths;
     Polygons roof_lines;
     roof_computation.generate(roof_paths, roof_polygons, roof_lines, roof_extruder.settings);
-    if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_polygons.empty() && roof_lines.empty()))
+    if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_paths.empty() && roof_polygons.empty() && roof_lines.empty()))
     {
         return false; //We didn't create any support roof.
     }
@@ -2637,6 +2637,14 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         constexpr bool force_comb_retract = false;
         gcode_layer.addTravel(roof_polygons[0][0], force_comb_retract);
         gcode_layer.addPolygonsByOptimizer(roof_polygons, gcode_layer.configs_storage.support_roof_config);
+    }
+    if (! roof_paths.empty())
+    {
+        const auto converted_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(roof_paths);
+        for (const auto& wall_junctions : converted_paths)
+        {
+            gcode_layer.addWalls(wall_junctions, roof_extruder.settings, gcode_layer.configs_storage.support_roof_config, gcode_layer.configs_storage.support_roof_config);
+        }
     }
     gcode_layer.addLinesByOptimizer(roof_lines, gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
@@ -2691,7 +2699,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     VariableWidthPaths bottom_paths;
     Polygons bottom_lines;
     bottom_computation.generate(bottom_paths, bottom_polygons, bottom_lines, bottom_extruder.settings);
-    if (bottom_polygons.empty() && bottom_lines.empty())
+    if (bottom_paths.empty() && bottom_polygons.empty() && bottom_lines.empty())
     {
         return false;
     }
@@ -2702,6 +2710,14 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         constexpr bool force_comb_retract = false;
         gcode_layer.addTravel(bottom_polygons[0][0], force_comb_retract);
         gcode_layer.addPolygonsByOptimizer(bottom_polygons, gcode_layer.configs_storage.support_bottom_config);
+    }
+    if (! bottom_paths.empty())
+    {
+        const auto converted_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(bottom_paths);
+        for (const auto& wall_junctions : converted_paths)
+        {
+            gcode_layer.addWalls(wall_junctions, bottom_extruder.settings, gcode_layer.configs_storage.support_bottom_config, gcode_layer.configs_storage.support_bottom_config);
+        }
     }
     gcode_layer.addLinesByOptimizer(bottom_lines, gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
