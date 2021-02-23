@@ -432,9 +432,6 @@ protected:
         if (seam_config.simplify_curvature > 0)
         {
             const coord_t max_simplify_dist2 = seam_config.simplify_curvature * seam_config.simplify_curvature;
-
-            std::fprintf(stderr, "\n\nMAX SIMPLY DIST %ld\n\n\n", max_simplify_dist2);
-
             simple_poly.simplify(max_simplify_dist2, max_simplify_dist2 / 4);
         }
 
