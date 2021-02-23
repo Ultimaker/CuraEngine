@@ -2464,6 +2464,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const auto support_brim_line_count = infill_extruder.settings.get<coord_t>("support_brim_line_count");
     const auto support_connect_zigzags = infill_extruder.settings.get<bool>("support_connect_zigzags");
     const auto support_structure = infill_extruder.settings.get<ESupportStructure>("support_structure");
+    const auto support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
     const Point infill_origin;
 
     constexpr bool use_endpieces = true;
@@ -2491,7 +2492,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             Polygons support_polygons;
             VariableWidthPaths wall_toolpaths;
             Polygons support_lines;
-            for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
+            const size_t max_density_idx = part.infill_area_per_combine_per_density.size() - 1;
+            for (size_t density_idx = max_density_idx; (density_idx + 1) > 0; --density_idx)
             {
                 if (combine_idx >= part.infill_area_per_combine_per_density[density_idx].size())
                 {
@@ -2501,7 +2503,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int support_line_distance_here = default_support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 const int support_shift = support_line_distance_here / 2;
-                if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
+                if (density_idx == max_density_idx || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
                 {
                     support_line_distance_here /= 2;
                 }
@@ -2511,10 +2513,10 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                                         support_brim_line_count);
 
                 Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, area,
-                                   support_line_width, support_line_distance_here, current_support_infill_overlap,
+                                   support_line_width, support_line_distance_here, current_support_infill_overlap - (density_idx == max_density_idx ? 0 : wall_line_count * support_line_width),
                                    infill_multiplier, support_infill_angle, gcode_layer.z, support_shift,
                                    max_resolution, max_deviation,
-                                   wall_line_count, infill_origin, support_connect_zigzags,
+                                   (density_idx == max_density_idx ? wall_line_count : 0), infill_origin, support_connect_zigzags,
                                    use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
                 infill_comp.generate(wall_toolpaths, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
             }
