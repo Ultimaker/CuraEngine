@@ -991,7 +991,7 @@ void LayerPlan::addWalls(const PathJunctions& walls, const SliceMeshStorage& mes
     {
         p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;
         const cura::Point p_start = path.backwards ? path.vertices->front().p : path.vertices->back().p;
-        const bool linked_path = p_start == p_end;
+        const bool linked_path = p_start != p_end;
         addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, path.is_closed, path.backwards, linked_path);
     }
 }
