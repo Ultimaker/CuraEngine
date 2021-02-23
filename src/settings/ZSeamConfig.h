@@ -36,6 +36,13 @@ struct ZSeamConfig
     EZSeamCornerPrefType corner_pref;
 
     /*!
+     * Prevent 'smoothed out' corners (corners that are spread over multiple, very close together vertices),
+     * by simplifying the polygon that the corners are detected on by this ammount.
+     * This does _not_ influence the path, the simplified polygon is a temporary constructed within the algorithm.
+     */
+    coord_t simplify_curvature;
+
+    /*!
      * Default constructor for use when memory must be allocated before it gets
      * filled (like with some data structures).
      *
@@ -47,10 +54,10 @@ struct ZSeamConfig
      * Create a seam configuration with a custom configuration.
      * \param type The strategy to place the seam.
      * \param pos The position of a user-specified seam.
-     * \param corner_pref The corner preference, when using the sharpest corner
-     * strategy.
+     * \param corner_pref The corner preference, when using the sharpest corner strategy.
+     * \param by how much to simplify the curvature (when detecting corners), as otherwise 'smooth' corners are penalized.
      */
-    ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCornerPrefType corner_pref);
+    ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCornerPrefType corner_pref, const coord_t simplify_curvature);
 };
 
 } //Cura namespace.

@@ -429,7 +429,16 @@ protected:
         // A course simplification is needed, since Arachne has a tendency to 'smear' corners out over multiple line segments.
         // Which in itself isd a good thing, but will mess up the detection of sharp corners and such.
         Polygon simple_poly(*path.converted);
-        simple_poly.simplify(1000000, 10000);
+        if (seam_config.simplify_curvature > 0)
+        {
+            const coord_t max_simplify_dist2 = seam_config.simplify_curvature * seam_config.simplify_curvature;
+
+
+            std::fprintf(stderr, "\n\nMAX SIMPLY DIST %ld\n\n\n", max_simplify_dist2);
+
+
+            simple_poly.simplify(max_simplify_dist2, max_simplify_dist2 / 4);
+        }
 
         // Paths, other than polygons, can be either clockwise or counterclockwise. Make sure this is detected.
         const bool clockwise = simple_poly.orientation();
