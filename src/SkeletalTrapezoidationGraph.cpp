@@ -1,8 +1,7 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SkeletalTrapezoidationGraph.h"
-#include <unordered_map>
 
 #include "utils/linearAlg2D.h"
 #include "utils/macros.h"
@@ -222,6 +221,138 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
     }
     std::cout << " written graph to test.svg" << std::endl;
 
+    auto should_collapse = [snap_dist](node_t* a, node_t* b) 
+    { 
+        return shorterThen(a->p - b->p, snap_dist); 
+    };
+
+    /*//Work with vectors to be able to safely remove edges and nodes.
+    std::vector<edge_t*> edge_vector;
+    edge_vector.reserve(edges.size());
+    for(const edge_t& edge : edges)
+    {
+        edge_vector.push_back(&edge);
+    }
+    std::vector<node_t*> node_vector;
+    node_vector.reserve(nodes.size());
+    for(const node_t& node : nodes)
+    {
+        node_vector.push_back(&node);
+    }
+
+    //Look through the edges of the graph to see if it has any degenerate edges missing a twin.
+    for(size_t i = 0; i < edge_vector.size(); ++i)
+    {
+        if(!edge_vector[i]->twin) //Twin is missing! This edge is part of a degenerate section of the graph.
+        {
+            std::cout << "^^^^^^^^^^^^^ removing edge without twin!" << std::endl;
+            removeDegenerateEdge(edge_vector, i, i);
+        }
+    }
+
+    //Look for small edges and remove those.
+    for(size_t i = 0; i < edge_vector.size(); ++i)
+    {
+        if(edge_vector[i]->prev) //Only process start edges.
+        {
+            continue;
+        }
+
+        edge_t* quad_start = edge_vector[i];
+        edge_t* quad_end = quad_start;
+        while(quad_end->next)
+        {
+            quad_end = quad_end->next;
+        }
+        edge_t* quad_mid = (quad_start->next == quad_end)? nullptr : quad_start->next;
+
+        if (quad_mid && should_collapse(quad_mid->from, quad_mid->to))
+        {
+            assert(quad_mid->twin);
+            if(!quad_mid->twin)
+            {
+                RUN_ONCE(logWarning("Encountered quad edge without a twin."));
+                continue; //Prevent accessing unallocated memory.
+            }
+            int count = 0;
+            for (edge_t* edge_from_3 = quad_end; edge_from_3 && edge_from_3 != quad_mid->twin; edge_from_3 = edge_from_3->twin->next)
+            {
+                edge_from_3->from = quad_mid->from;
+                edge_from_3->twin->to = quad_mid->from;
+                if (++count > 1000) 
+                {
+                    break;
+                }
+            }
+
+            // o-o > collapse top
+            // | |
+            // | |
+            // | |
+            // o o
+            if (quad_mid->from->incident_edge == quad_mid)
+            {
+                if(quad_mid->twin->next)
+                {
+                    quad_mid->from->incident_edge = quad_mid->twin->next;
+                }
+                else
+                {
+                    quad_mid->from->incident_edge = quad_mid->prev->twin;
+                }
+            }
+            
+            nodes.erase(node_locator[quad_mid->to]);
+
+            quad_mid->prev->next = quad_mid->next;
+            quad_mid->next->prev = quad_mid->prev;
+            quad_mid->twin->next->prev = quad_mid->twin->prev;
+            quad_mid->twin->prev->next = quad_mid->twin->next;
+
+            safely_remove_edge(quad_mid->twin, edge_it, edge_it_is_updated);
+            safely_remove_edge(quad_mid, edge_it, edge_it_is_updated);
+        }
+
+        //  o-o
+        //  | | > collapse sides
+        //  o o
+        if(should_collapse(quad_start->from, quad_end->to) && should_collapse(quad_start->to, quad_end->from))
+        { // Collapse start and end edges and remove whole cell
+
+            quad_start->twin->to = quad_end->to;
+            quad_end->to->incident_edge = quad_end->twin;
+            if (quad_end->from->incident_edge == quad_end)
+            {
+                //if(quad_end->twin && quad_end->twin->next)
+                if(quad_end->twin->next)
+                {
+                    quad_end->from->incident_edge = quad_end->twin->next;
+                }
+                else
+                {
+                    quad_end->from->incident_edge = quad_end->prev->twin;
+                }
+            }
+            nodes.erase(node_locator[quad_start->from]);
+
+            //If there are quads around the removed quad, connect them to each other.
+            quad_start->twin->twin = quad_end->twin;
+            quad_end->twin->twin = quad_start->twin;
+            safely_remove_edge(quad_start, edge_it, edge_it_is_updated);
+            safely_remove_edge(quad_end, edge_it, edge_it_is_updated);
+        }
+        // If only one side had collapsable length then the cell on the other side of that edge has to collapse
+        // if we would collapse that one edge then that would change the quad_start and/or quad_end of neighboring cells
+        // this is to do with the constraint that !prev == !twin.next
+    }*/
+    
+    
+
+    
+    
+    
+    //return;
+    
     std::unordered_map<edge_t*, std::list<edge_t>::iterator> edge_locator;
     std::unordered_map<node_t*, std::list<node_t>::iterator> node_locator;
 
@@ -235,26 +366,30 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
     {
         node_locator.emplace(&*node_it, node_it);
     }
-    
-    auto safelyRemoveEdge = [this, &edge_locator](edge_t* to_be_removed, std::list<edge_t>::iterator& current_edge_it, bool& edge_it_is_updated)
-    {
-        if (current_edge_it != edges.end()
-            && to_be_removed == &*current_edge_it)
-        {
-            current_edge_it = edges.erase(current_edge_it);
-            edge_it_is_updated = true;
-        }
-        else
-        {
-            edges.erase(edge_locator[to_be_removed]);
-        }
-    };
 
-    auto should_collapse = [snap_dist](node_t* a, node_t* b) 
-    { 
-        return shorterThen(a->p - b->p, snap_dist); 
-    };
-        
+    //Look through the edges of the graph to see if it has any degenerate edges missing a twin.
+    for(std::list<edge_t>::iterator edge_it = edges.begin(); edge_it != edges.end();)
+    {
+        bool edge_it_is_updated = false;
+        edge_t* edge = &*edge_it;
+        if(!edge->twin) //Twin is missing! This edge is part of a degenerate section of the graph.
+        {
+            std::cout << "^^^^^^^^^^^^^^^^^^ missing twin! Removing degenerate edge." << std::endl;
+            removeDegenerateEdge(edge, edge_it, edge_it_is_updated, edge_locator);
+        }
+        if(!edge_it_is_updated)
+        {
+            edge_it++;
+        }
+    }
+
+    //Refresh the edge locator for the next pass.
+    edge_locator.clear();
+    for (auto edge_it = edges.begin(); edge_it != edges.end(); ++edge_it)
+    {
+        edge_locator.emplace(&*edge_it, edge_it);
+    }
+
     for (auto edge_it = edges.begin(); edge_it != edges.end();)
     {
         if (edge_it->prev)
@@ -270,20 +405,6 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         bool edge_it_is_updated = false;
         if (quad_mid && should_collapse(quad_mid->from, quad_mid->to))
         {
-            if(!quad_mid->twin) //Degenerate part of Voronoi graph. Repair it by linking adjacent quads instead.
-            {
-                //quad_start->twin->twin = quad_end->twin;
-                //quad_end->twin->twin = quad_start->twin;
-                std::cout << "############### twin doesn't exist! Finding it in graph..." << std::endl;
-                /*for(edge_t& edge : edges)
-                {
-                    if(edge.from->p == quad_mid->to->p && edge.to->p == quad_mid->from->p)
-                    {
-                        quad_mid->twin = &edge;
-                        edge.twin = quad_mid;
-                    }
-                }*/
-            }
             assert(quad_mid->twin);
             if(!quad_mid->twin)
             {
@@ -329,8 +450,8 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
             quad_mid->twin->next->prev = quad_mid->twin->prev;
             quad_mid->twin->prev->next = quad_mid->twin->next;
 
-            safelyRemoveEdge(quad_mid->twin, edge_it, edge_it_is_updated);
-            safelyRemoveEdge(quad_mid, edge_it, edge_it_is_updated);
+            safelyRemoveEdge(quad_mid->twin, edge_it, edge_it_is_updated, edge_locator);
+            safelyRemoveEdge(quad_mid, edge_it, edge_it_is_updated, edge_locator);
         }
 
         //  o-o
@@ -356,34 +477,10 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
             nodes.erase(node_locator[quad_start->from]);
 
             //If there are quads around the removed quad, connect them to each other.
-            /*if(!quad_start->twin)
-            {
-                std::cout << "$$$$$$$$$$$$$ twin doesn't exist! Finding it in graph..." << std::endl;
-                for(edge_t& edge : edges)
-                {
-                    if(edge.from == quad_start->to && edge.to == quad_start->from)
-                    {
-                        quad_start->twin = &edge;
-                        edge.twin = quad_start;
-                    }
-                }
-            }*/
             quad_start->twin->twin = quad_end->twin;
-            /*if(!quad_end->twin)
-            {
-                std::cout << "%%%%%%%%%%%%% twin doesn't exist! Finding it in graph..." << std::endl;
-                for(edge_t& edge : edges)
-                {
-                    if(edge.from == quad_end->to && edge.to == quad_end->from)
-                    {
-                        quad_end->twin = &edge;
-                        edge.twin = quad_end;
-                    }
-                }
-            }*/
             quad_end->twin->twin = quad_start->twin;
-            safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
-            safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
+            safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated, edge_locator);
+            safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated, edge_locator);
         }
         // If only one side had collapsable length then the cell on the other side of that edge has to collapse
         // if we would collapse that one edge then that would change the quad_start and/or quad_end of neighboring cells
@@ -394,6 +491,76 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
             edge_it++;
         }
     }
+
+    for(const edge_t& edge : edges)
+    {
+        assert(edge.twin);
+        assert(edge.twin->twin);
+        assert(edge.twin->twin == &edge);
+    }
+}
+
+void SkeletalTrapezoidationGraph::safelyRemoveEdge(edge_t* edge, std::list<edge_t>::iterator edge_it, bool& edge_it_is_removed, std::unordered_map<edge_t*, std::list<edge_t>::iterator>& edge_locator)
+{
+    if(edge_it != edges.end()
+        && edge == &*edge_it)
+    {
+        edge_it = edges.erase(edge_it);
+        edge_it_is_removed = true;
+    }
+    else
+    {
+        edges.erase(edge_locator[edge]);
+    }
+}
+
+void SkeletalTrapezoidationGraph::removeDegenerateEdge(edge_t* edge, std::list<edge_t>::iterator edge_it, bool& edge_it_is_removed, std::unordered_map<edge_t*, std::list<edge_t>::iterator>& edge_locator)
+{
+    edge->twin = nullptr;
+    //Remove the broken edge from in between the linked list.
+    if(edge->prev)
+    {
+        edge->prev->next = edge->next;
+    }
+    if(edge->next)
+    {
+        edge->next->prev = edge->prev;
+    }
+
+    //If it was a middle edge, close the gap that the broken edge was spanning.
+    if(edge->prev && edge->next)
+    {
+        //Move the start point of the next edge to the start point of the broken edge.
+        edge->next->from = edge->from;
+        if(edge->next->twin && edge->prev->twin)
+        {
+            edge->next->twin->to = edge->prev->twin->from;
+        }
+    }
+    //If it was a start or end edge, check if the quad is now degenerate in total due to having too few edges.
+    else
+    {
+        if(edge->prev && !edge->prev->prev) //Prev is a solo edge.
+        {
+            if(edge->prev->twin) //The solo edge has a twin though.
+            {
+                //Remove the twin as well.
+                removeDegenerateEdge(edge->prev->twin, edge_it, edge_it_is_removed, edge_locator);
+            }
+            safelyRemoveEdge(edge->prev, edge_it, edge_it_is_removed, edge_locator);
+        }
+        if(edge->next && !edge->next->next) //Next is a solo edge.
+        {
+            if(edge->next->twin) //The solo edge has a twin though.
+            {
+                //Remove the twin as well.
+                removeDegenerateEdge(edge->next->twin, edge_it, edge_it_is_removed, edge_locator);
+            }
+            safelyRemoveEdge(edge->next, edge_it, edge_it_is_removed, edge_locator);
+        }
+    }
+
+    safelyRemoveEdge(edge, edge_it, edge_it_is_removed, edge_locator);
 }
 
 void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)

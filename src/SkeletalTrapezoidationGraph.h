@@ -1,8 +1,10 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SKELETAL_TRAPEZOIDATION_GRAPH_H
 #define SKELETAL_TRAPEZOIDATION_GRAPH_H
+
+#include <unordered_map>
 
 #include "utils/HalfEdgeGraph.h"
 #include "utils/optional.h"
@@ -99,6 +101,17 @@ public:
 
 protected:
     std::pair<Point, Point> getSource(const edge_t& edge);
+
+    /*!
+     * Remove an edge on the graph that has no twin.
+     */
+    void removeDegenerateEdge(edge_t* edge, std::list<edge_t>::iterator edge_it, bool& edge_it_is_removed, std::unordered_map<edge_t*, std::list<edge_t>::iterator>& edge_locator);
+
+    /*!
+     * Remove an edge from the graph while iterating over the edges, without
+     * invalidating the iterator.
+     */
+    void safelyRemoveEdge(edge_t* edge, std::list<edge_t>::iterator edge_it, bool& edge_it_is_removed, std::unordered_map<edge_t*, std::list<edge_t>::iterator>& edge_locator);
 };
 
 }
