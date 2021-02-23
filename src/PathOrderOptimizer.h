@@ -429,8 +429,11 @@ protected:
         // A course simplification is needed, since Arachne has a tendency to 'smear' corners out over multiple line segments.
         // Which in itself isd a good thing, but will mess up the detection of sharp corners and such.
         Polygon simple_poly(*path.converted);
-        simple_poly.simplify(100000, 10000);
-        
+        simple_poly.simplify(1000000, 10000);
+
+        // Paths, other than polygons, can be either clockwise or counterclockwise. Make sure this is detected.
+        const bool clockwise = simple_poly.orientation();
+
         // Find a seam position in the simple polygon:
         Point best_point;
         float best_score = std::numeric_limits<float>::infinity();
@@ -446,7 +449,7 @@ protected:
                 ? getDirectDistance(here, target_pos)
                 : getCombingDistance(here, target_pos);
             const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : distance / 1000000;
-            const float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) / M_PI - 1; //Between -1 and 1.
+            const float corner_angle = (clockwise ? LinearAlg2D::getAngleLeft(previous, here, next) : LinearAlg2D::getAngleLeft(next, here, previous)) / M_PI - 1; //Between -1 and 1.
 
             float score;
             const float corner_shift = seam_config.type != EZSeamType::USER_SPECIFIED ? 10000 : 0; //Allow up to 20mm shifting of the seam to find a good location. For SHARPEST_CORNER, this shift is the only factor. For USER_SPECIFIED, don't allow shifting.
