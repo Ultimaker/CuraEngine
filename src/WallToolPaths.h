@@ -50,6 +50,12 @@ public:
     const VariableWidthPaths& getToolPaths();
 
     /*!
+     * Alternate 'get', for when the vector that'll be inserted in already exists.
+     * \param The already existing (or empty) paths these new toolpaths are pushed into.
+     */
+    void pushToolPaths(VariableWidthPaths& paths);
+
+    /*!
      * Compute the inner contour of the walls. This contour indicates where the walled area ends and its infill begins.
      * The inside can then be filled, e.g. with skin/infill for the walls of a part, or with a pattern in the case of
      * infill with extra infill walls.

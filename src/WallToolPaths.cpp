@@ -114,6 +114,15 @@ const VariableWidthPaths& WallToolPaths::getToolPaths()
     return toolpaths;
 }
 
+void WallToolPaths::pushToolPaths(VariableWidthPaths& paths)
+{
+    if (! toolpaths_generated)
+    {
+        generate();
+    }
+    paths.insert(paths.end(), toolpaths.begin(), toolpaths.end());
+}
+
 void WallToolPaths::computeInnerContour()
 {
     //We'll remove all 0-width paths from the original toolpaths and store them separately as polygons.
