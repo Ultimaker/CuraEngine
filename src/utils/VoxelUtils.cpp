@@ -105,7 +105,7 @@ bool VoxelUtils::walkPolygons(const Polygons& polys, coord_t z, const std::funct
 bool VoxelUtils::walkDilatedPolygons(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func)
 {
     Polygons translated = polys;
-    const Point3 translation = (Point3(1,1,1) - kernel.kernel_size % 2) * -cell_size / 2;
+    const Point3 translation = (Point3(1,1,1) - kernel.kernel_size % 2) * cell_size / 2;
     if (translation.x && translation.y)
     {
         translated.translate(Point(translation.x, translation.y));
@@ -127,7 +127,7 @@ bool VoxelUtils::walkAreas(const Polygons& polys, coord_t z, const std::function
 bool VoxelUtils::walkDilatedAreas(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func)
 {
     Polygons translated = polys;
-    const Point3 translation = (Point3(1,1,1) - kernel.kernel_size % 2) * -cell_size / 2;
+    const Point3 translation = (Point3(1,1,1) - kernel.kernel_size % 2) * cell_size / 2;
     if (translation.x && translation.y)
     {
         translated.translate(Point(translation.x, translation.y));
