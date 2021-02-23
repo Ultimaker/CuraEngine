@@ -435,7 +435,8 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     separatePointyQuadEndNodes();
 
     graph.fixNodeDuplication();
-    
+
+    graph.fixSingularEdges();
     graph.collapseSmallEdges();
 
     // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,

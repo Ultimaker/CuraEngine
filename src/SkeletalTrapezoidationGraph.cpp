@@ -204,6 +204,79 @@ void SkeletalTrapezoidationGraph::fixNodeDuplication()
         }
     }
 }
+
+void SkeletalTrapezoidationGraph::fixSingularEdges()
+{
+    unsigned int iterations = 0; //Track the number of iterations to make sure it's not getting out of hand.
+    bool more_to_remove = true;
+    while(more_to_remove) //Repeat until we've converged.
+    {
+        more_to_remove = false;
+
+        //Find any edges that don't have twins and remove those.
+        for(std::list<edge_t>::iterator edge_it = edges.begin(); edge_it != edges.end();)
+        {
+            edge_t* edge = &*edge_it;
+            if(edge->twin)
+            {
+                edge_it++;
+                continue; //This edge is all fine.
+            }
+
+            //Remove the broken edge from the linked list.
+            if(edge->prev)
+            {
+                edge->prev->next = edge->next;
+            }
+            if(edge->next)
+            {
+                edge->next->prev = edge->prev;
+            }
+
+            //If it was a middle edge, close the gap that the broken edge was spanning.
+            if(edge->prev && edge->next)
+            {
+                //Move the start point of the next edge to the start point of the broken edge.
+                edge->next->from = edge->from;
+                if(edge->next->twin && edge->prev->twin)
+                {
+                    edge->next->twin->to = edge->prev->twin->from; //Also move the point on the opposite side, if the opposite side is well-formed.
+                }
+            }
+            //If it was a start or end edge, check if the quad is now too small, having just 1 edge. Remove the entire quad then.
+            else
+            {
+                if(edge->prev && !edge->prev->prev) //This is a solo edge. Remove it.
+                {
+                    if(edge->prev->twin) //The solo edge has a twin though. Unlink them and remove them in the next iteration.
+                    {
+                        edge->prev->twin->twin = nullptr;
+                    }
+                    edge->prev->twin = nullptr;
+                    more_to_remove = true;
+                }
+                if(edge->next && !edge->next->next) //This is a solo edge. Remove it.
+                {
+                    if(edge->next->twin)
+                    {
+                        edge->next->twin->twin = nullptr;
+                    }
+                    edge->next->twin = nullptr;
+                    more_to_remove = true;
+                }
+            }
+
+            //Remove the actual edge.
+            edges.erase(edge_it++);
+        }
+
+        iterations++;
+        if(iterations > 50)
+        {
+            logWarning("Removing a lot of singular edges in a cascade!");
+        }
+    }
+}
     
 void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 {

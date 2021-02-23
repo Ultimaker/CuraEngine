@@ -72,6 +72,11 @@ public:
     void fixNodeDuplication();
 
     /*!
+     * Remove edges which have no twins.
+     */
+    void fixSingularEdges();
+
+    /*!
      * If an edge is too small, collapse it and its twin and fix the surrounding edges to ensure a consistent graph.
      * 
      * Don't collapse support edges, unless we can collapse the whole quad.
