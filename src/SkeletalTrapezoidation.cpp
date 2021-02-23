@@ -161,6 +161,11 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
     const vd_t::cell_type* right_cell = vd_edge.twin()->cell();
     Point start = VoronoiUtils::p(vd_edge.vertex0());
     Point end = VoronoiUtils::p(vd_edge.vertex1());
+    if(vSize2(start - end) <= 25)
+    {
+        std::cout << "&&&&&&&&&&& discretise simplification!" << std::endl;
+        return std::vector<Point>({start, end});
+    }
     
     bool point_left = left_cell->contains_point();
     bool point_right = right_cell->contains_point();
@@ -409,6 +414,36 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
             assert(false && "Each cell should start / end in a polygon vertex");
             continue;
         }
+
+        /*if(vSize2(VoronoiUtils::p(starting_vonoroi_edge->vertex0()) - VoronoiUtils::p(starting_vonoroi_edge->vertex1())) <= 1)
+        {
+            std::cout << " ******** skipping tiny cell! Start edge too small!" << std::endl;
+            continue;
+        }
+        if(vSize2(VoronoiUtils::p(ending_vonoroi_edge->vertex0()) - VoronoiUtils::p(ending_vonoroi_edge->vertex1())) <= 1)
+        {
+            std::cout << " ******** skipping tiny cell! End edge too small!" << std::endl;
+            continue;
+        }
+        if(vSize2(VoronoiUtils::p(starting_vonoroi_edge->vertex0()) - VoronoiUtils::p(ending_vonoroi_edge->vertex1())) <= 1)
+        {
+            std::cout << " ******** skipping tiny cell! Total edge too small!" << std::endl;
+            continue;
+        }*/
+
+        /*Polygon poly;
+        poly.add(VoronoiUtils::p(starting_vonoroi_edge->vertex0()));
+        for (vd_t::edge_type* vd_edge = starting_vonoroi_edge->next(); vd_edge != ending_vonoroi_edge; vd_edge = vd_edge->next())
+        {
+            poly.add(VoronoiUtils::p(vd_edge->vertex0()));
+            poly.add(VoronoiUtils::p(vd_edge->vertex1()));
+        }
+        poly.add(VoronoiUtils::p(ending_vonoroi_edge->vertex1()));
+        if(poly.area() < 10)
+        {
+            std::cout << " _______________ skipping tiny cell! Area was " << poly.area() << std::endl;
+            continue;
+        }*/
         
         // Copy start to end edge to graph
         edge_t* prev_edge = nullptr;
@@ -435,7 +470,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     separatePointyQuadEndNodes();
 
     graph.fixNodeDuplication();
-    
+
     graph.collapseSmallEdges();
 
     // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,

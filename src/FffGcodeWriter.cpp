@@ -1614,6 +1614,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
                            infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin, connected_zigzags,
                            use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
+        std::cout << "Generating infill for layer " << gcode_layer.getLayerNr() << std::endl;
         infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
 
         // Fixme: CURA-7848 for libArachne.

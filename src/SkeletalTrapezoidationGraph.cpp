@@ -207,9 +207,25 @@ void SkeletalTrapezoidationGraph::fixNodeDuplication()
     
 void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 {
+    {
+        AABB aabb;
+        //aabb.include(Point(130880, 110289));
+        aabb.include(Point(103476, 101085));
+        aabb.expand(100);
+        SVG svg("/home/trin/test.svg", aabb, Point(2048, 2048), SVG::Color::WHITE);
+        svg.writeCoordinateGrid(1000, SVG::Color::GRAY);
+        svg.writePoint(Point(1030880, 110289));
+        for(const auto edge : edges)
+        {
+            svg.writeArrow(edge.from->p, edge.to->p, SVG::Color::BLUE, 0.2);
+        }
+    }
+    std::cout << " written graph to test.svg" << std::endl;
+
     std::unordered_map<edge_t*, std::list<edge_t>::iterator> edge_locator;
     std::unordered_map<node_t*, std::list<node_t>::iterator> node_locator;
-    
+
+    //Link from edge pointers to edge iterators, since the list of edges is std::list so the iterators are not consecutive.
     for (auto edge_it = edges.begin(); edge_it != edges.end(); ++edge_it)
     {
         edge_locator.emplace(&*edge_it, edge_it);
@@ -254,6 +270,19 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         bool edge_it_is_updated = false;
         if (quad_mid && should_collapse(quad_mid->from, quad_mid->to))
         {
+            if(!quad_mid->twin) //Degenerate part of Voronoi graph. Repair it by linking adjacent quads instead.
+            {
+                quad_start->twin->twin = quad_end->twin;
+                std::cout << "############### twin doesn't exist! Finding it in graph..." << std::endl;
+                for(edge_t& edge : edges)
+                {
+                    if(edge.from->p == quad_mid->to->p && edge.to->p == quad_mid->from->p)
+                    {
+                        quad_mid->twin = &edge;
+                        edge.twin = quad_mid;
+                    }
+                }
+            }
             assert(quad_mid->twin);
             if(!quad_mid->twin)
             {
@@ -282,7 +311,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
             // o o
             if (quad_mid->from->incident_edge == quad_mid)
             {
-                if (quad_mid->twin->next)
+                if(quad_mid->twin->next)
                 {
                     quad_mid->from->incident_edge = quad_mid->twin->next;
                 }
@@ -306,14 +335,14 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         //  o-o
         //  | | > collapse sides
         //  o o
-        if ( should_collapse(quad_start->from, quad_end->to) && should_collapse(quad_start->to, quad_end->from))
+        if(should_collapse(quad_start->from, quad_end->to) && should_collapse(quad_start->to, quad_end->from))
         { // Collapse start and end edges and remove whole cell
 
             quad_start->twin->to = quad_end->to;
             quad_end->to->incident_edge = quad_end->twin;
             if (quad_end->from->incident_edge == quad_end)
             {
-                if (quad_end->twin->next)
+                if(quad_end->twin && quad_end->twin->next)
                 {
                     quad_end->from->incident_edge = quad_end->twin->next;
                 }
@@ -324,7 +353,32 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
             }
             nodes.erase(node_locator[quad_start->from]);
 
+            //If there are quads around the removed quad, connect them to each other.
+            if(!quad_start->twin)
+            {
+                std::cout << "$$$$$$$$$$$$$ twin doesn't exist! Finding it in graph..." << std::endl;
+                for(edge_t& edge : edges)
+                {
+                    if(edge.from == quad_start->to && edge.to == quad_start->from)
+                    {
+                        quad_start->twin = &edge;
+                        edge.twin = quad_start;
+                    }
+                }
+            }
             quad_start->twin->twin = quad_end->twin;
+            if(!quad_end->twin)
+            {
+                std::cout << "%%%%%%%%%%%%% twin doesn't exist! Finding it in graph..." << std::endl;
+                for(edge_t& edge : edges)
+                {
+                    if(edge.from == quad_end->to && edge.to == quad_end->from)
+                    {
+                        quad_end->twin = &edge;
+                        edge.twin = quad_end;
+                    }
+                }
+            }
             quad_end->twin->twin = quad_start->twin;
             safelyRemoveEdge(quad_start, edge_it, edge_it_is_updated);
             safelyRemoveEdge(quad_end, edge_it, edge_it_is_updated);
