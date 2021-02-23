@@ -425,13 +425,20 @@ protected:
             return vert;
         }
 
-        size_t best_index = 0;
+        // Don't know the path-type here, or wether it has a simplify. Also, simplification occurs in-place, which is not wanted here: Copy the polygon.
+        // A course simplification is needed, since Arachne has a tendency to 'smear' corners out over multiple line segments.
+        // Which in itself isd a good thing, but will mess up the detection of sharp corners and such.
+        Polygon simple_poly(*path.converted);
+        simple_poly.simplify(100000, 10000);
+        
+        // Find a seam position in the simple polygon:
+        Point best_point;
         float best_score = std::numeric_limits<float>::infinity();
-        Point previous = path.converted->back();
-        for(size_t i = 0; i < path.converted->size(); ++i)
+        Point previous = simple_poly.back();
+        for(size_t i = 0; i < simple_poly.size(); ++i)
         {
-            const Point& here = (*path.converted)[i];
-            const Point& next = (*path.converted)[(i + 1) % path.converted->size()];
+            const Point& here = simple_poly[i];
+            const Point& next = simple_poly[(i + 1) % simple_poly.size()];
 
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
@@ -489,10 +496,24 @@ protected:
 
             if(score < best_score)
             {
-                best_index = i;
+                best_point = here;
                 best_score = score;
             }
             previous = here;
+        }
+
+        // Which point in the real deal is closest to the simple polygon version?
+        size_t best_index = 0;
+        coord_t closest_dist2 = std::numeric_limits<coord_t>::max();
+        for (size_t i = 0; i < path.converted->size(); ++i)
+        {
+            const Point& here = (*path.converted)[i];
+            const coord_t dist2 = vSize2(best_point - here);
+            if (dist2 < closest_dist2)
+            {
+                closest_dist2 = dist2;
+                best_index = i;
+            }
         }
 
         return best_index;
