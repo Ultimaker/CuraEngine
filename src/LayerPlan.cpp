@@ -741,10 +741,10 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     });
     ewall.emplace_back(*wall.begin(), nominal_line_width, dummy_perimeter_id);
 
-    addWall(ewall, start_idx, mesh, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, true, false);
+    addWall(ewall, start_idx, mesh, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, true, false, false);
 }
 
-void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed)
+void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed, const bool is_linked_path)
 {
     if (wall.empty())
     {
@@ -913,7 +913,7 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const SliceMes
 
         if (flow_ratio >= wall_min_flow)
         {
-            if (wall_0_wipe_dist > 0)
+            if (wall_0_wipe_dist > 0 && !is_linked_path)
             { // apply outer wall wipe
                 p0 = wall[start_idx];
                 int distance_traversed = 0;
@@ -984,10 +984,15 @@ void LayerPlan::addWalls(const PathJunctions& walls, const SliceMeshStorage& mes
     {
         order_optimizer.addPolyline(&wall);
     }
+
+    cura::Point p_end {0, 0};
     order_optimizer.optimize();
     for(const PathOrderOptimizer<const LineJunctions*>::Path& path : order_optimizer.paths)
     {
-        addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, path.is_closed, path.backwards);
+        p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;
+        const cura::Point p_start = path.backwards ? path.vertices->front().p : path.vertices->back().p;
+        const bool linked_path = p_start == p_end;
+        addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, path.is_closed, path.backwards, linked_path);
     }
 }
 

@@ -600,8 +600,9 @@ public:
      * \param is_closed Whether this wall is a closed loop (a polygon) or not (a
      * polyline).
      * \param is_reversed Whether to print this wall in reverse direction.
+     * \param is_linked_path Whether the path is a continuation off the previous path
      */
-    void addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed = false, const bool is_reversed = false);
+    void addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed, const bool is_linked_path);
 
     /*!
      * Add an infill wall to the g-code
