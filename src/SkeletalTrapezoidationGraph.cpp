@@ -273,6 +273,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
             if(!quad_mid->twin) //Degenerate part of Voronoi graph. Repair it by linking adjacent quads instead.
             {
                 quad_start->twin->twin = quad_end->twin;
+                quad_end->twin->twin = quad_start->twin;
                 std::cout << "############### twin doesn't exist! Finding it in graph..." << std::endl;
                 for(edge_t& edge : edges)
                 {
