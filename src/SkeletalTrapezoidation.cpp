@@ -161,11 +161,11 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
     const vd_t::cell_type* right_cell = vd_edge.twin()->cell();
     Point start = VoronoiUtils::p(vd_edge.vertex0());
     Point end = VoronoiUtils::p(vd_edge.vertex1());
-    if(vSize2(start - end) <= 25)
+    /*if(vSize2(start - end) <= 25)
     {
         std::cout << "&&&&&&&&&&& discretise simplification!" << std::endl;
         return std::vector<Point>({start, end});
-    }
+    }*/
     
     bool point_left = left_cell->contains_point();
     bool point_right = right_cell->contains_point();
