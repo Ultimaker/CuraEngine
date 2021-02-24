@@ -1627,6 +1627,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                 infill_lines_here.cut(tool);
             }
             infill_lines.add(infill_lines_here);
+            infill_lines_here.clear();
             // normal processing for the infill that isn't below skin
             in_outline = infill_not_below_skin;
             if (density_idx == last_idx)
