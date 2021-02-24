@@ -31,13 +31,14 @@ public:
     };
 
 protected:
-    InterlockingGenerator(std::vector<Slicer*>& volumes, std::vector<coord_t>& line_width_per_extruder, const std::vector<coord_t>& layer_heights, const PointMatrix& rotation, Point3 cell_size)
+    InterlockingGenerator(std::vector<Slicer*>& volumes, std::vector<coord_t>& line_width_per_extruder, const std::vector<coord_t>& layer_heights, const PointMatrix& rotation, Point3 cell_size, float bulging_angle)
     : volumes(volumes)
     , line_width_per_extruder(line_width_per_extruder)
     , layer_heights(layer_heights)
     , vu(cell_size)
     , rotation(rotation)
     , cell_size(cell_size)
+    , bulging_angle(bulging_angle)
     {}
 
     std::vector<std::unordered_set<GridPoint3>> getShellVoxels(const DilationKernel& kernel);
@@ -47,9 +48,9 @@ protected:
 
     void computeLayerRegions(std::vector<Polygons>& layer_regions);
 
-    void generateMicrostructure(std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer);
+    void generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, bool alternating_offset);
 
-    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, const std::vector<Polygons>& layer_regions);
+    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, const std::vector<Polygons>& layer_regions);
 
     std::vector<Slicer*>& volumes;
     std::vector<coord_t> line_width_per_extruder;
@@ -59,6 +60,7 @@ protected:
 
     PointMatrix rotation;
     Point3 cell_size;
+    float bulging_angle;
 };
 
 }//namespace cura

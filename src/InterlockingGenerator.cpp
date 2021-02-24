@@ -38,7 +38,16 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     {
         line_width_per_extruder[extruder_nr] = extruders[extruder_nr].settings.get<coord_t>("wall_line_width_0");
     }
-    coord_t cell_width = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2;
+    float bulging_angle = 10.0 / 180 * M_PI;
+    coord_t cell_width;
+    if (bulging_angle == 0.0)
+    {
+        cell_width = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2;
+    }
+    else
+    {
+        cell_width = (line_width_per_extruder[0] + line_width_per_extruder[1]) * (1.0 + 1.0 / cos(bulging_angle)) / (1.0 - tan(bulging_angle));
+    }
     Point3 cell_size(cell_width, cell_width, 4 * Application::getInstance().current_slice->scene.settings.get<coord_t>("layer_height"));
     // TODO make robust against if there's only 1 extruder
     
@@ -58,7 +67,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     
     PointMatrix rotation(45.0);
     
-    InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size);
+    InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, bulging_angle);
     
     // TODO: implement lesser dilation based on translated polygons
     // TODO: make dilation user parameter
@@ -97,8 +106,9 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
         }
     }
 
-    std::vector<std::vector<Polygon>> cell_area_per_extruder_per_layer;
-    gen.generateMicrostructure(cell_area_per_extruder_per_layer);
+    std::vector<std::vector<Polygons>> cell_area_per_extruder_per_layer;
+    const bool alternating_offset = bulging_angle > 0.0;
+    gen.generateMicrostructure(cell_area_per_extruder_per_layer, alternating_offset);
 
     gen.applyMicrostructureToOutlines(has_all_extruders, cell_area_per_extruder_per_layer, layer_regions);
 }
@@ -172,31 +182,86 @@ void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_reg
     }
 }
 
-void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer)
+void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, bool alternating_offset)
 {
-    cell_area_per_extruder_per_layer.resize(4);
-    for (size_t layer_nr : {0, 1, 2, 3})
+    cell_area_per_extruder_per_layer.resize(alternating_offset? 4 : 2);
+    cell_area_per_extruder_per_layer[0].resize(2);
+    if (bulging_angle == 0.0)
     {
-        cell_area_per_extruder_per_layer[layer_nr].resize(2);
         for (size_t extruder_nr : {0, 1})
         {
-            Point offset((extruder_nr == layer_nr / 2)? line_width_per_extruder[ ! extruder_nr] * 2 : 0, 0);
+            Point offset(extruder_nr? line_width_per_extruder[extruder_nr] * 2 : 0, 0);
             Point area_size(line_width_per_extruder[extruder_nr] * 2, cell_size.x);
-            if (layer_nr % 2)
-            {
-                std::swap(offset.X, offset.Y);
-                std::swap(area_size.X, area_size.Y);
-            }
-            PolygonRef poly = cell_area_per_extruder_per_layer[layer_nr][extruder_nr];
+
+            PolygonRef poly = cell_area_per_extruder_per_layer[0][extruder_nr].newPoly();
             poly.emplace_back(offset);
             poly.emplace_back(offset + Point(area_size.X, 0));
             poly.emplace_back(offset + area_size);
             poly.emplace_back(offset + Point(0, area_size.Y));
         }
     }
+    else
+    {
+        coord_t h = cell_size.x / 4;
+        coord_t r = tan(bulging_angle) * h;
+        coord_t w = cell_size.x * line_width_per_extruder[0] / (line_width_per_extruder[0] + line_width_per_extruder[1]);
+        {
+            PolygonRef poly = cell_area_per_extruder_per_layer[0][0].newPoly();
+            poly.emplace_back(w, 0);
+            poly.emplace_back(w+r, h);
+            poly.emplace_back(w-r, 3*h);
+            poly.emplace_back(w, 4*h);
+            poly.emplace_back(0, 4*h);
+            poly.emplace_back(r, 3*h);
+            poly.emplace_back(-r, h);
+            poly.emplace_back(0, 0);
+        }
+        if (false)
+        {
+            PolygonRef poly = cell_area_per_extruder_per_layer[0][1].newPoly();
+            coord_t e = cell_size.x;
+            poly.emplace_back(w, 4*h);
+            poly.emplace_back(w-r, 3*h);
+            poly.emplace_back(w+r, h);
+            poly.emplace_back(w, 0);
+            poly.emplace_back(e, 0);
+            poly.emplace_back(e-r, h);
+            poly.emplace_back(e+r, 3*h);
+            poly.emplace_back(e, 4*h);
+        }
+    }
+    cell_area_per_extruder_per_layer[1] = cell_area_per_extruder_per_layer[0];
+    for (Polygons& polys : cell_area_per_extruder_per_layer[1])
+    {
+        for (PolygonRef poly : polys)
+        {
+            for (Point& p : poly)
+            {
+                std::swap(p.X, p.Y);
+            }
+        }
+    }
+    if (alternating_offset)
+    {
+        cell_area_per_extruder_per_layer[2] = cell_area_per_extruder_per_layer[0];
+        cell_area_per_extruder_per_layer[3] = cell_area_per_extruder_per_layer[1];
+        for (size_t layer_nr : {2, 3})
+        {
+            for (Polygons& polys : cell_area_per_extruder_per_layer[layer_nr])
+            {
+                for (PolygonRef poly : polys)
+                {
+                    for (Point& p : poly)
+                    {
+                        p = Point(cell_size.x, cell_size.y) - p;
+                    }
+                }
+            }
+        }
+    }
 }
 
-void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygon>>& cell_area_per_extruder_per_layer, const std::vector<Polygons>& layer_regions)
+void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, const std::vector<Polygons>& layer_regions)
 {
     PointMatrix unapply_rotation = rotation.inverse();
 
@@ -213,16 +278,11 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
                 if (z < bottom_corner.z) continue;
                 if (z > bottom_corner.z + cell_size.z) break;
 
-                Polygon area_here = cell_area_per_extruder_per_layer[layer_nr % cell_area_per_extruder_per_layer.size()][extruder_nr];
-                Polygon area_other = cell_area_per_extruder_per_layer[layer_nr % cell_area_per_extruder_per_layer.size()][ ! extruder_nr];
+                Polygons areas_here = cell_area_per_extruder_per_layer[layer_nr % cell_area_per_extruder_per_layer.size()][extruder_nr];
+                Polygons areas_other = cell_area_per_extruder_per_layer[layer_nr % cell_area_per_extruder_per_layer.size()][ ! extruder_nr];
 
-                area_here.translate(Point(bottom_corner.x, bottom_corner.y));
-                area_other.translate(Point(bottom_corner.x, bottom_corner.y));
-
-                Polygons areas_here;
-                areas_here.add(area_here);
-                Polygons areas_other;
-                areas_other.add(area_other);
+                areas_here.translate(Point(bottom_corner.x, bottom_corner.y));
+                areas_other.translate(Point(bottom_corner.x, bottom_corner.y));
 
                 const Polygons& layer_region = layer_regions[layer_nr];
                 areas_here = layer_region.intersection(areas_here);
