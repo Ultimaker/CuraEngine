@@ -1573,7 +1573,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
             wall_tool_paths.emplace_back(VariableWidthPaths());
             Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin,
-                               infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier,
+                               infill_line_width, infill_line_distance_here, infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width), infill_multiplier,
                                infill_angle, gcode_layer.z, infill_shift, max_resolution, max_deviation, skin_below_wall_count, infill_origin,
                                connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count,
                                pocket_size);
@@ -1611,7 +1611,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         wall_tool_paths.emplace_back(VariableWidthPaths());
 
         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, infill_line_width,
-                           infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
+                           infill_line_distance_here, infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width), infill_multiplier, infill_angle, gcode_layer.z,
                            infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin, connected_zigzags,
                            use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
         infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
