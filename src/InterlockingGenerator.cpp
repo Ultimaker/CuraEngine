@@ -69,24 +69,32 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     
     // TODO: option for different amount of dilation for shell removal
     
+    // TODO: cells on left side not being generated when filling areas for vertical interfaces.
+    
+    // TODO: dont add all patterns to each mesh. This leads to each mesh printing the interfaces of all other meshes.
+    
 
-    DilationKernel interface_dilation(GridPoint3(2,2,4), true);
+    DilationKernel interface_dilation(GridPoint3(1,1,1), true);
     std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
 
     std::vector<Polygons> layer_regions(layer_heights.size());
     gen.computeLayerRegions(layer_regions);
 
-    DilationKernel air_dilation(GridPoint3(1,1,1), true);
-    std::unordered_set<GridPoint3> air_cells;
-    gen.addBoundaryCells(layer_regions, air_dilation, air_cells);
-
     std::unordered_set<GridPoint3>& has_any_extruder = voxels_per_extruder[0];
     std::unordered_set<GridPoint3>& has_all_extruders = voxels_per_extruder[1];
     has_any_extruder.merge(has_all_extruders);
 
-    for (const GridPoint3& p : air_cells)
+    constexpr bool air_filtering = false;
+    if (air_filtering)
     {
-        has_all_extruders.erase(p);
+        DilationKernel air_dilation(GridPoint3(1,1,1), true);
+        std::unordered_set<GridPoint3> air_cells;
+        gen.addBoundaryCells(layer_regions, air_dilation, air_cells);
+
+        for (const GridPoint3& p : air_cells)
+        {
+            has_all_extruders.erase(p);
+        }
     }
 
     std::vector<std::vector<Polygon>> cell_area_per_extruder_per_layer;
