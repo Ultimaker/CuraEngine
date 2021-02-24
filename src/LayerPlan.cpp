@@ -539,16 +539,16 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 
 static constexpr float max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
-void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start)
+void LayerPlan::addWallLine(const Point& p0, const Point& p1, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start)
 {
     const coord_t min_line_len = 5; // we ignore lines less than 5um long
     const double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
     const double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
 
-    const coord_t min_bridge_line_len = mesh.settings.get<coord_t>("bridge_wall_min_length");
-    const Ratio bridge_wall_coast = mesh.settings.get<Ratio>("bridge_wall_coast");
-    const Ratio overhang_speed_factor = mesh.settings.get<Ratio>("wall_overhang_speed_factor");
+    const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+    const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
+    const Ratio overhang_speed_factor = settings.get<Ratio>("wall_overhang_speed_factor");
 
     Point cur_point = p0;
 
@@ -723,7 +723,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
     }
 }
 
-void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     //TODO: Deprecated in favor of ExtrusionJunction version below.
     if (wall.size() < 3)
@@ -741,10 +741,10 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     });
     ewall.emplace_back(*wall.begin(), nominal_line_width, dummy_perimeter_id);
 
-    addWall(ewall, start_idx, mesh, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, true, false);
+    addWall(ewall, start_idx, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, true, false);
 }
 
-void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed)
+void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed)
 {
     if (wall.empty())
     {
@@ -760,12 +760,12 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const SliceMes
     double speed_factor = 1.0; // start first line at normal speed
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
 
-    const coord_t min_bridge_line_len = mesh.settings.get<coord_t>("bridge_wall_min_length");
-    const Ratio wall_min_flow = mesh.settings.get<Ratio>("wall_min_flow");
-    const bool wall_min_flow_retract = mesh.settings.get<bool>("wall_min_flow_retract");
-    const coord_t small_feature_max_length = mesh.settings.get<coord_t>("small_feature_max_length");
+    const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+    const Ratio wall_min_flow = settings.get<Ratio>("wall_min_flow");
+    const bool wall_min_flow_retract = settings.get<bool>("wall_min_flow_retract");
+    const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && cura::shorterThan(wall, small_feature_max_length);
-    Ratio small_feature_speed_factor = mesh.settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
+    Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder[getLastPlannedExtruderTrain()->extruder_nr].cool_min_speed;
     small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
 
@@ -886,7 +886,7 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const SliceMes
             }
             else
             {
-                addWallLine(p0.p, p1.p, mesh, non_bridge_config, bridge_config, flow_ratio * (p1.w * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                addWallLine(p0.p, p1.p, settings, non_bridge_config, bridge_config, flow_ratio * (p1.w * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
             }
         }
         else
@@ -961,7 +961,7 @@ void LayerPlan::addInfillWall(const LineJunctions& wall, const GCodePathConfig& 
     }
 }
 
-void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWalls(const Polygons& walls, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     //TODO: Deprecated in favor of ExtrusionJunction version below.
     PathOrderOptimizer<ConstPolygonRef> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
@@ -972,11 +972,11 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
     orderOptimizer.optimize();
     for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
     {
-        addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
-void LayerPlan::addWalls(const PathJunctions& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWalls(const PathJunctions& walls, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     constexpr bool detect_loops = true;
     PathOrderOptimizer<const LineJunctions*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops);
@@ -987,7 +987,7 @@ void LayerPlan::addWalls(const PathJunctions& walls, const SliceMeshStorage& mes
     order_optimizer.optimize();
     for(const PathOrderOptimizer<const LineJunctions*>::Path& path : order_optimizer.paths)
     {
-        addWall(*path.vertices, path.start_vertex, mesh, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, path.is_closed, path.backwards);
+        addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, path.is_closed, path.backwards);
     }
 }
 
