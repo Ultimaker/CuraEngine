@@ -1618,7 +1618,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                                infill_angle, gcode_layer.z, infill_shift, max_resolution, max_deviation, skin_below_wall_count, infill_origin,
                                perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count,
                                pocket_size);
-            infill_comp.generate(infill_polygons, infill_lines_here, mesh.cross_fill_provider, &mesh);
+            infill_comp.generate(infill_polygons_here, infill_lines_here, mesh.cross_fill_provider, &mesh);
             if (density_idx < last_idx)
             {
                 const coord_t cut_offset =
@@ -1627,7 +1627,9 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                 infill_lines_here.cut(tool);
             }
             infill_lines.add(infill_lines_here);
+            infill_polygons.add(infill_polygons_here);
             infill_lines_here.clear();
+            infill_polygons_here.clear();
             // normal processing for the infill that isn't below skin
             in_outline = infill_not_below_skin;
             if (density_idx == last_idx)
