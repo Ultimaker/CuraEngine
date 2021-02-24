@@ -740,8 +740,10 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const Settings& set
         ewall.emplace_back(p, nominal_line_width, dummy_perimeter_id);
     });
     ewall.emplace_back(*wall.begin(), nominal_line_width, dummy_perimeter_id);
-
-    addWall(ewall, start_idx, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, true, false, false);
+    constexpr bool is_closed = true;
+    constexpr bool is_reversed = false;
+    constexpr bool is_linked_path = false;
+    addWall(ewall, start_idx, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
 }
 
 void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed, const bool is_linked_path)
