@@ -46,7 +46,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
 
     auto getMaxDist = [&](const int extruder_nr)
         {
-            constexpr coord_t max_extra_line_to_meet_min_length_constraint = 20; // TODO: this many extra lines should be enough for whatever is the skirt_brim_minimal_length
+            constexpr coord_t max_extra_line_to_meet_min_length_constraint = 0; // TODO: this many extra lines should be enough for whatever is the skirt_brim_minimal_length
             return (line_count[extruder_nr] + max_extra_line_to_meet_min_length_constraint) * line_width[extruder_nr];
         };
     
@@ -76,11 +76,12 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         max_dists.push_back(getMaxDist(prime_tower_brim_extruder));
     }
 
-    std::vector<Polygons> allowed_areas = Polygons::offsetSimultaneously(starting_outlines, max_dists, 10);
+    std::vector<Polygons> allowed_areas = Polygons::offsetSimultaneously(starting_outlines, max_dists, 750);
     for (Polygons& poly : allowed_areas)
     {
-        poly.simplify(50, 50);
+        poly.simplify(100, 100);
     }
+    if (false)
     {
         AABB ab0(allowed_areas[0]);
         AABB ab1(allowed_areas[1]);
