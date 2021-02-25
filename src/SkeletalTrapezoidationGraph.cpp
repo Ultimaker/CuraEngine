@@ -1,8 +1,9 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SkeletalTrapezoidationGraph.h"
 #include <unordered_map>
+#include <unordered_set>
 
 #include "utils/linearAlg2D.h"
 #include "utils/macros.h"
@@ -209,6 +210,7 @@ void SkeletalTrapezoidationGraph::fixSingularEdges()
 {
     unsigned int iterations = 0; //Track the number of iterations to make sure it's not getting out of hand.
     bool more_to_remove = true;
+    std::unordered_set<edge_t*> removed_edges;
     while(more_to_remove) //Repeat until we've converged.
     {
         more_to_remove = false;
@@ -267,13 +269,27 @@ void SkeletalTrapezoidationGraph::fixSingularEdges()
             }
 
             //Remove the actual edge.
-            edges.erase(edge_it++);
+            removed_edges.insert(edge);
+            edges.erase(edge_it++); //First iterate, THEN remove the old value.
         }
 
         iterations++;
         if(iterations > 50)
         {
             logWarning("Removing a lot of singular edges in a cascade!");
+        }
+    }
+
+    for(std::list<node_t>::iterator node_it = nodes.begin(); node_it != nodes.end();)
+    {
+        if(removed_edges.find(node_it->incident_edge) != removed_edges.end())
+        {
+            std::cout << "Removing node of removed edge!" << std::endl;
+            nodes.erase(node_it++); //First iterate, THEN remove the old value.
+        }
+        else
+        {
+            node_it++;
         }
     }
 }
