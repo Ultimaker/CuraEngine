@@ -31,6 +31,17 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
         logError("generateInterlockingStructure not implemented for >2 extruders!\n");
         return;
     }
+    std::vector<int> meshes_per_extruder(extruder_count);
+    for (Slicer* mesh : volumes)
+    {
+        size_t extruder_nr = mesh->mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").settings.get<size_t>("extruder_nr");
+        meshes_per_extruder[extruder_nr]++;
+        if (meshes_per_extruder[extruder_nr] > 1)
+        {
+            logError("Currently too buggy to operate on multiple models! Each voxel needs to be associated to 2 meshes.");
+            std::exit(-1);
+        }
+    }
     
     const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
     std::vector<coord_t> line_width_per_extruder(extruder_count);
