@@ -14,6 +14,16 @@
 namespace cura 
 {
 
+// TODO make robust against if there's only 1 extruder
+
+// TODO: make dilation user parameter
+
+// TODO: option for different amount of dilation for shell removal
+
+// TODO: allow for multiple models on the same extruder:
+// dont add all patterns to each mesh. This leads to each mesh printing the interfaces of all other meshes.
+
+
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
     /*
@@ -31,37 +41,34 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
         logError("generateInterlockingStructure not implemented for >2 extruders!\n");
         return;
     }
-    std::vector<int> meshes_per_extruder(extruder_count);
-    for (Slicer* mesh : volumes)
+    if (volumes.size() > 2)
     {
-        size_t extruder_nr = mesh->mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").settings.get<size_t>("extruder_nr");
-        meshes_per_extruder[extruder_nr]++;
-        if (meshes_per_extruder[extruder_nr] > 1)
-        {
-            logError("Currently too buggy to operate on multiple models! Each voxel needs to be associated to 2 meshes.");
-            std::exit(-1);
-        }
+        logError("Currently too buggy to operate on multiple models! Each voxel needs to be associated to 2 meshes.");
+        std::exit(-1);
     }
-    
+
+
+
     const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
     std::vector<coord_t> line_width_per_extruder(extruder_count);
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         line_width_per_extruder[extruder_nr] = extruders[extruder_nr].settings.get<coord_t>("wall_line_width_0");
     }
-    float bulging_angle = 10.0 / 180 * M_PI;
-    coord_t cell_width;
-    if (bulging_angle == 0.0)
-    {
-        cell_width = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2;
-    }
-    else
-    {
-        cell_width = (line_width_per_extruder[0] + line_width_per_extruder[1]) * (1.0 + 1.0 / cos(bulging_angle)) / (1.0 - tan(bulging_angle));
-    }
+
+
+
+
+    // TODO: make settigns for these:
+    coord_t cell_width = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2 * 1.2;
+    coord_t bulge_straight = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 3 / 4;
+    const bool alternating_offset = cell_width > (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2;
+
+
+
+
+
     Point3 cell_size(cell_width, cell_width, 4 * Application::getInstance().current_slice->scene.settings.get<coord_t>("layer_height"));
-    // TODO make robust against if there's only 1 extruder
-    
     
     std::vector<coord_t> layer_heights;
     {
@@ -78,16 +85,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     
     PointMatrix rotation(45.0);
     
-    InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, bulging_angle);
-    
-    // TODO: make dilation user parameter
-    
-    // TODO: option for different amount of dilation for shell removal
-    
-    // TODO: allow for multiple models on the same extruder:
-    // dont add all patterns to each mesh. This leads to each mesh printing the interfaces of all other meshes.
-    
-    // TODO: implement bulging with straight pieces
+    InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, bulge_straight);
 
     DilationKernel interface_dilation(GridPoint3(2,2,4), true);
     std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
@@ -113,7 +111,6 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     }
 
     std::vector<std::vector<Polygons>> cell_area_per_extruder_per_layer;
-    const bool alternating_offset = bulging_angle > 0.0;
     gen.generateMicrostructure(cell_area_per_extruder_per_layer, alternating_offset);
 
     gen.applyMicrostructureToOutlines(has_all_extruders, cell_area_per_extruder_per_layer, layer_regions);
@@ -192,12 +189,15 @@ void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polyg
 {
     cell_area_per_extruder_per_layer.resize(alternating_offset? 4 : 2);
     cell_area_per_extruder_per_layer[0].resize(2);
-    if (bulging_angle == 0.0)
+    const coord_t line_w_sum = line_width_per_extruder[0] + line_width_per_extruder[1];
+    const coord_t middle = cell_size.x * line_width_per_extruder[0] / line_w_sum;
+    const coord_t width[2] = { middle, cell_size.x - middle };
+    if (cell_size.x <= (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2)
     {
         for (size_t extruder_nr : {0, 1})
         {
-            Point offset(extruder_nr? line_width_per_extruder[extruder_nr] * 2 : 0, 0);
-            Point area_size(line_width_per_extruder[extruder_nr] * 2, cell_size.x);
+            Point offset(extruder_nr? middle : 0, 0);
+            Point area_size(width[extruder_nr], cell_size.y);
 
             PolygonRef poly = cell_area_per_extruder_per_layer[0][extruder_nr].newPoly();
             poly.emplace_back(offset);
@@ -208,30 +208,51 @@ void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polyg
     }
     else
     {
-        coord_t h = cell_size.x / 4;
-        coord_t r = tan(bulging_angle) * h;
-        coord_t w = cell_size.x * line_width_per_extruder[0] / (line_width_per_extruder[0] + line_width_per_extruder[1]);
+        const coord_t h = cell_size.x / 4;
+        const coord_t r = (cell_size.x - line_w_sum * 2) / 4;
+        const coord_t& w = middle;
+        const coord_t s = bulge_straight / 2;
         {
             PolygonRef poly = cell_area_per_extruder_per_layer[0][0].newPoly();
             poly.emplace_back(0, 4*h);
-            poly.emplace_back(r, 3*h);
-            poly.emplace_back(-r, h);
+            poly.emplace_back(r, 3*h+s);
+            if (s > 0)
+            {
+                poly.emplace_back(r, 3*h-s);
+                poly.emplace_back(-r, h+s);
+            }
+            poly.emplace_back(-r, h-s);
             poly.emplace_back(0, 0);
             poly.emplace_back(w, 0);
-            poly.emplace_back(w+r, h);
-            poly.emplace_back(w-r, 3*h);
+            poly.emplace_back(w+r, h-s);
+            if (s > 0)
+            {
+                poly.emplace_back(w+r, h+s);
+                poly.emplace_back(w-r, 3*h-s);
+            }
+            poly.emplace_back(w-r, 3*h+s);
             poly.emplace_back(w, 4*h);
         }
         {
             PolygonRef poly = cell_area_per_extruder_per_layer[0][1].newPoly();
             coord_t e = cell_size.x;
             poly.emplace_back(w, 4*h);
-            poly.emplace_back(w-r, 3*h);
-            poly.emplace_back(w+r, h);
+            poly.emplace_back(w-r, 3*h+s);
+            if (s > 0)
+            {
+                poly.emplace_back(w-r, 3*h-s);
+                poly.emplace_back(w+r, h+s);
+            }
+            poly.emplace_back(w+r, h-s);
             poly.emplace_back(w, 0);
             poly.emplace_back(e, 0);
-            poly.emplace_back(e-r, h);
-            poly.emplace_back(e+r, 3*h);
+            poly.emplace_back(e-r, h-s);
+            if (s > 0)
+            {
+                poly.emplace_back(e-r, h+s);
+                poly.emplace_back(e+r, 3*h-s);
+            }
+            poly.emplace_back(e+r, 3*h+s);
             poly.emplace_back(e, 4*h);
         }
     }

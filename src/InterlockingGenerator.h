@@ -31,14 +31,14 @@ public:
     };
 
 protected:
-    InterlockingGenerator(std::vector<Slicer*>& volumes, std::vector<coord_t>& line_width_per_extruder, const std::vector<coord_t>& layer_heights, const PointMatrix& rotation, Point3 cell_size, float bulging_angle)
+    InterlockingGenerator(std::vector<Slicer*>& volumes, std::vector<coord_t>& line_width_per_extruder, const std::vector<coord_t>& layer_heights, const PointMatrix& rotation, Point3 cell_size, coord_t bulge_straight)
     : volumes(volumes)
     , line_width_per_extruder(line_width_per_extruder)
     , layer_heights(layer_heights)
     , vu(cell_size)
     , rotation(rotation)
     , cell_size(cell_size)
-    , bulging_angle(bulging_angle)
+    , bulge_straight(bulge_straight)
     {}
 
     std::vector<std::unordered_set<GridPoint3>> getShellVoxels(const DilationKernel& kernel);
@@ -60,7 +60,7 @@ protected:
 
     PointMatrix rotation;
     Point3 cell_size;
-    float bulging_angle;
+    coord_t bulge_straight;
 };
 
 }//namespace cura
