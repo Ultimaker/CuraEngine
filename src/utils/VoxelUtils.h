@@ -95,7 +95,17 @@ public:
         assert(dim < 3);
         return grid_coord * cell_size[dim];
     }
-    
+
+    Polygon toPolygon(const GridPoint3 p) const
+    {
+        Polygon ret;
+        Point3 c = toLowerCorner(p);
+        ret.emplace_back(c.x, c.y);
+        ret.emplace_back(c.x + cell_size.x, c.y);
+        ret.emplace_back(c.x + cell_size.x, c.y + cell_size.y);
+        ret.emplace_back(c.x, c.y + cell_size.y);
+        return ret;
+    }
     
 };
 
