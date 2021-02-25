@@ -78,8 +78,6 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     
     // TODO: option for different amount of dilation for shell removal
     
-    // TODO: cells on left side not being generated when filling areas for vertical interfaces.
-    
     // TODO: dont add all patterns to each mesh. This leads to each mesh printing the interfaces of all other meshes.
     
 
@@ -158,7 +156,7 @@ void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, cons
         {
             skin = skin.xorPolygons(layers[layer_nr - 1]);
         }
-        skin = skin.offset(-cell_size.x / 2); // remove superfluous small areas
+        skin = skin.offset(-cell_size.x / 2).offset(cell_size.x / 2); // remove superfluous small areas, which would anyway be included because of walkPolygons
         vu.walkDilatedAreas(skin, z, kernel, voxel_emplacer);
     }
 }

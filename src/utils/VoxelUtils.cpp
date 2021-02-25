@@ -115,10 +115,21 @@ bool VoxelUtils::walkDilatedPolygons(const Polygons& polys, coord_t z, const Dil
 
 bool VoxelUtils::walkAreas(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func)
 {
+    Polygons translated = polys;
+    const Point3 translation = - cell_size / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
+    if (translation.x && translation.y)
+    {
+        translated.translate(Point(translation.x, translation.y));
+    }
+    return _walkAreas(translated, z, process_cell_func);
+}
+
+bool VoxelUtils::_walkAreas(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func)
+{
     std::vector<Point> skin_points = PolygonUtils::spreadDotsArea(polys, cell_size.x);
     for (Point p : skin_points)
     {
-        bool continue_ = process_cell_func(toGridPoint(Point3(p.X, p.Y, z)));
+        bool continue_ = process_cell_func(toGridPoint(Point3(p.X + cell_size.x / 2, p.Y + cell_size.y / 2, z)));
         if ( ! continue_) return false;
     }
     return true;
@@ -127,12 +138,14 @@ bool VoxelUtils::walkAreas(const Polygons& polys, coord_t z, const std::function
 bool VoxelUtils::walkDilatedAreas(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func)
 {
     Polygons translated = polys;
-    const Point3 translation = (Point3(1,1,1) - kernel.kernel_size % 2) * cell_size / 2;
+    const Point3 translation = 
+        (Point3(1,1,1) - kernel.kernel_size % 2) * cell_size / 2 // offset half a cell when using a n even kernel
+        - cell_size / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
     if (translation.x && translation.y)
     {
         translated.translate(Point(translation.x, translation.y));
     }
-    return walkAreas(translated, z + translation.z, [&kernel, &process_cell_func, this](GridPoint3 cell) { return dilate(cell, kernel, process_cell_func); });
+    return _walkAreas(translated, z + translation.z, [&kernel, &process_cell_func, this](GridPoint3 cell) { return dilate(cell, kernel, process_cell_func); });
 }
 
 bool VoxelUtils::dilate(GridPoint3 loc, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func)
