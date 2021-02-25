@@ -83,7 +83,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     // TODO: dont add all patterns to each mesh. This leads to each mesh printing the interfaces of all other meshes.
     
 
-    DilationKernel interface_dilation(GridPoint3(1,1,1), true);
+    DilationKernel interface_dilation(GridPoint3(2,2,4), true);
     std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
 
     std::vector<Polygons> layer_regions(layer_heights.size());
@@ -207,16 +207,15 @@ void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polyg
         coord_t w = cell_size.x * line_width_per_extruder[0] / (line_width_per_extruder[0] + line_width_per_extruder[1]);
         {
             PolygonRef poly = cell_area_per_extruder_per_layer[0][0].newPoly();
-            poly.emplace_back(w, 0);
-            poly.emplace_back(w+r, h);
-            poly.emplace_back(w-r, 3*h);
-            poly.emplace_back(w, 4*h);
             poly.emplace_back(0, 4*h);
             poly.emplace_back(r, 3*h);
             poly.emplace_back(-r, h);
             poly.emplace_back(0, 0);
+            poly.emplace_back(w, 0);
+            poly.emplace_back(w+r, h);
+            poly.emplace_back(w-r, 3*h);
+            poly.emplace_back(w, 4*h);
         }
-        if (false)
         {
             PolygonRef poly = cell_area_per_extruder_per_layer[0][1].newPoly();
             coord_t e = cell_size.x;
