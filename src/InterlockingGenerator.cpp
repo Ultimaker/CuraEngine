@@ -80,17 +80,14 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     
     InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, bulging_angle);
     
-    // TODO: implement lesser dilation based on translated polygons
     // TODO: make dilation user parameter
-    
-    // TODO: adjust voxel height to 2x layer height? or 4x? make adjustable?
-    
-    // TODO: implement oscillating fingers
     
     // TODO: option for different amount of dilation for shell removal
     
-    // TODO: dont add all patterns to each mesh. This leads to each mesh printing the interfaces of all other meshes.
+    // TODO: allow for multiple models on the same extruder:
+    // dont add all patterns to each mesh. This leads to each mesh printing the interfaces of all other meshes.
     
+    // TODO: implement bulging with straight pieces
 
     DilationKernel interface_dilation(GridPoint3(2,2,4), true);
     std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
