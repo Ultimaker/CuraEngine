@@ -56,6 +56,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
         line_width_per_extruder[extruder_nr] = extruders[extruder_nr].settings.get<coord_t>("wall_line_width_0");
     }
 
+    coord_t layer_height = Application::getInstance().current_slice->scene.settings.get<coord_t>("layer_height");
 
 
 
@@ -63,12 +64,13 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     coord_t cell_width = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2 * 1.2;
     coord_t bulge_straight = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 3 / 4;
     const bool alternating_offset = cell_width > (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2;
+    coord_t beam_layer_count = round_divide((line_width_per_extruder[0] + line_width_per_extruder[1]) * 2 / 3, layer_height);
 
 
 
 
 
-    Point3 cell_size(cell_width, cell_width, 4 * Application::getInstance().current_slice->scene.settings.get<coord_t>("layer_height"));
+    Point3 cell_size(cell_width, cell_width, 4 * beam_layer_count * layer_height);
     
     std::vector<coord_t> layer_heights;
     {
@@ -85,7 +87,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     
     PointMatrix rotation(45.0);
     
-    InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, bulge_straight);
+    InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, bulge_straight, beam_layer_count);
 
     DilationKernel interface_dilation(GridPoint3(2,2,4), DilationKernel::Type::PRISM);
     std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
@@ -304,8 +306,8 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
                 if (z < bottom_corner.z) continue;
                 if (z > bottom_corner.z + cell_size.z) break;
 
-                Polygons areas_here = cell_area_per_extruder_per_layer[layer_nr % cell_area_per_extruder_per_layer.size()][extruder_nr];
-                Polygons areas_other = cell_area_per_extruder_per_layer[layer_nr % cell_area_per_extruder_per_layer.size()][ ! extruder_nr];
+                Polygons areas_here = cell_area_per_extruder_per_layer[(layer_nr / beam_layer_count) % cell_area_per_extruder_per_layer.size()][extruder_nr];
+                Polygons areas_other = cell_area_per_extruder_per_layer[(layer_nr / beam_layer_count) % cell_area_per_extruder_per_layer.size()][ ! extruder_nr];
 
                 areas_here.translate(Point(bottom_corner.x, bottom_corner.y));
                 areas_other.translate(Point(bottom_corner.x, bottom_corner.y));
