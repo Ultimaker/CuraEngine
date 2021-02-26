@@ -651,6 +651,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     constexpr double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
     constexpr int infill_multiplier = 1; // rafts use single lines
     constexpr int extra_infill_shift = 0;
+    coord_t max_resolution = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings.get<coord_t>("meshfix_maximum_deviation");
+
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
     std::optional<Point> last_planned_position = std::optional<Point>();
 
@@ -678,7 +681,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
         Polygons wall = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_base_config.getLineWidth() / 2);
-        wall.simplify(); //Simplify because of a micron-movement created in corners when insetting a polygon that was offset with round joint type.
+        wall.simplify(max_resolution, max_deviation); //Simplify because of a micron-movement created in corners when insetting a polygon that was offset with round joint type.
         gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.raft_base_config);
 
         Polygons raftLines;
@@ -698,6 +701,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Infill infill_comp(
             EFillMethod::LINES, zig_zaggify_infill, connect_polygons, wall, offset_from_poly_outline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train.settings.get<coord_t>("raft_base_line_spacing"),
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
+            max_resolution, max_deviation,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         infill_comp.generate(raft_polygons, raftLines);
@@ -759,6 +763,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Infill infill_comp(
             EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, offset_from_poly_outline, infill_outline_width, train.settings.get<coord_t>("raft_interface_line_spacing"),
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
+            max_resolution, max_deviation,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         infill_comp.generate(raft_polygons, raftLines);
@@ -793,10 +798,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
-        const coord_t maximum_resolution = train.settings.get<coord_t>("meshfix_maximum_resolution");
-        const coord_t maximum_deviation = train.settings.get<coord_t>("meshfix_maximum_deviation");
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        raft_outline_path.simplify(maximum_resolution, maximum_deviation); //Remove those micron-movements.
+        raft_outline_path.simplify(); //Remove those micron-movements.
         constexpr coord_t infill_outline_width = 0;
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
@@ -816,6 +819,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Infill infill_comp(
             EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, offset_from_poly_outline, infill_outline_width, train.settings.get<coord_t>("raft_surface_line_spacing"),
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
+            max_resolution, max_deviation,
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         infill_comp.generate(raft_polygons, raft_lines);
@@ -1418,7 +1422,8 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
     {
         return false;
     }
-
+    coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
     if (!mesh.infill_angles.empty())
@@ -1458,7 +1463,9 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
             constexpr size_t zag_skip_count = 0;
 
             Infill infill_comp(infill_pattern, zig_zaggify_infill, connect_polygons, part.infill_area_per_combine_per_density[density_idx][combine_idx], /*outline_offset =*/ 0
-                , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin
+                , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift
+                , max_resolution, max_deviation
+                , wall_line_count, infill_origin
                 , perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count
                 , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
             infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
@@ -1495,8 +1502,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     {
         return false;
     }
-    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
-    if (infill_line_distance == 0 || part.infill_area_per_combine_per_density[0].size() == 0)
+    const auto infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
+    if (infill_line_distance == 0 || part.infill_area_per_combine_per_density[0].empty())
     {
         return false;
     }
@@ -1507,12 +1514,16 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     Polygons infill_polygons;
     Polygons infill_lines;
 
-    const EFillMethod pattern = mesh.settings.get<EFillMethod>("infill_pattern");
-    const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
-    const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
-    const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
-    const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
-    const size_t wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
+    const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
+
+    const auto pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+    const auto zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
+    const auto connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
+    const auto infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
+    const auto infill_multiplier = (zig_zaggify_infill && last_idx != 0) ? 1 : mesh.settings.get<size_t>("infill_multiplier");
+    const auto wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
+    const auto max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
     if (mesh.infill_angles.size() > 0)
     {
@@ -1521,180 +1532,111 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     }
     const Point3 mesh_middle = mesh.bounding_box.getMiddle();
     const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
-    for (unsigned int density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
-    {
-        int infill_line_distance_here = infill_line_distance << (density_idx + 1); // the highest density infill combines with the next to create a grid with density_factor 1
-        int infill_shift = infill_line_distance_here / 2;
-        // infill shift explanation: [>]=shift ["]=line_dist
-// :       |       :       |       :       |       :       |         > furthest from top
-// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
-// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
-// >>"""""
-// :       |       :       |       :       |       :       |         > furthest from top
-// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
-// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
-// >>>>"""""""""
-// :       |       :       |       :       |       :       |         > furthest from top
-// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
-// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
-// >>>>>>>>"""""""""""""""""
 
-        if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D)
+    auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
+    {
+      if (zig_zaggify)
+      {
+          return - line_width / 2 - static_cast<coord_t>(line_count) * line_width - 5;
+      }
+      else
+      {
+          return - static_cast<coord_t>(line_count) * line_width;
+      }
+    };
+
+    Polygons sparse_in_outline = part.infill_area_per_combine_per_density[last_idx][0];
+
+    // if infill walls are required below the boundaries of skin regions above, partition the infill along the
+    // boundary edge
+    Polygons infill_below_skin;
+    Polygons infill_not_below_skin;
+    const bool hasSkinEdgeSupport = partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
+
+    const auto pocket_size = mesh.settings.get<coord_t>("cross_infill_pocket_size");
+    constexpr coord_t outline_offset = 0;
+    constexpr Polygons* perimeter_gaps = nullptr;
+    constexpr bool connected_zigzags = false;
+    constexpr bool use_endpieces = false;
+    constexpr bool skip_some_zags = false;
+    constexpr int zag_skip_count = 0;
+
+    for (size_t density_idx = last_idx; static_cast<int>(density_idx) >= 0; density_idx--)
+    {
+        // Only process dense areas when they're initialized
+        if (part.infill_area_per_combine_per_density[density_idx][0].empty())
+        {
+            continue;
+        }
+
+        Polygons infill_lines_here;
+        Polygons infill_polygons_here;
+
+        // the highest density infill combines with the next to create a grid with density_factor 1
+        int infill_line_distance_here = infill_line_distance << (density_idx + 1);
+        int infill_shift = infill_line_distance_here / 2;
+
+        /* infill shift explanation: [>]=shift ["]=line_dist
+
+         :       |       :       |       :       |       :       |         > furthest from top
+         :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+         : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+         >>"""""
+         :       |       :       |       :       |       :       |         > furthest from top
+         :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+         : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+         >>>>"""""""""
+         :       |       :       |       :       |       :       |         > furthest from top
+         :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+         : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+         >>>>>>>>"""""""""""""""""
+         */
+
+        if (density_idx == last_idx || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D)
         { // the least dense infill should fill up all remaining gaps
-// :       |       :       |       :       |       :       |       :  > furthest from top
-// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |   :  > further from top
-// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | | :  > near top
-//   .   .     .       .           .               .       .       .
-//   :   :     :       :           :               :       :       :
-//   `"""'     `"""""""'           `"""""""""""""""'       `"""""""'
-//                                                             ^   new line distance for lowest density infill
-//                                       ^ infill_line_distance_here for lowest density infill up till here
-//                 ^ middle density line dist
-//     ^   highest density line dist
-            
-            //All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2 for every density index.
+        /*
+         :       |       :       |       :       |       :       |       :  > furthest from top
+         :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |   :  > further from top
+         : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | | :  > near top
+           .   .     .       .           .               .       .       .
+           :   :     :       :           :               :       :       :
+           `"""'     `"""""""'           `"""""""""""""""'       `"""""""'
+                                                                     ^   new line distance for lowest density infill
+                                               ^ infill_line_distance_here for lowest density infill up till here
+                         ^ middle density line dist
+             ^   highest density line dist
+        */
+
+            //All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2.
             infill_line_distance_here /= 2;
         }
 
         Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
 
-        // if infill walls are required below the boundaries of skin regions above, partition the infill along the boundary edge
-
-        size_t skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
-        if (skin_edge_support_layers > 0)
+        if (hasSkinEdgeSupport)
         {
-            Polygons skin_above_combined;  // skin regions on the layers above combined with small gaps between
-
-            constexpr coord_t tiny_infill_offset = 20;
-
-            // working from the highest layer downwards, combine the regions of skin on all the layers but don't let the regions merge together
-            // otherwise "terraced" skin regions on separate layers will look like a single region of unbroken skin
-
-            for (size_t i = skin_edge_support_layers; i > 0; --i)
+            // infill region with skin above has to have at least one infill wall line
+            const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
+            const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
+            Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin, outline_offset,
+                               infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier,
+                               infill_angle, gcode_layer.z, infill_shift, max_resolution, max_deviation, skin_below_wall_count, infill_origin,
+                               perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count,
+                               pocket_size);
+            infill_comp.generate(infill_polygons, infill_lines_here, mesh.cross_fill_provider, &mesh);
+            if (density_idx < last_idx)
             {
-                const size_t skin_layer_nr = gcode_layer.getLayerNr() + i;
-                if (skin_layer_nr < mesh.layers.size())
-                {
-                    for (const SliceLayerPart& part : mesh.layers[skin_layer_nr].parts)
-                    {
-                        for (const SkinPart& skin_part : part.skin_parts)
-                        {
-                            if (skin_above_combined.size())
-                            {
-                                // does this skin part overlap with any of the skin parts on the layers above?
-                                const Polygons overlap = skin_above_combined.intersection(skin_part.outline);
-                                if (overlap.size())
-                                {
-                                    // yes, it overlaps, need to leave a gap between this skin part and the others
-                                    if (i > 1)
-                                    {
-                                        // this layer is the 2nd or higher layer above the layer whose infill we're printing
-
-                                        // looking from the side, if the combined regions so far look like this...
-                                        //
-                                        //     ----------------------------------
-                                        //
-                                        // and the new skin part looks like this...
-                                        //
-                                        //             -------------------------------------
-                                        //
-                                        // the result should be like this...
-                                        //
-                                        //     ------- -------------------------- ----------
-
-                                        // expand the overlap region slightly to make a small gap
-                                        const Polygons overlap_expanded = overlap.offset(tiny_infill_offset);
-                                        // subtract the expanded overlap region from the regions accumulated from higher layers
-                                        skin_above_combined = skin_above_combined.difference(overlap_expanded);
-                                        // subtract the expanded overlap region from this skin part and add the remainder to the overlap region
-                                        skin_above_combined.add(skin_part.outline.difference(overlap_expanded));
-                                        // and add the overlap area as well
-                                        skin_above_combined.add(overlap);
-                                    }
-                                    else
-                                    {
-                                        // this layer is the 1st layer above the layer whose infill we're printing
-
-                                        // add this layer's skin region without subtracting the overlap but still make a gap between this
-                                        // skin region and what has been accumulated so far
-                                        // we do this so that these skin region edges will definitely have infill walls below them
-
-                                        // looking from the side, if the combined regions so far look like this...
-                                        //
-                                        //     ----------------------------------
-                                        //
-                                        // and the new skin part looks like this...
-                                        //
-                                        //             -------------------------------------
-                                        //
-                                        // the result should be like this...
-                                        //
-                                        //     ------- -------------------------------------
-
-                                        skin_above_combined = skin_above_combined.difference(skin_part.outline.offset(tiny_infill_offset));
-                                        skin_above_combined.add(skin_part.outline);
-                                    }
-                                }
-                                else
-                                {
-                                    // no overlap
-                                    skin_above_combined.add(skin_part.outline);
-                                }
-                            }
-                            else
-                            {
-                                // this is the first skin region we have looked at
-                                skin_above_combined.add(skin_part.outline);
-                            }
-                        }
-                    }
-                }
+                const coord_t cut_offset =
+                    get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
+                Polygons tool = infill_below_skin.offset(static_cast<int>(cut_offset));
+                infill_lines_here.cut(tool);
             }
-
-            // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls
-            // otherwise the infill walls could merge and form a bump
-            Polygons infill_below_skin = skin_above_combined.intersection(in_outline).offset(-infill_line_width).offset(infill_line_width);
-
-            constexpr double min_area_multiplier = 25;
-            const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
-            constexpr bool remove_small_holes_from_infill_below_skin = true;
-
-            infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
-
-            if (infill_below_skin.size())
+            infill_lines.add(infill_lines_here);
+            // normal processing for the infill that isn't below skin
+            in_outline = infill_not_below_skin;
+            if (density_idx == last_idx)
             {
-                // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
-                const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
-
-                if (infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset)).size())
-                {
-                    // there is infill below skin, is there also infill that isn't below skin?
-                    Polygons infill_not_below_skin = in_outline.difference(infill_below_skin);
-                    infill_not_below_skin.removeSmallAreas(min_area);
-
-                    if (infill_not_below_skin.size())
-                    {
-                        constexpr Polygons* perimeter_gaps = nullptr;
-                        constexpr bool connected_zigzags = false;
-                        constexpr bool use_endpieces = false;
-                        constexpr bool skip_some_zags = false;
-                        constexpr int zag_skip_count = 0;
-
-                        // infill region with skin above has to have at least one infill wall line
-                        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin, /*outline_offset =*/ 0
-                            , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, std::max(1, (int)wall_line_count), infill_origin
-                            , perimeter_gaps
-                            , connected_zigzags
-                            , use_endpieces
-                            , skip_some_zags
-                            , zag_skip_count
-                            , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-                        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
-
-                        // normal processing for the infill that isn't below skin
-                        in_outline = infill_not_below_skin;
-                    }
-                }
+                sparse_in_outline = infill_not_below_skin;
             }
         }
 
@@ -1702,23 +1644,30 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         //Originally an area of 0.4*0.4*2 (2 line width squares) was found to be a good threshold for removal.
         //However we found that this doesn't scale well with polygons with larger circumference (https://github.com/Ultimaker/Cura/issues/3992).
         //Given that the original test worked for approximately 2x2cm models, this scaling by circumference should make it work for any size.
-        const double minimum_small_area = 0.4 * 0.4 * circumference / 40000;
+        constexpr double minimum_small_area_factor = 0.4 * 0.4 / 40000;
+        const double minimum_small_area = minimum_small_area_factor * circumference;
         
         // This is only for density infill, because after generating the infill might appear unnecessary infill on walls
         // especially on vertical surfaces
         in_outline.removeSmallAreas(minimum_small_area);
-        
-        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, /*outline_offset =*/ 0
-            , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, wall_line_count, infill_origin
-            , /*Polygons* perimeter_gaps =*/ nullptr
-            , /*bool connected_zigzags =*/ false
-            , /*bool use_endpieces =*/ false
-            , /*bool skip_some_zags =*/ false
-            , /*int zag_skip_count =*/ 0
-            , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-        infill_comp.generate(infill_polygons, infill_lines, mesh.cross_fill_provider, &mesh);
+        const size_t wall_line_count_here = (density_idx < last_idx) ? 0 : wall_line_count;
+
+        Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, outline_offset, infill_line_width,
+                           infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z,
+                           infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin, perimeter_gaps, connected_zigzags,
+                           use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
+        infill_comp.generate(infill_polygons_here, infill_lines_here, mesh.cross_fill_provider, &mesh);
+        if (density_idx < last_idx)
+        {
+            const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
+            Polygons tool = sparse_in_outline.offset(static_cast<int>(cut_offset));
+            infill_lines_here.cut(tool);
+        }
+        infill_lines.add(infill_lines_here);
+        infill_polygons.add(infill_polygons_here);
     }
-    if (infill_lines.size() > 0 || infill_polygons.size() > 0)
+
+    if (! infill_lines.empty() || ! infill_polygons.empty())
     {
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
@@ -1727,7 +1676,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         if (mesh.settings.get<bool>("infill_randomize_start_location"))
         {
             srand(gcode_layer.getLayerNr());
-            if(!infill_lines.empty())
+            if(! infill_lines.empty())
             {
                 near_start_location = infill_lines[rand() % infill_lines.size()][0];
             }
@@ -1737,7 +1686,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                 near_start_location = start_poly[rand() % start_poly.size()];
             }
         }
-        if (!infill_polygons.empty())
+        if (! infill_polygons.empty())
         {
             constexpr bool force_comb_retract = false;
             // start the infill polygons at the nearest vertex to the current location
@@ -1758,6 +1707,108 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         }
     }
     return added_something;
+}
+
+bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Polygons& infill_not_below_skin, const LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const SliceLayerPart& part, coord_t infill_line_width)
+{
+    constexpr coord_t tiny_infill_offset = 20;
+    const auto skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
+    Polygons skin_above_combined;  // skin regions on the layers above combined with small gaps between
+
+    // working from the highest layer downwards, combine the regions of skin on all the layers
+    // but don't let the regions merge together
+    // otherwise "terraced" skin regions on separate layers will look like a single region of unbroken skin
+    for (size_t i = skin_edge_support_layers; i > 0; --i)
+    {
+        const size_t skin_layer_nr = gcode_layer.getLayerNr() + i;
+        if (skin_layer_nr < mesh.layers.size())
+        {
+            for (const SliceLayerPart& part : mesh.layers[skin_layer_nr].parts)
+            {
+                for (const SkinPart& skin_part : part.skin_parts)
+                {
+                    if (! skin_above_combined.empty())
+                    {
+                        // does this skin part overlap with any of the skin parts on the layers above?
+                        const Polygons overlap = skin_above_combined.intersection(skin_part.outline);
+                        if (! overlap.empty())
+                        {
+                            // yes, it overlaps, need to leave a gap between this skin part and the others
+                            if (i > 1) // this layer is the 2nd or higher layer above the layer whose infill we're printing
+                            {
+                                // looking from the side, if the combined regions so far look like this...
+                                //
+                                //     ----------------------------------
+                                //
+                                // and the new skin part looks like this...
+                                //
+                                //             -------------------------------------
+                                //
+                                // the result should be like this...
+                                //
+                                //     ------- -------------------------- ----------
+
+                                // expand the overlap region slightly to make a small gap
+                                const Polygons overlap_expanded = overlap.offset(tiny_infill_offset);
+                                // subtract the expanded overlap region from the regions accumulated from higher layers
+                                skin_above_combined = skin_above_combined.difference(overlap_expanded);
+                                // subtract the expanded overlap region from this skin part and add the remainder to the overlap region
+                                skin_above_combined.add(skin_part.outline.difference(overlap_expanded));
+                                // and add the overlap area as well
+                                skin_above_combined.add(overlap);
+                            }
+                            else // this layer is the 1st layer above the layer whose infill we're printing
+                            {
+                                // add this layer's skin region without subtracting the overlap but still make a gap between this skin region and what has been accumulated so far
+                                // we do this so that these skin region edges will definitely have infill walls below them
+
+                                // looking from the side, if the combined regions so far look like this...
+                                //
+                                //     ----------------------------------
+                                //
+                                // and the new skin part looks like this...
+                                //
+                                //             -------------------------------------
+                                //
+                                // the result should be like this...
+                                //
+                                //     ------- -------------------------------------
+
+                                skin_above_combined = skin_above_combined.difference( skin_part.outline.offset(tiny_infill_offset));
+                                skin_above_combined.add(skin_part.outline);
+                            }
+                        }
+                        else // no overlap
+                        {
+                            skin_above_combined.add(skin_part.outline);
+                        }
+                    }
+                    else // this is the first skin region we have looked at
+                    {
+                        skin_above_combined.add(skin_part.outline);
+                    }
+                }
+            }
+        }
+
+        // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls otherwise the infill walls could merge and form a bump
+        infill_below_skin =  skin_above_combined.intersection(part.infill_area_per_combine_per_density.back().front()).offset(-infill_line_width).offset(infill_line_width);
+
+        constexpr bool remove_small_holes_from_infill_below_skin = true;
+        constexpr double min_area_multiplier = 25;
+        const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
+        infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
+
+        // there is infill below skin, is there also infill that isn't below skin?
+        infill_not_below_skin = part.infill_area_per_combine_per_density.back().front().difference(infill_below_skin);
+        infill_not_below_skin.removeSmallAreas(min_area);
+    }
+
+    // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
+    const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
+    const Polygons infill_below_skin_overlap = infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset));
+
+    return ! infill_below_skin_overlap.empty() && ! infill_not_below_skin.empty();
 }
 
 void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh) const
@@ -2089,10 +2140,13 @@ void FffGcodeWriter::processOutlineGaps(const SliceDataStorage& storage, LayerPl
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
+    coord_t max_resolution = 10; // we dont need to simplify line based infill
+    coord_t max_deviation = 5;
 
     Infill infill_comp(
-        EFillMethod::LINES, zig_zaggify_infill, connect_polygons, part.outline_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, outline_gap_overlap, infill_multiplier, skin_angle, gcode_layer.z, extra_infill_shift,
-        wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
+        EFillMethod::LINES, zig_zaggify_infill, connect_polygons, part.outline_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, outline_gap_overlap, infill_multiplier, skin_angle, gcode_layer.z, extra_infill_shift
+        , max_resolution, max_deviation
+        , wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
         );
     infill_comp.generate(gap_polygons, gap_lines);
 
@@ -2111,8 +2165,9 @@ bool FffGcodeWriter::processSkinAndPerimeterGaps(const SliceDataStorage& storage
     const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
     const size_t roofing_extruder_nr = mesh.settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr;
     const size_t wall_0_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
+    const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
     if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr
-        && (extruder_nr != roofing_extruder_nr || mesh.settings.get<size_t>("roofing_layer_count") <= 0))
+        && (extruder_nr != roofing_extruder_nr || roofing_layer_count <= 0))
     {
         return false;
     }
@@ -2403,6 +2458,8 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     constexpr coord_t offset_from_inner_skin_infill = 0;
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = mesh.settings.get<bool>("connect_skin_polygons");
+    coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const Point infill_origin;
     constexpr bool connected_zigzags = false;
     constexpr bool use_endpieces = true;
@@ -2411,7 +2468,9 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     constexpr coord_t pocket_size = 0;
 
     Infill infill_comp(
-        pattern, zig_zaggify_infill, connect_polygons, area, offset_from_inner_skin_infill, config.getLineWidth(), config.getLineWidth() / skin_density, skin_overlap, infill_multiplier, skin_angle, gcode_layer.z, extra_infill_shift, wall_line_count, infill_origin, perimeter_gaps_output,
+        pattern, zig_zaggify_infill, connect_polygons, area, offset_from_inner_skin_infill, config.getLineWidth(), config.getLineWidth() / skin_density, skin_overlap, infill_multiplier, skin_angle, gcode_layer.z, extra_infill_shift
+        , max_resolution, max_deviation
+        , wall_line_count, infill_origin, perimeter_gaps_output,
         connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
         );
     infill_comp.generate(skin_polygons, skin_lines);
@@ -2475,10 +2534,13 @@ void FffGcodeWriter::processPerimeterGaps(const SliceDataStorage& storage, Layer
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
+    coord_t max_resolution = 10; // we don't need to simplify line based infill
+    coord_t max_deviation = 5;
 
     Infill infill_comp(
-        EFillMethod::LINES, zig_zaggify_infill, connect_polygons, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, infill_multiplier, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift,
-        wall_line_count, infill_origin, perimeter_gaps_polyons, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
+        EFillMethod::LINES, zig_zaggify_infill, connect_polygons, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, infill_multiplier, perimeter_gaps_angle, gcode_layer.z, extra_infill_shift
+        , max_resolution, max_deviation
+        , wall_line_count, infill_origin, perimeter_gaps_polyons, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
     infill_comp.generate(gap_polygons, gap_lines);
     if (gap_lines.size() > 0)
     {
@@ -2574,6 +2636,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
     constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
     constexpr size_t wall_line_count = 0;
+    coord_t max_resolution = infill_extruder.settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = infill_extruder.settings.get<coord_t>("meshfix_maximum_deviation");
     coord_t default_support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
     if (gcode_layer.getLayerNr() == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
@@ -2664,7 +2728,9 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr coord_t pocket_size = 0;
 
                 Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, support_area_offset > 0 ? support_area_with_offset : support_area, offset_from_outline, support_line_width,
-                                   support_line_distance_here, current_support_infill_overlap, infill_multiplier, support_infill_angle, gcode_layer.z, support_shift, wall_line_count, infill_origin,
+                                   support_line_distance_here, current_support_infill_overlap, infill_multiplier, support_infill_angle, gcode_layer.z, support_shift
+                                   , max_resolution, max_deviation
+                                   , wall_line_count, infill_origin,
                                    perimeter_gaps, infill_extruder.settings.get<bool>("support_connect_zigzags"), use_endpieces,
                                    skip_some_zags, zag_skip_count, pocket_size);
                 infill_comp.generate(support_polygons, support_lines, storage.support.cross_fill_provider);
@@ -2735,6 +2801,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr bool skip_some_zags = false;
     constexpr size_t zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
+    const coord_t max_resolution = roof_extruder.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = roof_extruder.settings.get<coord_t>("meshfix_maximum_deviation");
 
     coord_t support_roof_line_distance = roof_extruder.settings.get<coord_t>("support_roof_line_distance");
     const coord_t support_roof_line_width = roof_extruder.settings.get<coord_t>("support_roof_line_width");
@@ -2754,8 +2822,9 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
 
     Infill roof_computation(
         pattern, zig_zaggify_infill, connect_polygons, infill_outline, outline_offset, gcode_layer.configs_storage.support_roof_config.getLineWidth(),
-        support_roof_line_distance, support_roof_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
-        wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
+        support_roof_line_distance, support_roof_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift
+        , max_resolution, max_deviation
+        , wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
         );
     Polygons roof_polygons;
     Polygons roof_lines;
@@ -2817,12 +2886,15 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
+    const coord_t max_resolution = bottom_extruder.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = bottom_extruder.settings.get<coord_t>("meshfix_maximum_deviation");
 
     const coord_t support_bottom_line_distance = bottom_extruder.settings.get<coord_t>("support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
     Infill bottom_computation(
         pattern, zig_zaggify_infill, connect_polygons, support_layer.support_bottom, outline_offset, gcode_layer.configs_storage.support_bottom_config.getLineWidth(),
-        support_bottom_line_distance, support_bottom_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
-        wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
+        support_bottom_line_distance, support_bottom_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift
+        , max_resolution, max_deviation
+        , wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
         );
     Polygons bottom_polygons;
     Polygons bottom_lines;

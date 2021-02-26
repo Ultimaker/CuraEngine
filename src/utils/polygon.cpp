@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "polygon.h"
@@ -83,7 +83,7 @@ bool Polygons::empty() const
 
 Polygons Polygons::approxConvexHull(int extra_outset)
 {
-    constexpr int overshoot = 100000; //10cm (hard-coded value).
+    constexpr int overshoot = MM2INT(100); //10cm (hard-coded value).
 
     Polygons convex_hull;
     //Perform the offset for each polygon one at a time.
@@ -247,6 +247,20 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines) const
     Polygons ret;
     ret.addPolyTreeNodeRecursive(result);
     return ret;
+}
+
+Polygons& Polygons::cut(const Polygons& tool)
+{
+    ClipperLib::PolyTree interior_segments_tree;
+    tool.lineSegmentIntersection(*this, interior_segments_tree);
+    ClipperLib::Paths interior_segments;
+    ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
+    this->clear();
+    for (const std::vector<ClipperLib::IntPoint>& interior_segment : interior_segments)
+    {
+        this->addLine(interior_segment[0], interior_segment[1]);
+    }
+    return *this;
 }
 
 coord_t Polygons::polyLineLength() const

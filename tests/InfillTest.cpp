@@ -116,6 +116,8 @@ namespace cura
     const AngleDegrees fill_angle = 0.;
     constexpr coord_t z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
     constexpr coord_t shift = 0;
+    constexpr coord_t max_resolution = 10;
+    constexpr coord_t max_deviation = 5;
     const std::vector<std::string> polygon_filenames =
     {
         "../tests/resources/polygon_concave.txt",
@@ -164,7 +166,9 @@ namespace cura
             infill_multiplier,
             fill_angle,
             z,
-            shift
+            shift,
+            max_resolution,
+            max_deviation
         ); // There are some optional parameters, but these will do for now (future improvement?).
 
         Polygons result_polygons;

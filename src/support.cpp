@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt, round
@@ -126,13 +126,16 @@ void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
 
 void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage)
 {
+    coord_t max_resolution = Application::getInstance().current_slice->scene.settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = Application::getInstance().current_slice->scene.settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings.get<coord_t>("meshfix_maximum_deviation");
+
     // at this stage, the outlines are final, and we can generate insets and infill area
     for (SupportLayer& support_layer : storage.support.supportLayers)
     {
         for (std::vector<SupportInfillPart>::iterator part_itr = support_layer.support_infill_parts.begin(); part_itr != support_layer.support_infill_parts.end();)
         {
             SupportInfillPart& part = *part_itr;
-            const bool is_not_empty_part = part.generateInsetsAndInfillAreas();
+            const bool is_not_empty_part = part.generateInsetsAndInfillAreas(max_resolution, max_deviation);
             if (!is_not_empty_part)
             {
                 part_itr = support_layer.support_infill_parts.erase(part_itr);
@@ -427,7 +430,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 }
 
 
-void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x)
+void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x, const coord_t max_resolution, const coord_t max_deviation)
 {
     for (unsigned int inset_idx = 0; inset_idx < inset_count; inset_idx++)
     {
@@ -442,7 +445,7 @@ void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons&
         }
 
         // optimize polygons: remove unnecessary verts
-        insets[inset_idx].simplify();
+        insets[inset_idx].simplify(max_resolution, max_deviation);
         if (insets[inset_idx].size() < 1)
         {
             insets.pop_back();
@@ -1348,7 +1351,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 //     Polygons overhang =  basic_overhang.unionPolygons(support_extension);
 //         presumably the computation above is slower than the one below
 
-    Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 100); // +100 for easier joining with support from layer above
+    Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
     Polygons full_overhang = overhang_extented.intersection(supportLayer_supportee);
     return std::make_pair(basic_overhang, full_overhang);
 }

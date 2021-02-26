@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
@@ -709,7 +709,7 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
         return;
     }
 
-    int equilibirum_limit = 100; // hard coded value
+    int equilibirum_limit = MM2INT(0.1); // hard coded value
     for (int loop_counter = 0; loop_counter < equilibirum_limit; loop_counter++)
     {
         unsigned int pos1_before = poly1_result.point_idx;
@@ -1058,7 +1058,7 @@ bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, ConstPolyg
             if (shorterThen(pn, 100)) // when precision is limited
             {
                 Point middle = (next_poly_point + prev_poly_point) / 2;
-                int64_t dist_to_middle = vSize(from - middle);
+                coord_t dist_to_middle = vSize(from - middle);
                 if (dist_to_middle - dist < 100 && dist_to_middle - dist > -100)
                 {
                     result.location = middle;

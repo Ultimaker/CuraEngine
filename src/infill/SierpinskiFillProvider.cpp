@@ -76,7 +76,7 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
         depth += 2;
     }
     const float half_sqrt2 = .5 * sqrt2;
-    if (aabb_size * half_sqrt2 >= max_side_length)
+    if (depth > 0 && aabb_size * half_sqrt2 >= max_side_length)
     {
         aabb_size *= half_sqrt2;
         depth--;
@@ -84,6 +84,7 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
 
     Point radius(aabb_size / 2, aabb_size / 2);
     AABB aabb(model_middle - radius, model_middle + radius);
+
     return FractalConfig{depth, aabb};
 }
 

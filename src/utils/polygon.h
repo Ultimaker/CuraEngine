@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_H
@@ -466,7 +466,7 @@ public:
      * \param smallest_line_segment_squared maximal squared length of removed line segments
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
-    void simplify(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25);
+    void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
 
     void pop_back()
     { 
@@ -781,6 +781,13 @@ public:
         clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
         clipper.Execute(ClipperLib::ctIntersection, segment_tree);
     }
+
+    /*!
+     * Cut this polygon using an other polygon as a tool
+     * \param tool a closed polygon serving as boundary
+     */
+    Polygons& cut(const Polygons& tool);
+
     Polygons xorPolygons(const Polygons& other) const
     {
         Polygons ret;

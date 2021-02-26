@@ -83,7 +83,7 @@ public:
 
     Point3 toPoint3()
     {
-        return Point3(x*1000, y*1000, z*1000);
+        return Point3(MM2INT(x), MM2INT(y), MM2INT(z));
     }
 };
 
