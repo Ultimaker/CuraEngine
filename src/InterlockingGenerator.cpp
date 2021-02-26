@@ -87,7 +87,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     
     InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, bulge_straight);
 
-    DilationKernel interface_dilation(GridPoint3(2,2,4), true);
+    DilationKernel interface_dilation(GridPoint3(2,2,4), DilationKernel::Type::PRISM);
     std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
 
     std::vector<Polygons> layer_regions(layer_heights.size());
@@ -100,7 +100,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     constexpr bool air_filtering = false;
     if (air_filtering)
     {
-        DilationKernel air_dilation(GridPoint3(1,1,1), true);
+        DilationKernel air_dilation(GridPoint3(1,1,1), DilationKernel::Type::PRISM);
         std::unordered_set<GridPoint3> air_cells;
         gen.addBoundaryCells(layer_regions, air_dilation, air_cells);
 

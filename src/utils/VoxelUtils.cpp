@@ -7,9 +7,9 @@
 namespace cura 
 {
 
-DilationKernel::DilationKernel(GridPoint3 kernel_size, bool diamond_kernel)
+DilationKernel::DilationKernel(GridPoint3 kernel_size, DilationKernel::Type type)
 : kernel_size(kernel_size)
-, diamond_kernel(diamond_kernel)
+, type(type)
 {
     coord_t mult = kernel_size.x * kernel_size.y * kernel_size.z; // multiplier for division to avoid rounding and to avoid use of floating point numbers
     relative_cells.reserve(mult);
@@ -24,7 +24,7 @@ DilationKernel::DilationKernel(GridPoint3 kernel_size, bool diamond_kernel)
             for (coord_t z = start.z; z < end.z; z++)
             {
                 GridPoint3 current(x, y, z);
-                if (diamond_kernel)
+                if (type != Type::CUBE)
                 {
                     GridPoint3 limit((x < 0)? start.x : end.x - 1,
                                      (y < 0)? start.y : end.y - 1,
@@ -33,11 +33,9 @@ DilationKernel::DilationKernel(GridPoint3 kernel_size, bool diamond_kernel)
                     if (limit.y == 0) limit.y = 1;
                     if (limit.z == 0) limit.z = 1;
                     const GridPoint3 rel_dists = mult * current / limit;
-                    coord_t manhattan_dist = rel_dists.x + rel_dists.y + rel_dists.z;
-                    //                     manhattan_dist -=   mult / std::abs(limit.x) +
-                    //                                         mult / std::abs(limit.y) +
-                    //                                         mult / std::abs(limit.z) +
-                    if (manhattan_dist > mult)
+                    if ((type == Type::DIAMOND && rel_dists.x + rel_dists.y + rel_dists.z > mult)
+                        || (type == Type::PRISM && rel_dists.x + rel_dists.y > mult)
+                    )
                     {
                         continue; // don't consider this cell
                     }

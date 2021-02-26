@@ -29,9 +29,10 @@ using GridPoint3 = Point3;
 
 struct DilationKernel
 {
-    DilationKernel(GridPoint3 kernel_size, bool diamond_kernel);
+    enum class Type { CUBE, DIAMOND, PRISM };
+    DilationKernel(GridPoint3 kernel_size, Type type);
     GridPoint3 kernel_size;
-    bool diamond_kernel;
+    Type type;
     std::vector<GridPoint3> relative_cells;
 };
 
