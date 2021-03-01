@@ -63,24 +63,24 @@ PrimeTower::PrimeTower()
         EPlatformAdhesion adhesion_type = scene_pointer->current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type");
         const unsigned int adhesion_extr = scene_pointer->current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
 
-        if (adhesion_type == EPlatformAdhesion::RAFT)
+        if ((adhesion_type == EPlatformAdhesion::RAFT) && (extruder_nr_a == adhesion_extr))
         {
-            retval = (extruder_nr_a == adhesion_extr);
+            //In case we have a raft to adhere to, the best adhesion is by means of the same extruder/material.
+            return true;
         }
         else if (adhesion_a != adhesion_b)
         {
-            retval = (adhesion_a > adhesion_b);
+            //In case we are adhering to the plate and have an extruder/material with a better adhesion than the other(s).
+            return (adhesion_a > adhesion_b);
         }
-        else if (adhesion_type != EPlatformAdhesion::NONE)
+        else if ((adhesion_type != EPlatformAdhesion::NONE) && (extruder_nr_a == adhesion_extr))
         {
-            retval = (extruder_nr_a == adhesion_extr);
-        }
-        else
-        {
-            retval = (extruder_nr_a < extruder_nr_b);
+            //In case we are adhering to the plate and cannot rely on a difference in the adhesion value, we prefer the
+            //extruder used for the brim or skirt
+            return true;
         }
 
-        return retval;
+        return false;
     });
 }
 
