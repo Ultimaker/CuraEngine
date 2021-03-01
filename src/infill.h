@@ -105,6 +105,19 @@ public:
      */
     void generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
+    /*!
+     * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
+     * This function is called within the generate() function but can also be called stand-alone
+     *
+     * \param toolpaths [out] The generated toolpaths
+     * \param number_of_walls [in] The number of walls that needs to be generated
+     * \param wall_line_width [in] The optimum wall line width of the walls
+     * \param settings [in] A settings storage to use for generating variable-width walls.
+     * \return The inner contour of the wall toolpaths, might be unused, since these are also set in the instance of the
+     * Infill class
+     */
+    Polygons& generateWalltoolpaths(VariableWidthPaths& toolpaths, size_t number_of_walls,  coord_t wall_line_width, const Settings& settings);
+
 private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
