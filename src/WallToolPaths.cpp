@@ -64,6 +64,9 @@ const VariableWidthPaths& WallToolPaths::generate()
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
     prepared_outline.removeColinearEdges(AngleRadians(0.005));
+    // Removing collinear edges may introduce self intersections, so we need to fix them again
+    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
+    prepared_outline.removeDegenerateVerts();
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
 
     if (prepared_outline.area() > 0)
