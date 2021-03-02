@@ -70,7 +70,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
 
 
 
-    Point3 cell_size(cell_width, cell_width, 4 * beam_layer_count * layer_height);
+    Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count * layer_height);
     
     std::vector<coord_t> layer_heights;
     {
@@ -89,7 +89,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     
     InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, bulge_straight, beam_layer_count);
 
-    DilationKernel interface_dilation(GridPoint3(2,2,4), DilationKernel::Type::PRISM);
+    DilationKernel interface_dilation(GridPoint3(3,3,3), DilationKernel::Type::PRISM);
     std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
 
     std::vector<Polygons> layer_regions(layer_heights.size());
