@@ -7,6 +7,7 @@
 #include "Slice.h"
 #include "ExtruderTrain.h"
 #include "skin.h"
+#include "infill.h"
 #include "sliceDataStorage.h"
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/AngleRadians.h" //For the infill support angle.
@@ -453,6 +454,9 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     const LayerIndex min_layer = mesh.settings.get<size_t>("initial_bottom_layers");
     const LayerIndex max_layer = mesh.layers.size() - 1 - mesh.settings.get<size_t>("top_layers");
 
+    const auto infill_wall_count = mesh.settings.get<size_t>("infill_wall_line_count");
+    const auto infill_wall_width = mesh.settings.get<coord_t>("infill_line_width");
+    const auto infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     for (LayerIndex layer_idx = 0; layer_idx < static_cast<LayerIndex>(mesh.layers.size()); layer_idx++)
     { // loop also over layers which don't contain infill cause of bottom_ and top_layer to initialize their infill_area_per_combine_per_density
         SliceLayer& layer = mesh.layers[layer_idx];
@@ -461,7 +465,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
         {
             assert((part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is supposed to be uninitialized"));
 
-            const Polygons& infill_area = part.getOwnInfillArea();
+            const Polygons& infill_area = Infill::generateWalltoolpaths(part.infill_wall_toolpaths, part.getOwnInfillArea(), infill_wall_count, infill_wall_width, infill_overlap,  mesh.settings);
 
             if (infill_area.empty() || layer_idx < min_layer || layer_idx > max_layer)
             { // initialize infill_area_per_combine_per_density empty

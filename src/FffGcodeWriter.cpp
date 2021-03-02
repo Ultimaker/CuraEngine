@@ -1429,6 +1429,11 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
             infill_comp.generate(infill_paths, infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
         }
+        if (!part.infill_wall_toolpaths.empty())
+        {
+            InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part.infill_wall_toolpaths, gcode_layer.getLayerNr());
+            added_something |= inset_order_optimizer.optimize(InsetOrderOptimizer::WallType::EXTRA_INFILL);
+        }
         if (!infill_lines.empty() || !infill_polygons.empty())
         {
             added_something = true;
@@ -1607,11 +1612,12 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         // especially on vertical surfaces
         in_outline.removeSmallAreas(minimum_small_area);
 
-        const size_t wall_line_count_here = (density_idx < last_idx) ? 0 : wall_line_count;
-        wall_tool_paths.emplace_back(VariableWidthPaths());
+        constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
+        constexpr coord_t overlap = 0; // overlap is already applied for the sparsest density in the generateGradualInfill
+        wall_tool_paths.emplace_back(part.infill_wall_toolpaths);
 
         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, infill_line_width,
-                           infill_line_distance_here, infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width), infill_multiplier, infill_angle, gcode_layer.z,
+                           infill_line_distance_here, overlap, infill_multiplier, infill_angle, gcode_layer.z,
                            infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin, connected_zigzags,
                            use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
         infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
