@@ -59,11 +59,14 @@ const VariableWidthPaths& WallToolPaths::generate()
 
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
-    Polygons prepared_outline = outline.offset(-epsilon_offset).offset(epsilon_offset);
+    Polygons prepared_outline = outline.offset(-epsilon_offset).offset(epsilon_offset * 2).offset(-epsilon_offset);
     prepared_outline.simplify(smallest_segment, allowed_distance);
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
-    prepared_outline.removeColinearEdges();
+    prepared_outline.removeColinearEdges(AngleRadians(0.005));
+    // Removing collinear edges may introduce self intersections, so we need to fix them again
+    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
+    prepared_outline.removeDegenerateVerts();
     prepared_outline.removeSmallAreas(small_area_length * small_area_length, false);
 
     if (prepared_outline.area() > 0)

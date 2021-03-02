@@ -368,8 +368,12 @@ void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
                 const Point& pt = rpath[point_idx];
                 const Point& next = rpath[(point_idx + 1) % pathlen];
 
-                // Check if the angle is large enough for the point to 'make sense' given the maximum deviation:
-                if (std::abs(M_PI - std::abs(LinearAlg2D::getAngleLeft(prev, pt, next))) > max_deviation_angle)
+                float angle = LinearAlg2D::getAngleLeft(prev, pt, next);  // [0 : 2 * pi]
+                if (angle >= M_PI) {angle -= M_PI;}  // map [pi : 2 * pi] to [0 : pi]
+
+                // Check if the angle is within limits for the point to 'make sense', given the maximum deviation.
+                // If the angle indicates near-parallel segments ignore the point 'pt'
+                if (angle > max_deviation_angle && angle < M_PI - max_deviation_angle)
                 {
                     new_path.push_back(pt);
                 }
