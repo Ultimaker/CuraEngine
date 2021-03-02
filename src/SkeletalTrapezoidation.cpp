@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SkeletalTrapezoidation.h"
@@ -904,7 +904,7 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         {
             auto& transitions = *aligned_edge->data.getTransitions();
             for (auto transition_it = transitions.begin(); transition_it != transitions.end(); ++ transition_it)
-            { // Note: this is not neccesarily iterating in the traveling direction!
+            { // Note: this is not necessarily iterating in the traveling direction!
                 // Check whether we should dissolve
                 coord_t pos = is_aligned? transition_it->pos : ab_size - transition_it->pos;
                 if (traveled_dist + pos < max_dist
@@ -1118,7 +1118,6 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
         bool is_lower_end = end_rest == 0; // TODO collapse this parameter into the bool for which it is used here!
         coord_t pos = -1;
 
-        edge_transition_ends.emplace_back(std::make_shared<std::list<TransitionEnd>>());
         edge_t* upward_edge = nullptr;
         if (edge.isUpward())
         {
@@ -1130,9 +1129,16 @@ bool SkeletalTrapezoidation::generateTransitionEnd(edge_t& edge, coord_t start_p
             upward_edge = edge.twin;
             pos = ab_size - end_pos;
         }
-        upward_edge->data.setTransitionEnds(edge_transition_ends.back());  // initialization
+
+        if(!upward_edge->data.hasTransitionEnds())
+        {
+            //This edge doesn't have a data structure yet for the transition ends. Make one.
+            edge_transition_ends.emplace_back(std::make_shared<std::list<TransitionEnd>>());
+            upward_edge->data.setTransitionEnds(edge_transition_ends.back());
+        }
         auto transitions = upward_edge->data.getTransitionEnds();
 
+        //Add a transition to it (on the correct side).
         assert(ab_size == vSize(edge.twin->from->p - edge.twin->to->p));
         assert(pos <= ab_size);
         if (transitions->empty() || pos < transitions->front().pos)
