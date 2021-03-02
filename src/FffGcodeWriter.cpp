@@ -1405,7 +1405,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
         const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
         Polygons infill_polygons;
         Polygons infill_lines;
-        VariableWidthPaths infill_paths;
+        VariableWidthPaths infill_paths = part.infill_wall_toolpaths;
         for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
         { // combine different density infill areas (for gradual infill)
             size_t density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
@@ -1431,9 +1431,9 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                                mesh.settings.get<coord_t>("cross_infill_pocket_size"));
             infill_comp.generate(infill_paths, infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
         }
-        if (!part.infill_wall_toolpaths.empty())
+        if (!infill_paths.empty())
         {
-            InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part.infill_wall_toolpaths, gcode_layer.getLayerNr());
+            InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, infill_paths, gcode_layer.getLayerNr());
             added_something |= inset_order_optimizer.optimize(InsetOrderOptimizer::WallType::EXTRA_INFILL);
         }
         if (!infill_lines.empty() || !infill_polygons.empty())
