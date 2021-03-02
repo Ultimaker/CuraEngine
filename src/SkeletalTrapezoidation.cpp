@@ -740,8 +740,8 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
         }
         coord_t start_R = edge.from->data.distance_to_boundary;
         coord_t end_R = edge.to->data.distance_to_boundary;
-        coord_t start_bead_count = edge.from->data.bead_count;
-        coord_t end_bead_count = edge.to->data.bead_count;
+        int start_bead_count = edge.from->data.bead_count;
+        int end_bead_count = edge.to->data.bead_count;
 
         if (start_R == end_R)
         { // No transitions occur when both end points have the same distance_to_boundary
@@ -773,7 +773,7 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
             RUN_ONCE(logWarning("Transitioning the wrong way around! This function expects to transition from small R to big R, but was transitioning from %i to %i.", start_R, end_R));
         }
         coord_t edge_size = vSize(edge.from->p - edge.to->p);
-        for (coord_t transition_lower_bead_count = start_bead_count; transition_lower_bead_count < end_bead_count; transition_lower_bead_count++)
+        for (int transition_lower_bead_count = start_bead_count; transition_lower_bead_count < end_bead_count; transition_lower_bead_count++)
         {
             coord_t mid_R = beading_strategy.getTransitionThickness(transition_lower_bead_count) / 2;
             if (mid_R > end_R)
