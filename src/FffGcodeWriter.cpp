@@ -1385,7 +1385,6 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
     }
     coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
-    const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     AngleDegrees infill_angle = 45; //Original default. This will get updated to an element from mesh->infill_angles.
     if (!mesh.infill_angles.empty())
     {
@@ -1406,7 +1405,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
         const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
         Polygons infill_polygons;
         Polygons infill_lines;
-        VariableWidthPaths infill_paths;
+        VariableWidthPaths infill_paths = part.infill_wall_toolpaths;
         for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
         { // combine different density infill areas (for gradual infill)
             size_t density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
@@ -1417,16 +1416,19 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 infill_line_distance_here /= 2;
             }
 
-            constexpr size_t wall_line_count = 0; // wall lines are always single layer
+            constexpr size_t wall_line_count = 0; // wall toolpaths are when gradual infill areas are determined
+            constexpr coord_t infill_overlap = 0; // Overlap is handled when the wall toolpaths are generated
             constexpr bool connected_zigzags = false;
             constexpr bool use_endpieces = true;
             constexpr bool skip_some_zags = false;
             constexpr size_t zag_skip_count = 0;
 
-            Infill infill_comp(infill_pattern, zig_zaggify_infill, connect_polygons, part.infill_area_per_combine_per_density[density_idx][combine_idx]
-                , infill_line_width, infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle, gcode_layer.z, infill_shift, max_resolution, max_deviation, wall_line_count, infill_origin
-                , connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count
-                , mesh.settings.get<coord_t>("cross_infill_pocket_size"));
+            Infill infill_comp(infill_pattern, zig_zaggify_infill, connect_polygons,
+                               part.infill_area_per_combine_per_density[density_idx][combine_idx], infill_line_width,
+                               infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle,
+                               gcode_layer.z, infill_shift, max_resolution, max_deviation, wall_line_count,
+                               infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count,
+                               mesh.settings.get<coord_t>("cross_infill_pocket_size"));
             infill_comp.generate(infill_paths, infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
         }
         if (!infill_lines.empty() || !infill_polygons.empty())
@@ -1572,11 +1574,11 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
             const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
             wall_tool_paths.emplace_back(VariableWidthPaths());
-            Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin,
-                               infill_line_width, infill_line_distance_here, infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width), infill_multiplier,
-                               infill_angle, gcode_layer.z, infill_shift, max_resolution, max_deviation, skin_below_wall_count, infill_origin,
-                               connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count,
-                               pocket_size);
+            const coord_t overlap = infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width);
+            Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin, infill_line_width,
+                               infill_line_distance_here, overlap, infill_multiplier, infill_angle, gcode_layer.z,
+                               infill_shift, max_resolution, max_deviation, skin_below_wall_count, infill_origin,
+                               connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
             infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
 
             // Fixme: CURA-7848 for libArachne.
@@ -1607,13 +1609,14 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         // especially on vertical surfaces
         in_outline.removeSmallAreas(minimum_small_area);
 
-        const size_t wall_line_count_here = (density_idx < last_idx) ? 0 : wall_line_count;
-        wall_tool_paths.emplace_back(VariableWidthPaths());
+        constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
+        constexpr coord_t overlap = 0; // overlap is already applied for the sparsest density in the generateGradualInfill
+        wall_tool_paths.emplace_back(part.infill_wall_toolpaths);
 
         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, infill_line_width,
-                           infill_line_distance_here, infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width), infill_multiplier, infill_angle, gcode_layer.z,
-                           infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin, connected_zigzags,
-                           use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
+                           infill_line_distance_here, overlap, infill_multiplier, infill_angle, gcode_layer.z,
+                           infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin,
+                           connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
         infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
 
         // Fixme: CURA-7848 for libArachne.

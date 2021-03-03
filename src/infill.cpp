@@ -43,19 +43,15 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+Polygons Infill::generateWallToolPaths(VariableWidthPaths& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings)
 {
-    // generate walls
-    if (outer_contour.empty())
-    {
-        return;
-    }
     outer_contour = outer_contour.offset(infill_overlap);
 
+    Polygons inner_contour;
     if (wall_line_count > 0)
     {
         constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
-        WallToolPaths wall_toolpaths(outer_contour, infill_line_width, wall_line_count, wall_0_inset, settings);
+        WallToolPaths wall_toolpaths(outer_contour, line_width, wall_line_count, wall_0_inset, settings);
         wall_toolpaths.pushToolPaths(toolpaths);
         inner_contour = wall_toolpaths.getInnerContour();
     }
@@ -63,6 +59,18 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     {
         inner_contour = outer_contour;
     }
+    return inner_contour;
+}
+
+void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+{
+    if (outer_contour.empty())
+    {
+        return;
+    }
+
+    inner_contour =
+        generateWallToolPaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings);
 
     //Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
     //The lines along the edge must lie next to the border, not on it.

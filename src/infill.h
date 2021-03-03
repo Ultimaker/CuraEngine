@@ -105,6 +105,19 @@ public:
      */
     void generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
+    /*!
+     * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
+     * This function is called within the generate() function but can also be called stand-alone
+     *
+     * \param toolpaths [out] The generated toolpaths
+     * \param outer_contour [in,out] the outer contour, this is offsetted with the infill overlap
+     * \param wall_line_count [in] The number of walls that needs to be generated
+     * \param line_width [in] The optimum wall line width of the walls
+     * \param infill_overlap [in] The overlap of the infill
+     * \param settings [in] A settings storage to use for generating variable-width walls.
+     * \return The inner contour of the wall toolpaths
+     */
+    static Polygons generateWallToolPaths(VariableWidthPaths& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings);
 private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality

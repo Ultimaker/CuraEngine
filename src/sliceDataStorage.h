@@ -63,6 +63,7 @@ public:
     Polygons inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
     std::vector<SkinPart> skin_parts;  //!< The skin parts which are filled for 100% with lines and/or insets.
     VariableWidthPaths wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets
+    VariableWidthPaths infill_wall_toolpaths; //!< toolpaths for the infill area's
 
     /*!
      * The areas inside of the mesh.
