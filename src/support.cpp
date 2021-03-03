@@ -16,6 +16,7 @@
 #include "slicer.h"
 #include "sliceDataStorage.h"
 #include "support.h"
+#include "infill.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
@@ -171,6 +172,10 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     const coord_t gradual_support_step_height = infill_extruder.settings.get<coord_t>("gradual_support_infill_step_height");
     const size_t max_density_steps = infill_extruder.settings.get<size_t>("gradual_support_infill_steps");
 
+    const auto wall_count = infill_extruder.settings.get<size_t>("support_wall_count");
+    const auto wall_width = infill_extruder.settings.get<coord_t>("line_width");
+    const auto overlap = infill_extruder.settings.get<coord_t>("infill_overlap_mm");
+
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
     size_t gradual_support_step_layer_count = round_divide(gradual_support_step_height, mesh_group_settings.get<coord_t>("layer_height")); //The difference in layer count between consecutive density infill areas.
@@ -195,14 +200,18 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
         for (unsigned int part_idx = 0; part_idx < support_infill_parts.size(); ++part_idx)
         {
             SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
-            if (support_infill_part.getInfillArea().empty())
+
+            // NOTE: This both generates the walls _and_ returns the _actual_ infill area (the one _without_ walls) for use in the rest of the method.
+            Polygons original_area = support_infill_part.getInfillArea();
+            const Polygons infill_area = Infill::generateWalltoolpaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, overlap, infill_extruder.settings);
+            if (infill_area.empty())
             {
                 continue;
             }
             const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box;
 
             // calculate density areas for this island
-            Polygons less_dense_support = support_infill_part.getInfillArea(); // one step less dense with each density_step
+            Polygons less_dense_support = infill_area; // one step less dense with each density_step
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
             {
                 LayerIndex min_layer = layer_nr + density_step * gradual_support_step_layer_count + LayerIndex(layer_skip_count);
@@ -260,13 +269,13 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                 // add new infill_area_per_combine_per_density for the current density
                 support_infill_part.infill_area_per_combine_per_density.emplace_back();
                 std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density.back();
-                const Polygons more_dense_support = support_infill_part.getInfillArea().difference(less_dense_support);
+                const Polygons more_dense_support = infill_area.difference(less_dense_support);
                 support_area_current_density.push_back(more_dense_support);
             }
 
             support_infill_part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density.back();
-            support_area_current_density.push_back(support_infill_part.getInfillArea());
+            support_area_current_density.push_back(infill_area);
 
             assert(support_infill_part.infill_area_per_combine_per_density.size() != 0 && "support_infill_part.infill_area_per_combine_per_density should now be initialized");
 #ifdef DEBUG
@@ -337,10 +346,6 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
                     Polygons result;
                     for (SupportInfillPart& lower_layer_part : lower_layer.support_infill_parts)
                     {
-                        if (part.inset_count_to_generate > 0)
-                        {
-                            continue;
-                        }
                         if (!part.outline_boundary_box.hit(lower_layer_part.outline_boundary_box))
                         {
                             continue;
