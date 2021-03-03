@@ -43,7 +43,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-Polygons Infill::generateWalltoolpaths(VariableWidthPaths& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings)
+Polygons Infill::generateWallToolPaths(VariableWidthPaths& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings)
 {
     outer_contour = outer_contour.offset(infill_overlap);
 
@@ -69,7 +69,8 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         return;
     }
 
-    inner_contour = generateWalltoolpaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings);
+    inner_contour =
+        generateWallToolPaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings);
 
     //Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
     //The lines along the edge must lie next to the border, not on it.

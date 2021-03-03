@@ -1431,11 +1431,6 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                                mesh.settings.get<coord_t>("cross_infill_pocket_size"));
             infill_comp.generate(infill_paths, infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
         }
-        if (!infill_paths.empty())
-        {
-            InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, infill_paths, gcode_layer.getLayerNr());
-            added_something |= inset_order_optimizer.optimize(InsetOrderOptimizer::WallType::EXTRA_INFILL);
-        }
         if (!infill_lines.empty() || !infill_polygons.empty())
         {
             added_something = true;
