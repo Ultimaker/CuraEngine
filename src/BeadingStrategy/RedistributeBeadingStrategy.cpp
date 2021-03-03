@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "RedistributeBeadingStrategy.h"
@@ -114,16 +114,20 @@ bool RedistributeBeadingStrategy::validateInnerBeadWidths(BeadingStrategy::Beadi
 {
     // Filter out bead_widths that violate the transition width and recalculate if needed
     const size_t unfiltered_beads = beading.bead_widths.size();
+    if(unfiltered_beads <= 2) //Outer walls are exempt. If there are 2 walls the range below will be empty. If there is 1 or 0 walls it would be invalid.
+    {
+        return false;
+    }
     auto inner_begin = std::next(beading.bead_widths.begin());
     auto inner_end = std::prev(beading.bead_widths.end());
     beading.bead_widths.erase(
         std::remove_if(inner_begin, inner_end,
-                       [&minimum_width_inner](const coord_t width)
-                       {
-                           return width < minimum_width_inner;
-                       }),
+        [&minimum_width_inner](const coord_t width)
+        {
+            return width < minimum_width_inner;
+        }),
         inner_end);
     return unfiltered_beads != beading.bead_widths.size();
-}
+    }
 
 } // namespace cura
