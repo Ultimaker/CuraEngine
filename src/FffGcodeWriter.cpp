@@ -2467,7 +2467,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const auto support_brim_line_count = infill_extruder.settings.get<coord_t>("support_brim_line_count");
     const auto support_connect_zigzags = infill_extruder.settings.get<bool>("support_connect_zigzags");
     const auto support_structure = infill_extruder.settings.get<ESupportStructure>("support_structure");
-    const auto support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
     const Point infill_origin;
 
     constexpr bool use_endpieces = true;
@@ -2493,7 +2492,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             const coord_t support_line_width = default_support_line_width * (combine_idx + 1);
 
             Polygons support_polygons;
-            VariableWidthPaths wall_toolpaths;
+            VariableWidthPaths wall_toolpaths = part.wall_toolpaths;
             Polygons support_lines;
             const size_t max_density_idx = part.infill_area_per_combine_per_density.size() - 1;
             for (size_t density_idx = max_density_idx; (density_idx + 1) > 0; --density_idx)
@@ -2515,11 +2514,12 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                                         gcode_layer.getLayerNr(), support_pattern, support_line_width,
                                                         support_brim_line_count);
 
+                constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
                 Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, area,
                                    support_line_width, support_line_distance_here, current_support_infill_overlap - (density_idx == max_density_idx ? 0 : wall_line_count * support_line_width),
                                    infill_multiplier, support_infill_angle, gcode_layer.z, support_shift,
                                    max_resolution, max_deviation,
-                                   (density_idx == max_density_idx ? wall_line_count : 0), infill_origin, support_connect_zigzags,
+                                   wall_count, infill_origin, support_connect_zigzags,
                                    use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
                 infill_comp.generate(wall_toolpaths, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
             }
@@ -2527,14 +2527,14 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
             gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
 
-            if (!wall_toolpaths.empty())
+            if (! wall_toolpaths.empty())
             {
                 const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths);
                 for (const PathJunctions& paths : bins)
                 {
                     for (const LineJunctions& line : paths)
                     {
-                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[combine_idx], false);
+                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[0], false);
                     }
                 }
                 added_something = true;
