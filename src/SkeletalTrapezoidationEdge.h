@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
@@ -26,8 +26,8 @@ public:
     struct TransitionMiddle
     {
         coord_t pos; // Position along edge as measure from edge.from.p
-        coord_t lower_bead_count;
-        TransitionMiddle(coord_t pos, coord_t lower_bead_count)
+        int lower_bead_count;
+        TransitionMiddle(coord_t pos, int lower_bead_count)
             : pos(pos), lower_bead_count(lower_bead_count)
         {}
     };
@@ -38,9 +38,9 @@ public:
     struct TransitionEnd
     {
         coord_t pos; // Position along edge as measure from edge.from.p, where the edge is always the half edge oriented from lower to higher R
-        coord_t lower_bead_count;
+        int lower_bead_count;
         bool is_lower_end; // Whether this is the ed of the transition with lower bead count
-        TransitionEnd(coord_t pos, coord_t lower_bead_count, bool is_lower_end)
+        TransitionEnd(coord_t pos, int lower_bead_count, bool is_lower_end)
             : pos(pos), lower_bead_count(lower_bead_count), is_lower_end(is_lower_end)
         {}
     };
