@@ -1079,6 +1079,13 @@ void GCodeExport::writeCode(const char* str)
     *output_stream << str << new_line;
 }
 
+void GCodeExport::resetExtruderToPrimed(const size_t extruder, const double initial_retraction)
+{
+    extruder_attr[extruder].is_primed = true;
+
+    extruder_attr[extruder].retraction_e_amount_current = initial_retraction;
+}
+
 void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
 {
     if (extruder_attr[current_extruder].is_primed)
