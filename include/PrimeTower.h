@@ -31,7 +31,6 @@ private:
     };
     unsigned int extruder_count; //!< Number of extruders
 
-    bool wipe_from_middle; //!< Whether to wipe on the inside of the hollow prime tower
     Point middle; //!< The middle of the prime tower
 
     Point post_wipe_point; //!< Location to post-wipe the unused nozzle off on

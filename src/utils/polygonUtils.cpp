@@ -1251,7 +1251,7 @@ bool PolygonUtils::polygonCollidesWithLineSegment(ConstPolygonRef poly, const Po
 
 bool PolygonUtils::polygonCollidesWithLineSegment(const Polygons& polys, const Point& transformed_startPoint, const Point& transformed_endPoint, PointMatrix transformation_matrix)
 {
-    for (ConstPolygonRef poly : polys)
+    for (const auto& poly : polys)
     {
         if (poly.size() == 0)
         {
@@ -1342,7 +1342,7 @@ double PolygonUtils::relativeHammingDistance(const Polygons& poly_a, const Polyg
     constexpr bool borders_allowed = true;
     if (total_area == 0.0)
     {
-        for (const ConstPolygonRef& polygon_a : poly_a)
+        for (const ConstPolygonRef polygon_a : poly_a)
         {
             for (Point point : polygon_a)
             {
@@ -1352,7 +1352,7 @@ double PolygonUtils::relativeHammingDistance(const Polygons& poly_a, const Polyg
                 }
             }
         }
-        for (const ConstPolygonRef& polygon_b : poly_b)
+        for (const ConstPolygonRef polygon_b : poly_b)
         {
             for (Point point : polygon_b)
             {

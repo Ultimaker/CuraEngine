@@ -51,7 +51,7 @@ namespace cura
         coord_t getTransitioningLength(coord_t lower_bead_count) const override;
         float getTransitionAnchorPos(coord_t lower_bead_count) const override;
 
-        virtual std::string toString() const;
+        virtual std::string toString() const override;
 
     protected:
         /*!

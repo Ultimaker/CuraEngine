@@ -65,7 +65,7 @@ float RedistributeBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_cou
 
 std::string RedistributeBeadingStrategy::toString() const
 {
-    return toString() + parent->toString();
+    return BeadingStrategy::toString() + parent->toString();
 }
 
 BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const

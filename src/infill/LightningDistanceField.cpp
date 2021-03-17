@@ -81,7 +81,7 @@ void LightningDistanceField::update(const Point& to_node, const Point& added_lea
     Point extent = normal(ab_T, supporting_radius);
     // TODO: process cells only once; make use of PolygonUtils::spreadDotsArea
     grid.processLineCells(std::make_pair(a + extent, a - extent),
-                          [this, ab, extent, &process_func] (const SquareGrid::GridPoint& p)
+                          [this, ab, &process_func](const SquareGrid::GridPoint& p)
                           {
                               grid.processLineCells(std::make_pair(p, p + ab), process_func);
                               return true;

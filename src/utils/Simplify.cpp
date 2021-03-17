@@ -79,7 +79,7 @@ size_t Simplify::previousNotDeleted(size_t index, const std::vector<bool>& to_de
     return index;
 }
 
-Polygon Simplify::createEmpty(const Polygon& original) const
+Polygon Simplify::createEmpty(const Polygon& /*original*/) const
 {
     return Polygon();
 }
@@ -111,7 +111,7 @@ const Point& Simplify::getPosition(const ExtrusionJunction& vertex) const
     return vertex.p;
 }
 
-Point Simplify::createIntersection(const Point& before, const Point intersection, const Point& after) const
+Point Simplify::createIntersection(const Point& /*before*/, const Point intersection, const Point& /*after*/) const
 {
     return intersection;
 }
@@ -124,7 +124,7 @@ ExtrusionJunction Simplify::createIntersection(const ExtrusionJunction& before, 
     return ExtrusionJunction(intersection, (before.w + after.w) / 2, before.perimeter_index);
 }
 
-coord_t Simplify::getAreaDeviation(const Point& before, const Point& vertex, const Point& after) const
+coord_t Simplify::getAreaDeviation(const Point& /*before*/, const Point& /*vertex*/, const Point& /*after*/) const
 {
     return 0; //Fixed-width polygons don't have any deviation.
 }

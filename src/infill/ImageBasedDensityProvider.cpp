@@ -13,9 +13,6 @@
 namespace cura
 {
 
-static constexpr bool diagonal = true;
-static constexpr bool straight = false;
-
 ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename, const AABB model_aabb)
 {
     int desired_channel_count = 0; // keep original amount of channels

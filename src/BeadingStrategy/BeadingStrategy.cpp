@@ -26,12 +26,12 @@ BeadingStrategy::BeadingStrategy
 }
 
 BeadingStrategy::BeadingStrategy(const BeadingStrategy& other) :
+    name(other.name),
     optimal_width(other.optimal_width),
     wall_split_middle_threshold(other.wall_split_middle_threshold),
     wall_add_middle_threshold(other.wall_add_middle_threshold),
     default_transition_length(other.default_transition_length),
-    transitioning_angle(other.transitioning_angle),
-    name(other.name)
+    transitioning_angle(other.transitioning_angle)
 {}
 
 coord_t BeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
@@ -51,7 +51,7 @@ float BeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
     return 1.0 - float(transition_point - lower_optimum) / float(upper_optimum - lower_optimum);
 }
 
-std::vector<coord_t> BeadingStrategy::getNonlinearThicknesses(coord_t lower_bead_count) const
+std::vector<coord_t> BeadingStrategy::getNonlinearThicknesses(coord_t /*lower_bead_count*/) const
 {
     return std::vector<coord_t>();
 }

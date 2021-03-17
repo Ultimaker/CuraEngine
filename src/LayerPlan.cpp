@@ -1087,7 +1087,7 @@ void LayerPlan::addWall(const ExtrusionLine& wall,
 
 void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& path_config, bool force_retract)
 {
-    assert(("All empty walls should have been filtered at this stage", ! wall.empty()));
+    assert(! wall.empty() && "All empty walls should have been filtered at this stage");
     ExtrusionJunction junction{ *wall.begin() };
     addTravel(junction.p, force_retract);
 
