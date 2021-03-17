@@ -40,9 +40,9 @@ namespace cura
         RedistributeBeadingStrategy(const coord_t optimal_width_outer,
                                     const coord_t optimal_width_inner,
                                     const double minimum_variable_line_width,
-                                    BeadingStrategy* parent);
+                                    BeadingStrategyPtr parent);
 
-        virtual ~RedistributeBeadingStrategy() = default;
+        virtual ~RedistributeBeadingStrategy() override = default;
 
         Beading compute(coord_t thickness, coord_t bead_count) const override;
 
@@ -90,7 +90,7 @@ namespace cura
          */
         static bool validateInnerBeadWidths(Beading& beading, coord_t minimum_width_inner);
 
-        BeadingStrategy* parent;
+        BeadingStrategyPtr parent;
         coord_t optimal_width_outer;
         coord_t optimal_width_inner;
         double minimum_variable_line_width;

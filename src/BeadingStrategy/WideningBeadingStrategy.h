@@ -23,9 +23,9 @@ public:
     /*!
      * Takes responsibility for deleting \param parent
      */
-    WideningBeadingStrategy(BeadingStrategy* parent, const coord_t min_input_width, const coord_t min_output_width);
+    WideningBeadingStrategy(BeadingStrategyPtr parent, const coord_t min_input_width, const coord_t min_output_width);
 
-    virtual ~WideningBeadingStrategy() override;
+    virtual ~WideningBeadingStrategy() override = default;
 
     virtual Beading compute(coord_t thickness, coord_t bead_count) const override;
     virtual coord_t getOptimalThickness(coord_t bead_count) const override;
@@ -37,7 +37,7 @@ public:
     virtual std::string toString() const override;
 
 protected:
-    BeadingStrategy* parent;
+    BeadingStrategyPtr parent;
     const coord_t min_input_width;
     const coord_t min_output_width;
 };

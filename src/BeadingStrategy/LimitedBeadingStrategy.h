@@ -28,9 +28,9 @@ namespace cura
 class LimitedBeadingStrategy : public BeadingStrategy
 {
 public:
-    LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategy* parent);
+    LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategyPtr parent);
     
-    virtual ~LimitedBeadingStrategy() override;
+    virtual ~LimitedBeadingStrategy() override = default;
     
     Beading compute(coord_t thickness, coord_t bead_count) const override;
     coord_t getOptimalThickness(coord_t bead_count) const override;
@@ -44,7 +44,7 @@ public:
 
 protected:
     const coord_t max_bead_count;
-    const BeadingStrategy* parent;
+    const BeadingStrategyPtr parent;
 };
 
 
