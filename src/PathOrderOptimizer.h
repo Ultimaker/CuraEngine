@@ -148,7 +148,6 @@ public:
     PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr)
     : start_point(start_point)
     , seam_config(seam_config)
-    , combing_grid(nullptr)
     , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
     , detect_loops(detect_loops)
     {
@@ -333,11 +332,7 @@ public:
             }
         }
         std::swap(optimized_order, paths); //Apply the optimized order to the output field.
-
-        if(combing_grid != nullptr)
-        {
-            delete combing_grid;
-        }
+        combing_grid.reset();
     }
 
 protected:
@@ -365,7 +360,7 @@ protected:
      * combing boundary. We only need to generate this mapping once for the
      * combing boundary, since the combing boundary can't change.
      */
-    LocToLineGrid* combing_grid;
+    std::unique_ptr<LocToLineGrid> combing_grid;
 
     /*!
      * Boundary to avoid when making travel moves.
