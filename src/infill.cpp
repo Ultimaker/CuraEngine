@@ -230,17 +230,16 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
         break;
     }
 
-    //TODO: The connected lines algorithm is only available for linear-based infill, for now.
-    //We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
-    //Cubic Subdivision ends lines in the center of the infill so it won't be effective.
-    if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
+    if (connect_lines)
     {
         //The list should be empty because it will be again filled completely. Otherwise might have double lines.
+        assert(result_lines.empty());
         result_lines.clear();
-
         connectLines(result_lines);
+        crossings_on_line.clear();
     }
-    crossings_on_line.clear();
+    assert(crossings_on_line.empty());
+
     result_polygons.simplify(max_resolution, max_deviation);
 }
 
@@ -453,6 +452,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
 void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t shift)
 {
+    assert(!connect_lines && "connectLines() should add the infill lines, not addLineInfill");
     auto compare_coord_t = [](const void* a, const void* b)
     {
         coord_t n = (*(coord_t*)a) - (*(coord_t*)b);
@@ -482,11 +482,7 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
             { // segment is too short to create infill
                 continue;
             }
-            //We have to create our own lines when they are not created by the method connectLines.
-            if (!zig_zaggify || pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::LINES)
-            {
-                result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
-            }
+            result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
         }
         scanline_idx += 1;
     }
@@ -553,7 +549,10 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
 
     Polygons outline = inner_contour; //Make a copy. We'll be rotating this outline to make intersections always horizontal, for better performance.
     outline.applyMatrix(rotation_matrix);
-    crossings_on_line.resize(outline.size()); //One for each polygon.
+    if (connect_lines)
+    {
+        crossings_on_line.resize(outline.size()); //One for each polygon.
+    }
 
     coord_t shift = extra_shift + this->shift;
     if (shift < 0)
@@ -598,7 +597,10 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
     for(size_t poly_idx = 0; poly_idx < outline.size(); poly_idx++)
     {
         PolygonRef poly = outline[poly_idx];
-        crossings_on_line[poly_idx].resize(poly.size()); //One for each line in this polygon.
+        if (connect_lines)
+        {
+            crossings_on_line[poly_idx].resize(poly.size()); // One for each line in this polygon.
+        }
         Point p0 = poly.back();
         zigzag_connector_processor.registerVertex(p0); // always adds the first point to ZigzagConnectorProcessorEndPieces::first_zigzag_connector when using a zigzag infill type
 
@@ -648,38 +650,45 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
         zigzag_connector_processor.registerPolyFinished();
     }
     
-    //Gather all crossings per scanline and find out which crossings belong together, then store them in crossings_on_line.
-    for (int scanline_index = min_scanline_index; scanline_index < max_scanline_index; scanline_index++)
-    {
-        std::sort(crossings_per_scanline[scanline_index - min_scanline_index].begin(), crossings_per_scanline[scanline_index - min_scanline_index].end()); //Sorts them by Y coordinate.
-        for (long crossing_index = 0; crossing_index < static_cast<long>(crossings_per_scanline[scanline_index - min_scanline_index].size()) - 1; crossing_index += 2) //Combine each 2 subsequent crossings together.
+    if (connect_lines) {
+        // Gather all crossings per scanline and find out which crossings belong together, then store them in crossings_on_line.
+        for (int scanline_index = min_scanline_index; scanline_index < max_scanline_index; scanline_index++)
         {
-            const Crossing& first = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index];
-            const Crossing& second = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index + 1];
-            //Avoid creating zero length crossing lines
-            const Point unrotated_first = rotation_matrix.unapply(first.coordinate);
-            const Point unrotated_second = rotation_matrix.unapply(second.coordinate);
-            if (unrotated_first == unrotated_second)
+            // Sorts them by Y coordinate.
+            std::sort(crossings_per_scanline[scanline_index - min_scanline_index].begin(), crossings_per_scanline[scanline_index - min_scanline_index].end());
+            // Combine each 2 subsequent crossings together.
+            for (long crossing_index = 0; crossing_index < static_cast<long>(crossings_per_scanline[scanline_index - min_scanline_index].size()) - 1; crossing_index += 2)
             {
-                continue;
+                const Crossing& first = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index];
+                const Crossing& second = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index + 1];
+                // Avoid creating zero length crossing lines
+                const Point unrotated_first = rotation_matrix.unapply(first.coordinate);
+                const Point unrotated_second = rotation_matrix.unapply(second.coordinate);
+                if (unrotated_first == unrotated_second)
+                {
+                    continue;
+                }
+                InfillLineSegment* new_segment = new InfillLineSegment(unrotated_first, first.vertex_index, first.polygon_index, unrotated_second, second.vertex_index, second.polygon_index);
+                // Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
+                crossings_on_line[first.polygon_index][first.vertex_index].push_back(new_segment);
+                crossings_on_line[second.polygon_index][second.vertex_index].push_back(new_segment);
             }
-            InfillLineSegment* new_segment = new InfillLineSegment(unrotated_first, first.vertex_index, first.polygon_index, unrotated_second, second.vertex_index, second.polygon_index);
-            //Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
-            crossings_on_line[first.polygon_index][first.vertex_index].push_back(new_segment);
-            crossings_on_line[second.polygon_index][second.vertex_index].push_back(new_segment);
         }
     }
-
-    if (cut_list.size() == 0)
+    else
     {
-        return;
-    }
-    if (connected_zigzags && cut_list.size() == 1 && cut_list[0].size() <= 2)
-    {
-        return;  // don't add connection if boundary already contains whole outline!
-    }
+        if (cut_list.size() == 0)
+        {
+            return;
+        }
+        if (connected_zigzags && cut_list.size() == 1 && cut_list[0].size() <= 2)
+        {
+            return;  // don't add connection if boundary already contains whole outline!
+        }
 
-    addLineInfill(result, rotation_matrix, scanline_min_idx, line_distance, boundary, cut_list, shift);
+        // We have to create our own lines when they are not created by the method connectLines.
+        addLineInfill(result, rotation_matrix, scanline_min_idx, line_distance, boundary, cut_list, shift);
+    }
 }
 
 void Infill::connectLines(Polygons& result_lines)
