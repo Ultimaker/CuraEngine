@@ -1494,7 +1494,7 @@ void SkeletalTrapezoidation::generateSegments()
     propagateBeadingsUpward(upward_quad_mids, node_beadings);
 
     propagateBeadingsDownward(upward_quad_mids, node_beadings);
-    
+
     ptr_vector_t<LineJunctions> edge_junctions; // junctions ordered high R to low R
     generateJunctions(node_beadings, edge_junctions);
 
@@ -1727,9 +1727,9 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
         Point ab = b - a;
 
         const size_t num_junctions = beading->toolpath_locations.size();
-        coord_t junction_idx;
+        size_t junction_idx;
         // Compute starting junction_idx for this segment
-        for (junction_idx = (std::max(size_t(1), beading->toolpath_locations.size()) - 1) / 2; junction_idx >= 0 && junction_idx < coord_t(num_junctions); junction_idx--)
+        for (junction_idx = (std::max(size_t(1), beading->toolpath_locations.size()) - 1) / 2; junction_idx < num_junctions; junction_idx--)
         {
             coord_t bead_R = beading->toolpath_locations[junction_idx];
             if (bead_R <= start_R)
@@ -1740,7 +1740,7 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
 
         // Robustness against odd segments which might lie just slightly outside of the range due to rounding errors
         // not sure if this is really needed (TODO)
-        if (junction_idx + 1 < coord_t(num_junctions)
+        if (junction_idx + 1 < num_junctions
             && beading->toolpath_locations[junction_idx + 1] <= start_R + 5
             && beading->total_thickness < start_R + 5
         )
@@ -1748,7 +1748,7 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
             junction_idx++;
         }
 
-        for (; junction_idx >= 0 && junction_idx < coord_t(num_junctions); junction_idx--)
+        for (; junction_idx < num_junctions; junction_idx--) //When junction_idx underflows, it'll be more than num_junctions too.
         {
             coord_t bead_R = beading->toolpath_locations[junction_idx];
             assert(bead_R >= 0);
