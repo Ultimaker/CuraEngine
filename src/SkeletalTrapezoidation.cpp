@@ -1955,7 +1955,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 to_junctions.reserve(to_junctions.size() + to_next_junctions.size());
                 to_junctions.insert(to_junctions.end(), to_next_junctions.begin(), to_next_junctions.end());
                 assert(!edge_from_peak->next->next);
-                if(edge_to_peak->next->next)
+                if(edge_from_peak->next->next)
                 {
                     RUN_ONCE(logWarning("The edge we're about to connect is already connected!\n"));
                 }
@@ -1965,7 +1965,6 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             {
                 logWarning("Can't create a transition when connecting two perimeters where the number of beads differs too much! %i vs. %i", from_junctions.size(), to_junctions.size());
             }
-
 
             size_t segment_count = std::min(from_junctions.size(), to_junctions.size());
             for (size_t junction_rev_idx = 0; junction_rev_idx < segment_count; junction_rev_idx++)
