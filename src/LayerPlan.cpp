@@ -867,6 +867,7 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
     for(size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
         const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
+        const coord_t line_width = (p0.w + p1.w) / 2; //For lines which in itself vary in width, use the average width of the variable line.
 
         if (!bridge_wall_mask.empty())
         {
@@ -884,11 +885,11 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
             if (is_small_feature)
             {
                 constexpr bool spiralize = false;
-                addExtrusionMove(p1.p, non_bridge_config, SpaceFillType::Polygons, flow_ratio * (p1.w * nominal_line_width_multiplier), spiralize, small_feature_speed_factor);
+                addExtrusionMove(p1.p, non_bridge_config, SpaceFillType::Polygons, flow_ratio * (line_width * nominal_line_width_multiplier), spiralize, small_feature_speed_factor);
             }
             else
             {
-                addWallLine(p0.p, p1.p, settings, non_bridge_config, bridge_config, flow_ratio * (p1.w * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                addWallLine(p0.p, p1.p, settings, non_bridge_config, bridge_config, flow_ratio * (line_width * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
             }
         }
         else
