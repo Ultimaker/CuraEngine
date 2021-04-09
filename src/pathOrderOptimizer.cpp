@@ -147,17 +147,23 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
 {
     ConstPolygonRef poly = *polygons[poly_idx];
 
-    // Find most extreme point in one direction. For the 'actual loop' (see below), start from this point,
+    // Find most extreme point in one direction*. For the 'actual loop' (see below), start from this point,
     // so it can act as a 'tie breaker' if all differences in dist-score for a polygon fall within epsilon.
-    constexpr coord_t EPSILON = 25; // = 5^2 micron-squared
+    // *) Direction/point should be equal to user-specified point if available, should be an arbitrary point outside of the BP otherwise.
+    constexpr coord_t EPSILON = 25; // = 5^2 square micron
     unsigned int start_from_pos = 0;
-    coord_t lowest_y = std::numeric_limits<coord_t>::max();
+    const Point focus_fixed_point =
+        (config.type == EZSeamType::USER_SPECIFIED) ?
+        config.pos :
+        Point(0, -std::sqrt(std::numeric_limits<coord_t>::max()));  // NOTE: Use sqrt, so the squared size can be used when comparing distances.
+    coord_t smallest_dist_sqd = std::numeric_limits<coord_t>::max();
     for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
     {
-        if (poly[point_idx].Y < lowest_y)
+        const coord_t dist_sqd = vSize2(focus_fixed_point - poly[point_idx]);
+        if (dist_sqd < smallest_dist_sqd)
         {
             start_from_pos = point_idx;
-            lowest_y = poly[point_idx].Y;
+            smallest_dist_sqd = dist_sqd;
         }
     }
     const unsigned int end_before_pos = poly.size() + start_from_pos;
