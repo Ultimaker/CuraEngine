@@ -147,11 +147,29 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
 {
     ConstPolygonRef poly = *polygons[poly_idx];
 
+    // Find most extreme point in one direction. For the 'actual loop' (see below), start from this point,
+    // so it can act as a 'tie breaker' if all differences in dist-score for a polygon fall within epsilon.
+    constexpr coord_t EPSILON = 25; // = 5^2 micron-squared
+    unsigned int start_from_pos = 0;
+    coord_t lowest_y = std::numeric_limits<coord_t>::max();
+    for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+    {
+        if (poly[point_idx].Y < lowest_y)
+        {
+            start_from_pos = point_idx;
+            lowest_y = poly[point_idx].Y;
+        }
+    }
+    const unsigned int end_before_pos = poly.size() + start_from_pos;
+
+    // Loop over the polygon to find the 'best' index given all the parameters.
     int best_point_idx = -1;
     float best_point_score = std::numeric_limits<float>::infinity();
     Point p0 = poly.back();
-    for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+    for (unsigned int point_idx_without_modulo = start_from_pos; point_idx_without_modulo < end_before_pos; point_idx_without_modulo++)
     {
+        const unsigned int point_idx = point_idx_without_modulo % poly.size();
+
         const Point& p1 = poly[point_idx];
         const Point& p2 = poly[(point_idx + 1) % poly.size()];
         // when type is SHARPEST_CORNER, actual distance is ignored, we use a fixed distance and decision is based on curvature only
@@ -210,7 +228,7 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
                 // do nothing
                 break;
         }
-        if (dist_score < best_point_score)
+        if ((dist_score - EPSILON) < best_point_score)
         {
             best_point_idx = point_idx;
             best_point_score = dist_score;
