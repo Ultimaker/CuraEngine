@@ -155,7 +155,7 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
     const Point focus_fixed_point =
         (config.type == EZSeamType::USER_SPECIFIED) ?
         config.pos :
-        Point(0, -std::sqrt(std::numeric_limits<coord_t>::max()));  // NOTE: Use sqrt, so the squared size can be used when comparing distances.
+        Point(0, std::sqrt(std::numeric_limits<coord_t>::max()));  // NOTE: Use sqrt, so the squared size can be used when comparing distances.
     coord_t smallest_dist_sqd = std::numeric_limits<coord_t>::max();
     for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
     {
