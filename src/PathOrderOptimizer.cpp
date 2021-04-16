@@ -10,46 +10,46 @@
 namespace cura
 {
 
-template<>
-ConstPolygonRef PathOrderOptimizer<ConstPolygonRef>::getVertexData(ConstPolygonRef path)
-{
-    return path;
-}
-
-template<>
-ConstPolygonRef PathOrderOptimizer<PolygonRef>::getVertexData(PolygonRef path)
-{
-    return path;
-}
-
-template<>
-ConstPolygonRef PathOrderOptimizer<const SkinPart*>::getVertexData(const SkinPart* path)
-{
-    return path->outline.outerPolygon();
-}
-
-template<>
-ConstPolygonRef PathOrderOptimizer<const SliceLayerPart*>::getVertexData(const SliceLayerPart* path)
-{
-    return path->outline.outerPolygon();
-}
-
-template<>
-ConstPolygonRef PathOrderOptimizer<const SupportInfillPart*>::getVertexData(const SupportInfillPart* path)
-{
-    return path->outline.outerPolygon();
-}
-
-template<>
-ConstPolygonRef PathOrderOptimizer<const LineJunctions*>::getVertexData(const LineJunctions* path)
-{
-    cached_vertices.emplace_back();
-    Polygon& poly = cached_vertices.back();
-    for(const ExtrusionJunction junction : *path)
+    template<>
+    ConstPolygonRef PathOrderOptimizer<ConstPolygonRef>::getVertexData(ConstPolygonRef path)
     {
-        poly.add(junction.p);
+        return path;
     }
-    return ConstPolygonRef(poly);
-}
+
+    template<>
+    ConstPolygonRef PathOrderOptimizer<PolygonRef>::getVertexData(PolygonRef path)
+    {
+        return path;
+    }
+
+    template<>
+    ConstPolygonRef PathOrderOptimizer<const SkinPart*>::getVertexData(const SkinPart* path)
+    {
+        return path->outline.outerPolygon();
+    }
+
+    template<>
+    ConstPolygonRef PathOrderOptimizer<const SliceLayerPart*>::getVertexData(const SliceLayerPart* path)
+    {
+        return path->outline.outerPolygon();
+    }
+
+    template<>
+    ConstPolygonRef PathOrderOptimizer<const SupportInfillPart*>::getVertexData(const SupportInfillPart* path)
+    {
+        return path->outline.outerPolygon();
+    }
+
+    template<>
+    ConstPolygonRef PathOrderOptimizer<const LineJunctions*>::getVertexData(const LineJunctions* path)
+    {
+        cached_vertices.emplace_back();
+        Polygon& poly = cached_vertices.back();
+        for (const ExtrusionJunction junction : *path)
+        {
+            poly.add(junction.p);
+        }
+        return ConstPolygonRef(poly);
+    }
 
 }
