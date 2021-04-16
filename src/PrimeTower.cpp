@@ -26,6 +26,21 @@ PrimeTower::PrimeTower()
 : wipe_from_middle(false)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
+
+    {
+        EPlatformAdhesion adhesion_type = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type");
+
+        //When we have multiple extruders sharing the same heater/nozzle, we expect that all the extruders have been
+        //'primed' by the print-start gcode script, but we don't know which one has been left at the tip of the nozzle
+        //and whether it needs 'purging' (before extruding a pure material) or not, so we need to prime (actually purge)
+        //each extruder before it is used for the model. This can done by the (per-extruder) brim lines or (per-extruder)
+        //skirt lines when they are used, but we need to do that inside the first prime-tower layer when they are not
+        //used (sacrifying for this purpose the usual single-extruder first layer, that would be better for prime-tower
+        //adhesion).
+
+        multiple_extruders_on_first_layer = scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle") && ((adhesion_type != EPlatformAdhesion::SKIRT) && (adhesion_type != EPlatformAdhesion::BRIM));
+    }
+
     enabled = scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
@@ -116,24 +131,28 @@ void PrimeTower::generatePaths_denseInfill()
         }
         cumulative_inset += wall_nr * line_width;
 
-        //Generate the pattern for the first layer.
-        coord_t line_width_layer0 = line_width;
-        if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+        if (multiple_extruders_on_first_layer)
         {
-            line_width_layer0 *= scene.extruders[extruder_nr].settings.get<Ratio>("initial_layer_line_width_factor");
+            //With a raft there is no difference for the first layer (of the prime tower)
+            pattern_per_extruder_layer0 = pattern_per_extruder;
         }
-        pattern_per_extruder_layer0.emplace_back();
-
-        ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0.back();
-
-        // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
-        // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
-        // first layer of the prime tower to not stick well.
-        Polygons inset = outer_poly.offset(-line_width_layer0 / 2);
-        while (!inset.empty())
+        else
         {
-            pattern_layer0.polygons.add(inset);
-            inset = inset.offset(-line_width_layer0);
+            //Generate the pattern for the first layer.
+            coord_t line_width_layer0 = line_width * scene.extruders[extruder_nr].settings.get<Ratio>("initial_layer_line_width_factor");
+            pattern_per_extruder_layer0.emplace_back();
+
+            ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0.back();
+
+            // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
+            // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
+            // first layer of the prime tower to not stick well.
+            Polygons inset = outer_poly.offset(-line_width_layer0 / 2);
+            while (!inset.empty())
+            {
+                pattern_layer0.polygons.add(inset);
+                inset = inset.offset(-line_width_layer0);
+            }
         }
     }
 }

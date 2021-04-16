@@ -217,11 +217,8 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     { // first extruder plan in a layer might be empty, cause it is made with the last extruder planned in the previous layer
         extruder_plans.back().extruder_nr = extruder_nr;
     }
-    else 
-    {
-        extruder_plans.emplace_back(extruder_nr, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder_nr], storage.retraction_config_per_extruder[extruder_nr]);
-        assert(extruder_plans.size() <= Application::getInstance().current_slice->scene.extruders.size() && "Never use the same extruder twice on one layer!");
-    }
+    extruder_plans.emplace_back(extruder_nr, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder_nr], storage.retraction_config_per_extruder[extruder_nr]);
+    assert(extruder_plans.size() <= Application::getInstance().current_slice->scene.extruders.size() && "Never use the same extruder twice on one layer!");
     last_planned_extruder = &Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
     { // handle starting pos of the new extruder
@@ -1805,7 +1802,11 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
     {
         // in this case accumulated_dist is the length of the whole path
         actual_coasting_dist = accumulated_dist * coasting_dist / coasting_min_dist;
-        for (acc_dist_idx_gt_coast_dist = 0 ; acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size() ; acc_dist_idx_gt_coast_dist++)
+        if(actual_coasting_dist == 0) //Downscaling due to Minimum Coasting Distance reduces coasting to less than 1 micron.
+        {
+            return false; //Skip coasting at all then.
+        }
+        for (acc_dist_idx_gt_coast_dist = 1; acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size() ; acc_dist_idx_gt_coast_dist++)
         { // search for the correct coast_dist_idx
             if (accumulated_dist_per_point[acc_dist_idx_gt_coast_dist] >= actual_coasting_dist)
             {

@@ -61,7 +61,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         if (hole_offset != 0)
         {
             // holes are to be expanded or shrunk
-            PolygonsPart outline;
+            Polygons outline;
             Polygons holes;
             for (const PolygonRef poly : result[i])
             {
@@ -74,12 +74,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
                     holes.add(poly.offset(hole_offset));
                 }
             }
-            for (PolygonRef hole : holes.unionPolygons().intersection(outline))
-            {
-                hole.reverse();
-                outline.add(hole);
-            }
-            storageLayer.parts[i].outline = outline;
+            storageLayer.parts[i].outline.add(outline.difference(holes.unionPolygons()));
         }
         else
         {
