@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
@@ -978,7 +978,7 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
 
     if (include_helper_parts)
     { // add prime tower if it hasn't already been added
-        int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
+        const size_t prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
 
         if (gcode_layer.getLayerNr() != 0 || storage.primeTower.extruder_order[0] == prev_extruder)
         {
@@ -2971,7 +2971,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
     }
 }
 
-void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, int prev_extruder) const
+void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder) const
 {
     if (!Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("prime_tower_enable"))
     {
