@@ -90,6 +90,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         }
     }
     calculateExtruderOrderPerLayer(storage);
+    calculatePrimeLayerPerExtruder(storage);
 
     if (scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
@@ -1173,8 +1174,17 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     {
         std::vector<std::vector<size_t>>& extruder_order_per_layer_here = (layer_nr < 0) ? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
         extruder_order_per_layer_here.push_back(getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr));
-        extruder_prime_layer_nr[last_extruder] = std::min(extruder_prime_layer_nr[last_extruder], layer_nr);
-        last_extruder = extruder_order_per_layer_here.back().back();
+    }
+}
+
+void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& storage)
+{
+    for(LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); ++layer_nr)
+    {
+        for(size_t extruder_nr : storage.getExtrudersUsed(layer_nr))
+        {
+            extruder_prime_layer_nr[extruder_nr] = std::min(extruder_prime_layer_nr[extruder_nr], layer_nr);
+        }
     }
 }
 
