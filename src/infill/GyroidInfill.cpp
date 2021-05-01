@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "GyroidInfill.h"
@@ -274,7 +274,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     }
                 }
 
-                if (outline_point_index == 0 || vSize2(op0 - cur_point) > 100)
+                if (outline_point_index == 0 || vSize2(op0 - cur_point) > MM2INT(0.1))
                 {
                     // this is either the first outline point or it is another outline point that is not too close to cur_point
 
@@ -313,7 +313,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     // make the chain end the current point and add it to the connector line
                     cur_point = chains[point_index][chain_index];
 
-                    if (drawing && connector_points.size() > 0 && vSize2(cur_point - connector_points.back()) < 100)
+                    if (drawing && connector_points.size() > 0 && vSize2(cur_point - connector_points.back()) < MM2INT(0.1))
                     {
                         // this chain end will be too close to the last connector point so throw away the last connector point
                         connector_points.pop_back();

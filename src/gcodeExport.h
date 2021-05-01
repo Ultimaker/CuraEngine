@@ -467,7 +467,9 @@ public:
     void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop = 0);
 
     void writeCode(const char* str);
-    
+
+    void resetExtruderToPrimed(const size_t extruder, const double initial_retraction);
+
     /*!
      * Write the gcode for priming the current extruder train so that it can be used.
      * 

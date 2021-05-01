@@ -723,7 +723,7 @@ ClosePolygonResult SlicerLayer::findPolygonPointClosestTo(Point input)
                 if (distOnLine >= 0 && distOnLine <= lineLength)
                 {
                     Point q = p0 + pDiff * distOnLine / lineLength;
-                    if (shorterThen(q - input, 100))
+                    if (shorterThen(q - input, MM2INT(0.1)))
                     {
                         ret.polygonIdx = n;
                         ret.pointIdx = i;
@@ -781,9 +781,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     polygons.erase(it, polygons.end());
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
-    const coord_t line_segment_resolution = mesh->settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t line_segment_deviation = mesh->settings.get<coord_t>("meshfix_maximum_deviation");
-    polygons.simplify(line_segment_resolution, line_segment_deviation);
+    polygons.simplify();
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 }
@@ -1026,7 +1024,7 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
 
         if (xy_offset != 0)
         {
-            layers_ref[layer_nr].polygons = layers_ref[layer_nr].polygons.offset(xy_offset);
+            layers_ref[layer_nr].polygons = layers_ref[layer_nr].polygons.offset(xy_offset, ClipperLib::JoinType::jtRound);
         }
     }
 

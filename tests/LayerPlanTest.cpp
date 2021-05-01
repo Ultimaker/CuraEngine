@@ -119,6 +119,7 @@ public:
         settings->add("limit_support_retractions", "false");
         settings->add("machine_center_is_zero", "false");
         settings->add("machine_depth", "1000");
+        settings->add("machine_extruders_share_nozzle", "false");
         settings->add("machine_height", "1000");
         settings->add("machine_nozzle_tip_outer_diameter", "1");
         settings->add("machine_width", "1000");
