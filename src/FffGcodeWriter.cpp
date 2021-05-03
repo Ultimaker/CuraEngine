@@ -1182,9 +1182,13 @@ void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& stor
 {
     for(LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); ++layer_nr)
     {
-        for(size_t extruder_nr : storage.getExtrudersUsed(layer_nr))
+        const std::vector<bool> used_extruders = storage.getExtrudersUsed(layer_nr);
+        for(size_t extruder_nr = 0; extruder_nr < used_extruders.size(); ++extruder_nr)
         {
-            extruder_prime_layer_nr[extruder_nr] = std::min(extruder_prime_layer_nr[extruder_nr], layer_nr);
+            if(used_extruders[extruder_nr])
+            {
+                extruder_prime_layer_nr[extruder_nr] = std::min(extruder_prime_layer_nr[extruder_nr], layer_nr);
+            }
         }
     }
 }
