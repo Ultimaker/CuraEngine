@@ -50,7 +50,8 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     {
         SliceMeshStorage mesh = storage.meshes[mesh_idx];
 
-        if (storage.meshes[mesh_idx].settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || !storage.meshes[mesh_idx].settings.get<bool>("support_enable"))
+        const bool non_supportable_mesh = mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh") || storage.meshes[mesh_idx].settings.get<bool>("support_mesh");
+        if (storage.meshes[mesh_idx].settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || non_supportable_mesh)
         {
             continue;
         }
@@ -2155,6 +2156,7 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
 }
 
 
+
 ModelVolumes::ModelVolumes(const SliceDataStorage& storage, const coord_t max_move, const coord_t max_move_slow, size_t current_mesh_idx, double progress_multiplier, double progress_offset, const std::vector<Polygons>& additional_excluded_areas) : max_move_{ std::max(max_move - 2, coord_t(0)) }, max_move_slow_{ std::max(max_move_slow - 2, coord_t(0)) }, progress_multiplier{ progress_multiplier }, progress_offset{ progress_offset }, machine_border_{ calculateMachineBorderCollision(storage.getMachineBorder()) } // -2 to avoid rounding errors
 {
     anti_overhang_ = std::vector<Polygons>(storage.support.supportLayers.size(), Polygons());
@@ -2251,7 +2253,6 @@ ModelVolumes::ModelVolumes(const SliceDataStorage& storage, const coord_t max_mo
 void ModelVolumes::precalculate(coord_t max_layer)
 {
     auto t_start = std::chrono::high_resolution_clock::now();
-
     precalculated = true;
 
     // Get the config corresponding to one mesh that is in the current group. Which one has to be irrelevant. Not the prettiest way to do this, but it ensures some calculations that may be a bit more complex like inital layer diameter are only done in once.
@@ -2353,7 +2354,7 @@ void ModelVolumes::precalculate(coord_t max_layer)
     auto dur_col = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_coll - t_start).count();
     auto dur_avo = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_coll).count();
 
-    logDebug("Precalculating collision took %.3lf ms. Precalculating avoidance took %.3lf ms.\n", dur_col, dur_avo);
+    log("Precalculating collision took %.3lf ms. Precalculating avoidance took %.3lf ms.\n", dur_col, dur_avo);
 }
 
 const Polygons& ModelVolumes::getCollision(coord_t radius, LayerIndex layer_idx, bool min_xy_dist)
@@ -2420,6 +2421,11 @@ const Polygons& ModelVolumes::getCollisionHolefree(coord_t radius, LayerIndex la
 
 const Polygons& ModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist)
 {
+    if (layer_idx == 0) // What on the layer directly above buildplate do i have to avoid to reach the buildplate ...
+    {
+        return getCollision(radius, layer_idx, min_xy_dist);
+    }
+
     coord_t orig_radius = radius;
 
     std::optional<std::reference_wrapper<const Polygons>> result;
@@ -2536,6 +2542,11 @@ const Polygons& ModelVolumes::getPlaceableAreas(coord_t radius, LayerIndex layer
 
 const Polygons& ModelVolumes::getWallRestiction(coord_t radius, LayerIndex layer_idx, bool min_xy_dist)
 {
+    if (layer_idx == 0) // Should never be requested as there will be no going below layer 0 ..., but just to be sure some semi-sane catch. Alternative would be empty Polygon.
+    {
+        return getCollision(radius, layer_idx, min_xy_dist);
+    }
+
     coord_t orig_radius = radius;
     min_xy_dist = min_xy_dist && current_min_xy_dist_delta > 0;
 
@@ -2799,7 +2810,6 @@ void ModelVolumes::calculateCollisionHolefree(std::deque<RadiusLayerPair> keys)
 #pragma omp parallel
     {
         std::unordered_map<RadiusLayerPair, Polygons> data;
-
 #pragma omp for schedule(guided)
         for (coord_t layer_idx = 0; layer_idx <= max_layer; layer_idx++)
         {
@@ -2875,24 +2885,8 @@ void ModelVolumes::calculateAvoidance(std::deque<RadiusLayerPair> keys)
             start_layer = std::max(start_layer, LayerIndex(1)); // Ensure StartLayer is at least 1 as if no avoidance was calculated getMaxCalculatedLayer returns -1
             std::vector<std::pair<RadiusLayerPair, Polygons>> data(max_required_layer + 1, std::pair<RadiusLayerPair, Polygons>(RadiusLayerPair(radius, -1), Polygons()));
 
-            // load the lowest available layer. If start_layer==1 then no avoidance was found as avoidance on layer 0 is just the collision (Layer -1 is seen here as the buildplate)
-            if (start_layer == 1)
-            {
-                if ((slow && radius < increase_until_radius + current_min_xy_dist_delta) || hole)
-                {
-                    latest_avoidance = getCollisionHolefree(radius, start_layer, true);
-                }
-                else
-                {
-                    latest_avoidance = getCollision(radius, start_layer, true);
-                }
-                latest_avoidance.simplify(min_maximum_resolution_, min_maximum_deviation_);
-                data[0] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance);
-            }
-            else
-            {
-                latest_avoidance = getAvoidance(radius, start_layer - 1, type, false, true); // minDist as the delta was already added
-            }
+
+            latest_avoidance = getAvoidance(radius, start_layer - 1, type, false, true); // minDist as the delta was already added, also avoidance for layer 0 will return the collision.
 
             // ### main loop doing the calculation
             for (LayerIndex layer = start_layer; layer <= max_required_layer; layer++)
@@ -2961,7 +2955,12 @@ void ModelVolumes::calculatePlaceables(std::deque<RadiusLayerPair> keys)
             logDebug("Requested calculation for value already calculated ?\n");
             continue;
         }
-        start_layer = std::max(start_layer, LayerIndex(1));
+
+        if (start_layer == 0)
+        {
+            data[0] = std::pair<RadiusLayerPair, Polygons>(key, machine_border_.difference(getCollision(radius, 0, true)));
+            start_layer = 1;
+        }
 
         for (LayerIndex layer = start_layer; layer <= max_required_layer; layer++)
         {
@@ -3010,7 +3009,7 @@ void ModelVolumes::calculateAvoidanceToModel(std::deque<RadiusLayerPair> keys)
             {
                 continue;
             }
-            getPlaceableAreas(radius, max_required_layer); // ensuring Placeableareas are calculated
+            getPlaceableAreas(radius, max_required_layer); // ensuring Placeableareas are calculated todo No Request layer 0
             const coord_t offset_speed = slow ? max_move_slow_ : max_move_;
             const coord_t max_step_move = std::max(1.9 * radius, current_min_xy_dist * 1.9);
             Polygons latest_avoidance;
@@ -3028,27 +3027,7 @@ void ModelVolumes::calculateAvoidanceToModel(std::deque<RadiusLayerPair> keys)
                 continue;
             }
             start_layer = std::max(start_layer, LayerIndex(1));
-
-            // load the lowest available layer. If start_layer==1 then no avoidance was found as avoidance on layer 0 is just the collision (Layer -1 is seen here as the buildplate)
-            if (start_layer == 1)
-            {
-                latest_avoidance = getCollision(radius, 0, true);
-                if ((slow && radius < increase_until_radius + current_min_xy_dist_delta) || hole)
-                {
-                    coord_t increase_radius_ceil = ceilRadius(increase_until_radius, false) - ceilRadius(radius, true);
-                    latest_avoidance = getCollision(increase_until_radius, start_layer, false).offset(5 - increase_radius_ceil, ClipperLib::jtRound).unionPolygons();
-                }
-                else
-                {
-                    latest_avoidance = getCollision(radius, start_layer, true);
-                }
-                latest_avoidance.simplify(min_maximum_resolution_, min_maximum_deviation_);
-                data[0] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance);
-            }
-            else
-            {
-                latest_avoidance = getAvoidance(radius, start_layer - 1, type, true, true); // minDist as the delta was already added
-            }
+            latest_avoidance = getAvoidance(radius, start_layer - 1, type, true, true); // minDist as the delta was already added, also avoidance for layer 0 will return the collision.
 
             // ### main loop doing the calculation
             for (LayerIndex layer = start_layer; layer <= max_required_layer; layer++)
