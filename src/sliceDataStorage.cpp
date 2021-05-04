@@ -547,7 +547,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(LayerIndex layer_nr) const
         { // process brim/skirt
             for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
             {
-                if (skirt_brim[extruder_nr].size() > 0)
+                if(!skirt_brim[extruder_nr].empty())
                 {
                     ret[extruder_nr] = true;
                     continue;
