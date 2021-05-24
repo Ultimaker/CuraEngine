@@ -42,9 +42,21 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
     {
         ANTI_OVERHANG,
         SUPPORT_DROP_DOWN,
-        SUPPORT_VANILLA
+        SUPPORT_VANILLA,
+        SUPPORT_SET_EXTRUDER
     };
+    // TODO: have an actual option for setting support extruder.
     ModifierType modifier_type = (mesh_settings.get<bool>("anti_overhang_mesh")) ? ANTI_OVERHANG : ((mesh_settings.get<bool>("support_mesh_drop_down")) ? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
+
+    // determine extruder number only if SUPPORT_SET_EXTRUDER
+    size_t extruder_n = 0;
+    if (modifier_type == SUPPORT_SET_EXTRUDER)
+    {
+        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        extruder_n = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
+    }
+
+    // add polygons to layers
     for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
@@ -59,6 +71,16 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
             break;
         case SUPPORT_VANILLA:
             support_layer.support_mesh.add(slicer_layer.polygons);
+            break;
+        case SUPPORT_SET_EXTRUDER:
+            // add Polygons for this extruder if none exists
+            while (support_layer.support_extruder_nr.size() < extruder_n)
+            {
+                support_layer.support_extruder_nr.emplace_back();
+            }
+
+            // add polygons to the relevant support layer.
+            support_layer.support_extruder_nr[extruder_n].add(slicer_layer.polygons);
             break;
         }
     }
@@ -78,6 +100,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
+    const size_t default_extruder_nr = infill_extruder.extruder_nr;
     const EFillMethod support_pattern = infill_extruder.settings.get<EFillMethod>("support_pattern");
     const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
 
@@ -102,23 +125,69 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
             continue;
         }
 
-        std::vector<PolygonsPart> support_islands = global_support_areas.splitIntoParts();
-        for (const PolygonsPart& island_outline : support_islands)
-        {
-            coord_t support_line_width_here = support_line_width;
-            if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
-            {
-                support_line_width_here *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-            }
-            // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
-            // tower will remove themselves from the support, so the outlines of the parts can be changed.
-            SupportInfillPart support_infill_part(island_outline, support_line_width_here, wall_line_count_this_layer);
+        // split support regions into parts.
+        std::vector<std::vector<PolygonsPart>> support_islands_per_extruder(std::max(storage.support.supportLayers[layer_nr].support_extruder_nr.size(), default_extruder_nr + 1));
 
-            storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
+        if (storage.support.supportLayers[layer_nr].has_support_extruder_regions(default_extruder_nr))
+        {
+            // split support regions into parts *per extruder*
+            std::vector<Polygons> extruder_regions = AreaSupport::computeExtruderRegions(storage, global_support_areas, layer_nr, default_extruder_nr);
+
+            for (size_t extruder_nr = 0; extruder_nr < extruder_regions.size(); ++extruder_nr)
+            {
+                support_islands_per_extruder[extruder_nr] = extruder_regions[extruder_nr].splitIntoParts();
+            }
+        }
+        else
+        {
+            // optimization if only one extruder.
+            support_islands_per_extruder[default_extruder_nr] = global_support_areas.splitIntoParts();
+        }
+
+        for (size_t extruder_nr = 0; extruder_nr < support_islands_per_extruder.size(); ++extruder_nr)
+        {
+            const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
+            for (const PolygonsPart& island_outline : support_islands_per_extruder[extruder_nr])
+            {
+                coord_t support_line_width_here = support_line_width;
+                if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+                {
+                    support_line_width_here *= extruder.settings.get<Ratio>("initial_layer_line_width_factor");
+                }
+                // we don't generate insets and infill area for the parts yet because later the skid/brim and prime
+                // tower will remove themselves from the support, so the outlines of the parts can be changed.
+                SupportInfillPart support_infill_part(island_outline, support_line_width_here, extruder_nr, wall_line_count_this_layer);
+                storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
+            }
         }
     }
 }
 
+std::vector<Polygons> AreaSupport::computeExtruderRegions(const SliceDataStorage& storage, const Polygons& global_support_areas, const unsigned int layer_nr, const size_t default_extruder_nr)
+{
+    // Partition into regions where extruder nr has been specified.
+    // The region for the default extruder shall be all remaining regions.
+    const auto& supportLayer = storage.support.supportLayers[layer_nr];
+    std::vector<Polygons> extruder_regions(std::max(supportLayer.support_extruder_nr.size(), default_extruder_nr + 1));
+
+    // Default extruder region is determined differently than the others.
+    extruder_regions[default_extruder_nr] = global_support_areas;
+
+    // Determine non-default regions (and subtract them from the default region)
+    for (size_t extruder_nr = 0; extruder_nr < supportLayer.support_extruder_nr.size(); ++extruder_nr)
+    {
+        if (extruder_nr == default_extruder_nr)
+            continue; // default region is set above.
+
+        const Polygons& extruder_region = supportLayer.support_extruder_nr.at(extruder_nr);
+        extruder_regions[extruder_nr] = global_support_areas.intersection(extruder_region);
+
+        // extruder_regions[extruder_nr] \= extruder_region
+        extruder_regions[extruder_nr] = extruder_regions[default_extruder_nr].difference(extruder_region);
+    }
+
+    return extruder_regions;
+}
 
 void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
 {
@@ -488,7 +557,7 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
         for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
         {
-            if (! is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+            if (! is_extruder_used[extruder_nr]) // Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
             {
                 continue;
             }
@@ -508,13 +577,13 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
             for (ExtruderTrain* skirt_brim_extruder_p : skirt_brim_extruders)
             {
                 ExtruderTrain& skirt_brim_extruder = *skirt_brim_extruder_p;
-                adhesion_size = std::max(adhesion_size, coord_t(
-                    skirt_brim_extruder.settings.get<coord_t>(adhesion_width_str)
-                    + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width")
-                    * (skirt_brim_extruder.settings.get<coord_t>(adhesion_line_count_str) - 1) // - 1 because the line is also included in extra_skirt_line_width
-                    * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
-                    + extra_skirt_line_width));
-                }
+                adhesion_size = std::max(
+                    adhesion_size,
+                    coord_t(skirt_brim_extruder.settings.get<coord_t>(adhesion_width_str)
+                            + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width") * (skirt_brim_extruder.settings.get<coord_t>(adhesion_line_count_str) - 1) // - 1 because the line is also included in extra_skirt_line_width
+                                  * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
+                            + extra_skirt_line_width));
+            }
             break;
         case EPlatformAdhesion::RAFT:
         {
@@ -606,12 +675,18 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         }
     }
     storage.support.layer_nr_max_filled_layer = max_layer_nr_support_mesh_filled;
+
+    // Simplify: union the polygons in each region for each support layer.
     for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
         support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons();
         support_layer.support_mesh_drop_down = support_layer.support_mesh_drop_down.unionPolygons();
         support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
+        for (auto& support_extruder_nrx : support_layer.support_extruder_nr)
+        {
+            support_extruder_nrx = support_extruder_nrx.unionPolygons();
+        }
     }
 
     // initialization of supportAreasPerLayer
@@ -670,6 +745,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         }
     }
 
+    // Simplify: for each layer, take the union of the support areas polygons.
     for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
     {
         Polygons& support_areas = global_support_areas_per_layer[layer_idx];
@@ -893,7 +969,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                            {
                                                larger_area_below = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines());
 
-                                               if (!larger_area_below.empty())
+                                               if (! larger_area_below.empty())
                                                {
                                                    // if the layer below protrudes sufficiently such that a normal support at xy_distance could be placed there,
                                                    // we don't want to use the min XY distance in that area and so we remove the wide area from larger_area_below
@@ -905,7 +981,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                                    // area_beyond_limit is the portion of the layer below's outline that lies further away from the current layer's outline than limit_distance
                                                    Polygons area_beyond_limit = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines().offset(limit_distance));
 
-                                                   if (!area_beyond_limit.empty())
+                                                   if (! area_beyond_limit.empty())
                                                    {
                                                        // expand area_beyond_limit so that the inner hole fills in all the way back to the current layer's outline
                                                        // and use that to remove the regions in larger_area_below that should not use min XY because the regions are
@@ -1018,7 +1094,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
             // support area. Please note that the horizontal expansion is rounded down to an integer offset_per_step.
             Polygons model_outline = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
             const coord_t offset_per_step = support_line_width / 2;
-            layer_this = layer_this.difference(model_outline);  // ensure the layer_this is not overlapping with the model_outline
+            layer_this = layer_this.difference(model_outline); // ensure the layer_this is not overlapping with the model_outline
             for (coord_t offset_cumulative = 0; offset_cumulative <= extension_offset; offset_cumulative += offset_per_step)
             {
                 layer_this = layer_this.offset(offset_per_step);
@@ -1298,7 +1374,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-    if (!support_layer.anti_overhang.empty())
+    if (! support_layer.anti_overhang.empty())
     {
         // Merge anti overhang into one polygon, otherwise overlapping polygons
         // will create opposite effect.
@@ -1402,7 +1478,7 @@ void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_
     const double tan_tower_roof_angle = tan(tower_roof_angle);
     const coord_t tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
     const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
-    for (Polygons& tower_roof: tower_roofs)
+    for (Polygons& tower_roof : tower_roofs)
     {
         if (tower_roof.size() == 0)
         {
@@ -1534,10 +1610,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
     }
 
     // Remove support in between the support roof and the model. Subtracts the roof polygons from the support polygons on the layers above it.
-    for (auto [layer_idx, support_layer] : support_layers
-                                               | ranges::views::enumerate
-                                               | ranges::views::drop(1)
-                                               | ranges::views::drop_last(z_distance_top))
+    for (auto [layer_idx, support_layer] : support_layers | ranges::views::enumerate | ranges::views::drop(1) | ranges::views::drop_last(z_distance_top))
     {
         Polygons roof = support_layer.support_roof;
 

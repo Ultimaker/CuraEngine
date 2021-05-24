@@ -250,6 +250,8 @@ private:
      * \return A pair of basic overhang and full overhang.
      */
     static std::pair<Polygons, Polygons> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_idx);
+
+    static std::vector<Polygons> computeExtruderRegions(const SliceDataStorage& storage, const Polygons& global_support_areas, const unsigned int layer_nr, const size_t default_extruder_nr);
     
     /*!
      * \brief Adds tower pieces to the current support layer.

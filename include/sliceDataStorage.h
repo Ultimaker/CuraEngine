@@ -208,6 +208,19 @@ public:
     Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Polygons support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Polygons anti_overhang; //!< Areas where no overhang should be detected.
+    std::vector<Polygons> support_extruder_nr; //! Areas with a particular extruder set.
+
+    // returns true if any non-default extruder region is non-empty
+    inline bool has_support_extruder_regions(int default_extruder_nr=-1) const
+    {
+        int i = 0;
+        for (const Polygons& extruder_region : support_extruder_nr)
+        {
+            if (i++ == default_extruder_nr) continue;
+            if (!extruder_region.empty()) return true;
+        }
+        return false;
+    }
 
     /*!
      * Exclude the given polygons from the support infill areas and update the SupportInfillParts.
