@@ -34,6 +34,51 @@ namespace cura
 
 bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer)
 {
+    // handle extruder regions
+    // determine extruder number only if SUPPORT_SET_EXTRUDER
+    if (mesh_settings.get<bool>("anti_overhang_mesh")) // TODO: use "alternate extruder" or sth like that.
+    {
+        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+
+        const size_t support_infill_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
+
+        // find any extruder nr which is not the standard infill extruder nr.
+        std::vector<size_t> extruders{
+            // consider other support extruders first
+            mesh_group_settings.get<ExtruderTrain&>("support_interface_extruder_nr").extruder_nr,
+            mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr,
+            mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr,
+        };
+
+        for (size_t extruder_nr : extruders)
+        {
+            if (extruder_nr == support_infill_extruder_nr)
+                continue;
+
+            for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
+            {
+                SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+                const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
+
+                // use this support extruder.
+                while (support_layer.support_extruder_nr.size() <= extruder_nr)
+                {
+                    support_layer.support_extruder_nr.emplace_back();
+                }
+
+                // (add polygons to the relevant support layer.)
+                support_layer.support_extruder_nr[extruder_nr].add(slicer_layer.polygons);
+            }
+
+            // TODO -- remove this return (but not the break!) once alternate extruder has its own setting.
+            return true;
+
+            // don't consider any other extruders.
+            break;
+        }
+    }
+
+    // ignore non-support-related meshes.
     if (! mesh_settings.get<bool>("anti_overhang_mesh") && ! mesh_settings.get<bool>("support_mesh"))
     {
         return false;
@@ -42,19 +87,10 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
     {
         ANTI_OVERHANG,
         SUPPORT_DROP_DOWN,
-        SUPPORT_VANILLA,
-        SUPPORT_SET_EXTRUDER
+        SUPPORT_VANILLA
     };
     // TODO: have an actual option for setting support extruder.
     ModifierType modifier_type = (mesh_settings.get<bool>("anti_overhang_mesh")) ? ANTI_OVERHANG : ((mesh_settings.get<bool>("support_mesh_drop_down")) ? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
-
-    // determine extruder number only if SUPPORT_SET_EXTRUDER
-    size_t extruder_n = 0;
-    if (modifier_type == SUPPORT_SET_EXTRUDER)
-    {
-        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-        extruder_n = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
-    }
 
     // add polygons to layers
     for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
@@ -71,16 +107,6 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
             break;
         case SUPPORT_VANILLA:
             support_layer.support_mesh.add(slicer_layer.polygons);
-            break;
-        case SUPPORT_SET_EXTRUDER:
-            // add Polygons for this extruder if none exists
-            while (support_layer.support_extruder_nr.size() < extruder_n)
-            {
-                support_layer.support_extruder_nr.emplace_back();
-            }
-
-            // add polygons to the relevant support layer.
-            support_layer.support_extruder_nr[extruder_n].add(slicer_layer.polygons);
             break;
         }
     }
@@ -146,6 +172,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 
         for (size_t extruder_nr = 0; extruder_nr < support_islands_per_extruder.size(); ++extruder_nr)
         {
+            // DEBUG
             const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
             for (const PolygonsPart& island_outline : support_islands_per_extruder[extruder_nr])
             {
@@ -156,7 +183,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
                 }
                 // we don't generate insets and infill area for the parts yet because later the skid/brim and prime
                 // tower will remove themselves from the support, so the outlines of the parts can be changed.
-                SupportInfillPart support_infill_part(island_outline, support_line_width_here, extruder_nr, wall_line_count_this_layer);
+                SupportInfillPart support_infill_part(island_outline, support_line_width_here, extruder.extruder_nr, wall_line_count_this_layer);
                 storage.support.supportLayers[layer_nr].support_infill_parts.push_back(support_infill_part);
             }
         }
@@ -180,10 +207,16 @@ std::vector<Polygons> AreaSupport::computeExtruderRegions(const SliceDataStorage
             continue; // default region is set above.
 
         const Polygons& extruder_region = supportLayer.support_extruder_nr.at(extruder_nr);
+
+        // early-out
+        if (extruder_region.empty())
+            continue;
+
+        // DEBUG (uncomment)
         extruder_regions[extruder_nr] = global_support_areas.intersection(extruder_region);
 
         // extruder_regions[extruder_nr] \= extruder_region
-        extruder_regions[extruder_nr] = extruder_regions[default_extruder_nr].difference(extruder_region);
+        extruder_regions[default_extruder_nr] = extruder_regions[default_extruder_nr].difference(extruder_region); // extruder_regions[default_extruder_nr].difference(extruder_region);
     }
 
     return extruder_regions;
