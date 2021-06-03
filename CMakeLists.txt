@@ -178,6 +178,9 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ImageBasedDensityProvider.cpp
     src/infill/NoZigZagConnectorProcessor.cpp
     src/infill/ZigzagConnectorProcessor.cpp
+    src/infill/LightningGenerator.cpp
+    src/infill/LightningLayer.cpp
+    src/infill/LightningTree.cpp
     src/infill/SierpinskiFill.cpp
     src/infill/SierpinskiFillProvider.cpp
     src/infill/SubDivCube.cpp
@@ -216,6 +219,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/ProximityPointLink.cpp
     src/utils/SVG.cpp
     src/utils/socket.cpp
+    src/utils/SquareGrid.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp.

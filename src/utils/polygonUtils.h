@@ -136,6 +136,11 @@ public:
     static void spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPolygonPoint>& result);
 
     /*!
+     * Generate a grid of dots inside of the area of the \p polygons.
+     */
+    static std::vector<Point> spreadDotsArea(const Polygons& polygons, coord_t grid_size);
+
+    /*!
      * Get the normal of a boundary point, pointing outward.
      * Only the direction is set.
      * Nothing is said about the length of the vector returned.
@@ -480,6 +485,10 @@ public:
     */
     static bool getNextPointWithDistance(Point from, int64_t dist, ConstPolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
 
+    /*!
+     * Walk a given \p distance along the polygon from a given point \p from on the polygon
+     */
+    static ClosestPolygonPoint walk(const ClosestPolygonPoint& from, coord_t distance);
 
     /*!
      * Get the point on a polygon which intersects a line parallel to a line going through the starting point and through another point.

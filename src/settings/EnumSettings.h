@@ -27,6 +27,7 @@ enum class EFillMethod
     CROSS,
     CROSS_3D,
     GYROID,
+    LIGHTNING,
     NONE  // NOTE: Should remain last! (May be used in testing to enumarate the enum.)
 };
 

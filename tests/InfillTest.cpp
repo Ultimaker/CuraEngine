@@ -198,7 +198,7 @@ namespace cura
          *    (these are; Cross, Cross-3D and Cubic-Subdivision)
          *  - Gyroid, since it doesn't handle the 100% infill and related cases well
          */
-        std::vector<EFillMethod> skip_methods = { EFillMethod::CROSS, EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV, EFillMethod::GYROID };
+        std::vector<EFillMethod> skip_methods = { EFillMethod::CROSS, EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV, EFillMethod::GYROID, EFillMethod::LIGHTNING };
 
         std::vector<EFillMethod> methods;
         for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method)

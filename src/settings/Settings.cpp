@@ -338,6 +338,10 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     {
         return EFillMethod::GYROID;
     }
+    else if (value == "lightning")
+    {
+        return EFillMethod::LIGHTNING;
+    }
     else //Default.
     {
         return EFillMethod::NONE;
