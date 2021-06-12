@@ -171,7 +171,7 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
     // Loop over the polygon to find the 'best' index given all the parameters.
     int best_point_idx = -1;
     float best_point_score = std::numeric_limits<float>::infinity();
-    Point p0 = poly.back();
+    Point p0 = poly[(start_from_pos - 1 + poly.size()) % poly.size()];
     for (unsigned int point_idx_without_modulo = start_from_pos; point_idx_without_modulo < end_before_pos; point_idx_without_modulo++)
     {
         const unsigned int point_idx = point_idx_without_modulo % poly.size();
