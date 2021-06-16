@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODE_WRITER_H
@@ -317,11 +317,20 @@ private:
      * \note At the planning stage we only have information on areas, not how those are filled.
      * If an area is too small to be filled with anything it will still get specified as being used with the extruder for that area.
      * 
-     * Computes \ref FffGcodeWriter::extruder_prime_layer_nr, \ref FffGcodeWriter::extruder_order_per_layer and \ref FffGcodeWriter::extruder_order_per_layer_negative_layers
+     * Computes \ref FffGcodeWriter::extruder_order_per_layer and \ref FffGcodeWriter::extruder_order_per_layer_negative_layers
      * 
      * \param[in] storage where the slice data is stored.
      */
     void calculateExtruderOrderPerLayer(const SliceDataStorage& storage);
+
+    /*!
+     * Calculate on which layer we should be priming for each extruder.
+     *
+     * The extruders are primed on the lowest layer at which they are used.
+     * \param storage Slice data storage containing information on which layers
+     * each extruder is used.
+     */
+    void calculatePrimeLayerPerExtruder(const SliceDataStorage& storage);
 
     /*!
      * Gets a list of extruders that are used on the given layer, but excluding the given starting extruder.
@@ -633,7 +642,7 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param prev_extruder The current extruder with which we last printed.
      */
-    void addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int prev_extruder) const;
+    void addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const size_t prev_extruder) const;
     
     /*!
      * Add the end gcode and set all temperatures to zero.

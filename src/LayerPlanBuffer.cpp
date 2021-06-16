@@ -86,8 +86,6 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
 
     Point first_location_new_layer = new_layer_destination_state->first;
 
-    assert(newest_layer->extruder_plans.front().extruder_nr == prev_layer->extruder_plans.back().extruder_nr);
-    assert(newest_layer->extruder_plans.front().paths.size() > 0);
     assert(newest_layer->extruder_plans.front().paths[0].points.size() == 1);
     assert(newest_layer->extruder_plans.front().paths[0].points[0] == first_location_new_layer);
 

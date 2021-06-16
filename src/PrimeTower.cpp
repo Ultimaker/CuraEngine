@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
@@ -106,6 +106,7 @@ void PrimeTower::generatePaths_denseInfill()
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     pattern_per_extruder.resize(extruder_count);
+    pattern_per_extruder_layer0.resize(extruder_count);
 
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
     for (size_t extruder_nr : extruder_order)
@@ -140,9 +141,7 @@ void PrimeTower::generatePaths_denseInfill()
         {
             //Generate the pattern for the first layer.
             coord_t line_width_layer0 = line_width * scene.extruders[extruder_nr].settings.get<Ratio>("initial_layer_line_width_factor");
-            pattern_per_extruder_layer0.emplace_back();
-
-            ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0.back();
+            ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0[extruder_nr];
 
             // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
             // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
@@ -167,7 +166,7 @@ void PrimeTower::generateStartLocations()
     PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations, prime_tower_start_locations);
 }
 
-void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int prev_extruder, const int new_extruder) const
+void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder, const size_t new_extruder) const
 {
     if (!enabled)
     {

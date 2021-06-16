@@ -438,13 +438,25 @@ protected:
         // Paths, other than polygons, can be either clockwise or counterclockwise. Make sure this is detected.
         const bool clockwise = simple_poly.orientation();
 
+        //Find most extreme point in one direction. For the "actual loop" (see below), start from this point,
+        //so it can act as a "tie breaker" if all differences in dist-score for a polygon fall within epsilon.
+        //Direction/point should be the user-specified point if available, or an arbitrary point away from polygon otherwise.
+        constexpr coord_t EPSILON = 25;
+        const Point focus_fixed_point = (seam_config.type == EZSeamType::USER_SPECIFIED)
+            ? seam_config.pos
+            : Point(0, std::sqrt(std::numeric_limits<coord_t>::max())); //Use sqrt, so the squared size can be used when comparing distances.
+        const size_t start_from_pos = std::min_element(simple_poly.begin(), simple_poly.end(), [focus_fixed_point](const Point& a, const Point& b) {
+            return vSize2(a - focus_fixed_point) < vSize2(b - focus_fixed_point);
+        }) - simple_poly.begin();
+        const size_t end_before_pos = simple_poly.size() + start_from_pos;
+
         // Find a seam position in the simple polygon:
         Point best_point;
         float best_score = std::numeric_limits<float>::infinity();
-        Point previous = simple_poly.back();
-        for(size_t i = 0; i < simple_poly.size(); ++i)
+        Point previous = simple_poly[(start_from_pos - 1 + simple_poly.size()) % simple_poly.size()];
+        for(size_t i = start_from_pos; i < end_before_pos; ++i)
         {
-            const Point& here = simple_poly[i];
+            const Point& here = simple_poly[i % simple_poly.size()];
             const Point& next = simple_poly[(i + 1) % simple_poly.size()];
 
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
@@ -483,7 +495,7 @@ protected:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED: //Give sharper corners some advantage, but sharper concave corners even more.
                 {
                     float score_corner = fabs(corner_angle) * corner_shift;
-                    if(corner_angle < 0) //Concave corner.
+                    if(corner_angle > 0) //Concave corner.
                     {
                         score_corner *= 2;
                     }
@@ -501,7 +513,7 @@ protected:
                 }
             }
 
-            if(score < best_score)
+            if(score - EPSILON < best_score)
             {
                 best_point = here;
                 best_score = score;
