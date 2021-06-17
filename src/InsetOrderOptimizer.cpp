@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ExtruderTrain.h"
@@ -42,13 +42,11 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
     const size_t infill_extruder_nr = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr;
 
     const bool ignore_inner_insets = !mesh.settings.get<bool>("optimize_wall_printing_order");
-    // If the outer wall extruder is different than the inner wall extruder, don't apply the outer_inset_first to the skin
-    // and infill insets.
-    const bool outer_inset_first = wall_0_extruder_nr == wall_x_extruder_nr && mesh.settings.get<bool>("outer_inset_first");
+    const InsetDirection inset_direction = mesh.settings.get<InsetDirection>("inset_direction");
 
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
     std::set<size_t> bins_with_index_zero_insets;
-    BinJunctions insets = variableWidthPathToBinJunctions(paths, ignore_inner_insets, outer_inset_first, &bins_with_index_zero_insets);
+    BinJunctions insets = variableWidthPathToBinJunctions(paths, ignore_inner_insets, ignore_inner_insets, &bins_with_index_zero_insets);
 
     size_t start_inset;
     size_t end_inset;
@@ -60,13 +58,13 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
     {
         //If printing the outer inset first, start with the lowest inset.
         //Otherwise start with the highest inset and iterate backwards.
-        if(outer_inset_first)
+        if(inset_direction == InsetDirection::OUTSIDE_IN)
         {
             start_inset = 0;
             end_inset = insets.size();
             direction = 1;
         }
-        else
+        else //INSIDE_OUT or CENTER_LAST.
         {
             start_inset = insets.size() - 1;
             end_inset = -1;

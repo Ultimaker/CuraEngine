@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cctype>
@@ -556,6 +556,23 @@ template<> SlicingTolerance Settings::get<SlicingTolerance>(const std::string& k
     else //Default.
     {
         return SlicingTolerance::MIDDLE;
+    }
+}
+
+template<> InsetDirection Settings::get<InsetDirection>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if(value == "center_last")
+    {
+        return InsetDirection::CENTER_LAST;
+    }
+    else if(value == "outside_in")
+    {
+        return InsetDirection::OUTSIDE_IN;
+    }
+    else //Default.
+    {
+        return InsetDirection::INSIDE_OUT;
     }
 }
 
