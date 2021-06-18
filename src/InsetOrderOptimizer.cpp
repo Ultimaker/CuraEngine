@@ -43,10 +43,11 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
 
     const bool pack_by_inset = !mesh.settings.get<bool>("optimize_wall_printing_order");
     const InsetDirection inset_direction = mesh.settings.get<InsetDirection>("inset_direction");
+    const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
 
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
     std::set<size_t> bins_with_index_zero_insets;
-    BinJunctions insets = variableWidthPathToBinJunctions(paths, pack_by_inset, &bins_with_index_zero_insets);
+    BinJunctions insets = variableWidthPathToBinJunctions(paths, pack_by_inset, center_last, &bins_with_index_zero_insets);
 
     size_t start_inset;
     size_t end_inset;
@@ -165,7 +166,7 @@ size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths
     return outer_region_id;
 }
 
-BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool pack_regions_by_inset, std::set<size_t>* p_bins_with_index_zero_insets)
+BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool pack_regions_by_inset, const bool center_last, std::set<size_t>* p_bins_with_index_zero_insets)
 {
     // Find the largest inset-index:
     size_t max_inset_index = 0;
@@ -178,8 +179,9 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
     size_t number_of_regions = 0;
     const size_t outer_region_id = getOuterRegionId(toolpaths, number_of_regions);
 
-    // Since we're (optionally!) splitting off in the outer and inner regions, it may need twice as many bins as inset-indices.
-    const size_t max_bin = pack_regions_by_inset ? (number_of_regions * 2) + 2 : (max_inset_index + 1) * 2;
+    //Since we're (optionally!) splitting off in the outer and inner regions, it may need twice as many bins as inset-indices.
+    //Add one extra bin for the center-paths, if they need to be stored separately.
+    const size_t max_bin = (pack_regions_by_inset ? (number_of_regions * 2) + 2 : (max_inset_index + 1) * 2) + center_last;
     BinJunctions insets(max_bin + 1);
     for (const VariableWidthLines& path : toolpaths)
     {
@@ -195,20 +197,17 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
             // Sort into the right bin, ...
             size_t bin_index;
             const bool in_hole_region = line.region_id != outer_region_id && line.region_id != 0;
-            if(pack_regions_by_inset)
+            if(center_last && line.is_odd)
             {
-                bin_index = std::min(inset_index, static_cast<size_t>(1)) + 2 * (in_hole_region ? line.region_id : 0);
+                bin_index = 0;
+            }
+            else if(pack_regions_by_inset)
+            {
+                bin_index = std::min(inset_index, static_cast<size_t>(1)) + 2 * (in_hole_region ? line.region_id : 0) + center_last;
             }
             else
             {
-                if (pack_regions_by_inset)  // <- inset-0 region-A, inset-0 B, inset-1 A, inset-1 B, inset-2 A, inset-2 B, ..., etc.
-                {
-                    bin_index = (inset_index * 2) + (in_hole_region ? 1 : 0);
-                }
-                else  // <- inset-0 region-A, inset-1 A, inset-2 A, ..., inset-0 B, inset-1 B, inset-2 B, ..., etc.
-                {
-                    bin_index = inset_index + (in_hole_region ? (max_inset_index + 1) : 0);
-                }
+                bin_index = inset_index + (in_hole_region ? (max_inset_index + 1) : 0) + center_last;
             }
             insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
 
