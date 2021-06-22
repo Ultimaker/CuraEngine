@@ -81,11 +81,13 @@ public:
      * \param p_bins_with_index_zero_insets When optimizing, not all inset zero indices are in the zeroth bin. (Can be set to nullptr, which won't negate optimize.)
      * \return A bin of walls, consisting of a vector of paths consisting of vector of lines
      */
-    static BinJunctions variableWidthPathToBinJunctions(
+    static BinJunctions variableWidthPathToBinJunctions
+    (
             const VariableWidthPaths& toolpaths,
             const bool pack_regions_by_inset = true,
             const bool center_last = false,
-            std::set<size_t>* p_bins_with_index_zero_insets = nullptr);
+            std::set<size_t>* p_bins_with_index_zero_insets = nullptr
+    );
 };
 
 } //namespace cura
