@@ -429,7 +429,7 @@ protected:
         // A course simplification is needed, since Arachne has a tendency to 'smear' corners out over multiple line segments.
         // Which in itself is a good thing, but will mess up the detection of sharp corners and such.
         Polygon simple_poly(*path.converted);
-        if (seam_config.simplify_curvature > 0)
+        if (seam_config.simplify_curvature > 0 && simple_poly.size() > 2)
         {
             const coord_t max_simplify_dist2 = seam_config.simplify_curvature * seam_config.simplify_curvature;
             simple_poly.simplify(max_simplify_dist2, max_simplify_dist2 / 4);
