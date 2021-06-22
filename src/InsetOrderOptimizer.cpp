@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ExtruderTrain.h"
@@ -41,14 +41,13 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
     const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
     const size_t infill_extruder_nr = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr;
 
-    const bool ignore_inner_insets = !mesh.settings.get<bool>("optimize_wall_printing_order");
-    // If the outer wall extruder is different than the inner wall extruder, don't apply the outer_inset_first to the skin
-    // and infill insets.
-    const bool outer_inset_first = wall_0_extruder_nr == wall_x_extruder_nr && mesh.settings.get<bool>("outer_inset_first");
+    const bool pack_by_inset = !mesh.settings.get<bool>("optimize_wall_printing_order");
+    const InsetDirection inset_direction = mesh.settings.get<InsetDirection>("inset_direction");
+    const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
 
     //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
     std::set<size_t> bins_with_index_zero_insets;
-    BinJunctions insets = variableWidthPathToBinJunctions(paths, ignore_inner_insets, outer_inset_first, &bins_with_index_zero_insets);
+    BinJunctions insets = variableWidthPathToBinJunctions(paths, pack_by_inset, center_last, &bins_with_index_zero_insets);
 
     size_t start_inset;
     size_t end_inset;
@@ -60,13 +59,13 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
     {
         //If printing the outer inset first, start with the lowest inset.
         //Otherwise start with the highest inset and iterate backwards.
-        if(outer_inset_first)
+        if(inset_direction == InsetDirection::OUTSIDE_IN)
         {
             start_inset = 0;
             end_inset = insets.size();
             direction = 1;
         }
-        else
+        else //INSIDE_OUT or CENTER_LAST.
         {
             start_inset = insets.size() - 1;
             end_inset = -1;
@@ -167,7 +166,7 @@ size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths
     return outer_region_id;
 }
 
-BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool& ignore_inner_inset_order, const bool& pack_regions_by_inset, std::set<size_t>* p_bins_with_index_zero_insets)
+BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool pack_regions_by_inset, const bool center_last, std::set<size_t>* p_bins_with_index_zero_insets)
 {
     // Find the largest inset-index:
     size_t max_inset_index = 0;
@@ -180,8 +179,9 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
     size_t number_of_regions = 0;
     const size_t outer_region_id = getOuterRegionId(toolpaths, number_of_regions);
 
-    // Since we're (optionally!) splitting off in the outer and inner regions, it may need twice as many bins as inset-indices.
-    const size_t max_bin = ignore_inner_inset_order ? (number_of_regions * 2) + 2 : (max_inset_index + 1) * 2;
+    //Since we're (optionally!) splitting off in the outer and inner regions, it may need twice as many bins as inset-indices.
+    //Add one extra bin for the center-paths, if they need to be stored separately.
+    const size_t max_bin = (pack_regions_by_inset ? (number_of_regions * 2) + 2 : (max_inset_index + 1) * 2) + center_last;
     BinJunctions insets(max_bin + 1);
     for (const VariableWidthLines& path : toolpaths)
     {
@@ -197,20 +197,17 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
             // Sort into the right bin, ...
             size_t bin_index;
             const bool in_hole_region = line.region_id != outer_region_id && line.region_id != 0;
-            if(ignore_inner_inset_order)
+            if(center_last && line.is_odd)
             {
-                bin_index = std::min(inset_index, static_cast<size_t>(1)) + 2 * (in_hole_region ? line.region_id : 0);
+                bin_index = 0;
+            }
+            else if(pack_regions_by_inset)
+            {
+                bin_index = std::min(inset_index, static_cast<size_t>(1)) + 2 * (in_hole_region ? line.region_id : 0) + center_last;
             }
             else
             {
-                if (pack_regions_by_inset)  // <- inset-0 region-A, inset-0 B, inset-1 A, inset-1 B, inset-2 A, inset-2 B, ..., etc.
-                {
-                    bin_index = (inset_index * 2) + (in_hole_region ? 1 : 0);
-                }
-                else  // <- inset-0 region-A, inset-1 A, inset-2 A, ..., inset-0 B, inset-1 B, inset-2 B, ..., etc.
-                {
-                    bin_index = inset_index + (in_hole_region ? (max_inset_index + 1) : 0);
-                }
+                bin_index = inset_index + (in_hole_region ? (max_inset_index + 1) : 0) + center_last;
             }
             insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
 

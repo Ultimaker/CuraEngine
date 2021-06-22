@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INSET_ORDER_OPTIMIZER_H
@@ -77,18 +77,16 @@ public:
      * Converts the VariableWidthPath to a bin of walls, consisting of a vector of paths, consisting of a vector of
      * lines
      * \param toolpaths The toolpaths to convert
-     * \param ignore_inner_inset_order True: Bins per region (not per inset, except for the 0 insets), in an optimized order. False: Do bin by inset,
-     *        and only distinguish 'everything in the outer region' and 'the inner regions'.
      * \param pack_by_inset Pack regions by inset, otherwise, pack insets by region. Useful for outer/inner first situations.
      * \param p_bins_with_index_zero_insets When optimizing, not all inset zero indices are in the zeroth bin. (Can be set to nullptr, which won't negate optimize.)
      * \return A bin of walls, consisting of a vector of paths consisting of vector of lines
      */
     static BinJunctions variableWidthPathToBinJunctions
     (
-        const VariableWidthPaths& toolpaths,
-        const bool& ignore_inner_inset_order = false,
-        const bool& pack_regions_by_inset = true,
-        std::set<size_t>* p_bins_with_index_zero_insets = nullptr
+            const VariableWidthPaths& toolpaths,
+            const bool pack_regions_by_inset = true,
+            const bool center_last = false,
+            std::set<size_t>* p_bins_with_index_zero_insets = nullptr
     );
 };
 
