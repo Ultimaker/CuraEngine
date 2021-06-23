@@ -434,6 +434,10 @@ protected:
             const coord_t max_simplify_dist2 = seam_config.simplify_curvature * seam_config.simplify_curvature;
             simple_poly.simplify(max_simplify_dist2, max_simplify_dist2 / 4);
         }
+        if(simple_poly.empty()) //Simplify removed everything because it's all too small.
+        {
+            simple_poly = Polygon(*path.converted); //Restore the original. We have to output a vertex as the seam position, so there needs to be a vertex.
+        }
 
         // Paths, other than polygons, can be either clockwise or counterclockwise. Make sure this is detected.
         const bool clockwise = simple_poly.orientation();
