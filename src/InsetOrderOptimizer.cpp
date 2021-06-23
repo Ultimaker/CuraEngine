@@ -212,7 +212,7 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
             insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
 
             // Collect all bins that have zero-inset indices in them, if needed:
-            if (inset_index == 0 && p_bins_with_index_zero_insets != nullptr)
+            if (inset_index == 0 && p_bins_with_index_zero_insets != nullptr && ! (center_last && max_bin > 2 && line.is_odd))
             {
                 p_bins_with_index_zero_insets->insert(bin_index);
             }
