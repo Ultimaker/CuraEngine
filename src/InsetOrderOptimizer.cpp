@@ -180,8 +180,8 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
     const size_t outer_region_id = getOuterRegionId(toolpaths, number_of_regions);
 
     //Since we're (optionally!) splitting off in the outer and inner regions, it may need twice as many bins as inset-indices.
-    //Add one extra bin for the center-paths, if they need to be stored separately.
-    const size_t max_bin = (pack_regions_by_inset ? (number_of_regions * 2) + 2 : (max_inset_index + 1) * 2) + center_last;
+    //Add two extra bins for the center-paths, if they need to be stored separately. One bin for inner and one for outer walls.
+    const size_t max_bin = (pack_regions_by_inset ? (number_of_regions * 2) + 2 : (max_inset_index + 1) * 2) + center_last * 2;
     BinJunctions insets(max_bin + 1);
     for (const VariableWidthLines& path : toolpaths)
     {
@@ -199,20 +199,20 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
             const bool in_hole_region = line.region_id != outer_region_id && line.region_id != 0;
             if(center_last && line.is_odd)
             {
-                bin_index = 0;
+                bin_index = inset_index > 0;
             }
             else if(pack_regions_by_inset)
             {
-                bin_index = std::min(inset_index, static_cast<size_t>(1)) + 2 * (in_hole_region ? line.region_id : 0) + center_last;
+                bin_index = std::min(inset_index, static_cast<size_t>(1)) + 2 * (in_hole_region ? line.region_id : 0) + center_last * 2;
             }
             else
             {
-                bin_index = inset_index + (in_hole_region ? (max_inset_index + 1) : 0) + center_last;
+                bin_index = inset_index + (in_hole_region ? (max_inset_index + 1) : 0) + center_last * 2;
             }
             insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
 
             // Collect all bins that have zero-inset indices in them, if needed:
-            if (inset_index == 0 && p_bins_with_index_zero_insets != nullptr && ! (center_last && max_bin > 2 && line.is_odd))
+            if (inset_index == 0 && p_bins_with_index_zero_insets != nullptr)
             {
                 p_bins_with_index_zero_insets->insert(bin_index);
             }
