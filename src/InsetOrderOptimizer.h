@@ -70,7 +70,7 @@ private:
     /*!
      * Retrieves the region-id of the outer region (belongs to the outer outline, not to a hole).
      */
-    static size_t getOuterRegionId(const VariableWidthPaths& toolpaths, size_t& out_number_of_regions);
+    static size_t getOuterRegionId(const VariableWidthPaths& toolpaths, size_t& out_max_region_id);
 
 public:
     /*!
