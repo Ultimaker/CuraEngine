@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
@@ -19,13 +19,19 @@ namespace cura
  */
 class CenterDeviationBeadingStrategy : public BeadingStrategy
 {
-    coord_t overfill_bound; // Amount of overfill before the two innermost beads are replaced by a single in the middle.
-    coord_t underfill_bound; // Amount of underfil before a single bead in the middle is placed
+private:
+    /*!
+     * Minimum allowed line width.
+     *
+     * If the innermost two lines would be below this line width, it should use
+     * a single line instead. If the innermost center line would be below this
+     * line width, it should be left out as a gap.
+     */
+    coord_t minimum_line_width;
 public:
     CenterDeviationBeadingStrategy(const coord_t pref_bead_width, const AngleRadians transitioning_angle, const Ratio wall_transition_threshold)
     : BeadingStrategy(pref_bead_width, pref_bead_width / 2, transitioning_angle)
-    , overfill_bound(pref_bead_width * (1.0f - wall_transition_threshold))
-    , underfill_bound(pref_bead_width * (1.0f - (wall_transition_threshold * 0.95f)))
+    , minimum_line_width(pref_bead_width * wall_transition_threshold)
     {
         name = "CenterDeviationBeadingStrategy";
     }
