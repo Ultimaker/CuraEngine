@@ -179,6 +179,15 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
 
     // Ending junction (vertex) should always exist in the simplified path
     new_junctions.emplace_back(junctions.back());
+
+    /* In case this is a closed polygon (instead of a poly-line-segments), the invariant that the first and last points are the same should be enforced.
+     * Since one of them didn't move, and the other can't have been moved further than the constraints, if originally equal, they can simply be equated.
+     */
+    if (vSize2(junctions.front().p - junctions.back().p) == 0)
+    {
+        new_junctions.back().p = junctions.front().p;
+    }
+
     junctions = new_junctions;
 }
 
