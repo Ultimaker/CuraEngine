@@ -39,4 +39,43 @@ TEST(CenterDeviationBeadingStrategy, GetOptimalThickness)
     EXPECT_EQ(strategy.getOptimalThickness(4), 4 * line_width) << "With 4 beads, optimally fill 4 line widths.";
 }
 
+/*!
+ * Test getting the width at which we need to transition to a greater number of
+ * lines.
+ */
+TEST(CenterDeviationBeadingStrategy, GetTransitionThickness)
+{
+    constexpr coord_t line_width = 400;
+
+    //Transition ratio 25%.
+    CenterDeviationBeadingStrategy strategy(line_width, 0.6, 0.25);
+    EXPECT_EQ(strategy.getTransitionThickness(0), 0.25 * line_width) << "The transition from 0 beads to 1 happens at 25% line width.";
+    EXPECT_EQ(strategy.getTransitionThickness(1), 1.25 * line_width) << "The transition from 1 bead to 2 happens at 125% line width.";
+    EXPECT_EQ(strategy.getTransitionThickness(4), 4.25 * line_width) << "The transition from 4 beads to 5 happens at 4 + 25% line width.";
+
+    //Transition ratio 50%.
+    strategy = CenterDeviationBeadingStrategy(line_width, 0.6, 0.5);
+    EXPECT_EQ(strategy.getTransitionThickness(0), 0.5 * line_width) << "The transition from 0 beads to 1 happens at 50% line width.";
+    EXPECT_EQ(strategy.getTransitionThickness(1), 1.5 * line_width) << "The transition from 1 bead to 2 happens at 150% line width.";
+    EXPECT_EQ(strategy.getTransitionThickness(5), 5.5 * line_width) << "The transition from 5 beads to 6 happens at 5 + 50% line width.";
+
+    //Transition ratio 95%.
+    strategy = CenterDeviationBeadingStrategy(line_width, 0.6, 0.95);
+    EXPECT_EQ(strategy.getTransitionThickness(0), 0.95 * line_width) << "The transition from 0 beads to 1 happens at 95% line width.";
+    EXPECT_EQ(strategy.getTransitionThickness(1), 1.95 * line_width) << "The transition from 1 bead to 2 happens at 195% line width.";
+    EXPECT_EQ(strategy.getTransitionThickness(3), 3.95 * line_width) << "The transition from 3 beads to 4 happens at 3 + 95% line width.";
+
+    //Transition ratio 100%.
+    strategy = CenterDeviationBeadingStrategy(line_width, 0.6, 1);
+    EXPECT_EQ(strategy.getTransitionThickness(0), line_width) << "Only transition to have a line if it fits completely.";
+    EXPECT_EQ(strategy.getTransitionThickness(1), 2 * line_width) << "Only transition to have two lines if they both fit completely.";
+    EXPECT_EQ(strategy.getTransitionThickness(2), 3 * line_width) << "Only transition to have three lines if they all fit completely.";
+
+    //Transition ratio 0%.
+    strategy = CenterDeviationBeadingStrategy(line_width, 0.6, 0);
+    EXPECT_EQ(strategy.getTransitionThickness(0), 0) << "Always transition to 1 line. The minimum line width is 0 after all.";
+    EXPECT_EQ(strategy.getTransitionThickness(1), line_width) << "If 1 line fits completely, immediately transition to 2 lines.";
+    EXPECT_EQ(strategy.getTransitionThickness(6), 6 * line_width) << "If 6 lines fit completely, immediately transition to 7 lines.";
+}
+
 }
