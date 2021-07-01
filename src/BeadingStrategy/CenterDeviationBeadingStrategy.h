@@ -7,6 +7,9 @@
 
 #include "../settings/types/Ratio.h" //For the wall transition threshold.
 #include "BeadingStrategy.h"
+#ifdef BUILD_TESTS
+    #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
+#endif
 
 namespace cura
 {
@@ -19,6 +22,10 @@ namespace cura
  */
 class CenterDeviationBeadingStrategy : public BeadingStrategy
 {
+#ifdef BUILD_TESTS
+    FRIEND_TEST(CenterDeviationBeadingStrategy, Construction);
+#endif
+
 private:
     /*!
      * Minimum allowed line width.

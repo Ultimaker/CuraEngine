@@ -249,6 +249,15 @@ set(engine_TEST
     TimeEstimateCalculatorTest
     WallsComputationTest
 )
+if (ENABLE_ARCUS)
+    set(engine_TEST_ARCUS
+        ArcusCommunicationTest
+        ArcusCommunicationPrivateTest
+    )
+endif ()
+set(engine_TEST_BEADING_STRATEGY
+    CenterDeviationBeadingStrategyTest
+)
 set(engine_TEST_INFILL
 )
 set(engine_TEST_INTEGRATION
@@ -257,12 +266,6 @@ set(engine_TEST_INTEGRATION
 set(engine_TEST_SETTINGS
     SettingsTest
 )
-if (ENABLE_ARCUS)
-    set(engine_TEST_ARCUS
-        ArcusCommunicationTest
-        ArcusCommunicationPrivateTest
-    )
-endif ()
 set(engine_TEST_UTILS
     AABBTest
     AABB3DTest
@@ -359,6 +362,20 @@ if (BUILD_TESTS)
         add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
     endforeach()
+    if (ENABLE_ARCUS)
+        foreach(test ${engine_TEST_ARCUS})
+            add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
+            target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
+            add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
+            add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
+        endforeach()
+    endif()
+    foreach(test ${engine_TEST_BEADING_STRATEGY})
+        add_executable(${test} tests/main.cpp tests/beading_strategy/${test}.cpp)
+        target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
+        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
+    endforeach()
     foreach (test ${engine_TEST_INFILL})
         add_executable(${test} tests/main.cpp tests/infill/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
@@ -377,14 +394,6 @@ if (BUILD_TESTS)
         add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
     endforeach()
-    if (ENABLE_ARCUS)
-        foreach (test ${engine_TEST_ARCUS})
-            add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
-            target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-            add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-            add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-        endforeach()
-    endif ()
     foreach (test ${engine_TEST_UTILS})
         add_executable(${test} tests/main.cpp tests/utils/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
