@@ -78,4 +78,48 @@ TEST(CenterDeviationBeadingStrategy, GetTransitionThickness)
     EXPECT_EQ(strategy.getTransitionThickness(6), 6 * line_width) << "If 6 lines fit completely, immediately transition to 7 lines.";
 }
 
+/*!
+ * Test getting the optimal bead count for a given shape width.
+ */
+TEST(CenterDeviationBeadingStrategy, GetOptimalBeadCount)
+{
+    constexpr coord_t line_width = 400;
+
+    //Transition ratio 25%.
+    CenterDeviationBeadingStrategy strategy(line_width, 0.6, 0.25);
+    //Anything below 25% line width should then produce 0 lines.
+    for(coord_t width = 0; width < 0.25 * line_width; width += 10)
+    {
+        EXPECT_EQ(strategy.getOptimalBeadCount(width), 0) << "Width is below the transition thickness from 0 to 1 line, so it should produce 0 lines.";
+    }
+    EXPECT_LE(strategy.getOptimalBeadCount(0.25 * line_width), 1) << "At exactly the transition thickness, either 0 or 1 line is acceptable.";
+    for(coord_t width = 0.25 * line_width + 1; width < 1.25 * line_width; width += 10)
+    {
+        EXPECT_EQ(strategy.getOptimalBeadCount(width), 1) << "Width is above the transition thickness from 0 to 1 line but below 1 to 2 lines, so it should produce 1 line.";
+    }
+    EXPECT_TRUE(strategy.getOptimalBeadCount(1.25 * line_width) == 1 || strategy.getOptimalBeadCount(1.25 * line_width) == 2) << "At exactly 125% line width, either 1 or 2 lines is acceptable.";
+    for(coord_t width = 1.25 * line_width + 1; width < 2.25 * line_width; width += 10)
+    {
+        EXPECT_EQ(strategy.getOptimalBeadCount(width), 2) << "Width is above the transition thickness from 1 to 2 lines but below 2 to 3 lines, so it should produce 2 lines.";
+    }
+
+    //Transition ratio 80%.
+    strategy = CenterDeviationBeadingStrategy(line_width, 0.6, 0.8);
+    //Anything below 80% line width should then produce 0 lines.
+    for(coord_t width = 0; width < 0.8 * line_width; width += 10)
+    {
+        EXPECT_EQ(strategy.getOptimalBeadCount(width), 0) << "Width is below the transition thickness from 0 to 1 line, so it should produce 0 lines.";
+    }
+    EXPECT_LE(strategy.getOptimalBeadCount(0.8 * line_width), 1) << "At exactly the transition thickness, either 0 or 1 line is acceptable.";
+    for(coord_t width = 0.8 * line_width + 1; width < 1.8 * line_width; width += 10)
+    {
+        EXPECT_EQ(strategy.getOptimalBeadCount(width), 1) << "Width is above the transition thickness from 0 to 1 line but below 1 to 2 lines, so it should produce 1 line.";
+    }
+    EXPECT_TRUE(strategy.getOptimalBeadCount(1.8 * line_width) == 1 || strategy.getOptimalBeadCount(1.8 * line_width) == 2) << "At exactly 180% line width, either 1 or 2 lines is acceptable.";
+    for(coord_t width = 1.8 * line_width + 1; width < 2.8 * line_width; width += 10)
+    {
+        EXPECT_EQ(strategy.getOptimalBeadCount(width), 2) << "Width is above the transition thickness from 1 to 2 lines but below 2 to 3 lines, so it should produce 2 lines.";
+    }
+}
+
 }
