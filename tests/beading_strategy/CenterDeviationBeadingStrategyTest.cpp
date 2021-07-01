@@ -122,4 +122,37 @@ TEST(CenterDeviationBeadingStrategy, GetOptimalBeadCount)
     }
 }
 
+/*!
+ * Tests whether the line compactness setting does what it is supposed to do,
+ * producing fewer, wider lines when the setting is high than when the setting
+ * is low.
+ *
+ * This is a test for requirements. The exact outcome of a function is not
+ * tested, but properties of the outcome is tested.
+ */
+TEST(CenterDeviationBeadingStrategy, LineCompactnessMonotonic)
+{
+    constexpr coord_t line_width = 400;
+    constexpr coord_t widths[] = {0, 1, 99, 101, 150, 200, 299, 300, 301, 399, 400, 401, 410, 450, 500, 660, 770, 880, 910, 1000, 1200}; //Bunch of widths to test with.
+    constexpr float compactnesses[] = {0, 0.1, 0.2, 0.24, 0.25, 0.26, 0.3, 0.5, 0.7, 0.75, 0.99, 1}; //Bunch of line compactness factors to test with.
+    constexpr size_t num_compactnesses = sizeof(compactnesses) / sizeof(float);
+
+    for(coord_t width : widths)
+    {
+        for(size_t low_index = 0; low_index < num_compactnesses; ++low_index)
+        {
+            const float low_compactness = compactnesses[low_index];
+            for(size_t high_index = low_index; high_index < num_compactnesses; ++high_index)
+            {
+                const float high_compactness = compactnesses[high_index];
+
+                EXPECT_GE(
+                        CenterDeviationBeadingStrategy(line_width, 0.6, low_compactness).getOptimalBeadCount(width),
+                        CenterDeviationBeadingStrategy(line_width, 0.6, high_compactness).getOptimalBeadCount(width)
+                ) << "When the compactness is low, the number of beads should always be greater or equal to when the compactness is high.";
+            }
+        }
+    }
+}
+
 }
