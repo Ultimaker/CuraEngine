@@ -61,8 +61,6 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
      * */
     ExtrusionJunction previous_previous = junctions.front();
     ExtrusionJunction previous = junctions.front();
-    ExtrusionJunction current = junctions.at(1);
-    ExtrusionJunction next = junctions.at(2);
 
     /* When removing a vertex, we check the height of the triangle of the area
      being removed from the original polygon by the simplification. However,
@@ -79,21 +77,17 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
      From this area we compute the height of the representative triangle using
      the standard formula for a triangle area: A = .5*b*h
      */
-    coord_t accumulated_area_removed = previous.p.X * current.p.Y - previous.p.Y * current.p.X; // Twice the Shoelace formula for area of polygon per line segment.
+    const ExtrusionJunction& initial = junctions.at(1);
+    coord_t accumulated_area_removed = previous.p.X * initial.p.Y - previous.p.Y * initial.p.X; // Twice the Shoelace formula for area of polygon per line segment.
 
     for (size_t point_idx = 1; point_idx < junctions.size() - 1; point_idx++)
     {
-        current = junctions.at(point_idx);
+        const ExtrusionJunction& current = junctions[point_idx];
 
-        // Don't spill over if the [next] vertex will then be equal to [previous]
-        if (point_idx + 1 == junctions.size() && new_junctions.size() > 1)
-        {
-            next = new_junctions[0]; // Spill over to new polygon for checking removed area.
-        }
-        else
-        {
-            next = junctions.at(point_idx + 1);
-        }
+        // Spill over in case of overflow, unless the [next] vertex will then be equal to [previous].
+        const bool spill_over = point_idx + 1 == junctions.size() && new_junctions.size() > 1;
+        ExtrusionJunction& next = spill_over ? new_junctions[0] : junctions[point_idx + 1];
+
         const coord_t removed_area_next = current.p.X * next.p.Y - current.p.Y * next.p.X; // Twice the Shoelace formula for area of polygon per line segment.
         const coord_t negative_area_closing = next.p.X * previous.p.Y - next.p.Y * previous.p.X; // Area between the origin and the short-cutting segment
         accumulated_area_removed += removed_area_next;
@@ -156,13 +150,20 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
                 else
                 {
                     // New point seems like a valid one.
-                    current = ExtrusionJunction(intersection_point, current.w, current.perimeter_index, current.region_id);
+                    const ExtrusionJunction new_to_add = ExtrusionJunction(intersection_point, current.w, current.perimeter_index, current.region_id);
                     // If there was a previous point added, remove it.
                     if(!new_junctions.empty())
                     {
                         new_junctions.pop_back();
                         previous = previous_previous;
                     }
+
+                    // The junction (vertex) is replaced by the new one.
+                    accumulated_area_removed = removed_area_next; // So that in the next iteration it's the area between the origin, [previous] and [current]
+                    previous_previous = previous;
+                    previous = new_to_add; // Note that "previous" is only updated if we don't remove the junction (vertex).
+                    new_junctions.push_back(new_to_add);
+                    continue;
                 }
             }
             else
