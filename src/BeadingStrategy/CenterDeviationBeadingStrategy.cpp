@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "CenterDeviationBeadingStrategy.h"
@@ -48,30 +48,14 @@ namespace cura
 
     coord_t CenterDeviationBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
     {
-        if (lower_bead_count % 2 == 0)
-        { // when we add the extra bead in the middle
-            return lower_bead_count * optimal_width + underfill_bound;
-        }
-        else
-        { // when we move away from the strategy which replaces two beads by a single one in the middle
-            return (lower_bead_count + 1) * optimal_width - overfill_bound;
-        }
+        return lower_bead_count * optimal_width + minimum_line_width;
     }
 
     coord_t CenterDeviationBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
     {
-        const coord_t naive_count = (thickness / 2 + optimal_width / 2) / optimal_width * 2;
-        const coord_t optimal_thickness = naive_count * optimal_width;
-        const coord_t overfill = optimal_thickness - thickness;
-        if (overfill > overfill_bound)
-        {
-            return naive_count - 1;
-        }
-        else if (-overfill > underfill_bound)
-        {
-            return naive_count + 1;
-        }
-        return naive_count;
+        const coord_t naive_count = thickness / optimal_width; //How many lines we can fit in for sure.
+        const coord_t remainder = thickness - naive_count * optimal_width; //Space left after fitting that many lines.
+        return naive_count + (remainder > minimum_line_width); //If there's enough space, fit an extra one.
     }
 
 } // namespace cura
