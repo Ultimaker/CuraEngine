@@ -54,17 +54,21 @@ SliceLayer::~SliceLayer()
 {
 }
 
-Polygons SliceLayer::getOutlines(bool external_polys_only) const
+Polygons SliceLayer::getOutlines(bool external_polys_only, double min_part_area) const
 {
     Polygons ret;
-    getOutlines(ret, external_polys_only);
+    getOutlines(ret, external_polys_only, min_part_area);
     return ret;
 }
 
-void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
+void SliceLayer::getOutlines(Polygons& result, bool external_polys_only, double min_part_area) const
 {
     for (const SliceLayerPart& part : parts)
     {
+        if (min_part_area > 0.0 && INT2MM2(part.outline.area()) < min_part_area)
+        {
+            continue;
+        }
         if (external_polys_only)
         {
             result.add(part.outline.outerPolygon());
@@ -385,7 +389,7 @@ SliceDataStorage::SliceDataStorage()
     std::fill(skirt_brim_max_locked_part_order, skirt_brim_max_locked_part_order + MAX_EXTRUDERS, 0);
 }
 
-Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const bool for_brim) const
+Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const bool for_brim, double min_part_area) const
 {
     if (layer_nr < 0 && layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
     { // when processing raft
@@ -425,11 +429,11 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                 const SliceLayer& layer = mesh.layers[layer_nr];
                 if (for_brim)
                 {
-                    total.add(layer.getOutlines(external_polys_only).offset(mesh.settings.get<coord_t>("brim_gap")));
+                    total.add(layer.getOutlines(external_polys_only, min_part_area).offset(mesh.settings.get<coord_t>("brim_gap")));
                 }
                 else
                 {
-                    layer.getOutlines(total, external_polys_only);
+                    layer.getOutlines(total, external_polys_only, min_part_area);
                 }
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
