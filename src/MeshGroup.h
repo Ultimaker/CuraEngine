@@ -1,4 +1,4 @@
-//Copyright (C) 2018 Ultimaker B.V.
+//Copyright (C) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef MESH_GROUP_H
@@ -10,7 +10,7 @@
 namespace cura
 {
 
-class FMatrix3x3;
+class FMatrix4x3;
 
 /*!
  * A MeshGroup is a collection with 1 or more 3D meshes.
@@ -30,6 +30,15 @@ public:
     void clear();
 
     void finalize();
+
+    /*!
+     * Scale the entire mesh group, with the bottom center as origin point.
+     *
+     * The mesh group is scaled around the bottom center of its bounding box. So
+     * that's the center in the X and Y directions, but Z=0. This simulates the
+     * shrinkage while sticking to the build plate.
+     */
+    void scaleFromBottom(const Ratio factor);
 };
 
 /*!
@@ -41,7 +50,7 @@ public:
  * \param object_parent_settings (optional) The parent settings object of the new mesh. Defaults to \p meshgroup if none is given.
  * \return whether the file could be loaded
  */
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, Settings& object_parent_settings);
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix4x3& transformation, Settings& object_parent_settings);
 
 } //namespace cura
 

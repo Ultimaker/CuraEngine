@@ -1,4 +1,4 @@
-//Copyright (C) 2019 Ultimaker B.V.
+//Copyright (C) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <iterator>
@@ -128,7 +128,7 @@ void AdaptiveLayerHeights::calculateLayers()
 
             // find the minimum slope of all the interesting triangles
             double minimum_slope = std::numeric_limits<double>::max();
-            for (const int& triangle_index : triangles_of_interest)
+            for (const size_t& triangle_index : triangles_of_interest)
             {
                 const double slope = face_slopes.at(triangle_index);
                 if (minimum_slope > slope)
@@ -230,8 +230,8 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
                 z_angle = M_PI;
             }
 
-            face_min_z_values.push_back(min_z * 1000);
-            face_max_z_values.push_back(max_z * 1000);
+            face_min_z_values.push_back(MM2INT(min_z));
+            face_max_z_values.push_back(MM2INT(max_z));
             face_slopes.push_back(z_angle);
         }
     }

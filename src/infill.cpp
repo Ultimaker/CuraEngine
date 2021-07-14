@@ -168,6 +168,7 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         connectLines(result_lines);
     }
     crossings_on_line.clear();
+    result_polygons.simplify(max_resolution, max_deviation);
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
@@ -187,9 +188,10 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
     const Polygons outline = in_outline.offset(outline_offset);
 
+    // Get the first offset these are mirrored from the original center line
     Polygons result;
     Polygons first_offset;
-    { // calculate [first_offset]
+    {
         const Polygons first_offset_lines = result_lines.offsetPolyLine(offset); // make lines on both sides of the input lines
         const Polygons first_offset_polygons_inward = result_polygons.offset(-offset); // make lines on the inside of the input polygons
         const Polygons first_offset_polygons_outward = result_polygons.offset(offset); // make lines on the other side of the input polygons
@@ -201,19 +203,28 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         }
     }
     result.add(first_offset);
-    Polygons reference_polygons = first_offset;
-    for (size_t infill_line = 1; infill_line < infill_multiplier / 2; infill_line++) // 2 because we are making lines on both sides at the same time
-    {
-        Polygons extra_offset = reference_polygons.offset(-infill_line_width);
-        result.add(extra_offset);
-        reference_polygons = std::move(extra_offset);
-    }
 
+    // Create the additional offsets from the first offsets, generated earlier, the direction of these offsets is
+    // depended on whether these lines should be connected or not.
+    if (infill_multiplier > 3)
+    {
+        Polygons reference_polygons = first_offset;
+        const size_t multiplier = static_cast<size_t>(infill_multiplier / 2);
+
+        const int extra_offset = mirror_offset ? -infill_line_width : infill_line_width;
+        for (size_t infill_line = 1; infill_line < multiplier; ++infill_line)
+        {
+            Polygons extra_polys = reference_polygons.offset(extra_offset);
+            result.add(extra_polys);
+            reference_polygons = std::move(extra_polys);
+        }
+    }
     if (zig_zaggify)
     {
         result = result.intersection(outline);
     }
 
+    // Remove the original center lines when there are an even number of lines required.
     if (!odd_multiplier)
     {
         result_polygons.clear();
@@ -348,7 +359,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 {
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
-    addLineSegmentsInfill(result, uncropped);
+    result = uncropped.cut(in_outline.offset(infill_overlap));
 }
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
@@ -389,18 +400,6 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
                 result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
             }
         }
-    }
-}
-
-void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
-{
-    ClipperLib::PolyTree interior_segments_tree;
-    in_outline.offset(infill_overlap).lineSegmentIntersection(input, interior_segments_tree);
-    ClipperLib::Paths interior_segments;
-    ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
-    for (size_t idx = 0; idx < interior_segments.size(); idx++)
-    {
-        result.addLine(interior_segments[idx][0], interior_segments[idx][1]);
     }
 }
 

@@ -7,6 +7,8 @@
 #include "settings/types/Ratio.h"
 #include "settings/EnumSettings.h"
 #include "utils/polygonUtils.h"
+#include "Application.h"
+#include "Slice.h"
 
 namespace cura {
 
@@ -100,7 +102,11 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         }
 
         //Finally optimize all the polygons. Every point removed saves time in the long run.
-        part->insets[i].simplify();
+        int wall_extruder_nr = settings.get<int>(i == 0 ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
+        const Settings& resolution_settings = wall_extruder_nr < 0 ? settings : Application::getInstance().current_slice->scene.extruders[wall_extruder_nr].settings;
+        const coord_t maximum_resolution = resolution_settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t maximum_deviation = resolution_settings.get<coord_t>("meshfix_maximum_deviation");
+        part->insets[i].simplify(maximum_resolution, maximum_deviation);
         part->insets[i].removeDegenerateVerts();
         if (i == 0)
         {

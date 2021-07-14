@@ -92,8 +92,8 @@ bool Comb::calc(const ExtruderTrain& train, Point startPoint, Point endPoint, Co
     unsigned int end_inside_poly = NO_INDEX;
     const bool endInside = moveInside(boundary_inside_optimal, _endInside, inside_loc_to_line_optimal, endPoint, end_inside_poly);
 
-    unsigned int start_part_boundary_poly_idx;
-    unsigned int end_part_boundary_poly_idx;
+    unsigned int start_part_boundary_poly_idx = NO_INDEX;		// Added initial value to stop MSVC throwing an exception in debug mode
+    unsigned int end_part_boundary_poly_idx = NO_INDEX;
     unsigned int start_part_idx =   (start_inside_poly == NO_INDEX)?    NO_INDEX : partsView_inside_optimal.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
     unsigned int end_part_idx =     (end_inside_poly == NO_INDEX)?      NO_INDEX : partsView_inside_optimal.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
 
@@ -380,7 +380,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
     { // mid-case
         in_or_mid = dest_point;
     }
-};
+}
 
 bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, Comb& comber)
 {

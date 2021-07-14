@@ -39,7 +39,7 @@ public:
      *
      * \return false if the area is too small and no insets and infill area can be generated, otherwise true.
      */
-    bool generateInsetsAndInfillAreas();
+    bool generateInsetsAndInfillAreas(const coord_t max_resolution, const coord_t max_deviation);
 
     const Polygons& getInfillArea() const;
 

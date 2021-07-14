@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <unordered_set>
 #include <vector>
 

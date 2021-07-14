@@ -23,7 +23,19 @@ void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t l
         mesh_above = mesh.layers[layer_number + 1].getOutlines();
     } //If this is the top-most layer, mesh_above stays empty.
 
-    areas = mesh.layers[layer_number].getOutlines().difference(mesh_above);
+    if (mesh.settings.get<bool>("magic_spiralize"))
+    {
+        // when spiralizing, the model is often solid so it's no good trying to determine if there is air above or not
+        // in this situation, just iron the topmost of the bottom layers
+        if (layer_number == mesh.settings.get<size_t>("initial_bottom_layers") - 1)
+        {
+            areas = mesh.layers[layer_number].getOutlines();
+        }
+    }
+    else
+    {
+        areas = mesh.layers[layer_number].getOutlines().difference(mesh_above);
+    }
 }
 
 bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer) const
@@ -38,12 +50,15 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     constexpr bool connect_polygons = false; // midway connections can make the surface less smooth
     const coord_t line_spacing = mesh.settings.get<coord_t>("ironing_line_spacing");
     const coord_t line_width = line_config.getLineWidth();
-    const std::vector<AngleDegrees>& top_most_skin_angles = (mesh.settings.get<size_t>("roofing_layer_count") > 0) ? mesh.roofing_angles : mesh.skin_angles;
+    const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+    const std::vector<AngleDegrees>& top_most_skin_angles = (roofing_layer_count > 0) ? mesh.roofing_angles : mesh.skin_angles;
     assert(top_most_skin_angles.size() > 0);
     const AngleDegrees direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + AngleDegrees(90.0); //Always perpendicular to the skin lines.
     constexpr coord_t infill_overlap = 0;
     constexpr int infill_multiplier = 1;
     constexpr coord_t shift = 0;
+    const coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const Ratio ironing_flow = mesh.settings.get<Ratio>("ironing_flow");
 
     coord_t ironing_inset = -mesh.settings.get<coord_t>("ironing_inset");
@@ -64,7 +79,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     }
     const coord_t outline_offset = ironing_inset;
 
-    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, outline_offset, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift);
+    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, outline_offset, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation);
     Polygons ironing_polygons;
     Polygons ironing_lines;
     infill_generator.generate(ironing_polygons, ironing_lines);

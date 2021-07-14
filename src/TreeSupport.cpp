@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
@@ -49,10 +49,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         group_settings.get<bool>("support_enable")&&
         group_settings.get<ESupportStructure>("support_structure") == ESupportStructure::TREE;
 
-    if (!(global_use_tree_support || 
+    if (!(global_use_tree_support ||
           std::any_of(storage.meshes.cbegin(),
                       storage.meshes.cend(),
-                      [](const SliceMeshStorage& m) { 
+                      [](const SliceMeshStorage& m) {
                           return m.settings.get<bool>("support_enable") &&
                                  m.settings.get<ESupportStructure>("support_structure") == ESupportStructure::TREE;
                       })))
@@ -176,7 +176,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 constexpr bool no_prime_tower = false;
                 floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
             }
-            floor_layer.unionPolygons();
+            floor_layer = floor_layer.unionPolygons();
             support_layer = support_layer.difference(floor_layer.offset(10)); //Subtract the support floor from the normal support.
         }
 
@@ -284,7 +284,7 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
         for (const std::unordered_map<Point, Node*>& group : nodes_per_part)
         {
             std::vector<Point> points_to_buildplate;
-            for (const std::pair<Point, Node*>& entry : group)
+            for (const std::pair<const Point, Node*>& entry : group)
             {
                 points_to_buildplate.emplace_back(entry.first); //Just the position of the node.
             }
@@ -296,7 +296,7 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
             const MinimumSpanningTree& mst = spanning_trees[group_index];
             //In the first pass, merge all nodes that are close together.
             std::unordered_set<Node*> to_delete;
-            for (const std::pair<Point, Node*>& entry : nodes_per_part[group_index])
+            for (const std::pair<const Point, Node*>& entry : nodes_per_part[group_index])
             {
                 Node* p_node = entry.second;
                 Node& node = *p_node;
@@ -327,28 +327,16 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                         const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
                         PolygonUtils::moveOutside(volumes_.getAvoidance(branch_radius_node, layer_nr - 1), next_position, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
                     }
-                    else
-                    {
-                        //Move towards centre of polygon.
-                        const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(node.position, volumes_.getInternalModel(branch_radius_node, layer_nr - 1));
-                        const coord_t distance = vSize(node.position - closest_point_on_border.location);
-                        //Try moving a bit further inside: Current distance + 1 step.
-                        Point moved_inside = next_position;
-                        PolygonUtils::ensureInsideOrOutside(volumes_.getInternalModel(branch_radius_node, layer_nr - 1), moved_inside, closest_point_on_border, distance + maximum_move_distance);
-                        Point difference = moved_inside - node.position;
-                        if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
-                        {
-                            difference = normal(difference, maximum_move_distance);
-                        }
-                        next_position = node.position + difference;
-                    }
+
+                    Node* neighbour = nodes_per_part[group_index][neighbours[0]];
+                    size_t new_distance_to_top = std::max(node.distance_to_top, neighbour->distance_to_top) + 1;
+                    size_t new_support_roof_layers_below = std::max(node.support_roof_layers_below, neighbour->support_roof_layers_below) - 1;
 
                     const bool to_buildplate = !volumes_.getAvoidance(branch_radius_node, layer_nr - 1).inside(next_position);
-                    Node* next_node = new Node(next_position, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate, p_node);
+                    Node* next_node = new Node(next_position, new_distance_to_top, node.skin_direction, new_support_roof_layers_below, to_buildplate, p_node);
                     insertDroppedNode(contact_nodes[layer_nr - 1], next_node); //Insert the node, resolving conflicts of the two colliding nodes.
 
-                    // Make sure the next pass doens't drop down either of these (since that already happened).
-                    Node* neighbour = nodes_per_part[group_index][neighbours[0]];
+                    // Make sure the next pass doesn't drop down either of these (since that already happened).
                     node.merged_neighbours.push_front(neighbour);
                     to_delete.insert(neighbour);
                     to_delete.insert(p_node);
@@ -371,7 +359,7 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                 }
             }
             //In the second pass, move all middle nodes.
-            for (const std::pair<Point, Node*>& entry : nodes_per_part[group_index])
+            for (const std::pair<const Point, Node*>& entry : nodes_per_part[group_index])
             {
                 Node* p_node = entry.second;
                 const Node& node = *p_node;
@@ -430,7 +418,7 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                         return branch_radius + branch_radius * (node.distance_to_top + 1) * diameter_angle_scale_factor;
                     }
                     else
-                    { 
+                    {
                         return branch_radius * (node.distance_to_top + 1) / tip_layers;
                     }
                 }();
@@ -439,21 +427,6 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                     //Avoid collisions.
                     const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
                     PolygonUtils::moveOutside(volumes_.getAvoidance(branch_radius_node, layer_nr - 1), next_layer_vertex, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
-                }
-                else
-                {
-                    //Move towards centre of polygon.
-                    const ClosestPolygonPoint closest_point_on_border = PolygonUtils::findClosest(next_layer_vertex, volumes_.getInternalModel(branch_radius_node, layer_nr - 1));
-                    const coord_t distance = vSize(node.position - closest_point_on_border.location);
-                    //Try moving a bit further inside: Current distance + 1 step.
-                    Point moved_inside = next_layer_vertex;
-                    PolygonUtils::ensureInsideOrOutside(volumes_.getInternalModel(branch_radius_node, layer_nr - 1), moved_inside, closest_point_on_border, distance + maximum_move_distance);
-                    Point difference = moved_inside - node.position;
-                    if(vSize2(difference) > maximum_move_distance * maximum_move_distance)
-                    {
-                        difference = normal(difference, maximum_move_distance);
-                    }
-                    next_layer_vertex = node.position + difference;
                 }
 
                 const bool to_buildplate = !volumes_.getAvoidance(branch_radius_node, layer_nr - 1).inside(next_layer_vertex);
@@ -472,9 +445,10 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                 std::vector<Node*>::iterator to_erase = std::find(contact_nodes[i_layer].begin(), contact_nodes[i_layer].end(), i_node);
                 if (to_erase != contact_nodes[i_layer].end())
                 {
-                    delete *to_erase;
+                    to_free_node_set.insert(*to_erase);
                     contact_nodes[i_layer].erase(to_erase);
                     to_free_node_set.insert(i_node);
+
                     for (Node* neighbour : i_node->merged_neighbours)
                     {
                         unsupported_branch_leaves.push_front({ i_layer, neighbour });
@@ -756,7 +730,7 @@ const Polygons& ModelVolumes::calculateInternalModel(const RadiusLayerPair& key)
 Polygons ModelVolumes::calculateMachineBorderCollision(Polygon machine_border)
 {
     Polygons machine_volume_border;
-    machine_volume_border.add(machine_border.offset(1000000)); //Put a border of 1m around the print volume so that we don't collide.
+    machine_volume_border.add(machine_border.offset(MM2INT(1000))); //Put a border of 1m around the print volume so that we don't collide.
     machine_border.reverse(); //Makes the polygon negative so that we subtract the actual volume from the collision area.
     machine_volume_border.add(machine_border);
     return machine_volume_border;

@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODE_WRITER_H
@@ -316,11 +316,20 @@ private:
      * \note At the planning stage we only have information on areas, not how those are filled.
      * If an area is too small to be filled with anything it will still get specified as being used with the extruder for that area.
      * 
-     * Computes \ref FffGcodeWriter::extruder_prime_layer_nr, \ref FffGcodeWriter::extruder_order_per_layer and \ref FffGcodeWriter::extruder_order_per_layer_negative_layers
+     * Computes \ref FffGcodeWriter::extruder_order_per_layer and \ref FffGcodeWriter::extruder_order_per_layer_negative_layers
      * 
      * \param[in] storage where the slice data is stored.
      */
     void calculateExtruderOrderPerLayer(const SliceDataStorage& storage);
+
+    /*!
+     * Calculate on which layer we should be priming for each extruder.
+     *
+     * The extruders are primed on the lowest layer at which they are used.
+     * \param storage Slice data storage containing information on which layers
+     * each extruder is used.
+     */
+    void calculatePrimeLayerPerExtruder(const SliceDataStorage& storage);
 
     /*!
      * Gets a list of extruders that are used on the given layer, but excluding the given starting extruder.
@@ -431,6 +440,8 @@ private:
      * \return Whether this function added anything to the layer plan.
      */
     bool processSingleLayerInfill(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part) const;
+
+
 
     /*!
      * Generate the insets for the walls of a given layer part.
@@ -689,7 +700,7 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param prev_extruder The current extruder with which we last printed.
      */
-    void addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int prev_extruder) const;
+    void addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const size_t prev_extruder) const;
     
     /*!
      * Add the end gcode and set all temperatures to zero.
@@ -712,6 +723,24 @@ private:
      * \return layer seam vertex index
      */
     unsigned int findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr);
+
+    /*!
+     * Partition the Infill regions by the skin at N layers above.
+     *
+     * When skin edge support layers is set this function will check N layers above the infill layer to see if there is
+     * skin above. If this skin needs to be supported by a wall it will return true else it returns false. The Infill
+     * outline of the Sparse density layer is partitioned into two polygons, either below the skin regions or outside
+     * of the skin region.
+     *
+     * \param infill_below_skin [out] Polygons with infill below the skin
+     * \param infill_not_below_skin [out] Polygons with infill outside of skin regions above
+     * \param gcode_layer The initial planning of the gcode of the layer
+     * \param mesh the mesh containing the layer of interest
+     * \param part \param part The part for which to create gcode
+     * \param infill_line_width line width of the infill
+     * \return true if there needs to be a skin edge support wall in this layer, otherwise false
+     */
+    static bool partitionInfillBySkinAbove(Polygons& infill_below_skin, Polygons& infill_not_below_skin, const LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const SliceLayerPart& part, coord_t infill_line_width) ;
 };
 
 }//namespace cura

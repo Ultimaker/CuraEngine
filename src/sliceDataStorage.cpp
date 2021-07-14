@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
@@ -217,7 +217,8 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
     {
         return true;
     }
-    if ((settings.get<size_t>("top_layers") > 0 || settings.get<size_t>("bottom_layers") > 0) && settings.get<size_t>("roofing_layer_count") > 0 && settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr == extruder_nr)
+    const size_t roofing_layer_count = std::min(settings.get<size_t>("roofing_layer_count"), settings.get<size_t>("top_layers"));
+    if (roofing_layer_count > 0 && settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr == extruder_nr)
     {
         return true;
     }
@@ -413,8 +414,6 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
     else 
     {
         Polygons total;
-        coord_t maximum_resolution = std::numeric_limits<coord_t>::max();
-        coord_t maximum_deviation = std::numeric_limits<coord_t>::max();
         if (layer_nr >= 0)
         {
             for (const SliceMeshStorage& mesh : meshes)
@@ -434,10 +433,8 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                 }
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
-                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
+                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(MM2INT(0.1)));
                 }
-                maximum_resolution = std::min(maximum_resolution, mesh.settings.get<coord_t>("meshfix_maximum_resolution"));
-                maximum_deviation = std::min(maximum_deviation, mesh.settings.get<coord_t>("meshfix_maximum_deviation"));
             }
         }
         if (include_support)
@@ -460,7 +457,6 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                 total.add(layer_nr == 0 ? primeTower.outer_poly_first_layer : primeTower.outer_poly);
             }
         }
-        total.simplify(maximum_resolution, maximum_deviation);
         return total;
     }
 }
@@ -551,7 +547,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(LayerIndex layer_nr) const
         { // process brim/skirt
             for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
             {
-                if (skirt_brim[extruder_nr].size() > 0)
+                if(!skirt_brim[extruder_nr].empty())
                 {
                     ret[extruder_nr] = true;
                     continue;

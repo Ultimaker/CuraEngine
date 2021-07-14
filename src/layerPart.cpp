@@ -61,7 +61,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         if (hole_offset != 0)
         {
             // holes are to be expanded or shrunk
-            PolygonsPart outline;
+            Polygons outline;
             Polygons holes;
             for (const PolygonRef poly : result[i])
             {
@@ -74,12 +74,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
                     holes.add(poly.offset(hole_offset));
                 }
             }
-            for (PolygonRef hole : holes.unionPolygons().intersection(outline))
-            {
-                hole.reverse();
-                outline.add(hole);
-            }
-            storageLayer.parts[i].outline = outline;
+            storageLayer.parts[i].outline.add(outline.difference(holes.unionPolygons()));
         }
         else
         {
@@ -95,7 +90,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
 
     // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
     // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
-#if defined(__GNUC__) && __GNUC__ <= 8
+#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
     #pragma omp parallel for default(none) shared(mesh, slicer) schedule(dynamic)
 #else
     #pragma omp parallel for default(none) shared(mesh, slicer, total_layers) schedule(dynamic)

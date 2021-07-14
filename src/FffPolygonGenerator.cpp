@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
@@ -131,7 +131,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
     else
     {
-        slice_layer_count = (storage.model_max.z - initial_layer_thickness) / layer_thickness + 1;
+        slice_layer_count = round_divide(storage.model_max.z - initial_layer_thickness, layer_thickness) + 1;
     }
 
     // Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
@@ -758,10 +758,10 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
             }
             mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
         }
-
-        // combine infill
-        SkinInfillAreaComputation::combineInfillLayers(mesh);
     }
+
+    // combine infill
+    SkinInfillAreaComputation::combineInfillLayers(mesh);
 
     // fuzzy skin
     if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled"))
@@ -1016,8 +1016,18 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower));
     }
 
-    const int draft_shield_dist = mesh_group_settings.get<coord_t>("draft_shield_dist");
+    const coord_t draft_shield_dist = mesh_group_settings.get<coord_t>("draft_shield_dist");
     storage.draft_protection_shield = draft_shield.approxConvexHull(draft_shield_dist);
+
+    //Extra offset has rounded joints, so simplify again.
+    coord_t maximum_resolution = 0; //Draft shield is printed with every extruder, so resolve with the max() or min() of them to meet the requirements of all extruders.
+    coord_t maximum_deviation = std::numeric_limits<coord_t>::max();
+    for(const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+    {
+        maximum_resolution = std::max(maximum_resolution, extruder.settings.get<coord_t>("meshfix_maximum_resolution"));
+        maximum_deviation = std::min(maximum_deviation, extruder.settings.get<coord_t>("meshfix_maximum_deviation"));
+    }
+    storage.draft_protection_shield.simplify(maximum_resolution, maximum_deviation);
 }
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)

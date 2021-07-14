@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring> //For strtok and strcopy.
@@ -19,7 +19,7 @@
 #include "../FffProcessor.h" //To start a slice and get time estimates.
 #include "../Slice.h"
 #include "../utils/getpath.h"
-#include "../utils/floatpoint.h"
+#include "../utils/FMatrix4x3.h" //For the mesh_rotation_matrix setting.
 #include "../utils/logoutput.h"
 
 namespace cura
@@ -214,7 +214,7 @@ void CommandLine::sliceNext()
                         }
                         argument = arguments[argument_index];
 
-                        const FMatrix3x3 transformation = last_settings->get<FMatrix3x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
+                        const FMatrix4x3 transformation = last_settings->get<FMatrix4x3>("mesh_rotation_matrix"); //The transformation applied to the model when loaded.
 
                         if (!loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings))
                         {

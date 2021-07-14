@@ -34,6 +34,8 @@ class Infill
     AngleDegrees fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     coord_t z; //!< height of the layer for which we generate infill
     coord_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
+    coord_t max_resolution; //!< Min feature size of the output
+    coord_t max_deviation; //!< Max deviation fro the original poly when enforcing max_resolution
     size_t wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     const Point infill_origin; //!< origin of the infill pattern
     Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
@@ -42,6 +44,7 @@ class Infill
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
     size_t zag_skip_count;  //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     coord_t pocket_size; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
+    bool mirror_offset; //!< Indication in which offset direction the extra infill lines are made
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
@@ -65,6 +68,8 @@ public:
         , AngleDegrees fill_angle
         , coord_t z
         , coord_t shift
+        , coord_t max_resolution
+        , coord_t max_deviation
         , size_t wall_line_count = 0
         , const Point& infill_origin = Point()
         , Polygons* perimeter_gaps = nullptr
@@ -86,6 +91,8 @@ public:
     , fill_angle(fill_angle)
     , z(z)
     , shift(shift)
+    , max_resolution(max_resolution)
+    , max_deviation(max_deviation)
     , wall_line_count(wall_line_count)
     , infill_origin(infill_origin)
     , perimeter_gaps(perimeter_gaps)
@@ -94,6 +101,7 @@ public:
     , skip_some_zags(skip_some_zags)
     , zag_skip_count(zag_skip_count)
     , pocket_size(pocket_size)
+    , mirror_offset(zig_zaggify)
     {
     }
 
@@ -315,13 +323,6 @@ private:
      * \param total_shift total shift of the scanlines in the direction perpendicular to the fill_angle.
      */
     void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t total_shift);
-
-    /*!
-     * Crop line segments by the infill polygon using Clipper
-     * \param[out] result (output) The resulting lines
-     * \param input The line segments to be cropped
-     */
-    void addLineSegmentsInfill(Polygons& result, Polygons& input);
 
     /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p line_distance
