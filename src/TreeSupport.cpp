@@ -105,6 +105,8 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom, layer_height) > 0 ? round_up_divide(z_distance_bottom, layer_height) : 1;
     const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
+    const coord_t max_radius = mesh_group_settings.get<coord_t>("support_tree_max_diameter");
+    const double max_relative_expansion = double(max_radius) / branch_radius - 1.0;
     const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
     const coord_t resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
     size_t completed = 0; //To track progress in a multi-threaded environment.
@@ -132,7 +134,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 }
                 else
                 {
-                    corner = corner * (1 + static_cast<double>(node.distance_to_top - tip_layers) * diameter_angle_scale_factor);
+                    corner = corner * (1 + std::min(max_relative_expansion, static_cast<double>(node.distance_to_top - tip_layers) * diameter_angle_scale_factor));
                 }
                 circle.add(node.position + corner);
             }
