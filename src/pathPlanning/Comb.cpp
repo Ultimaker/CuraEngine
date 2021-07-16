@@ -21,7 +21,7 @@ namespace cura {
 
 LocToLineGrid& Comb::getOutsideLocToLine()
 {
-    return *outside_loc_to_line;
+    return **outside_loc_to_line;
 }
 
 Polygons& Comb::getBoundaryOutside()
@@ -57,7 +57,7 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 , outside_loc_to_line(
         [](Comb* comber, const int64_t offset_from_inside_to_outside)
         {
-            return PolygonUtils::createLocToLineGrid(comber->getBoundaryOutside(), offset_from_inside_to_outside * 3 / 2);
+            return std::unique_ptr<LocToLineGrid>(PolygonUtils::createLocToLineGrid(comber->getBoundaryOutside(), offset_from_inside_to_outside * 3 / 2));
         }
         , this
         , offset_from_inside_to_outside
@@ -210,7 +210,7 @@ bool Comb::calc(const ExtruderTrain& train, Point startPoint, Point endPoint, Co
         }
         else
         {
-            bool combing_succeeded = LinePolygonsCrossings::comb(*boundary_outside, *outside_loc_to_line, start_crossing.out, end_crossing.out, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+            bool combing_succeeded = LinePolygonsCrossings::comb(*boundary_outside, getOutsideLocToLine(), start_crossing.out, end_crossing.out, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
             if (!combing_succeeded)
             {
                 return false;
@@ -235,7 +235,7 @@ bool Comb::calc(const ExtruderTrain& train, Point startPoint, Point endPoint, Co
             }
             else
             { // both start and end are outside
-                combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(startPoint, endPoint, *outside_loc_to_line);
+                combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(startPoint, endPoint, getOutsideLocToLine());
             }
         }
         else

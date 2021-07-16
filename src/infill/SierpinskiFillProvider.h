@@ -5,9 +5,10 @@
 #ifndef INFILL_SIERPINSKI_FILL_PROVIDER_H
 #define INFILL_SIERPINSKI_FILL_PROVIDER_H
 
+#include <optional>
+
 #include "SierpinskiFill.h"
 #include "../settings/EnumSettings.h" //For EFillMethod.
-#include "../utils/optional.h"
 
 namespace cura
 {
