@@ -83,8 +83,11 @@ void AABB::include(Point point)
 
 void AABB::include(const AABB other)
 {
-    include(other.min);
-    include(other.max);
+    // Note that this is different from including the min and max points, since when 'min > max' it's used to denote an negative/empty box.
+    min.X = std::min(min.X, other.min.X);
+    min.Y = std::min(min.Y, other.min.Y);
+    max.X = std::max(max.X, other.max.X);
+    max.Y = std::max(max.Y, other.max.Y);
 }
 
 void AABB::expand(int dist)

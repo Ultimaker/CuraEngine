@@ -104,6 +104,15 @@ namespace cura
         box.includeZ(-6);
 
         EXPECT_TRUE(box.hit(toBox(6, 9, -3))) << "The expanded (via includeZ/scalar) box should contain a point in the expanded area.";
+
+        const Point3 a(2, 2, 2);
+        const Point3 b(5, 10, 15);
+        AABB3D box2(a, b);
+        AABB3D empty;
+        box2.include(empty);
+
+        EXPECT_EQ(box2.min, a) << "Inclusion of an 'empty' or negative box should not change the minimum of the original.";
+        EXPECT_EQ(box2.max, b) << "Inclusion of an 'empty' or negative box should not change the maximum of the original.";
     }
 
     TEST(AABB3DTest, TestOffset)
