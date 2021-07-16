@@ -4,6 +4,7 @@
 #include <limits>
 #include "AABB.h"
 #include "polygon.h" //To create the AABB of a polygon.
+#include "linearAlg2D.h"
 
 namespace cura
 {
@@ -36,6 +37,33 @@ Point AABB::getMiddle() const
     return (min + max) / 2;
 }
 
+coord_t AABB::distanceSquared(const Point& p) const
+{
+    const Point a = Point(max.X, min.Y);
+    const Point b = Point(min.X, max.Y);
+    return (contains(p) ? -1 : 1) *
+        std::min({
+            LinearAlg2D::getDist2FromLineSegment(min, a, p),
+            LinearAlg2D::getDist2FromLineSegment(a, max, p),
+            LinearAlg2D::getDist2FromLineSegment(max, b, p),
+            LinearAlg2D::getDist2FromLineSegment(b, min, p)
+        });
+}
+
+coord_t AABB::distanceSquared(const AABB& other) const
+{
+    return std::min({
+            distanceSquared(other.min),
+            other.distanceSquared(min),
+            distanceSquared(other.max),
+            other.distanceSquared(max),
+            distanceSquared(Point(other.max.X, other.min.Y)),
+            other.distanceSquared(Point(max.X, min.Y)),
+            distanceSquared(Point(other.min.X, other.max.Y)),
+            other.distanceSquared(Point(min.X, max.Y)),
+        });
+}
+
 void AABB::calculate(const Polygons& polys)
 {
     min = Point(POINT_MAX, POINT_MAX);
@@ -62,6 +90,19 @@ void AABB::calculate(ConstPolygonRef poly)
 bool AABB::contains(const Point& point) const
 {
     return point.X >= min.X && point.X <= max.X && point.Y >= min.Y && point.Y <= max.Y;
+}
+
+bool AABB::contains(const AABB& other) const
+{
+    if (area() < 0) { return false; }
+    if (other.area() < 0) { return true; }
+    return other.min.X >= min.X && other.max.X <= max.X && other.min.Y >= min.Y && other.max.Y <= max.Y;
+}
+
+coord_t AABB::area() const
+{
+    if (max.X < min.X || max.Y < min.Y) { return -1; }  // Do the unititialized check explicitly, so there aren't any problems with over/underflow and POINT_MAX/POINT_MIN.
+    return (max.X - min.X) * (max.Y - min.Y);
 }
 
 bool AABB::hit(const AABB& other) const

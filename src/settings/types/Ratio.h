@@ -25,12 +25,38 @@ public:
      */
     constexpr Ratio(double value) : value(value) {};
 
+    /*!
+     * Create the Ratio with a numerator and a divisor from arbitrary types
+     * \tparam E1 required to be castable to a double
+     * \tparam E2 required to be castable to a double
+     * \param numerator the numerator of the ratio
+     * \param divisor the divisor of the ratio
+     */
+    template <typename E1, typename E2>
+    constexpr Ratio(const E1& numerator, const E2& divisor)
+        : value(static_cast<double>(numerator) / static_cast<double>(divisor)) {};
+
     /*
      * \brief Casts the Ratio instance to a double.
      */
     operator double() const
     {
         return value;
+    }
+
+    /*
+     * Some Relational operators
+     */
+    template <typename E>
+    constexpr bool operator==(const E& rhs) const
+    {
+        return value == static_cast<double>(rhs);
+    }
+
+    template <typename E>
+    constexpr bool operator!=(const E& rhs) const
+    {
+        return !(rhs == *this);
     }
 
     /*

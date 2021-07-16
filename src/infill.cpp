@@ -5,19 +5,20 @@
 #include <functional>
 #include <unordered_set>
 
+#include "WallToolPaths.h"
 #include "infill.h"
-#include "sliceDataStorage.h"
-#include "infill/ImageBasedDensityProvider.h"
 #include "infill/GyroidInfill.h"
+#include "infill/ImageBasedDensityProvider.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/SierpinskiFill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
-#include "utils/logoutput.h"
+#include "sliceDataStorage.h"
 #include "utils/PolygonConnector.h"
-#include "utils/polygonUtils.h"
 #include "utils/UnionFind.h"
+#include "utils/logoutput.h"
+#include "utils/polygonUtils.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -42,21 +43,103 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+Polygons Infill::generateWallToolPaths(VariableWidthPaths& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings)
 {
-    coord_t outline_offset_raw = outline_offset;
-    outline_offset -= wall_line_count * infill_line_width; // account for extra walls
+    outer_contour = outer_contour.offset(infill_overlap);
+
+    Polygons inner_contour;
+    if (wall_line_count > 0)
+    {
+        constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
+        WallToolPaths wall_toolpaths(outer_contour, line_width, wall_line_count, wall_0_inset, settings);
+        wall_toolpaths.pushToolPaths(toolpaths);
+        inner_contour = wall_toolpaths.getInnerContour();
+    }
+    else
+    {
+        inner_contour = outer_contour;
+    }
+    return inner_contour;
+}
+
+void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+{
+    if (outer_contour.empty())
+    {
+        return;
+    }
+
+    inner_contour =
+        generateWallToolPaths(toolpaths, outer_contour, wall_line_count, infill_line_width, infill_overlap, settings);
+
+    //Apply a half-line-width offset if the pattern prints partly alongside the walls, to get an area that we can simply print the centreline alongside the edge.
+    //The lines along the edge must lie next to the border, not on it.
+    //This makes those algorithms a lot simpler.
+    if (pattern == EFillMethod::ZIG_ZAG //Zig-zag prints the zags along the walls.
+        || pattern == EFillMethod::CONCENTRIC //Concentric at high densities needs to print alongside the walls, not overlapping them.
+        || (zig_zaggify && (pattern == EFillMethod::LINES //Zig-zaggified infill patterns print their zags along the walls.
+            || pattern == EFillMethod::TRIANGLES
+            || pattern == EFillMethod::GRID
+            || pattern == EFillMethod::CUBIC
+            || pattern == EFillMethod::TETRAHEDRAL
+            || pattern == EFillMethod::QUARTER_CUBIC
+            || pattern == EFillMethod::TRIHEXAGON
+            || pattern == EFillMethod::GYROID
+            || pattern == EFillMethod::CROSS
+            || pattern == EFillMethod::CROSS_3D))
+        || infill_multiplier % 2 == 0) //Multiplied infill prints loops of infill, partly along the walls, if even. For odd multipliers >1 it gets offset by the multiply algorithm itself.
+    {
+        // Get gaps beforehand (that are caused when the 1/2 line width inset is done after this):
+        // (Note that we give it a _full_ line width here, because unlike the old situation this can produce walls that are actually smaller than that.)
+        constexpr coord_t gap_wall_count = 1; // Only need one wall here, less even, in a sense.
+        constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
+        WallToolPaths wall_toolpaths(inner_contour, infill_line_width, gap_wall_count, wall_0_inset, settings);
+        VariableWidthPaths gap_fill_paths = wall_toolpaths.getToolPaths();
+
+        // Add the gap filling to the toolpaths and make the new inner contour 'aware' of the gap infill:
+        // (Can't use getContours here, becasue only _some_ of the lines Arachne has generated are needed.)
+        Polygons gap_filled_areas;
+        for (const auto& var_width_line : gap_fill_paths)
+        {
+            VariableWidthLines thin_walls_only;
+            for (const auto& extrusion : var_width_line)
+            {
+                if (extrusion.is_odd && extrusion.inset_idx == 0)
+                {
+                    Polygon path;
+                    for (const auto& junction : extrusion.junctions)
+                    {
+                        path.add(junction.p);
+                    }
+                    if(path.polygonLength() >= infill_line_width * 4) //Don't fill gaps that are very small (with paths less than 2 line widths long, 4 back and forth).
+                    {
+                        gap_filled_areas.add(path);
+                        thin_walls_only.push_back(extrusion);
+                    }
+                }
+            }
+            if (! thin_walls_only.empty())
+            {
+                toolpaths.push_back(thin_walls_only);
+            }
+        }
+        gap_filled_areas = gap_filled_areas.offsetPolyLine(infill_line_width / 2).unionPolygons();
+
+        // Now do the actual inset, to make place for the extra 'zig-zagify' lines:
+        inner_contour = inner_contour.difference(gap_filled_areas).offset(-infill_line_width / 2);
+    }
+    inner_contour.simplify(max_resolution, max_deviation);
 
     if (infill_multiplier > 1)
     {
         bool zig_zaggify_real = zig_zaggify;
         if (infill_multiplier % 2 == 0)
         {
-            zig_zaggify = false; // generate the basic infill pattern without going via the borders
+            zig_zaggify = false;
         }
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
-        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, mesh);
         zig_zaggify = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
         result_polygons.add(generated_result_polygons);
@@ -68,23 +151,18 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
         //So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
-        _generate(generated_result_polygons, generated_result_lines, cross_fill_provider, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, mesh);
         result_polygons.add(generated_result_polygons);
         result_lines.add(generated_result_lines);
     }
-
-    // generate walls around infill pattern
-    for (size_t wall_idx = 0; wall_idx < wall_line_count; wall_idx++)
-    {
-        const coord_t distance_from_outline_to_wall = outline_offset_raw - infill_line_width / 2 - wall_idx * infill_line_width;
-        result_polygons.add(in_outline.offset(distance_from_outline_to_wall));
-    }
-
     if (connect_polygons)
     {
         // remove too small polygons
         coord_t snap_distance = infill_line_width * 2; // polygons with a span of max 1 * nozzle_size are too small
-        auto it = std::remove_if(result_polygons.begin(), result_polygons.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
+        auto it = std::remove_if(result_polygons.begin(), result_polygons.end(), [snap_distance](PolygonRef poly)
+                                 {
+                                     return poly.shorterThan(snap_distance);
+                                 });
         result_polygons.erase(it, result_polygons.end());
 
         PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
@@ -93,15 +171,10 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     }
 }
 
-void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
 {
-    if (in_outline.empty()) return;
+    if (inner_contour.empty()) return;
     if (line_distance == 0) return;
-
-    if (pattern == EFillMethod::ZIG_ZAG || (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON || pattern == EFillMethod::GYROID)))
-    {
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
-    }
 
     switch(pattern)
     {
@@ -127,7 +200,7 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
         generateTrihexagonInfill(result_lines);
         break;
     case EFillMethod::CONCENTRIC:
-        generateConcentricInfill(result_polygons, line_distance);
+        generateConcentricInfill(toolpaths, settings);
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle);
@@ -164,7 +237,7 @@ void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const 
     {
         //The list should be empty because it will be again filled completely. Otherwise might have double lines.
         result_lines.clear();
-        
+
         connectLines(result_lines);
     }
     crossings_on_line.clear();
@@ -181,13 +254,6 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
     bool odd_multiplier = infill_multiplier % 2 == 1;
     coord_t offset = (odd_multiplier)? infill_line_width : infill_line_width / 2;
 
-    if (zig_zaggify && !odd_multiplier)
-    {
-        outline_offset -= infill_line_width / 2; // the infill line zig zag connections must lie next to the border, not on it
-    }
-
-    const Polygons outline = in_outline.offset(outline_offset);
-
     // Get the first offset these are mirrored from the original center line
     Polygons result;
     Polygons first_offset;
@@ -199,7 +265,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         first_offset = first_offset_lines.unionPolygons(first_offset_polygons); // usually we only have either lines or polygons, but this code also handles an infill pattern which generates both
         if (zig_zaggify)
         {
-            first_offset = outline.difference(first_offset);
+            first_offset = inner_contour.difference(first_offset);
         }
     }
     result.add(first_offset);
@@ -221,7 +287,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
     }
     if (zig_zaggify)
     {
-        result = result.intersection(outline);
+        result = result.intersection(inner_contour);
     }
 
     // Remove the original center lines when there are an even number of lines required.
@@ -241,7 +307,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
             }
             poly.add(poly[0]);
         }
-        Polygons polylines = outline.intersectionPolyLines(result_polygons);
+        Polygons polylines = inner_contour.intersectionPolyLines(result_polygons);
         for (PolygonRef polyline : polylines)
         {
             Point last_point = no_point;
@@ -263,45 +329,34 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 
 void Infill::generateGyroidInfill(Polygons& result_lines)
 {
-    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, outline_offset + infill_overlap, infill_line_width, line_distance, in_outline, z);
+    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, line_distance, inner_contour, z);
 }
 
-void Infill::generateConcentricInfill(Polygons& result, int inset_value)
+void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const Settings& settings)
 {
-    Polygons first_concentric_wall = in_outline.offset(outline_offset + infill_overlap - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
-
-    if (perimeter_gaps)
+    constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
+    const bool iterative = line_distance > infill_line_width; // Do it all at once if there is not need for a gap, otherwise, iterate.
+    const coord_t min_area = infill_line_width * infill_line_width;
+    Polygons current_inset = inner_contour.offset(infill_line_width / 2);
+    do
     {
-        const Polygons inner = first_concentric_wall.offset(infill_line_width / 2 + perimeter_gaps_extra_offset);
-        const Polygons gaps_here = in_outline.difference(inner);
-        perimeter_gaps->add(gaps_here);
-    }
-    generateConcentricInfill(first_concentric_wall, result, inset_value);
-}
-
-void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value)
-{
-    result.add(first_concentric_wall);
-    Polygons* prev_inset = &first_concentric_wall;
-    Polygons next_inset;
-    Polygons new_inset;  // This intermediate inset variable is needed because prev_inset is referencing
-    while (prev_inset->size() > 0)
-    {
-        new_inset = prev_inset->offset(-inset_value);
-        new_inset.simplify();
-        result.add(new_inset);
-        if (perimeter_gaps)
+        if (iterative)
         {
-            const Polygons outer = prev_inset->offset(-infill_line_width / 2 - perimeter_gaps_extra_offset);
-            const Polygons inner = new_inset.offset(infill_line_width / 2);
-            const Polygons gaps_here = outer.difference(inner);
-            perimeter_gaps->add(gaps_here);
+            current_inset = current_inset.offset(-infill_line_width * 2).offset(infill_line_width * 2);
         }
-        // This operation helps to prevent the variable "prev_inset" changes whenever next_inset changes
-        next_inset = new_inset;
-        prev_inset = &next_inset;
-    }
-    std::reverse(std::begin(result), std::end(result));
+        current_inset.simplify();
+        if (current_inset.area() <= min_area)
+        {
+            break;
+        }
+
+        const coord_t inset_wall_count = iterative ? 1 : std::numeric_limits<coord_t>::max();
+        WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings);
+        const VariableWidthPaths inset_paths = wall_toolpaths.getToolPaths();
+
+        toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
+        current_inset = wall_toolpaths.getInnerContour().offset((infill_line_width / 2) - line_distance);
+    } while (iterative);
 }
 
 void Infill::generateGridInfill(Polygons& result)
@@ -359,18 +414,11 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 {
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
-    result = uncropped.cut(in_outline.offset(infill_overlap));
+    result = uncropped.cut(outer_contour.offset(infill_overlap));
 }
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
 {
-    outline_offset += infill_overlap;
-    if (zig_zaggify)
-    {
-        outline_offset += -infill_line_width / 2;
-    }
-    Polygons outline = in_outline.offset(outline_offset);
-
     Polygon cross_pattern_polygon = cross_fill_provider.generate(pattern, z, infill_line_width, pocket_size);
 
     if (cross_pattern_polygon.empty())
@@ -382,7 +430,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
     {
         Polygons cross_pattern_polygons;
         cross_pattern_polygons.add(cross_pattern_polygon);
-        result_polygons.add(outline.intersection(cross_pattern_polygons));
+        result_polygons.add(inner_contour.intersection(cross_pattern_polygons));
     }
     else
     {
@@ -391,11 +439,11 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
         Polygons cross_pattern_polygons;
         cross_pattern_polygons.add(cross_pattern_polygon);
-        Polygons poly_lines = outline.intersectionPolyLines(cross_pattern_polygons);
-        
+        Polygons poly_lines = inner_contour.intersectionPolyLines(cross_pattern_polygons);
+
         for (PolygonRef poly_line : poly_lines)
         {
-            for (unsigned int point_idx = 1; point_idx < poly_line.size(); point_idx++)
+            for (size_t point_idx = 1; point_idx < poly_line.size(); point_idx++)
             {
                 result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
             }
@@ -460,7 +508,7 @@ void Infill::generateLineInfill(Polygons& result, int line_distance, const doubl
     PointMatrix rotation_matrix(infill_rotation);
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
     bool connected_zigzags = false;
-    generateLinearBasedInfill(outline_offset, result, line_distance, rotation_matrix, lines_processor, connected_zigzags, shift);
+    generateLinearBasedInfill(result, line_distance, rotation_matrix, lines_processor, connected_zigzags, shift);
 }
 
 
@@ -470,7 +518,7 @@ void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance,
 
     PointMatrix rotation_matrix(infill_rotation);
     ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces, connected_zigzags, skip_some_zags, zag_skip_count);
-    generateLinearBasedInfill(outline_offset, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
+    generateLinearBasedInfill(result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags, shift);
 }
 
 /* 
@@ -496,40 +544,18 @@ void Infill::generateZigZagInfill(Polygons& result, const coord_t line_distance,
  * Edit: the term scansegment is wrong, since I call a boundary segment leaving from an even scanline to the left as belonging to an even scansegment, 
  *  while I also call a boundary segment leaving from an even scanline toward the right as belonging to an even scansegment.
  */
-void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift)
+void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift)
 {
-    if (line_distance == 0)
-    {
-        return;
-    }
-    if (in_outline.size() == 0)
+    if (line_distance == 0 || inner_contour.empty()) //No infill to generate (0% density) or no area to generate it in.
     {
         return;
     }
 
-    coord_t shift = extra_shift + this->shift;
-
-    if (outline_offset != 0 && perimeter_gaps)
-    {
-        const Polygons gaps_outline = in_outline.offset(outline_offset + infill_line_width / 2 + perimeter_gaps_extra_offset);
-        perimeter_gaps->add(in_outline.difference(gaps_outline));
-    }
-
-    Polygons outline = in_outline.offset(outline_offset + infill_overlap);
-
-    if (outline.size() == 0)
-    {
-        return;
-    }
-    //TODO: Currently we find the outline every time for each rotation.
-    //We should compute it only once and rotate that accordingly.
-    //We'll also have the guarantee that they have the same size every time.
-    //Currently we assume that the above operations are all rotation-invariant,
-    //which they aren't if vertices fall on the same coordinate due to rounding.
+    Polygons outline = inner_contour; //Make a copy. We'll be rotating this outline to make intersections always horizontal, for better performance.
+    outline.applyMatrix(rotation_matrix);
     crossings_on_line.resize(outline.size()); //One for each polygon.
 
-    outline.applyMatrix(rotation_matrix);
-
+    coord_t shift = extra_shift + this->shift;
     if (shift < 0)
     {
         shift = line_distance - (-shift) % line_distance;
@@ -658,9 +684,6 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 
 void Infill::connectLines(Polygons& result_lines)
 {
-    //TODO: We're reconstructing the outline here. We should store it and compute it only once.
-    Polygons outline = in_outline.offset(outline_offset + infill_overlap);
-
     UnionFind<InfillLineSegment*> connected_lines; //Keeps track of which lines are connected to which.
     for (std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line)
     {
@@ -676,19 +699,19 @@ void Infill::connectLines(Polygons& result_lines)
         }
     }
 
-    for (size_t polygon_index = 0; polygon_index < outline.size(); polygon_index++)
+    for (size_t polygon_index = 0; polygon_index < inner_contour.size(); polygon_index++)
     {
-        if (outline[polygon_index].empty())
+        if (inner_contour[polygon_index].empty())
         {
             continue;
         }
 
         InfillLineSegment* previous_crossing = nullptr; //The crossing that we should connect to. If nullptr, we have been skipping until we find the next crossing.
         InfillLineSegment* previous_segment = nullptr; //The last segment we were connecting while drawing a line along the border.
-        Point vertex_before = outline[polygon_index].back();
-        for (size_t vertex_index = 0; vertex_index < outline[polygon_index].size(); vertex_index++)
+        Point vertex_before = inner_contour[polygon_index].back();
+        for (size_t vertex_index = 0; vertex_index < inner_contour[polygon_index].size(); vertex_index++)
         {
-            Point vertex_after = outline[polygon_index][vertex_index];
+            Point vertex_after = inner_contour[polygon_index][vertex_index];
 
             //Sort crossings on every line by how far they are from their initial point.
             struct CompareByDistance
@@ -705,6 +728,8 @@ void Infill::connectLines(Polygons& result_lines)
                     return vSize(left_hand_point - to_point) < vSize(right_hand_point - to_point);
                 }
             };
+            assert(crossings_on_line.size() > polygon_index && "crossings dimension should be bigger then polygon index");
+            assert(crossings_on_line[polygon_index].size() > vertex_index && "crossings on line for the current polygon should be bigger then vertex index");
             std::sort(crossings_on_line[polygon_index][vertex_index].begin(), crossings_on_line[polygon_index][vertex_index].end(), CompareByDistance(vertex_before, polygon_index, vertex_index));
 
             for (InfillLineSegment* crossing : crossings_on_line[polygon_index][vertex_index])
@@ -786,7 +811,7 @@ void Infill::connectLines(Polygons& result_lines)
                     }
                     else
                     {
-                        new_segment = new InfillLineSegment(previous_segment->start, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size(), polygon_index);
+                        new_segment = new InfillLineSegment(previous_segment->start, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % inner_contour[polygon_index].size(), polygon_index);
                         previous_segment->previous = new_segment;
                         new_segment->previous = previous_segment;
                         previous_segment = new_segment;
@@ -802,7 +827,7 @@ void Infill::connectLines(Polygons& result_lines)
                     }
                     else
                     {
-                        new_segment = new InfillLineSegment(previous_segment->end, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % outline[polygon_index].size(), polygon_index);
+                        new_segment = new InfillLineSegment(previous_segment->end, vertex_index, polygon_index, vertex_after, (vertex_index + 1) % inner_contour[polygon_index].size(), polygon_index);
                         previous_segment->next = new_segment;
                         new_segment->previous = previous_segment;
                         previous_segment = new_segment;

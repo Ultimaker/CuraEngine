@@ -1,8 +1,10 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef DURATION_H
 #define DURATION_H
+
+#include <ostream>
 
 namespace cura
 {
@@ -63,6 +65,28 @@ struct Duration
 constexpr Duration operator "" _s(const long double seconds)
 {
     return Duration(seconds);
+}
+
+
+inline std::ostream& operator<< (std::ostream& out, const Duration seconds)
+{
+    constexpr bool pretty_print = false;
+
+    double s = seconds;
+    if (pretty_print && seconds > 60)
+    {
+        int min = seconds / 60;
+        s -= min * 60;
+        if (min > 60)
+        {
+            int hrs = min / 60;
+            min -= hrs * 60;
+            out << hrs << "h ";
+        }
+        out << min << "min ";
+    }
+    out << s << (pretty_print ? "s" : "");
+    return out;
 }
 
 }

@@ -180,8 +180,6 @@ protected:
 SGI_TEMPLATE
 SGI_THIS::SparseGrid(coord_t cell_size, size_t elem_reserve, float max_load_factor)
 {
-    assert(cell_size > 0U);
-
     m_cell_size = cell_size;
 
     // Must be before the reserve call.

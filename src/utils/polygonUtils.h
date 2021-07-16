@@ -615,6 +615,24 @@ public:
      */
     static double relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b);
 
+    /*!
+     * Create an approximation of a circle.
+     *
+     * This creates a regular polygon that is supposed to approximate a circle.
+     * \param mid The center of the circle.
+     * \param radius The radius of the circle.
+     * \param a_step The angle between segments of the circle.
+     * \return A new Polygon containing the circle.
+     */
+    static Polygon makeCircle(const Point mid, const coord_t radius, const AngleRadians a_step = M_PI / 8);
+
+    /*!
+     * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
+     */
+    static Polygons connect(const Polygons& input);
+
+    static void fixSelfIntersections(const coord_t epsilon, Polygons& thiss);
+
 private:
     /*!
      * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.

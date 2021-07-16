@@ -48,7 +48,6 @@ public:
         GCodePathConfig roofing_config;
         std::vector<GCodePathConfig> infill_config;
         GCodePathConfig ironing_config;
-        GCodePathConfig perimeter_gap_config;
 
         MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t layer_thickness, const LayerIndex& layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder);
         void smoothAllSpeeds(GCodePathConfig::SpeedDerivatives first_layer_config, const LayerIndex& layer_nr, const LayerIndex& max_speed_layer);

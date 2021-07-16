@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cctype>
@@ -24,6 +24,7 @@
 #include "../utils/FMatrix4x3.h"
 #include "../utils/logoutput.h"
 #include "../utils/string.h" //For Escaped.
+#include "../BeadingStrategy/BeadingStrategyFactory.h"
 
 namespace cura
 {
@@ -344,6 +345,27 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     }
 }
 
+template<>  StrategyType Settings::get<StrategyType>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "center_deviation")
+    {
+        return StrategyType::Center;
+    }
+    else if (value == "distributed")
+    {
+        return StrategyType::Distributed;
+    }
+    else if (value == "inward_distributed")
+    {
+        return StrategyType::InwardDistributed;
+    }
+    else //Default.
+    {
+        return StrategyType::None;
+    }
+}
+
 template<> EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
@@ -534,6 +556,23 @@ template<> SlicingTolerance Settings::get<SlicingTolerance>(const std::string& k
     else //Default.
     {
         return SlicingTolerance::MIDDLE;
+    }
+}
+
+template<> InsetDirection Settings::get<InsetDirection>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if(value == "center_last")
+    {
+        return InsetDirection::CENTER_LAST;
+    }
+    else if(value == "outside_in")
+    {
+        return InsetDirection::OUTSIDE_IN;
+    }
+    else //Default.
+    {
+        return InsetDirection::INSIDE_OUT;
     }
 }
 

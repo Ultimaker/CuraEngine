@@ -3,6 +3,9 @@
 
 #include "polygon.h"
 
+#include <numeric>
+#include <unordered_set>
+
 #include "linearAlg2D.h" // pointLiesOnTheRightOfLine
 
 #include "ListPolyIt.h"
@@ -22,19 +25,7 @@ bool ConstPolygonRef::empty() const
 
 bool ConstPolygonRef::shorterThan(const coord_t check_length) const
 {
-    const ConstPolygonRef& polygon = *this;
-    const Point* p0 = &polygon.back();
-    int64_t length = 0;
-    for (const Point& p1 : polygon)
-    {
-        length += vSize(*p0 - p1);
-        if (length >= check_length)
-        {
-            return false;
-        }
-        p0 = &p1;
-    }
-    return true;
+    return cura::shorterThan(*this, check_length);
 }
 
 bool ConstPolygonRef::_inside(Point p, bool border_result) const
@@ -98,6 +89,26 @@ Polygons Polygons::approxConvexHull(int extra_outset)
         convex_hull.add(offset_result);
     }
     return convex_hull.unionPolygons().offset(-overshoot + extra_outset, ClipperLib::jtRound);
+}
+
+void Polygons::makeConvex()
+{
+    for (PolygonRef poly : *this)
+    {
+        Polygon convexified;
+        Point a = poly.back();
+        for (size_t i = 0; i < poly.size(); ++i)
+        {
+            const Point& b = poly[i];
+            const Point& c = poly[(i + 1) % poly.size()];
+            if (LinearAlg2D::pointIsLeftOfLine(b, a, c) < 0)
+            {
+                convexified.path->push_back(b);
+                a = b;
+            }
+        }
+        poly.path->swap(*convexified.path); //Due to vector's implementation, this is constant time.
+    }
 }
 
 unsigned int Polygons::pointCount() const
@@ -309,8 +320,81 @@ Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, d
     return ret;
 }
 
+void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
+{
+    // TODO: Can be made more efficient (for example, use pointer-types for process-/skip-indices, so we can swap them without copy).
 
+    size_t num_removed_in_iteration = 0;
+    do
+    {
+        num_removed_in_iteration = 0;
 
+        std::vector<bool> process_indices(path->size(), true);
+
+        bool go = true;
+        while (go)
+        {
+            go = false;
+
+            const auto& rpath = *path;
+            const size_t pathlen = rpath.size();
+            if (pathlen <= 3)
+            {
+                return;
+            }
+
+            std::vector<bool> skip_indices(path->size(), false);
+
+            ClipperLib::Path new_path;
+            for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
+            {
+                // Don't iterate directly over process-indices, but do it this way, because there are points _in_ process-indices that should nonetheless be skipped:
+                if (! process_indices[point_idx])
+                {
+                    new_path.push_back(rpath[point_idx]);
+                    continue;
+                }
+
+                // Should skip the last point for this iteration if the old first was removed (which can be seen from the fact that the new first was skipped):
+                if (point_idx == (pathlen - 1) && skip_indices[0])
+                {
+                    skip_indices[new_path.size()] = true;
+                    go = true;
+                    new_path.push_back(rpath[point_idx]);
+                    break;
+                }
+
+                const Point& prev = rpath[(point_idx - 1 + pathlen) % pathlen];
+                const Point& pt = rpath[point_idx];
+                const Point& next = rpath[(point_idx + 1) % pathlen];
+
+                float angle = LinearAlg2D::getAngleLeft(prev, pt, next);  // [0 : 2 * pi]
+                if (angle >= M_PI) {angle -= M_PI;}  // map [pi : 2 * pi] to [0 : pi]
+
+                // Check if the angle is within limits for the point to 'make sense', given the maximum deviation.
+                // If the angle indicates near-parallel segments ignore the point 'pt'
+                if (angle > max_deviation_angle && angle < M_PI - max_deviation_angle)
+                {
+                    new_path.push_back(pt);
+                }
+                else if (point_idx != (pathlen - 1))
+                {
+                    // Skip the next point, since the current one was removed:
+                    skip_indices[new_path.size()] = true;
+                    go = true;
+                    new_path.push_back(next);
+                    ++point_idx;
+                }
+            }
+            *path = new_path;
+            num_removed_in_iteration += pathlen - path->size();
+
+            process_indices.clear();
+            process_indices.insert(process_indices.end(), skip_indices.begin(), skip_indices.end());
+        }
+    }
+    while (num_removed_in_iteration > 0);
+}
 
 void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared)
 {
@@ -390,8 +474,8 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = (L / b)^2     [square it]
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
-        if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
-            && LinearAlg2D::getDistFromLine(current, previous, next) <= 1)) // make sure that height_2 is not small because of cancellation of positive and negative areas
+        if ((height_2 <= 5 * 5 //Almost exactly colinear (barring rounding errors).
+            && LinearAlg2D::getDistFromLine(current, previous, next) <= 5)) // make sure that height_2 is not small because of cancellation of positive and negative areas
         {
             continue;
         }
@@ -1325,5 +1409,37 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
 }
 
 
+void Polygons::ensureManifold()
+{
+    const Polygons& polys = *this;
+    std::vector<Point> duplicate_locations;
+    std::unordered_set<Point> poly_locations;
+    for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
+    {
+        ConstPolygonRef poly = polys[poly_idx];
+        for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
+        {
+            Point p = poly[point_idx];
+            if (poly_locations.find(p) != poly_locations.end())
+            {
+                duplicate_locations.push_back(p);
+            }
+            poly_locations.emplace(p);
+        }
+    }
+    Polygons removal_dots;
+    for (Point p : duplicate_locations)
+    {
+        PolygonRef dot = removal_dots.newPoly();
+        dot.add(p + Point(0,5));
+        dot.add(p + Point(5,0));
+        dot.add(p + Point(0,-5));
+        dot.add(p + Point(-5,0));
+    }
+    if ( ! removal_dots.empty())
+    {
+        *this = polys.difference(removal_dots);
+    }
+}
 
 }//namespace cura

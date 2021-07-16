@@ -36,9 +36,31 @@ public:
     bool contains(const Point& point) const;
 
     /*!
-     * Get the middle of the bounding box
+     * Whether this bounding box contains the other bounding box.
+     */
+    bool contains(const AABB& other) const;
+
+    /*!
+     * Returns the area of this bounding box.
+     * Note: Area is negative for uninitialized, and 0 for empty.
+     */
+    coord_t area() const;
+
+    /*!
+     * Get the middle of the bounding box.
      */
     Point getMiddle() const;
+
+    /*!
+     * If point outside of bounding box: positive distance-squared to the bounding box edges, otherwise negative.
+     */
+    coord_t distanceSquared(const Point& p) const;
+
+    /*!
+     * If other aabb outside of this bounding box: positive distance-squared to the bounding box edges,
+     * otherwise negative distance squared for the most inner point included.
+     */
+    coord_t distanceSquared(const AABB& other) const;
 
     /*!
      * Check whether this aabb overlaps with another.

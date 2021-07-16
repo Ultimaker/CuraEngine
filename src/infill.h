@@ -7,6 +7,8 @@
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
 #include "settings/types/AngleDegrees.h"
+#include "settings/Settings.h"
+#include "utils/ExtrusionLine.h"
 #include "utils/IntPoint.h"
 
 namespace cura
@@ -20,13 +22,11 @@ class Infill
 {
     friend class InfillTest;
 
-    static constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
-
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
     bool zig_zaggify; //!< Whether to connect the end pieces of the support lines via the wall
     bool connect_polygons; //!< Whether to connect as much polygons together into a single path
-    const Polygons& in_outline; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
-    coord_t outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
+    Polygons outer_contour; //!< The area that originally needs to be filled with infill. The input of the algorithm.
+    Polygons inner_contour; //!< The part of the contour that will get filled with an infill pattern. Equals outer_contour minus the extra infill walls.
     coord_t infill_line_width; //!< The line width of the infill lines to generate
     coord_t line_distance; //!< The distance between two infill lines / polygons
     coord_t infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
@@ -38,7 +38,6 @@ class Infill
     coord_t max_deviation; //!< Max deviation fro the original poly when enforcing max_resolution
     size_t wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     const Point infill_origin; //!< origin of the infill pattern
-    Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
@@ -48,19 +47,10 @@ class Infill
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
-    /*!
-     * \warning If \p perimeter_gaps is given, then the difference between the \p in_outline
-     * and the polygons which result from offsetting it by the \p outline_offset
-     * and then expanding it again by half the \p infill_line_width
-     * is added to the \p perimeter_gaps
-     * 
-     * \param[out] perimeter_gaps (optional output) The areas in between consecutive insets when Concentric infill is used.
-     */
     Infill(EFillMethod pattern
         , bool zig_zaggify
         , bool connect_polygons
         , const Polygons& in_outline
-        , coord_t outline_offset
         , coord_t infill_line_width
         , coord_t line_distance
         , coord_t infill_overlap
@@ -72,7 +62,6 @@ public:
         , coord_t max_deviation
         , size_t wall_line_count = 0
         , const Point& infill_origin = Point()
-        , Polygons* perimeter_gaps = nullptr
         , bool connected_zigzags = false
         , bool use_endpieces = false
         , bool skip_some_zags = false
@@ -82,8 +71,7 @@ public:
     : pattern(pattern)
     , zig_zaggify(zig_zaggify)
     , connect_polygons(connect_polygons)
-    , in_outline(in_outline)
-    , outline_offset(outline_offset)
+    , outer_contour(in_outline)
     , infill_line_width(infill_line_width)
     , line_distance(line_distance)
     , infill_overlap(infill_overlap)
@@ -95,7 +83,6 @@ public:
     , max_deviation(max_deviation)
     , wall_line_count(wall_line_count)
     , infill_origin(infill_origin)
-    , perimeter_gaps(perimeter_gaps)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
     , skip_some_zags(skip_some_zags)
@@ -108,18 +95,34 @@ public:
     /*!
      * Generate the infill.
      * 
+     * \param toolpaths (output) The resulting variable-width paths (from the extra walls around the pattern).
      * \param result_polygons (output) The resulting polygons (from concentric infill)
      * \param result_lines (output) The resulting line segments (from linear infill types)
-     * \param mesh The mesh for which to generate infill (should only be used for non-helper objects)
+     * \param settings A settings storage to use for generating variable-width walls.
+     * \param cross_fill_provider Any pre-computed cross infill pattern, if the Cross or Cross3D pattern is selected.
+     * \param mesh A mesh for which to generate infill (should only be used for non-helper-mesh objects).
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
-    void generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
 
+    /*!
+     * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
+     * This function is called within the generate() function but can also be called stand-alone
+     *
+     * \param toolpaths [out] The generated toolpaths
+     * \param outer_contour [in,out] the outer contour, this is offsetted with the infill overlap
+     * \param wall_line_count [in] The number of walls that needs to be generated
+     * \param line_width [in] The optimum wall line width of the walls
+     * \param infill_overlap [in] The overlap of the infill
+     * \param settings [in] A settings storage to use for generating variable-width walls.
+     * \return The inner contour of the wall toolpaths
+     */
+    static Polygons generateWallToolPaths(VariableWidthPaths& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings);
 private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
-    void _generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void _generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
@@ -236,20 +239,10 @@ private:
     /*!
      * Generate sparse concentric infill
      * 
-     * Also adds \ref Infill::perimeter_gaps between \ref Infill::in_outline and the first wall
-     * 
-     * \param result (output) The resulting polygons
+     * \param toolpaths (output) The resulting toolpaths
      * \param inset_value The offset between each consecutive two polygons
      */
-    void generateConcentricInfill(Polygons& result, int inset_value);
-
-    /*!
-     * Generate sparse concentric infill starting from a specific outer wall
-     * \param first_wall The outer wall from which to start
-     * \param result (output) The resulting polygons
-     * \param inset_value The offset between each consecutive two polygons
-     */
-    void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value);
+    void generateConcentricInfill(VariableWidthPaths& toolpaths, const Settings& settings);
 
     /*!
      * Generate a rectangular grid of infill lines
@@ -345,7 +338,6 @@ private:
      * 
      * It is called only from Infill::generateLineinfill and Infill::generateZigZagInfill.
      * 
-     * \param outline_offset An offset from the reference polygon (Infill::in_outline) to get the actual outline within which to generate infill
      * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
@@ -353,7 +345,7 @@ private:
      * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
      */
-    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift);
+    void generateLinearBasedInfill(Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, coord_t extra_shift);
 
     /*!
      * 

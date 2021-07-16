@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_MATH_H
 #define UTILS_MATH_H
 
@@ -24,6 +26,18 @@ inline unsigned int round_divide(unsigned int dividend, unsigned int divisor) //
 inline unsigned int round_up_divide(unsigned int dividend, unsigned int divisor) //!< Return dividend divided by divisor rounded to the nearest integer
 {
     return (dividend + divisor - 1) / divisor;
+}
+
+template<typename T>
+constexpr T pi_div(const T div)
+{
+    return  static_cast<T>(M_PI) / div;
+}
+
+template<typename T>
+constexpr T pi_mul(const T mul)
+{
+    return  static_cast<T>(M_PI) / mul;
 }
 
 }//namespace cura
