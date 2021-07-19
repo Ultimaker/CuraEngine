@@ -11,11 +11,6 @@
 #include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
 #include "utils/NoCopy.h"
 
-namespace std
-{
-template<typename T> class optional;
-}
-
 namespace cura 
 {
 
