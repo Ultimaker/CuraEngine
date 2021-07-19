@@ -408,7 +408,6 @@ class TreeSupport
      */
     void generateSupportAreas(SliceDataStorage& storage);
 
-
     struct TreeSupportSettings; // forward declaration as we need some config values in the merge case
 
     struct AreaIncreaseSettings
@@ -989,6 +988,8 @@ class TreeSupport
     };
 
     using LineInformation = std::vector<std::pair<Point, TreeSupport::LineStatus>>;
+
+
     /*!
      * \brief Precalculates all avoidances, that could be required.
      *
@@ -1050,7 +1051,7 @@ class TreeSupport
      */
     Polygons generateSupportInfillLines(const Polygons& area, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider = nullptr);
 
-
+    //todo comment
     Polygons safeUnion(const Polygons first, const Polygons second) const;
     Polygons safeUnion(const Polygons first) const;
 
@@ -1111,7 +1112,7 @@ class TreeSupport
     /*!
      * \brief Merges Influence Areas if possible.
      *
-     * Branches which do overlap have to be merged. This manages the helper and uses a divide and conquer approach to parallelize this problem. This parallelization can at most accelerate the merging by a factor of 2. TODO rename @helper
+     * Branches which do overlap have to be merged. This manages the helper and uses a divide and conquer approach to parallelize this problem. This parallelization can at most accelerate the merging by a factor of 2.
      *
      * \param to_bp_areas[in] The Elements of the current Layer that will reach the buildplate.
      *  Value is the influence area where the center of a circle of support may be placed.
