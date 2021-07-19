@@ -778,7 +778,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         infill_comp.generate(raft_polygons, raftLines);
-        gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
+        gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines, /*enable_travel_optimization*/ false, /*wipe_dist*/ 0, /*flow*/ 1.0, /*reverse*/ false, last_planned_position);
 
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
@@ -834,7 +834,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             wall_line_count, infill_origin, perimeter_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         infill_comp.generate(raft_polygons, raft_lines);
-        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
+        gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, /*enable_travel_optimization*/ false, /*wipe_dist*/ 0, /*flow*/ 1.0, /*reverse*/ false, last_planned_position);
 
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
@@ -1288,7 +1288,10 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
     Polygons polygons;
     for (const SliceLayerPart& part : layer->parts)
     {
-        polygons.add(part.outline);
+        for (const Polygons inset : part.insets)
+        {
+            polygons.add(inset);
+        }
     }
 
     ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"));
@@ -1313,7 +1316,8 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, c
             lines.add(p);
         }
     }
-    gcode_layer.addLinesByOptimizer(lines, mesh_config.inset0_config, SpaceFillType::PolyLines);
+    const bool reverse_printing_order = (mesh.settings.get<bool>("alternate_infill_direction") && mesh.infill_angles.size() < 2)? gcode_layer.getLayerNr() % 2 : false;
+    gcode_layer.addLinesByOptimizer(lines, mesh_config.inset0_config, SpaceFillType::PolyLines, /*enable_travel_optimization*/ false, /*wipe_dist*/0, /*flow*/1.0, reverse_printing_order);
 }
 
 void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
@@ -1513,8 +1517,9 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                 near_start_location = infill_lines[rand() % infill_lines.size()][0];
             }
             const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
+            const bool reverse_printing_order = (mesh.settings.get<bool>("alternate_infill_direction") && mesh.infill_angles.size() < 2)? gcode_layer.getLayerNr() % 2 : false;
             gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[combine_idx], zig_zaggify_infill ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization
-                , /*wipe_dist = */ 0, /* flow = */ 1.0, near_start_location);
+                , /*wipe_dist = */ 0, /* flow = */ 1.0, reverse_printing_order, near_start_location);
         }
     }
     return added_something;
@@ -1718,15 +1723,16 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], nullptr, ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
         }
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
+        const bool reverse_printing_order = (mesh.settings.get<bool>("alternate_infill_direction") && mesh.infill_angles.size() < 2)? gcode_layer.getLayerNr() % 2 : false;
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
         {
             gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], SpaceFillType::Lines, enable_travel_optimization
-                , mesh.settings.get<coord_t>("infill_wipe_dist"), /*float_ratio = */ 1.0, near_start_location);
+                , mesh.settings.get<coord_t>("infill_wipe_dist"), /*float_ratio = */ 1.0, reverse_printing_order, near_start_location);
         }
         else
         {
             gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization
-                , /* wipe_dist = */ 0, /*float_ratio = */ 1.0, near_start_location);
+                , /* wipe_dist = */ 0, /*float_ratio = */ 1.0, reverse_printing_order, near_start_location);
         }
     }
     return added_something;
@@ -2522,13 +2528,13 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         constexpr float flow = 1.0;
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, enable_travel_optimization, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, near_start_location, fan_speed);
+            gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, enable_travel_optimization, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, false, near_start_location, fan_speed);
         }
         else
         {
             SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
             constexpr coord_t wipe_dist = 0;
-            gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location, fan_speed);
+            gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, false, near_start_location, fan_speed);
         }
     }
 }
@@ -2772,8 +2778,10 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
                     gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx]);
                 }
+                const bool reverse_printing_order = (infill_extruder.settings.get<bool>("alternate_infill_direction"))? gcode_layer.getLayerNr() % 2 : false;
                 gcode_layer.addLinesByOptimizer(support_lines, gcode_layer.configs_storage.support_infill_config[combine_idx],
-                                                (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+                                                (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines,
+                                                /*enable_travel_optimization*/ false, /*wipe_dist*/0, /*flow*/1.0, reverse_printing_order);
                 added_something = true;
             }
         }
