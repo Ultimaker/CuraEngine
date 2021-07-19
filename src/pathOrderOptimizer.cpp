@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <map>
@@ -171,7 +171,7 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
     // Loop over the polygon to find the 'best' index given all the parameters.
     int best_point_idx = -1;
     float best_point_score = std::numeric_limits<float>::infinity();
-    Point p0 = poly.back();
+    Point p0 = poly[(start_from_pos - 1 + poly.size()) % poly.size()];
     for (unsigned int point_idx_without_modulo = start_from_pos; point_idx_without_modulo < end_before_pos; point_idx_without_modulo++)
     {
         const unsigned int point_idx = point_idx_without_modulo % poly.size();
@@ -199,7 +199,7 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
         switch (config.corner_pref)
         {
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                if (corner_angle > 1)
+                if (corner_angle > 1) //Is an inner corner.
                 {
                     // p1 lies on a concave curve so reduce the distance to favour it
                     // the more concave the curve, the more we reduce the distance
@@ -207,7 +207,7 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
                 }
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                if (corner_angle < 1)
+                if (corner_angle < 1) //Is an outer corner.
                 {
                     // p1 lies on a convex curve so reduce the distance to favour it
                     // the more convex the curve, the more we reduce the distance
@@ -222,7 +222,7 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
             {
                 //More curve is better score (reduced distance), but slightly in favour of concave curves.
                 float dist_score_corner = fabs(corner_angle - 1) * corner_shift;
-                if (corner_angle < 1)
+                if (corner_angle > 1) //Is an inner corner.
                 {
                     dist_score_corner *= 2;
                 }
