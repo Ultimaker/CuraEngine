@@ -186,7 +186,6 @@ protected:
     const coord_t wall_line_width_0; //!< The line width of the outer wall
     const coord_t wall_line_width_x; //!< The line width of the inner most wall
     const coord_t innermost_wall_line_width; //!< width of the innermost wall lines
-    const coord_t infill_skin_overlap; //!< overlap distance between infill and skin
     const size_t skin_inset_count; //!< The number of perimeters to surround the skin
     const bool no_small_gaps_heuristic; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
     const bool process_infill; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
@@ -201,7 +200,6 @@ private:
     static coord_t getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
     static coord_t getWallLineWidth0(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the outer wall line width, which might be different for the first layer
     static coord_t getWallLineWidthX(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the inner wall line widths, which might be different for the first layer
-    static coord_t getInfillSkinOverlap(const SliceMeshStorage& mesh, const LayerIndex& layer_nr, const coord_t& innermost_wall_line_width); //!< Compute the infill_skin_overlap
 
     /*!
      * Helper function to get the walls of each part which might intersect with \p part_here

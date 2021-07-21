@@ -1829,7 +1829,7 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
 
     // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
     const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.insets.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
-    const Polygons infill_below_skin_overlap = infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset));
+    const Polygons infill_below_skin_overlap = infill_below_skin.offset(-tiny_infill_offset);
 
     return ! infill_below_skin_overlap.empty() && ! infill_not_below_skin.empty();
 }
