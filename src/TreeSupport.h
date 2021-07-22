@@ -408,6 +408,12 @@ class TreeSupport
      */
     void generateSupportAreas(SliceDataStorage& storage);
 
+
+    //todo Remove! Only relevant for public BETA!
+    static bool inline showed_critical=false;
+    static bool inline showed_performance=false;
+    static void showError(std::string message,bool critical);
+
     struct TreeSupportSettings; // forward declaration as we need some config values in the merge case
 
     struct AreaIncreaseSettings

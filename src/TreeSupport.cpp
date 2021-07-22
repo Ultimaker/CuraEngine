@@ -18,6 +18,7 @@
 #include <optional>
 #include <stdio.h>
 #include <string>
+#include <windows.h> //todo Remove!  ONLY FOR PUBLIC BETA!!
 
 #define SUPPORT_TREE_CIRCLE_RESOLUTION 25 // The number of vertices in each circle.
 
@@ -97,6 +98,20 @@ std::string getPolygonAsString(const Polygons& poly)
     }
     return ret;
 }
+
+void TreeSupport::showError(std::string message, bool critical)
+{ // todo Remove!  ONLY FOR PUBLIC BETA!!
+
+    std::string bugtype = std::string(critical ? " This is a critical bug. It may cause missing or malformed branches.\n" : "This bug should only decrease performance.\n");
+    bool show = (critical && !TreeSupport::showed_critical) || (!critical && !TreeSupport::showed_performance);
+    (critical ? TreeSupport::showed_critical : TreeSupport::showed_performance) = true;
+
+    if (show)
+    {
+        MessageBox(nullptr, std::string("TreeSupport_2 MOD detected an error while generating the tree support.\nPlease report this back to me with profile and model.\nRevision 1\n" + message + bugtype).c_str(), "Bug detected!", MB_OK | MB_SYSTEMMODAL | MB_SETFOREGROUND | MB_ICONWARNING);
+    }
+}
+
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
@@ -640,6 +655,7 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh, std::vector<
             if (!mesh_config.support_rests_on_model && !to_bp)
             {
                 logWarning("Tried to add an invalid support point\n");
+                TreeSupport::showError("Unable to add tip. Some overhang may not be supported correctly.", true);
                 return;
             }
             Polygon circle;
@@ -828,6 +844,7 @@ Polygons TreeSupport::safeOffsetInc(const Polygons& me, coord_t distance, const 
     if (safe_step_size < 0 || last_safe_step_size < 0)
     {
         logError("Offset increase got negative distance!\n");
+        TreeSupport::showError("Negative offset distance... How did you manage this ?", true);
         return ret.difference(collision).unionPolygons();
     }
 
@@ -1292,6 +1309,7 @@ std::optional<TreeSupport::SupportElement> TreeSupport::increaseSingleArea(AreaI
             if (check_layer_data.area() < 1)
             {
                 logError("Lost area by doing catch up from %lld to radius %lld radius %d\n", ceil_radius_before, volumes_.ceilRadius(config.getCollisionRadius(current_elem), settings.use_min_distance));
+                TreeSupport::showError("Area lost catching up radius. May not cause visible malformation.", true);
             }
         }
     }
@@ -1456,6 +1474,7 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement, Polygons>& to
                          "Radius: %lld at layer: %d NextTarget: %lld Distance to top: %lld Elephant foot increases %llf  use_min_xy_dist %d to buildplate %d gracious %d safe %d until move %d \n "
                          "Parent %lld: Radius: %lld at layer: %d NextTarget: %lld Distance to top: %lld Elephant foot increases %llf  use_min_xy_dist %d to buildplate %d gracious %d safe %d until move %d\n",
                          radius, layer_idx - 1, elem.next_height, elem.distance_to_top, elem.elephant_foot_increases, elem.use_min_xy_dist, elem.to_buildplate, elem.to_model_gracious, elem.can_use_safe_radius, elem.dont_move_until, parent, config.getCollisionRadius(*parent), layer_idx, parent->next_height, parent->distance_to_top, parent->elephant_foot_increases, parent->use_min_xy_dist, parent->to_buildplate, parent->to_model_gracious, parent->can_use_safe_radius, parent->dont_move_until);
+                showError("Potentially lost branch!", true);
             }
             else
             {
@@ -1611,6 +1630,7 @@ void TreeSupport::setPointsOnAreas(const SupportElement* elem)
     if (elem->result_on_layer == Point(-1, -1))
     {
         logError("Uninitialized support element\n");
+        TreeSupport::showError("Uninitialized support element. A branch may be missing.\n", true);
         return;
     }
 
@@ -1668,6 +1688,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<SupportElement*>>& move
             if (SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL)
             {
                 logWarning("No valid placement found for to model gracious element on layer %lld: REMOVING BRANCH\n", layer_idx);
+                TreeSupport::showError("Could not fine valid placement on model! Removing this branch...", true);
                 for (LayerIndex layer = layer_idx; layer <= first_elem->next_height; layer++)
                 {
                     move_bounds[layer].erase(checked[layer - layer_idx]);
@@ -1678,6 +1699,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<SupportElement*>>& move
             else
             {
                 logWarning("No valid placement found for to model gracious element on layer %lld\n", layer_idx);
+                TreeSupport::showError("Could not fine valid placement on model! Just placing it down anyway. Could cause floating branches.", true);
                 first_elem->to_model_gracious = false;
                 return setToModelContact(move_bounds, first_elem, layer_idx);
             }
@@ -1746,6 +1768,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<SupportElement*>>& mo
                     if (elem->to_buildplate)
                     {
                         logError("Uninitialized Influence area targeting (%lld,%lld) at target_height: %lld layer: %lld\n", elem->target_position.X, elem->target_position.Y, elem->target_height, layer_idx);
+                        TreeSupport::showError("Uninitialized support element! A branch could be missing or exist partially.", true);
                     }
                     remove.emplace(elem); // we dont need to remove yet the parents as they will have a lower dtt and also no result_on_layer set
                     removed = true;
@@ -2383,6 +2406,7 @@ const Polygons& ModelVolumes::getCollision(coord_t radius, LayerIndex layer_idx,
     if (precalculated)
     {
         logWarning("Had to calculate collision at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+        TreeSupport::showError("Not precalculated Collision requested.", false);
     }
     calculateCollision(key);
     return getCollision(orig_radius, layer_idx, min_xy_dist);
@@ -2413,6 +2437,7 @@ const Polygons& ModelVolumes::getCollisionHolefree(coord_t radius, LayerIndex la
     if (precalculated)
     {
         logWarning("Had to calculate collision holefree at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+        TreeSupport::showError("Not precalculated Holefree Collision requested.", false);
     }
     calculateCollisionHolefree(key);
     return getCollisionHolefree(orig_radius, layer_idx, min_xy_dist);
@@ -2486,6 +2511,7 @@ const Polygons& ModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx,
         if (precalculated)
         {
             logWarning("Had to calculate Avoidance to model at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            TreeSupport::showError("Not precalculated Avoidance(to model) requested.", false);
         }
         calculateAvoidanceToModel(key);
     }
@@ -2502,6 +2528,7 @@ const Polygons& ModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx,
         if (precalculated)
         {
             logWarning("Had to calculate Avoidance at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            TreeSupport::showError("Not precalculated Avoidance(to buildplate) requested.", false);
         }
         calculateAvoidance(key);
     }
@@ -2526,6 +2553,7 @@ const Polygons& ModelVolumes::getPlaceableAreas(coord_t radius, LayerIndex layer
     if (precalculated)
     {
         logWarning("Had to calculate Placeable Areas at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", radius, layer_idx);
+        TreeSupport::showError("Not precalculated Placeable areas requested.", false);
     }
     if (radius != 0)
     {
@@ -2578,6 +2606,7 @@ const Polygons& ModelVolumes::getWallRestiction(coord_t radius, LayerIndex layer
         if (precalculated)
         {
             logWarning("Had to calculate Wall restricions at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            TreeSupport::showError("Not precalculated Wall restriction of minimum xy distance requested ).", false);
         }
     }
     else
@@ -2593,6 +2622,7 @@ const Polygons& ModelVolumes::getWallRestiction(coord_t radius, LayerIndex layer
         if (precalculated)
         {
             logWarning("Had to calculate Wall restricions at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            TreeSupport::showError("Not precalculated Wall restriction requested ).", false);
         }
     }
     calculateWallRestictions(key);
