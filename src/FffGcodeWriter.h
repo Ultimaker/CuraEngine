@@ -5,6 +5,7 @@
 #define GCODE_WRITER_H
 
 #include <fstream>
+#include <optional>
 #include "FanSpeedLayerTime.h"
 #include "gcodeExport.h"
 #include "LayerPlanBuffer.h"
