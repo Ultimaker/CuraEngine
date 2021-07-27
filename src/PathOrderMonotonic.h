@@ -37,6 +37,10 @@ namespace cura
 template<typename PathType>
 class PathOrderMonotonic : public PathOrder<PathType>
 {
+    using typename PathOrder<PathType>::Path;
+    using PathOrder<PathType>::paths;
+    using PathOrder<PathType>::detectLoops;
+
 public:
     PathOrderMonotonic(const AngleRadians monotonic_direction)
     : monotonic_vector(std::cos(monotonic_direction) * 1000, std::sin(monotonic_direction) * 1000)

@@ -183,7 +183,7 @@ protected:
             {
                 continue;
             }
-            if(vSize2(path.converted.back() - path.converted->front()) < coincident_point_distance * coincident_point_distance)
+            if(vSize2(path.converted->back() - path.converted->front()) < coincident_point_distance * coincident_point_distance)
             {
                 //Endpoints are really close to one another. Consider it a closed loop.
                 path.is_closed = true;
