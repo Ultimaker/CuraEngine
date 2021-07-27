@@ -131,6 +131,19 @@ public:
         constexpr bool is_closed = false;
         paths.emplace_back(polyline, is_closed);
     }
+
+    /*!
+     * Call on this method to reorder all paths to an appropriate printing
+     * order.
+     *
+     * Every ordering technique will need to implement this to produce the
+     * correct order.
+     *
+     * The \ref paths vector will be edited by this function call to reorder it,
+     * to adjust the starting positions of those paths and perhaps to mark those
+     * paths as being printed backwards.
+     */
+    virtual void optimize() = 0;
 };
 
 #endif //PATHORDER_H
