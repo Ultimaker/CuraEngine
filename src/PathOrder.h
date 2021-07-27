@@ -4,8 +4,11 @@
 #ifndef PATHORDER_H
 #define PATHORDER_H
 
-#include "settings/EnumSettings.h" //To get the seam settings.
+#include "settings/ZSeamConfig.h" //To get the seam settings.
 #include "utils/polygonUtils.h"
+
+namespace cura
+{
 
 /*!
  * Parent class of all path ordering techniques.
@@ -158,7 +161,9 @@ protected:
      * for each different type that this class is used with. See the .cpp file
      * for examples and where to add a new specialization.
      */
-    ConstPolygonRef getVertexData(const PathType& path);
+    ConstPolygonRef getVertexData(const PathType path);
 };
+
+}
 
 #endif //PATHORDER_H
