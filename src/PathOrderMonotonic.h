@@ -64,23 +64,35 @@ public:
         reordered.reserve(paths.size());
 
         //First print all the looping polygons, if there are any.
+        std::vector<Path*> polylines; //Also find all polylines and store them in a vector that we can sort in-place without making copies all the time.
         detectLoops(); //Always filter out loops. We don't specifically want to print those in monotonic order.
-        for(const Path& path : paths)
+        for(Path& path : paths)
         {
-            if(path.is_closed)
+            if(path.is_closed || path.vertices.size() <= 1)
             {
                 reordered.push_back(path);
+            }
+            else
+            {
+                polylines.push_back(&path);
             }
         }
-        //Now we only need to reorder paths from polylines_start to the end.
 
-        //TODO.
-        for(const Path& path : paths)
+        //Sort the polylines by their projection on the monotonic vector.
+        std::sort(polylines.begin(), polylines.end(), [this](Path* a, Path* b) {
+            const coord_t a_start_projection = dot(a->converted->front(), monotonic_vector);
+            const coord_t a_end_projection = dot(a->converted->back(), monotonic_vector);
+            const coord_t a_projection = std::min(a_start_projection, a_end_projection); //The projection of a path is the endpoint furthest back of the two endpoints.
+
+            const coord_t b_start_projection = dot(b->converted->front(), monotonic_vector);
+            const coord_t b_end_projection = dot(b->converted->back(), monotonic_vector);
+            const coord_t b_projection = std::min(b_start_projection, b_end_projection);
+
+            return a_projection < b_projection;
+        });
+        for(Path* polyline : polylines)
         {
-            if(!path.is_closed)
-            {
-                reordered.push_back(path);
-            }
+            reordered.push_back(*polyline);
         }
 
         std::swap(reordered, paths); //Store the resulting list in the main paths.
