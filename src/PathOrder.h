@@ -162,6 +162,34 @@ protected:
      * for examples and where to add a new specialization.
      */
     ConstPolygonRef getVertexData(const PathType path);
+
+    /*!
+     * In the current set of paths, detect all loops and mark them as such.
+     *
+     * This will go through all polylines in the paths. If the endpoints of
+     * these polylines are close enough together, it considers them a polygon.
+     * It will then mark these polylines as being polygons for the future.
+     */
+    void detectLoops()
+    {
+        constexpr coord_t coincident_point_distance = 10; //If the endpoints are closer together than 10 units, it is considered pretty much a closed loop.
+        for(Path& path : paths)
+        {
+            if(path.is_closed) //Already a polygon. No need to detect loops.
+            {
+                continue;
+            }
+            if(path.converted->size() < 3) //Not enough vertices to really be a closed loop.
+            {
+                continue;
+            }
+            if(vSize2(path.converted.back() - path.converted->front()) < coincident_point_distance * coincident_point_distance)
+            {
+                //Endpoints are really close to one another. Consider it a closed loop.
+                path.is_closed = true;
+            }
+        }
+    }
 };
 
 }

@@ -34,6 +34,16 @@ template<typename PathType>
 class PathOrderMonotonic : public PathOrder<PathType>
 {
 public:
+    void optimize()
+    {
+        //First print all the looping polygons, if there are any.
+        detectLoops(); //Always filter out loops. We don't specifically want to print those in monotonic order.
+        const auto polylines_start = std::partition(paths.begin(), paths.end(), [](const Path& path) {
+            return path.is_closed;
+        });
+        //Now we only need to reorder paths from polylines_start to the end.
+        //TODO.
+    }
 };
 
 }
