@@ -5,6 +5,8 @@
 #define PATHORDERMONOTONIC_H
 
 #include <cmath> //For std::sin() and std::cos().
+#include <unordered_set> //To track starting points of monotonic sequences.
+#include <unordered_map> //To track monotonic sequences.
 
 #include "PathOrder.h"
 
@@ -90,9 +92,65 @@ public:
 
             return a_projection < b_projection;
         });
+
+        //Find out which lines overlap with which adjacent lines, when projected perpendicularly to the monotonic vector.
+        //Create a DAG structure of overlapping lines.
+        const Point perpendicular = turn90CCW(monotonic_vector);
+
+        std::unordered_set<Path*> unconnected_polylines; //Polylines that haven't been overlapped yet by a previous line.
+        unconnected_polylines.insert(polylines.begin(), polylines.end());
+        std::unordered_map<Path*, Path*> connections; //For each polyline, which polyline it overlaps with, closest in the projected order.
+
+        for(auto polyline_it = polylines.begin(); polyline_it != polylines.end(); polyline_it++)
+        {
+            coord_t my_start = dot((*polyline_it)->converted->front(), perpendicular);
+            coord_t my_end = dot((*polyline_it)->converted->back(), perpendicular);
+            if(my_start > my_end)
+            {
+                std::swap(my_start, my_end);
+            }
+            //Find the next polyline this line overlaps with.
+            //Lines are already sorted, so the first overlapping line we encounter is the next closest line to overlap with.
+            for(auto overlapping_line = polyline_it + 1; overlapping_line != polylines.end(); overlapping_line++)
+            {
+                //Does this one overlap?
+                coord_t their_start = dot((*overlapping_line)->converted->front(), perpendicular);
+                coord_t their_end = dot((*overlapping_line)->converted->back(), perpendicular);
+                if(their_start > their_end)
+                {
+                    std::swap(their_start, their_end);
+                }
+                if(    (my_start > their_start && my_start < their_end) //It overlaps if any endpoint is between the endpoints of the other line.
+                    || (my_end > their_start   && my_end < their_end)
+                    || (their_start > my_start && their_start < my_end)
+                    || (their_end > my_start   && their_end < my_end))
+                {
+                    connections.emplace(*polyline_it, *overlapping_line);
+                    const auto is_unconnected = unconnected_polylines.find(*overlapping_line);
+                    if(is_unconnected != unconnected_polylines.end())
+                    {
+                        unconnected_polylines.erase(is_unconnected); //The overlapping line is now connected.
+                    }
+                    break;
+                }
+            }
+        }
+
+        //Now that we know which lines overlap with which other lines, iterate over them again to print connected lines in order.
         for(Path* polyline : polylines)
         {
-            reordered.push_back(*polyline);
+            if(unconnected_polylines.find(polyline) == unconnected_polylines.end()) //Polyline is reached through another line.
+            {
+                continue;
+            }
+            reordered.push_back(*polyline); //Add the start of the connected sequence.
+            auto connection = connections.find(polyline);
+            while(connection != connections.end())
+            {
+                polyline = connection->second;
+                reordered.push_back(*polyline);
+                connection = connections.find(polyline);
+            }
         }
 
         std::swap(reordered, paths); //Store the resulting list in the main paths.
