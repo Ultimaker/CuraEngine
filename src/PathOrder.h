@@ -4,6 +4,7 @@
 #ifndef PATHORDER_H
 #define PATHORDER_H
 
+#include "settings/EnumSettings.h" //To get the seam settings.
 #include "utils/polygonUtils.h"
 
 /*!
@@ -15,6 +16,9 @@
  *
  * It also provides some base members that can be used by all path ordering
  * techniques, to reduce code duplication.
+ * \param PathType The type of paths to optimise. This class can reorder any
+ * type of paths as long as an overload of ``getVertexData`` exists to convert
+ * that type into a list of vertices.
  */
 template<typename PathType>
 class PathOrder
@@ -82,6 +86,51 @@ public:
          */
         bool backwards;
     };
+
+    /*!
+     * After reordering, this contains the path that need to be printed in the
+     * correct order.
+     *
+     * Each path contains the information necessary to print the paths: A
+     * pointer to the vertex data, whether to close the loop or not, the
+     * direction in which to print the path and where to start the path.
+     */
+    std::vector<Path> paths;
+
+    /*!
+     * The location where the nozzle is assumed to start from before printing
+     * these parts.
+     */
+    Point start_point;
+
+    /*!
+     * Seam settings.
+     */
+    ZSeamConfig seam_config;
+
+    /*!
+     * Add a new polygon to be planned.
+     *
+     * This will be interpreted as a closed polygon.
+     * \param polygon The polygon to plan.
+     */
+    void addPolygon(const PathType& polygon)
+    {
+        constexpr bool is_closed = true;
+        paths.emplace_back(polygon, is_closed);
+    }
+
+    /*!
+     * Add a new polyline to be planned.
+     *
+     * This polyline will be interpreted as an open polyline, not a polygon.
+     * \param polyline The polyline to plan.
+     */
+    void addPolyline(const PathType& polyline)
+    {
+        constexpr bool is_closed = false;
+        paths.emplace_back(polyline, is_closed);
+    }
 };
 
 #endif //PATHORDER_H
