@@ -41,6 +41,7 @@ public:
     using typename PathOrder<PathType>::Path;
     using PathOrder<PathType>::paths;
     using PathOrder<PathType>::detectLoops;
+    using PathOrder<PathType>::getVertexData;
 
     PathOrderMonotonic(const AngleRadians monotonic_direction)
     : monotonic_vector(std::cos(monotonic_direction) * 1000, std::sin(monotonic_direction) * 1000)
@@ -48,6 +49,17 @@ public:
 
     void optimize()
     {
+        if(paths.empty())
+        {
+            return;
+        }
+
+        //Get the vertex data and store it in the paths.
+        for(Path& path : paths)
+        {
+            path.converted = getVertexData(path.vertices);
+        }
+
         std::vector<Path> reordered; //To store the result in. At the end, we'll std::swap with the real paths.
         reordered.reserve(paths.size());
 
