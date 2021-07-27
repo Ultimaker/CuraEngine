@@ -144,6 +144,21 @@ public:
      * paths as being printed backwards.
      */
     virtual void optimize() = 0;
+
+protected:
+    /*!
+     * Get vertex data from the custom path type.
+     *
+     * This is a function that allows the reordering algorithm to work with any
+     * type of input data structure. It provides a translation from the input
+     * data structure that the user would like to have reordered to a data
+     * structure that the reordering algorithm can work with. It's unknown how
+     * the ``PathType`` object is structured or how to get the vertex data from
+     * it. This function tells the optimizer how, but it needs to be specialized
+     * for each different type that this class is used with. See the .cpp file
+     * for examples and where to add a new specialization.
+     */
+    ConstPolygonRef getVertexData(const PathType& path);
 };
 
 #endif //PATHORDER_H
