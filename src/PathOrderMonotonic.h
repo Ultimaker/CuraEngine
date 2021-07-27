@@ -137,18 +137,26 @@ public:
         }
 
         //Now that we know which lines overlap with which other lines, iterate over them again to print connected lines in order.
+        std::unordered_set<Path*> completed_lines;
+        completed_lines.reserve(polylines.size());
         for(Path* polyline : polylines)
         {
             if(unconnected_polylines.find(polyline) == unconnected_polylines.end()) //Polyline is reached through another line.
             {
                 continue;
             }
-            reordered.push_back(*polyline); //Add the start of the connected sequence.
+            reordered.push_back(*polyline); //Plan the start of the connected sequence to be printed next!
+            completed_lines.insert(polyline);
             auto connection = connections.find(polyline);
             while(connection != connections.end())
             {
                 polyline = connection->second;
-                reordered.push_back(*polyline);
+                if(completed_lines.find(polyline) != completed_lines.end()) //Already printed the rest of this sequence.
+                {
+                    break;
+                }
+                reordered.push_back(*polyline); //Plan in this line to be printed next!
+                completed_lines.insert(polyline);
                 connection = connections.find(polyline);
             }
         }
