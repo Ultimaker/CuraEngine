@@ -37,24 +37,41 @@ namespace cura
 template<typename PathType>
 class PathOrderMonotonic : public PathOrder<PathType>
 {
+public:
     using typename PathOrder<PathType>::Path;
     using PathOrder<PathType>::paths;
     using PathOrder<PathType>::detectLoops;
 
-public:
     PathOrderMonotonic(const AngleRadians monotonic_direction)
     : monotonic_vector(std::cos(monotonic_direction) * 1000, std::sin(monotonic_direction) * 1000)
     {}
 
     void optimize()
     {
+        std::vector<Path> reordered; //To store the result in. At the end, we'll std::swap with the real paths.
+        reordered.reserve(paths.size());
+
         //First print all the looping polygons, if there are any.
         detectLoops(); //Always filter out loops. We don't specifically want to print those in monotonic order.
-        const auto polylines_start = std::partition(paths.begin(), paths.end(), [](const Path& path) {
-            return path.is_closed;
-        });
+        for(const Path& path : paths)
+        {
+            if(path.is_closed)
+            {
+                reordered.push_back(path);
+            }
+        }
         //Now we only need to reorder paths from polylines_start to the end.
+
         //TODO.
+        for(const Path& path : paths)
+        {
+            if(!path.is_closed)
+            {
+                reordered.push_back(path);
+            }
+        }
+
+        std::swap(reordered, paths); //Store the resulting list in the main paths.
     }
 
 protected:

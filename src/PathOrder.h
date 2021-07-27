@@ -48,10 +48,10 @@ public:
          * invalidating the pointers.
          */
         Path(const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
-                : vertices(vertices)
-                , start_vertex(start_vertex)
-                , is_closed(is_closed)
-                , backwards(backwards)
+            : vertices(vertices)
+            , start_vertex(start_vertex)
+            , is_closed(is_closed)
+            , backwards(backwards)
         {}
 
         /*!
