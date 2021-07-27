@@ -4,6 +4,10 @@
 #ifndef PATHORDERMONOTONIC_H
 #define PATHORDERMONOTONIC_H
 
+#include <cmath> //For std::sin() and std::cos().
+
+#include "PathOrder.h"
+
 namespace cura
 {
 
@@ -34,6 +38,10 @@ template<typename PathType>
 class PathOrderMonotonic : public PathOrder<PathType>
 {
 public:
+    PathOrderMonotonic(const AngleRadians monotonic_direction)
+    : monotonic_vector(std::cos(monotonic_direction) * 1000, std::sin(monotonic_direction) * 1000)
+    {}
+
     void optimize()
     {
         //First print all the looping polygons, if there are any.
@@ -44,6 +52,16 @@ public:
         //Now we only need to reorder paths from polylines_start to the end.
         //TODO.
     }
+
+protected:
+    /*!
+     * The direction in which to print montonically, encoded as vector of length
+     * 1000.
+     *
+     * The resulting ordering will cause clusters of paths to be sorted
+     * according to their projection on this vector.
+     */
+    Point monotonic_vector;
 };
 
 }
