@@ -94,19 +94,29 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
     if (!prev_layer->last_planned_position || *prev_layer->last_planned_position != first_location_new_layer)
     {
         const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-        const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[prev_layer->extruder_plans.back().extruder_nr].settings;
+        const Settings& prev_extruder_settings = Application::getInstance().current_slice->scene.extruders[prev_layer->extruder_plans.back().extruder_nr].settings;
+        const Settings& next_extruder_settings = Application::getInstance().current_slice->scene.extruders[newest_layer->extruder_plans.back().extruder_nr].settings;
         prev_layer->setIsInside(new_layer_destination_state->second);
-        const bool force_retract = extruder_settings.get<bool>("retract_at_layer_change") ||
-          (mesh_group_settings.get<bool>("travel_retract_before_outer_wall") && (mesh_group_settings.get<bool>("outer_inset_first") || mesh_group_settings.get<size_t>("wall_line_count") == 1)); //Moving towards an outer wall.
-        const bool unretract_before_last_travel_move = force_retract;
+        const bool force_retract = prev_extruder_settings.get<bool>("retract_at_layer_change") ||
+                                   (mesh_group_settings.get<bool>("travel_retract_before_outer_wall") && (mesh_group_settings.get<bool>("outer_inset_first") || mesh_group_settings.get<size_t>("wall_line_count") == 1)); //Moving towards an outer wall.
         prev_layer->final_travel_z = newest_layer->z;
-        GCodePath &path = prev_layer->addTravel(first_location_new_layer, force_retract, unretract_before_last_travel_move);
+        GCodePath &path = prev_layer->addTravel(first_location_new_layer, force_retract);
         if (force_retract && !path.retract)
         {
             // addTravel() won't use retraction if the travel distance is less than retraction minimum travel setting
             // so to avoid blobs when moving to the new layer height, which can occur if the z-axis speed is very slow,
             // we force the path to use retraction
             path.retract = true;
+        }
+        if (path.retract && !path.unretract_before_last_travel_move &&
+            next_extruder_settings.get<bool>("outer_inset_first") &&
+            (next_extruder_settings.get<coord_t>("infill_line_distance") == 0 || !next_extruder_settings.get<bool>("infill_before_walls")))
+        {
+            // If there is a retraction and the next layer's first path is an outer wall, then we need to make sure that
+            // we unretract before the last travel move of the previous layer. This way we make sure that the unretract
+            // does not happen while the nozzle is on top of the new layer's outer wall, which could cause artefacts and
+            // decrease dimensional accuracy.
+            path.unretract_before_last_travel_move = true;
         }
     }
 }
