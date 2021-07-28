@@ -98,8 +98,9 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         prev_layer->setIsInside(new_layer_destination_state->second);
         const bool force_retract = extruder_settings.get<bool>("retract_at_layer_change") ||
           (mesh_group_settings.get<bool>("travel_retract_before_outer_wall") && (mesh_group_settings.get<bool>("outer_inset_first") || mesh_group_settings.get<size_t>("wall_line_count") == 1)); //Moving towards an outer wall.
+        const bool unretract_before_last_travel_move = force_retract;
         prev_layer->final_travel_z = newest_layer->z;
-        GCodePath &path = prev_layer->addTravel(first_location_new_layer, force_retract);
+        GCodePath &path = prev_layer->addTravel(first_location_new_layer, force_retract, unretract_before_last_travel_move);
         if (force_retract && !path.retract)
         {
             // addTravel() won't use retraction if the travel distance is less than retraction minimum travel setting

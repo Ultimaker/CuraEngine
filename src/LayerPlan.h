@@ -477,7 +477,7 @@ public:
      * \param p The point to travel to.
      * \param force_comb_retract Whether to force a retraction to occur.
      */
-    GCodePath& addTravel(const Point p, const bool force_retract = false);
+    GCodePath& addTravel(const Point p, const bool force_retract = false, const bool unretract_before_last_travel_move = false);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -578,7 +578,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the wall (used for outer walls)
      */
-    void addWall(ConstPolygonRef polygon, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
+    void addWall(ConstPolygonRef polygon, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, bool unretract_before_last_travel_move);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.
@@ -592,7 +592,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
      */
-    void addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
+    void addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false, bool unretract_before_last_travel_move = false);
 
     /*!
      * Add lines to the gcode with optimized order.

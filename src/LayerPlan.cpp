@@ -359,7 +359,7 @@ std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState(
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
+GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract, const bool unretract_before_last_travel_move)
 {
     const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
     const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
@@ -491,6 +491,8 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
 
     // must start new travel path as retraction can be enabled or not depending on path length, etc.
     forceNewPathStart();
+
+    path->unretract_before_last_travel_move = unretract_before_last_travel_move;
 
     GCodePath& ret = addTravel_simple(p, path);
     was_inside = is_inside;
@@ -796,7 +798,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
     }
 }
 
-void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, bool unretract_before_last_travel_move)
 {
     // make sure wall start point is not above air!
     start_idx = locateFirstSupportedVertex(wall, start_idx);
@@ -917,7 +919,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
         {
             if (first_line || travel_required)
             {
-                addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
+                addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract, unretract_before_last_travel_move);
                 first_line = false;
                 travel_required = false;
             }
@@ -997,7 +999,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     }
 }
 
-void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, bool unretract_before_last_travel_move)
 {
     PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
@@ -1007,7 +1009,7 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
     orderOptimizer.optimize();
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract, unretract_before_last_travel_move);
     }
 }
 
@@ -1648,6 +1650,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     gcode.writeTravel(path.points[point_idx], speed);
                 }
+                if (path.unretract_before_last_travel_move)
+                {
+                    // We need to unretract before the last travel move of the path if the next path is an outer wall.
+                    gcode.writeUnretractionAndPrime();
+                }
+                gcode.writeTravel(path.points[path.points.size() - 1], speed);
                 continue;
             }
 
