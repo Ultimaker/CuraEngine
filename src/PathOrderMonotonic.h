@@ -41,34 +41,33 @@ class PathOrderMonotonic : public PathOrder<PathType>
 {
 public:
     using typename PathOrder<PathType>::Path;
-    using PathOrder<PathType>::paths;
-    using PathOrder<PathType>::detectLoops;
-    using PathOrder<PathType>::getVertexData;
 
-    PathOrderMonotonic(const AngleRadians monotonic_direction)
+    PathOrderMonotonic(const AngleRadians monotonic_direction, const Point start_point)
     : monotonic_vector(std::cos(monotonic_direction) * 1000, std::sin(monotonic_direction) * 1000)
-    {}
+    {
+        this->start_point = start_point;
+    }
 
     void optimize()
     {
-        if(paths.empty())
+        if(this->paths.empty())
         {
             return;
         }
 
         //Get the vertex data and store it in the paths.
-        for(Path& path : paths)
+        for(Path& path : this->paths)
         {
-            path.converted = getVertexData(path.vertices);
+            path.converted = this->getVertexData(path.vertices);
         }
 
         std::vector<Path> reordered; //To store the result in. At the end, we'll std::swap with the real paths.
-        reordered.reserve(paths.size());
+        reordered.reserve(this->paths.size());
 
         //First print all the looping polygons, if there are any.
         std::vector<Path*> polylines; //Also find all polylines and store them in a vector that we can sort in-place without making copies all the time.
-        detectLoops(); //Always filter out loops. We don't specifically want to print those in monotonic order.
-        for(Path& path : paths)
+        this->detectLoops(); //Always filter out loops. We don't specifically want to print those in monotonic order.
+        for(Path& path : this->paths)
         {
             if(path.is_closed || path.vertices.size() <= 1)
             {
@@ -139,12 +138,14 @@ public:
         //Now that we know which lines overlap with which other lines, iterate over them again to print connected lines in order.
         std::unordered_set<Path*> completed_lines;
         completed_lines.reserve(polylines.size());
+        Point current_pos = this->start_point;
         for(Path* polyline : polylines)
         {
             if(unconnected_polylines.find(polyline) == unconnected_polylines.end()) //Polyline is reached through another line.
             {
                 continue;
             }
+            optimizeClosestStartPoint(*polyline, current_pos);
             reordered.push_back(*polyline); //Plan the start of the connected sequence to be printed next!
             completed_lines.insert(polyline);
             auto connection = connections.find(polyline);
@@ -155,13 +156,14 @@ public:
                 {
                     break;
                 }
+                optimizeClosestStartPoint(*polyline, current_pos);
                 reordered.push_back(*polyline); //Plan in this line to be printed next!
                 completed_lines.insert(polyline);
                 connection = connections.find(polyline);
             }
         }
 
-        std::swap(reordered, paths); //Store the resulting list in the main paths.
+        std::swap(reordered, this->paths); //Store the resulting list in the main paths.
     }
 
 protected:
@@ -173,6 +175,36 @@ protected:
      * according to their projection on this vector.
      */
     Point monotonic_vector;
+
+    /*!
+     * For a given path, make sure that it is configured correctly to start
+     * printing from the best endpoint.
+     *
+     * This changes the path's ``start_vertex`` and ``backwards`` fields, and
+     * also adjusts the \ref current_pos in-place.
+     *
+     * Will cause a crash if given a path with 0 vertices!
+     * \param path The path to adjust the start and direction parameters for.
+     * \param current_pos The last position of the nozzle before printing this
+     * path.
+     */
+    void optimizeClosestStartPoint(Path& path, Point& current_pos)
+    {
+        const coord_t dist_start = vSize2(current_pos - path.converted->front());
+        const coord_t dist_end = vSize2(current_pos - path.converted->back());
+        if(dist_start < dist_end)
+        {
+            path.start_vertex = 0;
+            path.backwards = false;
+            current_pos = path.converted->back();
+        }
+        else
+        {
+            path.start_vertex = path.converted->size() - 1;
+            path.backwards = true;
+            current_pos = path.converted->front();
+        }
+    }
 };
 
 }
