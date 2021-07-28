@@ -7,6 +7,7 @@
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
 #include "MergeInfillLines.h"
+#include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
 #include "raft.h" // getTotalExtraLayers
 #include "Slice.h"
 #include "sliceDataStorage.h"
@@ -1109,6 +1110,65 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
                 const unsigned int next_poly_idx = orderOptimizer.polyOrder[order_idx + 1];
                 ConstPolygonRef next_polygon = polygons[next_poly_idx];
                 const size_t next_start = orderOptimizer.polyStart[next_poly_idx];
+                const Point& next_p0 = next_polygon[next_start];
+                if (vSize2(next_p0 - p1) <= line_width * line_width * 4)
+                {
+                    wipe = false;
+                }
+            }
+
+            if (wipe)
+            {
+                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
+            }
+        }
+    }
+}
+
+void LayerPlan::addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const coord_t wipe_dist, const Ratio flow_ratio, const double fan_speed, const AngleRadians monotonic_direction)
+{
+    const Point last_position = getLastPlannedPositionOrStartingPosition();
+    PathOrderMonotonic<ConstPolygonRef> order(monotonic_direction, last_position);
+    for(size_t line_idx = 0; line_idx < polygons.size(); ++line_idx)
+    {
+        order.addPolyline(polygons[line_idx]);
+    }
+    order.optimize();
+
+    for (unsigned int order_idx = 0; order_idx < order.paths.size(); order_idx++)
+    {
+        const PathOrder<ConstPolygonRef>::Path& path = order.paths[order_idx];
+        ConstPolygonRef polygon = *path.vertices;
+        const size_t start = path.start_vertex;
+        const size_t end = 1 - start;
+        const Point& p0 = polygon[start];
+        const Point& p1 = polygon[end];
+        // ignore line segments that are less than 5uM long
+        if(vSize2(p1 - p0) < MINIMUM_SQUARED_LINE_LENGTH)
+        {
+            continue;
+        }
+        addTravel(p0);
+        addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+
+        // Wipe
+        if (wipe_dist != 0)
+        {
+            bool wipe = true;
+            int line_width = config.getLineWidth();
+
+            // Don't wipe is current extrusion is too small
+            if (vSize2(p1 - p0) <= line_width * line_width * 4)
+            {
+                wipe = false;
+            }
+
+            // Don't wipe if next starting point is very near
+            if (wipe && (order_idx < order.paths.size() - 1))
+            {
+                const PathOrder<ConstPolygonRef>::Path& next_path = order.paths[order_idx + 1];
+                ConstPolygonRef next_polygon = *next_path.vertices;
+                const size_t next_start = next_path.start_vertex;
                 const Point& next_p0 = next_polygon[next_start];
                 if (vSize2(next_p0 - p1) <= line_width * line_width * 4)
                 {

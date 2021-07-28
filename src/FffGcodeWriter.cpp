@@ -2509,26 +2509,44 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
             gcode_layer.addPolygonsByOptimizer(skin_polygons, config);
         }
 
-        std::optional<Point> near_start_location;
-        const EFillMethod pattern = (gcode_layer.getLayerNr() == 0) ?
-            mesh.settings.get<EFillMethod>("top_bottom_pattern_0") :
-            mesh.settings.get<EFillMethod>("top_bottom_pattern");
-        if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
-        { // update near_start_location to a location which tries to avoid seams in skin
-            near_start_location = getSeamAvoidingLocation(area, skin_angle, gcode_layer.getLastPlannedPositionOrStartingPosition());
-        }
-
-        constexpr bool enable_travel_optimization = false;
-        constexpr float flow = 1.0;
-        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+        if(mesh.settings.get<bool>("skin_monotonic"))
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, enable_travel_optimization, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, near_start_location, fan_speed);
+            const AngleRadians monotonic_direction = (skin_angle + 90) / 180.0 * M_PI;
+            constexpr Ratio flow = 1.0_r;
+            if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+            {
+                gcode_layer.addLinesMonotonic(skin_lines, config, SpaceFillType::Lines, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, fan_speed, monotonic_direction);
+            }
+            else
+            {
+                const SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+                constexpr coord_t wipe_dist = 0;
+                gcode_layer.addLinesMonotonic(skin_lines, config, space_fill_type, wipe_dist, flow, fan_speed, monotonic_direction);
+            }
         }
         else
         {
-            SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
-            constexpr coord_t wipe_dist = 0;
-            gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location, fan_speed);
+            std::optional<Point> near_start_location;
+            const EFillMethod pattern = (gcode_layer.getLayerNr() == 0) ?
+                mesh.settings.get<EFillMethod>("top_bottom_pattern_0") :
+                mesh.settings.get<EFillMethod>("top_bottom_pattern");
+            if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
+            { // update near_start_location to a location which tries to avoid seams in skin
+                near_start_location = getSeamAvoidingLocation(area, skin_angle, gcode_layer.getLastPlannedPositionOrStartingPosition());
+            }
+
+            constexpr bool enable_travel_optimization = false;
+            constexpr float flow = 1.0;
+            if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+            {
+                gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, enable_travel_optimization, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, near_start_location, fan_speed);
+            }
+            else
+            {
+                SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+                constexpr coord_t wipe_dist = 0;
+                gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location, fan_speed);
+            }
         }
     }
 }
