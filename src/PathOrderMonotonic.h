@@ -98,6 +98,8 @@ public:
 
         std::unordered_set<Path*> unconnected_polylines; //Polylines that haven't been overlapped yet by a previous line.
         unconnected_polylines.insert(polylines.begin(), polylines.end());
+        std::unordered_set<Path*> starting_lines; //Starting points of a linearly connected segment.
+        starting_lines.insert(polylines.begin(), polylines.end());
         std::unordered_map<Path*, Path*> connections; //For each polyline, which polyline it overlaps with, closest in the projected order.
 
         for(auto polyline_it = polylines.begin(); polyline_it != polylines.end(); polyline_it++)
@@ -124,42 +126,50 @@ public:
                     || (their_start > my_start && their_start < my_end)
                     || (their_end > my_start   && their_end < my_end))
                 {
-                    connections.emplace(*polyline_it, *overlapping_line);
                     const auto is_unconnected = unconnected_polylines.find(*overlapping_line);
-                    if(is_unconnected != unconnected_polylines.end())
+                    if(is_unconnected == unconnected_polylines.end()) //It was already connected to another line.
                     {
+                        starting_lines.insert(*overlapping_line); //The overlapping line is a junction where two segments come together. Make it possible to start from there.
+                    }
+                    else
+                    {
+                        connections.emplace(*polyline_it, *overlapping_line);
                         unconnected_polylines.erase(is_unconnected); //The overlapping line is now connected.
+                        starting_lines.erase(*overlapping_line); //If it was a starting line, it is no longer. It is now a later line in a sequence.
                     }
                     break;
                 }
             }
         }
 
-        //Now that we know which lines overlap with which other lines, iterate over them again to print connected lines in order.
-        std::unordered_set<Path*> completed_lines;
-        completed_lines.reserve(polylines.size());
+        //Order the starting points of each segments monotonically. This is the order in which to print each segment.
+        std::vector<Path*> starting_lines_monotonic;
+        starting_lines_monotonic.resize(starting_lines.size());
+        std::partial_sort_copy(starting_lines.begin(), starting_lines.end(), starting_lines_monotonic.begin(), starting_lines_monotonic.end(), [this](Path* a, Path* b) {
+            const coord_t a_start_projection = dot(a->converted->front(), monotonic_vector);
+            const coord_t a_end_projection = dot(a->converted->back(), monotonic_vector);
+            const coord_t a_projection = std::min(a_start_projection, a_end_projection); //The projection of a path is the endpoint furthest back of the two endpoints.
+
+            const coord_t b_start_projection = dot(b->converted->front(), monotonic_vector);
+            const coord_t b_end_projection = dot(b->converted->back(), monotonic_vector);
+            const coord_t b_projection = std::min(b_start_projection, b_end_projection);
+
+            return a_projection < b_projection;
+        });
+
+        //Now that we have the segments of overlapping lines, and know in which order to print the segments, print segments in monotonic order.
         Point current_pos = this->start_point;
-        for(Path* polyline : polylines)
+        for(Path* line : starting_lines_monotonic)
         {
-            if(unconnected_polylines.find(polyline) == unconnected_polylines.end()) //Polyline is reached through another line.
+            optimizeClosestStartPoint(*line, current_pos);
+            reordered.push_back(*line); //Plan the start of the sequence to be printed next!
+            auto connection = connections.find(line);
+            while(connection != connections.end() && starting_lines.find(connection->second) == starting_lines.end()) //Stop if the sequence ends or if we hit another starting point.
             {
-                continue;
-            }
-            optimizeClosestStartPoint(*polyline, current_pos);
-            reordered.push_back(*polyline); //Plan the start of the connected sequence to be printed next!
-            completed_lines.insert(polyline);
-            auto connection = connections.find(polyline);
-            while(connection != connections.end())
-            {
-                polyline = connection->second;
-                if(completed_lines.find(polyline) != completed_lines.end()) //Already printed the rest of this sequence.
-                {
-                    break;
-                }
-                optimizeClosestStartPoint(*polyline, current_pos);
-                reordered.push_back(*polyline); //Plan in this line to be printed next!
-                completed_lines.insert(polyline);
-                connection = connections.find(polyline);
+                line = connection->second;
+                optimizeClosestStartPoint(*line, current_pos);
+                reordered.push_back(*line); //Plan this line in, to be printed next!
+                connection = connections.find(line);
             }
         }
 
