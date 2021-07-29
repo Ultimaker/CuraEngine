@@ -475,7 +475,8 @@ public:
      * no combing and no retraction. This travel move needs to be fixed
      * afterwards.
      * \param p The point to travel to.
-     * \param force_comb_retract Whether to force a retraction to occur.
+     * \param force_retract Whether to force a retraction to occur.
+     * \param unretract_before_last_travel_move Whether to unretract before the last travel move of the travel path.
      */
     GCodePath& addTravel(const Point p, const bool force_retract = false, const bool unretract_before_last_travel_move = false);
 
