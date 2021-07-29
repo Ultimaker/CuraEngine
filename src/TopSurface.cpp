@@ -122,7 +122,14 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
             }
         }
 
-        layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
+        if(!mesh.settings.get<bool>("ironing_monotonic"))
+        {
+            layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
+        }
+        else
+        {
+            layer.addLinesMonotonic(ironing_lines, line_config, SpaceFillType::PolyLines, (direction + 90) / 180.0 * M_PI, line_spacing * 1.1);
+        }
         added = true;
     }
 
