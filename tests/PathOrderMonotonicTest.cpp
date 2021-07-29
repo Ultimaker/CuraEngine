@@ -1,0 +1,261 @@
+//Copyright (c) 2021 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#include <string>
+
+#include <gtest/gtest.h>
+#include <clipper.hpp>
+
+#include "../src/infill.h"
+#include "../src/utils/math.h"
+#include "../src/PathOrderMonotonic.h"
+#include "../src/utils/polygon.h"
+#include "ReadTestPolygons.h"
+
+#define TEST_PATHS_SVG_OUTPUT
+#ifdef TEST_PATHS_SVG_OUTPUT
+#include <cstdlib>
+#include "../src/utils/SVG.h"
+#endif //TEST_PATHS_SVG_OUTPUT
+
+namespace cura
+{
+    /* Fixture to allow parameterized tests.
+     */
+    class PathOrderMonotonicTest : public testing::TestWithParam<std::tuple<std::string, AngleRadians>>
+    {};
+
+    coord_t projectPathAlongAxis(const PathOrderMonotonic<ConstPolygonRef>::Path& path, const Point& vector)
+    {
+        return dot(path.vertices[path.start_vertex], vector);
+    }
+
+    coord_t projectEndAlongAxis(const PathOrderMonotonic<ConstPolygonRef>::Path& path, const Point& vector)
+    {
+        return dot(path.vertices[path.vertices.size() - (1 + path.start_vertex)], vector);
+    }
+
+    bool rangeOverlaps(const std::pair<coord_t, coord_t>& range_b, const std::pair<coord_t, coord_t>& range_a)
+    {
+        const coord_t len_b = std::abs(range_b.first - range_b.second);
+        const coord_t len_a = std::abs(range_a.first - range_a.second);
+        const coord_t len_total = std::max({ range_b.first, range_b.second, range_a.first, range_a.second })
+                                - std::min({ range_b.first, range_b.second, range_a.first, range_a.second });
+        return len_total < (len_b + len_a);
+    }
+
+    bool getInfillLines(const std::string& filename, const AngleRadians& angle, Polygons& output)
+    {
+        constexpr EFillMethod pattern = EFillMethod::LINES;
+        constexpr bool zig_zagify = false;
+        constexpr bool connect_polygons = false;
+        constexpr coord_t line_distance = 350;
+        constexpr coord_t outline_offset = 0;
+        constexpr coord_t infill_line_width = 350;
+        constexpr coord_t infill_overlap = 0;
+        constexpr size_t infill_multiplier = 1;
+        constexpr coord_t z = 2;
+        constexpr coord_t shift = 0;
+        constexpr coord_t max_resolution = 10;
+        constexpr coord_t max_deviation = 5;
+
+        std::vector<Polygons> shapes;
+        if (!readTestPolygons(filename, shapes))
+        {
+            return false;
+        }
+
+        Polygons dummy_polys;
+        for (const auto& shape : shapes)
+        {
+            Infill infill_comp
+            (
+                pattern,
+                zig_zagify,
+                connect_polygons,
+                shape,
+                outline_offset,
+                infill_line_width,
+                line_distance,
+                infill_overlap,
+                infill_multiplier,
+                AngleDegrees(angle),
+                z,
+                shift,
+                max_resolution,
+                max_deviation
+            );
+            infill_comp.generate(dummy_polys, output);
+        }
+        return true;
+    }
+
+#ifdef TEST_PATHS_SVG_OUTPUT
+    void writeDebugSVG
+    (
+        const std::string& original_filename,
+        const AngleRadians& angle,
+        const Point& monotonic_vec,
+        const std::vector<std::vector<PathOrderMonotonic<ConstPolygonRef>::Path>>& sections
+    )
+    {
+        constexpr int buff_size = 1024;
+        char buff[buff_size];
+        const size_t xx = original_filename.find_first_of('_');
+        std::string basename = original_filename.substr(xx, original_filename.find_last_of('.') - xx);
+        std::snprintf(buff, buff_size, "C:/bob/%s_%d.svg", basename.c_str(), (int) AngleDegrees(angle));
+        const std::string filename(buff);
+
+        AABB aabb;
+        for (const auto& section : sections)
+        {
+            for (const auto& path : section)
+            {
+                aabb.include(path.vertices[path.start_vertex]);
+            }
+        }
+        aabb.include(Point{0, 0});
+        aabb.include(monotonic_vec);
+
+        SVG svgFile(filename.c_str(), aabb);
+
+        int color_id = -1;
+        for (const auto& section : sections)
+        {
+            ++color_id;
+            SVG::Color section_color{ (SVG::Color) (((int) SVG::Color::GRAY) + (color_id % 7)) };
+            for (const auto& path : section)
+            {
+                svgFile.writePolyline(path.vertices, section_color);
+            }
+        }
+        svgFile.writeArrow(Point{ 0, 0 }, monotonic_vec, SVG::Color::BLACK);
+        // Note: SVG writes 'itself' when the object is destroyed.
+    }
+#endif //TEST_PATHS_SVG_OUTPUT
+
+    TEST_P(PathOrderMonotonicTest, SectionsTest)
+    {
+        const auto params = GetParam();
+        const double angle_radians{ std::get<1>(params) };
+        const auto& filename = std::get<0>(params);
+        Polygons polylines;
+        ASSERT_TRUE(getInfillLines(filename, angle_radians, polylines)) << "Input test-file could not be read, check setup.";
+
+        const Point& pt_r = polylines.begin()->at(0);
+        const Point& pt_s = polylines.begin()->at(1);
+        const double angle_from_first_line = std::atan2(pt_s.Y - pt_r.Y, pt_s.X - pt_r.X) + 0.5 * M_PI;
+        const Point monotonic_axis{ std::cos(angle_from_first_line) * 1000, std::sin(angle_from_first_line) * 1000 };
+        const Point perpendicular_axis{ turn90CCW(monotonic_axis) };
+
+        PathOrderMonotonic<ConstPolygonRef> object_under_test(angle_from_first_line, monotonic_axis * -1000);
+        for (const auto& polyline : polylines)
+        {
+            object_under_test.addPolyline(polyline);
+        }
+        object_under_test.optimize();
+
+        // Collect sections:
+        std::vector<std::vector<PathOrderMonotonic<ConstPolygonRef>::Path>> sections;
+        sections.emplace_back();
+        coord_t last_path_mono_projection = projectPathAlongAxis(object_under_test.paths.front(), monotonic_axis);
+        for (const auto& path : object_under_test.paths)
+        {
+            const coord_t path_mono_projection{ projectPathAlongAxis(path, monotonic_axis) };
+            if (path_mono_projection < last_path_mono_projection && ! sections.back().empty())
+            {
+                sections.emplace_back();
+            }
+            sections.back().push_back(path);
+            last_path_mono_projection = path_mono_projection;
+        }
+
+#ifdef TEST_PATHS_SVG_OUTPUT
+        writeDebugSVG(filename, angle_radians, monotonic_axis, sections);
+#endif //TEST_PATHS_SVG_OUTPUT
+
+        // Each section that intersects another section on the monotonic axis,
+        //   needs to --for that overlapping (sub-)section-- _not_ overlap for the perpendicular axis.
+        // Each section that _doesn't_ intersect another on the monotonic axis,
+        //   the earlier section has to have a lower starting point on that axis then the later one.
+        size_t section_a_id = 0;
+        for (const auto& section_a : sections)
+        {
+            ++section_a_id;
+            size_t section_b_id = 0;
+            for (const auto& section_b : sections)
+            {
+                ++section_b_id;
+                if (section_a_id >= section_b_id)
+                {
+                    continue; // <-- So section B will always be 'later' than section A.
+                }
+
+                // Check if the start of A is lower than the start of B, since it is ordered first.
+                const coord_t mono_a{ projectPathAlongAxis(section_a.front(), monotonic_axis) };
+                const coord_t mono_b{ projectPathAlongAxis(section_b.front(), monotonic_axis) };
+                EXPECT_LE(mono_a, mono_b) 
+                    << "Section ordered before another, A's start point should be before B when ordered along the monotonic axis.";
+
+                // 'Neighbouring' lines should only overlap when projected to the perpendicular axis if they're from the same section.
+                // (This is technically not true in general,
+                //   but the gap would have to be small enough for the neighbouring lines to touch; this won't really happen in practice.)
+                // Already tested for A start < B start in the monotonic direction,
+                //   so assume A begins before B, so there is either no overlap, B lies 'witin' A, or B stops later than A.
+                auto it_a = section_a.begin();
+                for (auto it_b = section_b.begin(); it_b != section_b.end(); ++it_b)
+                {
+                    const coord_t mono_b = projectPathAlongAxis(*it_b, monotonic_axis);
+                    for (; it_a != section_a.end() && projectPathAlongAxis(*it_a, monotonic_axis) <= mono_b; ++it_a) {}
+                    const std::pair<coord_t, coord_t> perp_b_range
+                    {
+                        projectPathAlongAxis(*it_b, perpendicular_axis),
+                        projectEndAlongAxis(*it_b, perpendicular_axis)
+                    };
+                    if (it_a == section_a.end())
+                    {
+                        break;
+                    }
+
+                    // Compare current line in B against next neighbouring line in A:
+                    const std::pair<coord_t, coord_t> perp_a_range
+                    {
+                        projectPathAlongAxis(*it_a, perpendicular_axis),
+                        projectEndAlongAxis(*it_a, perpendicular_axis)
+                    };
+                    EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_a_range))
+                        << "Perpendicular range overlaps for neighbouring lines in different sections (next line of A / line in B).";
+
+                    // Compare current line in B against previous neighbouring line in A:
+                    if (it_a != section_a.begin() && it_b != section_b.begin())
+                    {
+                        const std::pair<coord_t, coord_t> perp_prev_a_range
+                        {
+                            projectPathAlongAxis(*std::prev(it_a), perpendicular_axis),
+                            projectEndAlongAxis(*std::prev(it_a), perpendicular_axis)
+                        };
+                        EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_prev_a_range))
+                            << "Perpendicular range overlaps for neighbouring lines in different sections (prev. line of A / line in B).";
+                    }
+                }
+            }
+        }
+    }
+
+    const std::vector<std::string> polygon_filenames =
+    {
+        "../tests/resources/polygon_concave.txt",
+        "../tests/resources/polygon_concave_hole.txt",
+        "../tests/resources/polygon_square.txt",
+        "../tests/resources/polygon_square_hole.txt",
+        "../tests/resources/polygon_triangle.txt",
+        "../tests/resources/polygon_two_squares.txt",
+        //"../tests/resources/polygon_slant_gap.txt",  // TODO!
+        //"../tests/resources/polygon_sawtooth.txt",   // TODO!
+    };
+    const std::vector<AngleRadians> angle_radians = { 0, 0.01, 1.0, 0.5 * M_PI, M_PI, 1.5 * M_PI, 5.0, (2.0 * M_PI) - 0.01 };
+
+    INSTANTIATE_TEST_CASE_P(PathOrderMonotonicTestInstantiation, PathOrderMonotonicTest,
+        testing::Combine(testing::ValuesIn(polygon_filenames), testing::ValuesIn(angle_radians)));
+
+} // namespace cura

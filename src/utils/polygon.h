@@ -381,6 +381,11 @@ public:
         return (*path)[index];
     }
 
+    const Point& operator[] (const unsigned int& index) const
+    {
+        return path->at(index);
+    }
+
     ClipperLib::Path::iterator begin()
     {
         return path->begin();

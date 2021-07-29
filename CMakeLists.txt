@@ -226,9 +226,8 @@ set(engine_TEST
     InfillTest
     LayerPlanTest
     MergeInfillLinesTest
+    PathOrderMonotonicTest
     TimeEstimateCalculatorTest
-)
-set(engine_TEST_INFILL
 )
 set(engine_TEST_INTEGRATION
     SlicePhaseTest
