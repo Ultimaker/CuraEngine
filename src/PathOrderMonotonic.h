@@ -121,10 +121,15 @@ public:
                 {
                     std::swap(their_start, their_end);
                 }
-                if(    (my_start > their_start && my_start < their_end) //It overlaps if any endpoint is between the endpoints of the other line.
+                /*There are 5 possible cases of overlapping:
+                - We are behind them, partially overlapping. my_start is between their_start and their_end.
+                - We are in front of them, partially overlapping. my_end is between their_start and their_end.
+                - We are a smaller line, they completely overlap us. Both my_start and my_end are between their_start and their_end. (Caught with the first 2 conditions already.)
+                - We are a bigger line, and completely overlap them. Both their_start and their_end are between my_start and my_end.
+                - Lines are exactly equal. Start and end are the same. (Caught with the previous condition too.)*/
+                if(    (my_start > their_start && my_start < their_end)
                     || (my_end > their_start   && my_end < their_end)
-                    || (their_start > my_start && their_start < my_end)
-                    || (their_end > my_start   && their_end < my_end))
+                    || (their_start >= my_start && their_end <= my_end))
                 {
                     const auto is_unconnected = unconnected_polylines.find(*overlapping_line);
                     if(is_unconnected == unconnected_polylines.end()) //It was already connected to another line.
