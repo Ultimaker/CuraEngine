@@ -398,6 +398,17 @@ public:
         const Point destination(500000, 500000);
         return layer_plan.addTravel(destination);
     }
+
+    /*!
+     * Runs the test, adding a travel move to the layer plan with the specified parameters.
+     * \param unretract_before_last_travel_move Whether to unretract before the last travel move of the travel path
+     * \return The resulting g-code path.
+     */
+    GCodePath run(bool unretract_before_last_travel_move)
+    {
+        const Point destination(500000, 500000);
+        return layer_plan.addTravel(destination, false, unretract_before_last_travel_move);
+    }
 };
 
 INSTANTIATE_TEST_CASE_P(AllCombinations, AddTravelTest, testing::Combine(
@@ -534,6 +545,32 @@ TEST_P(AddTravelTest, RetractIfCombingImpossible)
     {
         EXPECT_FALSE(result.retract) << "If combing is possible, it should not retract (unless the travel move is too long).";
     }
+}
+
+/*!
+ * Tests to verify that when there is no retraction, then there should also be no unretraction before the last travel
+ * move in the path.
+ */
+TEST_P(AddTravelTest, NoUnretractBeforeLastTravelMoveIfNoPriorRetraction)
+{
+    const GCodePath result = run(GetParam());
+
+    if(!result.retract)
+    {
+        EXPECT_FALSE(result.unretract_before_last_travel_move) << "If no retraction has been issued, then there should also be no unretraction before the last travel move.";
+    }
+}
+
+/*!
+ * Test to verify that when adding a travel, if it is requested to unretract before the last travel move,
+ * then this should be reflected in the path.
+ */
+TEST_F(AddTravelTest, UnretractBeforeLastTravelMove)
+{
+    const GCodePath path_with_unretraction = run(true);
+    EXPECT_TRUE(path_with_unretraction.unretract_before_last_travel_move) << "If the travel path is requested to unretract before the last travel move, then this should be reflected in the path.";
+    const GCodePath path_without_unretraction = run(false);
+    EXPECT_FALSE(path_without_unretraction.unretract_before_last_travel_move) << "If the travel path is not requested to unretract before the last travel move, then this should be reflected in the path.";
 }
 
 }
