@@ -492,7 +492,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract, const b
     // must start new travel path as retraction can be enabled or not depending on path length, etc.
     forceNewPathStart();
 
-    path->unretract_before_last_travel_move = unretract_before_last_travel_move;
+    path->unretract_before_last_travel_move = path->retract && unretract_before_last_travel_move;
 
     GCodePath& ret = addTravel_simple(p, path);
     was_inside = is_inside;
