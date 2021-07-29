@@ -2297,7 +2297,8 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage, LayerPlan& 
     const Ratio skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
     Polygons* perimeter_gaps_output = (fill_perimeter_gaps) ? &concentric_perimeter_gaps : nullptr;
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something);
+    const bool monotonic = mesh.settings.get<bool>("roofing_monotonic");
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, skin_density, monotonic, perimeter_gaps_output, added_something);
 }
 
 void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const
@@ -2465,10 +2466,11 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     // calculate polygons and lines
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps) ? &concentric_perimeter_gaps : nullptr;
 
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
+    const bool monotonic = mesh.settings.get<bool>("skin_monotonic");
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, monotonic, perimeter_gaps_output, added_something, fan_speed);
 }
 
-void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed) const
+void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, const bool monotonic, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed) const
 {
     Polygons skin_polygons;
     Polygons skin_lines;
@@ -2509,19 +2511,19 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
             gcode_layer.addPolygonsByOptimizer(skin_polygons, config);
         }
 
-        if(mesh.settings.get<bool>("skin_monotonic"))
+        if(monotonic)
         {
             const AngleRadians monotonic_direction = (skin_angle + 90) / 180.0 * M_PI;
             constexpr Ratio flow = 1.0_r;
             if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
             {
-                gcode_layer.addLinesMonotonic(skin_lines, config, SpaceFillType::Lines, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, fan_speed, monotonic_direction);
+                gcode_layer.addLinesMonotonic(skin_lines, config, SpaceFillType::Lines, monotonic_direction, config.getLineWidth() * 1.1, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, fan_speed);
             }
             else
             {
                 const SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
                 constexpr coord_t wipe_dist = 0;
-                gcode_layer.addLinesMonotonic(skin_lines, config, space_fill_type, wipe_dist, flow, fan_speed, monotonic_direction);
+                gcode_layer.addLinesMonotonic(skin_lines, config, space_fill_type, monotonic_direction, config.getLineWidth() * 1.1, wipe_dist, flow, fan_speed);
             }
         }
         else

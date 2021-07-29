@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring>
@@ -1125,10 +1125,10 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     }
 }
 
-void LayerPlan::addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const coord_t wipe_dist, const Ratio flow_ratio, const double fan_speed, const AngleRadians monotonic_direction)
+void LayerPlan::addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const coord_t wipe_dist, const Ratio flow_ratio, const double fan_speed)
 {
     const Point last_position = getLastPlannedPositionOrStartingPosition();
-    PathOrderMonotonic<ConstPolygonRef> order(monotonic_direction, last_position);
+    PathOrderMonotonic<ConstPolygonRef> order(monotonic_direction, max_adjacent_distance, last_position);
     for(size_t line_idx = 0; line_idx < polygons.size(); ++line_idx)
     {
         order.addPolyline(polygons[line_idx]);
