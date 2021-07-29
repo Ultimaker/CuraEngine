@@ -400,14 +400,21 @@ public:
     }
 
     /*!
-     * Runs the test, adding a travel move to the layer plan with the specified parameters.
+     * Runs the test, adding a travel move to the layer plan with the specified input.
      * \param unretract_before_last_travel_move Whether to unretract before the last travel move of the travel path
      * \return The resulting g-code path.
      */
     GCodePath run(bool unretract_before_last_travel_move)
     {
         const Point destination(500000, 500000);
-        return layer_plan.addTravel(destination, false, unretract_before_last_travel_move);
+        // Make sure that retractions are enabled. The cases with no prior retractions are already covered by the
+        // parametrized test run and the NoUnretractBeforeLastTravelMoveIfNoPriorRetraction
+        // test case, so no need to test them again.
+        settings->add("retraction_enable", "true");
+        settings->add("retraction_hop_enabled", "true");
+        settings->add("retraction_combing_max_distance", "1");
+        layer_plan.last_planned_position = Point(0, 0);
+        return layer_plan.addTravel(destination, true, unretract_before_last_travel_move);
     }
 };
 
