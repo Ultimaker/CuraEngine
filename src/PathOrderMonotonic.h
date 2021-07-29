@@ -42,8 +42,9 @@ class PathOrderMonotonic : public PathOrder<PathType>
 public:
     using typename PathOrder<PathType>::Path;
 
-    PathOrderMonotonic(const AngleRadians monotonic_direction, const Point start_point)
+    PathOrderMonotonic(const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const Point start_point)
     : monotonic_vector(std::cos(monotonic_direction) * 1000, std::sin(monotonic_direction) * 1000)
+    , max_adjacent_distance(max_adjacent_distance)
     {
         this->start_point = start_point;
     }
@@ -104,6 +105,10 @@ public:
 
         for(auto polyline_it = polylines.begin(); polyline_it != polylines.end(); polyline_it++)
         {
+            const coord_t start_projection = dot((*polyline_it)->converted->front(), monotonic_vector);
+            const coord_t end_projection = dot((*polyline_it)->converted->back(), monotonic_vector);
+            const coord_t farthest_projection = std::max(start_projection, end_projection);
+
             coord_t my_start = dot((*polyline_it)->converted->front(), perpendicular);
             coord_t my_end = dot((*polyline_it)->converted->back(), perpendicular);
             if(my_start > my_end)
@@ -114,6 +119,15 @@ public:
             //Lines are already sorted, so the first overlapping line we encounter is the next closest line to overlap with.
             for(auto overlapping_line = polyline_it + 1; overlapping_line != polylines.end(); overlapping_line++)
             {
+                //Don't go beyond the maximum adjacent distance.
+                const coord_t start_their_projection = dot((*overlapping_line)->converted->front(), monotonic_vector);
+                const coord_t end_their_projection = dot((*overlapping_line)->converted->back(), monotonic_vector);
+                const coord_t closest_projection = std::min(start_their_projection, end_their_projection);
+                if(closest_projection - farthest_projection > max_adjacent_distance * 1000)  //Distances are multiplied by 1000 since monotonic_vector is not a unit vector, but a vector of length 1000.
+                {
+                    break; //Too far. This line and all subsequent lines are not adjacent any more, even though they might be side-by-side.
+                }
+
                 //Does this one overlap?
                 coord_t their_start = dot((*overlapping_line)->converted->front(), perpendicular);
                 coord_t their_end = dot((*overlapping_line)->converted->back(), perpendicular);
@@ -190,6 +204,14 @@ protected:
      * according to their projection on this vector.
      */
     Point monotonic_vector;
+
+    /*!
+     * Maximum distance at which lines are considered to be adjacent.
+     *
+     * The monotonicity constraint is only held for lines that are closer than
+     * this distance together.
+     */
+    coord_t max_adjacent_distance;
 
     /*!
      * For a given path, make sure that it is configured correctly to start

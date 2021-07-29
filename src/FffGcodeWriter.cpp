@@ -2515,13 +2515,13 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
             constexpr Ratio flow = 1.0_r;
             if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
             {
-                gcode_layer.addLinesMonotonic(skin_lines, config, SpaceFillType::Lines, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, fan_speed, monotonic_direction);
+                gcode_layer.addLinesMonotonic(skin_lines, config, SpaceFillType::Lines, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, fan_speed, monotonic_direction, config.getLineWidth());
             }
             else
             {
                 const SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
                 constexpr coord_t wipe_dist = 0;
-                gcode_layer.addLinesMonotonic(skin_lines, config, space_fill_type, wipe_dist, flow, fan_speed, monotonic_direction);
+                gcode_layer.addLinesMonotonic(skin_lines, config, space_fill_type, wipe_dist, flow, fan_speed, monotonic_direction, config.getLineWidth());
             }
         }
         else
