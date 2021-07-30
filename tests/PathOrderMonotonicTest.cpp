@@ -7,12 +7,13 @@
 #include <clipper.hpp>
 
 #include "../src/infill.h"
+#include "../src/utils/linearAlg2D.h"
 #include "../src/utils/math.h"
 #include "../src/PathOrderMonotonic.h"
 #include "../src/utils/polygon.h"
 #include "ReadTestPolygons.h"
 
-#define TEST_PATHS_SVG_OUTPUT
+//#define TEST_PATHS_SVG_OUTPUT
 #ifdef TEST_PATHS_SVG_OUTPUT
 #include <cstdlib>
 #include "../src/utils/SVG.h"
@@ -54,10 +55,22 @@ namespace cura
         return len_total < (len_b + len_a);
     }
 
-    coord_t shortestDistance(const PathOrderMonotonic<ConstPolygonRef>::Path& path_a, const PathOrderMonotonic<ConstPolygonRef>::Path& path_b)
+    coord_t shortestDistance
+    (
+        const PathOrderMonotonic<ConstPolygonRef>::Path& path_a,
+        const PathOrderMonotonic<ConstPolygonRef>::Path& path_b
+    )
     {
         // NOTE: Assume these are more or less lines.
-        return std::numeric_limits<coord_t>::max();  // TODO!
+        const auto point_pair =
+            LinearAlg2D::getClosestConnection(startVertex(path_a), endVertex(path_a), startVertex(path_b), endVertex(path_b));
+        return vSize(point_pair.second - point_pair.first);
+    }
+
+    coord_t pathLength(const PathOrderMonotonic<ConstPolygonRef>::Path& path)
+    {
+        // NOTE: Assume these are more or less lines.
+        return vSize(endVertex(path) - startVertex(path));
     }
 
     constexpr EFillMethod pattern = EFillMethod::LINES;
@@ -118,7 +131,7 @@ namespace cura
         char buff[buff_size];
         const size_t xx = original_filename.find_first_of('_');
         std::string basename = original_filename.substr(xx, original_filename.find_last_of('.') - xx);
-        std::snprintf(buff, buff_size, "C:/bob/%s_%d.svg", basename.c_str(), (int) AngleDegrees(angle));
+        std::snprintf(buff, buff_size, "/tmp/%s_%d.svg", basename.c_str(), (int) AngleDegrees(angle));
         const std::string filename(buff);
 
         AABB aabb;
@@ -191,14 +204,13 @@ namespace cura
         writeDebugSVG(filename, angle_radians, monotonic_axis, sections);
 #endif //TEST_PATHS_SVG_OUTPUT
 
-        // Each section that intersects another section on the monotonic axis,
-        //   needs to --for that overlapping (sub-)section-- _not_ overlap for the perpendicular axis.
-        // Each section that _doesn't_ intersect another on the monotonic axis,
-        //   the earlier section has to have a lower starting point on that axis then the later one.
+        std::unordered_map<std::pair<Point, Point>, size_t> split_section_counts_per_split_line;
+
         size_t section_a_id = 0;
         for (const auto& section_a : sections)
         {
             ++section_a_id;
+
             size_t section_b_id = 0;
             for (const auto& section_b : sections)
             {
@@ -214,16 +226,13 @@ namespace cura
                 EXPECT_LE(mono_a, mono_b)
                     << "Section ordered before another, A's start point should be before B when ordered along the monotonic axis.";
 
-                // 'Neighbouring' lines should only overlap when projected to the perpendicular axis if they're from the same section.
-                // (This is technically not true in general,
-                //   but the gap would have to be small enough for the neighbouring lines to touch; this won't really happen in practice.)
                 // Already tested for A start < B start in the monotonic direction,
                 //   so assume A begins before B, so there is either no overlap, B lies 'witin' A, or B stops later than A.
                 auto it_a = section_a.begin();
                 for (auto it_b = section_b.begin(); it_b != section_b.end(); ++it_b)
                 {
                     const coord_t mono_b = projectPathAlongAxis(*it_b, monotonic_axis);
-                    for (; it_a != section_a.end() && projectPathAlongAxis(*it_a, monotonic_axis) <= mono_b; ++it_a) {}
+                    for (; it_a != section_a.end() && projectPathAlongAxis(*it_a, monotonic_axis) < mono_b; ++it_a) {}
                     const std::pair<coord_t, coord_t> perp_b_range
                     {
                         projectPathAlongAxis(*it_b, perpendicular_axis),
@@ -231,17 +240,36 @@ namespace cura
                     };
                     if (it_a == section_a.end())
                     {
+                        // A is wholly before B in the monotonic direction, test if A and B should indeed have been different sections:
                         if (it_b == section_b.begin())
                         {
-                            // A is wholly before B in the monotonic direction, should A and B have been merged?
                             it_a = std::prev(it_a); // end of section A
                             const std::pair<coord_t, coord_t> perp_a_range
                             {
                                 projectPathAlongAxis(*it_a, perpendicular_axis),
                                 projectEndAlongAxis(*it_a, perpendicular_axis)
                             };
-                            EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_a_range) && shortestDistance(*it_a, *it_b) < max_adjacent_distance)
-                                << "Sections A and B should have been one section, printed continuosly";
+                            if (rangeOverlaps(perp_b_range, perp_a_range) && shortestDistance(*it_a, *it_b) <= max_adjacent_distance)
+                            {
+                                // This is only wrong if there is no split, so no 3rd or more section that ends at the same line,
+                                //   so collect those lines.
+
+                                // Take the longer line:
+                                const std::pair<Point, Point> line = pathLength(*it_a) > pathLength(*it_b) ?
+                                    std::make_pair(startVertex(*it_a), endVertex(*it_a)) :
+                                    std::make_pair(startVertex(*it_b), endVertex(*it_b));
+
+                                // Collect the edges of the sections that split before that line:
+                                if (split_section_counts_per_split_line.count(line) == 0)
+                                {
+                                    split_section_counts_per_split_line[line] = 0;
+                                }
+                                ++split_section_counts_per_split_line[line];
+                            }
+                        }
+                        else
+                        {
+                            break;
                         }
                     }
                     else
@@ -257,6 +285,12 @@ namespace cura
                     }
                 }
             }
+        }
+
+        // If there is a line where a section ends, and only one other section begins, then they should've been 1 section to begin with:
+        for (const auto& line_count_pair : split_section_counts_per_split_line)
+        {
+            EXPECT_GE(line_count_pair.second, 2) << "A section was split up while it could have been printed monotonically.";
         }
     }
 
