@@ -25,14 +25,24 @@ namespace cura
     class PathOrderMonotonicTest : public testing::TestWithParam<std::tuple<std::string, AngleRadians>>
     {};
 
+    inline Point startVertex(const PathOrderMonotonic<ConstPolygonRef>::Path& path)
+    {
+        return path.vertices[path.start_vertex];
+    }
+
+    inline Point endVertex(const PathOrderMonotonic<ConstPolygonRef>::Path& path)
+    {
+        return path.vertices[path.vertices.size() - (1 + path.start_vertex)];
+    }
+
     coord_t projectPathAlongAxis(const PathOrderMonotonic<ConstPolygonRef>::Path& path, const Point& vector)
     {
-        return dot(path.vertices[path.start_vertex], vector);
+        return dot(startVertex(path), vector);
     }
 
     coord_t projectEndAlongAxis(const PathOrderMonotonic<ConstPolygonRef>::Path& path, const Point& vector)
     {
-        return dot(path.vertices[path.vertices.size() - (1 + path.start_vertex)], vector);
+        return dot(endVertex(path), vector);
     }
 
     bool rangeOverlaps(const std::pair<coord_t, coord_t>& range_b, const std::pair<coord_t, coord_t>& range_a)
@@ -44,21 +54,26 @@ namespace cura
         return len_total < (len_b + len_a);
     }
 
+    coord_t shortestDistance(const PathOrderMonotonic<ConstPolygonRef>::Path& path_a, const PathOrderMonotonic<ConstPolygonRef>::Path& path_b)
+    {
+        // NOTE: Assume these are more or less lines.
+        return std::numeric_limits<coord_t>::max();  // TODO!
+    }
+
+    constexpr EFillMethod pattern = EFillMethod::LINES;
+    constexpr bool zig_zagify = false;
+    constexpr bool connect_polygons = false;
+    constexpr coord_t line_distance = 350;
+    constexpr coord_t outline_offset = 0;
+    constexpr coord_t infill_line_width = 350;
+    constexpr coord_t infill_overlap = 0;
+    constexpr size_t infill_multiplier = 1;
+    constexpr coord_t z = 2;
+    constexpr coord_t shift = 0;
+    constexpr coord_t max_resolution = 10;
+    constexpr coord_t max_deviation = 5;
     bool getInfillLines(const std::string& filename, const AngleRadians& angle, Polygons& output)
     {
-        constexpr EFillMethod pattern = EFillMethod::LINES;
-        constexpr bool zig_zagify = false;
-        constexpr bool connect_polygons = false;
-        constexpr coord_t line_distance = 350;
-        constexpr coord_t outline_offset = 0;
-        constexpr coord_t infill_line_width = 350;
-        constexpr coord_t infill_overlap = 0;
-        constexpr size_t infill_multiplier = 1;
-        constexpr coord_t z = 2;
-        constexpr coord_t shift = 0;
-        constexpr coord_t max_resolution = 10;
-        constexpr coord_t max_deviation = 5;
-
         std::vector<Polygons> shapes;
         if (!readTestPolygons(filename, shapes))
         {
@@ -111,7 +126,8 @@ namespace cura
         {
             for (const auto& path : section)
             {
-                aabb.include(path.vertices[path.start_vertex]);
+                aabb.include(startVertex(path.vertices));
+                aabb.include(endVertex(path.vertices));
             }
         }
         aabb.include(Point{0, 0});
@@ -148,7 +164,8 @@ namespace cura
         const Point monotonic_axis{ std::cos(angle_from_first_line) * 1000, std::sin(angle_from_first_line) * 1000 };
         const Point perpendicular_axis{ turn90CCW(monotonic_axis) };
 
-        PathOrderMonotonic<ConstPolygonRef> object_under_test(angle_from_first_line, monotonic_axis * -1000);
+        constexpr coord_t max_adjacent_distance = line_distance + 1;
+        PathOrderMonotonic<ConstPolygonRef> object_under_test(angle_from_first_line, max_adjacent_distance, monotonic_axis * -1000);
         for (const auto& polyline : polylines)
         {
             object_under_test.addPolyline(polyline);
@@ -194,7 +211,7 @@ namespace cura
                 // Check if the start of A is lower than the start of B, since it is ordered first.
                 const coord_t mono_a{ projectPathAlongAxis(section_a.front(), monotonic_axis) };
                 const coord_t mono_b{ projectPathAlongAxis(section_b.front(), monotonic_axis) };
-                EXPECT_LE(mono_a, mono_b) 
+                EXPECT_LE(mono_a, mono_b)
                     << "Section ordered before another, A's start point should be before B when ordered along the monotonic axis.";
 
                 // 'Neighbouring' lines should only overlap when projected to the perpendicular axis if they're from the same section.
@@ -214,28 +231,29 @@ namespace cura
                     };
                     if (it_a == section_a.end())
                     {
-                        break;
-                    }
-
-                    // Compare current line in B against next neighbouring line in A:
-                    const std::pair<coord_t, coord_t> perp_a_range
-                    {
-                        projectPathAlongAxis(*it_a, perpendicular_axis),
-                        projectEndAlongAxis(*it_a, perpendicular_axis)
-                    };
-                    EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_a_range))
-                        << "Perpendicular range overlaps for neighbouring lines in different sections (next line of A / line in B).";
-
-                    // Compare current line in B against previous neighbouring line in A:
-                    if (it_a != section_a.begin() && it_b != section_b.begin())
-                    {
-                        const std::pair<coord_t, coord_t> perp_prev_a_range
+                        if (it_b == section_b.begin())
                         {
-                            projectPathAlongAxis(*std::prev(it_a), perpendicular_axis),
-                            projectEndAlongAxis(*std::prev(it_a), perpendicular_axis)
+                            // A is wholly before B in the monotonic direction, should A and B have been merged?
+                            it_a = std::prev(it_a); // end of section A
+                            const std::pair<coord_t, coord_t> perp_a_range
+                            {
+                                projectPathAlongAxis(*it_a, perpendicular_axis),
+                                projectEndAlongAxis(*it_a, perpendicular_axis)
+                            };
+                            EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_a_range) && shortestDistance(*it_a, *it_b) < max_adjacent_distance)
+                                << "Sections A and B should have been one section, printed continuosly";
+                        }
+                    }
+                    else
+                    {
+                        // A and B intersect in monotonic direction, check if they overlap in the perpendicular direction:
+                        const std::pair<coord_t, coord_t> perp_a_range
+                        {
+                            projectPathAlongAxis(*it_a, perpendicular_axis),
+                            projectEndAlongAxis(*it_a, perpendicular_axis)
                         };
-                        EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_prev_a_range))
-                            << "Perpendicular range overlaps for neighbouring lines in different sections (prev. line of A / line in B).";
+                        EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_a_range))
+                            << "Perpendicular range overlaps for neighbouring lines in different sections (next line of A / line in B).";
                     }
                 }
             }
@@ -250,10 +268,25 @@ namespace cura
         "../tests/resources/polygon_square_hole.txt",
         "../tests/resources/polygon_triangle.txt",
         "../tests/resources/polygon_two_squares.txt",
-        //"../tests/resources/polygon_slant_gap.txt",  // TODO!
-        //"../tests/resources/polygon_sawtooth.txt",   // TODO!
+        "../tests/resources/polygon_slant_gap.txt",
+        "../tests/resources/polygon_sawtooth.txt",
     };
-    const std::vector<AngleRadians> angle_radians = { 0, 0.01, 1.0, 0.5 * M_PI, M_PI, 1.5 * M_PI, 5.0, (2.0 * M_PI) - 0.01 };
+    const std::vector<AngleRadians> angle_radians =
+    {
+        0,
+        0.1,
+        0.25 * M_PI,
+        1.0,
+        0.5 * M_PI,
+        0.75 * M_PI,
+        M_PI,
+        1.25 * M_PI,
+        4.0,
+        1.5 * M_PI,
+        1.75 * M_PI,
+        5.0,
+        (2.0 * M_PI) - 0.1
+    };
 
     INSTANTIATE_TEST_CASE_P(PathOrderMonotonicTestInstantiation, PathOrderMonotonicTest,
         testing::Combine(testing::ValuesIn(polygon_filenames), testing::ValuesIn(angle_radians)));
