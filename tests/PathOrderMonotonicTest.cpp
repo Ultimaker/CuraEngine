@@ -304,6 +304,7 @@ namespace cura
         "../tests/resources/polygon_two_squares.txt",
         "../tests/resources/polygon_slant_gap.txt",
         "../tests/resources/polygon_sawtooth.txt",
+        "../tests/resources/polygon_letter_y.txt"
     };
     const std::vector<AngleRadians> angle_radians =
     {
