@@ -244,7 +244,7 @@ protected:
      */
     void optimizeClosestStartPoint(Path& path, Point& current_pos)
     {
-        if(path.start_vertex != path.converted->size())
+        if(path.start_vertex == path.converted->size())
         {
             const coord_t dist_start = vSize2(current_pos - path.converted->front());
             const coord_t dist_end = vSize2(current_pos - path.converted->back());
