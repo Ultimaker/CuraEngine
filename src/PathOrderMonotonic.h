@@ -285,14 +285,18 @@ protected:
         result.push_back(polyline);
         Point first_endpoint = polyline->converted->front();
         Point last_endpoint = polyline->converted->back();
-        std::vector<Path*> lines_before = line_bucket_grid.getNearbyVals(first_endpoint, COINCIDENT_POINT_DISTANCE);
-        lines_before.erase(std::remove(lines_before.begin(), lines_before.end(), polyline), lines_before.end()); //Don't find yourself.
-        std::vector<Path*> lines_after = line_bucket_grid.getNearbyVals(last_endpoint, COINCIDENT_POINT_DISTANCE);
-        lines_after.erase(std::remove(lines_after.begin(), lines_after.end(), polyline), lines_after.end());
+        std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, COINCIDENT_POINT_DISTANCE);
+        auto close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint, polyline](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+            return found_path.val != polyline && vSize2(found_path.point - first_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //Don't find yourself. And only find close lines.
+        });
+        std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, COINCIDENT_POINT_DISTANCE);
+        auto close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint, polyline](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+            return found_path.val != polyline && vSize2(found_path.point - last_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //Don't find yourself. And only find close lines.
+        });
 
-        while(!lines_before.empty())
+        while(close_line_before != lines_before.end())
         {
-            Path* first = lines_before.front();
+            Path* first = close_line_before->val;
             if(std::find(result.begin(), result.end(), first) != result.end()) //Did we get into a loop?
             {
                 break; //Stop on the last one before we looped!
@@ -302,12 +306,14 @@ protected:
             first->start_vertex = farthest_vertex;
             first->backwards = farthest_vertex != 0;
             first_endpoint = (*first->converted)[farthest_vertex];
-            lines_before = line_bucket_grid.getNearbyVals(first_endpoint, COINCIDENT_POINT_DISTANCE);
-            lines_before.erase(std::remove(lines_before.begin(), lines_before.end(), first), lines_before.end()); //Don't find yourself.
+            lines_before = line_bucket_grid.getNearby(first_endpoint, COINCIDENT_POINT_DISTANCE);
+            close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint, polyline](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+                return found_path.val != polyline && vSize2(found_path.point - first_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //Don't find yourself. And only find close lines.
+            });
         }
-        while(!lines_after.empty())
+        while(close_line_after != lines_after.end())
         {
-            Path* last = lines_after.front();
+            Path* last = close_line_after->val;
             if(std::find(result.begin(), result.end(), last) != result.end()) //Did we get into a loop?
             {
                 break; //Stop on the last one before we looped!
@@ -317,8 +323,10 @@ protected:
             last->start_vertex = (farthest_vertex == 0) ? last->converted->size() - 1 : 0;
             last->backwards = (farthest_vertex != 0);
             last_endpoint = (*last->converted)[farthest_vertex];
-            lines_after = line_bucket_grid.getNearbyVals(last_endpoint, COINCIDENT_POINT_DISTANCE);
-            lines_after.erase(std::remove(lines_after.begin(), lines_after.end(), last), lines_after.end()); //Don't find yourself.
+            lines_after = line_bucket_grid.getNearby(last_endpoint, COINCIDENT_POINT_DISTANCE);
+            close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint, polyline](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+                return found_path.val != polyline && vSize2(found_path.point - last_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //Don't find yourself. And only find close lines.
+            });
         }
 
         //Figure out which of the two endpoints to start with: The one monotonically earliest.
