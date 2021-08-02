@@ -160,10 +160,17 @@ public:
             else if(overlapping_lines.size() == 1) //If we're not a string of polylines, but adjacent to only one other polyline, create a sequence of polylines.
             {
                 connections[*polyline_it] = overlapping_lines[0];
-                connected_lines.insert(overlapping_lines[0]);
-                if(connected_lines.find(*polyline_it) == connected_lines.end()) //This line was not connected to yet.
+                if(connected_lines.find(*polyline_it) == connected_lines.end()) //Nothing connects to this line yet.
                 {
-                    starting_lines.insert(*polyline_it); //Must be a starting point then (since all possibly connected lines before it are already processed).
+                    starting_lines.insert(*polyline_it); //This is a starting point then.
+                }
+                if(connected_lines.find(overlapping_lines[0]) != connected_lines.end()) //This line was already connected to.
+                {
+                    starting_lines.insert(overlapping_lines[0]); //Multiple lines connect to it, so we must be able to start there.
+                }
+                else
+                {
+                    connected_lines.insert(overlapping_lines[0]);
                 }
             }
             else //Either 0 (the for loop terminates immediately) or multiple overlapping lines. For multiple lines we need to mark all of them a starting position.
