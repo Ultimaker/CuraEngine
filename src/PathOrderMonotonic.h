@@ -298,12 +298,14 @@ protected:
         Point first_endpoint = polyline->converted->front();
         Point last_endpoint = polyline->converted->back();
         std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, COINCIDENT_POINT_DISTANCE);
-        auto close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint, polyline](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
-            return found_path.val != polyline && vSize2(found_path.point - first_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //Don't find yourself. And only find close lines.
+        auto close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+            return std::find(result.begin(), result.end(), found_path.val) == result.end() //Don't find any line already in the string.
+                   && vSize2(found_path.point - first_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //And only find close lines.
         });
         std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, COINCIDENT_POINT_DISTANCE);
-        auto close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint, polyline](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
-            return found_path.val != polyline && vSize2(found_path.point - last_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //Don't find yourself. And only find close lines.
+        auto close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+            return std::find(result.begin(), result.end(), found_path.val) == result.end() //Don't find any line already in the string.
+                   && vSize2(found_path.point - last_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //And only find close lines.
         });
 
         while(close_line_before != lines_before.end())
