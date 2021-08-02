@@ -191,13 +191,15 @@ public:
         std::partial_sort_copy(starting_lines.begin(), starting_lines.end(), starting_lines_monotonic.begin(), starting_lines_monotonic.end(), [this](Path* a, Path* b) {
             const coord_t a_start_projection = dot(a->converted->front(), monotonic_vector);
             const coord_t a_end_projection = dot(a->converted->back(), monotonic_vector);
-            const coord_t a_projection = std::min(a_start_projection, a_end_projection); //The projection of a path is the endpoint furthest back of the two endpoints.
+            const coord_t a_projection_min = std::min(a_start_projection, a_end_projection); //The projection of a path is the endpoint furthest back of the two endpoints.
+            const coord_t a_projection_max = std::max(a_start_projection, a_end_projection); //But in case of ties, the other endpoint counts too. Important for polylines where multiple endpoints have the same position!
 
             const coord_t b_start_projection = dot(b->converted->front(), monotonic_vector);
             const coord_t b_end_projection = dot(b->converted->back(), monotonic_vector);
-            const coord_t b_projection = std::min(b_start_projection, b_end_projection);
+            const coord_t b_projection_min = std::min(b_start_projection, b_end_projection);
+            const coord_t b_projection_max = std::max(b_start_projection, b_end_projection);
 
-            return a_projection < b_projection;
+            return a_projection_min < b_projection_min || (a_projection_min == b_projection_min && a_projection_max < b_projection_max);
         });
 
         //Now that we have the segments of overlapping lines, and know in which order to print the segments, print segments in monotonic order.
