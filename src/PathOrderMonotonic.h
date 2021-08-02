@@ -151,7 +151,7 @@ public:
                         if(std::find(polystring.begin(), polystring.end(), overlapping_line) == polystring.end()) //Mark all overlapping lines not part of the string as possible starting points.
                         {
                             starting_lines.insert(overlapping_line);
-                            //starting_lines.insert(polystring[i + 1]); //Also be able to re-start from this point in the string.
+                            starting_lines.insert(polystring[i + 1]); //Also be able to re-start from this point in the string.
                         }
                     }
                 }
