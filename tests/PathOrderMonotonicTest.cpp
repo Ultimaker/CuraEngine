@@ -174,7 +174,7 @@ namespace cura
         const Point& pt_r = polylines.begin()->at(0);
         const Point& pt_s = polylines.begin()->at(1);
         const double angle_from_first_line = std::atan2(pt_s.Y - pt_r.Y, pt_s.X - pt_r.X) + 0.5 * M_PI;
-        const Point monotonic_axis{ std::cos(angle_from_first_line) * 1000, std::sin(angle_from_first_line) * 1000 };
+        const Point monotonic_axis(std::cos(angle_from_first_line) * 1000, std::sin(angle_from_first_line) * 1000);
         const Point perpendicular_axis{ turn90CCW(monotonic_axis) };
 
         constexpr coord_t max_adjacent_distance = line_distance + 1;
