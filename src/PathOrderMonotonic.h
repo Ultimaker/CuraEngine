@@ -312,7 +312,7 @@ protected:
         {
             Path* first = close_line_before->val;
             result.push_front(first); //Store this one in the sequence. It's a good one.
-            size_t farthest_vertex = getFarthestEndpoint(first, first_endpoint); //Get to the opposite side.
+            size_t farthest_vertex = getFarthestEndpoint(first, close_line_before->point); //Get to the opposite side.
             first->start_vertex = farthest_vertex;
             first->backwards = farthest_vertex != 0;
             first_endpoint = (*first->converted)[farthest_vertex];
@@ -326,7 +326,7 @@ protected:
         {
             Path* last = close_line_after->val;
             result.push_back(last);
-            size_t farthest_vertex = getFarthestEndpoint(last, last_endpoint); //Get to the opposite side.
+            size_t farthest_vertex = getFarthestEndpoint(last, close_line_after->point); //Get to the opposite side.
             last->start_vertex = (farthest_vertex == 0) ? last->converted->size() - 1 : 0;
             last->backwards = (farthest_vertex != 0);
             last_endpoint = (*last->converted)[farthest_vertex];
