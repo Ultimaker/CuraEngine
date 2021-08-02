@@ -130,6 +130,10 @@ public:
 
         for(auto polyline_it = polylines.begin(); polyline_it != polylines.end(); polyline_it++)
         {
+            if(connections.find(*polyline_it) != connections.end()) //Already connected this one through a polyline.
+            {
+                continue;
+            }
             //First find out if this polyline is part of a string of polylines.
             std::deque<Path*> polystring = findPolylineString(*polyline_it, line_bucket_grid, monotonic_vector);
             std::vector<Path*> overlapping_lines = getOverlappingLines(polyline_it, perpendicular, polylines);
