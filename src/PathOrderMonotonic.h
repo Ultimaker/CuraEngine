@@ -390,7 +390,8 @@ protected:
         //How far this extends in the monotonic direction, to make sure we only go up to max_adjacent_distance in that direction.
         const coord_t start_projection = dot((*polyline_it)->converted->front(), monotonic_vector);
         const coord_t end_projection = dot((*polyline_it)->converted->back(), monotonic_vector);
-        const coord_t farthest_projection = std::max(start_projection, end_projection);
+        const coord_t my_farthest_projection = std::max(start_projection, end_projection);
+        const coord_t my_closest_projection = std::min(start_projection, end_projection);
         //How far this line reaches in the perpendicular direction -- the range at which the line overlaps other lines.
         coord_t my_start = dot((*polyline_it)->converted->front(), perpendicular);
         coord_t my_end = dot((*polyline_it)->converted->back(), perpendicular);
@@ -405,8 +406,10 @@ protected:
             //Don't go beyond the maximum adjacent distance.
             const coord_t start_their_projection = dot((*overlapping_line)->converted->front(), monotonic_vector);
             const coord_t end_their_projection = dot((*overlapping_line)->converted->back(), monotonic_vector);
-            const coord_t closest_projection = std::min(start_their_projection, end_their_projection);
-            if(closest_projection - farthest_projection > max_adjacent_distance * 1000)  //Distances are multiplied by 1000 since monotonic_vector is not a unit vector, but a vector of length 1000.
+            const coord_t their_farthest_projection = std::max(start_their_projection, end_their_projection);
+            const coord_t their_closest_projection = std::min(start_their_projection, end_their_projection);
+            if(their_closest_projection - my_farthest_projection > max_adjacent_distance * 1000
+                    || my_closest_projection - their_farthest_projection > max_adjacent_distance * 1000)  //Distances are multiplied by 1000 since monotonic_vector is not a unit vector, but a vector of length 1000.
             {
                 break; //Too far. This line and all subsequent lines are not adjacent any more, even though they might be side-by-side.
             }
@@ -424,8 +427,8 @@ protected:
             - We are a smaller line, they completely overlap us. Both my_start and my_end are between their_start and their_end. (Caught with the first 2 conditions already.)
             - We are a bigger line, and completely overlap them. Both their_start and their_end are between my_start and my_end.
             - Lines are exactly equal. Start and end are the same. (Caught with the previous condition too.)*/
-            if(    (my_start > their_start && my_start < their_end)
-                || (my_end > their_start   && my_end < their_end)
+            if(    (my_start >= their_start && my_start <= their_end)
+                || (my_end >= their_start   && my_end <= their_end)
                 || (their_start >= my_start && their_end <= my_end))
             {
                 overlapping_lines.push_back(*overlapping_line);
