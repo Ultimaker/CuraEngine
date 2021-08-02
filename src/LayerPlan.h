@@ -551,8 +551,6 @@ public:
      */
     void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig& config, WallOverlapComputation* wall_overlap_computation = nullptr, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, bool spiralize = false, const Ratio flow_ratio = 1.0_r, bool always_retract = false, bool reverse_order = false, const std::optional<Point> start_near_location = std::optional<Point>());
 
-    void addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0_r, const double fan_speed = 100.0);
-
     /*!
      * Add a single line that is part of a wall to the gcode.
      * \param p0 The start vertex of the line
@@ -608,6 +606,25 @@ public:
      * \param fan_speed optional fan speed override for this path
      */
     void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization = false, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>(), double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+
+    /*!
+     * Add polygons to the g-code with monotonic order.
+     * \param polygons The lines to add.
+     * \param config The settings to print those lines with.
+     * \param space_fill_type The type of space filling used to generate the
+     * line segments (should be either Lines or PolyLines!)
+     * \param monotonic_direction The directions in which to sort the lines
+     * monotonically.
+     * \param max_adjacent_distance With a monotonic order, adjacent lines must
+     * be printed in a certain direction. Lines that are not adjacent may be
+     * printed in any order. This limit is the longest distance at which two
+     * lines are still considered to be adjacent.
+     * \param wipe_dist The distance wiped without extruding after laying down a
+     * line.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount.
+     * \param fan_speed Fan speed override for this path.
+     */
+    void addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0_r, const double fan_speed = 100.0);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
