@@ -136,48 +136,51 @@ public:
             }
             //First find out if this polyline is part of a string of polylines.
             std::deque<Path*> polystring = findPolylineString(*polyline_it, line_bucket_grid, monotonic_vector);
-            std::vector<Path*> overlapping_lines = getOverlappingLines(polyline_it, perpendicular, polylines);
 
             //If we're part of a string of polylines, connect up the whole string and mark all of them as being connected.
             if(polystring.size() > 1)
             {
                 starting_lines.insert(polystring[0]);
-                connected_lines.insert(polystring[0]);
                 for(size_t i = 0; i < polystring.size() - 1; ++i) //Iterate over every pair of adjacent polylines in the string (so skip the last one)!
                 {
                     connections[polystring[i]] = polystring[i + 1];
                     connected_lines.insert(polystring[i + 1]);
-                    for(Path* overlapping_line : getOverlappingLines(std::find(polyline_it, polylines.end(), polystring[i]), perpendicular, polylines)) //Last one is done in the else case below.
+                    const std::vector<Path*> overlapping_lines = getOverlappingLines(std::find(polylines.begin(), polylines.end(), polystring[i]), perpendicular, polylines);
+                    for(Path* overlapping_line : overlapping_lines) //Last one is done in the else case below.
                     {
                         if(std::find(polystring.begin(), polystring.end(), overlapping_line) == polystring.end()) //Mark all overlapping lines not part of the string as possible starting points.
                         {
                             starting_lines.insert(overlapping_line);
-                            starting_lines.insert(polystring[i + 1]); //Also be able to re-start from this point in the string.
+                            //starting_lines.insert(polystring[i + 1]); //Also be able to re-start from this point in the string.
                         }
                     }
                 }
             }
-            else if(overlapping_lines.size() == 1) //If we're not a string of polylines, but adjacent to only one other polyline, create a sequence of polylines.
+            else
             {
-                connections[*polyline_it] = overlapping_lines[0];
-                if(connected_lines.find(*polyline_it) == connected_lines.end()) //Nothing connects to this line yet.
+                const std::vector<Path*> overlapping_lines = getOverlappingLines(polyline_it, perpendicular, polylines);
+                if(overlapping_lines.size() == 1) //If we're not a string of polylines, but adjacent to only one other polyline, create a sequence of polylines.
                 {
-                    starting_lines.insert(*polyline_it); //This is a starting point then.
+                    connections[*polyline_it] = overlapping_lines[0];
+                    if(connected_lines.find(*polyline_it) == connected_lines.end()) //Nothing connects to this line yet.
+                    {
+                        starting_lines.insert(*polyline_it); //This is a starting point then.
+                    }
+                    if(connected_lines.find(overlapping_lines[0]) != connected_lines.end()) //This line was already connected to.
+                    {
+                        starting_lines.insert(overlapping_lines[0]); //Multiple lines connect to it, so we must be able to start there.
+                    }
+                    else
+                    {
+                        connected_lines.insert(overlapping_lines[0]);
+                    }
                 }
-                if(connected_lines.find(overlapping_lines[0]) != connected_lines.end()) //This line was already connected to.
+                else //Either 0 (the for loop terminates immediately) or multiple overlapping lines. For multiple lines we need to mark all of them a starting position.
                 {
-                    starting_lines.insert(overlapping_lines[0]); //Multiple lines connect to it, so we must be able to start there.
-                }
-                else
-                {
-                    connected_lines.insert(overlapping_lines[0]);
-                }
-            }
-            else //Either 0 (the for loop terminates immediately) or multiple overlapping lines. For multiple lines we need to mark all of them a starting position.
-            {
-                for(Path* overlapping_line : overlapping_lines)
-                {
-                    starting_lines.insert(overlapping_line);
+                    for(Path* overlapping_line : overlapping_lines)
+                    {
+                        starting_lines.insert(overlapping_line);
+                    }
                 }
             }
         }
@@ -304,35 +307,29 @@ protected:
         while(close_line_before != lines_before.end())
         {
             Path* first = close_line_before->val;
-            if(std::find(result.begin(), result.end(), first) != result.end()) //Did we get into a loop?
-            {
-                break; //Stop on the last one before we looped!
-            }
             result.push_front(first); //Store this one in the sequence. It's a good one.
             size_t farthest_vertex = getFarthestEndpoint(first, first_endpoint); //Get to the opposite side.
             first->start_vertex = farthest_vertex;
             first->backwards = farthest_vertex != 0;
             first_endpoint = (*first->converted)[farthest_vertex];
             lines_before = line_bucket_grid.getNearby(first_endpoint, COINCIDENT_POINT_DISTANCE);
-            close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint, polyline](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
-                return found_path.val != polyline && vSize2(found_path.point - first_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //Don't find yourself. And only find close lines.
+            close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+                return std::find(result.begin(), result.end(), found_path.val) == result.end() //Don't find any line already in the string.
+                       && vSize2(found_path.point - first_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //And only find close lines.
             });
         }
         while(close_line_after != lines_after.end())
         {
             Path* last = close_line_after->val;
-            if(std::find(result.begin(), result.end(), last) != result.end()) //Did we get into a loop?
-            {
-                break; //Stop on the last one before we looped!
-            }
             result.push_back(last);
             size_t farthest_vertex = getFarthestEndpoint(last, last_endpoint); //Get to the opposite side.
             last->start_vertex = (farthest_vertex == 0) ? last->converted->size() - 1 : 0;
             last->backwards = (farthest_vertex != 0);
             last_endpoint = (*last->converted)[farthest_vertex];
             lines_after = line_bucket_grid.getNearby(last_endpoint, COINCIDENT_POINT_DISTANCE);
-            close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint, polyline](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
-                return found_path.val != polyline && vSize2(found_path.point - last_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //Don't find yourself. And only find close lines.
+            close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+                return std::find(result.begin(), result.end(), found_path.val) == result.end() //Don't find any line already in the string.
+                       && vSize2(found_path.point - last_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //And only find close lines.
             });
         }
 
