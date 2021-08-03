@@ -401,12 +401,15 @@ public:
 
     /*!
      * Runs the test, adding a travel move to the layer plan with the specified input.
-     * \param unretract_before_last_travel_move Whether to unretract before the last travel move of the travel path
+     * \param unretract_before_last_travel_move Whether to unretract before the last travel move of the travel path,
+     * which comes before the wall to be printed. This should be true when we are adding outer walls to make sure
+     * that the unretraction will happen before the last travel move BEFORE going to that wall. This way, the nozzle
+     * doesn't sit still on top of the outer wall's path while it is unretracting, avoiding possible blips.
      * \return The resulting g-code path.
      */
     GCodePath run(bool unretract_before_last_travel_move)
     {
-        const Point destination(500000, 500000);
+        const Point destination(500000, 500000); // Add a long travel move
         // Make sure that retractions are enabled. The cases with no prior retractions are already covered by the
         // parametrized test run and the NoUnretractBeforeLastTravelMoveIfNoPriorRetraction
         // test case, so no need to test them again.
