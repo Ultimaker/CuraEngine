@@ -738,7 +738,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const EFillMethod& support_pattern = infill_extruder.settings.get<EFillMethod>("support_pattern");
-    if (support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
+    if((support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D) && infill_extruder.settings.get<coord_t>("support_line_distance") > 0)
     {
         AABB3D aabb;
         for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
