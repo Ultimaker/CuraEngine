@@ -13,7 +13,7 @@
 #include "../src/utils/polygon.h"
 #include "ReadTestPolygons.h"
 
-//#define TEST_PATHS_SVG_OUTPUT
+#define TEST_PATHS_SVG_OUTPUT
 #ifdef TEST_PATHS_SVG_OUTPUT
 #include <cstdlib>
 #include "../src/utils/SVG.h"
@@ -218,12 +218,6 @@ namespace cura
                     continue; // <-- So section B will always be 'later' than section A.
                 }
 
-                // Check if the start of A is lower than the start of B, since it is ordered first.
-                const coord_t mono_a{ projectPathAlongAxis(section_a.front(), monotonic_axis) };
-                const coord_t mono_b{ projectPathAlongAxis(section_b.front(), monotonic_axis) };
-                EXPECT_LE(mono_a, mono_b)
-                    << "Section ordered before another, A's start point should be before B when ordered along the monotonic axis.";
-
                 // Already tested for A start < B start in the monotonic direction,
                 //   so assume A begins before B, so there is either no overlap, B lies 'witin' A, or B stops later than A.
                 auto it_a = section_a.begin();
@@ -244,8 +238,13 @@ namespace cura
                             projectPathAlongAxis(*it_a, perpendicular_axis),
                             projectEndAlongAxis(*it_a, perpendicular_axis)
                         };
-                        EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_a_range))
-                            << "Perpendicular range overlaps for neighboring lines in different sections (next line of A / line in B).";
+                        const coord_t mono_a = projectPathAlongAxis(*it_a, monotonic_axis);
+                        const coord_t mono_b = projectPathAlongAxis(*it_b, monotonic_axis);
+                        if(mono_a < mono_b)
+                        {
+                            EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_a_range))
+                                << "Perpendicular range overlaps for neighboring lines in different sections (next line of A / line in B).";
+                        }
                     }
                 }
             }
