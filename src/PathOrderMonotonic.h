@@ -440,7 +440,7 @@ protected:
             }
         }
 
-        return overlapping_lines; //Uses RVO!
+        return overlapping_lines;
     }
 };
 

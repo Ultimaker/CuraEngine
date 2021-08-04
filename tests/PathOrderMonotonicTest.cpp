@@ -219,8 +219,6 @@ namespace cura
                     continue; // <-- So section B will always be 'later' than section A.
                 }
 
-                // Already tested for A start < B start in the monotonic direction,
-                //   so assume A begins before B, so there is either no overlap, B lies 'witin' A, or B stops later than A.
                 auto it_a = section_a.begin();
                 for (auto it_b = section_b.begin(); it_b != section_b.end(); ++it_b)
                 {
