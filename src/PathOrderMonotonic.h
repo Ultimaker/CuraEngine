@@ -44,7 +44,7 @@ public:
     using PathOrder<PathType>::coincident_point_distance;
 
     PathOrderMonotonic(const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const Point start_point)
-    : monotonic_vector(std::cos(monotonic_direction) * 1000, std::sin(monotonic_direction) * 1000)
+    : monotonic_vector(std::cos(monotonic_direction) * monotonic_vector_resolution, std::sin(monotonic_direction) * monotonic_vector_resolution)
     , max_adjacent_distance(max_adjacent_distance)
     {
         this->start_point = start_point;
@@ -222,7 +222,7 @@ public:
 protected:
     /*!
      * The direction in which to print montonically, encoded as vector of length
-     * 1000.
+     * ``monotonic_vector_resolution``.
      *
      * The resulting ordering will cause clusters of paths to be sorted
      * according to their projection on this vector.
@@ -411,8 +411,8 @@ protected:
             const coord_t end_their_projection = dot((*overlapping_line)->converted->back(), monotonic_vector);
             const coord_t their_farthest_projection = std::max(start_their_projection, end_their_projection);
             const coord_t their_closest_projection = std::min(start_their_projection, end_their_projection);
-            if(their_closest_projection - my_farthest_projection > max_adjacent_distance * 1000
-                    || my_closest_projection - their_farthest_projection > max_adjacent_distance * 1000)  //Distances are multiplied by 1000 since monotonic_vector is not a unit vector, but a vector of length 1000.
+            if(their_closest_projection - my_farthest_projection > max_adjacent_distance * monotonic_vector_resolution
+                    || my_closest_projection - their_farthest_projection > max_adjacent_distance * monotonic_vector_resolution) //Multiply by the length of the vector since we need to compare actual distances here.
             {
                 break; //Too far. This line and all subsequent lines are not adjacent any more, even though they might be side-by-side.
             }
@@ -440,6 +440,17 @@ protected:
 
         return overlapping_lines;
     }
+
+    protected:
+    /*!
+     * Length of the monotonic vector, as stored.
+     *
+     * This needs to be long enough to eliminate rounding errors caused by
+     * rounding the coordinates of the vector to integer coordinates for the
+     * ``coord_t`` data type, but not so long as to cause integer overflows if
+     * the quadratic is multiplied by a projection length.
+     */
+    constexpr static coord_t monotonic_vector_resolution = 1000;
 };
 
 }
