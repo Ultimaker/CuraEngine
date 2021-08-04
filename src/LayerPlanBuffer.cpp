@@ -95,7 +95,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
     {
         const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
         const Settings& prev_extruder_settings = Application::getInstance().current_slice->scene.extruders[prev_layer->extruder_plans.back().extruder_nr].settings;
-        const Settings& next_extruder_settings = Application::getInstance().current_slice->scene.extruders[newest_layer->extruder_plans.back().extruder_nr].settings;
+        const Settings& next_extruder_settings = Application::getInstance().current_slice->scene.extruders[newest_layer->extruder_plans.front().extruder_nr].settings;
         prev_layer->setIsInside(new_layer_destination_state->second);
         const bool force_retract = prev_extruder_settings.get<bool>("retract_at_layer_change") ||
                                    (mesh_group_settings.get<bool>("travel_retract_before_outer_wall") &&
