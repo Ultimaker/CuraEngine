@@ -13,7 +13,8 @@
 #include "../src/utils/polygon.h"
 #include "ReadTestPolygons.h"
 
-#define TEST_PATHS_SVG_OUTPUT
+//To diagnose failing tests with visual images, uncomment the following line:
+//#define TEST_PATHS_SVG_OUTPUT
 #ifdef TEST_PATHS_SVG_OUTPUT
 #include <cstdlib>
 #include "../src/utils/SVG.h"
