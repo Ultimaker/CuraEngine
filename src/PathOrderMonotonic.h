@@ -143,8 +143,13 @@ public:
                 {
                     connections[polystring[i]] = polystring[i + 1];
                     connected_lines.insert(polystring[i + 1]);
+
+                    //Even though we chain polylines, we still want to find lines that they overlap with.
+                    //The strings of polylines may still have weird shapes which interweave with other strings of polylines or loose lines.
+                    //So when a polyline string comes into contact with other lines, we still want to guarantee their order.
+                    //So here we will look for which lines they come into contact with, and thus mark those as possible starting points, so that they function as a new junction.
                     const std::vector<Path*> overlapping_lines = getOverlappingLines(std::find(polylines.begin(), polylines.end(), polystring[i]), perpendicular, polylines);
-                    for(Path* overlapping_line : overlapping_lines) //Last one is done in the else case below.
+                    for(Path* overlapping_line : overlapping_lines)
                     {
                         if(std::find(polystring.begin(), polystring.end(), overlapping_line) == polystring.end()) //Mark all overlapping lines not part of the string as possible starting points.
                         {
@@ -154,7 +159,7 @@ public:
                     }
                 }
             }
-            else
+            else //Not a string of polylines, but simply adjacent line segments.
             {
                 const std::vector<Path*> overlapping_lines = getOverlappingLines(polyline_it, perpendicular, polylines);
                 if(overlapping_lines.size() == 1) //If we're not a string of polylines, but adjacent to only one other polyline, create a sequence of polylines.
