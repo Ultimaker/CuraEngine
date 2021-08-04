@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // std::ceil
@@ -9,7 +9,7 @@
 #include "skin.h"
 #include "sliceDataStorage.h"
 #include "settings/EnumSettings.h" //For EFillMethod.
-#include "settings/types/AngleRadians.h" //For the infill support angle.
+#include "settings/types/Angle.h" //For the infill support angle.
 #include "settings/types/Ratio.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"

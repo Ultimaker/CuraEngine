@@ -2297,7 +2297,8 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage, LayerPlan& 
     const Ratio skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
     Polygons* perimeter_gaps_output = (fill_perimeter_gaps) ? &concentric_perimeter_gaps : nullptr;
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something);
+    const bool monotonic = mesh.settings.get<bool>("roofing_monotonic");
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, skin_density, monotonic, perimeter_gaps_output, added_something);
 }
 
 void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, Polygons& concentric_perimeter_gaps, bool& added_something) const
@@ -2465,10 +2466,11 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     // calculate polygons and lines
     Polygons* perimeter_gaps_output = (generate_perimeter_gaps) ? &concentric_perimeter_gaps : nullptr;
 
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, perimeter_gaps_output, added_something, fan_speed);
+    const bool monotonic = mesh.settings.get<bool>("skin_monotonic");
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, skin_part.inner_infill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, monotonic, perimeter_gaps_output, added_something, fan_speed);
 }
 
-void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed) const
+void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, const bool monotonic, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed) const
 {
     Polygons skin_polygons;
     Polygons skin_lines;
@@ -2509,26 +2511,45 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
             gcode_layer.addPolygonsByOptimizer(skin_polygons, config);
         }
 
-        std::optional<Point> near_start_location;
-        const EFillMethod pattern = (gcode_layer.getLayerNr() == 0) ?
-            mesh.settings.get<EFillMethod>("top_bottom_pattern_0") :
-            mesh.settings.get<EFillMethod>("top_bottom_pattern");
-        if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
-        { // update near_start_location to a location which tries to avoid seams in skin
-            near_start_location = getSeamAvoidingLocation(area, skin_angle, gcode_layer.getLastPlannedPositionOrStartingPosition());
-        }
-
-        constexpr bool enable_travel_optimization = false;
-        constexpr float flow = 1.0;
-        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+        if(monotonic)
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, enable_travel_optimization, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, near_start_location, fan_speed);
+            const AngleRadians monotonic_direction = AngleRadians(skin_angle + 90);
+            constexpr Ratio flow = 1.0_r;
+            const coord_t max_adjacent_distance = config.getLineWidth() * 1.1; //Lines are considered adjacent if they are 1 line width apart, with 10% extra play. The monotonic order is enforced if they are adjacent.
+            if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+            {
+                gcode_layer.addLinesMonotonic(skin_lines, config, SpaceFillType::Lines, monotonic_direction, max_adjacent_distance, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, fan_speed);
+            }
+            else
+            {
+                const SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+                constexpr coord_t wipe_dist = 0;
+                gcode_layer.addLinesMonotonic(skin_lines, config, space_fill_type, monotonic_direction, max_adjacent_distance, wipe_dist, flow, fan_speed);
+            }
         }
         else
         {
-            SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
-            constexpr coord_t wipe_dist = 0;
-            gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location, fan_speed);
+            std::optional<Point> near_start_location;
+            const EFillMethod pattern = (gcode_layer.getLayerNr() == 0) ?
+                mesh.settings.get<EFillMethod>("top_bottom_pattern_0") :
+                mesh.settings.get<EFillMethod>("top_bottom_pattern");
+            if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
+            { // update near_start_location to a location which tries to avoid seams in skin
+                near_start_location = getSeamAvoidingLocation(area, skin_angle, gcode_layer.getLastPlannedPositionOrStartingPosition());
+            }
+
+            constexpr bool enable_travel_optimization = false;
+            constexpr float flow = 1.0;
+            if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+            {
+                gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, enable_travel_optimization, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, near_start_location, fan_speed);
+            }
+            else
+            {
+                SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+                constexpr coord_t wipe_dist = 0;
+                gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location, fan_speed);
+            }
         }
     }
 }

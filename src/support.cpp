@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt, round
@@ -21,7 +21,7 @@
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h" //For EFillMethod.
-#include "settings/types/AngleRadians.h" //To compute overhang distance from the angle.
+#include "settings/types/Angle.h" //To compute overhang distance from the angle.
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
 #include "utils/math.h"

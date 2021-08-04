@@ -17,7 +17,7 @@
 #include <initializer_list>
 
 #include "IntPoint.h"
-#include "../settings/types/AngleDegrees.h" //For angles between vertices.
+#include "../settings/types/Angle.h" //For angles between vertices.
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -379,6 +379,11 @@ public:
     {
         POLY_ASSERT(index < size());
         return (*path)[index];
+    }
+
+    const Point& operator[] (const unsigned int& index) const
+    {
+        return path->at(index);
     }
 
     ClipperLib::Path::iterator begin()

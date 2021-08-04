@@ -39,7 +39,7 @@
 #include "progress/ProgressEstimatorLinear.h"
 #include "progress/ProgressStageEstimator.h"
 #include "settings/AdaptiveLayerHeights.h"
-#include "settings/types/AngleRadians.h"
+#include "settings/types/Angle.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/algorithm.h"
 #include "utils/gettime.h"
