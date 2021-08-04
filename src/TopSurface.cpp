@@ -128,7 +128,8 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         }
         else
         {
-            layer.addLinesMonotonic(ironing_lines, line_config, SpaceFillType::PolyLines, (direction + 90) / 180.0 * M_PI, line_spacing * 1.1);
+            const coord_t max_adjacent_distance = line_spacing * 1.1; //Lines are considered adjacent - meaning they need to be printed in monotonic order - if spaced 1 line apart, with 10% extra play.
+            layer.addLinesMonotonic(ironing_lines, line_config, SpaceFillType::PolyLines, (direction + 90) / 180.0 * M_PI, max_adjacent_distance);
         }
         added = true;
     }

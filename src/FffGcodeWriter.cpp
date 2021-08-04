@@ -2515,15 +2515,16 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         {
             const AngleRadians monotonic_direction = (skin_angle + 90) / 180.0 * M_PI;
             constexpr Ratio flow = 1.0_r;
+            const coord_t max_adjacent_distance = config.getLineWidth() * 1.1; //Lines are considered adjacent if they are 1 line width apart, with 10% extra play. The monotonic order is enforced if they are adjacent.
             if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
             {
-                gcode_layer.addLinesMonotonic(skin_lines, config, SpaceFillType::Lines, monotonic_direction, config.getLineWidth() * 1.1, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, fan_speed);
+                gcode_layer.addLinesMonotonic(skin_lines, config, SpaceFillType::Lines, monotonic_direction, max_adjacent_distance, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, fan_speed);
             }
             else
             {
                 const SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
                 constexpr coord_t wipe_dist = 0;
-                gcode_layer.addLinesMonotonic(skin_lines, config, space_fill_type, monotonic_direction, config.getLineWidth() * 1.1, wipe_dist, flow, fan_speed);
+                gcode_layer.addLinesMonotonic(skin_lines, config, space_fill_type, monotonic_direction, max_adjacent_distance, wipe_dist, flow, fan_speed);
             }
         }
         else
