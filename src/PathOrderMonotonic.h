@@ -302,14 +302,12 @@ protected:
         Point first_endpoint = polyline->converted->front();
         Point last_endpoint = polyline->converted->back();
         std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance);
-        auto close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
-            return found_path.val->start_vertex == found_path.val->converted->size() //Don't find any line already in the string.
-                   && vSize2(found_path.point - first_endpoint) < coincident_point_distance * coincident_point_distance; //And only find close lines.
+        auto close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+            return canConnectToPolyline(first_endpoint, found_path);
         });
         std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance);
-        auto close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
-            return found_path.val->start_vertex == found_path.val->converted->size() //Don't find any line already in the string.
-                   && vSize2(found_path.point - last_endpoint) < coincident_point_distance * coincident_point_distance; //And only find close lines.
+        auto close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+            return canConnectToPolyline(last_endpoint, found_path);
         });
 
         while(close_line_before != lines_before.end())
@@ -321,9 +319,8 @@ protected:
             first->backwards = farthest_vertex != 0;
             first_endpoint = (*first->converted)[farthest_vertex];
             lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance);
-            close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
-                return found_path.val->start_vertex == found_path.val->converted->size() //Don't find any line already in the string.
-                       && vSize2(found_path.point - first_endpoint) < coincident_point_distance * coincident_point_distance; //And only find close lines.
+            close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+                return canConnectToPolyline(first_endpoint, found_path);
             });
         }
         while(close_line_after != lines_after.end())
@@ -332,12 +329,11 @@ protected:
             result.push_back(last);
             size_t farthest_vertex = getFarthestEndpoint(last, close_line_after->point); //Get to the opposite side.
             last->start_vertex = (farthest_vertex == 0) ? last->converted->size() - 1 : 0;
-            last->backwards = (farthest_vertex != 0);
+            last->backwards = farthest_vertex != 0;
             last_endpoint = (*last->converted)[farthest_vertex];
             lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance);
-            close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
-                return found_path.val->start_vertex == found_path.val->converted->size() //Don't find any line already in the string.
-                       && vSize2(found_path.point - last_endpoint) < coincident_point_distance * coincident_point_distance; //And only find close lines.
+            close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
+                return canConnectToPolyline(last_endpoint, found_path);
             });
         }
 
@@ -456,6 +452,25 @@ protected:
      * the quadratic is multiplied by a projection length.
      */
     constexpr static coord_t monotonic_vector_resolution = 1000;
+
+    private:
+    /*!
+     * Predicate to check if a nearby path is okay for polylines to connect
+     * with.
+     *
+     * It is okay if the endpoints are sufficiently close together, and the
+     * polyline is not yet connected to a different string of polylines.
+     * \param nearby_endpoint The endpoint of the current string of polylines.
+     * We'll check if the candidate polyline is nearby enough.
+     * \param found_path A candidate polyline, as found in the bucket grid. This
+     * struct of the bucket grid contains not only the actual path (via pointer)
+     * but also the endpoint of it that it found to be nearby.
+     */
+    static bool canConnectToPolyline(const Point nearby_endpoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path)
+    {
+        return found_path.val->start_vertex == found_path.val->converted->size() //Don't find any line already in the string.
+               && vSize2(found_path.point - nearby_endpoint) < coincident_point_distance * coincident_point_distance; //And only find close lines.
+    }
 };
 
 }
