@@ -760,8 +760,6 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
-    const Ratio wall_min_flow = settings.get<Ratio>("wall_min_flow");
-    const bool wall_min_flow_retract = settings.get<bool>("wall_min_flow_retract");
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && cura::shorterThan(wall, small_feature_max_length);
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
@@ -853,8 +851,6 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
         }
     };
 
-    bool travel_required = false; // true when a wall has been omitted due to its flow being less than the minimum required
-
     bool first_line = true;
 
     ExtrusionJunction p0 = wall[start_idx];
@@ -871,35 +867,22 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
             computeDistanceToBridgeStart((wall.size() + start_idx + point_idx * direction - 1) % wall.size());
         }
 
-        if (flow_ratio >= wall_min_flow)
+        if (first_line)
         {
-            if (first_line || travel_required)
-            {
-                addTravel(p0.p, (first_line) ? always_retract : wall_min_flow_retract);
-                first_line = false;
-                travel_required = false;
-            }
-            if (is_small_feature)
-            {
-                constexpr bool spiralize = false;
-                addExtrusionMove(p1.p, non_bridge_config, SpaceFillType::Polygons, flow_ratio * (line_width * nominal_line_width_multiplier), spiralize, small_feature_speed_factor);
-            }
-            else
-            {
-                addWallLine(p0.p, p1.p, settings, non_bridge_config, bridge_config, flow_ratio * (line_width * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
-            }
+            addTravel(p0.p, always_retract);
+            first_line = false;
+        }
+        if (is_small_feature)
+        {
+            constexpr bool spiralize = false;
+            addExtrusionMove(p1.p, non_bridge_config, SpaceFillType::Polygons, flow_ratio * (line_width * nominal_line_width_multiplier), spiralize, small_feature_speed_factor);
         }
         else
         {
-            travel_required = true;
+            addWallLine(p0.p, p1.p, settings, non_bridge_config, bridge_config, flow_ratio * (line_width * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
         }
 
         p0 = p1;
-    }
-
-    if (travel_required)
-    {
-        addTravel(p0.p, wall_min_flow_retract);
     }
 
     if (wall.size() >= 2)
@@ -911,32 +894,29 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
             computeDistanceToBridgeStart((start_idx + wall.size() - 1) % wall.size());
         }
 
-        if (flow_ratio >= wall_min_flow)
-        {
-            if (wall_0_wipe_dist > 0 && !is_linked_path)
-            { // apply outer wall wipe
-                p0 = wall[start_idx];
-                int distance_traversed = 0;
-                for (unsigned int point_idx = 1; ; point_idx++)
+        if (wall_0_wipe_dist > 0 && !is_linked_path)
+        { // apply outer wall wipe
+            p0 = wall[start_idx];
+            int distance_traversed = 0;
+            for (unsigned int point_idx = 1; ; point_idx++)
+            {
+                ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
+                int p0p1_dist = vSize(p1 - p0);
+                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
                 {
-                    ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
-                    int p0p1_dist = vSize(p1 - p0);
-                    if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
-                    {
-                        Point vector = p1.p - p0.p;
-                        Point half_way = p0.p + normal(vector, wall_0_wipe_dist - distance_traversed);
-                        addTravel_simple(half_way);
-                        break;
-                    }
-                    else
-                    {
-                        addTravel_simple(p1.p);
-                        distance_traversed += p0p1_dist;
-                    }
-                    p0 = p1;
+                    Point vector = p1.p - p0.p;
+                    Point half_way = p0.p + normal(vector, wall_0_wipe_dist - distance_traversed);
+                    addTravel_simple(half_way);
+                    break;
                 }
-                forceNewPathStart();
+                else
+                {
+                    addTravel_simple(p1.p);
+                    distance_traversed += p0p1_dist;
+                }
+                p0 = p1;
             }
+            forceNewPathStart();
         }
     }
     else
