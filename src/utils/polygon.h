@@ -17,7 +17,7 @@
 #include <initializer_list>
 
 #include "IntPoint.h"
-#include "../settings/types/AngleDegrees.h" //For angles between vertices.
+#include "../settings/types/Angle.h" //For angles between vertices.
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
