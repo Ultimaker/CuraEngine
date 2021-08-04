@@ -13,9 +13,6 @@
 namespace cura
 {
 
-constexpr coord_t COINCIDENT_POINT_DISTANCE = 5; // In uM. Points closer than this may be considered overlapping / at the same place
-constexpr coord_t SQUARED_COINCIDENT_POINT_DISTANCE = COINCIDENT_POINT_DISTANCE * COINCIDENT_POINT_DISTANCE;
-
 /*!
  * Class that orders paths monotonically.
  *
@@ -44,6 +41,7 @@ class PathOrderMonotonic : public PathOrder<PathType>
 {
 public:
     using typename PathOrder<PathType>::Path;
+    using PathOrder<PathType>::coincident_point_distance;
 
     PathOrderMonotonic(const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const Point start_point)
     : monotonic_vector(std::cos(monotonic_direction) * 1000, std::sin(monotonic_direction) * 1000)
@@ -298,15 +296,15 @@ protected:
         polyline->start_vertex = 0;
         Point first_endpoint = polyline->converted->front();
         Point last_endpoint = polyline->converted->back();
-        std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, COINCIDENT_POINT_DISTANCE);
+        std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance);
         auto close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
             return found_path.val->start_vertex == found_path.val->converted->size() //Don't find any line already in the string.
-                   && vSize2(found_path.point - first_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //And only find close lines.
+                   && vSize2(found_path.point - first_endpoint) < coincident_point_distance * coincident_point_distance; //And only find close lines.
         });
-        std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, COINCIDENT_POINT_DISTANCE);
+        std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance);
         auto close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
             return found_path.val->start_vertex == found_path.val->converted->size() //Don't find any line already in the string.
-                   && vSize2(found_path.point - last_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //And only find close lines.
+                   && vSize2(found_path.point - last_endpoint) < coincident_point_distance * coincident_point_distance; //And only find close lines.
         });
 
         while(close_line_before != lines_before.end())
@@ -317,10 +315,10 @@ protected:
             first->start_vertex = farthest_vertex;
             first->backwards = farthest_vertex != 0;
             first_endpoint = (*first->converted)[farthest_vertex];
-            lines_before = line_bucket_grid.getNearby(first_endpoint, COINCIDENT_POINT_DISTANCE);
+            lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance);
             close_line_before = std::find_if(lines_before.begin(), lines_before.end(), [first_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
                 return found_path.val->start_vertex == found_path.val->converted->size() //Don't find any line already in the string.
-                       && vSize2(found_path.point - first_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //And only find close lines.
+                       && vSize2(found_path.point - first_endpoint) < coincident_point_distance * coincident_point_distance; //And only find close lines.
             });
         }
         while(close_line_after != lines_after.end())
@@ -331,10 +329,10 @@ protected:
             last->start_vertex = (farthest_vertex == 0) ? last->converted->size() - 1 : 0;
             last->backwards = (farthest_vertex != 0);
             last_endpoint = (*last->converted)[farthest_vertex];
-            lines_after = line_bucket_grid.getNearby(last_endpoint, COINCIDENT_POINT_DISTANCE);
+            lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance);
             close_line_after = std::find_if(lines_after.begin(), lines_after.end(), [last_endpoint, result](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path) {
                 return found_path.val->start_vertex == found_path.val->converted->size() //Don't find any line already in the string.
-                       && vSize2(found_path.point - last_endpoint) < SQUARED_COINCIDENT_POINT_DISTANCE; //And only find close lines.
+                       && vSize2(found_path.point - last_endpoint) < coincident_point_distance * coincident_point_distance; //And only find close lines.
             });
         }
 

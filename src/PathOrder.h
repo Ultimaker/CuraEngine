@@ -91,7 +91,7 @@ public:
     };
 
     /*!
-     * After reordering, this contains the path that need to be printed in the
+     * After reordering, this contains the paths that need to be printed in the
      * correct order.
      *
      * Each path contains the information necessary to print the paths: A
@@ -150,6 +150,16 @@ public:
 
 protected:
     /*!
+     * Two line endpoints are considered to be the same if they are within this
+     * margin of error apart from each other.
+     *
+     * If endpoints are very close together, this will cause the ordering to
+     * pretend they are the same point.
+     * This is used for detecting loops and chaining lines together.
+     */
+    constexpr static coord_t coincident_point_distance = 10;
+
+    /*!
      * Get vertex data from the custom path type.
      *
      * This is a function that allows the reordering algorithm to work with any
@@ -172,7 +182,6 @@ protected:
      */
     void detectLoops()
     {
-        constexpr coord_t coincident_point_distance = 10; //If the endpoints are closer together than 10 units, it is considered pretty much a closed loop.
         for(Path& path : paths)
         {
             if(path.is_closed) //Already a polygon. No need to detect loops.
