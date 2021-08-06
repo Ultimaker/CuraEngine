@@ -15,31 +15,6 @@ namespace cura
 
 double inward_distributed_center_size = 2;
 
-StrategyType toStrategyType(char c)
-{
-    switch (c)
-    {
-        case 'r':
-            return StrategyType::Center;
-        case 'd':
-            return StrategyType::Distributed;
-        case 'i':
-            return StrategyType::InwardDistributed;
-    }
-    return StrategyType::COUNT;
-}
-
-std::string to_string(StrategyType type)
-{
-    switch (type)
-    {
-        case StrategyType::Center:             return "CenterDeviation";
-        case StrategyType::Distributed:        return "Distributed";
-        case StrategyType::InwardDistributed:  return "InwardDistributed";
-        default: return "unknown_strategy";
-    }
-}
-
 
 coord_t getWeightedAverage(const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t max_bead_count)
 {

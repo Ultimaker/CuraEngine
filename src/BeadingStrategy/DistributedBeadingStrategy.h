@@ -1,10 +1,10 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef DISTRIBUTED_BEADING_STRATEGY_H
 #define DISTRIBUTED_BEADING_STRATEGY_H
 
-#include "../settings/types/Ratio.h" //For the wall transition threshold.
+#include "../settings/types/Ratio.h" // For the wall transition threshold.
 #include "BeadingStrategy.h"
 
 namespace cura

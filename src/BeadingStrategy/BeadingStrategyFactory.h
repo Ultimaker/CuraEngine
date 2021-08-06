@@ -1,14 +1,10 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef BEADING_STRATEGY_FACTORY_H
 #define BEADING_STRATEGY_FACTORY_H
 
-#include <memory>
-
 #include "../settings/types/Ratio.h"
-#include "../utils/optional.h"  // until the move to C++17
-
 #include "BeadingStrategy.h"
 
 namespace cura
@@ -24,10 +20,6 @@ enum class StrategyType
     None,
     COUNT
 };
-
-StrategyType toStrategyType(char c);
-
-std::string to_string(StrategyType type);
 
 class BeadingStrategyFactory
 {
