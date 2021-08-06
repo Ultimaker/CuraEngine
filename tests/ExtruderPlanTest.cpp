@@ -44,6 +44,14 @@ public:
     std::vector<GCodePath> decreasing_speed;
 
     /*!
+     * A series of paths with variable line width.
+     *
+     * This one has no travel moves in between.
+     * The last path gets a width of 0.
+     */
+    std::vector<GCodePath> variable_width;
+
+    /*!
      * Configuration to print extruded paths with in the fixture.
      *
      * This config is referred to via pointer, so changing it will immediately
@@ -132,6 +140,21 @@ public:
         decreasing_speed[2].points = {Point(1000, 400), Point(0, 400)};
         decreasing_speed[3].points = {Point(0, 400), Point(0, 800)};
         decreasing_speed[4].points = {Point(0, 800), Point(1000, 800)};
+
+        variable_width.assign({
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.8_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.6_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.4_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.2_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.0_r, no_spiralize, speed_1),
+        });
+        variable_width[0].points = {Point(0, 0), Point(1000, 0)};
+        variable_width[1].points = {Point(1000, 0), Point(2000, 0)};
+        variable_width[2].points = {Point(2000, 0), Point(3000, 0)};
+        variable_width[3].points = {Point(3000, 0), Point(4000, 0)};
+        variable_width[4].points = {Point(4000, 0), Point(5000, 0)};
+        variable_width[5].points = {Point(5000, 0), Point(6000, 0)};
     }
 };
 
@@ -163,7 +186,8 @@ INSTANTIATE_TEST_CASE_P(ExtruderPlanTestInstantiation, ExtruderPlanPathsParamete
         ExtruderPlanTestPathCollection().square,
         ExtruderPlanTestPathCollection().lines,
         ExtruderPlanTestPathCollection().decreasing_flow,
-        ExtruderPlanTestPathCollection().decreasing_speed
+        ExtruderPlanTestPathCollection().decreasing_speed,
+        ExtruderPlanTestPathCollection().variable_width
 ));
 
 /*!
