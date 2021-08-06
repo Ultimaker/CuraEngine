@@ -1,10 +1,13 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
 #include <vector>
+#ifdef BUILD_TESTS
+    #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
+#endif
 
 #include "FanSpeedLayerTime.h"
 #include "gcodeExport.h"
@@ -38,6 +41,10 @@ class ExtruderPlan
 {
     friend class LayerPlan; // TODO: LayerPlan still does a lot which should actually be handled in this class.
     friend class LayerPlanBuffer; // TODO: LayerPlanBuffer handles paths directly
+#ifdef BUILD_TESTS
+    friend class ExtruderPlanTest;
+    FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationZeroIsUncompensated);
+#endif
 protected:
     std::vector<GCodePath> paths; //!< The paths planned for this extruder
     std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
