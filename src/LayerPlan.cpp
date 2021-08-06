@@ -58,6 +58,24 @@ double ExtruderPlan::getFanSpeed()
     return fan_speed;
 }
 
+void ExtruderPlan::applyBackPressureCompensation(const double back_pressure_compensation)
+{
+    for (auto& path : paths)
+    {
+        const Ratio nominal_flow_for_path = path.config->getFlowRatio();
+        const coord_t nominal_width_for_path = path.config->getLineWidth();
+        if (nominal_flow_for_path <= 0.0 || nominal_width_for_path <= 0)
+        {
+            continue;
+        }
+        const coord_t line_width_for_path = (path.flow / nominal_flow_for_path) * nominal_width_for_path;
+
+        // Encode any compensation for back-pressure into the flow multiplier:
+        path.flow *= (nominal_flow_for_path - back_pressure_compensation * (line_width_for_path / nominal_width_for_path - 1.0)) / nominal_flow_for_path;
+
+        // TODO: W.I.P. This is probably incorrect, as the line-width falls away, and the layer height isn't included.
+    }
+}
 
 GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow, bool spiralize, const Ratio speed_factor)
 {
@@ -1826,6 +1844,21 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
         gcode.writeTravel(path.points[point_idx], speed);
     }
     return true;
+}
+
+void LayerPlan::applyBackPressureCompensation()
+{
+    for (auto& extruder_plan : extruder_plans)
+    {
+        const double back_pressure_compensation =
+            Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<double>("speed_equalize_flow_width_factor");
+
+        // TODO?? Not implemented yet, might need to be removed:
+        //const double min_flow_for_compensate =
+        //    Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<double>("speed_equalize_flow_min");
+
+        extruder_plan.applyBackPressureCompensation(back_pressure_compensation);
+    }
 }
 
 }//namespace cura

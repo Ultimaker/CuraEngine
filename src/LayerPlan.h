@@ -159,6 +159,11 @@ public:
      */
     double getFanSpeed();
 
+    /*!
+     * TODO: Documentation!
+     */
+    void applyBackPressureCompensation(const double back_pressure_compensation);
+
 protected:
     LayerIndex layer_nr; //!< The layer number at which we are currently printing.
     bool is_initial_layer; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
@@ -743,6 +748,11 @@ public:
      * \param distance The distance to the comb boundary after we moved inside it.
      */
     void moveInsideCombBoundary(const coord_t distance);
+
+    /*!
+     * TODO: Documentation!
+     */
+    void applyBackPressureCompensation();
 };
 
 }//namespace cura
