@@ -17,22 +17,26 @@ namespace cura
  */
 class DistributedBeadingStrategy : public BeadingStrategy
 {
-private:
+protected:
     /*!
      * Threshold line width at which it will use fewer, wider lines instead of
      * reducing the line width further.
      */
     Ratio wall_transition_threshold;
+    float one_over_distribution_radius_squared; // (1 / distribution_radius)^2
 
 public:
-    DistributedBeadingStrategy(const coord_t optimal_width, const coord_t default_transition_length, const AngleRadians transitioning_angle, const Ratio wall_transition_threshold)
-    : BeadingStrategy(optimal_width, default_transition_length, transitioning_angle)
-    , wall_transition_threshold(wall_transition_threshold)
-    {
-        name = "DistributedBeadingStrategy";
-    }
-    virtual ~DistributedBeadingStrategy() override
-    {}
+    /*!
+	* \param distribution_radius the radius (in number of beads) over which to distribute the discrepancy between the feature size and the optimal thickness
+	*/
+    DistributedBeadingStrategy(	const coord_t optimal_width,
+    							const coord_t default_transition_length,
+								const AngleRadians transitioning_angle,
+								const Ratio wall_transition_threshold,
+								const float distribution_radius);
+
+    virtual ~DistributedBeadingStrategy() override {}
+
     Beading compute(coord_t thickness, coord_t bead_count) const override;
     coord_t getOptimalThickness(coord_t bead_count) const override;
     coord_t getTransitionThickness(coord_t lower_bead_count) const override;

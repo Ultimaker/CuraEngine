@@ -1,9 +1,8 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "BeadingStrategyFactory.h"
 
-#include "InwardDistributedBeadingStrategy.h"
 #include "LimitedBeadingStrategy.h"
 #include "CenterDeviationBeadingStrategy.h"
 #include "WideningBeadingStrategy.h"
@@ -79,10 +78,10 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
         	ret = new CenterDeviationBeadingStrategy(bar_preferred_wall_width, transitioning_angle, wall_transition_threshold);
         	break;
         case StrategyType::Distributed:
-        	ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold);
+        	ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, 99999);
         	break;
         case StrategyType::InwardDistributed:
-        	ret = new InwardDistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, inward_distributed_center_size);
+        	ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, inward_distributed_center_size);
         	break;
         default:
             logError("Cannot make strategy!\n");
