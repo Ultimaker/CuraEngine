@@ -2,10 +2,11 @@
 # - Try to find the polyclipping library
 # this will define
 #
-#  Polyclipping_FOUND - polyclipping was found
-#  Polyclipping_INCLUDE_DIRS - the polyclipping include directory
-#  Polyclipping_LIBRARIES - The libraries needed to use polyclipping
-#  Polyclipping_VERSION - The polyclipping library version
+#  polyclipping_FOUND - polyclipping was found
+#  polyclipping_INCLUDE_DIRS - the polyclipping include directory
+#  polyclipping_LIBRARIES - The libraries needed to use polyclipping
+#  polyclipping_VERSION - The polyclipping library version
+#  target polyclipping::polyclipping
 
 #=============================================================================
 # Copyright (c) 2017 Christophe Giboudeaux <christophe@krop.fr>
@@ -37,31 +38,38 @@
 
 
 find_package(PkgConfig QUIET)
-pkg_check_modules(PC_Polyclipping QUIET polyclipping)
+pkg_check_modules(PC_polyclipping QUIET polyclipping)
 
-find_path(Polyclipping_INCLUDE_DIRS
+find_path(polyclipping_INCLUDE_DIRS
   NAMES clipper.hpp
-  HINTS ${PC_Polyclipping_INCLUDE_DIRS}
+  HINTS ${PC_polyclipping_INCLUDE_DIRS}
 )
 
-find_library(Polyclipping_LIBRARIES
+find_library(polyclipping_LIBRARIES
   NAMES polyclipping
-  HINTS ${PC_Polyclipping_LIBRARY_DIRS}
+  HINTS ${PC_polyclipping_LIBRARY_DIRS}
 )
 
-if(EXISTS ${Polyclipping_INCLUDE_DIRS}/clipper.hpp)
-  file(READ ${Polyclipping_INCLUDE_DIRS}/clipper.hpp CLIPPER_H_CONTENT)
+if(EXISTS ${polyclipping_INCLUDE_DIRS}/clipper.hpp)
+  file(READ ${polyclipping_INCLUDE_DIRS}/clipper.hpp CLIPPER_H_CONTENT)
   string(REGEX MATCH "#define CLIPPER_VERSION[ ]+\"[0-9]+.[0-9]+.[0-9]+\"" CLIPPER_H_VERSION_MATCH ${CLIPPER_H_CONTENT})
-  string(REGEX REPLACE "^.*CLIPPER_VERSION[ ]+\"([0-9]+.[0-9]+.[0-9]+).*$" "\\1" Polyclipping_VERSION "${CLIPPER_H_VERSION_MATCH}")
+  string(REGEX REPLACE "^.*CLIPPER_VERSION[ ]+\"([0-9]+.[0-9]+.[0-9]+).*$" "\\1" polyclipping_VERSION "${CLIPPER_H_VERSION_MATCH}")
 endif()
 
 include(FindPackageHandleStandardArgs)
 
-find_package_handle_standard_args(Polyclipping
-    FOUND_VAR Polyclipping_FOUND
-    REQUIRED_VARS Polyclipping_LIBRARIES Polyclipping_INCLUDE_DIRS
-    VERSION_VAR Polyclipping_VERSION
+find_package_handle_standard_args(polyclipping
+    FOUND_VAR polyclipping_FOUND
+    REQUIRED_VARS polyclipping_LIBRARIES polyclipping_INCLUDE_DIRS
+    VERSION_VAR polyclipping_VERSION
 )
 
-mark_as_advanced(Polyclipping_LIBRARIES Polyclipping_INCLUDE_DIRS Polyclipping_VERSION)
+if(polyclipping_FOUND)
+  add_library(polyclipping::polyclipping INTERFACE IMPORTED)
+  set_target_properties(polyclipping::polyclipping PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+          "${polyclipping_INCLUDE_DIRS}")
+  set_property(TARGET polyclipping::polyclipping PROPERTY INTERFACE_LINK_LIBRARIES
+          "${polyclipping_LIBRARIES}")
+endif()
 
+mark_as_advanced(polyclipping_LIBRARIES polyclipping_INCLUDE_DIRS polyclipping_VERSION)

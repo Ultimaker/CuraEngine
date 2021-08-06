@@ -7,7 +7,7 @@
 #include <vector>
 #include <assert.h>
 #include <float.h>
-#include <clipper.hpp>
+#include <polyclipping/clipper.hpp>
 
 #include <algorithm>    // std::reverse, fill_n array
 #include <cmath> // fabs

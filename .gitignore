@@ -58,3 +58,6 @@ documentation/latex/*
 ## Test results.
 tests/output.xml
 callgrind.out.*
+/cmake-build-release/
+/cmake-build-debug/
+/tmp/
