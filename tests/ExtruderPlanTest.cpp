@@ -215,4 +215,34 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
     }
 }
 
+/*!
+ * Tests that a factor of 1 causes the back pressure compensation to be
+ * completely equalizing the flow rate.
+ */
+TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
+{
+    extruder_plan.paths = GetParam();
+    //extruder_plan.applyBackPressureCompensation(1.0_r);
+
+    auto first_extrusion = std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [](GCodePath& path) {
+        return path.config->getPrintFeatureType() != PrintFeatureType::MoveCombing && path.config->getPrintFeatureType() != PrintFeatureType::MoveRetraction;
+    });
+    if(first_extrusion == extruder_plan.paths.end()) //Only travel moves in this plan.
+    {
+        return;
+    }
+    //All flow rates must be equal to this one.
+    const double first_flow_mm3_per_sec = first_extrusion->getExtrusionMM3perMM() * first_extrusion->config->getSpeed() * first_extrusion->speed_factor;
+
+    for(GCodePath& path : extruder_plan.paths)
+    {
+        if(path.config->getPrintFeatureType() == PrintFeatureType::MoveCombing || path.config->getPrintFeatureType() == PrintFeatureType::MoveRetraction)
+        {
+            continue; //Ignore travel moves.
+        }
+        const double flow_mm3_per_sec = path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_factor;
+        EXPECT_EQ(flow_mm3_per_sec, first_flow_mm3_per_sec) << "Every path must have a flow rate equal to the first, since the flow changes were completely compensated for.";
+    }
+}
+
 }
