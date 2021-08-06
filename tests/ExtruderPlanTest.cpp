@@ -159,6 +159,13 @@ public:
     {}
 };
 
+INSTANTIATE_TEST_CASE_P(ExtruderPlanTestInstantiation, ExtruderPlanPathsParameterizedTest, testing::Values(
+        ExtruderPlanTestPathCollection().square,
+        ExtruderPlanTestPathCollection().lines,
+        ExtruderPlanTestPathCollection().decreasing_flow,
+        ExtruderPlanTestPathCollection().decreasing_speed
+));
+
 /*!
  * Tests that paths remain unmodified if applying back pressure compensation
  * with factor 0.
@@ -167,9 +174,11 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
 {
     extruder_plan.paths = GetParam();
     std::vector<Ratio> original_flows;
+    std::vector<Ratio> original_speeds;
     for(const GCodePath& path : extruder_plan.paths)
     {
         original_flows.push_back(path.flow);
+        original_speeds.push_back(path.speed_factor);
     }
 
     extruder_plan.applyBackPressureCompensation(0.0_r);
@@ -177,15 +186,9 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
     ASSERT_EQ(extruder_plan.paths.size(), original_flows.size()) << "Number of paths may not have changed.";
     for(size_t i = 0; i < extruder_plan.paths.size(); ++i)
     {
-        EXPECT_EQ(original_flows[i], extruder_plan.paths[i].flow) << "The flow rate did not change, because the back pressure compensation ratio was 0.";
+        EXPECT_EQ(original_flows[i], extruder_plan.paths[i].flow) << "The flow rate did not change. Back pressure compensation doesn't adjust flow.";
+        EXPECT_EQ(original_speeds[i], extruder_plan.paths[i].speed_factor) << "The speed factor did not change, since the compensation factor was 0.";
     }
 }
-
-INSTANTIATE_TEST_CASE_P(ExtruderPlanTestInstantiation, ExtruderPlanPathsParameterizedTest, testing::Values(
-        ExtruderPlanTestPathCollection().square,
-        ExtruderPlanTestPathCollection().lines,
-        ExtruderPlanTestPathCollection().decreasing_flow,
-        ExtruderPlanTestPathCollection().decreasing_speed
-));
 
 }
