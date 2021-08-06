@@ -9,11 +9,9 @@ namespace cura
 {
 
 /*!
- * A fixture to test extruder plans with.
- *
- * It contains an extruder plan, optionally pre-filled with some paths.
+ * A fixture containing some sets of GCodePaths to test with.
  */
-class ExtruderPlanTest : public testing::Test
+class ExtruderPlanTestPathCollection
 {
 public:
     /*!
@@ -26,11 +24,6 @@ public:
      * Three lines side by side, with two travel moves in between.
      */
     std::vector<GCodePath> lines;
-
-    /*!
-     * An extruder plan that can be used as a victim for testing.
-     */
-    ExtruderPlan extruder_plan;
 
     /*!
      * Configuration to print extruded paths with in the fixture.
@@ -48,27 +41,18 @@ public:
      */
     GCodePathConfig travel_config;
 
-    ExtruderPlanTest() :
-        extruder_plan(
-            /*extruder=*/0,
-            /*layer_nr=*/50,
-            /*is_initial_layer=*/false,
-            /*is_raft_layer=*/false,
-            /*layer_thickness=*/100,
-            FanSpeedLayerTimeSettings(),
-            RetractionConfig()
-        ),
+    ExtruderPlanTestPathCollection() :
         extrusion_config(
             PrintFeatureType::OuterWall,
             /*line_width=*/400,
-            extruder_plan.layer_thickness,
+            /*layer_thickness=*/100,
             /*flow=*/1.0_r,
             GCodePathConfig::SpeedDerivatives(50, 1000, 10)
         ),
         travel_config(
             PrintFeatureType::MoveCombing,
             /*line_width=*/0,
-            extruder_plan.layer_thickness,
+            /*layer_thickness=*/100,
             /*flow=*/0.0_r,
             GCodePathConfig::SpeedDerivatives(120, 5000, 30)
         )
@@ -102,28 +86,54 @@ public:
 };
 
 /*!
+ * Tests in this class get parameterized with a vector of GCodePaths to put in
+ * the extruder plan, and an extruder plan to put it in.
+ */
+class ExtruderPlanPathsParameterizedTest : public testing::TestWithParam<std::vector<GCodePath>> {
+public:
+    /*!
+     * An extruder plan that can be used as a victim for testing.
+     */
+    ExtruderPlan extruder_plan;
+
+    ExtruderPlanPathsParameterizedTest() :
+        extruder_plan(
+            /*extruder=*/0,
+            /*layer_nr=*/50,
+            /*is_initial_layer=*/false,
+            /*is_raft_layer=*/false,
+            /*layer_thickness=*/100,
+            FanSpeedLayerTimeSettings(),
+            RetractionConfig()
+        )
+    {}
+};
+
+/*!
  * Tests that paths remain unmodified if applying back pressure compensation
  * with factor 0.
  */
-TEST_F(ExtruderPlanTest, BackPressureCompensationZeroIsUncompensated)
+TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated)
 {
-    for(std::vector<GCodePath> path : {square, lines})
+    extruder_plan.paths = GetParam();
+    std::vector<Ratio> original_flows;
+    for(const GCodePath& path : extruder_plan.paths)
     {
-        extruder_plan.paths = path;
-        std::vector<Ratio> original_flows;
-        for(const GCodePath& path : extruder_plan.paths)
-        {
-            original_flows.push_back(path.flow);
-        }
+        original_flows.push_back(path.flow);
+    }
 
-        extruder_plan.applyBackPressureCompensation(0.0_r);
+    extruder_plan.applyBackPressureCompensation(0.0_r);
 
-        ASSERT_EQ(extruder_plan.paths.size(), original_flows.size()) << "Number of paths may not have changed.";
-        for(size_t i = 0; i < extruder_plan.paths.size(); ++i)
-        {
-            EXPECT_EQ(original_flows[i], extruder_plan.paths[i].flow) << "The flow rate did not change, because the back pressure compensation ratio was 0.";
-        }
+    ASSERT_EQ(extruder_plan.paths.size(), original_flows.size()) << "Number of paths may not have changed.";
+    for(size_t i = 0; i < extruder_plan.paths.size(); ++i)
+    {
+        EXPECT_EQ(original_flows[i], extruder_plan.paths[i].flow) << "The flow rate did not change, because the back pressure compensation ratio was 0.";
     }
 }
+
+INSTANTIATE_TEST_CASE_P(ExtruderPlanTestInstantiation, ExtruderPlanPathsParameterizedTest, testing::Values(
+        ExtruderPlanTestPathCollection().square,
+        ExtruderPlanTestPathCollection().lines
+));
 
 }

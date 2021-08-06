@@ -42,8 +42,8 @@ class ExtruderPlan
     friend class LayerPlan; // TODO: LayerPlan still does a lot which should actually be handled in this class.
     friend class LayerPlanBuffer; // TODO: LayerPlanBuffer handles paths directly
 #ifdef BUILD_TESTS
-    friend class ExtruderPlanTest;
-    FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationZeroIsUncompensated);
+    friend class ExtruderPlanPathsParameterizedTest;
+    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated);
 #endif
 protected:
     std::vector<GCodePath> paths; //!< The paths planned for this extruder
