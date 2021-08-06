@@ -28,9 +28,6 @@ namespace cura
 class LimitedBeadingStrategy : public BeadingStrategy
 {
 public:
-    const coord_t max_bead_count;
-    const BeadingStrategy* parent;
-
     LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategy* parent);
     
     virtual ~LimitedBeadingStrategy() override;
@@ -44,6 +41,10 @@ public:
     coord_t getTransitioningLength(coord_t lower_bead_count) const override;
     
     float getTransitionAnchorPos(coord_t lower_bead_count) const override;
+
+protected:
+    const coord_t max_bead_count;
+    const BeadingStrategy* parent;
 };
 
 

@@ -54,7 +54,7 @@ namespace cura
 
         virtual std::string toString() const;
 
-    private:
+    protected:
         /*!
          * Determine the outer bead width.
          *

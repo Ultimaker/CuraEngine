@@ -20,9 +20,6 @@ namespace cura
 class WideningBeadingStrategy : public BeadingStrategy
 {
 public:
-    BeadingStrategy* parent;
-    const coord_t min_input_width;
-    const coord_t min_output_width;
     /*!
      * Takes responsibility for deleting \param parent
      */
@@ -38,6 +35,11 @@ public:
     virtual float getTransitionAnchorPos(coord_t lower_bead_count) const override;
     virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const override;
     virtual std::string toString() const override;
+
+protected:
+    BeadingStrategy* parent;
+	const coord_t min_input_width;
+	const coord_t min_output_width;
 };
 
 } // namespace cura
