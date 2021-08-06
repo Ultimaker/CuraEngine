@@ -37,18 +37,6 @@ public:
         coord_t left_over; //! The distance not covered by any bead; gap area.
     };
 
-    coord_t optimal_width; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
-    
-    std::string name;
-
-    coord_t default_transition_length; //! The length of the region to smoothly transfer between bead counts
-
-    /*!
-     * The maximum angle between outline segments smaller than which we are going to add transitions
-     * Equals 180 - the "limit bisector angle" from the paper
-     */
-    AngleRadians transitioning_angle;
-
     BeadingStrategy(coord_t optimal_width, coord_t default_transition_length, float transitioning_angle = pi_div(3));
 
     virtual ~BeadingStrategy() {}
@@ -100,6 +88,23 @@ public:
     virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const;
     
     virtual std::string toString() const;
+
+    coord_t getOptimalWidth() const;
+    coord_t getDefaultTransitionLength() const;
+    AngleRadians getTransitioningAngle() const;
+
+protected:
+    std::string name;
+
+    coord_t optimal_width; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
+
+    coord_t default_transition_length; //! The length of the region to smoothly transfer between bead counts
+
+    /*!
+     * The maximum angle between outline segments smaller than which we are going to add transitions
+     * Equals 180 - the "limit bisector angle" from the paper
+     */
+    AngleRadians transitioning_angle;
 };
 
 } // namespace cura

@@ -43,4 +43,20 @@ std::string BeadingStrategy::toString() const
     return name;
 }
 
+coord_t BeadingStrategy::getDefaultTransitionLength() const
+{
+	return default_transition_length;
+}
+
+coord_t BeadingStrategy::getOptimalWidth() const
+{
+	return optimal_width;
+}
+
+AngleRadians BeadingStrategy::getTransitioningAngle() const
+{
+	return transitioning_angle;
+}
+
+
 } // namespace cura

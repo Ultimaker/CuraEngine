@@ -44,7 +44,7 @@ namespace cura
         const double minimum_variable_line_width,
         BeadingStrategy* parent
         ) :
-        BeadingStrategy(parent->optimal_width, parent->default_transition_length, parent->transitioning_angle),
+        BeadingStrategy(parent->getOptimalWidth(), parent->getDefaultTransitionLength(), parent->getTransitioningAngle()),
         parent(parent),
         optimal_width_outer(optimal_width_outer),
         optimal_width_inner(optimal_width_inner),
