@@ -37,33 +37,22 @@ namespace cura
          *                                    average of the outer and inner walls at that bead count.
          * /param minimum_variable_line_width Minimum factor that the variable line might deviate from the optimal width.
          */
-        RedistributeBeadingStrategy
-        (
-        const coord_t optimal_width_outer,
-        const coord_t optimal_width_inner,
-        const double minimum_variable_line_width,
-        BeadingStrategy* parent
-        ) :
-        BeadingStrategy(parent->getOptimalWidth(), parent->getDefaultTransitionLength(), parent->getTransitioningAngle()),
-        parent(parent),
-        optimal_width_outer(optimal_width_outer),
-        optimal_width_inner(optimal_width_inner),
-        minimum_variable_line_width(minimum_variable_line_width)
-        {
-            name = "RedistributeBeadingStrategy";
-        }
+        RedistributeBeadingStrategy( 	const coord_t optimal_width_outer,
+										const coord_t optimal_width_inner,
+										const double minimum_variable_line_width,
+										BeadingStrategy* parent);
 
         virtual ~RedistributeBeadingStrategy() = default;
 
         Beading compute(coord_t thickness, coord_t bead_count) const override;
 
-        coord_t getOptimalThickness(coord_t bead_count) const override { return parent->getOptimalThickness(bead_count);  }
-        coord_t getTransitionThickness(coord_t lower_bead_count) const override { return parent->getTransitionThickness(lower_bead_count); }
-        coord_t getOptimalBeadCount(coord_t thickness) const override { return parent->getOptimalBeadCount(thickness); }
-        coord_t getTransitioningLength(coord_t lower_bead_count) const override { return parent->getTransitioningLength(lower_bead_count); }
-        float getTransitionAnchorPos(coord_t lower_bead_count) const override { return parent->getTransitionAnchorPos(lower_bead_count); }
+        coord_t getOptimalThickness(coord_t bead_count) const override;
+        coord_t getTransitionThickness(coord_t lower_bead_count) const override;
+        coord_t getOptimalBeadCount(coord_t thickness) const override;
+        coord_t getTransitioningLength(coord_t lower_bead_count) const override;
+        float getTransitionAnchorPos(coord_t lower_bead_count) const override;
 
-        virtual std::string toString() const { return std::string("RedistributeBeadingStrategy+") + parent->toString(); }
+        virtual std::string toString() const;
 
     private:
         /*!

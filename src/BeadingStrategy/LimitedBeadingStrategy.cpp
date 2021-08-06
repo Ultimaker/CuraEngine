@@ -8,6 +8,40 @@
 namespace cura
 {
 
+std::string LimitedBeadingStrategy::toString() const
+{
+	return std::string("LimitedBeadingStrategy+") + parent->toString();
+}
+
+coord_t LimitedBeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
+{
+	return parent->getTransitioningLength(lower_bead_count);
+}
+
+float LimitedBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
+{
+	return parent->getTransitionAnchorPos(lower_bead_count);
+}
+
+LimitedBeadingStrategy::~LimitedBeadingStrategy()
+{
+	if(parent)
+	{
+		delete parent;
+	}
+}
+
+LimitedBeadingStrategy::LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategy* parent)
+    : BeadingStrategy(parent->getOptimalWidth(), /*default_transition_length=*/-1, parent->getTransitioningAngle())
+    , max_bead_count(max_bead_count)
+    , parent(parent)
+{
+	if (max_bead_count % 2 == 1)
+	{
+		RUN_ONCE(logWarning("LimitedBeadingStrategy with odd bead count is odd indeed!\n"));
+	}
+}
+
 LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
     if (bead_count <= max_bead_count)

@@ -26,17 +26,10 @@ public:
     /*!
      * Takes responsibility for deleting \param parent
      */
-    WideningBeadingStrategy(BeadingStrategy* parent, const coord_t min_input_width, const coord_t min_output_width)
-    : BeadingStrategy(parent->getOptimalWidth(), /*default_transition_length=*/-1, parent->getTransitioningAngle())
-    , parent(parent)
-    , min_input_width(min_input_width)
-    , min_output_width(min_output_width)
-    {
-    }
-    virtual ~WideningBeadingStrategy() override
-    {
-        if (parent) delete parent;
-    }
+    WideningBeadingStrategy(BeadingStrategy* parent, const coord_t min_input_width, const coord_t min_output_width);
+
+    virtual ~WideningBeadingStrategy() override;
+
     virtual Beading compute(coord_t thickness, coord_t bead_count) const override;
     virtual coord_t getOptimalThickness(coord_t bead_count) const override;
     virtual coord_t getTransitionThickness(coord_t lower_bead_count) const override;
@@ -44,11 +37,8 @@ public:
     virtual coord_t getTransitioningLength(coord_t lower_bead_count) const override;
     virtual float getTransitionAnchorPos(coord_t lower_bead_count) const override;
     virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const override;
-    virtual std::string toString() const override { return std::string("Widening+") + parent->toString();}
+    virtual std::string toString() const override;
 };
-
-
-
 
 } // namespace cura
 #endif // WIDENING_BEADING_STRATEGY_H
