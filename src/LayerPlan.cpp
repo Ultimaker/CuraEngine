@@ -83,7 +83,7 @@ void ExtruderPlan::applyBackPressureCompensation(const double back_pressure_comp
 
         const Ratio nominal_flow_for_path = path.config->getFlowRatio();
         const coord_t nominal_width_for_path = path.config->getLineWidth();
-        if (nominal_flow_for_path <= 0.0 || nominal_width_for_path <= 0)
+        if (nominal_flow_for_path <= 0.0 || nominal_width_for_path <= 0 || path.config->isTravelPath() || path.config->isBridgePath())
         {
             continue;
         }
