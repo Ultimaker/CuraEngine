@@ -13,9 +13,6 @@
 namespace cura
 {
 
-double inward_distributed_center_size = 2;
-
-
 coord_t getWeightedAverage(const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t max_bead_count)
 {
     if (max_bead_count > 2)
@@ -42,7 +39,8 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     const Ratio wall_transition_threshold,
     const coord_t max_bead_count,
     const coord_t outer_wall_offset,
-    const double minimum_variable_line_width
+    const double minimum_variable_line_width,
+	const double inward_distributed_center_size
 )
 {
     const coord_t bar_preferred_wall_width = getWeightedAverage(preferred_bead_width_outer, preferred_bead_width_inner, max_bead_count);
