@@ -1869,11 +1869,6 @@ void LayerPlan::applyBackPressureCompensation()
     {
         const double back_pressure_compensation =
             Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<double>("speed_equalize_flow_width_factor");
-
-        // TODO?? Not implemented yet, might need to be removed:
-        //const double min_flow_for_compensate =
-        //    Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<double>("speed_equalize_flow_min");
-
         if (back_pressure_compensation != 0.0)
         {
             extruder_plan.applyBackPressureCompensation(back_pressure_compensation);
