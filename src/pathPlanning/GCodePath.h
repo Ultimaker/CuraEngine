@@ -32,8 +32,8 @@ public:
     std::string mesh_id; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh ID should be 0.
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
     Ratio flow; //!< A type-independent flow configuration
-    Ratio flow_back_pressure_factor; // <! Save the flow back-pressure compensation separately, so we can decide when to use it.
     Ratio speed_factor; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
+    Ratio speed_back_pressure_factor; // <! The factor the (non-travel) speed should be multiplied with as a consequence of back pressure compensation.
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime; //!< Whether this path is preceded by a prime (blob)

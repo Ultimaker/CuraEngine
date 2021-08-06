@@ -89,8 +89,8 @@ void ExtruderPlan::applyBackPressureCompensation(const double back_pressure_comp
         }
         const coord_t line_width_for_path = (path.flow / nominal_flow_for_path) * nominal_width_for_path;
 
-         // Encode any compensation for back-pressure into the flow: Per the above description, multiply the flow with 1.0 / m(w):
-        path.flow_back_pressure_factor = 1.0 / (1.0 - (back_pressure_compensation * (line_width_for_path / nominal_width_for_path - 1.0)) / nominal_flow_for_path);
+         // Per the above description, set the speed-multiplication-factor as m(w):
+        path.speed_back_pressure_factor = 1.0 - (back_pressure_compensation * (line_width_for_path / nominal_width_for_path - 1.0)) / nominal_flow_for_path;
     }
 }
 
@@ -1636,7 +1636,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
-                        gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
+                        gcode.writeExtrusion(path.points[point_idx], speed * path.speed_back_pressure_factor, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }
                 }
             }
@@ -1669,7 +1669,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         p0 = p1;
                         gcode.setZ(std::round(z + layer_thickness * length / totalLength));
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), speed);
-                        gcode.writeExtrusion(path.points[point_idx], speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
+                        gcode.writeExtrusion(path.points[point_idx], speed * path.speed_back_pressure_factor, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
                     }
                     // for layer display only - the loop finished at the seam vertex but as we started from
                     // the location of the previous layer's seam vertex the loop may have a gap if this layer's
@@ -1847,10 +1847,10 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
         for(size_t point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
             communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
-            gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type);
+            gcode.writeExtrusion(path.points[point_idx], extrude_speed * path.speed_back_pressure_factor, path.getExtrusionMM3perMM(), path.config->type);
         }
         communication->sendLineTo(path.config->type, start, path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
-        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config->type);
+        gcode.writeExtrusion(start, extrude_speed * path.speed_back_pressure_factor, path.getExtrusionMM3perMM(), path.config->type);
     }
 
     // write coasting path
