@@ -90,7 +90,7 @@ void ExtruderPlan::applyBackPressureCompensation(const double back_pressure_comp
         const coord_t line_width_for_path = (path.flow / nominal_flow_for_path) * nominal_width_for_path;
 
          // Encode any compensation for back-pressure into the flow: Per the above description, multiply the flow with 1.0 / m(w):
-        path.flow *= 1.0 / (1.0 - (back_pressure_compensation * (line_width_for_path / nominal_width_for_path - 1.0)) / nominal_flow_for_path);
+        path.flow_back_pressure_factor = 1.0 / (1.0 - (back_pressure_compensation * (line_width_for_path / nominal_width_for_path - 1.0)) / nominal_flow_for_path);
     }
 }
 

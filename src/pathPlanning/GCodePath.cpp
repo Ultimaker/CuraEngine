@@ -11,6 +11,7 @@ config(&config),
 mesh_id(mesh_id),
 space_fill_type(space_fill_type),
 flow(flow),
+flow_back_pressure_factor(1.0),
 speed_factor(speed_factor),
 retract(false),
 perform_z_hop(false),
@@ -31,11 +32,12 @@ bool GCodePath::isTravelPath() const
 
 double GCodePath::getExtrusionMM3perMM() const
 {
-    return flow * config->getExtrusionMM3perMM();
+    return flow * flow_back_pressure_factor * config->getExtrusionMM3perMM();
 }
 
 coord_t GCodePath::getLineWidthForLayerView() const
 {
+    // Note the lack of 'flow_back_pressure_factor', as the layer-view should not show that.
     return flow * config->getLineWidth() * config->getFlowRatio();
 }
 
