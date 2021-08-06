@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef BEADING_STRATEGY_H
 #define BEADING_STRATEGY_H
@@ -21,8 +21,7 @@ namespace cura
  * 
  * The beads may have different widths.
  * 
- * TODO:
- * extend with printing order?
+ * TODO: extend with printing order?
  */
 class BeadingStrategy
 {
@@ -50,16 +49,9 @@ public:
      */
     AngleRadians transitioning_angle;
 
-    BeadingStrategy(coord_t optimal_width, coord_t default_transition_length, float transitioning_angle = pi_div(3))
-    : optimal_width(optimal_width)
-    , default_transition_length(default_transition_length)
-    , transitioning_angle(transitioning_angle)
-    {
-        name = "Unknown";
-    }
+    BeadingStrategy(coord_t optimal_width, coord_t default_transition_length, float transitioning_angle = pi_div(3));
 
-    virtual ~BeadingStrategy()
-    {}
+    virtual ~BeadingStrategy() {}
 
     /*!
      * Retrieve the bead widths with which to cover a given thickness.
