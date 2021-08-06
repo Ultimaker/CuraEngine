@@ -63,6 +63,8 @@ void ExtruderPlan::applyBackPressureCompensation(const double back_pressure_comp
     for (auto& path : paths)
     {
         /* Derived from the original formula, as in the paper.
+         * (See section 5.1 of 'A framework for adaptive width control of dense countour-parralel toolpath in fused deposition modelling'.)
+         *
          * Definitions:
          *   w is the line width, h is the layer height, v(w) is the speed given the line-width, f(w) is the flow given the line-width,
          *   f0, w0 are flow and width 'constant reference values' respectively:
@@ -1872,7 +1874,10 @@ void LayerPlan::applyBackPressureCompensation()
         //const double min_flow_for_compensate =
         //    Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<double>("speed_equalize_flow_min");
 
-        extruder_plan.applyBackPressureCompensation(back_pressure_compensation);
+        if (back_pressure_compensation != 0.0)
+        {
+            extruder_plan.applyBackPressureCompensation(back_pressure_compensation);
+        }
     }
 }
 

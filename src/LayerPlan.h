@@ -160,7 +160,13 @@ public:
     double getFanSpeed();
 
     /*!
-     * TODO: Documentation!
+     * Apply back-pressure compensation to this path.
+     * Since the total (filament) pressure in a feeder-system is not only dependant on the pressure that exists between the nozzle and the
+     * feed-mechanism (which should be near-constant on our setup), but _also_ between the nozzle and the last-printed layer. This last
+     * type is called 'back-pressure'. In this function, properties of the path-outflow are adjusted so that the back-pressure is
+     * compensated for. This is conjenctured to be especially important if the printer has a Bowden-tube style setup.
+     *
+     * \param The ammount of back-pressure compensation in mm^3/s. 'Applying' a value of 0 is a no-op.
      */
     void applyBackPressureCompensation(const double back_pressure_compensation);
 
@@ -750,7 +756,11 @@ public:
     void moveInsideCombBoundary(const coord_t distance);
 
     /*!
-     * TODO: Documentation!
+     * Apply back-pressure compensation to this layer-plan.
+     * Since the total (filament) pressure in a feeder-system is not only dependant on the pressure that exists between the nozzle and the
+     * feed-mechanism (which should be near-constant on our setup), but _also_ between the nozzle and the last-printed layer. This last
+     * type is called 'back-pressure'. In this function, properties of the outflow (of the paths for each extruder) are adjusted so that
+     * the back-pressure is compensated for. This is conjenctured to be especially important if the printer has a Bowden-tube style setup.
      */
     void applyBackPressureCompensation();
 };
