@@ -75,9 +75,15 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     BeadingStrategy* ret = nullptr;
     switch (type)
     {
-        case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(bar_preferred_wall_width, transitioning_angle, wall_transition_threshold);       break;
-        case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold);     break;
-        case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, inward_distributed_center_size);  break;
+        case StrategyType::Center:
+        	ret = new CenterDeviationBeadingStrategy(bar_preferred_wall_width, transitioning_angle, wall_transition_threshold);
+        	break;
+        case StrategyType::Distributed:
+        	ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold);
+        	break;
+        case StrategyType::InwardDistributed:
+        	ret = new InwardDistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, inward_distributed_center_size);
+        	break;
         default:
             logError("Cannot make strategy!\n");
             return nullptr;
