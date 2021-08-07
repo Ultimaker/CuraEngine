@@ -134,9 +134,9 @@ target_compile_definitions(_CuraEngine
         PUBLIC
             $<$<BOOL:${BUILD_TESTS}>:BUILD_TESTS=1>
             $<$<BOOL:${BUILD_TESTS}>:BUILD_TESTS>
+            $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
         PRIVATE
             VERSION=\"${CURA_ENGINE_VERSION}\"
-            $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
             $<$<BOOL:${WIN32}>:NOMINMAX>
             $<$<CONFIG:Debug>:ASSERT_INSANE_OUTPUT>
             $<$<CONFIG:Debug>:USE_CPU_TIME>
