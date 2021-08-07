@@ -187,7 +187,7 @@ endif()
 
 if(NOT TARGET polyclipping::polyclipping)
     message(STATUS "polyclipping: Using Shipped library.")
-    set(polyclipping_INCLUDE_DIRS libs/clipper)
+    set(polyclipping_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/libs/clipper")
     add_library(polyclipping::polyclipping INTERFACE IMPORTED)
     set_target_properties(polyclipping::polyclipping PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
             "${polyclipping_INCLUDE_DIRS}")
