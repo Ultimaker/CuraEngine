@@ -69,7 +69,7 @@ foreach (test ${engine_TEST_INTEGRATION})
 endforeach()
 foreach (test ${engine_TEST_SETTINGS})
     add_executable(${test} main.cpp settings/${test}.cpp)
-    target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock polyclipping::polyclipping)
+    target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock)
     add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tests/")
     add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
 endforeach()
