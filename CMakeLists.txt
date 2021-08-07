@@ -125,7 +125,7 @@ add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
 use_threads(_CuraEngine)
 
 target_include_directories(_CuraEngine
-        PRIVATE
+        PUBLIC
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
@@ -187,10 +187,12 @@ endif()
 
 if(NOT TARGET polyclipping::polyclipping)
     message(STATUS "polyclipping: Using Shipped library.")
-    target_include_directories(_CuraEngine PRIVATE libs/clipper)
-else()
-    target_link_libraries(_CuraEngine PRIVATE polyclipping::polyclipping)
+    set(polyclipping_INCLUDE_DIRS libs/clipper)
+    add_library(polyclipping::polyclipping INTERFACE IMPORTED)
+    set_target_properties(polyclipping::polyclipping PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+            "${polyclipping_INCLUDE_DIRS}")
 endif()
+target_link_libraries(_CuraEngine PUBLIC polyclipping::polyclipping)
 
 find_package(stb REQUIRED)
 if(CuraEngine_Download_Stb)
@@ -222,97 +224,7 @@ use_threads(CuraEngine)
 
 # Compiling the test environment.
 if (BUILD_TESTS)
-    include(CTest)
-    message(STATUS "Building tests...")
-    find_package(GTest CONFIG REQUIRED)
-
-    # List of tests. For each test there must be a file tests/${NAME}.cpp.
-    set(engine_TEST
-            GCodeExportTest
-            InfillTest
-            LayerPlanTest
-            MergeInfillLinesTest
-            PathOrderMonotonicTest
-            TimeEstimateCalculatorTest
-            )
-    set(engine_TEST_INTEGRATION
-            SlicePhaseTest
-            )
-    set(engine_TEST_SETTINGS
-            SettingsTest
-            )
-    if (ENABLE_ARCUS)
-        set(engine_TEST_ARCUS
-                ArcusCommunicationTest
-                ArcusCommunicationPrivateTest
-                )
-    endif ()
-    set(engine_TEST_UTILS
-            AABBTest
-            AABB3DTest
-            IntPointTest
-            LinearAlg2DTest
-            MinimumSpanningTreeTest
-            PolygonConnectorTest
-            PolygonTest
-            PolygonUtilsTest
-            SparseGridTest
-            StringTest
-            UnionFindTest
-            )
-
-    # Helper classes for some tests.
-    set(engine_TEST_ARCUS_HELPERS
-            tests/arcus/MockSocket.cpp
-            )
-    set(engine_TEST_HELPERS
-            tests/ReadTestPolygons.cpp
-            )
-
-    target_link_libraries(_CuraEngine PUBLIC GTest::gtest GTest::gmock)
-
-    #To make sure that the tests are built before running them, add the building of these tests as an additional test.
-    add_custom_target(build_all_tests)
-    add_test(BuildTests "${CMAKE_COMMAND}" --build "${CMAKE_CURRENT_BINARY_DIR}" --target build_all_tests)
-
-    foreach (test ${engine_TEST})
-        add_executable(${test} tests/main.cpp ${engine_TEST_HELPERS} tests/${test}.cpp)
-        target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock)
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    endforeach()
-    foreach (test ${engine_TEST_INFILL})
-        add_executable(${test} tests/main.cpp tests/infill/${test}.cpp)
-        target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock)
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    endforeach()
-    foreach (test ${engine_TEST_INTEGRATION})
-        add_executable(${test} tests/main.cpp tests/integration/${test}.cpp)
-        target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock)
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    endforeach()
-    foreach (test ${engine_TEST_SETTINGS})
-        add_executable(${test} tests/main.cpp tests/settings/${test}.cpp)
-        target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock)
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    endforeach()
-    if (ENABLE_ARCUS)
-        foreach (test ${engine_TEST_ARCUS})
-            add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
-            target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock Arcus::Arcus)
-            add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-            add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-        endforeach()
-    endif ()
-    foreach (test ${engine_TEST_UTILS})
-        add_executable(${test} tests/main.cpp tests/utils/${test}.cpp)
-        target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock)
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    endforeach()
+    add_subdirectory(tests)
 endif()
 
 # Installing CuraEngine.
