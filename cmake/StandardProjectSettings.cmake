@@ -202,7 +202,10 @@ function(AssureOutOfSourceBuilds)
     endif()
 endfunction()
 
-assureoutofsourcebuilds()
+option(ALLOW_IN_SOURCE_BUILD "Allow building in your source folder. Strongly discouraged" OFF)
+if(NOT ALLOW_IN_SOURCE_BUILD)
+    assureoutofsourcebuilds()
+endif()
 
 function(enable_sanitizers project_name)
 
