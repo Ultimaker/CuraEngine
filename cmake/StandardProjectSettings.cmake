@@ -59,15 +59,15 @@ if (NOT MSVC)
     else()
         set(POSITION_INDEPENDENT_CODE ON) # Defaults to on
         message(STATUS "Setting POSITION_INDEPENDENT_CODE: ${POSITION_INDEPENDENT_CODE}")
-
-        # Set Visual Studio flags MD/MDd or MT/MTd
-        if(BUILD_STATIC OR NOT BUILD_SHARED_LIBS)
-            message(STATUS "Setting MD/MDd flags")
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-        else()
-            message(STATUS "Setting MT/MTd flags")
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-        endif()
+    endif()
+else()
+    # Set Visual Studio flags MD/MDd or MT/MTd
+    if(BUILD_STATIC OR NOT BUILD_SHARED_LIBS)
+        message(STATUS "Setting MD/MDd flags")
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        message(STATUS "Setting MT/MTd flags")
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
     endif()
 endif()
 
