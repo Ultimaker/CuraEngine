@@ -1,0 +1,20 @@
+---
+Checks: '*,-fuchsia-*,-google-*,-zircon-*,-abseil-*,-modernize-use-trailing-return-type,-llvm-*, -llvmlibc-*'
+WarningsAsErrors: '-*'
+HeaderFilterRegex: ''
+FormatStyle: none
+CheckOptions:
+  - { key: readability-identifier-naming.EnumCase,              value: CamelCase }
+  - { key: readability-identifier-naming.EnumConstantCase,      value: UPPER_CASE }
+  - { key: readability-identifier-naming.ClassCase,             value: CamelCase }
+  - { key: readability-identifier-naming.ClassMemberCase,       value: CamelCase }
+  - { key: readability-identifier-naming.ClassMemberPostfix,    value: _ }
+  - { key: readability-identifier-naming.ConstantMemberPostfix, value: _ }
+  - { key: readability-identifier-naming.ConstantPointerCase,   value: lower_case }
+  - { key: readability-identifier-naming.ConstantPointerPostfix,value: _ptr }
+  - { key: readability-identifier-naming.LocalPointerCase,      value: lower_case }
+  - { key: readability-identifier-naming.LocalPointerPostfix,   value: _ptr }
+  - { key: readability-identifier-naming.VariableCase,          value: lower_case }
+  - { key: readability-identifier-naming.LocalVariableCase,     value: lower_case }
+  - { key: readability-identifier-naming.FunctionCase,          value: camelBack }
+  - { key: readability-identifier-naming.ParameterCase,         value: lower_case }
