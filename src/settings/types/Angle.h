@@ -53,9 +53,10 @@ public:
     {
         return std::fmod(std::fmod(value + other.value, 360) + 360, 360);
     }
-    AngleDegrees operator +(const int& other) const
+    template<class T>
+    AngleDegrees operator +(const T& other) const
     {
-        return operator+(AngleDegrees(other));
+        return operator+(AngleDegrees(static_cast<double>(other)));
     }
     AngleDegrees& operator +=(const AngleDegrees& other)
     {
@@ -65,6 +66,11 @@ public:
     AngleDegrees operator -(const AngleDegrees& other) const
     {
         return std::fmod(std::fmod(value - other.value, 360) + 360, 360);
+    }
+    template<class T>
+    AngleDegrees operator -(const T& other) const
+    {
+        return operator-(AngleDegrees(static_cast<double>(other)));
     }
     AngleDegrees& operator -=(const AngleDegrees& other)
     {
