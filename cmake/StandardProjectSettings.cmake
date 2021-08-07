@@ -37,6 +37,21 @@ endif()
 message(STATUS "Generating compile commands to ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(ENABLE_IPO "Enable Interprocedural Optimization, aka Link Time Optimization (LTO)" ON)
+if(ENABLE_IPO)
+    include(CheckIPOSupported)
+    check_ipo_supported(
+            RESULT
+            result
+            OUTPUT
+            output)
+    if(result)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+    else()
+        message(SEND_ERROR "IPO is not supported: ${output}")
+    endif()
+endif()
+
 if (NOT MSVC)
     # Compile with the -fPIC options if supported
     if(DEFINED POSITION_INDEPENDENT_CODE)  # Use the user/Conan set value
