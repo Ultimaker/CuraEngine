@@ -75,7 +75,7 @@ class CuraEngineConan(ConanFile):
             tc.blocks["generic_system"].values["generator_platform"] = None
             tc.blocks["generic_system"].values["toolset"] = None
 
-        tc.variables["USE_SYSTEM_LIBS"] = True
+        tc.variables["USE_SYSTEM_LIBS"] = False
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
         tc.variables["BUILD_TESTS"] = self.options.tests
         tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp

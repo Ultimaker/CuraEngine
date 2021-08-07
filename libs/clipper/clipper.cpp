@@ -38,7 +38,7 @@
 *                                                                              *
 *******************************************************************************/
 
-#include "clipper.hpp"
+#include "polyclipping/clipper.hpp"
 #include <cmath>
 #include <vector>
 #include <algorithm>
