@@ -162,6 +162,7 @@ endif()
 
 set_project_standards(_CuraEngine)
 set_project_warnings(_CuraEngine)
+enable_sanitizers(_CuraEngine)
 
 if(ENABLE_OPENMP)
     find_package(OpenMP REQUIRED)

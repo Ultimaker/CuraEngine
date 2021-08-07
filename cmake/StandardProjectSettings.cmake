@@ -203,3 +203,111 @@ function(AssureOutOfSourceBuilds)
 endfunction()
 
 assureoutofsourcebuilds()
+
+function(enable_sanitizers project_name)
+
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
+        option(ENABLE_COVERAGE "Enable coverage reporting for gcc/clang" FALSE)
+
+        if(ENABLE_COVERAGE)
+            target_compile_options(${project_name} INTERFACE --coverage -O0 -g)
+            target_link_libraries(${project_name} INTERFACE --coverage)
+        endif()
+
+        set(SANITIZERS "")
+
+        option(ENABLE_SANITIZER_ADDRESS "Enable address sanitizer" FALSE)
+        if(ENABLE_SANITIZER_ADDRESS)
+            list(APPEND SANITIZERS "address")
+        endif()
+
+        option(ENABLE_SANITIZER_LEAK "Enable leak sanitizer" FALSE)
+        if(ENABLE_SANITIZER_LEAK)
+            list(APPEND SANITIZERS "leak")
+        endif()
+
+        option(ENABLE_SANITIZER_UNDEFINED_BEHAVIOR "Enable undefined behavior sanitizer" FALSE)
+        if(ENABLE_SANITIZER_UNDEFINED_BEHAVIOR)
+            list(APPEND SANITIZERS "undefined")
+        endif()
+
+        option(ENABLE_SANITIZER_THREAD "Enable thread sanitizer" FALSE)
+        if(ENABLE_SANITIZER_THREAD)
+            if("address" IN_LIST SANITIZERS OR "leak" IN_LIST SANITIZERS)
+                message(WARNING "Thread sanitizer does not work with Address and Leak sanitizer enabled")
+            else()
+                list(APPEND SANITIZERS "thread")
+            endif()
+        endif()
+
+        option(ENABLE_SANITIZER_MEMORY "Enable memory sanitizer" FALSE)
+        if(ENABLE_SANITIZER_MEMORY AND CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
+            if("address" IN_LIST SANITIZERS
+                    OR "thread" IN_LIST SANITIZERS
+                    OR "leak" IN_LIST SANITIZERS)
+                message(WARNING "Memory sanitizer does not work with Address, Thread and Leak sanitizer enabled")
+            else()
+                list(APPEND SANITIZERS "memory")
+            endif()
+        endif()
+
+        list(
+                JOIN
+                SANITIZERS
+                ","
+                LIST_OF_SANITIZERS)
+
+    endif()
+
+    if(LIST_OF_SANITIZERS)
+        if(NOT
+                "${LIST_OF_SANITIZERS}"
+                STREQUAL
+                "")
+            target_compile_options(${project_name} INTERFACE -fsanitize=${LIST_OF_SANITIZERS})
+            target_link_options(${project_name} INTERFACE -fsanitize=${LIST_OF_SANITIZERS})
+        endif()
+    endif()
+
+endfunction()
+
+option(ENABLE_CPPCHECK "Enable static analysis with cppcheck" OFF)
+option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" OFF)
+option(ENABLE_INCLUDE_WHAT_YOU_USE "Enable static analysis with include-what-you-use" OFF)
+
+if(ENABLE_CPPCHECK)
+    find_program(CPPCHECK cppcheck)
+    if(CPPCHECK)
+        message(STATUS "Using cppcheck")
+        set(CMAKE_CXX_CPPCHECK
+                ${CPPCHECK}
+                --suppress=missingInclude
+                --enable=all
+                --inline-suppr
+                --inconclusive
+                -i
+                ${CMAKE_SOURCE_DIR}/imgui/lib)
+    else()
+        message(WARNING "cppcheck requested but executable not found")
+    endif()
+endif()
+
+if(ENABLE_CLANG_TIDY)
+    find_program(CLANGTIDY clang-tidy)
+    if(CLANGTIDY)
+        message(STATUS "Using clang-tidy")
+        set(CMAKE_CXX_CLANG_TIDY ${CLANGTIDY} -extra-arg=-Wno-unknown-warning-option)
+    else()
+        message(WARNING "clang-tidy requested but executable not found")
+    endif()
+endif()
+
+if(ENABLE_INCLUDE_WHAT_YOU_USE)
+    find_program(INCLUDE_WHAT_YOU_USE include-what-you-use)
+    if(INCLUDE_WHAT_YOU_USE)
+        message(STATUS "Using include-what-you-use")
+        set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE ${INCLUDE_WHAT_YOU_USE})
+    else()
+        message(WARNING "include-what-you-use requested but executable not found")
+    endif()
+endif()
