@@ -24,7 +24,7 @@ class CuraEngineConan(ConanFile):
     default_options = {
         "enable_arcus": True,
         "enable_openmp": True,
-        "tests": True,
+        "tests": False,
         "python_version": "3.8"
     }
     scm = {
@@ -61,7 +61,7 @@ class CuraEngineConan(ConanFile):
     def layout(self):
         clion_layout(self)
         self.cpp.build.bindirs = ["."]
-        self.patterns.build.bin = ["*.dll", "*.a", "*.so", "CuraEngine*"]
+        self.patterns.build.bin = ["*.dll", "*.a", "*.so", "*.exe", "CuraEngine*"]
         self.cpp.package.bindirs = ["bin"]
 
     def generate(self):
