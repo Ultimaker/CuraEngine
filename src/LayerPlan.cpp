@@ -82,12 +82,12 @@ void ExtruderPlan::applyBackPressureCompensation(const double back_pressure_comp
          */
 
         const Ratio nominal_flow_for_path = path.config->getFlowRatio();
-        const coord_t nominal_width_for_path = path.config->getLineWidth();
-        if (nominal_flow_for_path <= 0.0 || nominal_width_for_path <= 0 || path.config->isTravelPath() || path.config->isBridgePath())
+        const double nominal_width_for_path = static_cast<double>(path.config->getLineWidth());
+        if (nominal_flow_for_path <= 0.0 || nominal_width_for_path <= 0.0 || path.config->isTravelPath() || path.config->isBridgePath())
         {
             continue;
         }
-        const coord_t line_width_for_path = (path.flow / nominal_flow_for_path) * nominal_width_for_path;
+        const double line_width_for_path = (path.flow / nominal_flow_for_path) * nominal_width_for_path;
 
         // Per the above description, set the speed multiplication-factor, m(w):
         path.speed_back_pressure_factor = 1.0 - (back_pressure_compensation * (line_width_for_path / nominal_width_for_path - 1.0)) / nominal_flow_for_path;
