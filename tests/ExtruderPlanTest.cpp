@@ -1,6 +1,7 @@
 //Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <numeric> //For calculating averages.
 #include <gtest/gtest.h>
 
 #include "../src/LayerPlan.h" //Code under test.
@@ -244,6 +245,49 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
         }
         const double flow_mm3_per_sec = path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
         EXPECT_EQ(flow_mm3_per_sec, first_flow_mm3_per_sec) << "Every path must have a flow rate equal to the first, since the flow changes were completely compensated for.";
+    }
+}
+
+/*!
+ * Tests that a factor of 0.5 halves the differences in flow rate.
+ */
+TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
+{
+    extruder_plan.paths = GetParam();
+
+    //Calculate what the flow rates were originally.
+    std::vector<double> original_flows;
+    for(GCodePath& path : extruder_plan.paths)
+    {
+        if(path.config->getPrintFeatureType() == PrintFeatureType::MoveCombing || path.config->getPrintFeatureType() == PrintFeatureType::MoveRetraction)
+        {
+            continue; //Ignore travel moves.
+        }
+        original_flows.push_back(path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor);
+    }
+    const double original_average = std::accumulate(original_flows.begin(), original_flows.end(), 0) / original_flows.size();
+
+    //Apply the back pressure compensation with 50% factor!
+    extruder_plan.applyBackPressureCompensation(0.5_r);
+
+    //Calculate the new flow rates.
+    std::vector<double> new_flows;
+    for(GCodePath& path : extruder_plan.paths)
+    {
+        if(path.config->getPrintFeatureType() == PrintFeatureType::MoveCombing || path.config->getPrintFeatureType() == PrintFeatureType::MoveRetraction)
+        {
+            continue; //Ignore travel moves.
+        }
+        new_flows.push_back(path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor);
+    }
+    const double new_average = std::accumulate(new_flows.begin(), new_flows.end(), 0) / new_flows.size();
+    //Note that the new average doesn't necessarily need to be the same average! It is most likely a higher average in real-world scenarios.
+
+    //Test that the deviation from the average was halved.
+    ASSERT_EQ(original_flows.size(), new_flows.size()) << "We need to have the same number of extrusion moves.";
+    for(size_t i = 0; i < new_flows.size(); ++i)
+    {
+        EXPECT_DOUBLE_EQ((original_flows[i] - original_average) / 2.0, new_flows[i] - new_average);
     }
 }
 

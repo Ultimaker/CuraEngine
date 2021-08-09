@@ -45,6 +45,7 @@ class ExtruderPlan
     friend class ExtruderPlanPathsParameterizedTest;
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated);
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull);
+    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf);
 #endif
 protected:
     std::vector<GCodePath> paths; //!< The paths planned for this extruder
