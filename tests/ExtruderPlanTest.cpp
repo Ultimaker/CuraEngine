@@ -183,6 +183,16 @@ public:
             RetractionConfig()
         )
     {}
+
+    /*!
+     * Helper method to calculate the flow rate of a path in mm3 per second.
+     * \param path The path to calculate the flow rate of.
+     * \return The flow rate, in cubic millimeters per second.
+     */
+    double calculatePathFlow(const GCodePath& path)
+    {
+        return path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
+    }
 };
 
 INSTANTIATE_TEST_CASE_P(ExtruderPlanTestInstantiation, ExtruderPlanPathsParameterizedTest, testing::Values(
@@ -235,7 +245,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
         return;
     }
     //All flow rates must be equal to this one.
-    const double first_flow_mm3_per_sec = first_extrusion->getExtrusionMM3perMM() * first_extrusion->config->getSpeed() * first_extrusion->speed_factor * first_extrusion->speed_back_pressure_factor;
+    const double first_flow_mm3_per_sec = calculatePathFlow(*first_extrusion);
 
     for(GCodePath& path : extruder_plan.paths)
     {
@@ -243,7 +253,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
         {
             continue; //Ignore travel moves.
         }
-        const double flow_mm3_per_sec = path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
+        const double flow_mm3_per_sec = calculatePathFlow(path);
         EXPECT_EQ(flow_mm3_per_sec, first_flow_mm3_per_sec) << "Every path must have a flow rate equal to the first, since the flow changes were completely compensated for.";
     }
 }
@@ -263,7 +273,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
         {
             continue; //Ignore travel moves.
         }
-        original_flows.push_back(path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor);
+        original_flows.push_back(calculatePathFlow(path));
     }
     const double original_average = std::accumulate(original_flows.begin(), original_flows.end(), 0) / original_flows.size();
 
@@ -278,7 +288,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
         {
             continue; //Ignore travel moves.
         }
-        new_flows.push_back(path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor);
+        new_flows.push_back(calculatePathFlow(path));
     }
     const double new_average = std::accumulate(new_flows.begin(), new_flows.end(), 0) / new_flows.size();
     //Note that the new average doesn't necessarily need to be the same average! It is most likely a higher average in real-world scenarios.
