@@ -38,8 +38,8 @@ public:
 
 protected:
     BeadingStrategy* parent;
-	const coord_t min_input_width;
-	const coord_t min_output_width;
+    const coord_t min_input_width;
+    const coord_t min_output_width;
 };
 
 } // namespace cura

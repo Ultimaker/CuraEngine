@@ -27,13 +27,13 @@ protected:
 
 public:
     /*!
-	* \param distribution_radius the radius (in number of beads) over which to distribute the discrepancy between the feature size and the optimal thickness
-	*/
-    DistributedBeadingStrategy(	const coord_t optimal_width,
-    							const coord_t default_transition_length,
-								const AngleRadians transitioning_angle,
-								const Ratio wall_transition_threshold,
-								const float distribution_radius);
+    * \param distribution_radius the radius (in number of beads) over which to distribute the discrepancy between the feature size and the optimal thickness
+    */
+    DistributedBeadingStrategy( const coord_t optimal_width,
+                                const coord_t default_transition_length,
+                                const AngleRadians transitioning_angle,
+                                const Ratio wall_transition_threshold,
+                                const float distribution_radius);
 
     virtual ~DistributedBeadingStrategy() override {}
 
