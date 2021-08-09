@@ -158,6 +158,8 @@ public:
     }
 };
 
+static ExtruderPlanTestPathCollection path_collection;
+
 /*!
  * Tests in this class get parameterized with a vector of GCodePaths to put in
  * the extruder plan, and an extruder plan to put it in.
@@ -183,11 +185,11 @@ public:
 };
 
 INSTANTIATE_TEST_CASE_P(ExtruderPlanTestInstantiation, ExtruderPlanPathsParameterizedTest, testing::Values(
-        ExtruderPlanTestPathCollection().square,
-        ExtruderPlanTestPathCollection().lines,
-        ExtruderPlanTestPathCollection().decreasing_flow,
-        ExtruderPlanTestPathCollection().decreasing_speed,
-        ExtruderPlanTestPathCollection().variable_width
+        path_collection.square,
+        path_collection.lines,
+        path_collection.decreasing_flow,
+        path_collection.decreasing_speed,
+        path_collection.variable_width
 ));
 
 /*!
@@ -222,7 +224,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
 TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
 {
     extruder_plan.paths = GetParam();
-    //extruder_plan.applyBackPressureCompensation(1.0_r);
+    extruder_plan.applyBackPressureCompensation(1.0_r);
 
     auto first_extrusion = std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [](GCodePath& path) {
         return path.config->getPrintFeatureType() != PrintFeatureType::MoveCombing && path.config->getPrintFeatureType() != PrintFeatureType::MoveRetraction;
