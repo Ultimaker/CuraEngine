@@ -204,6 +204,32 @@ INSTANTIATE_TEST_CASE_P(ExtruderPlanTestInstantiation, ExtruderPlanPathsParamete
 ));
 
 /*!
+ * A fixture for general test cases involving extruder plans.
+ *
+ * This fixture provides a test extruder plan, without any paths, to test with.
+ */
+class ExtruderPlanTest : public testing::Test
+{
+public:
+    /*!
+     * An extruder plan that can be used as a victim for testing.
+     */
+    ExtruderPlan extruder_plan;
+
+    ExtruderPlanTest() :
+        extruder_plan(
+            /*extruder=*/0,
+            /*layer_nr=*/50,
+            /*is_initial_layer=*/false,
+            /*is_raft_layer=*/false,
+            /*layer_thickness=*/100,
+            FanSpeedLayerTimeSettings(),
+            RetractionConfig()
+        )
+    {}
+};
+
+/*!
  * Tests that paths remain unmodified if applying back pressure compensation
  * with factor 0.
  */
@@ -299,6 +325,18 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
     {
         EXPECT_DOUBLE_EQ((original_flows[i] - original_average) / 2.0, new_flows[i] - new_average);
     }
+}
+
+/*!
+ * Tests back pressure compensation on an extruder plan that is completely
+ * empty.
+ */
+TEST_F(ExtruderPlanTest, BackPressureCompensationEmptyPlan)
+{
+    //The extruder plan starts off empty. So immediately try applying back-pressure compensation.
+    extruder_plan.applyBackPressureCompensation(0.5_r);
+
+    EXPECT_TRUE(extruder_plan.paths.empty()) << "The paths in the extruder plan should remain empty. Also it shouldn't crash.";
 }
 
 }
