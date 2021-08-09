@@ -264,7 +264,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
     extruder_plan.applyBackPressureCompensation(1.0_r);
 
     auto first_extrusion = std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [](GCodePath& path) {
-        return path.config->getPrintFeatureType() != PrintFeatureType::MoveCombing && path.config->getPrintFeatureType() != PrintFeatureType::MoveRetraction;
+        return !path.config->isTravelPath();
     });
     if(first_extrusion == extruder_plan.paths.end()) //Only travel moves in this plan.
     {
@@ -275,7 +275,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
 
     for(GCodePath& path : extruder_plan.paths)
     {
-        if(path.config->getPrintFeatureType() == PrintFeatureType::MoveCombing || path.config->getPrintFeatureType() == PrintFeatureType::MoveRetraction)
+        if(path.config->isTravelPath())
         {
             continue; //Ignore travel moves.
         }
@@ -295,7 +295,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
     std::vector<double> original_flows;
     for(GCodePath& path : extruder_plan.paths)
     {
-        if(path.config->getPrintFeatureType() == PrintFeatureType::MoveCombing || path.config->getPrintFeatureType() == PrintFeatureType::MoveRetraction)
+        if(path.config->isTravelPath())
         {
             continue; //Ignore travel moves.
         }
@@ -310,7 +310,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
     std::vector<double> new_flows;
     for(GCodePath& path : extruder_plan.paths)
     {
-        if(path.config->getPrintFeatureType() == PrintFeatureType::MoveCombing || path.config->getPrintFeatureType() == PrintFeatureType::MoveRetraction)
+        if(path.config->isTravelPath())
         {
             continue; //Ignore travel moves.
         }
