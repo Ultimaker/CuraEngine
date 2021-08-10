@@ -39,7 +39,7 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     const Ratio wall_transition_threshold,
     const coord_t max_bead_count,
     const coord_t outer_wall_offset,
-    const double inward_distributed_center_size,
+    const double inward_distributed_center_wall_count,
     const double minimum_variable_line_width
 
 )
@@ -55,7 +55,7 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
             ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, 99999);
             break;
         case StrategyType::InwardDistributed:
-            ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, inward_distributed_center_size);
+            ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, inward_distributed_center_wall_count);
             break;
         default:
             logError("Cannot make strategy!\n");

@@ -35,7 +35,7 @@ public:
         Ratio wall_transition_thresold = 0.5_r,
         coord_t max_bead_count = 0,
         coord_t outer_wall_offset = 0,
-        double inward_distributed_center_size = 2,
+        double inward_distributed_center_wall_count = 2,
         double minimum_variable_line_width = 0.5
     );
 };
