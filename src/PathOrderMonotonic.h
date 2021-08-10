@@ -161,14 +161,14 @@ public:
             }
             else //Not a string of polylines, but simply adjacent line segments.
             {
+                if(connected_lines.find(*polyline_it) == connected_lines.end()) //Nothing connects to this line yet.
+                {
+                    starting_lines.insert(*polyline_it); //This is a starting point then.
+                }
                 const std::vector<Path*> overlapping_lines = getOverlappingLines(polyline_it, perpendicular, polylines);
                 if(overlapping_lines.size() == 1) //If we're not a string of polylines, but adjacent to only one other polyline, create a sequence of polylines.
                 {
                     connections[*polyline_it] = overlapping_lines[0];
-                    if(connected_lines.find(*polyline_it) == connected_lines.end()) //Nothing connects to this line yet.
-                    {
-                        starting_lines.insert(*polyline_it); //This is a starting point then.
-                    }
                     if(connected_lines.find(overlapping_lines[0]) != connected_lines.end()) //This line was already connected to.
                     {
                         starting_lines.insert(overlapping_lines[0]); //Multiple lines connect to it, so we must be able to start there.
