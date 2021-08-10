@@ -24,7 +24,7 @@ class CuraEngineConan(ConanFile):
     default_options = {
         "enable_arcus": True,
         "enable_openmp": True,
-        "tests": True,
+        "tests": False,
         "python_version": "3.8"
     }
     scm = {
@@ -40,6 +40,8 @@ class CuraEngineConan(ConanFile):
             self.options["Arcus"].python_version = self.options.python_version
             self.options["Arcus"].shared = True
         self.options["clipper"].shared = True
+        if self.settings.os == "Macos":
+            self.options.enable_openmp = False
 
     def build_requirements(self):
         self.build_requires("cmake/[>=3.16.2]")
@@ -61,7 +63,7 @@ class CuraEngineConan(ConanFile):
     def layout(self):
         clion_layout(self)
         self.cpp.build.bindirs = ["."]
-        self.patterns.build.bin = ["*.dll", "*.a", "*.so", "CuraEngine*"]
+        self.patterns.build.bin = ["*.dll", "*.a", "*.so", "*.exe", "CuraEngine*"]
         self.cpp.package.bindirs = ["bin"]
 
     def generate(self):
