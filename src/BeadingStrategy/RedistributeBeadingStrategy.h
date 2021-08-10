@@ -37,10 +37,10 @@ namespace cura
          *                                    average of the outer and inner walls at that bead count.
          * /param minimum_variable_line_width Minimum factor that the variable line might deviate from the optimal width.
          */
-        RedistributeBeadingStrategy( 	const coord_t optimal_width_outer,
-										const coord_t optimal_width_inner,
-										const double minimum_variable_line_width,
-										BeadingStrategy* parent);
+        RedistributeBeadingStrategy(const coord_t optimal_width_outer,
+                                    const coord_t optimal_width_inner,
+                                    const double minimum_variable_line_width,
+                                    BeadingStrategy* parent);
 
         virtual ~RedistributeBeadingStrategy() = default;
 

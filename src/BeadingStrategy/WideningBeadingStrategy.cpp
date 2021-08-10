@@ -16,15 +16,15 @@ WideningBeadingStrategy::WideningBeadingStrategy(BeadingStrategy* parent, const 
 
 WideningBeadingStrategy::~WideningBeadingStrategy()
 {
-	if (parent)
-	{
-		delete parent;
-	}
+    if (parent)
+    {
+        delete parent;
+    }
 }
 
 std::string WideningBeadingStrategy::toString() const
 {
-	return std::string("Widening+") + parent->toString();
+    return std::string("Widening+") + parent->toString();
 }
 
 WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const

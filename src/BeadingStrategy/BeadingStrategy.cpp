@@ -13,7 +13,7 @@ BeadingStrategy::BeadingStrategy(coord_t optimal_width, coord_t default_transiti
     , default_transition_length(default_transition_length)
     , transitioning_angle(transitioning_angle)
 {
-	name = "Unknown";
+    name = "Unknown";
 }
 
 coord_t BeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
@@ -45,17 +45,17 @@ std::string BeadingStrategy::toString() const
 
 coord_t BeadingStrategy::getDefaultTransitionLength() const
 {
-	return default_transition_length;
+    return default_transition_length;
 }
 
 coord_t BeadingStrategy::getOptimalWidth() const
 {
-	return optimal_width;
+    return optimal_width;
 }
 
 AngleRadians BeadingStrategy::getTransitioningAngle() const
 {
-	return transitioning_angle;
+    return transitioning_angle;
 }
 
 
