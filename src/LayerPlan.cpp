@@ -62,35 +62,14 @@ void ExtruderPlan::applyBackPressureCompensation(const double back_pressure_comp
 {
     for (auto& path : paths)
     {
-        /* Derived from the original formula, as in the paper.
-         * (See section 5.1 of 'A framework for adaptive width control of dense countour-parralel toolpath in fused deposition modelling'.)
-         *
-         * Definitions:
-         *   w is the line width, h is the layer height, v(w) is the speed given the line-width, f(w) is the flow given the line-width,
-         *   f0, w0 are flow and width 'constant reference values' respectively:
-         *
-         * v(w) = f(w) / hw = (f0 - k(w/w0 - 1)
-         *
-         * Derive m(w), where that is the factor either the speed or 1.0 / flow (since inversely related to each other all else being equal), given the current line-width.
-         * Note that v0(w) is what the current speed would be without back-pressure compensation, given the current line width.
-         *
-         * v0(w) = f0 / hw
-         * v(w) = m(w) v0(w)
-         * m(w) = v(w) / v0(w) = (f0 - k(w/w0 - 1) / hw) / (f0 / hw) = (f0 - k(w/w0 - 1)) / f0
-         * f0 m(w) = f0 - k(w/w0 - 1)
-         * m(w) = 1 - k(w/w0 - 1) / f0
-         */
-
         const Ratio nominal_flow_for_path = path.config->getFlowRatio();
         const double nominal_width_for_path = static_cast<double>(path.config->getLineWidth());
-        if (nominal_flow_for_path <= 0.0 || nominal_width_for_path <= 0.0 || path.config->isTravelPath() || path.config->isBridgePath())
+        if (path.flow <= 0.0 || nominal_flow_for_path <= 0.0 || nominal_width_for_path <= 0.0 || path.config->isTravelPath() || path.config->isBridgePath())
         {
             continue;
         }
-        const double line_width_for_path = (path.flow / nominal_flow_for_path) * nominal_width_for_path;
-
-        // Per the above description, set the speed multiplication-factor, m(w):
-        path.speed_back_pressure_factor = 1.0 - (back_pressure_compensation * (line_width_for_path / nominal_width_for_path - 1.0)) / nominal_flow_for_path;
+        const double line_width_for_path = path.flow * nominal_flow_for_path * nominal_width_for_path;
+        path.speed_back_pressure_factor = 1.0 + (nominal_width_for_path / line_width_for_path - 1.0) * back_pressure_compensation;
     }
 }
 

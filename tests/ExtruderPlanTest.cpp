@@ -194,13 +194,18 @@ public:
     {}
 
     /*!
-     * Helper method to calculate the flow rate of a path in mm3 per second.
+     * Helper method to calculate the flow rate of a path in mm3 per second, ignoring any user specified speed alteration other than the back pressure compensation.
      * \param path The path to calculate the flow rate of.
-     * \return The flow rate, in cubic millimeters per second.
+     * \return The flow rate, in cubic millimeters per second (ignoring any user specified speed alteration other than back-pressure compensation).
      */
     double calculatePathFlow(const GCodePath& path)
     {
-        return path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
+        return path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_back_pressure_factor;
+    }
+
+    bool shouldCountPath(const GCodePath& path) const
+    {
+        return path.flow > 0.0 && path.config->getFlowRatio() > 0.0 && path.config->getLineWidth() > 0.0 && ! path.config->isTravelPath() && ! path.config->isBridgePath();
     }
 };
 
@@ -272,8 +277,8 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
     extruder_plan.paths = GetParam();
     extruder_plan.applyBackPressureCompensation(1.0_r);
 
-    auto first_extrusion = std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [](GCodePath& path) {
-        return !path.config->isTravelPath();
+    auto first_extrusion = std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [&](GCodePath& path) {
+        return this->shouldCountPath(path);
     });
     if(first_extrusion == extruder_plan.paths.end()) //Only travel moves in this plan.
     {
@@ -284,7 +289,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
 
     for(GCodePath& path : extruder_plan.paths)
     {
-        if(path.config->isTravelPath())
+        if(! shouldCountPath(path))
         {
             continue; //Ignore travel moves.
         }
@@ -304,13 +309,13 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
     std::vector<double> original_flows;
     for(GCodePath& path : extruder_plan.paths)
     {
-        if(path.config->isTravelPath())
+        if (! shouldCountPath(path))
         {
             continue; //Ignore travel moves.
         }
         original_flows.push_back(calculatePathFlow(path));
     }
-    const double original_average = std::accumulate(original_flows.begin(), original_flows.end(), 0) / original_flows.size();
+    const double original_average = std::accumulate(original_flows.begin(), original_flows.end(), 0.0) / original_flows.size();
 
     //Apply the back pressure compensation with 50% factor!
     extruder_plan.applyBackPressureCompensation(0.5_r);
@@ -319,13 +324,13 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
     std::vector<double> new_flows;
     for(GCodePath& path : extruder_plan.paths)
     {
-        if(path.config->isTravelPath())
+        if (! shouldCountPath(path))
         {
             continue; //Ignore travel moves.
         }
         new_flows.push_back(calculatePathFlow(path));
     }
-    const double new_average = std::accumulate(new_flows.begin(), new_flows.end(), 0) / new_flows.size();
+    const double new_average = std::accumulate(new_flows.begin(), new_flows.end(), 0.0) / new_flows.size();
     //Note that the new average doesn't necessarily need to be the same average! It is most likely a higher average in real-world scenarios.
 
     //Test that the deviation from the average was halved.
