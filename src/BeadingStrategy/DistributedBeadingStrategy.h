@@ -33,7 +33,7 @@ public:
                                 const coord_t default_transition_length,
                                 const AngleRadians transitioning_angle,
                                 const Ratio wall_transition_threshold,
-                                const float distribution_radius);
+                                const int distribution_radius);
 
     virtual ~DistributedBeadingStrategy() override {}
 

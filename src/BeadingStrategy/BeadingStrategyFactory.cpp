@@ -39,7 +39,7 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     const Ratio wall_transition_threshold,
     const coord_t max_bead_count,
     const coord_t outer_wall_offset,
-    const double inward_distributed_center_wall_count,
+    const int inward_distributed_center_wall_count,
     const double minimum_variable_line_width
 
 )

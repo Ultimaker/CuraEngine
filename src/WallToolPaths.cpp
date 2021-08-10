@@ -73,7 +73,7 @@ const VariableWidthPaths& WallToolPaths::generate()
     {
         const coord_t wall_transition_length = settings.get<coord_t>("wall_transition_length");
         const Ratio wall_transition_threshold = settings.get<Ratio>("wall_transition_threshold");
-        const double wall_distribution_count = settings.get<int>("wall_distribution_count");
+        const int wall_distribution_count = settings.get<int>("wall_distribution_count");
         const size_t max_bead_count = 2 * inset_count;
         const auto beading_strat = std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy(
             strategy_type, bead_width_0, bead_width_x, wall_transition_length, transitioning_angle, print_thin_walls, min_bead_width,
