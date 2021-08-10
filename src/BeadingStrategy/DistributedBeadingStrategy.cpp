@@ -12,9 +12,16 @@ DistributedBeadingStrategy::DistributedBeadingStrategy(const coord_t optimal_wid
                                 const Ratio wall_transition_threshold,
                                 const int distribution_radius)
     : BeadingStrategy(optimal_width, default_transition_length, transitioning_angle),
-      wall_transition_threshold(wall_transition_threshold),
-      one_over_distribution_radius_squared(1.0f / distribution_radius * 1.0f / distribution_radius)
+      wall_transition_threshold(wall_transition_threshold)
 {
+    if(distribution_radius >= 1)
+    {
+        one_over_distribution_radius_squared = 1.0f / distribution_radius * 1.0f / distribution_radius;
+    }
+    else
+    {
+        one_over_distribution_radius_squared = 1.0f / 1 * 1.0f / 1;
+    }
     name = "DistributedBeadingStrategy";
 }
 
