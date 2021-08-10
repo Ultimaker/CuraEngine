@@ -103,9 +103,9 @@ class CuraEngineConan(ConanFile):
     def package_info(self):
         if self.in_local_cache:
             bin_path = os.path.join(self.package_folder, "bin")
-            self.runenv_info.define("CURAENGINE", str(os.path.join(bin_path, f"CuraEngine{self.ext}")))
+            self.user_info.CURAENGINE = str(os.path.join(bin_path, f"CuraEngine{self.ext}"))
             self.env_info.path.append(bin_path)
         else:
             bin_path = os.path.join(pathlib.Path(__file__).parent.absolute(), f"cmake-build-{self.settings.build_type}".lower())
-            self.runenv_info.define("CURAENGINE", str(os.path.join(bin_path, f"CuraEngine{self.ext}")))
+            self.user_info.CURAENGINE = str(os.path.join(bin_path, f"CuraEngine{self.ext}"))
             self.env_info.path.append(bin_path)
