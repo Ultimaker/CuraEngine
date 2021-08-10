@@ -2513,7 +2513,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
 
         if(monotonic)
         {
-            const AngleRadians monotonic_direction = AngleRadians(skin_angle + 90);
+            const AngleRadians monotonic_direction = AngleRadians(skin_angle);
             constexpr Ratio flow = 1.0_r;
             const coord_t max_adjacent_distance = config.getLineWidth() * 1.1; //Lines are considered adjacent if they are 1 line width apart, with 10% extra play. The monotonic order is enforced if they are adjacent.
             if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
