@@ -10,8 +10,6 @@
 namespace cura
 {
 
-extern double inward_distributed_center_size;
-
 enum class StrategyType
 {
     Center,
