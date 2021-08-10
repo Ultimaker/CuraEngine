@@ -172,6 +172,15 @@ public:
      */
     ExtruderPlan extruder_plan;
 
+    /*!
+     * Flow rate error margins allowed.
+     *
+     * Floating point arithmetic introduces minute errors which are irrelevant.
+     * As long as it's within a millionth, no extruder will be able to render
+     * the difference.
+     */
+    static constexpr double error_margin = 0.000001;
+
     ExtruderPlanPathsParameterizedTest() :
         extruder_plan(
             /*extruder=*/0,
@@ -249,8 +258,8 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
     ASSERT_EQ(extruder_plan.paths.size(), original_flows.size()) << "Number of paths may not have changed.";
     for(size_t i = 0; i < extruder_plan.paths.size(); ++i)
     {
-        EXPECT_EQ(original_flows[i], extruder_plan.paths[i].flow) << "The flow rate did not change. Back pressure compensation doesn't adjust flow.";
-        EXPECT_EQ(original_speeds[i], extruder_plan.paths[i].speed_factor) << "The speed factor did not change, since the compensation factor was 0.";
+        EXPECT_NEAR(original_flows[i], extruder_plan.paths[i].flow, error_margin) << "The flow rate did not change. Back pressure compensation doesn't adjust flow.";
+        EXPECT_NEAR(original_speeds[i], extruder_plan.paths[i].speed_factor, error_margin) << "The speed factor did not change, since the compensation factor was 0.";
     }
 }
 
@@ -280,7 +289,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
             continue; //Ignore travel moves.
         }
         const double flow_mm3_per_sec = calculatePathFlow(path);
-        EXPECT_EQ(flow_mm3_per_sec, first_flow_mm3_per_sec) << "Every path must have a flow rate equal to the first, since the flow changes were completely compensated for.";
+        EXPECT_NEAR(flow_mm3_per_sec, first_flow_mm3_per_sec, error_margin) << "Every path must have a flow rate equal to the first, since the flow changes were completely compensated for.";
     }
 }
 
@@ -323,7 +332,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
     ASSERT_EQ(original_flows.size(), new_flows.size()) << "We need to have the same number of extrusion moves.";
     for(size_t i = 0; i < new_flows.size(); ++i)
     {
-        EXPECT_DOUBLE_EQ((original_flows[i] - original_average) / 2.0, new_flows[i] - new_average);
+        EXPECT_NEAR((original_flows[i] - original_average) / 2.0, new_flows[i] - new_average, error_margin);
     }
 }
 
