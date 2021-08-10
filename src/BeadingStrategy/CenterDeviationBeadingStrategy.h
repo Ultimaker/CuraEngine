@@ -36,14 +36,9 @@ private:
      */
     coord_t minimum_line_width;
 public:
-    CenterDeviationBeadingStrategy(const coord_t pref_bead_width, const AngleRadians transitioning_angle, const Ratio wall_transition_threshold)
-    : BeadingStrategy(pref_bead_width, pref_bead_width / 2, transitioning_angle)
-    , minimum_line_width(pref_bead_width * wall_transition_threshold)
-    {
-        name = "CenterDeviationBeadingStrategy";
-    }
-    virtual ~CenterDeviationBeadingStrategy() override
-    {}
+    CenterDeviationBeadingStrategy(const coord_t pref_bead_width, const AngleRadians transitioning_angle, const Ratio wall_transition_threshold);
+
+    virtual ~CenterDeviationBeadingStrategy() override {}
     Beading compute(coord_t thickness, coord_t bead_count) const override;
     coord_t getOptimalThickness(coord_t bead_count) const override;
     coord_t getTransitionThickness(coord_t lower_bead_count) const override;

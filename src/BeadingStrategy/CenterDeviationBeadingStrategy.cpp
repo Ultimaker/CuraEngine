@@ -5,6 +5,12 @@
 
 namespace cura
 {
+    CenterDeviationBeadingStrategy::CenterDeviationBeadingStrategy(const coord_t pref_bead_width, const AngleRadians transitioning_angle, const Ratio wall_transition_threshold)
+    : BeadingStrategy(pref_bead_width, pref_bead_width / 2, transitioning_angle)
+    , minimum_line_width(pref_bead_width * wall_transition_threshold)
+    {
+        name = "CenterDeviationBeadingStrategy";
+    }
 
     CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
     {
