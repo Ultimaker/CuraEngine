@@ -1,4 +1,5 @@
 import os
+import pathlib
 
 from conans import ConanFile, tools
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake
@@ -33,6 +34,13 @@ class CuraEngineConan(ConanFile):
         "url": "auto",
         "revision": "auto"
     }
+
+    @property
+    def ext(self):
+        ext = ""
+        if self.settings.os == "Windows":
+            ext = ".exe"
+        return ext
 
     def configure(self):
         self.options["protobuf"].shared = False if self.settings.os == "Macos" else True
@@ -93,4 +101,11 @@ class CuraEngineConan(ConanFile):
         LayoutPackager(self).package()
 
     def package_info(self):
-        self.env_info.path.append(os.path.join(self.package_folder, "bin"))
+        if self.in_local_cache:
+            bin_path = os.path.join(self.package_folder, "bin")
+            self.runenv_info.define("CURAENGINE", str(os.path.join(bin_path, f"CuraEngine{self.ext}")))
+            self.env_info.path.append(bin_path)
+        else:
+            bin_path = os.path.join(pathlib.Path(__file__).parent.absolute(), f"cmake-build-{self.settings.build_type}".lower())
+            self.runenv_info.define("CURAENGINE", str(os.path.join(bin_path, f"CuraEngine{self.ext}")))
+            self.env_info.path.append(bin_path)
