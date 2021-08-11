@@ -1,9 +1,8 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "BeadingStrategyFactory.h"
 
-#include "InwardDistributedBeadingStrategy.h"
 #include "LimitedBeadingStrategy.h"
 #include "CenterDeviationBeadingStrategy.h"
 #include "WideningBeadingStrategy.h"
@@ -13,34 +12,6 @@
 
 namespace cura
 {
-
-double inward_distributed_center_size = 2;
-
-StrategyType toStrategyType(char c)
-{
-    switch (c)
-    {
-        case 'r':
-            return StrategyType::Center;
-        case 'd':
-            return StrategyType::Distributed;
-        case 'i':
-            return StrategyType::InwardDistributed;
-    }
-    return StrategyType::COUNT;
-}
-
-std::string to_string(StrategyType type)
-{
-    switch (type)
-    {
-        case StrategyType::Center:             return "CenterDeviation";
-        case StrategyType::Distributed:        return "Distributed";
-        case StrategyType::InwardDistributed:  return "InwardDistributed";
-        default: return "unknown_strategy";
-    }
-}
-
 
 coord_t getWeightedAverage(const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t max_bead_count)
 {
@@ -68,16 +39,24 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     const Ratio wall_transition_threshold,
     const coord_t max_bead_count,
     const coord_t outer_wall_offset,
+    const int inward_distributed_center_wall_count,
     const double minimum_variable_line_width
+
 )
 {
     const coord_t bar_preferred_wall_width = getWeightedAverage(preferred_bead_width_outer, preferred_bead_width_inner, max_bead_count);
     BeadingStrategy* ret = nullptr;
     switch (type)
     {
-        case StrategyType::Center:             ret = new CenterDeviationBeadingStrategy(bar_preferred_wall_width, transitioning_angle, wall_transition_threshold);       break;
-        case StrategyType::Distributed:        ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold);     break;
-        case StrategyType::InwardDistributed:  ret = new InwardDistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, inward_distributed_center_size);  break;
+        case StrategyType::Center:
+            ret = new CenterDeviationBeadingStrategy(bar_preferred_wall_width, transitioning_angle, wall_transition_threshold);
+            break;
+        case StrategyType::Distributed:
+            ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, 99999);
+            break;
+        case StrategyType::InwardDistributed:
+            ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, inward_distributed_center_wall_count);
+            break;
         default:
             logError("Cannot make strategy!\n");
             return nullptr;

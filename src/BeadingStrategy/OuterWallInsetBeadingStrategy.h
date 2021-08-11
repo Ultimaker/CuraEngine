@@ -14,24 +14,18 @@ namespace cura
     class OuterWallInsetBeadingStrategy : public BeadingStrategy
     {
     public:
-        OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategy* parent) :
-            BeadingStrategy(parent->optimal_width, parent->default_transition_length, parent->transitioning_angle),
-            parent(parent),
-            outer_wall_offset(outer_wall_offset)
-        {
-            name = "OuterWallOfsetBeadingStrategy";
-        }
+        OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategy* parent);
          
         virtual ~OuterWallInsetBeadingStrategy() = default;
 
         Beading compute(coord_t thickness, coord_t bead_count) const override;
         
-        coord_t getOptimalThickness(coord_t bead_count) const override { return parent->getOptimalThickness(bead_count);  }
-        coord_t getTransitionThickness(coord_t lower_bead_count) const override { return parent->getTransitionThickness(lower_bead_count); }
-        coord_t getOptimalBeadCount(coord_t thickness) const override { return parent->getOptimalBeadCount(thickness); }
-        coord_t getTransitioningLength(coord_t lower_bead_count) const override { return parent->getTransitioningLength(lower_bead_count); }
+        coord_t getOptimalThickness(coord_t bead_count) const override;
+        coord_t getTransitionThickness(coord_t lower_bead_count) const override;
+        coord_t getOptimalBeadCount(coord_t thickness) const override;
+        coord_t getTransitioningLength(coord_t lower_bead_count) const override;
         
-        virtual std::string toString() const { return std::string("OuterWallOfsetBeadingStrategy+") + parent->toString(); }
+        virtual std::string toString() const;
         
     private:
         BeadingStrategy* parent;

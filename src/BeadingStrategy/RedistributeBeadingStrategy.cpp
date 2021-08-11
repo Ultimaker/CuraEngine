@@ -8,6 +8,50 @@
 
 namespace cura
 {
+
+RedistributeBeadingStrategy::RedistributeBeadingStrategy(   const coord_t optimal_width_outer,
+                                                            const coord_t optimal_width_inner,
+                                                            const double minimum_variable_line_width,
+                                                            BeadingStrategy* parent) :
+        BeadingStrategy(parent->getOptimalWidth(), parent->getDefaultTransitionLength(), parent->getTransitioningAngle()),
+        parent(parent),
+        optimal_width_outer(optimal_width_outer),
+        optimal_width_inner(optimal_width_inner),
+        minimum_variable_line_width(minimum_variable_line_width)
+{
+    name = "RedistributeBeadingStrategy";
+}
+
+coord_t RedistributeBeadingStrategy::getOptimalThickness(coord_t bead_count) const
+{
+    return parent->getOptimalThickness(bead_count);
+}
+
+coord_t RedistributeBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
+{
+    return parent->getTransitionThickness(lower_bead_count);
+}
+
+coord_t RedistributeBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
+{
+    return parent->getOptimalBeadCount(thickness);
+}
+
+coord_t RedistributeBeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
+{
+    return parent->getTransitioningLength(lower_bead_count);
+}
+
+float RedistributeBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
+{
+    return parent->getTransitionAnchorPos(lower_bead_count);
+}
+
+std::string RedistributeBeadingStrategy::toString() const
+{
+    return toString() + parent->toString();
+}
+
 BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
     Beading ret;

@@ -8,6 +8,14 @@
 namespace cura
 {
 
+BeadingStrategy::BeadingStrategy(coord_t optimal_width, coord_t default_transition_length, float transitioning_angle)
+    : optimal_width(optimal_width)
+    , default_transition_length(default_transition_length)
+    , transitioning_angle(transitioning_angle)
+{
+    name = "Unknown";
+}
+
 coord_t BeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 {
     if (lower_bead_count == 0)
@@ -34,5 +42,21 @@ std::string BeadingStrategy::toString() const
 {
     return name;
 }
+
+coord_t BeadingStrategy::getDefaultTransitionLength() const
+{
+    return default_transition_length;
+}
+
+coord_t BeadingStrategy::getOptimalWidth() const
+{
+    return optimal_width;
+}
+
+AngleRadians BeadingStrategy::getTransitioningAngle() const
+{
+    return transitioning_angle;
+}
+
 
 } // namespace cura

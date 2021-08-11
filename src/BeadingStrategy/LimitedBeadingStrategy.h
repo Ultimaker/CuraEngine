@@ -28,39 +28,23 @@ namespace cura
 class LimitedBeadingStrategy : public BeadingStrategy
 {
 public:
-    const coord_t max_bead_count;
-    const BeadingStrategy* parent;
-    LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategy* parent)
-    : BeadingStrategy(parent->optimal_width, /*default_transition_length=*/-1, parent->transitioning_angle)
-    , max_bead_count(max_bead_count)
-    , parent(parent)
-    {
-        if (max_bead_count % 2 == 1)
-        {
-            RUN_ONCE(logWarning("LimitedBeadingStrategy with odd bead count is odd indeed!\n"));
-        }
-    }
+    LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategy* parent);
     
-    virtual ~LimitedBeadingStrategy() override
-    {
-        delete parent;
-    }
+    virtual ~LimitedBeadingStrategy() override;
     
     Beading compute(coord_t thickness, coord_t bead_count) const override;
     coord_t getOptimalThickness(coord_t bead_count) const override;
     coord_t getTransitionThickness(coord_t lower_bead_count) const override;
     coord_t getOptimalBeadCount(coord_t thickness) const override;
-    virtual std::string toString() const override { return std::string("LimitedBeadingStrategy+") + parent->toString();}
+    virtual std::string toString() const override;
     
-    coord_t getTransitioningLength(coord_t lower_bead_count) const override
-    {
-        return parent->getTransitioningLength(lower_bead_count);
-    }
+    coord_t getTransitioningLength(coord_t lower_bead_count) const override;
     
-    float getTransitionAnchorPos(coord_t lower_bead_count) const override
-    {
-        return parent->getTransitionAnchorPos(lower_bead_count);
-    }
+    float getTransitionAnchorPos(coord_t lower_bead_count) const override;
+
+protected:
+    const coord_t max_bead_count;
+    const BeadingStrategy* parent;
 };
 
 

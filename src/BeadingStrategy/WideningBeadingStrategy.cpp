@@ -6,6 +6,27 @@
 namespace cura
 {
 
+WideningBeadingStrategy::WideningBeadingStrategy(BeadingStrategy* parent, const coord_t min_input_width, const coord_t min_output_width)
+    : BeadingStrategy(parent->getOptimalWidth(), /*default_transition_length=*/-1, parent->getTransitioningAngle())
+    , parent(parent)
+    , min_input_width(min_input_width)
+    , min_output_width(min_output_width)
+{
+}
+
+WideningBeadingStrategy::~WideningBeadingStrategy()
+{
+    if (parent)
+    {
+        delete parent;
+    }
+}
+
+std::string WideningBeadingStrategy::toString() const
+{
+    return std::string("Widening+") + parent->toString();
+}
+
 WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
     if (thickness < optimal_width)

@@ -529,7 +529,7 @@ void SkeletalTrapezoidation::updateIsCentral()
 
     coord_t outer_edge_filter_length = beading_strategy.getTransitionThickness(0) / 2;
 
-    float cap = sin(beading_strategy.transitioning_angle * 0.5); // = cos(bisector_angle / 2)
+    float cap = sin(beading_strategy.getTransitioningAngle() * 0.5); // = cos(bisector_angle / 2)
     for (edge_t& edge: graph.edges)
     {
         assert(edge.twin);
