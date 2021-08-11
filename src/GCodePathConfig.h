@@ -28,6 +28,7 @@ public:
         Velocity speed; //!< movement speed (mm/s)
         Acceleration acceleration; //!< acceleration of head movement (mm/s^2)
         Velocity jerk; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
+        SpeedDerivatives(Velocity speed, Acceleration acceleration, Velocity jerk) : speed(speed), acceleration(acceleration), jerk(jerk) {}
     };
     const PrintFeatureType type; //!< name of the feature type
     static constexpr double FAN_SPEED_DEFAULT = -1;

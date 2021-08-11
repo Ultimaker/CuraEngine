@@ -1,10 +1,13 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
 #include <vector>
+#ifdef BUILD_TESTS
+    #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
+#endif
 
 #include "FanSpeedLayerTime.h"
 #include "gcodeExport.h"
@@ -38,6 +41,13 @@ class ExtruderPlan
 {
     friend class LayerPlan; // TODO: LayerPlan still does a lot which should actually be handled in this class.
     friend class LayerPlanBuffer; // TODO: LayerPlanBuffer handles paths directly
+#ifdef BUILD_TESTS
+    friend class ExtruderPlanPathsParameterizedTest;
+    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated);
+    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull);
+    FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf);
+    FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationEmptyPlan);
+#endif
 protected:
     std::vector<GCodePath> paths; //!< The paths planned for this extruder
     std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
@@ -158,6 +168,17 @@ public:
      * \return The fan speed computed in processFanSpeedAndMinimalLayerTime
      */
     double getFanSpeed();
+
+    /*!
+     * Apply back-pressure compensation to this path.
+     * Since the total (filament) pressure in a feeder-system is not only dependent on the pressure that exists between the nozzle and the
+     * feed-mechanism (which should be near-constant on a bowden style setup), but _also_ between the nozzle and the last-printed layer.
+     * This last type is called 'back-pressure'. In this function, properties of the path-outflow are adjusted so that the back-pressure is
+     * compensated for. This is conjectured to be especially important if the printer has a Bowden-tube style setup.
+     *
+     * \param The amount of back-pressure compensation in mm^3/s. 'Applying' a value of 0 is a no-op.
+     */
+    void applyBackPressureCompensation(const double back_pressure_compensation);
 
 protected:
     LayerIndex layer_nr; //!< The layer number at which we are currently printing.
@@ -743,6 +764,15 @@ public:
      * \param distance The distance to the comb boundary after we moved inside it.
      */
     void moveInsideCombBoundary(const coord_t distance);
+
+    /*!
+     * Apply back-pressure compensation to this layer-plan.
+     * Since the total (filament) pressure in a feeder-system is not only dependent on the pressure that exists between the nozzle and the
+     * feed-mechanism (which should be near-constant on a bowden style setup), but _also_ between the nozzle and the last-printed layer. This last
+     * type is called 'back-pressure'. In this function, properties of the outflow (of the paths for each extruder) are adjusted so that
+     * the back-pressure is compensated for. This is conjectured to be especially important if the printer has a Bowden-tube style setup.
+     */
+    void applyBackPressureCompensation();
 };
 
 }//namespace cura
