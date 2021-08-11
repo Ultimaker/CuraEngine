@@ -60,6 +60,7 @@ double ExtruderPlan::getFanSpeed()
 
 void ExtruderPlan::applyBackPressureCompensation(const double back_pressure_compensation)
 {
+    constexpr double epsilon_speed_factor = 0.001; // Don't put on actual 'limit double minimum', because we don't want printers to stall.
     for (auto& path : paths)
     {
         const Ratio nominal_flow_for_path = path.config->getFlowRatio();
@@ -69,7 +70,7 @@ void ExtruderPlan::applyBackPressureCompensation(const double back_pressure_comp
             continue;
         }
         const double line_width_for_path = path.flow * nominal_flow_for_path * nominal_width_for_path;
-        path.speed_back_pressure_factor = 1.0 + (nominal_width_for_path / line_width_for_path - 1.0) * back_pressure_compensation;
+        path.speed_back_pressure_factor = std::max(epsilon_speed_factor, 1.0 + (nominal_width_for_path / line_width_for_path - 1.0) * back_pressure_compensation);
     }
 }
 
