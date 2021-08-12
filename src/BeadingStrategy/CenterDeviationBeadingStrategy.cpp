@@ -5,9 +5,10 @@
 
 namespace cura
 {
-    CenterDeviationBeadingStrategy::CenterDeviationBeadingStrategy(const coord_t pref_bead_width, const AngleRadians transitioning_angle, const Ratio wall_transition_threshold)
+    CenterDeviationBeadingStrategy::CenterDeviationBeadingStrategy(const coord_t pref_bead_width, const AngleRadians transitioning_angle, const Ratio wall_split_middle_threshold, const Ratio wall_add_middle_threshold)
     : BeadingStrategy(pref_bead_width, pref_bead_width / 2, transitioning_angle)
-    , minimum_line_width(pref_bead_width * wall_transition_threshold)
+    , minimum_line_width_split(pref_bead_width * wall_split_middle_threshold)
+    , minimum_line_width_add(pref_bead_width* wall_add_middle_threshold)
     {
         name = "CenterDeviationBeadingStrategy";
     }
@@ -54,13 +55,14 @@ namespace cura
 
     coord_t CenterDeviationBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
     {
-        return lower_bead_count * optimal_width + minimum_line_width;
+        return lower_bead_count * optimal_width + (lower_bead_count % 2 == 1 ? minimum_line_width_split : minimum_line_width_add);
     }
 
     coord_t CenterDeviationBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
     {
         const coord_t naive_count = thickness / optimal_width; //How many lines we can fit in for sure.
         const coord_t remainder = thickness - naive_count * optimal_width; //Space left after fitting that many lines.
+        const coord_t minimum_line_width = naive_count % 2 == 1 ? minimum_line_width_split : minimum_line_width_add;
         return naive_count + (remainder > minimum_line_width); //If there's enough space, fit an extra one.
     }
 

@@ -27,16 +27,13 @@ class CenterDeviationBeadingStrategy : public BeadingStrategy
 #endif
 
 private:
-    /*!
-     * Minimum allowed line width.
-     *
-     * If the innermost two lines would be below this line width, it should use
-     * a single line instead. If the innermost center line would be below this
-     * line width, it should be left out as a gap.
-     */
-    coord_t minimum_line_width;
+    // For uneven numbers of lines: Minimum line width for which the middle line will be split into two lines.
+    coord_t minimum_line_width_split;
+
+    // For even numbers of lines: Minimum line width for which a new middle line will be added between the two innermost lines.
+    coord_t minimum_line_width_add;
 public:
-    CenterDeviationBeadingStrategy(const coord_t pref_bead_width, const AngleRadians transitioning_angle, const Ratio wall_transition_threshold);
+    CenterDeviationBeadingStrategy(const coord_t pref_bead_width, const AngleRadians transitioning_angle, const Ratio wall_split_middle_threshold, const Ratio wall_add_middle_threshold);
 
     virtual ~CenterDeviationBeadingStrategy() override {}
     Beading compute(coord_t thickness, coord_t bead_count) const override;
