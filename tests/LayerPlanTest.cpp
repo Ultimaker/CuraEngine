@@ -146,7 +146,7 @@ public:
         settings->add("raft_surface_speed", "53");
         settings->add("raft_surface_thickness", "0.103");
         settings->add("retraction_amount", "8");
-        settings->add("retraction_combing", "All");
+        settings->add("retraction_combing", "off");
         settings->add("retraction_count_max", "30");
         settings->add("retraction_enable", "false");
         settings->add("retraction_extra_prime_amount", "1");
