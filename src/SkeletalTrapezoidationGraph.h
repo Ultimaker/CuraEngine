@@ -4,8 +4,9 @@
 #ifndef SKELETAL_TRAPEZOIDATION_GRAPH_H
 #define SKELETAL_TRAPEZOIDATION_GRAPH_H
 
+#include <optional>
+
 #include "utils/HalfEdgeGraph.h"
-#include "utils/optional.h"
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 

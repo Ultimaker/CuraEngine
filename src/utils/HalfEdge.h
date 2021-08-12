@@ -5,7 +5,8 @@
 #define UTILS_HALF_EDGE_H
 
 #include <forward_list>
-#include "../utils/optional.h"  // until the move to C++17
+#include <optional>
+
 #include "../utils/IntPoint.h"
 #include "Coord_t.h"
 
