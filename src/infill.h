@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INFILL_H
@@ -6,7 +6,7 @@
 
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
-#include "settings/types/AngleDegrees.h"
+#include "settings/types/Angle.h"
 #include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/IntPoint.h"
@@ -337,7 +337,7 @@ private:
      * but makes calls to a ZigzagConnectorProcessor which handles what to do with each line segment - scanline intersection.
      * 
      * It is called only from Infill::generateLineinfill and Infill::generateZigZagInfill.
-     * 
+     *
      * \param[out] result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 

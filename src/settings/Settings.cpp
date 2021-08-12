@@ -11,8 +11,7 @@
 #include "EnumSettings.h"
 #include "FlowTempGraph.h"
 #include "Settings.h"
-#include "types/AngleDegrees.h" //For angle settings.
-#include "types/AngleRadians.h" //For angle settings.
+#include "types/Angle.h"
 #include "types/Duration.h" //For duration and time settings.
 #include "types/LayerIndex.h" //For layer index settings.
 #include "types/Ratio.h" //For ratio settings and percentages.

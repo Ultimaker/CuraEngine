@@ -1,11 +1,11 @@
 //Copyright (c) 2016 Tim Kuipers
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ConicalOverhang.h"
 #include "mesh.h"
 #include "slicer.h"
-#include "settings/types/AngleRadians.h" //To process the overhang angle.
+#include "settings/types/Angle.h" //To process the overhang angle.
 
 namespace cura {
 
