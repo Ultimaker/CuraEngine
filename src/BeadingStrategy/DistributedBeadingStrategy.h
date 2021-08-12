@@ -18,11 +18,12 @@ namespace cura
 class DistributedBeadingStrategy : public BeadingStrategy
 {
 protected:
-    /*!
-     * Threshold line width at which it will use fewer, wider lines instead of
-     * reducing the line width further.
-     */
-    Ratio wall_transition_threshold;
+     // For uneven numbers of lines: Minimum factor of the optimal width for which the middle line will be split into two lines.
+    Ratio wall_split_middle_threshold;
+    
+    // For even numbers of lines: Minimum factor of the optimal width for which a new middle line will be added between the two innermost lines.
+    Ratio wall_add_middle_threshold;
+
     float one_over_distribution_radius_squared; // (1 / distribution_radius)^2
 
 public:
@@ -32,7 +33,8 @@ public:
     DistributedBeadingStrategy( const coord_t optimal_width,
                                 const coord_t default_transition_length,
                                 const AngleRadians transitioning_angle,
-                                const Ratio wall_transition_threshold,
+                                const Ratio wall_split_middle_threshold,
+                                const Ratio wall_add_middle_threshold,
                                 const int distribution_radius);
 
     virtual ~DistributedBeadingStrategy() override {}

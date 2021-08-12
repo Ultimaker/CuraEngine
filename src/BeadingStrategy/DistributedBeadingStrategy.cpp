@@ -9,10 +9,12 @@ namespace cura
 DistributedBeadingStrategy::DistributedBeadingStrategy(const coord_t optimal_width,
                                 const coord_t default_transition_length,
                                 const AngleRadians transitioning_angle,
-                                const Ratio wall_transition_threshold,
+                                const Ratio wall_split_middle_threshold,
+                                const Ratio wall_add_middle_threshold,
                                 const int distribution_radius)
-    : BeadingStrategy(optimal_width, default_transition_length, transitioning_angle),
-      wall_transition_threshold(wall_transition_threshold)
+    : BeadingStrategy(optimal_width, default_transition_length, transitioning_angle)
+    , wall_split_middle_threshold(wall_split_middle_threshold)
+    , wall_add_middle_threshold(wall_add_middle_threshold)
 {
     if(distribution_radius >= 1)
     {
@@ -97,7 +99,7 @@ coord_t DistributedBeadingStrategy::getOptimalThickness(coord_t bead_count) cons
 
 coord_t DistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
-    return lower_bead_count * optimal_width + optimal_width * wall_transition_threshold;
+    return lower_bead_count * optimal_width + optimal_width * (lower_bead_count % 2 == 1 ? wall_split_middle_threshold : wall_add_middle_threshold);
 }
 
 coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const

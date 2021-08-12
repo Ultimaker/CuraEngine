@@ -72,14 +72,37 @@ const VariableWidthPaths& WallToolPaths::generate()
     if (prepared_outline.area() > 0)
     {
         const coord_t wall_transition_length = settings.get<coord_t>("wall_transition_length");
-        const Ratio wall_transition_threshold = settings.get<Ratio>("wall_transition_threshold");
+        const Ratio wall_split_middle_threshold = settings.get<Ratio>("wall_split_middle_threshold");  // For an uneven nr. of lines: When to split the middle wall into two.
+        const Ratio wall_add_middle_threshold = settings.get<Ratio>("wall_add_middle_threshold");      // For an even nr. of lines: When to add a new middle in between the innermost two walls.
         const int wall_distribution_count = settings.get<int>("wall_distribution_count");
         const size_t max_bead_count = 2 * inset_count;
-        const auto beading_strat = std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy(
-            strategy_type, bead_width_0, bead_width_x, wall_transition_length, transitioning_angle, print_thin_walls, min_bead_width,
-            min_feature_size, wall_transition_threshold, max_bead_count, wall_0_inset, wall_distribution_count));
+        const auto beading_strat =
+            std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy
+            (
+                strategy_type,
+                bead_width_0,
+                bead_width_x,
+                wall_transition_length,
+                transitioning_angle,
+                print_thin_walls,
+                min_bead_width,
+                min_feature_size,
+                wall_split_middle_threshold,
+                wall_add_middle_threshold,
+                max_bead_count,
+                wall_0_inset,
+                wall_distribution_count
+            ));
         const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
-        SkeletalTrapezoidation wall_maker(prepared_outline, *beading_strat, beading_strat->getTransitioningAngle(), discretization_step_size, transition_filter_dist, wall_transition_length);
+        SkeletalTrapezoidation wall_maker
+        (
+            prepared_outline,
+            *beading_strat,
+            beading_strat->getTransitioningAngle(),
+            discretization_step_size,
+            transition_filter_dist,
+            wall_transition_length
+        );
         wall_maker.generateToolpaths(toolpaths);
         computeInnerContour();
     }

@@ -10,6 +10,8 @@
 #include "RedistributeBeadingStrategy.h"
 #include "OuterWallInsetBeadingStrategy.h"
 
+#include <limits>
+
 namespace cura
 {
 
@@ -36,12 +38,12 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     const bool print_thin_walls,
     const coord_t min_bead_width,
     const coord_t min_feature_size,
-    const Ratio wall_transition_threshold,
+    const Ratio wall_split_middle_threshold,
+    const Ratio wall_add_middle_threshold,
     const coord_t max_bead_count,
     const coord_t outer_wall_offset,
     const int inward_distributed_center_wall_count,
     const double minimum_variable_line_width
-
 )
 {
     const coord_t bar_preferred_wall_width = getWeightedAverage(preferred_bead_width_outer, preferred_bead_width_inner, max_bead_count);
@@ -49,13 +51,13 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     switch (type)
     {
         case StrategyType::Center:
-            ret = new CenterDeviationBeadingStrategy(bar_preferred_wall_width, transitioning_angle, wall_transition_threshold);
+            ret = new CenterDeviationBeadingStrategy(bar_preferred_wall_width, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold);
             break;
         case StrategyType::Distributed:
-            ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, 99999);
+            ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold, std::numeric_limits<int>::max());
             break;
         case StrategyType::InwardDistributed:
-            ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_transition_threshold, inward_distributed_center_wall_count);
+            ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold, inward_distributed_center_wall_count);
             break;
         default:
             logError("Cannot make strategy!\n");
