@@ -146,7 +146,7 @@ public:
         settings->add("raft_surface_speed", "53");
         settings->add("raft_surface_thickness", "0.103");
         settings->add("retraction_amount", "8");
-        settings->add("retraction_combing", "off");
+        settings->add("retraction_combing", "All");
         settings->add("retraction_count_max", "30");
         settings->add("retraction_enable", "false");
         settings->add("retraction_extra_prime_amount", "1");
@@ -398,27 +398,6 @@ public:
         const Point destination(500000, 500000);
         return layer_plan.addTravel(destination);
     }
-
-    /*!
-     * Runs the test, adding a travel move to the layer plan with the specified input.
-     * \param unretract_before_last_travel_move Whether to unretract before the last travel move of the travel path,
-     * which comes before the wall to be printed. This should be true when we are adding outer walls to make sure
-     * that the unretraction will happen before the last travel move BEFORE going to that wall. This way, the nozzle
-     * doesn't sit still on top of the outer wall's path while it is unretracting, avoiding possible blips.
-     * \return The resulting g-code path.
-     */
-    GCodePath run(bool unretract_before_last_travel_move)
-    {
-        const Point destination(500000, 500000); // Add a long travel move
-        // Make sure that retractions are enabled. The cases with no prior retractions are already covered by the
-        // parametrized test run and the NoUnretractBeforeLastTravelMoveIfNoPriorRetraction
-        // test case, so no need to test them again.
-        settings->add("retraction_enable", "true");
-        settings->add("retraction_hop_enabled", "true");
-        settings->add("retraction_combing_max_distance", "1");
-        layer_plan.last_planned_position = Point(0, 0);
-        return layer_plan.addTravel(destination, true, unretract_before_last_travel_move);
-    }
 };
 
 INSTANTIATE_TEST_CASE_P(AllCombinations, AddTravelTest, testing::Combine(
@@ -569,18 +548,6 @@ TEST_P(AddTravelTest, NoUnretractBeforeLastTravelMoveIfNoPriorRetraction)
     {
         EXPECT_FALSE(result.unretract_before_last_travel_move) << "If no retraction has been issued, then there should also be no unretraction before the last travel move.";
     }
-}
-
-/*!
- * Test to verify that when adding a travel, if it is requested to unretract before the last travel move,
- * then this should be reflected in the path.
- */
-TEST_F(AddTravelTest, UnretractBeforeLastTravelMove)
-{
-    const GCodePath path_with_unretraction = run(true);
-    EXPECT_TRUE(path_with_unretraction.unretract_before_last_travel_move) << "If the travel path is requested to unretract before the last travel move, then this should be reflected in the path.";
-    const GCodePath path_without_unretraction = run(false);
-    EXPECT_FALSE(path_without_unretraction.unretract_before_last_travel_move) << "If the travel path is not requested to unretract before the last travel move, then this should be reflected in the path.";
 }
 
 }

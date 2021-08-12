@@ -476,12 +476,8 @@ public:
      * afterwards.
      * \param p The point to travel to.
      * \param force_retract Whether to force a retraction to occur.
-     * \param unretract_before_last_travel_move Whether to unretract before the last travel move of the travel path,
-     * which comes before the wall to be printed. This should be true when we are adding outer walls to make sure
-     * that the unretraction will happen before the last travel move BEFORE going to that wall. This way, the nozzle
-     * doesn't sit still on top of the outer wall's path while it is unretracting, avoiding possible blips.
      */
-    GCodePath& addTravel(const Point p, const bool force_retract = false, const bool unretract_before_last_travel_move = false);
+    GCodePath& addTravel(const Point p, const bool force_retract = false);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -581,12 +577,8 @@ public:
      * \param wall_0_wipe_dist The distance to travel along the wall after it has been laid down, in order to wipe the start and end of the wall together
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the wall (used for outer walls)
-     * \param unretract_before_last_travel_move Whether to unretract before the last travel move of the travel path,
-     * which comes before the wall to be printed. This should be true when we are adding outer walls to make sure
-     * that the unretraction will happen before the last travel move BEFORE going to that wall. This way, the nozzle
-     * doesn't sit still on top of the outer wall's path while it is unretracting, avoiding possible blips.
      */
-    void addWall(ConstPolygonRef polygon, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, bool unretract_before_last_travel_move);
+    void addWall(ConstPolygonRef polygon, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.
@@ -600,7 +592,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
      */
-    void addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false, bool unretract_before_last_travel_move = false);
+    void addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -655,7 +647,7 @@ public:
      * 
      * \param extruder_plan_idx The index of the current extruder plan
      * \param path_idx The index of the current retracted path 
-     * \return Whether the path should be an extgruder switch retracted path
+     * \return Whether the path should be an extruder switch retracted path
      */
     bool makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx);
     

@@ -273,10 +273,6 @@ void InsetOrderOptimizer::processHoleInsets()
             }
         }
 
-        // When adding an outer wall we need to make sure that we unretract before the last travel move before that
-        // wall gets printed. This way we avoid blips caused by unretractions when the nozzle is sitting on the outer
-        // wall.
-        constexpr bool unretract_before_last_travel_move = true;
         if (hole_inner_walls.size() > 0 && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr)
         {
             // output the inset polys
@@ -287,7 +283,7 @@ void InsetOrderOptimizer::processHoleInsets()
             {
                 if (extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
                 {
-                    gcode_layer.addWalls(hole_outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall, unretract_before_last_travel_move);
+                    gcode_layer.addWalls(hole_outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
                 }
                 gcode_layer.addWalls(hole_inner_walls, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
             }
@@ -315,7 +311,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 gcode_layer.addWalls(hole_inner_walls, mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x);
                 if (extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
                 {
-                    gcode_layer.addWall(hole_outer_wall[0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall, unretract_before_last_travel_move);
+                    gcode_layer.addWall(hole_outer_wall[0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
                     // move inside so an immediately following retract doesn't occur on the outer wall
                     moveInside();
                 }
@@ -334,11 +330,11 @@ void InsetOrderOptimizer::processHoleInsets()
             {
                 // align z-seam of hole with z-seam of outer wall - makes a nicer job when printing tubes
                 const unsigned point_idx = PolygonUtils::findNearestVert(start_point, hole_outer_wall.back());
-                gcode_layer.addWall(hole_outer_wall.back(), point_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall, unretract_before_last_travel_move);
+                gcode_layer.addWall(hole_outer_wall.back(), point_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
             }
             else
             {
-                gcode_layer.addWalls(hole_outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall, unretract_before_last_travel_move);
+                gcode_layer.addWalls(hole_outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
             }
             // move inside so an immediately following retract doesn't occur on the outer wall
             moveInside();
@@ -414,8 +410,6 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         order_optimizer.optimize();
         const unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(*inset_polys[0][0], order_optimizer.polyStart[0]);
         const Point z_seam_location = (*inset_polys[0][0])[outer_poly_start_idx];
-        // Since we are adding inner walls here, we don't have to unretract before the last travel move
-        constexpr bool unretract_before_last_travel_move = false;
 
         std::function<void(void)> addInnerWalls = [this, part_inner_walls, outer_inset_first, z_seam_location]()
         {
@@ -434,7 +428,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
             constexpr bool always_retract = false;
             for (unsigned int wall_idx : orderOptimizer.polyOrder)
             {
-                gcode_layer.addWall(part_inner_walls[wall_idx], orderOptimizer.polyStart[wall_idx], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x, wall_0_wipe_dist, flow_ratio, always_retract, unretract_before_last_travel_move);
+                gcode_layer.addWall(part_inner_walls[wall_idx], orderOptimizer.polyStart[wall_idx], mesh, mesh_config.insetX_config, mesh_config.bridge_insetX_config, wall_overlapper_x, wall_0_wipe_dist, flow_ratio, always_retract);
             }
         };
 
@@ -442,7 +436,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
         {
             if (include_outer && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
             {
-                gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall, unretract_before_last_travel_move);
+                gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
             }
             addInnerWalls();
         }
@@ -451,7 +445,7 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
             addInnerWalls();
             if (include_outer && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
             {
-                gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall, unretract_before_last_travel_move);
+                gcode_layer.addWall(*inset_polys[0][0], outer_poly_start_idx, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, wall_0_wipe_dist, flow, retract_before_outer_wall);
                 // move inside so an immediately following retract doesn't occur on the outer wall
                 moveInside();
             }
@@ -461,14 +455,12 @@ void InsetOrderOptimizer::processOuterWallInsets(const bool include_outer, const
     else if (include_outer && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
     {
         // just the outer wall, no inners
-        // When adding an outer wall we need to make sure that we unretract before the last travel move before that wall gets printed
-        constexpr bool unretract_before_last_travel_move = true;
 
         gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         Polygons part_outer_wall;
         part_outer_wall.add(*inset_polys[0][0]);
-        gcode_layer.addWalls(part_outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall, unretract_before_last_travel_move);
+        gcode_layer.addWalls(part_outer_wall, mesh, mesh_config.inset0_config, mesh_config.bridge_inset0_config, wall_overlapper_0, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
         // move inside so an immediately following retract doesn't occur on the outer wall
         moveInside();
         added_something = true;

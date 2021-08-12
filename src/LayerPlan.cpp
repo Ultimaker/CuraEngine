@@ -359,7 +359,7 @@ std::optional<std::pair<Point, bool>> LayerPlan::getFirstTravelDestinationState(
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract, const bool unretract_before_last_travel_move)
+GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
 {
     const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
     const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
@@ -405,7 +405,8 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract, const b
         // Multiply by 2 because if two lines start and end points places very close then will be applied combing with retractions. (Ex: for brim)
         const coord_t max_distance_ignored = extruder->settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2;
 
-        combed = comb->calc(*extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored);
+        bool unretract_before_last_travel_move = false; // Decided when calculating the combing
+        combed = comb->calc(*extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored, unretract_before_last_travel_move); //Here is the magic happening
         if (combed)
         {
             bool retract = path->retract || (combPaths.size() > 1 && retraction_enable);
@@ -442,7 +443,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract, const b
             Point last_point((last_planned_position) ? *last_planned_position : Point(0, 0));
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
-                if (combPath.size() == 0)
+                if (combPath.empty())
                 {
                     continue;
                 }
@@ -460,6 +461,11 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract, const b
                 path->retract = retract || (retract_threshold > 0 && distance > retract_threshold && retraction_enable);
                 // don't perform a z-hop
             }
+            // Whether to unretract before the last travel move of the travel path, which comes before the wall to be printed.
+            // This should be true when traveling towards an outer wall to make sure that the unretraction will happen before the
+            // last travel move BEFORE going to that wall. This way, the nozzle doesn't sit still on top of the outer wall's
+            // path while it is unretracting, avoiding possible blips.
+            path->unretract_before_last_travel_move = path->retract && unretract_before_last_travel_move;
         }
     }
 
@@ -491,8 +497,6 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract, const b
 
     // must start new travel path as retraction can be enabled or not depending on path length, etc.
     forceNewPathStart();
-
-    path->unretract_before_last_travel_move = path->retract && unretract_before_last_travel_move;
 
     GCodePath& ret = addTravel_simple(p, path);
     was_inside = is_inside;
@@ -798,7 +802,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const SliceMeshSto
     }
 }
 
-void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, bool unretract_before_last_travel_move)
+void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     // make sure wall start point is not above air!
     start_idx = locateFirstSupportedVertex(wall, start_idx);
@@ -919,7 +923,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
         {
             if (first_line || travel_required)
             {
-                addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract, unretract_before_last_travel_move);
+                addTravel(p0, (first_line) ? always_retract : wall_min_flow_retract);
                 first_line = false;
                 travel_required = false;
             }
@@ -999,7 +1003,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const SliceMeshStor
     }
 }
 
-void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, bool unretract_before_last_travel_move)
+void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, WallOverlapComputation* wall_overlap_computation, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
 {
     PathOrderOptimizer orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (unsigned int poly_idx = 0; poly_idx < walls.size(); poly_idx++)
@@ -1009,7 +1013,7 @@ void LayerPlan::addWalls(const Polygons& walls, const SliceMeshStorage& mesh, co
     orderOptimizer.optimize();
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract, unretract_before_last_travel_move);
+        addWall(walls[poly_idx], orderOptimizer.polyStart[poly_idx], mesh, non_bridge_config, bridge_config, wall_overlap_computation, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 

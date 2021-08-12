@@ -195,9 +195,13 @@ public:
      * \p startPoint (?) and \p endPoint.
      * \param startInside Whether we want to start inside the comb boundary.
      * \param endInside Whether we want to end up inside the comb boundary.
+     * \param unretract_before_last_travel_move Whether we should unretract before the last travel move when travelling
+     * because of combing. If the endpoint of a travel path changes with combing, then it means that an outer wall is
+     * involved, which means that we should then unretract before the last travel move to that wall to avoid any blips
+     * being introduced due to the unretraction.
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */
-    bool calc(const ExtruderTrain& train, Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, coord_t max_comb_distance_ignored);
+    bool calc(const ExtruderTrain& train, Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, coord_t max_comb_distance_ignored, bool &unretract_before_last_travel_move);
 };
 
 }//namespace cura
