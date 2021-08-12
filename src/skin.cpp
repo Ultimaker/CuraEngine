@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // std::ceil
@@ -10,7 +10,7 @@
 #include "infill.h"
 #include "sliceDataStorage.h"
 #include "settings/EnumSettings.h" //For EFillMethod.
-#include "settings/types/AngleRadians.h" //For the infill support angle.
+#include "settings/types/Angle.h" //For the infill support angle.
 #include "settings/types/Ratio.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
@@ -320,7 +320,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
             // but only if the roofing pattern is not concentric.
             if(!skin_part.roofing_fill.empty() && layer_nr > 0)
             {
-                // Regenerate the no_air_above, and recalculate the inner and roofing infills, 
+                // Regenerate the no_air_above, and recalculate the inner and roofing infills,
                 // taking into account the extra skin wall count (only for the roofing layers).
                 if(!concentric_skinfill_pattern)
                 {
@@ -512,7 +512,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
             infill_area_per_combine_current_density.push_back(infill_area);
-            part.infill_area_own = nullptr; // clear infill_area_own, it's not needed any more.
+            part.infill_area_own = std::nullopt; // clear infill_area_own, it's not needed any more.
             assert(!part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is now initialized");
         }
     }

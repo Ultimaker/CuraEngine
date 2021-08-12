@@ -2,11 +2,11 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stack>
+#include <optional>
 
 #include "linearAlg2D.h"
 #include "logoutput.h"
 #include "VoronoiUtils.h"
-#include "optional.h"
 
 namespace cura 
 {

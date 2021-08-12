@@ -1,7 +1,7 @@
-#Copyright (c) 2020 Ultimaker B.V.
+#Copyright (c) 2021 Ultimaker B.V.
 #CuraEngine is released under the terms of the AGPLv3 or higher.
 
-cmake_minimum_required(VERSION 3.6.0)
+cmake_minimum_required(VERSION 3.8.0)
 
 project(CuraEngine)
 
@@ -53,7 +53,7 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE_INIT}")
 endif()
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
@@ -154,6 +154,7 @@ set(engine_SRCS # Except main.cpp.
     src/Mold.cpp
     src/multiVolumes.cpp
     src/PathOrderOptimizer.cpp
+    src/PathOrder.cpp
     src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp
@@ -174,7 +175,7 @@ set(engine_SRCS # Except main.cpp.
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
     src/WallToolPaths.cpp
-    
+
     src/BeadingStrategy/BeadingOrderOptimizer.cpp
     src/BeadingStrategy/BeadingStrategy.cpp
     src/BeadingStrategy/BeadingStrategyFactory.cpp
@@ -184,7 +185,7 @@ set(engine_SRCS # Except main.cpp.
     src/BeadingStrategy/RedistributeBeadingStrategy.cpp
     src/BeadingStrategy/WideningBeadingStrategy.cpp
     src/BeadingStrategy/OuterWallInsetBeadingStrategy.cpp
-    
+
     src/communication/ArcusCommunication.cpp
     src/communication/ArcusCommunicationPrivate.cpp
     src/communication/CommandLine.cpp
@@ -246,6 +247,7 @@ set(engine_TEST
     InfillTest
     LayerPlanTest
     PathOrderOptimizerTest
+    PathOrderMonotonicTest
     TimeEstimateCalculatorTest
     WallsComputationTest
 )

@@ -5,11 +5,11 @@
 #define BEADING_STRATEGY_H
 
 #include <utility>
+#include <optional>
 
 #include "../utils/IntPoint.h"
 #include "../utils/logoutput.h"
-#include "../utils/optional.h"  // until the move to C++17
-#include "../settings/types/AngleRadians.h"
+#include "../settings/types/Angle.h"
 
 namespace cura
 {
