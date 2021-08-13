@@ -536,4 +536,18 @@ TEST_P(AddTravelTest, RetractIfCombingImpossible)
     }
 }
 
+/*!
+ * Tests to verify that when there is no retraction, then there should also be no unretraction before the last travel
+ * move in the path.
+ */
+TEST_P(AddTravelTest, NoUnretractBeforeLastTravelMoveIfNoPriorRetraction)
+{
+    const GCodePath result = run(GetParam());
+
+    if(!result.retract)
+    {
+        EXPECT_FALSE(result.unretract_before_last_travel_move) << "If no retraction has been issued, then there should also be no unretraction before the last travel move.";
+    }
+}
+
 }
