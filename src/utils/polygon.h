@@ -8,7 +8,7 @@
 #include <cassert>
 #include <cfloat>
 #include <algorithm>
-#include <polyclipping/clipper.hpp>
+#include <clipper.hpp>
 
 #include <algorithm>    // std::reverse, fill_n array
 #include <cmath> // fabs
