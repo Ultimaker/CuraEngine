@@ -227,18 +227,16 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
 void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
 {
     const coord_t min_width = mesh.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
-    coord_t bottom_total_expansion = 0; //Track if these end up being expanded beyond their original shape. If so, we need to clip to the original shape at the end.
-    coord_t top_total_expansion = 0;
 
-    //Expand some areas of the skin for Skin Expand Distance.
+    // Expand some areas of the skin for Skin Expand Distance.
     if(min_width > 0)
     {
-        //This performs an opening operation by first insetting by the minimum width, then offsetting with the same width.
-        //The expansion is only applied to that opened shape.
+        // This performs an opening operation by first insetting by the minimum width, then offsetting with the same width.
+        // The expansion is only applied to that opened shape.
         if(bottom_skin_expand_distance != 0)
         {
             const Polygons expanded = downskin.offset(-min_width).offset(min_width + bottom_skin_expand_distance);
-            //And then re-joined with the original part that was not offset, to retain parts smaller than min_width.
+            // And then re-joined with the original part that was not offset, to retain parts smaller than min_width.
             downskin = downskin.unionPolygons(expanded);
         }
         if(top_skin_expand_distance != 0)
@@ -247,7 +245,7 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
             upskin = upskin.unionPolygons(expanded);
         }
     }
-    else //No need to pay attention to minimum width. Just expand.
+    else // No need to pay attention to minimum width. Just expand.
     {
         if(bottom_skin_expand_distance != 0)
         {
@@ -258,25 +256,27 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
             upskin = upskin.offset(top_skin_expand_distance);
         }
     }
-    bottom_total_expansion += bottom_skin_expand_distance;
-    top_total_expansion += top_skin_expand_distance;
 
-    //Remove thin pieces of support for Skin Removal Width.
-    if(bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance))
+    bool should_bottom_be_clipped = bottom_skin_expand_distance > 0;
+    bool should_top_be_clipped = top_skin_expand_distance > 0;
+
+    // Remove thin pieces of support for Skin Removal Width.
+    if(bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance != 0))
     {
         downskin = downskin.offset(-bottom_skin_preshrink / 2).offset(bottom_skin_preshrink / 2);
+        should_bottom_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
     if(top_skin_preshrink > 0 || (min_width == 0 && top_skin_expand_distance != 0))
     {
         upskin = upskin.offset(-top_skin_preshrink / 2).offset(top_skin_preshrink / 2);
+        should_top_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
 
-    //If the skin was expanded beyond its original size, clip to make sure it stays within the skin/infill area.
-    if(bottom_total_expansion > 0)
+    if(should_bottom_be_clipped)
     {
         downskin = downskin.intersection(original_outline);
     }
-    if(top_total_expansion > 0)
+    if(should_top_be_clipped)
     {
         upskin = upskin.intersection(original_outline);
     }
