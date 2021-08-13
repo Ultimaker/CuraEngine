@@ -49,11 +49,7 @@ struct ExtrusionLine
      */
     std::vector<ExtrusionJunction> junctions;
 
-    ExtrusionLine(const size_t inset_idx, const bool is_odd, const size_t region_id = 0)
-    : inset_idx(inset_idx)
-    , is_odd(is_odd)
-    , region_id(region_id)
-    {}
+    ExtrusionLine(const size_t inset_idx, const bool is_odd, const size_t region_id = 0);
 
     /*!
      * Sum the total length of this path.

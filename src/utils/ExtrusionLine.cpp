@@ -9,6 +9,12 @@
 namespace cura
 {
 
+ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd, const size_t region_id)
+: inset_idx(inset_idx)
+, is_odd(is_odd)
+, region_id(region_id)
+{}
+
 coord_t ExtrusionLine::getLength() const
 {
     if (junctions.empty())
