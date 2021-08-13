@@ -406,7 +406,8 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
         // Multiply by 2 because if two lines start and end points places very close then will be applied combing with retractions. (Ex: for brim)
         const coord_t max_distance_ignored = extruder->settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2;
 
-        combed = comb->calc(*extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored);
+        bool unretract_before_last_travel_move = false; // Decided when calculating the combing
+        combed = comb->calc(*extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored, unretract_before_last_travel_move); //Here is the magic happening
         if (combed)
         {
             bool retract = path->retract || (combPaths.size() > 1 && retraction_enable);
@@ -443,7 +444,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
             Point last_point((last_planned_position) ? *last_planned_position : Point(0, 0));
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
-                if (combPath.size() == 0)
+                if (combPath.empty())
                 {
                     continue;
                 }
@@ -461,6 +462,11 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
                 path->retract = retract || (retract_threshold > 0 && distance > retract_threshold && retraction_enable);
                 // don't perform a z-hop
             }
+            // Whether to unretract before the last travel move of the travel path, which comes before the wall to be printed.
+            // This should be true when traveling towards an outer wall to make sure that the unretraction will happen before the
+            // last travel move BEFORE going to that wall. This way, the nozzle doesn't sit still on top of the outer wall's
+            // path while it is unretracting, avoiding possible blips.
+            path->unretract_before_last_travel_move = path->retract && unretract_before_last_travel_move;
         }
     }
 
@@ -1704,10 +1710,16 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.
                     gcode.setZ(final_travel_z);
                 }
-                for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
+                for(unsigned int point_idx = 0; point_idx < path.points.size() - 1; point_idx++)
                 {
                     gcode.writeTravel(path.points[point_idx], speed);
                 }
+                if (path.unretract_before_last_travel_move)
+                {
+                    // We need to unretract before the last travel move of the path if the next path is an outer wall.
+                    gcode.writeUnretractionAndPrime();
+                }
+                gcode.writeTravel(path.points.back(), speed);
                 continue;
             }
 
