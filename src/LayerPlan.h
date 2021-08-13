@@ -107,14 +107,7 @@ public:
      * \param path_idx The index into ExtruderPlan::paths which is currently being consider for temperature command insertion
      * \param gcode The gcode exporter to which to write the temperature command.
      */
-    void handleInserts(unsigned int& path_idx, GCodeExport& gcode)
-    {
-        while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
-        { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
-            inserts.front().write(gcode);
-            inserts.pop_front();
-        }
-    }
+    void handleInserts(unsigned int& path_idx, GCodeExport& gcode);
 
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
@@ -125,16 +118,7 @@ public:
      * 
      * \param gcode The gcode exporter to which to write the temperature command.
      */
-    void handleAllRemainingInserts(GCodeExport& gcode)
-    { 
-        while ( ! inserts.empty() )
-        { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
-            NozzleTempInsert& insert = inserts.front();
-            assert(insert.path_idx == paths.size());
-            insert.write(gcode);
-            inserts.pop_front();
-        }
-    }
+    void handleAllRemainingInserts(GCodeExport& gcode);
 
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed. 
@@ -237,16 +221,16 @@ class LayerPlan : public NoCopy
 {
     friend class LayerPlanBuffer;
     friend class AddTravelTest;
-private:
-    const SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
 public:
     const PathConfigStorage configs_storage; //!< The line configs for this layer for each feature type
     coord_t z;
     coord_t final_travel_z;
-    bool mode_skip_agressive_merge; //!< Wheter to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
+    bool mode_skip_agressive_merge; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
 private:
+
+    const SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
     const LayerIndex layer_nr; //!< The layer number of this layer plan
     const bool is_initial_layer; //!< Whether this is the first layer (which might be raft)
     const bool is_raft_layer; //!< Whether this is a layer which is part of the raft
@@ -288,7 +272,6 @@ private:
         PREFERRED
     };
 
-private:
     /*!
      * Either create a new path with the given config or return the last path if it already had that config.
      * If LayerPlan::forceNewPathStart has been called a new path will always be returned.
@@ -342,54 +325,21 @@ public:
      */
     ExtruderTrain* getLastPlannedExtruderTrain();
 
-    const Polygons* getCombBoundaryInside() const
-    {
-        return &comb_boundary_preferred;
-    }
+    const Polygons* getCombBoundaryInside() const;
 
-private:
-
-    /*!
-     * \brief Compute the preferred or minimum combing boundary
-     *
-     * Minimum combing boundary:
-     *  - If CombingMode::ALL: Add the outline offset (skin, infill and inner walls).
-     *  - If CombingMode::NO_SKIN: Add the outline offset, subtract skin (infill and inner walls).
-     *  - If CombingMode::INFILL: Add the infill (infill only).
-     *
-     * Preferred combing boundary:
-     *  - If CombingMode::ALL: Add the increased outline offset (skin, infill and part of the inner walls).
-     *  - If CombingMode::NO_SKIN: Add the increased outline offset, subtract skin (infill and part of the inner walls).
-     *  - If CombingMode::INFILL: Add the infill (infill only).
-     *
-     * \param boundary_type The boundary type to compute.
-     * \return the combing boundary or an empty Polygons if no combing is required
-     */
-    Polygons computeCombBoundary(const CombBoundary boundary_type);
-
-public:
-    int getLayerNr() const
-    {
-        return layer_nr;
-    }
+    int getLayerNr() const;
 
     /*!
      * Get the last planned position, or if no position has been planned yet, the user specified layer start position.
      * 
      * \warning The layer start position might be outside of the build plate!
      */
-    Point getLastPlannedPositionOrStartingPosition() const
-    {
-        return last_planned_position.value_or(layer_start_pos_per_extruder[getExtruder()]);
-    }
+    Point getLastPlannedPositionOrStartingPosition() const;
 
     /*!
      * return whether the last position planned was inside the mesh (used in combing)
      */
-    bool getIsInsideMesh() const
-    {
-        return was_inside;
-    }
+    bool getIsInsideMesh() const;
 
     /*!
      * Whether the prime tower is already planned for the specified extruder.
@@ -404,15 +354,9 @@ public:
      */
     void setPrimeTowerIsPlanned(unsigned int extruder_nr);
 
-    bool getSkirtBrimIsPlanned(unsigned int extruder_nr) const
-    {
-        return skirt_brim_is_processed[extruder_nr];
-    }
+    bool getSkirtBrimIsPlanned(unsigned int extruder_nr) const;
 
-    void setSkirtBrimIsPlanned(unsigned int extruder_nr)
-    {
-        skirt_brim_is_processed[extruder_nr] = true;
-    }
+    void setSkirtBrimIsPlanned(unsigned int extruder_nr);
 
     /*!
      * Get the destination state of the first travel move.
@@ -441,10 +385,7 @@ public:
     /*!
      * Get the last planned extruder.
      */
-    size_t getExtruder() const
-    {
-        return extruder_plans.back().extruder_nr;
-    }
+    size_t getExtruder() const;
 
     /*!
      * Track the currently printing mesh.
@@ -457,20 +398,14 @@ public:
      *
      * \param polys The unsupported areas of the part currently being processed that will require bridges.
      */
-    void setBridgeWallMask(const Polygons& polys)
-    {
-        bridge_wall_mask = polys;
-    }
+    void setBridgeWallMask(const Polygons& polys);
 
     /*!
      * Set overhang_mask.
      *
      * \param polys The overhung areas of the part currently being processed that will require modified print settings
      */
-    void setOverhangMask(const Polygons& polys)
-    {
-        overhang_mask = polys;
-    }
+    void setOverhangMask(const Polygons& polys);
 
     /*!
      * Travel to a certain point, with all of the procedures necessary to do so.
@@ -792,6 +727,26 @@ public:
      * the back-pressure is compensated for. This is conjectured to be especially important if the printer has a Bowden-tube style setup.
      */
     void applyBackPressureCompensation();
+
+private:
+
+    /*!
+     * \brief Compute the preferred or minimum combing boundary
+     *
+     * Minimum combing boundary:
+     *  - If CombingMode::ALL: Add the outline offset (skin, infill and inner walls).
+     *  - If CombingMode::NO_SKIN: Add the outline offset, subtract skin (infill and inner walls).
+     *  - If CombingMode::INFILL: Add the infill (infill only).
+     *
+     * Preferred combing boundary:
+     *  - If CombingMode::ALL: Add the increased outline offset (skin, infill and part of the inner walls).
+     *  - If CombingMode::NO_SKIN: Add the increased outline offset, subtract skin (infill and part of the inner walls).
+     *  - If CombingMode::INFILL: Add the infill (infill only).
+     *
+     * \param boundary_type The boundary type to compute.
+     * \return the combing boundary or an empty Polygons if no combing is required
+     */
+    Polygons computeCombBoundary(const CombBoundary boundary_type);
 };
 
 }//namespace cura

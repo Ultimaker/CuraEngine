@@ -40,6 +40,26 @@ ExtruderPlan::ExtruderPlan(const size_t extruder, const LayerIndex layer_nr, con
 {
 }
 
+void ExtruderPlan::handleInserts(unsigned int& path_idx, GCodeExport& gcode)
+{
+    while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
+    { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+        inserts.front().write(gcode);
+        inserts.pop_front();
+    }
+}
+
+void ExtruderPlan::handleAllRemainingInserts(GCodeExport& gcode)
+{
+    while ( ! inserts.empty() )
+    { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+        NozzleTempInsert& insert = inserts.front();
+        assert(insert.path_idx == paths.size());
+        insert.write(gcode);
+        inserts.pop_front();
+    }
+}
+
 void ExtruderPlan::setExtrudeSpeedFactor(const Ratio speed_factor)
 {
     extrudeSpeedFactor = speed_factor;
@@ -86,6 +106,11 @@ GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, Spa
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge;
     return ret;
+}
+
+const Polygons* LayerPlan::getCombBoundaryInside() const
+{
+    return &comb_boundary_preferred;
 }
 
 void LayerPlan::forceNewPathStart()
@@ -1915,6 +1940,46 @@ void LayerPlan::applyBackPressureCompensation()
             extruder_plan.applyBackPressureCompensation(back_pressure_compensation);
         }
     }
+}
+
+int LayerPlan::getLayerNr() const
+{
+    return layer_nr;
+}
+
+Point LayerPlan::getLastPlannedPositionOrStartingPosition() const
+{
+    return last_planned_position.value_or(layer_start_pos_per_extruder[getExtruder()]);
+}
+
+bool LayerPlan::getIsInsideMesh() const
+{
+    return was_inside;
+}
+
+bool LayerPlan::getSkirtBrimIsPlanned(unsigned int extruder_nr) const
+{
+    return skirt_brim_is_processed[extruder_nr];
+}
+
+void LayerPlan::setSkirtBrimIsPlanned(unsigned int extruder_nr)
+{
+    skirt_brim_is_processed[extruder_nr] = true;
+}
+
+size_t LayerPlan::getExtruder() const
+{
+    return extruder_plans.back().extruder_nr;
+}
+
+void LayerPlan::setBridgeWallMask(const Polygons& polys)
+{
+    bridge_wall_mask = polys;
+}
+
+void LayerPlan::setOverhangMask(const Polygons& polys)
+{
+    overhang_mask = polys;
 }
 
 }//namespace cura
