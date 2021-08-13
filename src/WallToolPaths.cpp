@@ -127,7 +127,7 @@ void WallToolPaths::simplifyToolPaths(VariableWidthPaths& toolpaths, const Setti
         const coord_t maximum_extrusion_area_deviation = settings.get<int>("meshfix_maximum_extrusion_area_deviation"); // unit: μm²
         for (auto& line : toolpaths[toolpaths_idx])
         {
-            line.simplify(maximum_resolution, maximum_deviation, maximum_extrusion_area_deviation);
+            line.simplify(maximum_resolution * maximum_resolution, maximum_deviation * maximum_deviation, maximum_extrusion_area_deviation);
         }
     }
 }
