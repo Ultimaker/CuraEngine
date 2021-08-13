@@ -296,7 +296,7 @@ void InsetOrderOptimizer::processHoleInsets()
                 const unsigned outer_poly_idx = order_optimizer.polyOrder[outer_poly_order_idx];
                 unsigned outer_poly_start_idx = gcode_layer.locateFirstSupportedVertex(hole_outer_wall[0], order_optimizer.polyStart[outer_poly_idx]);
 
-                // detect special case where where the z-seam is located on the sharpest corner and there is only 1 hole and
+                // detect special case where the z-seam is located on the sharpest corner and there is only 1 hole and
                 // the gap between the walls is just a few line widths
                 if (z_seam_config.type == EZSeamType::SHARPEST_CORNER && inset_polys[0].size() == 2 && PolygonUtils::polygonOutlinesAdjacent(*inset_polys[0][1], *inset_polys[0][0], max_gap * 4))
                 {
