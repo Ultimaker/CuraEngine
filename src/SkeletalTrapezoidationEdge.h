@@ -16,7 +16,6 @@ namespace cura
 class SkeletalTrapezoidationEdge
 {
 private:
-    using edge_t = SkeletalTrapezoidationEdge;
     enum class Central { UNKNOWN = -1, NO, YES };
 
 public:
