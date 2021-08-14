@@ -98,16 +98,7 @@ public:
      * 
      * \param filename The filename of the file to which to write the gcode.
      */
-    bool setTargetFile(const char* filename)
-    {
-        output_file.open(filename);
-        if (output_file.is_open())
-        {
-            gcode.setOutputStream(&output_file);
-            return true;
-        }
-        return false;
-    }
+    bool setTargetFile(const char* filename);
 
     /*!
      * Set the target to write gcode to: an output stream.
@@ -116,10 +107,7 @@ public:
      * 
      * \param stream The stream to write gcode to.
      */
-    void setTargetStream(std::ostream* stream)
-    {
-        gcode.setOutputStream(stream);
-    }
+    void setTargetStream(std::ostream* stream);
 
     /*!
      * Get the total extruded volume for a specific extruder in mm^3
@@ -129,20 +117,14 @@ public:
      * \param extruder_nr The extruder number for which to get the total netto extruded volume
      * \return total filament printed in mm^3
      */
-    double getTotalFilamentUsed(int extruder_nr)
-    {
-        return gcode.getTotalFilamentUsed(extruder_nr);
-    }
+    double getTotalFilamentUsed(int extruder_nr);
 
     /*!
      * Get the total estimated print time in seconds for each feature
      * 
      * \return total print time in seconds for each feature
      */
-    std::vector<Duration> getTotalPrintTimePerFeature()
-    {
-        return gcode.getTotalPrintTimePerFeature();
-    }
+    std::vector<Duration> getTotalPrintTimePerFeature();
 
     /*!
      * Write all the gcode for the current meshgroup.

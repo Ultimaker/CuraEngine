@@ -345,6 +345,11 @@ void GCodeExport::setZ(int z)
     current_layer_z = z;
 }
 
+void GCodeExport::addExtraPrimeAmount(double extra_prime_volume)
+{
+    extruder_attr[current_extruder].prime_volume += extra_prime_volume;
+}
+
 void GCodeExport::setFlowRateExtrusionSettings(double max_extrusion_offset, double extrusion_offset_factor)
 {
     this->max_extrusion_offset = max_extrusion_offset;

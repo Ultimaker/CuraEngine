@@ -27,12 +27,11 @@ public:
      * Get the instance
      * \return The instance
      */
-    static FffProcessor* getInstance() 
+    static FffProcessor* getInstance()
     {
-        return &instance; 
+        return &instance;
     }
 
-public:
     /*!
      * The gcode writer, which generates paths in layer plans in a buffer, which converts these paths into gcode commands.
      */
@@ -55,10 +54,7 @@ public:
      * 
      * \param filename The filename of the file to which to write the gcode.
      */
-    bool setTargetFile(const char* filename)
-    {
-        return gcode_writer.setTargetFile(filename);
-    }
+    bool setTargetFile(const char* filename);
 
     /*!
      * Set the target to write gcode to: an output stream.
@@ -67,10 +63,7 @@ public:
      * 
      * \param stream The stream to write gcode to.
      */
-    void setTargetStream(std::ostream* stream)
-    {
-        return gcode_writer.setTargetStream(stream);
-    }
+    void setTargetStream(std::ostream* stream);
 
     /*!
      * Get the total extruded volume for a specific extruder in mm^3
@@ -80,28 +73,19 @@ public:
      * \param extruder_nr The extruder number for which to get the total netto extruded volume
      * \return total filament printed in mm^3
      */
-    double getTotalFilamentUsed(int extruder_nr)
-    {
-        return gcode_writer.getTotalFilamentUsed(extruder_nr);
-    }
+    double getTotalFilamentUsed(int extruder_nr);
 
     /*!
      * Get the total estimated print time in seconds for each feature
      * 
      * \return total print time in seconds for each feature
      */
-    std::vector<Duration> getTotalPrintTimePerFeature()
-    {
-        return gcode_writer.getTotalPrintTimePerFeature();
-    }
+    std::vector<Duration> getTotalPrintTimePerFeature();
 
     /*!
      * Add the end gcode and set all temperatures to zero.
      */
-    void finalize()
-    {
-        gcode_writer.finalize();
-    }
+    void finalize();
 };
 
 }//namespace cura
