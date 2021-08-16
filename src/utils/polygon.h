@@ -5,10 +5,11 @@
 #define UTILS_POLYGON_H
 
 #include <vector>
-#include <cassert>
-#include <cfloat>
+
+#include <assert.h>
+#include <float.h>
 #include <algorithm>
-#include <clipper.hpp>
+#include "clipper.hpp"
 
 #include <algorithm>    // std::reverse, fill_n array
 #include <cmath> // fabs
