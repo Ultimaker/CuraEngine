@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring>
+#include <optional>
 
 #include "Application.h" //To communicate layer view data.
 #include "ExtruderTrain.h"
