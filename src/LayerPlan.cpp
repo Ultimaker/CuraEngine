@@ -372,7 +372,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
         const coord_t max_distance_ignored = extruder->settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2;
 
         bool unretract_before_last_travel_move = false; // Decided when calculating the combing
-        combed = comb->calc(*extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored, unretract_before_last_travel_move); //Here is the magic happening
+        combed = comb->calc(*extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored, unretract_before_last_travel_move);
         if (combed)
         {
             bool retract = path->retract || (combPaths.size() > 1 && retraction_enable);
