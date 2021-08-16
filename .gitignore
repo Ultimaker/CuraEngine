@@ -52,6 +52,9 @@ nbproject/*
 *.depend
 .*.swp
 .vs
+.cproject
+.project
+.settings
 
 ## Documentation.
 documentation/html/*
