@@ -5,9 +5,9 @@
 #define PATH_PLANNING_COMB_H
 
 #include <memory> // shared_ptr
-#include <limits> //To find the maximum for coord_t.
+#include <limits> // To find the maximum for coord_t.
 
-#include "../settings/types/LayerIndex.h" //To store the layer on which we comb.
+#include "../settings/types/LayerIndex.h" // To store the layer on which we comb.
 #include "../utils/polygon.h"
 #include "../utils/polygonUtils.h"
 #include "../utils/LazyInitialization.h"
@@ -36,7 +36,7 @@ class SliceDataStorage;
  * gap where the nozzle crosses the boundary of an object approximately
  * perpendicular to its boundary.
  *
- * As an optimisation, the combing paths inside are calculated on specifically
+ * As an optimization, the combing paths inside are calculated on specifically
  * those PolygonsParts within which to comb, while the boundary_outside isn't
  * split into outside parts, because generally there is only one outside part;
  * encapsulated holes occur less often.
