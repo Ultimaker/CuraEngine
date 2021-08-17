@@ -138,11 +138,7 @@ size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths
     {
         for (const ExtrusionLine& line : path)
         {
-            if (region_ids_to_bboxes.count(line.region_id) == 0)
-            {
-                region_ids_to_bboxes[line.region_id] = AABB();
-            }
-            AABB& aabb = region_ids_to_bboxes[line.region_id];
+            AABB& aabb = region_ids_to_bboxes[line.region_id]; // Empty AABBs are default initialized when region_ids are encountered for the first time.
             for (const auto& junction : line.junctions)
             {
                 aabb.include(junction.p);
