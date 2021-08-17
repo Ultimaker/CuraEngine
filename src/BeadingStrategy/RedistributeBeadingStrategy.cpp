@@ -24,7 +24,8 @@ RedistributeBeadingStrategy::RedistributeBeadingStrategy(   const coord_t optima
 
 coord_t RedistributeBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
-    return parent->getOptimalThickness(bead_count);
+    const coord_t inner_bead_count = bead_count > 2 ? bead_count - 2 : 0;
+    return parent->getOptimalThickness(inner_bead_count) + optimal_width_outer * 2;
 }
 
 coord_t RedistributeBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
