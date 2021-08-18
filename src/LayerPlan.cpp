@@ -1494,8 +1494,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     Communication* communication = Application::getInstance().communication;
     communication->setLayerForSend(layer_nr);
     communication->sendCurrentPosition(gcode.getPositionXY());
+
+    gcode.resetExtrusionValue();
     gcode.setLayerNr(layer_nr);
-    
     gcode.writeLayerComment(layer_nr);
 
     // flow-rate compensation
