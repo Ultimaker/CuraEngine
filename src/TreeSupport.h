@@ -711,7 +711,6 @@ class TreeSupport
               support_roof_line_width(mesh_group_settings.get<coord_t>("support_roof_line_width")),
               support_line_distance(mesh_group_settings.get<coord_t>("support_line_distance")),
               support_bottom_offset(mesh_group_settings.get<coord_t>("support_bottom_offset")),
-              minimum_bottom_area(mesh_group_settings.get<double>("minimum_bottom_area")),
               support_wall_count(mesh_group_settings.get<size_t>("support_wall_count")),
               maximum_deviation(mesh_group_settings.get<coord_t>("meshfix_maximum_deviation")),
               maximum_resolution(mesh_group_settings.get<coord_t>("meshfix_maximum_resolution"))
@@ -894,11 +893,6 @@ class TreeSupport
          * \brief Offset applied to the support floor area.
          */
         coord_t support_bottom_offset;
-
-        /*!
-         * \brief Minimum area for support floor to be added.
-         */
-        coord_t minimum_bottom_area;
         /*
          * \brief Amount of walls the support area will have.
          */
@@ -919,7 +913,7 @@ class TreeSupport
                    xy_distance - xy_min_distance == other.xy_distance - other.xy_min_distance && // if the delta of xy_min_distance and xy_distance is different the collision areas have to be recalculated.
                    support_rests_on_model == other.support_rests_on_model && increase_radius_until_layer == other.increase_radius_until_layer && min_dtt_to_model == other.min_dtt_to_model && max_to_model_radius_increase == other.max_to_model_radius_increase && maximum_move_distance == other.maximum_move_distance && maximum_move_distance_slow == other.maximum_move_distance_slow && z_distance_bottom_layers == other.z_distance_bottom_layers && support_line_width == other.support_line_width && support_overrides == other.support_overrides && // requires new avoidance calculation. Could be changed so it does not, but because i expect that this case happens seldom i dont think it is worth it.
                    support_line_distance == other.support_line_distance && support_roof_line_width == other.support_roof_line_width && // can not be set on a per mesh basis currently, so code to enable processing different roof line width in the same iteration seems useless.
-                   support_bottom_offset == other.support_bottom_offset && minimum_bottom_area == other.minimum_bottom_area && support_wall_count == other.support_wall_count && support_pattern == other.support_pattern && roof_pattern == other.roof_pattern && // can not be set on a per mesh basis currently, so code to enable processing different roof patterns in the same iteration seems useless.
+                   support_bottom_offset == other.support_bottom_offset && support_wall_count == other.support_wall_count && support_pattern == other.support_pattern && roof_pattern == other.roof_pattern && // can not be set on a per mesh basis currently, so code to enable processing different roof patterns in the same iteration seems useless.
                    support_roof_angles == other.support_roof_angles && support_infill_angles == other.support_infill_angles && performance_increased_xy_min == other.performance_increased_xy_min && increase_radius_until_radius == other.increase_radius_until_radius && support_bottom_layers == other.support_bottom_layers && layer_height == other.layer_height && z_distance_top_layers == other.z_distance_top_layers && maximum_deviation == other.maximum_deviation && // Infill generation depends on deviation and resolution.
                    maximum_resolution == other.maximum_resolution; // So they should be identical to ensure the tree will correctly support the roof.
         }

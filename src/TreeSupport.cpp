@@ -2150,7 +2150,6 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
                 }
             }
             floor_layer = floor_layer.unionPolygons();
-            floor_layer.removeSmallAreas(config.minimum_bottom_area);
             storage.support.supportLayers[layer_idx].support_bottom = storage.support.supportLayers[layer_idx].support_bottom.unionPolygons(floor_layer);
             support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(floor_layer.offset(10)); // Subtract the support floor from the normal support.
         }
