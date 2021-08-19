@@ -51,7 +51,9 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
             {
                 travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
             }
-            return storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports).offset(travel_avoid_distance);
+            // Get the layer outlines, but ignore internal holes (otherwise the combing might move into internal holes, which causes blips.
+            // If it's a "blind" hole (not visible from the outside) it doesn't really matter how it looks, but when moving to another shape, it can cause multiple crossings.
+            return storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports, /*external_polys_only = */ true).offset(travel_avoid_distance);
         }
     )
 , outside_loc_to_line(
