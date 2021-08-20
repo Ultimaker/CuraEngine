@@ -935,8 +935,6 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
 
     if (wall.size() >= 2)
     {
-        const ExtrusionJunction& p1 = wall[start_idx];
-
         if (!bridge_wall_mask.empty())
         {
             computeDistanceToBridgeStart((start_idx + wall.size() - 1) % wall.size());
@@ -948,6 +946,10 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
             int distance_traversed = 0;
             for (unsigned int point_idx = 1; ; point_idx++)
             {
+                if(point_idx > wall.size() && distance_traversed == 0) //Wall has a total circumference of 0. This loop would never end.
+                {
+                    break; //No wipe if the wall has no circumference.
+                }
                 ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
                 int p0p1_dist = vSize(p1 - p0);
                 if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
