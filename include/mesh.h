@@ -8,6 +8,7 @@
 #include "utils/AABB3D.h"
 #include "utils/FMatrix4x3.h"
 #include "utils/NoCopy.h"
+#include <boost/container/small_vector.hpp>
 #include <memory>
 
 namespace cura
@@ -23,9 +24,11 @@ class MeshVertex
 {
 public:
     Point3 p; //!< location of the vertex
-    std::vector<mesh_idx_t> connected_faces; //!< list of the indices of connected faces
+    boost::container::small_vector<mesh_idx_t, 8> connected_faces; //!< list of the indices of connected faces
 
-    MeshVertex(Point3 p) : p(p) {connected_faces.reserve(8);} //!< doesn't set connected_faces
+    MeshVertex(Point3 p) : p(p)
+    {
+    } //!< doesn't set connected_faces
 };
 
 /*! A MeshFace is a 3 dimensional model triangle with 3 points. These points are already converted to integers

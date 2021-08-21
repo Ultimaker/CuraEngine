@@ -262,7 +262,7 @@ See <a href="http://stackoverflow.com/questions/14066933/direct-way-of-computing
 */
 ptrdiff_t Mesh::getFaceIdxWithPoints(mesh_idx_t idx0, mesh_idx_t idx1, mesh_idx_t notFaceIdx, mesh_idx_t notFaceVertexIdx) const
 {
-    std::vector<mesh_idx_t> candidateFaces; // in case more than two faces meet at an edge, multiple candidates are generated
+    boost::container::small_vector<mesh_idx_t, 5> candidateFaces; // in case more than two faces meet at an edge, multiple candidates are generated
     for (mesh_idx_t f : vertices[idx0].connected_faces) // search through all faces connected to the first vertex and find those that are also connected to the second
     {
         if (f == notFaceIdx)
