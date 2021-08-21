@@ -1949,7 +1949,7 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
     {
         std::vector<std::pair<SupportElement*, Polygons>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
-        std::vector<std::pair<SupportElement*, Polygons>> update_next(processing.size(), std::pair<SupportElement*, Polygons>(nullptr, Polygons())); // with this a lock can be avoided
+        std::vector<std::vector<std::pair<SupportElement*, Polygons>>> update_next(processing.size()); // with this a lock can be avoided
 #pragma omp parallel for schedule(static, 1)
         for (coord_t processing_idx = 0; processing_idx < coord_t(processing.size()); processing_idx++)
         {
@@ -1973,19 +1973,20 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
                 {
                     if (config.getRadius(*parent) != config.getCollisionRadius(*parent))
                     {
-                        update_next[processing_idx] = std::pair<SupportElement*, Polygons>(parent, layer_tree_polygons[layer_idx + 1][parent].intersection(max_allowed_area));
+                        update_next[processing_idx].emplace_back(std::pair<SupportElement*, Polygons>(parent, layer_tree_polygons[layer_idx + 1][parent].intersection(max_allowed_area)));
                     }
                 }
             }
         }
-        for (std::pair<SupportElement*, Polygons> data_pair : update_next)
+        for (std::vector<std::pair<SupportElement*, Polygons>> data_vector : update_next)
         {
-            if (data_pair.first != nullptr)
+            for (std::pair<SupportElement*, Polygons> data_pair : data_vector)
             {
-                layer_tree_polygons[layer_idx + 1][data_pair.first] = data_pair.second;
+				layer_tree_polygons[layer_idx + 1][data_pair.first] = data_pair.second;
             }
         }
     }
+
 
     progress_total += PROGRESS_DRAW_AREAS / 6;
     Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, PROGRESS_TOTAL); // It is just assumed that both smoothing loops together are one third of the time spent in this function. This was guessed. As the whole function is only 10%, and the smoothing is hard to predict a progress report in the loop may be not useful.
