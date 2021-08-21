@@ -224,7 +224,7 @@ bool Mesh::isPrinted() const
     return ! settings.get<bool>("infill_mesh") && ! settings.get<bool>("cutting_mesh") && ! settings.get<bool>("anti_overhang_mesh");
 }
 
-mesh_idx_t Mesh::findIndexOfVertex(const Point3& v)
+inline mesh_idx_t Mesh::findIndexOfVertex(const Point3& v)
 {
     const mesh_idx_t new_idx = vertices.size();
     auto idx = spatial_map.insert(v, vertices);
@@ -260,7 +260,7 @@ See <a href="http://stackoverflow.com/questions/14066933/direct-way-of-computing
 
 
 */
-ptrdiff_t Mesh::getFaceIdxWithPoints(mesh_idx_t idx0, mesh_idx_t idx1, mesh_idx_t notFaceIdx, mesh_idx_t notFaceVertexIdx) const
+inline ptrdiff_t Mesh::getFaceIdxWithPoints(mesh_idx_t idx0, mesh_idx_t idx1, mesh_idx_t notFaceIdx, mesh_idx_t notFaceVertexIdx) const
 {
     boost::container::small_vector<mesh_idx_t, 5> candidateFaces; // in case more than two faces meet at an edge, multiple candidates are generated
     for (mesh_idx_t f : vertices[idx0].connected_faces) // search through all faces connected to the first vertex and find those that are also connected to the second
