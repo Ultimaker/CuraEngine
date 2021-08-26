@@ -133,7 +133,7 @@ size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths
     // Therefore, the outer-regions' lines will always have the region-id that is larger then all of the other ones.
 
     // First, build the bounding boxes:
-    std::map<size_t, AABB> region_ids_to_bboxes;
+    std::map<size_t, AABB> region_ids_to_bboxes; //Use a sorted map, ordered by region_id, so that we can find the largest region_id quickly.
     for (const VariableWidthLines& path : toolpaths)
     {
         for (const ExtrusionLine& line : path)
