@@ -17,6 +17,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <iostream> // auto-serialization / auto-toString()
 #include <limits>
 #include <stdint.h>
+#include <cassert>
 
 #include "Point3.h" //For applying Point3Matrices.
 
@@ -73,10 +74,39 @@ INLINE bool operator < (const Point& p0, const Point& p1) { return p0.X < p1.X |
 //INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
 //INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }
 
+//! Returns true if squaring the argument will saturate
+INLINE bool squareOverflow(coord_t x)
+{
+    static_assert(std::is_same_v<coord_t, signed long long>);
+    return std::abs(x) > 3037000499;
+}
+
+//! Returns the squared vector lenght
 INLINE coord_t vSize2(const Point& p0)
 {
-    return p0.X*p0.X+p0.Y*p0.Y;
+    assert(!squareOverflow(p0.X) || !squareOverflow(p0.Y));
+    coord_t sqX = p0.X * p0.X;
+    coord_t sqY = p0.Y * p0.Y;
+    assert(sqX <= std::numeric_limits<coord_t>::max() - sqY);
+    return sqX + sqY;
 }
+
+//! Returns the squared vector lenght, and a boolen indicating if the result is saturated
+INLINE std::pair<coord_t, bool> saturatingVSize2(const Point& p0)
+{
+    if (squareOverflow(p0.X) || squareOverflow(p0.Y))
+    {
+        return {std::numeric_limits<coord_t>::max(), true};
+    }
+    coord_t sqX = p0.X * p0.X;
+    coord_t sqY = p0.Y * p0.Y;
+    if (sqX > std::numeric_limits<coord_t>::max() - sqY)
+    {
+        return {std::numeric_limits<coord_t>::max(), true};
+    }
+    return {sqX + sqY, false};
+}
+
 INLINE float vSize2f(const Point& p0)
 {
     return static_cast<float>(p0.X)*static_cast<float>(p0.X)+static_cast<float>(p0.Y)*static_cast<float>(p0.Y);
@@ -333,4 +363,3 @@ inline Point operator-(const Point& p2, const Point3& p3) {
 
 }//namespace cura
 #endif//UTILS_INT_POINT_H
-

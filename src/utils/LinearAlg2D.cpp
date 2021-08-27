@@ -191,8 +191,6 @@ bool LinearAlg2D::lineSegmentsCollide(const Point& a_from_transformed, const Poi
 
 coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Point& b)
 {
-    constexpr coord_t SQRT_LLONG_MAX_FLOOR = 3037000499;
-
     //  x.......a------------b
     //  :
     //  :
@@ -208,10 +206,15 @@ coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Poin
         return ap_size2;
     }
     const coord_t dott = dot(vab, vap);
-    if (dott != 0 && std::abs(dott) > SQRT_LLONG_MAX_FLOOR)
+    if (!squareOverflow(dott))
+    {
+        const coord_t ax_size2 = dott * dott / ab_size2;
+        px_size2 = std::max(coord_t(0), ap_size2 - ax_size2);
+    }
+    else
     { // dott * dott will overflow so calculate px_size2 via its square root
         coord_t px_size = LinearAlg2D::getDistFromLine(p, a, b);
-        if (px_size <= SQRT_LLONG_MAX_FLOOR)
+        if (!squareOverflow(px_size))
         {
             // Due to rounding and conversion errors, this multiplication may not be the exact value that would be
             // produced via the dott product, but it should still be close enough
@@ -219,13 +222,8 @@ coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Poin
         }
         else
         {
-            px_size2 = std::numeric_limits<long long>::max();
+            px_size2 = std::numeric_limits<coord_t>::max();
         }
-    }
-    else
-    {
-        const coord_t ax_size2 = dott * dott / ab_size2;
-        px_size2 = std::max(coord_t(0), ap_size2 - ax_size2);
     }
     return px_size2;
 }
