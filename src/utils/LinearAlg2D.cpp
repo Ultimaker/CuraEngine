@@ -208,7 +208,7 @@ coord_t LinearAlg2D::getDist2FromLine(const Point& p, const Point& a, const Poin
         return ap_size2;
     }
     const coord_t dott = dot(vab, vap);
-    if (dott != 0 && abs(dott) > SQRT_LLONG_MAX_FLOOR)
+    if (dott != 0 && std::abs(dott) > SQRT_LLONG_MAX_FLOOR)
     { // dott * dott will overflow so calculate px_size2 via its square root
         coord_t px_size = LinearAlg2D::getDistFromLine(p, a, b);
         if (px_size <= SQRT_LLONG_MAX_FLOOR)
@@ -285,7 +285,7 @@ coord_t LinearAlg2D::getDistFromLine(const Point& p, const Point& a, const Point
     {
         return vSize(vap);
     }
-    const coord_t area_times_two = abs((p.X - b.X) * (p.Y - a.Y) + (a.X - p.X) * (p.Y - b.Y)); // Shoelace formula, factored
+    const coord_t area_times_two = std::abs((p.X - b.X) * (p.Y - a.Y) + (a.X - p.X) * (p.Y - b.Y)); // Shoelace formula, factored
     const coord_t px_size = area_times_two / ab_size;
     return px_size;
 }
