@@ -2156,6 +2156,10 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage, LayerPlan& 
 
 void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const
 {
+    if (skin_part.skin_fill.empty())
+    {
+        return; // bridgeAngle requires a non-empty skin_fill.
+    }
     const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
     if (extruder_nr != top_bottom_extruder_nr)
     {

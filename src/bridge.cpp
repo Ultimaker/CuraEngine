@@ -12,6 +12,7 @@ namespace cura
 
 int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const SliceDataStorage& storage, const unsigned layer_nr, const unsigned bridge_layer, const SupportLayer* support_layer, Polygons& supported_regions)
 {
+    assert(! skin_outline.empty());
     AABB boundary_box(skin_outline);
 
     //To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
