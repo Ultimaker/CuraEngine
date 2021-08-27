@@ -172,9 +172,9 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     const coord_t gradual_support_step_height = infill_extruder.settings.get<coord_t>("gradual_support_infill_step_height");
     const size_t max_density_steps = infill_extruder.settings.get<size_t>("gradual_support_infill_steps");
 
-    const auto wall_count = infill_extruder.settings.get<size_t>("support_wall_count");
-    const auto wall_width = infill_extruder.settings.get<coord_t>("line_width");
-    const auto overlap = infill_extruder.settings.get<coord_t>("infill_overlap_mm");
+    const coord_t wall_count = infill_extruder.settings.get<size_t>("support_wall_count");
+    const coord_t wall_width = infill_extruder.settings.get<coord_t>("support_line_width");
+    const coord_t overlap = infill_extruder.settings.get<coord_t>("infill_overlap_mm");
 
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
