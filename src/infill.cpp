@@ -569,7 +569,6 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
     const int min_scanline_index = computeScanSegmentIdx(boundary.min.X - shift, line_distance) + 1;
     const int max_scanline_index = computeScanSegmentIdx(boundary.max.X - shift, line_distance) + 1;
     crossings_per_scanline.resize(max_scanline_index - min_scanline_index);
-    bool connect_lines = this->connect_lines;
     if (connect_lines) {
         crossings_on_line.resize(outline.size()); //One for each polygon.
     }
@@ -709,7 +708,7 @@ void Infill::connectLines(Polygons& result_lines)
 
             //Sort crossings on every line by how far they are from their initial point.
             std::sort(crossings_on_polygon_segment.begin(), crossings_on_polygon_segment.end(),
-                        [vertex_before, polygon_index, vertex_index](InfillLineSegment* left_hand_side, InfillLineSegment* right_hand_side) {
+                        [&vertex_before, polygon_index, vertex_index](InfillLineSegment* left_hand_side, InfillLineSegment* right_hand_side) {
                 // Find the two endpoints that are relevant.
                 const Point left_hand_point = (left_hand_side->start_segment == vertex_index && left_hand_side->start_polygon == polygon_index) ? left_hand_side->start : left_hand_side->end;
                 const Point right_hand_point = (right_hand_side->start_segment == vertex_index && right_hand_side->start_polygon == polygon_index) ? right_hand_side->start : right_hand_side->end;
