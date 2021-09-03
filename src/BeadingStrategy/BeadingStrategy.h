@@ -4,8 +4,7 @@
 #ifndef BEADING_STRATEGY_H
 #define BEADING_STRATEGY_H
 
-#include <utility>
-#include <optional>
+#include <memory>
 
 #include "../utils/IntPoint.h"
 #include "../utils/logoutput.h"
@@ -106,6 +105,8 @@ protected:
      */
     AngleRadians transitioning_angle;
 };
+
+using BeadingStrategyPtr = std::unique_ptr<BeadingStrategy>;
 
 } // namespace cura
 #endif // BEADING_STRATEGY_H

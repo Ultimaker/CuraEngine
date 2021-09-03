@@ -76,8 +76,7 @@ const VariableWidthPaths& WallToolPaths::generate()
         const Ratio wall_add_middle_threshold = settings.get<Ratio>("wall_add_middle_threshold");      // For an even nr. of lines: When to add a new middle in between the innermost two walls.
         const int wall_distribution_count = settings.get<int>("wall_distribution_count");
         const size_t max_bead_count = 2 * inset_count;
-        const auto beading_strat =
-            std::unique_ptr<BeadingStrategy>(BeadingStrategyFactory::makeStrategy
+        const auto beading_strat = BeadingStrategyFactory::makeStrategy
             (
                 strategy_type,
                 bead_width_0,
@@ -92,7 +91,7 @@ const VariableWidthPaths& WallToolPaths::generate()
                 max_bead_count,
                 wall_0_inset,
                 wall_distribution_count
-            ));
+            );
         const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
         SkeletalTrapezoidation wall_maker
         (

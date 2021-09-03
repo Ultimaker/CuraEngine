@@ -22,7 +22,7 @@ enum class StrategyType
 class BeadingStrategyFactory
 {
 public:
-    static BeadingStrategy* makeStrategy
+    static BeadingStrategyPtr makeStrategy
     (
         const StrategyType type,
         const coord_t preferred_bead_width_outer = MM2INT(0.5),

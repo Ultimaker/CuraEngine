@@ -230,17 +230,14 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
         break;
     }
 
-    //TODO: The connected lines algorithm is only available for linear-based infill, for now.
-    //We skip ZigZag, Cross and Cross3D because they have their own algorithms. Eventually we want to replace all that with the new algorithm.
-    //Cubic Subdivision ends lines in the center of the infill so it won't be effective.
-    if (zig_zaggify && (pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::GRID || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::TRIHEXAGON))
+    if (connect_lines)
     {
         //The list should be empty because it will be again filled completely. Otherwise might have double lines.
+        assert(result_lines.empty());
         result_lines.clear();
-
         connectLines(result_lines);
     }
-    crossings_on_line.clear();
+
     result_polygons.simplify(max_resolution, max_deviation);
 }
 
@@ -453,19 +450,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
 void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t shift)
 {
-    auto compare_coord_t = [](const void* a, const void* b)
-    {
-        coord_t n = (*(coord_t*)a) - (*(coord_t*)b);
-        if (n < 0)
-        {
-            return -1;
-        }
-        if (n > 0)
-        {
-            return 1;
-        }
-        return 0;
-    };
+    assert(!connect_lines && "connectLines() should add the infill lines, not addLineInfill");
 
     unsigned int scanline_idx = 0;
     for(coord_t x = scanline_min_idx * line_distance + shift; x < boundary.max.X; x += line_distance)
@@ -475,18 +460,14 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
             break;
         }
         std::vector<coord_t>& crossings = cut_list[scanline_idx];
-        qsort(crossings.data(), crossings.size(), sizeof(coord_t), compare_coord_t);
+        std::sort(crossings.begin(), crossings.end()); // sort by increasing Y coordinates
         for(unsigned int crossing_idx = 0; crossing_idx + 1 < crossings.size(); crossing_idx += 2)
         {
             if (crossings[crossing_idx + 1] - crossings[crossing_idx] < infill_line_width / 5)
             { // segment is too short to create infill
                 continue;
             }
-            //We have to create our own lines when they are not created by the method connectLines.
-            if (!zig_zaggify || pattern == EFillMethod::ZIG_ZAG || pattern == EFillMethod::LINES)
-            {
-                result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
-            }
+            result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
         }
         scanline_idx += 1;
     }
@@ -553,7 +534,6 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
 
     Polygons outline = inner_contour; //Make a copy. We'll be rotating this outline to make intersections always horizontal, for better performance.
     outline.applyMatrix(rotation_matrix);
-    crossings_on_line.resize(outline.size()); //One for each polygon.
 
     coord_t shift = extra_shift + this->shift;
     if (shift < 0)
@@ -570,12 +550,7 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
     int scanline_min_idx = computeScanSegmentIdx(boundary.min.X - shift, line_distance);
     int line_count = computeScanSegmentIdx(boundary.max.X - shift, line_distance) + 1 - scanline_min_idx;
 
-    std::vector<std::vector<coord_t>> cut_list; // mapping from scanline to all intersections with polygon segments
-
-    for(int scanline_idx = 0; scanline_idx < line_count; scanline_idx++)
-    {
-        cut_list.push_back(std::vector<coord_t>());
-    }
+    std::vector<std::vector<coord_t>> cut_list(line_count); // mapping from scanline to all intersections with polygon segments
 
     //When we find crossings, keep track of which crossing belongs to which scanline and to which polygon line segment.
     //Then we can later join two crossings together to form lines and still know what polygon line segments that infill line connected to.
@@ -594,11 +569,18 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
     const int min_scanline_index = computeScanSegmentIdx(boundary.min.X - shift, line_distance) + 1;
     const int max_scanline_index = computeScanSegmentIdx(boundary.max.X - shift, line_distance) + 1;
     crossings_per_scanline.resize(max_scanline_index - min_scanline_index);
+    bool connect_lines = this->connect_lines;
+    if (connect_lines) {
+        crossings_on_line.resize(outline.size()); //One for each polygon.
+    }
 
     for(size_t poly_idx = 0; poly_idx < outline.size(); poly_idx++)
     {
         PolygonRef poly = outline[poly_idx];
-        crossings_on_line[poly_idx].resize(poly.size()); //One for each line in this polygon.
+        if (connect_lines)
+        {
+            crossings_on_line[poly_idx].resize(poly.size()); // One for each line in this polygon.
+        }
         Point p0 = poly.back();
         zigzag_connector_processor.registerVertex(p0); // always adds the first point to ZigzagConnectorProcessorEndPieces::first_zigzag_connector when using a zigzag infill type
 
@@ -648,46 +630,54 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
         zigzag_connector_processor.registerPolyFinished();
     }
     
-    //Gather all crossings per scanline and find out which crossings belong together, then store them in crossings_on_line.
-    for (int scanline_index = min_scanline_index; scanline_index < max_scanline_index; scanline_index++)
-    {
-        std::sort(crossings_per_scanline[scanline_index - min_scanline_index].begin(), crossings_per_scanline[scanline_index - min_scanline_index].end()); //Sorts them by Y coordinate.
-        for (long crossing_index = 0; crossing_index < static_cast<long>(crossings_per_scanline[scanline_index - min_scanline_index].size()) - 1; crossing_index += 2) //Combine each 2 subsequent crossings together.
+    if (connect_lines) {
+        // Gather all crossings per scanline and find out which crossings belong together, then store them in crossings_on_line.
+        for (int scanline_index = min_scanline_index; scanline_index < max_scanline_index; scanline_index++)
         {
-            const Crossing& first = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index];
-            const Crossing& second = crossings_per_scanline[scanline_index - min_scanline_index][crossing_index + 1];
-            //Avoid creating zero length crossing lines
-            const Point unrotated_first = rotation_matrix.unapply(first.coordinate);
-            const Point unrotated_second = rotation_matrix.unapply(second.coordinate);
-            if (unrotated_first == unrotated_second)
+            auto& crossings = crossings_per_scanline[scanline_index - min_scanline_index];
+            // Sorts them by Y coordinate.
+            std::sort(crossings.begin(), crossings.end());
+            // Combine each 2 subsequent crossings together.
+            for (long crossing_index = 0; crossing_index < static_cast<long>(crossings.size()) - 1; crossing_index += 2)
             {
-                continue;
+                const Crossing& first = crossings[crossing_index];
+                const Crossing& second = crossings[crossing_index + 1];
+                // Avoid creating zero length crossing lines
+                const Point unrotated_first = rotation_matrix.unapply(first.coordinate);
+                const Point unrotated_second = rotation_matrix.unapply(second.coordinate);
+                if (unrotated_first == unrotated_second)
+                {
+                    continue;
+                }
+                InfillLineSegment* new_segment = new InfillLineSegment(unrotated_first, first.vertex_index, first.polygon_index, unrotated_second, second.vertex_index, second.polygon_index);
+                // Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
+                crossings_on_line[first.polygon_index][first.vertex_index].push_back(new_segment);
+                crossings_on_line[second.polygon_index][second.vertex_index].push_back(new_segment);
             }
-            InfillLineSegment* new_segment = new InfillLineSegment(unrotated_first, first.vertex_index, first.polygon_index, unrotated_second, second.vertex_index, second.polygon_index);
-            //Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
-            crossings_on_line[first.polygon_index][first.vertex_index].push_back(new_segment);
-            crossings_on_line[second.polygon_index][second.vertex_index].push_back(new_segment);
         }
     }
-
-    if (cut_list.size() == 0)
+    else
     {
-        return;
-    }
-    if (connected_zigzags && cut_list.size() == 1 && cut_list[0].size() <= 2)
-    {
-        return;  // don't add connection if boundary already contains whole outline!
-    }
+        if (cut_list.size() == 0)
+        {
+            return;
+        }
+        if (connected_zigzags && cut_list.size() == 1 && cut_list[0].size() <= 2)
+        {
+            return;  // don't add connection if boundary already contains whole outline!
+        }
 
-    addLineInfill(result, rotation_matrix, scanline_min_idx, line_distance, boundary, cut_list, shift);
+        // We have to create our own lines when they are not created by the method connectLines.
+        addLineInfill(result, rotation_matrix, scanline_min_idx, line_distance, boundary, cut_list, shift);
+    }
 }
 
 void Infill::connectLines(Polygons& result_lines)
 {
     UnionFind<InfillLineSegment*> connected_lines; //Keeps track of which lines are connected to which.
-    for (std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line)
+    for (const std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line)
     {
-        for (std::vector<InfillLineSegment*>& crossings_on_polygon_segment : crossings_on_polygon)
+        for (const std::vector<InfillLineSegment*>& crossings_on_polygon_segment : crossings_on_polygon)
         {
             for (InfillLineSegment* infill_line : crossings_on_polygon_segment)
             {
@@ -701,38 +691,32 @@ void Infill::connectLines(Polygons& result_lines)
 
     for (size_t polygon_index = 0; polygon_index < inner_contour.size(); polygon_index++)
     {
-        if (inner_contour[polygon_index].empty())
+        ConstPolygonRef inner_contour_polygon = inner_contour[polygon_index];
+        if (inner_contour_polygon.empty())
         {
             continue;
         }
-
+        assert(crossings_on_line.size() > polygon_index && "crossings dimension should be bigger then polygon index");
+        std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon = crossings_on_line[polygon_index];
         InfillLineSegment* previous_crossing = nullptr; //The crossing that we should connect to. If nullptr, we have been skipping until we find the next crossing.
         InfillLineSegment* previous_segment = nullptr; //The last segment we were connecting while drawing a line along the border.
-        Point vertex_before = inner_contour[polygon_index].back();
-        for (size_t vertex_index = 0; vertex_index < inner_contour[polygon_index].size(); vertex_index++)
+        Point vertex_before = inner_contour_polygon.back();
+        for (size_t vertex_index = 0; vertex_index < inner_contour_polygon.size(); vertex_index++)
         {
-            Point vertex_after = inner_contour[polygon_index][vertex_index];
+            assert(crossings_on_polygon.size() > vertex_index && "crossings on line for the current polygon should be bigger then vertex index");
+            std::vector<InfillLineSegment*>& crossings_on_polygon_segment = crossings_on_polygon[vertex_index];
+            Point vertex_after = inner_contour_polygon[vertex_index];
 
             //Sort crossings on every line by how far they are from their initial point.
-            struct CompareByDistance
-            {
-                CompareByDistance(Point to_point, size_t polygon_index, size_t vertex_index): to_point(to_point), polygon_index(polygon_index), vertex_index(vertex_index) {};
-                Point to_point; //The distance to this point is compared.
-                size_t polygon_index; //The polygon which the vertex_index belongs to.
-                size_t vertex_index; //The vertex indicating a line segment. This determines which endpoint of each line should be used.
-                inline bool operator ()(InfillLineSegment*& left_hand_side, InfillLineSegment*& right_hand_side) const
-                {
-                    //Find the two endpoints that are relevant.
-                    const Point left_hand_point = (left_hand_side->start_segment == vertex_index && left_hand_side->start_polygon == polygon_index) ? left_hand_side->start : left_hand_side->end;
-                    const Point right_hand_point = (right_hand_side->start_segment == vertex_index && right_hand_side->start_polygon == polygon_index) ? right_hand_side->start : right_hand_side->end;
-                    return vSize(left_hand_point - to_point) < vSize(right_hand_point - to_point);
-                }
-            };
-            assert(crossings_on_line.size() > polygon_index && "crossings dimension should be bigger then polygon index");
-            assert(crossings_on_line[polygon_index].size() > vertex_index && "crossings on line for the current polygon should be bigger then vertex index");
-            std::sort(crossings_on_line[polygon_index][vertex_index].begin(), crossings_on_line[polygon_index][vertex_index].end(), CompareByDistance(vertex_before, polygon_index, vertex_index));
+            std::sort(crossings_on_polygon_segment.begin(), crossings_on_polygon_segment.end(),
+                        [vertex_before, polygon_index, vertex_index](InfillLineSegment* left_hand_side, InfillLineSegment* right_hand_side) {
+                // Find the two endpoints that are relevant.
+                const Point left_hand_point = (left_hand_side->start_segment == vertex_index && left_hand_side->start_polygon == polygon_index) ? left_hand_side->start : left_hand_side->end;
+                const Point right_hand_point = (right_hand_side->start_segment == vertex_index && right_hand_side->start_polygon == polygon_index) ? right_hand_side->start : right_hand_side->end;
+                return vSize(left_hand_point - vertex_before) < vSize(right_hand_point - vertex_before);
+            });
 
-            for (InfillLineSegment* crossing : crossings_on_line[polygon_index][vertex_index])
+            for (InfillLineSegment* crossing : crossings_on_polygon_segment)
             {
                 if (!previous_crossing) //If we're not yet drawing, then we have been trying to find the next vertex. We found it! Let's start drawing.
                 {
@@ -836,6 +820,7 @@ void Infill::connectLines(Polygons& result_lines)
             }
 
             vertex_before = vertex_after;
+            crossings_on_polygon_segment.clear();
         }
     }
 

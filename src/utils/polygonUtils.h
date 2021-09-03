@@ -7,6 +7,7 @@
 #include <vector>
 #include <functional> // function
 #include <optional>
+#include <memory> // unique_ptr
 
 #include "polygon.h"
 #include "SparsePointGridInclusive.h"
@@ -423,7 +424,7 @@ public:
      * \param square_size The cell size used to bundle line segments (also used to chop up lines so that multiple cells contain the same long line)
      * \return A bucket grid mapping spatial locations to poly-point indices into \p polygons
      */
-    static LocToLineGrid* createLocToLineGrid(const Polygons& polygons, int square_size);
+    static std::unique_ptr<LocToLineGrid> createLocToLineGrid(const Polygons& polygons, int square_size);
 
     /*!
      * Find the line segment closest to a given point \p from within a cell-block of a size defined in the SparsePointGridInclusive \p loc_to_line

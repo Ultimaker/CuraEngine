@@ -7,9 +7,9 @@
 
 namespace cura
 {
-OuterWallInsetBeadingStrategy::OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategy* parent) :
+OuterWallInsetBeadingStrategy::OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategyPtr parent) :
             BeadingStrategy(parent->getOptimalWidth(), parent->getDefaultTransitionLength(), parent->getTransitioningAngle()),
-            parent(parent),
+            parent(std::move(parent)),
             outer_wall_offset(outer_wall_offset)
 {
     name = "OuterWallOfsetBeadingStrategy";
