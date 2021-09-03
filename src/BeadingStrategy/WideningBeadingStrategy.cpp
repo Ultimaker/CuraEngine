@@ -6,20 +6,12 @@
 namespace cura
 {
 
-WideningBeadingStrategy::WideningBeadingStrategy(BeadingStrategy* parent, const coord_t min_input_width, const coord_t min_output_width)
+WideningBeadingStrategy::WideningBeadingStrategy(BeadingStrategyPtr parent, const coord_t min_input_width, const coord_t min_output_width)
     : BeadingStrategy(parent->getOptimalWidth(), /*default_transition_length=*/-1, parent->getTransitioningAngle())
-    , parent(parent)
+    , parent(std::move(parent))
     , min_input_width(min_input_width)
     , min_output_width(min_output_width)
 {
-}
-
-WideningBeadingStrategy::~WideningBeadingStrategy()
-{
-    if (parent)
-    {
-        delete parent;
-    }
 }
 
 std::string WideningBeadingStrategy::toString() const

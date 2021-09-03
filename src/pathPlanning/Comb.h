@@ -59,7 +59,7 @@ private:
         PolygonsPart dest_part; //!< The assembled inside-boundary PolygonsPart in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
         std::optional<ConstPolygonPointer> dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
         const Polygons& boundary_inside; //!< The inside boundary as in \ref Comb::boundary_inside
-        const LocToLineGrid* inside_loc_to_line; //!< The loc to line grid \ref Comb::inside_loc_to_line
+        const LocToLineGrid& inside_loc_to_line; //!< The loc to line grid \ref Comb::inside_loc_to_line
 
         /*!
          * Simple constructor
@@ -70,7 +70,7 @@ private:
          * \param dest_part_boundary_crossing_poly_idx The index in \p boundary_inside of the polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon).
          * \param boundary_inside The boundary within which to comb.
          */
-        Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside, const LocToLineGrid* inside_loc_to_line);
+        Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside, const LocToLineGrid& inside_loc_to_line);
 
         /*!
          * Find the not-outside location (Combing::in_or_mid) of the crossing between to the outside boundary
@@ -129,8 +129,8 @@ private:
     Polygons boundary_inside_optimal; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_optimal)
     const PartsView partsView_inside_minimum; //!< Structured indices onto boundary_inside_minimum which shows which polygons belong to which part.
     const PartsView partsView_inside_optimal; //!< Structured indices onto boundary_inside_optimal which shows which polygons belong to which part.
-    LocToLineGrid* inside_loc_to_line_minimum; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
-    LocToLineGrid* inside_loc_to_line_optimal; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
+    std::unique_ptr<LocToLineGrid> inside_loc_to_line_minimum; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
+    std::unique_ptr<LocToLineGrid> inside_loc_to_line_optimal; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     LazyInitialization<std::unique_ptr<LocToLineGrid>, Comb*, const coord_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
     coord_t move_inside_distance; //!< When using comb_boundary_inside_minimum for combing it tries to move points inside by this amount after calculating the path to move it from the border a bit.
@@ -180,8 +180,6 @@ public:
      * the path to move it from the border a bit.
      */
     Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t offset_from_outlines, coord_t travel_avoid_distance, coord_t move_inside_distance);
-
-    ~Comb();
 
     /*!
      * \brief Calculate the comb paths (if any), one for each polygon combed

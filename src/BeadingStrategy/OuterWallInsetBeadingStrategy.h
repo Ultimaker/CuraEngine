@@ -14,7 +14,7 @@ namespace cura
     class OuterWallInsetBeadingStrategy : public BeadingStrategy
     {
     public:
-        OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategy* parent);
+        OuterWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategyPtr parent);
          
         virtual ~OuterWallInsetBeadingStrategy() = default;
 
@@ -28,7 +28,7 @@ namespace cura
         virtual std::string toString() const;
         
     private:
-        BeadingStrategy* parent;
+        BeadingStrategyPtr parent;
         coord_t outer_wall_offset;
     };
 } // namespace cura

@@ -28,7 +28,7 @@ coord_t getWeightedAverage(const coord_t preferred_bead_width_outer, const coord
     return preferred_bead_width_outer;
 }
 
-BeadingStrategy* BeadingStrategyFactory::makeStrategy
+BeadingStrategyPtr BeadingStrategyFactory::makeStrategy
 (
     const StrategyType type,
     const coord_t preferred_bead_width_outer,
@@ -46,18 +46,20 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     const double minimum_variable_line_width
 )
 {
+    using std::make_unique;
+    using std::move;
     const coord_t bar_preferred_wall_width = getWeightedAverage(preferred_bead_width_outer, preferred_bead_width_inner, max_bead_count);
-    BeadingStrategy* ret = nullptr;
+    BeadingStrategyPtr ret;
     switch (type)
     {
         case StrategyType::Center:
-            ret = new CenterDeviationBeadingStrategy(bar_preferred_wall_width, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold);
+            ret = make_unique<CenterDeviationBeadingStrategy>(bar_preferred_wall_width, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold);
             break;
         case StrategyType::Distributed:
-            ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold, std::numeric_limits<int>::max());
+            ret = make_unique<DistributedBeadingStrategy>(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold, std::numeric_limits<int>::max());
             break;
         case StrategyType::InwardDistributed:
-            ret = new DistributedBeadingStrategy(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold, inward_distributed_center_wall_count);
+            ret = make_unique<DistributedBeadingStrategy>(bar_preferred_wall_width, preferred_transition_length, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold, inward_distributed_center_wall_count);
             break;
         default:
             logError("Cannot make strategy!\n");
@@ -67,21 +69,21 @@ BeadingStrategy* BeadingStrategyFactory::makeStrategy
     if(print_thin_walls)
     {
         logDebug("Applying the Widening Beading meta-strategy with minimum input width %d and minimum output width %d.", min_feature_size, min_bead_width);
-        ret = new WideningBeadingStrategy(ret, min_feature_size, min_bead_width);
+        ret = make_unique<WideningBeadingStrategy>(move(ret), min_feature_size, min_bead_width);
     }
     if (max_bead_count > 0)
     {
         logDebug("Applying the Redistribute meta-strategy with outer-wall width = %d, inner-wall width = %d", preferred_bead_width_outer, preferred_bead_width_inner);
-        ret = new RedistributeBeadingStrategy(preferred_bead_width_outer, preferred_bead_width_inner, minimum_variable_line_width, ret);
+        ret = make_unique<RedistributeBeadingStrategy>(preferred_bead_width_outer, preferred_bead_width_inner, minimum_variable_line_width, move(ret));
         //Apply the LimitedBeadingStrategy last, since that adds a 0-width marker wall which other beading strategies shouldn't touch.
         logDebug("Applying the Limited Beading meta-strategy with maximum bead count = %d.", max_bead_count);
-        ret = new LimitedBeadingStrategy(max_bead_count, ret);
+        ret = make_unique<LimitedBeadingStrategy>(max_bead_count, move(ret));
     }
     
     if (outer_wall_offset > 0)
     {
         logDebug("Applying the OuterWallOffset meta-strategy with offset = %d.", outer_wall_offset);
-        ret = new OuterWallInsetBeadingStrategy(outer_wall_offset, ret);
+        ret = make_unique<OuterWallInsetBeadingStrategy>(outer_wall_offset, move(ret));
     }
     return ret;
 }

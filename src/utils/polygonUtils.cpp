@@ -620,7 +620,7 @@ std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findConnection
     const coord_t min_connection_dist2 = min_connection_length * min_connection_length;
     const coord_t max_connection_dist2 = max_connection_length * max_connection_length;
 
-    LocToLineGrid* grid = PolygonUtils::createLocToLineGrid(polys2, max_connection_length);
+    auto grid = PolygonUtils::createLocToLineGrid(polys2, max_connection_length);
 
 
     std::unordered_set<std::pair<size_t, PolygonsPointIndex>> checked_segment_pairs; // pairs of index into segment start on poly1 and PolygonsPointIndex to segment start on polys2
@@ -669,7 +669,6 @@ std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findConnection
         if (!continue_) break;
     }
     ret.first.poly_idx = 0;
-    delete grid;
     return ret;
 }
 
@@ -925,7 +924,7 @@ unsigned int PolygonUtils::findNearestVert(const Point from, ConstPolygonRef pol
     return closest_vert_idx;
 }
 
-LocToLineGrid* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
+std::unique_ptr<LocToLineGrid> PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
 {
     unsigned int n_points = 0;
     for (const auto& poly : polygons)
@@ -933,7 +932,7 @@ LocToLineGrid* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int s
         n_points += poly.size();
     }
 
-    LocToLineGrid* ret = new LocToLineGrid(square_size, n_points);
+    auto ret = std::make_unique<LocToLineGrid>(square_size, n_points);
 
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
@@ -1414,7 +1413,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
     // Points too close to line segments should be moved a little away from those line segments, but less than epsilon,
     //   so at least half-epsilon distance between points can still be guaranteed.
     constexpr coord_t grid_size = 2000;
-    LocToLineGrid* query_grid = PolygonUtils::createLocToLineGrid(thiss, grid_size);
+    auto query_grid = PolygonUtils::createLocToLineGrid(thiss, grid_size);
 
     const coord_t move_dist = std::max(2LL, half_epsilon - 2);
     const coord_t half_epsilon_sqrd = half_epsilon * half_epsilon;
