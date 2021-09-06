@@ -17,6 +17,12 @@ namespace cura
 
 coord_t getWeightedAverage(const coord_t preferred_bead_width_outer, const coord_t preferred_bead_width_inner, const coord_t max_bead_count)
 {
+    if(max_bead_count > preferred_bead_width_outer - preferred_bead_width_inner)
+    {
+        //The difference between outer and inner bead width would be spread out across so many lines that rounding errors would destroy the difference.
+        //Also catches the case of max_bead_count being "infinite" (max integer).
+        return (preferred_bead_width_outer + preferred_bead_width_inner) / 2;
+    }
     if (max_bead_count > 2)
     {
         return ((preferred_bead_width_outer * 2) + preferred_bead_width_inner * (max_bead_count - 2)) / max_bead_count;
