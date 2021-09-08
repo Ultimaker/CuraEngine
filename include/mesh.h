@@ -65,7 +65,7 @@ class HashMap3D
 {
 public:
     using Item = mesh_idx_t;
-    using hash_t = uint32_t;
+    using hash_t = uint64_t;
 
     HashMap3D() : HashMap3D(0){};
     HashMap3D(size_t nvertices);

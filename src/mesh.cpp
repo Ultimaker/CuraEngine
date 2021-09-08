@@ -13,18 +13,28 @@ const coord_t vertex_meld_distance = MM2INT(0.032);
 static_assert(vertex_meld_distance && (vertex_meld_distance & (vertex_meld_distance - 1)) == 0, "vertex_meld_distance must be a power of two");
 
 /// 1D coordinate to discretized grid of 2 * vertex_meld_distance wide cells
-static inline uint32_t hash_coord(coord_t p)
+static inline HashMap3D::hash_t hash_coord(coord_t p)
 {
-    return uint32_t(p / (2 * vertex_meld_distance));
+    return HashMap3D::hash_t(p / (2 * vertex_meld_distance));
 };
 
 /// Intersperse bits by inserting 2 zeros beetwen each bit from the input bitstring
-static inline uint32_t intersperse3bits(uint32_t x)
+[[maybe_unused]] static inline uint32_t intersperse3bits(uint32_t x)
 {
     x = (x | x << 16) & 0x30000ff;
     x = (x | x << 8) & 0x300f00f;
     x = (x | x << 4) & 0x30c30c3;
     x = (x | x << 2) & 0x9249249;
+    return x;
+}
+
+[[maybe_unused]] static inline uint64_t intersperse3bits(uint64_t x)
+{
+    x = (x | x << 32) & 0x1f00000000ffff;
+    x = (x | x << 16) & 0x1f0000ff0000ff;
+    x = (x | x << 8) & 0x100f00f00f00f00f;
+    x = (x | x << 4) & 0x10c30c30c30c30c3;
+    x = (x | x << 2) & 0x1249249249249249;
     return x;
 }
 
