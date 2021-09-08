@@ -8,25 +8,25 @@ from conan.tools.layout import LayoutPackager, clion_layout
 
 class CuraEngineConan(ConanFile):
     name = "CuraEngine"
-    version = "4.10.0"
+    version = "4.11.0"
     license = "AGPL-3.0"
     author = "Ultimaker B.V."
     url = "https://github.com/Ultimaker/CuraEngine"
     description = "Powerful, fast and robust engine for converting 3D models into g-code instructions for 3D printers. It is part of the larger open source project Cura."
     topics = ("conan", "cura", "protobuf", "gcode", "c++", "curaengine", "libarcus", "gcode-generation")
     settings = "os", "compiler", "build_type", "arch"
+    revision_mode = "scm"
+    build_policy = "missing"
     exports = "LICENSE"
     options = {
         "enable_arcus": [True, False],
         "enable_openmp": [True, False],
-        "tests": [True, False],
-        "python_version": "ANY"
+        "tests": [True, False]
     }
     default_options = {
         "enable_arcus": True,
         "enable_openmp": True,
-        "tests": False,
-        "python_version": "3.8"
+        "tests": False
     }
     scm = {
         "type": "git",
@@ -38,7 +38,6 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         self.options["protobuf"].shared = False if self.settings.os == "Macos" else True
         if self.options.enable_arcus:
-            self.options["Arcus"].python_version = self.options.python_version
             self.options["Arcus"].shared = True
         self.options["clipper"].shared = True
         if self.settings.os == "Macos":
@@ -52,7 +51,7 @@ class CuraEngineConan(ConanFile):
     def requirements(self):
         self.requires("stb/20200203")
         if self.options.enable_arcus:
-            self.requires(f"Arcus/4.10.0@ultimaker/testing")
+            self.requires(f"Arcus/4.11.0@ultimaker/testing")
             self.requires("protobuf/3.17.1")
         self.requires("clipper/[>=6.4.2]")
         self.requires("rapidjson/[>=1.1.0]")
