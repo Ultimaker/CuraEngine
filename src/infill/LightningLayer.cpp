@@ -60,84 +60,6 @@ bool LightningDistanceField::tryGetNextPoint(Point* p) const
     return true;
 }
 
-Point LightningDistanceField::getNearbyUnsupportedPoint(const Point p, const Point fall_back, coord_t supporting_radius, coord_t total_radius) const
-{
-    struct NearbyUnsup
-    {
-        GridPoint p;
-        coord_t dist_to_leaf;
-        NearbyUnsup(GridPoint p, coord_t dist_to_leaf)
-        : p(p)
-        , dist_to_leaf(dist_to_leaf)
-        {}
-    };
-    std::vector<NearbyUnsup> nearby_unsupported_points;
-    coord_t shortest_dist_to_leaf = supporting_radius * 4; // more than any of the points to be considered
-    grid.processNearby(fall_back, supporting_radius,
-        [supporting_radius, p, fall_back, &nearby_unsupported_points, &shortest_dist_to_leaf, this](const GridPoint& grid_loc)
-        {
-            auto cell_it = unsupported_points_grid.find(grid_loc);
-            if (cell_it != unsupported_points_grid.end())
-            {
-                coord_t dist_to_leaf = vSize(cell_it->second->loc - p);
-                if (dist_to_leaf < shortest_dist_to_leaf + cell_size * 2
-                    && shorterThen(cell_it->second->loc - fall_back, supporting_radius)
-                )
-                {
-                    shortest_dist_to_leaf = std::min(shortest_dist_to_leaf, dist_to_leaf);
-                    nearby_unsupported_points.emplace_back(grid_loc, dist_to_leaf);
-                }
-            }
-            return true;
-        }
-        );
-    for (auto it = nearby_unsupported_points.begin(); it != nearby_unsupported_points.end(); )
-    {
-        NearbyUnsup& nearby_point = *it;
-        if (nearby_point.dist_to_leaf >= shortest_dist_to_leaf + 2 * cell_size)
-        {
-            nearby_point = nearby_unsupported_points.back();
-            nearby_unsupported_points.pop_back();
-        }
-        else
-        {
-            ++it;
-        }
-    }
-    if (nearby_unsupported_points.empty())
-    {
-        std::cerr << "Couldn't find unsupported location close to leaf?!\n";
-        nearby_unsupported_points.emplace_back(grid.toGridPoint(fall_back), 0); // actual dist_to_leaf doesn't matter here
-    }
-    GridPoint reference_grid_loc = nearby_unsupported_points[rand() % nearby_unsupported_points.size()].p;
-    Point reference_point = unsupported_points_grid.find(reference_grid_loc)->second->loc;
-    Point farther_away = p + normal(reference_point - p, total_radius);
-
-    GridPoint farthest_unsupported_grid_loc = reference_grid_loc;
-    const GridPoint grid_p = grid.toGridPoint(p);
-    coord_t farthest_dist2 = vSize2(grid_p - farthest_unsupported_grid_loc);
-    grid.processLineCells(std::make_pair(farther_away, reference_point), 
-        [grid_p, fall_back, supporting_radius, &farthest_dist2, &farthest_unsupported_grid_loc, this](const GridPoint& grid_loc)
-        {
-            coord_t dist2 = vSize2(grid_p - grid_loc);
-            if (dist2 < farthest_dist2)
-            {
-                auto it = unsupported_points_grid.find(grid_loc);
-                if (it != unsupported_points_grid.end())
-                {
-                    if (shorterThen(it->second->loc - fall_back, supporting_radius))
-                    {
-                        farthest_dist2 = dist2;
-                        farthest_unsupported_grid_loc = grid_loc;
-                    }
-                }
-            }
-            return true;
-        }
-    );
-    return unsupported_points_grid.find(farthest_unsupported_grid_loc)->second->loc;
-}
-
 void LightningDistanceField::update(const Point& to_node, const Point& added_leaf)
 {
     auto process_func = 
@@ -221,11 +143,6 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
         ++i_debug;
 
         GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, supporting_radius, 10, tree_node_locator);
-
-        if (grounding_loc.tree_node)
-        {
-            unsupported_location = distance_field.getNearbyUnsupportedPoint(grounding_loc.p(), unsupported_location, supporting_radius, supporting_radius * 2);
-        }
 
         std::shared_ptr<LightningTreeNode> new_parent;
         std::shared_ptr<LightningTreeNode> new_child;
