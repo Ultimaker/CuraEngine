@@ -34,7 +34,7 @@ CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(
             const coord_t inner_bead_widths = optimal_width + diff_thickness / 2;
             if (inner_bead_widths < minimum_line_width_add)
             {
-                return compute(thickness, bead_count + 1);
+                return compute(thickness, bead_count - 1);
             }
             ret.bead_widths[center_bead_idx - 1] = inner_bead_widths;
             ret.bead_widths[center_bead_idx] = inner_bead_widths;
