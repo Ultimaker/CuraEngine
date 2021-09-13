@@ -34,7 +34,7 @@ CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(
         {
             if (inner_bead_widths < minimum_line_width_add)
             {
-                return compute(thickness, bead_count - 1);
+                return compute(thickness, bead_count + 1);
             }
             ret.bead_widths[center_bead_idx - 1] = inner_bead_widths;
             ret.bead_widths[center_bead_idx] = inner_bead_widths;
@@ -45,7 +45,7 @@ CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(
             {
                 return compute(thickness, bead_count - 1);
             }
-            ret.bead_widths[center_bead_idx] = inner_bead_widths / 2;
+            ret.bead_widths[center_bead_idx] = inner_bead_widths;
         }
 
         // Set the center line location of the bead toolpaths.
