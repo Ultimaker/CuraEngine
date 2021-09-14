@@ -27,11 +27,11 @@ CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(
         // Set the bead widths
         ret.bead_widths = std::vector<coord_t>(static_cast<size_t>(bead_count), optimal_width);
         const coord_t optimal_thickness = getOptimalThickness(bead_count);
-        const coord_t diff_thickness = (thickness - optimal_thickness) / 2;
-        const coord_t inner_bead_widths = optimal_width + diff_thickness;
+        const coord_t diff_thickness = thickness - optimal_thickness; //Amount of deviation. Either spread out over the middle 2 lines, or concentrated in the center line.
         const size_t center_bead_idx = ret.bead_widths.size() / 2;
         if (bead_count % 2 == 0) // Even lines
         {
+            const coord_t inner_bead_widths = optimal_width + diff_thickness / 2;
             if (inner_bead_widths < minimum_line_width_add)
             {
                 return compute(thickness, bead_count - 1);
@@ -41,6 +41,7 @@ CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(
         }
         else // Uneven lines
         {
+            const coord_t inner_bead_widths = optimal_width + diff_thickness;
             if (inner_bead_widths < minimum_line_width_split)
             {
                 return compute(thickness, bead_count - 1);
@@ -62,6 +63,7 @@ CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(
     {
         ret.left_over = thickness;
     }
+
     return ret;
 }
 
