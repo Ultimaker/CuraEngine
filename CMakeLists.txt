@@ -266,6 +266,7 @@ endif ()
 set(engine_TEST_UTILS
     AABBTest
     AABB3DTest
+    ExtrusionLineTest
     IntPointTest
     LinearAlg2DTest
     MinimumSpanningTreeTest
