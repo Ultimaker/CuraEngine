@@ -223,7 +223,8 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
     {
         return true;
     }
-    if ((settings.get<size_t>("top_layers") > 0 || settings.get<size_t>("bottom_layers") > 0) && settings.get<size_t>("roofing_layer_count") > 0 && settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr == extruder_nr)
+    const size_t roofing_layer_count = std::min(settings.get<size_t>("roofing_layer_count"), settings.get<size_t>("top_layers"));
+    if (roofing_layer_count > 0 && settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr == extruder_nr)
     {
         return true;
     }
@@ -552,7 +553,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(LayerIndex layer_nr) const
         { // process brim/skirt
             for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
             {
-                if (skirt_brim[extruder_nr].size() > 0)
+                if(!skirt_brim[extruder_nr].empty())
                 {
                     ret[extruder_nr] = true;
                     continue;

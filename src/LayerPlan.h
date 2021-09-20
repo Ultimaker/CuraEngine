@@ -1,9 +1,10 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
+#include <optional>
 #include <vector>
 
 #include "FanSpeedLayerTime.h"
@@ -15,7 +16,6 @@
 #include "pathPlanning/TimeMaterialEstimates.h"
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/optional.h"
 #include "utils/polygon.h"
 
 namespace cura 
@@ -475,7 +475,7 @@ public:
      * no combing and no retraction. This travel move needs to be fixed
      * afterwards.
      * \param p The point to travel to.
-     * \param force_comb_retract Whether to force a retraction to occur.
+     * \param force_retract Whether to force a retraction to occur.
      */
     GCodePath& addTravel(const Point p, const bool force_retract = false);
 
@@ -608,6 +608,25 @@ public:
     void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization = false, int wipe_dist = 0, float flow_ratio = 1.0, std::optional<Point> near_start_location = std::optional<Point>(), double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
+     * Add polygons to the g-code with monotonic order.
+     * \param polygons The lines to add.
+     * \param config The settings to print those lines with.
+     * \param space_fill_type The type of space filling used to generate the
+     * line segments (should be either Lines or PolyLines!)
+     * \param monotonic_direction The directions in which to sort the lines
+     * monotonically.
+     * \param max_adjacent_distance With a monotonic order, adjacent lines must
+     * be printed in a certain direction. Lines that are not adjacent may be
+     * printed in any order. This limit is the longest distance at which two
+     * lines are still considered to be adjacent.
+     * \param wipe_dist The distance wiped without extruding after laying down a
+     * line.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount.
+     * \param fan_speed Fan speed override for this path.
+     */
+    void addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0_r, const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+
+    /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
      *
      * At the start of the wall slice, the points are closest to \p last_wall and at the end of the polygon, the points are closest to \p wall.
@@ -647,7 +666,7 @@ public:
      * 
      * \param extruder_plan_idx The index of the current extruder plan
      * \param path_idx The index of the current retracted path 
-     * \return Whether the path should be an extgruder switch retracted path
+     * \return Whether the path should be an extruder switch retracted path
      */
     bool makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx);
     

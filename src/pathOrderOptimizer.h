@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PATHOPTIMIZER_H
@@ -6,35 +6,12 @@
 
 #include <stdint.h>
 #include "settings/EnumSettings.h"
+#include "settings/ZSeamConfig.h" //To group Z seam requirements together.
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
 
-namespace cura {
-
-/*!
- * Helper class that encapsulates the various criteria that define the location of the z-seam.
- * Instances of this are passed to the PathOrderOptimizer to specify where the z-seam is to be located.
- */
-class ZSeamConfig
+namespace cura
 {
-public:
-    EZSeamType type;
-    Point pos; //!< The position near where to create the z_seam (if \ref PathOrderOptimizer::type == 'back')
-    EZSeamCornerPrefType corner_pref;
-    // default constructor
-    ZSeamConfig()
-    : type(EZSeamType::SHORTEST)
-    , pos(Point(0, 0))
-    , corner_pref(EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
-    {
-    }
-    ZSeamConfig(EZSeamType type, Point pos, EZSeamCornerPrefType corner_pref)
-    : type(type)
-    , pos(pos)
-    , corner_pref(corner_pref)
-    {
-    }
-};
 
 /*!
  * Parts order optimization class.

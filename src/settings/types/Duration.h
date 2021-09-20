@@ -41,7 +41,7 @@ struct Duration
     };
     Duration operator -(const Duration& other) const
     {
-        return Duration(value + other.value);
+        return Duration(value - other.value);
     };
     Duration& operator +=(const Duration& other)
     {

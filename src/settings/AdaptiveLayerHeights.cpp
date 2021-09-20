@@ -1,4 +1,4 @@
-//Copyright (C) 2020 Ultimaker B.V.
+//Copyright (C) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <iterator>
@@ -8,7 +8,7 @@
 
 #include "AdaptiveLayerHeights.h"
 #include "EnumSettings.h"
-#include "types/AngleRadians.h"
+#include "types/Angle.h"
 #include "../Application.h"
 #include "../Slice.h"
 #include "../utils/floatpoint.h"

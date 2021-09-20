@@ -87,8 +87,6 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
 
     Point first_location_new_layer = new_layer_destination_state->first;
 
-    assert(newest_layer->extruder_plans.front().extruder_nr == prev_layer->extruder_plans.back().extruder_nr);
-    assert(newest_layer->extruder_plans.front().paths.size() > 0);
     assert(newest_layer->extruder_plans.front().paths[0].points.size() == 1);
     assert(newest_layer->extruder_plans.front().paths[0].points[0] == first_location_new_layer);
 
@@ -99,7 +97,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[prev_layer->extruder_plans.back().extruder_nr].settings;
         prev_layer->setIsInside(new_layer_destination_state->second);
         const bool force_retract = extruder_settings.get<bool>("retract_at_layer_change") ||
-          (mesh_group_settings.get<bool>("travel_retract_before_outer_wall") && (mesh_group_settings.get<bool>("outer_inset_first") || mesh_group_settings.get<size_t>("wall_line_count") == 1)); //Moving towards an outer wall.
+                (mesh_group_settings.get<bool>("travel_retract_before_outer_wall") && (mesh_group_settings.get<bool>("outer_inset_first") || mesh_group_settings.get<size_t>("wall_line_count") == 1)); //Moving towards an outer wall.
         prev_layer->final_travel_z = newest_layer->z;
         GCodePath &path = prev_layer->addTravel(first_location_new_layer, force_retract);
         if (force_retract && !path.retract)

@@ -58,8 +58,13 @@ void AABB3D::include(Point3 p)
 
 void AABB3D::include(const AABB3D& aabb)
 {
-    include(aabb.min);
-    include(aabb.max);
+    // Note that this is different from including the min and max points, since when 'min > max' it's used to denote an negative/empty box.
+    min.x = std::min(min.x, aabb.min.x);
+    min.y = std::min(min.y, aabb.min.y);
+    min.z = std::min(min.z, aabb.min.z);
+    max.x = std::max(max.x, aabb.max.x);
+    max.y = std::max(max.y, aabb.max.y);
+    max.z = std::max(max.z, aabb.max.z);
 }
 
 void AABB3D::includeZ(coord_t z)

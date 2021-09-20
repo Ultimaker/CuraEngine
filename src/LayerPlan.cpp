@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring>
@@ -7,6 +7,7 @@
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
 #include "MergeInfillLines.h"
+#include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
 #include "raft.h" // getTotalExtraLayers
 #include "Slice.h"
 #include "sliceDataStorage.h"
@@ -292,11 +293,8 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     { // first extruder plan in a layer might be empty, cause it is made with the last extruder planned in the previous layer
         extruder_plans.back().extruder_nr = extruder_nr;
     }
-    else 
-    {
-        extruder_plans.emplace_back(extruder_nr, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder_nr], storage.retraction_config_per_extruder[extruder_nr]);
-        assert(extruder_plans.size() <= Application::getInstance().current_slice->scene.extruders.size() && "Never use the same extruder twice on one layer!");
-    }
+    extruder_plans.emplace_back(extruder_nr, layer_nr, is_initial_layer, is_raft_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder_nr], storage.retraction_config_per_extruder[extruder_nr]);
+    assert(extruder_plans.size() <= Application::getInstance().current_slice->scene.extruders.size() && "Never use the same extruder twice on one layer!");
     last_planned_extruder = &Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
     { // handle starting pos of the new extruder
@@ -408,7 +406,8 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
         // Multiply by 2 because if two lines start and end points places very close then will be applied combing with retractions. (Ex: for brim)
         const coord_t max_distance_ignored = extruder->settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2;
 
-        combed = comb->calc(*extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored);
+        bool unretract_before_last_travel_move = false; // Decided when calculating the combing
+        combed = comb->calc(*extruder, *last_planned_position, p, combPaths, was_inside, is_inside, max_distance_ignored, unretract_before_last_travel_move); //Here is the magic happening
         if (combed)
         {
             bool retract = path->retract || (combPaths.size() > 1 && retraction_enable);
@@ -445,7 +444,7 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
             Point last_point((last_planned_position) ? *last_planned_position : Point(0, 0));
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
-                if (combPath.size() == 0)
+                if (combPath.empty())
                 {
                     continue;
                 }
@@ -463,6 +462,11 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
                 path->retract = retract || (retract_threshold > 0 && distance > retract_threshold && retraction_enable);
                 // don't perform a z-hop
             }
+            // Whether to unretract before the last travel move of the travel path, which comes before the wall to be printed.
+            // This should be true when traveling towards an outer wall to make sure that the unretraction will happen before the
+            // last travel move BEFORE going to that wall. This way, the nozzle doesn't sit still on top of the outer wall's
+            // path while it is unretracting, avoiding possible blips.
+            path->unretract_before_last_travel_move = path->retract && unretract_before_last_travel_move;
         }
     }
 
@@ -589,7 +593,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         return;
     }
-    PathOrderOptimizer orderOptimizer(start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    PathOrderOptimizer orderOptimizer(start_near_location ? *start_near_location : getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(polygons[poly_idx]);
@@ -1127,6 +1131,65 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     }
 }
 
+void LayerPlan::addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const coord_t wipe_dist, const Ratio flow_ratio, const double fan_speed)
+{
+    const Point last_position = getLastPlannedPositionOrStartingPosition();
+    PathOrderMonotonic<ConstPolygonRef> order(monotonic_direction, max_adjacent_distance, last_position);
+    for(size_t line_idx = 0; line_idx < polygons.size(); ++line_idx)
+    {
+        order.addPolyline(polygons[line_idx]);
+    }
+    order.optimize();
+
+    for (unsigned int order_idx = 0; order_idx < order.paths.size(); order_idx++)
+    {
+        const PathOrder<ConstPolygonRef>::Path& path = order.paths[order_idx];
+        ConstPolygonRef polygon = *path.vertices;
+        const size_t start = path.start_vertex;
+        const size_t end = 1 - start;
+        const Point& p0 = polygon[start];
+        const Point& p1 = polygon[end];
+        // ignore line segments that are less than 5uM long
+        if(vSize2(p1 - p0) < MINIMUM_SQUARED_LINE_LENGTH)
+        {
+            continue;
+        }
+        addTravel(p0);
+        addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+
+        // Wipe
+        if (wipe_dist != 0)
+        {
+            bool wipe = true;
+            int line_width = config.getLineWidth();
+
+            // Don't wipe is current extrusion is too small
+            if (vSize2(p1 - p0) <= line_width * line_width * 4)
+            {
+                wipe = false;
+            }
+
+            // Don't wipe if next starting point is very near
+            if (wipe && (order_idx < order.paths.size() - 1))
+            {
+                const PathOrder<ConstPolygonRef>::Path& next_path = order.paths[order_idx + 1];
+                ConstPolygonRef next_polygon = *next_path.vertices;
+                const size_t next_start = next_path.start_vertex;
+                const Point& next_p0 = next_polygon[next_start];
+                if (vSize2(next_p0 - p1) <= line_width * line_width * 4)
+                {
+                    wipe = false;
+                }
+            }
+
+            if (wipe)
+            {
+                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
+            }
+        }
+    }
+}
+
 void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer)
 {
     const bool smooth_contours = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
@@ -1647,10 +1710,16 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.
                     gcode.setZ(final_travel_z);
                 }
-                for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
+                for(unsigned int point_idx = 0; point_idx < path.points.size() - 1; point_idx++)
                 {
                     gcode.writeTravel(path.points[point_idx], speed);
                 }
+                if (path.unretract_before_last_travel_move)
+                {
+                    // We need to unretract before the last travel move of the path if the next path is an outer wall.
+                    gcode.writeUnretractionAndPrime();
+                }
+                gcode.writeTravel(path.points.back(), speed);
                 continue;
             }
 
@@ -1852,7 +1921,11 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
     {
         // in this case accumulated_dist is the length of the whole path
         actual_coasting_dist = accumulated_dist * coasting_dist / coasting_min_dist;
-        for (acc_dist_idx_gt_coast_dist = 0 ; acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size() ; acc_dist_idx_gt_coast_dist++)
+        if(actual_coasting_dist == 0) //Downscaling due to Minimum Coasting Distance reduces coasting to less than 1 micron.
+        {
+            return false; //Skip coasting at all then.
+        }
+        for (acc_dist_idx_gt_coast_dist = 1; acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size() ; acc_dist_idx_gt_coast_dist++)
         { // search for the correct coast_dist_idx
             if (accumulated_dist_per_point[acc_dist_idx_gt_coast_dist] >= actual_coasting_dist)
             {

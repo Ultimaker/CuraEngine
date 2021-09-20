@@ -708,7 +708,7 @@ void GCodeExport::writeTravel(const coord_t& x, const coord_t& y, const coord_t&
     }
 
 #ifdef ASSERT_INSANE_OUTPUT
-    assert(speed < 400 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
+    assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(currentPosition != no_point3);
     assert(Point3(x, y, z) != no_point3);
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
@@ -731,7 +731,7 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
     }
 
 #ifdef ASSERT_INSANE_OUTPUT
-    assert(speed < 400 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
+    assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(currentPosition != no_point3);
     assert(Point3(x, y, z) != no_point3);
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
@@ -1077,6 +1077,13 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
 void GCodeExport::writeCode(const char* str)
 {
     *output_stream << str << new_line;
+}
+
+void GCodeExport::resetExtruderToPrimed(const size_t extruder, const double initial_retraction)
+{
+    extruder_attr[extruder].is_primed = true;
+
+    extruder_attr[extruder].retraction_e_amount_current = initial_retraction;
 }
 
 void GCodeExport::writePrimeTrain(const Velocity& travel_speed)

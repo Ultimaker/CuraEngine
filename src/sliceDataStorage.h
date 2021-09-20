@@ -1,22 +1,23 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
 #include <map>
+#include <optional>
+
 #include "PrimeTower.h"
 #include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
-#include "settings/types/AngleDegrees.h" //Infill angles.
+#include "settings/types/Angle.h" //Infill angles.
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
-#include "utils/optional.h"
 #include "utils/polygon.h"
 #include "WipeScriptConfig.h"
 

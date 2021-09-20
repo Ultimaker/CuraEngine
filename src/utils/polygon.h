@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_H
@@ -7,7 +7,7 @@
 #include <vector>
 #include <assert.h>
 #include <float.h>
-#include <clipper.hpp>
+#include "clipper.hpp"
 
 #include <algorithm>    // std::reverse, fill_n array
 #include <cmath> // fabs
@@ -17,7 +17,7 @@
 #include <initializer_list>
 
 #include "IntPoint.h"
-#include "../settings/types/AngleDegrees.h" //For angles between vertices.
+#include "../settings/types/Angle.h" //For angles between vertices.
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -379,6 +379,11 @@ public:
     {
         POLY_ASSERT(index < size());
         return (*path)[index];
+    }
+
+    const Point& operator[] (const unsigned int& index) const
+    {
+        return path->at(index);
     }
 
     ClipperLib::Path::iterator begin()
@@ -744,13 +749,13 @@ public:
         clipper.Execute(ClipperLib::ctDifference, ret.paths);
         return ret;
     }
-    Polygons unionPolygons(const Polygons& other) const
+    Polygons unionPolygons(const Polygons& other, ClipperLib::PolyFillType fill_type = ClipperLib::pftNonZero) const
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(paths, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.paths, ClipperLib::ptSubject, true);
-        clipper.Execute(ClipperLib::ctUnion, ret.paths, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+        clipper.Execute(ClipperLib::ctUnion, ret.paths, fill_type, fill_type);
         return ret;
     }
     /*!

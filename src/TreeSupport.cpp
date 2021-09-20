@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
@@ -8,7 +8,7 @@
 #include "TreeSupport.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
-#include "settings/types/AngleRadians.h" //Creating the correct branch angles.
+#include "settings/types/Angle.h" //Creating the correct branch angles.
 #include "settings/types/Ratio.h"
 #include "utils/IntPoint.h" //To normalize vectors.
 #include "utils/logoutput.h"
@@ -176,7 +176,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 constexpr bool no_prime_tower = false;
                 floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
             }
-            floor_layer.unionPolygons();
+            floor_layer = floor_layer.unionPolygons();
             support_layer = support_layer.difference(floor_layer.offset(10)); //Subtract the support floor from the normal support.
         }
 

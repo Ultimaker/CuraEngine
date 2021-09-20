@@ -119,6 +119,7 @@ public:
         settings->add("limit_support_retractions", "false");
         settings->add("machine_center_is_zero", "false");
         settings->add("machine_depth", "1000");
+        settings->add("machine_extruders_share_nozzle", "false");
         settings->add("machine_height", "1000");
         settings->add("machine_nozzle_tip_outer_diameter", "1");
         settings->add("machine_width", "1000");
@@ -532,6 +533,20 @@ TEST_P(AddTravelTest, RetractIfCombingImpossible)
     else if(!parameters.is_long_combing)
     {
         EXPECT_FALSE(result.retract) << "If combing is possible, it should not retract (unless the travel move is too long).";
+    }
+}
+
+/*!
+ * Tests to verify that when there is no retraction, then there should also be no unretraction before the last travel
+ * move in the path.
+ */
+TEST_P(AddTravelTest, NoUnretractBeforeLastTravelMoveIfNoPriorRetraction)
+{
+    const GCodePath result = run(GetParam());
+
+    if(!result.retract)
+    {
+        EXPECT_FALSE(result.unretract_before_last_travel_move) << "If no retraction has been issued, then there should also be no unretraction before the last travel move.";
     }
 }
 

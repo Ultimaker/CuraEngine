@@ -1,20 +1,16 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
 #include <fstream>
+#include <optional>
 #include "FanSpeedLayerTime.h"
 #include "gcodeExport.h"
 #include "LayerPlanBuffer.h"
 #include "settings/PathConfigStorage.h" //For the MeshPathConfigs subclass.
 #include "utils/NoCopy.h"
-
-namespace std
-{
-template<typename T> class optional;
-}
 
 namespace cura 
 {
@@ -316,11 +312,20 @@ private:
      * \note At the planning stage we only have information on areas, not how those are filled.
      * If an area is too small to be filled with anything it will still get specified as being used with the extruder for that area.
      * 
-     * Computes \ref FffGcodeWriter::extruder_prime_layer_nr, \ref FffGcodeWriter::extruder_order_per_layer and \ref FffGcodeWriter::extruder_order_per_layer_negative_layers
+     * Computes \ref FffGcodeWriter::extruder_order_per_layer and \ref FffGcodeWriter::extruder_order_per_layer_negative_layers
      * 
      * \param[in] storage where the slice data is stored.
      */
     void calculateExtruderOrderPerLayer(const SliceDataStorage& storage);
+
+    /*!
+     * Calculate on which layer we should be priming for each extruder.
+     *
+     * The extruders are primed on the lowest layer at which they are used.
+     * \param storage Slice data storage containing information on which layers
+     * each extruder is used.
+     */
+    void calculatePrimeLayerPerExtruder(const SliceDataStorage& storage);
 
     /*!
      * Gets a list of extruders that are used on the given layer, but excluding the given starting extruder.
@@ -576,11 +581,13 @@ private:
      * \param skin_angle the angle to use for linear infill types
      * \param skin_overlap The amount by which to expand the \p area
      * \param skin density Sets the density of the the skin lines by adjusting the distance between them (normal skin is 1.0)
+     * \param monotonic Whether to order lines monotonically (``true``) or to
+     * minimise travel moves (``false``).
      * \param[out] perimeter_gaps_output Optional output to store the gaps which occur if the pattern is concentric
      * \param[out] added_something Whether this function added anything to the layer plan
      * \param fan_speed fan speed override for this skin area
      */
-    void processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
+    void processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, const bool monotonic, Polygons* perimeter_gaps_output, bool& added_something, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
 
     /*!
      * Add perimeter gaps of a mesh with the given extruder.
@@ -691,7 +698,7 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param prev_extruder The current extruder with which we last printed.
      */
-    void addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcodeLayer, int prev_extruder) const;
+    void addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const size_t prev_extruder) const;
     
     /*!
      * Add the end gcode and set all temperatures to zero.

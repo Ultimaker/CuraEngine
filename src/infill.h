@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INFILL_H
@@ -7,7 +7,7 @@
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
-#include "settings/types/AngleDegrees.h"
+#include "settings/types/Angle.h"
 #include "utils/IntPoint.h"
 
 namespace cura
