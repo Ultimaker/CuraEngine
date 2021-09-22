@@ -612,7 +612,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
      * \param fan_speed Fan speed override for this path.
      */
-    void addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0_r, const double fan_speed = 100.0);
+    void addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0_r, const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.

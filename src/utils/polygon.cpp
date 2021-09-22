@@ -811,7 +811,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
         if (success)
         {
 #ifdef ASSERT_INSANE_OUTPUT
-            assert(vSize(new_p0) < 400000);
+            assert(new_p0.X < 400000 && new_p0.Y < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
             p0_it = ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
         }
@@ -840,7 +840,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
         if (success)
         {
 #ifdef ASSERT_INSANE_OUTPUT
-            assert(vSize(new_p2) < 400000);
+            assert(new_p2.X < 400000 && new_p2.Y < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
             p2_it = ListPolyIt::insertPointNonDuplicate(p2_it, p2_2_it, new_p2);
         }
