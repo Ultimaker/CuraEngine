@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Comb.h"
@@ -190,7 +190,7 @@ bool Comb::calc(const ExtruderTrain& train, Point startPoint, Point endPoint, Co
         combPaths.emplace_back();
         //If we're inside the optimal bound, first try the optimal combing path. If it fails, use the minimum path instead.
         constexpr bool fail_for_optimum_bound = true;
-        bool combing_succeeded = startInside && LinePolygonsCrossings::comb(start_crossing.dest_part, *inside_loc_to_line_optimal, startPoint, start_crossing.in_or_mid, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_for_optimum_bound);
+        bool combing_succeeded = startInside && LinePolygonsCrossings::comb(boundary_inside_optimal, *inside_loc_to_line_optimal, startPoint, start_crossing.in_or_mid, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_for_optimum_bound);
         if(!combing_succeeded)
         {
             combing_succeeded = LinePolygonsCrossings::comb(start_crossing.dest_part, *inside_loc_to_line_minimum, startPoint, start_crossing.in_or_mid, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
@@ -254,7 +254,7 @@ bool Comb::calc(const ExtruderTrain& train, Point startPoint, Point endPoint, Co
         combPaths.emplace_back();
         //If we're inside the optimal bound, first try the optimal combing path. If it fails, use the minimum path instead.
         constexpr bool fail_for_optimum_bound = true;
-        bool combing_succeeded = endInside && LinePolygonsCrossings::comb(end_crossing.dest_part, *inside_loc_to_line_optimal, end_crossing.in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_for_optimum_bound);
+        bool combing_succeeded = endInside && LinePolygonsCrossings::comb(boundary_inside_optimal, *inside_loc_to_line_optimal, end_crossing.in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_for_optimum_bound);
         if(!combing_succeeded)
         {
             LinePolygonsCrossings::comb(end_crossing.dest_part, *inside_loc_to_line_minimum, end_crossing.in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
