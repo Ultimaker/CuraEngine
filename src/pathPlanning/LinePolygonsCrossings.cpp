@@ -113,7 +113,7 @@ bool LinePolygonsCrossings::generateCombingPath(CombPath& combPath, int64_t max_
     CombPath basicPath;
     generateBasicCombingPath(basicPath);
     optimizePath(basicPath, combPath);
-//     combPath = basicPath; // uncomment to disable comb path optimization
+//    combPath = basicPath; // uncomment to disable comb path optimization
     return true;
 }
 
