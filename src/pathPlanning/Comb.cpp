@@ -257,7 +257,7 @@ bool Comb::calc(const ExtruderTrain& train, Point startPoint, Point endPoint, Co
         bool combing_succeeded = endInside && LinePolygonsCrossings::comb(boundary_inside_optimal, *inside_loc_to_line_optimal, end_crossing.in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_for_optimum_bound);
         if(!combing_succeeded)
         {
-            LinePolygonsCrossings::comb(end_crossing.dest_part, *inside_loc_to_line_minimum, end_crossing.in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+            combing_succeeded = LinePolygonsCrossings::comb(end_crossing.dest_part, *inside_loc_to_line_minimum, end_crossing.in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
         }
         // If the endpoint of the travel path changes with combing, then it means that we are moving to an outer wall
         // and we should unretract before the last travel move when travelling to that outer wall
