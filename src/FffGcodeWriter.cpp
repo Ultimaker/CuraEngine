@@ -631,7 +631,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
-    gcode.setZ(max_object_height + 5000);
+    gcode.setZ(max_object_height + MM2INT(5));
 
     Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
