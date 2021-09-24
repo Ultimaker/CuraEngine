@@ -639,7 +639,12 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.writeTravel(start_pos, Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    if (mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0") != 0)
+    if(mesh_group_settings.get<bool>("machine_heated_bed")
+            && mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0") != 0
+            //TODO: The following prevents needlessly waiting for the initial layer temperature if it's the same as the normal temperature.
+            //However it gets the normal temperature from the current meshgroup rather than the previous meshgroup.
+            //This is not currently a problem for Cura since it doesn't allow changing settings per mesh group so they are the same. But it's not perfect.
+            && mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0") != mesh_group_settings.get<Temperature>("material_bed_temperature"))
     {
         const bool wait = mesh_group_settings.get<bool>("material_bed_temp_wait");
         gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0"), wait);
