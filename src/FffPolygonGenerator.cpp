@@ -778,7 +778,6 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::LIGHTNING)
     {
         // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
-        const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
         mesh.lightning_generator = new LightningGenerator(mesh);
     }
 
