@@ -1729,7 +1729,14 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], nullptr, ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
         }
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
-        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::LIGHTNING)
+        if (pattern == EFillMethod::GRID
+                || pattern == EFillMethod::LINES
+                || pattern == EFillMethod::TRIANGLES
+                || pattern == EFillMethod::CUBIC
+                || pattern == EFillMethod::TETRAHEDRAL
+                || pattern == EFillMethod::QUARTER_CUBIC
+                || pattern == EFillMethod::CUBICSUBDIV
+                || pattern == EFillMethod::LIGHTNING)
         {
             gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], SpaceFillType::Lines, enable_travel_optimization
                 , mesh.settings.get<coord_t>("infill_wipe_dist"), /*float_ratio = */ 1.0, near_start_location);
@@ -2527,7 +2534,14 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
             const AngleRadians monotonic_direction = AngleRadians(skin_angle);
             constexpr Ratio flow = 1.0_r;
             const coord_t max_adjacent_distance = config.getLineWidth() * 1.1; //Lines are considered adjacent if they are 1 line width apart, with 10% extra play. The monotonic order is enforced if they are adjacent.
-            if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::LIGHTNING)
+            if(pattern == EFillMethod::GRID
+                    || pattern == EFillMethod::LINES
+                    || pattern == EFillMethod::TRIANGLES
+                    || pattern == EFillMethod::CUBIC
+                    || pattern == EFillMethod::TETRAHEDRAL
+                    || pattern == EFillMethod::QUARTER_CUBIC
+                    || pattern == EFillMethod::CUBICSUBDIV
+                    || pattern == EFillMethod::LIGHTNING)
             {
                 gcode_layer.addLinesMonotonic(skin_lines, config, SpaceFillType::Lines, monotonic_direction, max_adjacent_distance, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, fan_speed);
             }
@@ -2551,7 +2565,14 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
 
             constexpr bool enable_travel_optimization = false;
             constexpr float flow = 1.0;
-            if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::LIGHTNING)
+            if(pattern == EFillMethod::GRID
+                    || pattern == EFillMethod::LINES
+                    || pattern == EFillMethod::TRIANGLES
+                    || pattern == EFillMethod::CUBIC
+                    || pattern == EFillMethod::TETRAHEDRAL
+                    || pattern == EFillMethod::QUARTER_CUBIC
+                    || pattern == EFillMethod::CUBICSUBDIV
+                    || pattern == EFillMethod::LIGHTNING)
             {
                 gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, enable_travel_optimization, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, near_start_location, fan_speed);
             }
