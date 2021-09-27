@@ -22,9 +22,8 @@ coord_t LightningLayer::getWeightedDistance(const Point& boundary_loc, const Poi
 LightningDistanceField::LightningDistanceField
 (
     const coord_t& radius,
- const Polygons& current_outline,
- const Polygons& current_overhang,
- const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
+    const Polygons& current_outline,
+    const Polygons& current_overhang
 )
 : cell_size(radius / 6) // TODO: make configurable!
 , grid(cell_size)
@@ -126,7 +125,7 @@ void LightningLayer::fillLocator(SparsePointGridInclusive<std::weak_ptr<Lightnin
 
 void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius)
 {
-    LightningDistanceField distance_field(supporting_radius, current_outlines, current_overhang, tree_roots);
+    LightningDistanceField distance_field(supporting_radius, current_outlines, current_overhang);
 
     constexpr coord_t locator_cell_size = 2000;
     SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);

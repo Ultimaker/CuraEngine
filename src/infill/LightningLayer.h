@@ -22,13 +22,7 @@ public:
     /*!
      * constructor
      */
-    LightningDistanceField
-    (
-        const coord_t& radius,
-     const Polygons& current_outline,
-     const Polygons& current_overhang,
-     const std::vector<std::shared_ptr<LightningTreeNode>>& initial_trees
-    );
+    LightningDistanceField(const coord_t& radius, const Polygons& current_outline, const Polygons& current_overhang);
     
     /*!
      * Gets the next unsupported location to be supported by a new branch.
