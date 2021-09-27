@@ -41,9 +41,14 @@ static inline int computeScanSegmentIdx(int x, int line_width)
     return x / line_width;
 }
 
-namespace cura {
+namespace cura
+{
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer* lightning_trees, const SliceMeshStorage* mesh)
+void Infill::generate(  Polygons& result_polygons,
+                        Polygons& result_lines,
+                        const SierpinskiFillProvider* cross_fill_provider,
+                        const LightningLayer* lightning_trees,
+                        const SliceMeshStorage* mesh)
 {
     coord_t outline_offset_raw = outline_offset;
     outline_offset -= wall_line_count * infill_line_width; // account for extra walls
@@ -94,7 +99,11 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, const S
     }
 }
 
-void Infill::_generate(Polygons& result_polygons, Polygons& result_lines, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer* lightning_trees, const SliceMeshStorage* mesh)
+void Infill::_generate( Polygons& result_polygons,
+                        Polygons& result_lines,
+                        const SierpinskiFillProvider* cross_fill_provider,
+                        const LightningLayer* lightning_trees,
+                        const SliceMeshStorage* mesh)
 {
     if (in_outline.empty()) return;
     if (line_distance == 0) return;
