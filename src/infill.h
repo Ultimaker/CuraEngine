@@ -79,32 +79,7 @@ public:
         , bool skip_some_zags = false
         , size_t zag_skip_count = 0
         , coord_t pocket_size = 0
-    )
-    : pattern(pattern)
-    , zig_zaggify(zig_zaggify)
-    , connect_polygons(connect_polygons)
-    , in_outline(in_outline)
-    , outline_offset(outline_offset)
-    , infill_line_width(infill_line_width)
-    , line_distance(line_distance)
-    , infill_overlap(infill_overlap)
-    , infill_multiplier(infill_multiplier)
-    , fill_angle(fill_angle)
-    , z(z)
-    , shift(shift)
-    , max_resolution(max_resolution)
-    , max_deviation(max_deviation)
-    , wall_line_count(wall_line_count)
-    , infill_origin(infill_origin)
-    , perimeter_gaps(perimeter_gaps)
-    , connected_zigzags(connected_zigzags)
-    , use_endpieces(use_endpieces)
-    , skip_some_zags(skip_some_zags)
-    , zag_skip_count(zag_skip_count)
-    , pocket_size(pocket_size)
-    , mirror_offset(zig_zaggify)
-    {
-    }
+    );
 
     /*!
      * Generate the infill.

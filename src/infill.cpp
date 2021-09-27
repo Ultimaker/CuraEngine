@@ -44,6 +44,55 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 namespace cura
 {
 
+Infill::Infill(EFillMethod pattern
+        , bool zig_zaggify
+        , bool connect_polygons
+        , const Polygons& in_outline
+        , coord_t outline_offset
+        , coord_t infill_line_width
+        , coord_t line_distance
+        , coord_t infill_overlap
+        , size_t infill_multiplier
+        , AngleDegrees fill_angle
+        , coord_t z
+        , coord_t shift
+        , coord_t max_resolution
+        , coord_t max_deviation
+        , size_t wall_line_count
+        , const Point& infill_origin
+        , Polygons* perimeter_gaps
+        , bool connected_zigzags
+        , bool use_endpieces
+        , bool skip_some_zags
+        , size_t zag_skip_count
+        , coord_t pocket_size
+    )
+    : pattern(pattern)
+    , zig_zaggify(zig_zaggify)
+    , connect_polygons(connect_polygons)
+    , in_outline(in_outline)
+    , outline_offset(outline_offset)
+    , infill_line_width(infill_line_width)
+    , line_distance(line_distance)
+    , infill_overlap(infill_overlap)
+    , infill_multiplier(infill_multiplier)
+    , fill_angle(fill_angle)
+    , z(z)
+    , shift(shift)
+    , max_resolution(max_resolution)
+    , max_deviation(max_deviation)
+    , wall_line_count(wall_line_count)
+    , infill_origin(infill_origin)
+    , perimeter_gaps(perimeter_gaps)
+    , connected_zigzags(connected_zigzags)
+    , use_endpieces(use_endpieces)
+    , skip_some_zags(skip_some_zags)
+    , zag_skip_count(zag_skip_count)
+    , pocket_size(pocket_size)
+    , mirror_offset(zig_zaggify)
+    {
+    }
+
 void Infill::generate(  Polygons& result_polygons,
                         Polygons& result_lines,
                         const SierpinskiFillProvider* cross_fill_provider,
