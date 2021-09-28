@@ -473,7 +473,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 
     for (SkinPart& skin_part : part.skin_parts)
     {
-        Polygons no_air_above = generateNoAirAbove(part);
+        Polygons no_air_above = generateNoAirAbove(part, roofing_layer_count);
         skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
         skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
 
@@ -512,9 +512,8 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
  *
  * this function may only read the skin and infill from the *current* layer.
  */
-Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part)
+Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part, size_t roofing_layer_count)
 {
-    const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
     const size_t wall_idx = std::min(size_t(2), mesh.settings.get<size_t>("wall_line_count"));
 
     Polygons no_air_above = getWalls(part, layer_nr + roofing_layer_count, wall_idx);
@@ -553,8 +552,10 @@ Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part)
  */
 void SkinInfillAreaComputation::regenerateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part)
 {
+    const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+
     generateInnerSkinInfill(skin_part);
-    Polygons no_air_above = generateNoAirAbove(part);
+    Polygons no_air_above = generateNoAirAbove(part, roofing_layer_count);
     skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
     skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
 }
