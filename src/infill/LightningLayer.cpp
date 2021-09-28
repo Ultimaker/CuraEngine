@@ -5,7 +5,7 @@
 
 #include <iterator> // advance
 
-#include "LightningTree.h"
+#include "LightningTreeNode.h"
 
 #include "../sliceDataStorage.h"
 #include "../utils/linearAlg2D.h"

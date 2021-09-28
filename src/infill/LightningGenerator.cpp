@@ -3,7 +3,7 @@
 
 #include "LightningGenerator.h"
 #include "LightningLayer.h"
-#include "LightningTree.h"
+#include "LightningTreeNode.h"
 
 #include "../ExtruderTrain.h"
 #include "../sliceDataStorage.h"

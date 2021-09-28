@@ -181,7 +181,7 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessor.cpp
     src/infill/LightningGenerator.cpp
     src/infill/LightningLayer.cpp
-    src/infill/LightningTree.cpp
+    src/infill/LightningTreeNode.cpp
     src/infill/SierpinskiFill.cpp
     src/infill/SierpinskiFillProvider.cpp
     src/infill/SubDivCube.cpp

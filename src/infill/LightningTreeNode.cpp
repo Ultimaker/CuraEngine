@@ -1,7 +1,7 @@
 //Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "LightningTree.h"
+#include "LightningTreeNode.h"
 
 #include "../utils/linearAlg2D.h"
 
