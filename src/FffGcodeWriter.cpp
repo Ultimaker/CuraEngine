@@ -493,11 +493,12 @@ void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& stor
             gcode.writeLine(tmp.str().c_str());
         }
 
-        if (scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend"))
+        if(scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend") && scene.current_mesh_group->settings.get<bool>("machine_heated_bed"))
         {
-            if (scene.current_mesh_group->settings.get<bool>("machine_heated_bed"))
+            const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+            if(scene.current_mesh_group == scene.mesh_groups.begin() //Always write bed temperature for first mesh group.
+                || bed_temp != (scene.current_mesh_group - 1)->settings.get<Temperature>("material_bed_temperature")) //Don't write bed temperature if identical to temperature of previous group.
             {
-                const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
                 if (bed_temp != 0)
                 {
                     gcode.writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
@@ -631,19 +632,12 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
-    gcode.setZ(max_object_height + 5000);
+    gcode.setZ(max_object_height + MM2INT(5));
 
     Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
     Point start_pos(storage.model_min.x, storage.model_min.y);
     gcode.writeTravel(start_pos, Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
-
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    if (mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0") != 0)
-    {
-        const bool wait = mesh_group_settings.get<bool>("material_bed_temp_wait");
-        gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0"), wait);
-    }
 
     processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }

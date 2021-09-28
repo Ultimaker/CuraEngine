@@ -423,6 +423,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
         { // calculate offset_from_inner_wall
             coord_t extra_perimeter_offset = 0; // to align concentric polygons across layers
             const auto fill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+            const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
             if (fill_pattern == EFillMethod::CONCENTRIC
                 && infill_line_distance > mesh.settings.get<coord_t>("infill_line_width") * 2)
             {
@@ -437,6 +438,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
                     const auto normal_wall_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x");
                     const coord_t normal_walls_width = normal_wall_line_width_0 + (wall_line_count - 1) * normal_wall_line_width_x;
                     const coord_t walls_width = normal_walls_width * mesh.settings.get<Ratio>("initial_layer_line_width_factor");
+
                     extra_perimeter_offset += walls_width - normal_walls_width;
                     while (extra_perimeter_offset > 0)
                     {
@@ -444,7 +446,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
                     }
                 }
             }
-            return extra_perimeter_offset - innermost_wall_line_width / 2;
+            return extra_perimeter_offset - innermost_wall_line_width / 2 + infill_overlap;
         }
         return coord_t(0);
     };

@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODEEXPORT_H
@@ -154,6 +154,7 @@ private:
     bool always_write_active_tool; //!< whether to write the active tool after sending commands to inactive tool
 
     Temperature initial_bed_temp; //!< bed temperature at the beginning of the print.
+    Temperature bed_temperature; //!< Current build plate temperature.
     Temperature build_volume_temperature;  //!< build volume temperature
     bool machine_heated_build_volume;  //!< does the machine have the ability to control/stabilize build-volume-temperature
 protected:
