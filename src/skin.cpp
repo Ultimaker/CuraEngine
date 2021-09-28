@@ -787,16 +787,23 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
     }
 }
 
-    void SkinInfillAreaComputation::generateTopAndBottomMostSkinSurfaces(SliceLayerPart &part) {
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
 
-        for (SkinPart& skin_part : part.skin_parts) {
-            Polygons no_air_above = generateNoAirAbove(part, 1);
-            skin_part.top_most_surface_fill = skin_part.inner_infill.difference(no_air_above);
+void SkinInfillAreaComputation::generateTopAndBottomMostSkinSurfaces(SliceLayerPart &part) {
 
-            Polygons no_air_below = generateNoAirBelow(part, 1);
-            skin_part.bottom_most_surface_fill = skin_part.inner_infill.difference(no_air_below);
-        }
+    for (SkinPart& skin_part : part.skin_parts) {
+        Polygons no_air_above = generateNoAirAbove(part, 1);
+        skin_part.top_most_surface_fill = skin_part.inner_infill.difference(no_air_above);
+
+        Polygons no_air_below = generateNoAirBelow(part, 1);
+        skin_part.bottom_most_surface_fill = skin_part.inner_infill.difference(no_air_below);
     }
+}
 
 
 }//namespace cura
