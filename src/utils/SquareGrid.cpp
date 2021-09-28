@@ -11,7 +11,7 @@ using namespace cura;
 SquareGrid::SquareGrid(coord_t cell_size)
 {
     assert(cell_size > 0U);
-    m_cell_size = cell_size;
+    cell_size = cell_size;
 }
 
 
@@ -29,7 +29,7 @@ SquareGrid::grid_coord_t SquareGrid::toGridCoord(const coord_t& coord)  const
     // just changes the running time slightly.  The change in running
     // time from this is probably not worth doing a proper floor
     // operation.
-    return coord / m_cell_size;
+    return coord / cell_size;
 }
 
 
@@ -47,23 +47,18 @@ cura::coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord)  const
     // just changes the running time slightly.  The change in running
     // time from this is probably not worth doing a proper floor
     // operation.
-    return grid_coord * m_cell_size;
+    return grid_coord * cell_size;
 }
 
 
-bool SquareGrid::processLineCells(
-    const std::pair<Point, Point> line,
-    const std::function<bool (GridPoint)>& process_cell_func)
+bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std::function<bool (GridPoint)>& process_cell_func)
 {
     return static_cast<const SquareGrid*>(this)->processLineCells(line, process_cell_func);
 }
 
 
-bool SquareGrid::processLineCells(
-    const std::pair<Point, Point> line,
-    const std::function<bool (GridPoint)>& process_cell_func) const
+bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std::function<bool (GridPoint)>& process_cell_func) const
 {
-
     Point start = line.first;
     Point end = line.second;
     if (end.X < start.X)
@@ -74,13 +69,17 @@ bool SquareGrid::processLineCells(
     const GridPoint start_cell = toGridPoint(start);
     const GridPoint end_cell = toGridPoint(end);
     const coord_t y_diff = end.Y - start.Y;
-    const grid_coord_t y_dir = nonzero_sign(y_diff);
+    const grid_coord_t y_dir = nonzeroSign(y_diff);
 
+    /* This line drawing algorithm iterates over the range of Y coordinates, and
+    for each Y coordinate computes the range of X coordinates crossed in one
+    unit of Y. These ranges are rounded to be inclusive, so effectively this
+    creates a "fat" line, marking more cells than a strict one-cell-wide path.*/
     grid_coord_t x_cell_start = start_cell.X;
     for (grid_coord_t cell_y = start_cell.Y; cell_y * y_dir <= end_cell.Y * y_dir; cell_y += y_dir)
     { // for all Y from start to end
         // nearest y coordinate of the cells in the next row
-        const coord_t nearest_next_y = toLowerCoord(cell_y + ((nonzero_sign(cell_y) == y_dir || cell_y == 0) ? y_dir : coord_t(0)));
+        const coord_t nearest_next_y = toLowerCoord(cell_y + ((nonzeroSign(cell_y) == y_dir || cell_y == 0) ? y_dir : coord_t(0)));
         grid_coord_t x_cell_end; // the X coord of the last cell to include from this row
         if (y_diff == 0)
         {
@@ -145,7 +144,7 @@ bool SquareGrid::processAxisAlignedTriangle(const Point from, const Point to, co
         {
             if (grid_loc.Y != last.Y)
             {
-                const coord_t sign = nonzero_sign(grid_to.X - grid_loc.X);
+                const coord_t sign = nonzeroSign(grid_to.X - grid_loc.X);
                 for (grid_coord_t x = grid_loc.X; x * sign <= grid_to.X * sign; x += sign)
                 {
                     if (! process_cell_func(GridPoint(x, grid_loc.Y)))
@@ -195,12 +194,12 @@ bool SquareGrid::processNearby
     return true;
 }
 
-SquareGrid::grid_coord_t SquareGrid::nonzero_sign(const grid_coord_t z) const
+SquareGrid::grid_coord_t SquareGrid::nonzeroSign(const grid_coord_t z) const
 {
     return (z >= 0) - (z < 0);
 }
 
 coord_t SquareGrid::getCellSize() const
 {
-    return m_cell_size;
+    return cell_size;
 }

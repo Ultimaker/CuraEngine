@@ -104,13 +104,13 @@ void SGI_THIS::debugHTML(std::string filename)
         Point rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), 0));
         if (lb.X == 0)
         {
-            lb.X = -SparseGrid<ElemT>::m_cell_size;
-            lt.X = -SparseGrid<ElemT>::m_cell_size;
+            lb.X = -SparseGrid<ElemT>::cell_size;
+            lt.X = -SparseGrid<ElemT>::cell_size;
         }
         if (lb.Y == 0)
         {
-            lb.Y = -SparseGrid<ElemT>::m_cell_size;
-            rb.Y = -SparseGrid<ElemT>::m_cell_size;
+            lb.Y = -SparseGrid<ElemT>::cell_size;
+            rb.Y = -SparseGrid<ElemT>::cell_size;
         }
 //         svg.writePoint(lb, true, 1);
         svg.writeLine(lb, lt, SVG::Color::GRAY);
