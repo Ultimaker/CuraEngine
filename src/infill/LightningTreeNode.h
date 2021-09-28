@@ -1,8 +1,8 @@
 //Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef LIGHTNING_TREE_H
-#define LIGHTNING_TREE_H
+#ifndef LIGHTNING_TREE_NODE_H
+#define LIGHTNING_TREE_NODE_H
 
 #include <functional>
 #include <memory>
@@ -143,4 +143,4 @@ protected:
 
 } // namespace cura
 
-#endif // LIGHTNING_TREE_H
+#endif // LIGHTNING_TREE_NODE_H
