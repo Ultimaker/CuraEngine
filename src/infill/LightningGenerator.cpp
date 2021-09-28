@@ -47,7 +47,7 @@ void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage
 
     Polygons infill_area_above;
     //Iterate from top to bottom, to subtract the overhang areas above from the overhang areas on the layer below, to get only overhang in the top layer where it is overhanging.
-    for (size_t layer_nr = mesh.layers.size() - 1; layer_nr >= 0; layer_nr--)
+    for (int layer_nr = mesh.layers.size() - 1; layer_nr >= 0; layer_nr--)
     {
         const SliceLayer& current_layer = mesh.layers[layer_nr];
         Polygons infill_area_here;
@@ -78,7 +78,7 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
     infill_outlines.insert(infill_outlines.end(), mesh.layers.size(), Polygons());
 
     // For-each layer from top to bottom:
-    for (size_t layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
+    for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
     {
         for (const auto& part : mesh.layers[layer_id].parts)
         {
@@ -87,7 +87,7 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
     }
 
     // For-each layer from top to bottom:
-    for (size_t layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
+    for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
     {
         LightningLayer& current_lightning_layer = lightning_layers[layer_id];
         Polygons& current_outlines = infill_outlines[layer_id];
