@@ -73,12 +73,12 @@ LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
     generateTrees(mesh);  // NOTE: Ideally, these would not be in the constructor. TODO?: Rewrite 'Generator' as loose functions and perhaps a struct.
 }
 
-// Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.
 void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh)
 {
     overhang_per_layer.resize(mesh.layers.size());
 
     Polygons infill_area_above;
+    //Iterate from top to bottom, to subtract the overhang areas above from the overhang areas on the layer below, to get only overhang in the top layer where it is overhanging.
     for (int layer_nr = mesh.layers.size() - 1; layer_nr >= 0; layer_nr--)
     {
         const SliceLayer& current_layer = mesh.layers[layer_nr];
@@ -88,6 +88,7 @@ void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage
             infill_area_here.add(part.getOwnInfillArea());
         }
 
+        //Remove the part of the infill area that is already supported by the walls.
         Polygons overhang = infill_area_here.offset(-wall_supporting_radius).difference(infill_area_above);
 
         overhang_per_layer[layer_nr] = overhang;
