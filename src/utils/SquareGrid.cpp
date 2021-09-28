@@ -69,7 +69,7 @@ bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std:
     const GridPoint start_cell = toGridPoint(start);
     const GridPoint end_cell = toGridPoint(end);
     const coord_t y_diff = end.Y - start.Y;
-    const grid_coord_t y_dir = nonzero_sign(y_diff);
+    const grid_coord_t y_dir = nonzeroSign(y_diff);
 
     /* This line drawing algorithm iterates over the range of Y coordinates, and
     for each Y coordinate computes the range of X coordinates crossed in one
@@ -79,7 +79,7 @@ bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std:
     for (grid_coord_t cell_y = start_cell.Y; cell_y * y_dir <= end_cell.Y * y_dir; cell_y += y_dir)
     { // for all Y from start to end
         // nearest y coordinate of the cells in the next row
-        coord_t nearest_next_y = toLowerCoord(cell_y + ((nonzero_sign(cell_y) == y_dir || cell_y == 0) ? y_dir : coord_t(0)));
+        const coord_t nearest_next_y = toLowerCoord(cell_y + ((nonzeroSign(cell_y) == y_dir || cell_y == 0) ? y_dir : coord_t(0)));
         grid_coord_t x_cell_end; // the X coord of the last cell to include from this row
         if (y_diff == 0)
         {
@@ -140,7 +140,7 @@ bool SquareGrid::processAxisAlignedTriangle(const Point from, const Point to, co
         {
             if (grid_loc.Y != last.Y)
             {
-                coord_t sign = nonzero_sign(grid_to.X - grid_loc.X);
+                coord_t sign = nonzeroSign(grid_to.X - grid_loc.X);
                 for (grid_coord_t x = grid_loc.X; x * sign <= grid_to.X * sign; x += sign)
                 {
                     bool continue_ = process_cell_func(GridPoint(x, grid_loc.Y));
@@ -184,7 +184,7 @@ bool SquareGrid::processNearby(const Point &query_pt, coord_t radius,
 
 
 
-SquareGrid::grid_coord_t SquareGrid::nonzero_sign(const grid_coord_t z) const
+SquareGrid::grid_coord_t SquareGrid::nonzeroSign(const grid_coord_t z) const
 {
     return (z >= 0) - (z < 0);
 }

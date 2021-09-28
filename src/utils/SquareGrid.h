@@ -147,7 +147,7 @@ protected:
      * \return 1 if the number is positive or 0, or -1 if the number is
      * negative.
      */
-    grid_coord_t nonzero_sign(const grid_coord_t z) const;
+    grid_coord_t nonzeroSign(const grid_coord_t z) const;
 };
 
 } // namespace cura
