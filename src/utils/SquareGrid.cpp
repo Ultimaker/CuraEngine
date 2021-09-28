@@ -51,19 +51,14 @@ cura::coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord)  const
 }
 
 
-bool SquareGrid::processLineCells(
-    const std::pair<Point, Point> line,
-    const std::function<bool (GridPoint)>& process_cell_func)
+bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std::function<bool (GridPoint)>& process_cell_func)
 {
     return static_cast<const SquareGrid*>(this)->processLineCells(line, process_cell_func);
 }
 
 
-bool SquareGrid::processLineCells(
-    const std::pair<Point, Point> line,
-    const std::function<bool (GridPoint)>& process_cell_func) const
+bool SquareGrid::processLineCells(const std::pair<Point, Point> line, const std::function<bool (GridPoint)>& process_cell_func) const
 {
-
     Point start = line.first;
     Point end = line.second;
     if (end.X < start.X)
@@ -76,6 +71,10 @@ bool SquareGrid::processLineCells(
     const coord_t y_diff = end.Y - start.Y;
     const grid_coord_t y_dir = nonzero_sign(y_diff);
 
+    /* This line drawing algorithm iterates over the range of Y coordinates, and
+    for each Y coordinate computes the range of X coordinates crossed in one
+    unit of Y. These ranges are rounded to be inclusive, so effectively this
+    creates a "fat" line, marking more cells than a strict one-cell-wide path.*/
     grid_coord_t x_cell_start = start_cell.X;
     for (grid_coord_t cell_y = start_cell.Y; cell_y * y_dir <= end_cell.Y * y_dir; cell_y += y_dir)
     { // for all Y from start to end
@@ -135,6 +134,7 @@ bool SquareGrid::processAxisAlignedTriangle(const Point from, const Point to, co
 {
     GridPoint last;
     GridPoint grid_to = toGridPoint(to);
+    //Process cells along the diagonal line. For each cell, also iterate towards the right to fill the cells of the triangles towards the right.
     return processLineCells(std::make_pair(from, to), [grid_to, &last, &process_cell_func, this]
         (const GridPoint grid_loc)
         {
