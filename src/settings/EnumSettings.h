@@ -101,6 +101,7 @@ enum class CombingMode
     OFF,
     ALL,
     NO_SKIN,
+    NO_OUTER_SURFACES,
     INFILL
 };
 
