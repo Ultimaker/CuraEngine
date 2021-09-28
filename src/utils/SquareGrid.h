@@ -137,7 +137,7 @@ public:
 
 protected:
     /*! \brief The cell (square) size. */
-    coord_t m_cell_size;
+    coord_t cell_size;
 
     /*!
      * Compute the sign of a number.
