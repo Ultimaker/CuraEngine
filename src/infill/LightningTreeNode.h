@@ -15,6 +15,10 @@
 namespace cura
 {
 
+class LightningTreeNode;
+
+using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
+
 // NOTE: As written, this struct will only be valid for a single layer, will have to be updated for the next.
 // NOTE: Reasons for implementing this with some separate closures:
 //       - keep clear deliniation during development
@@ -23,7 +27,7 @@ class LightningTreeNode : public std::enable_shared_from_this<LightningTreeNode>
 {
 public:
     // Workaround for private/protected constructors and 'make_shared': https://stackoverflow.com/a/27832765
-    template<typename ...Arg> std::shared_ptr<LightningTreeNode> static create(Arg&&...arg) {
+    template<typename ...Arg> LightningTreeNodeSPtr static create(Arg&&...arg) {
         struct EnableMakeShared : public LightningTreeNode {
             EnableMakeShared(Arg&&...arg) : LightningTreeNode(std::forward<Arg>(arg)...) {}
         };
@@ -33,11 +37,8 @@ public:
     const Point& getLocation() const;
     void setLocation(const Point& p);
 
-    std::shared_ptr<LightningTreeNode> addChild(const Point& p);
-    std::shared_ptr<LightningTreeNode> addChild(std::shared_ptr<LightningTreeNode>& new_child);
-
-    // TODO: should be moved outside of this class, because we want to efficiently find pairs of close nodes
-    std::shared_ptr<LightningTreeNode> findClosestNode(const Point& x, const coord_t& supporting_radius);
+    LightningTreeNodeSPtr addChild(const Point& p);
+    LightningTreeNodeSPtr addChild(LightningTreeNodeSPtr& new_child);
 
     /*!
      * Propagate this tree to the next layer.
@@ -48,7 +49,7 @@ public:
      */
     void propagateToNextLayer
     (
-        std::vector<std::shared_ptr<LightningTreeNode>>& next_trees,
+        std::vector<LightningTreeNodeSPtr>& next_trees,
         const Polygons& next_outlines,
         const coord_t& prune_distance,
         const coord_t& smooth_magnitude
@@ -62,30 +63,25 @@ public:
 
     // NOTE: Depth-first, as currently implemented.
     //       Also note that, unlike the visitBranches variant, this isn't (...) const!
-    void visitNodes(const std::function<void(std::shared_ptr<LightningTreeNode>)>& visitor);
+    void visitNodes(const std::function<void(LightningTreeNodeSPtr)>& visitor);
 
-    coord_t getWeightedDistance(const Point& unsupported_loc, const coord_t& supporting_radius) const;
+    coord_t getWeightedDistance(const Point& unsupported_location, const coord_t& supporting_radius) const;
 
     bool isRoot() const { return is_root; }
 
-    bool hasOffspring(const std::shared_ptr<LightningTreeNode>& to_be_checked) const;
+    bool hasOffspring(const LightningTreeNodeSPtr& to_be_checked) const;
 protected:
     LightningTreeNode() = delete; // Don't allow empty contruction
 
     // Constructs a node, either for insertion into a tree, or as root:
     LightningTreeNode(const Point& p);
 
-    /*!
-     * Recursive part of 'findClosestNode'.
-     */
-    void findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<LightningTreeNode>& closest_node);
-
-    std::shared_ptr<LightningTreeNode> deepCopy() const; //!< Copy this node and all its children
+    LightningTreeNodeSPtr deepCopy() const; //!< Copy this node and all its children
 
     /*! Reconnect trees from the layer above to the new outlines of the lower layer.
      * \return Wether or not the root is kept (false is no, true is yes).
      */
-    bool realign(const Polygons& outlines, std::vector<std::shared_ptr<LightningTreeNode>>& rerooted_parts, const bool& connected_to_parent = false);
+    bool realign(const Polygons& outlines, std::vector<LightningTreeNodeSPtr>& rerooted_parts, const bool& connected_to_parent = false);
 
     struct RectilinearJunction
     {
@@ -138,7 +134,7 @@ protected:
     bool is_root;
     Point p;
     std::weak_ptr<LightningTreeNode> parent;
-    std::vector<std::shared_ptr<LightningTreeNode>> children;
+    std::vector<LightningTreeNodeSPtr> children;
 };
 
 } // namespace cura

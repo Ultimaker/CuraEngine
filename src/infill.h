@@ -219,6 +219,7 @@ private:
     
     /*!
      * Generate lightning fill aka minfill aka 'Ribbed Support Vault Infill', see Tricard,Claux,Lefebvre/'Ribbed Support Vaults for 3D Printing of Hollowed Objects'
+     * see https://hal.archives-ouvertes.fr/hal-02155929/document
      * \param result (output) The resulting polygons
      */
     void generateLightningInfill(const LightningLayer* lightning_layer, Polygons& result_lines);

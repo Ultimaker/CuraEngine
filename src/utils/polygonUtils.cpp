@@ -84,7 +84,6 @@ void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, 
     assert(result.size() == n_dots && "we didn't generate as many wipe locations as we asked for.");
 }
 
-
 std::vector<Point> PolygonUtils::spreadDotsArea(const Polygons& polygons, coord_t grid_size)
 {
     Infill infill_gen(EFillMethod::LINES, false, false, polygons, 0, 0, grid_size, 0, 1, 0, 0, 0, 0, 0);

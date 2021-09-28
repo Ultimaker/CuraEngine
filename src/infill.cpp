@@ -212,11 +212,7 @@ void Infill::_generate( Polygons& result_polygons,
         generateGyroidInfill(result_lines);
         break;
     case EFillMethod::LIGHTNING:
-        if (! lightning_trees)
-        {
-            logError("Cannot generate Lightning infill without a generator!\n");
-            break;
-        }
+        assert(lightning_trees); // "Cannot generate Lightning infill without a generator!\n"
         generateLightningInfill(lightning_trees, result_lines);
         break;
     default:

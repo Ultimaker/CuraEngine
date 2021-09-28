@@ -11,43 +11,21 @@
 #include <functional>
 #include <memory>
 #include <vector>
-#include <vector>
 
 namespace cura 
 {
 class SliceMeshStorage;
 
-/*
- *            .---------.
- *     . :+*#%%@*=\\\*@@@#:
- *  .+*=+@%#%@@@@#%@@@@@@@@*
- * :@@%+=@##==%@@@@@@@@@@@@@
- * %@@%=-'     '"-+*#%@@@@@@@.
- * %@#'            ...*=@@@@@-
- * .-             ....*=@@@@@*
- *  .        ..:......:#@@@@@=
- *  : :-- .-*%@%%**=-:.-%@@#=.=.
- *   =##%: :==-.:::..:::=@+++. )
- *   :     ..       .::--:-#% /
- *    \    ...     ..:---==:_;
- *     :  :=w=:   ..:----+=
- *      :-#@@@%#*-.:::---==
- *      :*=--==--:.:----=-=.
- *       . .-=-...:--=+*+-+=:.
- *        \     .-=+:'       .:
- *         .':-==-"  .:-=+#%@@@*
- *       .'      :+#@@@@@@@@@@@@+
- *    .=#%#. :-+#%@@@@@@@@@@@@@@@:
- *  -+%##*+#***%@%####%@@@@@@@@@@@*.
- * 
- *                           <3 Nikolai
- */
-class LightningGenerator
+class LightningGenerator  // "Just like Nicola used to make!"
 {
 public:
+    /*
+     * Generate lightning fill aka minfill aka 'Ribbed Support Vault Infill', see Tricard, Claux, Lefebvre / 'Ribbed Support Vaults for 3D Printing of Hollowed Objects'
+     * see https ://hal.archives-ouvertes.fr/hal-02155929/document
+     */
     LightningGenerator(const SliceMeshStorage& mesh);
 
-    const LightningLayer& getTreesForLayer(const size_t& layer_id);
+    const LightningLayer& getTreesForLayer(const size_t& layer_id) const;
 
 protected:
     // Necesary, since normally overhangs are only generated for the outside of the model, and only when support is generated.

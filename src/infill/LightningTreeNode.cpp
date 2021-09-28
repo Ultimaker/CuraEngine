@@ -7,17 +7,24 @@
 
 using namespace cura;
 
-coord_t LightningTreeNode::getWeightedDistance(const Point& unsupported_loc, const coord_t& supporting_radius) const
+coord_t LightningTreeNode::getWeightedDistance(const Point& unsupported_location, const coord_t& supporting_radius) const
 {
-    size_t valence = (!is_root) + children.size();
-    coord_t valence_boost = (0 < valence && valence < 4) ? 4 * supporting_radius : 0;
-    coord_t dist_here = vSize(getLocation() - unsupported_loc);
+    constexpr coord_t min_valence_for_boost = 0;
+    constexpr coord_t max_valence_for_boost = 4;
+    constexpr coord_t valence_boost_multiplier = 4;
+
+    const size_t valence = (!is_root) + children.size();
+    const coord_t valence_boost = (min_valence_for_boost < valence && valence < max_valence_for_boost) ? valence_boost_multiplier * supporting_radius : 0;
+    const coord_t dist_here = vSize(getLocation() - unsupported_location);
     return dist_here - valence_boost;
 }
 
-bool LightningTreeNode::hasOffspring(const std::shared_ptr<LightningTreeNode>& to_be_checked) const
+bool LightningTreeNode::hasOffspring(const LightningTreeNodeSPtr& to_be_checked) const
 {
-    if (to_be_checked == shared_from_this()) return true;
+    if (to_be_checked == shared_from_this())
+    {
+        return true;
+    }
     for (auto& child_ptr : children)
     {
         if (child_ptr->hasOffspring(to_be_checked)) return true;
@@ -35,36 +42,26 @@ void LightningTreeNode::setLocation(const Point& loc)
     p = loc;
 }
 
-std::shared_ptr<LightningTreeNode> LightningTreeNode::addChild(const Point& child_loc)
+LightningTreeNodeSPtr LightningTreeNode::addChild(const Point& child_loc)
 {
     assert(p != child_loc);
-    std::shared_ptr<LightningTreeNode> child = LightningTreeNode::create(child_loc);
+    LightningTreeNodeSPtr child = LightningTreeNode::create(child_loc);
     return addChild(child);
 }
 
-std::shared_ptr<LightningTreeNode> LightningTreeNode::addChild(std::shared_ptr<LightningTreeNode>& new_child)
+LightningTreeNodeSPtr LightningTreeNode::addChild(LightningTreeNodeSPtr& new_child)
 {
     assert(new_child != shared_from_this());
-    //     assert(p != new_child->p);
-    if (p == new_child->p)
-        std::cerr << "wtf\n";
+    assert(p != new_child->p);
     children.push_back(new_child);
     new_child->parent = shared_from_this();
     new_child->is_root = false;
     return new_child;
 }
 
-std::shared_ptr<LightningTreeNode> LightningTreeNode::findClosestNode(const Point& x, const coord_t& supporting_radius)
-{
-    coord_t closest_distance = getWeightedDistance(x, supporting_radius);
-    std::shared_ptr<LightningTreeNode> closest_node = shared_from_this();
-    findClosestNodeHelper(x, supporting_radius, closest_distance, closest_node);
-    return closest_node;
-}
-
 void LightningTreeNode::propagateToNextLayer
 (
-    std::vector<std::shared_ptr<LightningTreeNode>>& next_trees,
+    std::vector<LightningTreeNodeSPtr>& next_trees,
     const Polygons& next_outlines,
     const coord_t& prune_distance,
     const coord_t& smooth_magnitude
@@ -72,8 +69,6 @@ void LightningTreeNode::propagateToNextLayer
 {
     auto tree_below = deepCopy();
 
-    // TODO: What is the correct order of the following operations?
-    //       (NOTE: in case realign turns out _not_ to be last, would need to rewrite a few things, see the 'rerooted_parts' parameter of that function).
     tree_below->prune(prune_distance);
     tree_below->straighten(smooth_magnitude);
     if (tree_below->realign(next_outlines, next_trees))
@@ -95,7 +90,7 @@ void LightningTreeNode::visitBranches(const std::function<void(const Point&, con
 }
 
 // NOTE: Depth-first, as currently implemented.
-void LightningTreeNode::visitNodes(const std::function<void(std::shared_ptr<LightningTreeNode>)>& visitor)
+void LightningTreeNode::visitNodes(const std::function<void(LightningTreeNodeSPtr)>& visitor)
 {
     visitor(shared_from_this());
     for (const auto& node : children)
@@ -110,38 +105,28 @@ LightningTreeNode::LightningTreeNode(const Point& p)
 , p(p)
 {}
 
-void LightningTreeNode::findClosestNodeHelper(const Point& x, const coord_t supporting_radius, coord_t& closest_distance, std::shared_ptr<LightningTreeNode>& closest_node)
+LightningTreeNodeSPtr LightningTreeNode::deepCopy() const
 {
-    for (const auto& node : children)
-    {
-        node->findClosestNodeHelper(x, supporting_radius, closest_distance, closest_node);
-        const coord_t distance = node->getWeightedDistance(x, supporting_radius);
-        if (distance < closest_distance)
-        {
-            closest_node = node;
-            closest_distance = distance;
-        }
-    }
-}
-
-std::shared_ptr<LightningTreeNode> LightningTreeNode::deepCopy() const
-{
-    std::shared_ptr<LightningTreeNode> local_root = LightningTreeNode::create(p);
+    LightningTreeNodeSPtr local_root = LightningTreeNode::create(p);
     local_root->is_root = is_root;
     local_root->children.reserve(children.size());
     for (const auto& node : children)
     {
-        std::shared_ptr<LightningTreeNode> child = node->deepCopy();
+        LightningTreeNodeSPtr child = node->deepCopy();
         child->parent = local_root;
         local_root->children.push_back(child);
     }
     return local_root;
 }
 
-bool LightningTreeNode::realign(const Polygons& outlines, std::vector<std::shared_ptr<LightningTreeNode>>& rerooted_parts, const bool& connected_to_parent)
+bool LightningTreeNode::realign
+(
+    const Polygons& outlines,
+    std::vector<LightningTreeNodeSPtr>& rerooted_parts,
+    const bool& connected_to_parent
+)
 {
     // TODO: Hole(s) in the _middle_ of a line-segement, not unlikely since reconnect.
-    // TODO: Reconnect if not on outline -> plan is: yes, but not here anymore!
 
     if (outlines.empty())
     {
@@ -151,14 +136,14 @@ bool LightningTreeNode::realign(const Polygons& outlines, std::vector<std::share
     if (outlines.inside(p, true))
     {
         // Only keep children that have an unbroken connection to here, realign will put the rest in rerooted parts due to recursion:
-        const std::function<bool(const std::shared_ptr<LightningTreeNode>& child)> remove_unconnected_func
-        (
-            [&outlines, &rerooted_parts](const std::shared_ptr<LightningTreeNode>& child)
+        const auto remove_unconnected_func
+        {
+            [&outlines, &rerooted_parts](const LightningTreeNodeSPtr& child)
             {
                 constexpr bool argument_with_connected = true;
-                return !child->realign(outlines, rerooted_parts, argument_with_connected);
+                return ! child->realign(outlines, rerooted_parts, argument_with_connected);
             }
-        );
+        };
         children.erase(std::remove_if(children.begin(), children.end(), remove_unconnected_func), children.end());
         return true;
     }
@@ -191,9 +176,17 @@ void LightningTreeNode::straighten(const coord_t& magnitude)
     straighten(magnitude, p, 0);
 }
 
-LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord_t& magnitude, const Point& junction_above, const coord_t accumulated_dist)
+LightningTreeNode::RectilinearJunction LightningTreeNode::straighten
+(
+    const coord_t& magnitude,
+    const Point& junction_above,
+    const coord_t accumulated_dist
+)
 {
-    const coord_t junction_magnitude = magnitude * 3 / 4; // TODO: hardcoded value!
+    constexpr coord_t junction_magnitude_factor_numerator = 3;
+    constexpr coord_t junction_magnitude_factor_denominator = 4;
+
+    const coord_t junction_magnitude = magnitude * junction_magnitude_factor_numerator / junction_magnitude_factor_denominator;
     if (children.size() == 1)
     {
         auto child_p = children.front();
@@ -216,9 +209,11 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord
             }
         }
         { // remove nodes on linear segments
+            constexpr coord_t close_enough = 10;
+
             child_p = children.front(); //recursive call to straighten might have removed the child
-            const std::shared_ptr<LightningTreeNode>& parent_node = parent.lock();
-            if (parent_node && LinearAlg2D::getDist2FromLineSegment(parent_node->p, p, child_p->p) < 10)
+            const LightningTreeNodeSPtr& parent_node = parent.lock();
+            if (parent_node && LinearAlg2D::getDist2FromLineSegment(parent_node->p, p, child_p->p) < close_enough)
             {
                 child_p->parent = parent;
                 for (auto& sibling : parent_node->children)
@@ -240,7 +235,7 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten(const coord
         bool prevent_junction_moving = false;
         for (auto& child_p : children)
         {
-            coord_t child_dist = vSize(p - child_p->p);
+            const coord_t child_dist = vSize(p - child_p->p);
             RectilinearJunction below = child_p->straighten(magnitude, p, child_dist);
 
             junction_moving_dir += normal(below.junction_loc - p, weight);
@@ -282,10 +277,10 @@ coord_t LightningTreeNode::prune(const coord_t& pruning_distance)
         }
         else
         {
-            Point a = getLocation();
-            Point b = child->getLocation();
-            Point ba = a - b;
-            coord_t ab_len = vSize(ba);
+            const Point a = getLocation();
+            const Point b = child->getLocation();
+            const Point ba = a - b;
+            const coord_t ab_len = vSize(ba);
             if (dist_pruned_child + ab_len <= pruning_distance)
             { // we're still in the process of pruning
                 assert(child->children.empty() && "when pruning away a node all it's children must already have been pruned away");
@@ -294,7 +289,7 @@ coord_t LightningTreeNode::prune(const coord_t& pruning_distance)
             }
             else
             { // pruning stops in between this node and the child
-                Point n = b + normal(ba, pruning_distance - dist_pruned_child);
+                const Point n = b + normal(ba, pruning_distance - dist_pruned_child);
                 assert(std::abs(vSize(n - b) + dist_pruned_child - pruning_distance) < 10 && "total pruned distance must be equal to the pruning_distance");
                 max_distance_pruned = std::max(max_distance_pruned, pruning_distance);
                 child->setLocation(n);
@@ -339,7 +334,6 @@ void LightningTreeNode::convertToPolylines(size_t long_line_idx, Polygons& outpu
 
 void LightningTreeNode::removeJunctionOverlap(Polygons& result_lines, const coord_t line_width) const
 {
-    // TODO: only reduce lines that start at junctions, not the roots!
     const coord_t reduction = line_width / 2; // TODO make configurable?
     for (auto poly_it = result_lines.begin(); poly_it != result_lines.end(); )
     {
@@ -355,9 +349,9 @@ void LightningTreeNode::removeJunctionOverlap(Polygons& result_lines, const coor
         Point a = polyline.back();
         for (int point_idx = polyline.size() - 2; point_idx >= 0; point_idx--)
         {
-            Point b = polyline[point_idx];
-            Point ab = b - a;
-            coord_t ab_len = vSize(ab);
+            const Point b = polyline[point_idx];
+            const Point ab = b - a;
+            const coord_t ab_len = vSize(ab);
             if (ab_len >= to_be_reduced)
             {
                 polyline.back() = a + ab * to_be_reduced / ab_len;

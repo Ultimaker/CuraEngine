@@ -53,24 +53,6 @@ public:
      */
     void update(const Point& to_node, const Point& added_leaf);
 
-    /*!
-     * Get a new unsupported point, close the already known \p fall_back, which is also close to the nearby tree branch location \p p.
-     * 
-     * Gets a random point on the boundary of the unsupported cells near \p fall_back,
-     * and takes an offset to as far away as \p total_radius,
-     * and returns the cell point at that location.
-     *    .  .  .  .  .     . = unsupported cell point
-     *    .  .  o  .  .     o = offsetted point at total radius; the returned point.
-     *    .  .  .  .  .
-     *    .  .  .  .  .
-     *    .  r  .  .  .     r = random point at the boundary of the unsupported, but close enough to f as \p supporting_radius.
-     *          .  .  .
-     *             f        f = \p fall_back.
-     *    p                 p = \p p.
-     * 
-     * If nothing is found, return \p fall_back instead.
-     */
-    Point getNearbyUnsupportedPoint(const Point p, const Point fall_back, coord_t supporting_radius, coord_t total_radius) const;
 protected:
     using GridPoint = SquareGrid::GridPoint;
 

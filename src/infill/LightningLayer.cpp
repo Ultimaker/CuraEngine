@@ -14,9 +14,9 @@
 
 using namespace cura;
 
-coord_t LightningLayer::getWeightedDistance(const Point& boundary_loc, const Point& unsupported_loc)
+coord_t LightningLayer::getWeightedDistance(const Point& boundary_loc, const Point& unsupported_location)
 {
-    return vSize(boundary_loc - unsupported_loc);
+    return vSize(boundary_loc - unsupported_location);
 }
 
 Point GroundingLocation::p() const
@@ -32,10 +32,10 @@ Point GroundingLocation::p() const
     }
 }
 
-void LightningLayer::fillLocator(SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator)
+void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)
 {
-    std::function<void(std::shared_ptr<LightningTreeNode>)> add_node_to_locator_func =
-        [&tree_node_locator](std::shared_ptr<LightningTreeNode> node)
+    std::function<void(LightningTreeNodeSPtr)> add_node_to_locator_func =
+        [&tree_node_locator](LightningTreeNodeSPtr node)
         {
             tree_node_locator.insert(node->getLocation(), node);
         };
@@ -50,23 +50,19 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
     LightningDistanceField distance_field(supporting_radius, current_outlines, current_overhang);
 
     constexpr coord_t locator_cell_size = 2000;
-    SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);
+    SparseLightningTreeNodeGrid tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator);
-
-    constexpr size_t debug_max_iterations = 9999999; // TODO: remove
-    size_t i_debug = 0;
 
     // Until no more points need to be added to support all:
     // Determine next point from tree/outline areas via distance-field
     Point unsupported_location;
-    while (distance_field.tryGetNextPoint(&unsupported_location) && i_debug < debug_max_iterations)
+    while (distance_field.tryGetNextPoint(&unsupported_location))
     {
-        ++i_debug;
+        constexpr coord_t min_dist_from_boundary_for_tree = 10;
+        GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, supporting_radius, min_dist_from_boundary_for_tree, tree_node_locator);
 
-        GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, supporting_radius, 10, tree_node_locator);
-
-        std::shared_ptr<LightningTreeNode> new_parent;
-        std::shared_ptr<LightningTreeNode> new_child;
+        LightningTreeNodeSPtr new_parent;
+        LightningTreeNodeSPtr new_child;
         attach(unsupported_location, grounding_loc, new_child, new_parent);
         tree_node_locator.insert(new_child->getLocation(), new_child);
         if (new_parent)
@@ -79,12 +75,20 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
     }
 }
 
-GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t min_dist_from_boundary_for_tree, const SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>& tree_node_locator, const std::shared_ptr<LightningTreeNode>& exclude_tree)
+GroundingLocation LightningLayer::getBestGroundingLocation
+(
+    const Point& unsupported_location,
+    const Polygons& current_outlines,
+    const coord_t supporting_radius,
+    const coord_t min_dist_from_boundary_for_tree,
+    const SparseLightningTreeNodeGrid& tree_node_locator,
+    const LightningTreeNodeSPtr& exclude_tree
+)
 {
     ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point node_location = cpp.p();
 
-    std::shared_ptr<LightningTreeNode> sub_tree(nullptr);
+    LightningTreeNodeSPtr sub_tree{ nullptr };
     coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
     if (current_dist >= min_dist_from_boundary_for_tree) // don't reconnect tree roots to other trees if they are already at/near the boundary
     {
@@ -104,7 +108,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsuppor
         }
     }
 
-    if (!sub_tree)
+    if (! sub_tree)
     {
         return GroundingLocation{ nullptr, cpp };
     }
@@ -114,7 +118,13 @@ GroundingLocation LightningLayer::getBestGroundingLocation(const Point& unsuppor
     }
 }
 
-bool LightningLayer::attach(const Point& unsupported_location, const GroundingLocation& grounding_loc, std::shared_ptr<LightningTreeNode>& new_child, std::shared_ptr<LightningTreeNode>& new_root)
+bool LightningLayer::attach
+(
+    const Point& unsupported_location,
+    const GroundingLocation& grounding_loc,
+    LightningTreeNodeSPtr& new_child,
+    LightningTreeNodeSPtr& new_root
+)
 {
     // Update trees & distance fields.
     if (grounding_loc.boundary_location)
@@ -131,16 +141,17 @@ bool LightningLayer::attach(const Point& unsupported_location, const GroundingLo
     }
 }
 
-void LightningLayer::reconnectRoots(std::vector<std::shared_ptr<LightningTreeNode>>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius)
+void LightningLayer::reconnectRoots(std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius)
 {
     constexpr coord_t locator_cell_size = 2000;
-    SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>> tree_node_locator(locator_cell_size);
+    constexpr coord_t tree_connecting_ignore_offset = 100;
+    SparseLightningTreeNodeGrid tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator);
 
     for (auto root_ptr : to_be_reconnected_tree_roots)
     {
         auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
-        coord_t tree_connecting_ignore_width = wall_supporting_radius - 100; // TODO: make boundary size in which we ignore the valence rule configurable
+        coord_t tree_connecting_ignore_width = wall_supporting_radius - tree_connecting_ignore_offset; // Ideally, the boundary size in which the valence rule is ignored would be configurable.
         GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, supporting_radius, tree_connecting_ignore_width, tree_node_locator, root_ptr);
         if (ground.boundary_location)
         {
