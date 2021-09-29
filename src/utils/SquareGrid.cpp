@@ -8,10 +8,9 @@
 using namespace cura;
 
 
-SquareGrid::SquareGrid(coord_t cell_size)
+SquareGrid::SquareGrid(coord_t cell_size) : cell_size(cell_size)
 {
     assert(cell_size > 0U);
-    cell_size = cell_size;
 }
 
 
