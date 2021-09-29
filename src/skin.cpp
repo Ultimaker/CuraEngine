@@ -554,21 +554,25 @@ Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part, siz
  */
     Polygons SkinInfillAreaComputation::generateNoAirBelow(SliceLayerPart& part, size_t flooring_layer_count)
     {
-        const size_t wall_idx = std::min(size_t(2), mesh.settings.get<size_t>("wall_line_count"));
-        if (layer_nr - flooring_layer_count >= 0)
+        if (layer_nr < flooring_layer_count)
         {
-            Polygons no_air_below = getWalls(part, layer_nr - flooring_layer_count, wall_idx);
-            if (!no_small_gaps_heuristic)
-            {
-                for (int layer_nr_below = layer_nr - flooring_layer_count + 1; layer_nr_below < layer_nr; layer_nr_below++)
-                {
-                    Polygons outlines_below = getWalls(part, layer_nr_below, wall_idx);
-                    no_air_below = no_air_below.intersection(outlines_below);
-                }
-            }
-            return no_air_below;
+            return {};
         }
-        return {};
+        constexpr size_t min_wall_line_count = 2;
+        const size_t wall_idx = std::min(min_wall_line_count, mesh.settings.get<size_t>("wall_line_count"));
+        const int lowest_flooring_layer = layer_nr - flooring_layer_count;
+        Polygons no_air_below = getWalls(part, lowest_flooring_layer, wall_idx);
+
+        if (!no_small_gaps_heuristic)
+        {
+            const int next_lowest_flooring_layer = lowest_flooring_layer + 1;
+            for (int layer_nr_below = next_lowest_flooring_layer; layer_nr_below < layer_nr; layer_nr_below++)
+            {
+                Polygons outlines_below = getWalls(part, layer_nr_below, wall_idx);
+                no_air_below = no_air_below.intersection(outlines_below);
+            }
+        }
+        return no_air_below;
     }
 
 /*
