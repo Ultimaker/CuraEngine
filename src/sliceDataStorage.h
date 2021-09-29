@@ -40,6 +40,8 @@ public:
     Polygons perimeter_gaps; //!< The gaps between the extra skin walls and gaps between the outer skin wall and the inner part inset
     Polygons inner_infill; //!< The inner infill of the skin with which the area within the innermost inset is filled
     Polygons roofing_fill; //!< The inner infill which has air directly above
+    Polygons top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
+    Polygons bottom_most_surface_fill; //!< The inner infill of the bottommost bottom layer which has air directly below.
 };
 
 

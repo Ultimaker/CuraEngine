@@ -243,6 +243,19 @@ Polygons LayerPlan::computeCombBoundaryInside(const size_t max_inset)
                     }
                 }
             }
+            else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
+            {
+                Polygons top_and_bottom_most_fill;
+                for (const SliceLayerPart& part : layer.parts)
+                {
+                    for (const SkinPart& skin_part : part.skin_parts)
+                    {
+                        top_and_bottom_most_fill.add(skin_part.top_most_surface_fill);
+                        top_and_bottom_most_fill.add(skin_part.bottom_most_surface_fill);
+                    }
+                }
+                comb_boundary.add(layer.getInnermostWalls(max_inset, mesh).difference(top_and_bottom_most_fill));
+            }
             else if (combing_mode == CombingMode::INFILL)
             {
                 for (const SliceLayerPart& part : layer.parts)
