@@ -109,6 +109,7 @@ LightningTreeNodeSPtr LightningTreeNode::deepCopy() const
 {
     LightningTreeNodeSPtr local_root = LightningTreeNode::create(p);
     local_root->is_root = is_root;
+    local_root->last_grounding_location = last_grounding_location;
     local_root->children.reserve(children.size());
     for (const auto& node : children)
     {
@@ -154,6 +155,10 @@ bool LightningTreeNode::realign
         constexpr bool argument_with_disconnect = false;
         if (child->realign(outlines, rerooted_parts, argument_with_disconnect))
         {
+            if (is_root)
+            {
+                child->last_grounding_location = p;
+            }
             child->parent.reset();
             child->is_root = true;
             rerooted_parts.push_back(child);
@@ -299,6 +304,11 @@ coord_t LightningTreeNode::prune(const coord_t& pruning_distance)
     }
 
     return max_distance_pruned;
+}
+
+const std::optional<Point>& LightningTreeNode::getLastGroundingLocation() const
+{
+    return last_grounding_location;
 }
 
 void LightningTreeNode::convertToPolylines(Polygons& output, const coord_t line_width) const

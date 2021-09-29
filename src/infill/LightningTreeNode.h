@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "../utils/polygonUtils.h"
@@ -116,6 +117,12 @@ public:
      */
     void convertToPolylines(Polygons& output, const coord_t line_width) const;
 
+    /*! If this was ever a direct child of the root, it'll have a previous grounding location.
+     *
+     * This needs to be known when roots are reconnected, so that the last (higher) layer is supported by the next one.
+     */
+    const std::optional<Point>& getLastGroundingLocation() const;
+
 protected:
     /*!
      * Convert the tree into polylines
@@ -135,6 +142,8 @@ protected:
     Point p;
     std::weak_ptr<LightningTreeNode> parent;
     std::vector<LightningTreeNodeSPtr> children;
+
+    std::optional<Point> last_grounding_location;
 };
 
 } // namespace cura

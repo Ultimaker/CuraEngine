@@ -141,16 +141,52 @@ bool LightningLayer::attach
     }
 }
 
+Point rootPolygonIntersection(const Point& inside_poly, const Point& old_root, const Polygons& current_outlines)
+{
+    Point result{ inside_poly };  // Not expected to stay that way if 'inside_poly' is indeed inside (defensive programming).
+    size_t closest_dist2 = std::numeric_limits<coord_t>::max();
+
+    for (const auto& poly : current_outlines)
+    {
+        const size_t poly_size = poly.size();
+        for (size_t i_segment_start = 0; i_segment_start < poly_size; ++i_segment_start)
+        {
+            const size_t i_segment_end = (i_segment_start + 1) % poly_size;
+            const Point& p_start = poly[i_segment_start];
+            const Point& p_end = poly[i_segment_end];
+
+            Point coll;
+            if
+            (
+                LinearAlg2D::lineLineIntersection(inside_poly, old_root, p_start, p_end, coll) &&
+                ! LinearAlg2D::pointIsProjectedBeyondLine(coll, p_start, p_end)
+            )
+            {
+                const size_t dist2 = vSize2(old_root - coll);
+                if (dist2 < closest_dist2)
+                {
+                    closest_dist2 = dist2;
+                    result = coll;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
 void LightningLayer::reconnectRoots(std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius)
 {
     constexpr coord_t locator_cell_size = 2000;
     constexpr coord_t tree_connecting_ignore_offset = 100;
+
     SparseLightningTreeNodeGrid tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator);
 
     for (auto root_ptr : to_be_reconnected_tree_roots)
     {
         auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
+
         coord_t tree_connecting_ignore_width = wall_supporting_radius - tree_connecting_ignore_offset; // Ideally, the boundary size in which the valence rule is ignored would be configurable.
         GroundingLocation ground = getBestGroundingLocation(root_ptr->getLocation(), current_outlines, supporting_radius, tree_connecting_ignore_width, tree_node_locator, root_ptr);
         if (ground.boundary_location)
@@ -160,7 +196,12 @@ void LightningLayer::reconnectRoots(std::vector<LightningTreeNodeSPtr>& to_be_re
                 continue; // Already on the boundary.
             }
 
-            auto new_root = LightningTreeNode::create(ground.p());
+            auto new_root = LightningTreeNode::create
+                (
+                    root_ptr->getLastGroundingLocation() ?
+                        rootPolygonIntersection(root_ptr->getLocation(), root_ptr->getLastGroundingLocation().value(), current_outlines) :
+                        ground.p()
+                );
             new_root->addChild(root_ptr);
             tree_node_locator.insert(new_root->getLocation(), new_root);
 
