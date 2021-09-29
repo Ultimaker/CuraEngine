@@ -41,7 +41,15 @@ public:
     /*! Determine & connect to connection point in tree/outline.
      * \param min_dist_from_boundary_for_tree If the unsupported point is closer to the boundary than this then don't consider connecting it to a tree
      */
-    GroundingLocation getBestGroundingLocation(const Point& unsupported_location, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t min_dist_from_boundary_for_tree, const SparseLightningTreeNodeGrid& tree_node_locator, const LightningTreeNodeSPtr& exclude_tree = nullptr);
+    GroundingLocation getBestGroundingLocation
+    (
+        const Point& unsupported_location,
+        const Polygons& current_outlines,
+        const coord_t supporting_radius,
+        const coord_t min_dist_from_boundary_for_tree,
+        const SparseLightningTreeNodeGrid& tree_node_locator,
+        const LightningTreeNodeSPtr& exclude_tree = nullptr
+    );
 
     /*!
      * 
