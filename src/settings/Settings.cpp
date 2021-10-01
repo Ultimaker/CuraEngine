@@ -497,6 +497,10 @@ template<> CombingMode Settings::get<CombingMode>(const std::string& key) const
     {
         return CombingMode::NO_SKIN;
     }
+    else if (value == "no_outer_surfaces")
+    {
+        return CombingMode::NO_OUTER_SURFACES;
+    }
     else if (value == "infill")
     {
         return CombingMode::INFILL;
