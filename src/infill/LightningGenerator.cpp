@@ -44,6 +44,9 @@ LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
 void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh)
 {
     overhang_per_layer.resize(mesh.layers.size());
+    const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
+    const auto infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
+    const coord_t infill_wall_offset = - infill_wall_line_count *  infill_line_width;
 
     Polygons infill_area_above;
     //Iterate from top to bottom, to subtract the overhang areas above from the overhang areas on the layer below, to get only overhang in the top layer where it is overhanging.
@@ -53,7 +56,7 @@ void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage
         Polygons infill_area_here;
         for (auto& part : current_layer.parts)
         {
-            infill_area_here.add(part.getOwnInfillArea());
+            infill_area_here.add(part.getOwnInfillArea().offset(infill_wall_offset));
         }
 
         //Remove the part of the infill area that is already supported by the walls.
@@ -73,6 +76,9 @@ const LightningLayer& LightningGenerator::getTreesForLayer(const size_t& layer_i
 void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
 {
     lightning_layers.resize(mesh.layers.size());
+    const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
+    const auto infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
+    const coord_t infill_wall_offset = - infill_wall_line_count *  infill_line_width;
 
     std::vector<Polygons> infill_outlines;
     infill_outlines.insert(infill_outlines.end(), mesh.layers.size(), Polygons());
@@ -82,7 +88,7 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
     {
         for (const auto& part : mesh.layers[layer_id].parts)
         {
-            infill_outlines[layer_id].add(part.getOwnInfillArea());
+            infill_outlines[layer_id].add(part.getOwnInfillArea().offset(infill_wall_offset));
         }
     }
 
