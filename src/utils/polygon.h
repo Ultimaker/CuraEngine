@@ -664,6 +664,12 @@ public:
         }
         paths.resize(paths.size() - 1);
     }
+
+    void pop_back()
+    {
+        paths.pop_back();
+    }
+
     /*!
      * Remove a range of polygons
      */
@@ -809,8 +815,9 @@ public:
     {
         Polygons ret;
         double miterLimit = 1.2;
+        ClipperLib::EndType end_type = (joinType == ClipperLib::jtMiter)? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
         ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
-        clipper.AddPaths(paths, joinType, ClipperLib::etOpenSquare);
+        clipper.AddPaths(paths, joinType, end_type);
         clipper.MiterLimit = miterLimit;
         clipper.Execute(ret.paths, distance);
         return ret;
