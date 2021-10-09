@@ -88,12 +88,13 @@ GroundingLocation LightningLayer::getBestGroundingLocation
 {
     ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point node_location = cpp.p();
+    const coord_t within_dist = vSize(node_location - unsupported_location);
 
     LightningTreeNodeSPtr sub_tree{ nullptr };
     coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
     if (current_dist >= min_dist_from_boundary_for_tree) // don't reconnect tree roots to other trees if they are already at/near the boundary
     {
-        auto candidate_trees = tree_node_locator.getNearbyVals(unsupported_location, std::min(current_dist, supporting_radius));
+        auto candidate_trees = tree_node_locator.getNearbyVals(unsupported_location, std::min(current_dist, within_dist));
         for (auto& candidate_wptr : candidate_trees)
         {
             auto candidate_sub_tree = candidate_wptr.lock();

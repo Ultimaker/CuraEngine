@@ -241,7 +241,7 @@ protected:
     std::weak_ptr<LightningTreeNode> parent;
     std::vector<LightningTreeNodeSPtr> children;
 
-    std::optional<Point> last_grounding_location;
+    std::optional<Point> last_grounding_location;  //<! The last known grounding location, see 'getLastGroundingLocation()'.
 };
 
 } // namespace cura
