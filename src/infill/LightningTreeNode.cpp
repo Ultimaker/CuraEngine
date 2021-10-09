@@ -120,6 +120,47 @@ LightningTreeNodeSPtr LightningTreeNode::deepCopy() const
     return local_root;
 }
 
+void LightningTreeNode::reroot(LightningTreeNodeSPtr new_parent /*= nullptr*/)
+{
+    if (! is_root)
+    {
+        auto old_parent = parent.lock();
+        old_parent->reroot(shared_from_this());
+        children.push_back(old_parent);
+    }
+
+    if (new_parent)
+    {
+        children.erase(std::remove(children.begin(), children.end(), new_parent), children.end());
+        is_root = false;
+        parent = new_parent;
+    }
+    else
+    {
+        is_root = true;
+        parent.reset();
+    }
+}
+
+LightningTreeNodeSPtr LightningTreeNode::closestNode(const Point& loc)
+{
+    LightningTreeNodeSPtr result = shared_from_this();
+    coord_t closest_dist2 = vSize2(p - loc);
+
+    for (const auto& child : children)
+    {
+        LightningTreeNodeSPtr candidate_node = child->closestNode(loc);
+        const coord_t child_dist2 = vSize2(candidate_node->p - loc);
+        if (child_dist2 < closest_dist2)
+        {
+            closest_dist2 = child_dist2;
+            result = candidate_node;
+        }
+    }
+
+    return result;
+}
+
 bool LightningTreeNode::realign
 (
     const Polygons& outlines,

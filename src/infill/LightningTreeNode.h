@@ -145,6 +145,22 @@ public:
     bool isRoot() const { return is_root; }
 
     /*!
+     * Reverse the parent-child relationship all the way to the root, from this node onward.
+     * This has the effect of 're-rooting' the tree at the current node if no immediate parent is given as argument.
+     * That is, the current node will become the root, it's (former) parent if any, will become one of it's children.
+     * This is then recursively bubbled up until it reaches the (former) root, which then will become a leaf.
+     * \param new_parent The (new) parent-node of the root, useful for recursing or immediately attaching the node to another tree.
+     */
+    void reroot(LightningTreeNodeSPtr new_parent = nullptr);
+
+    /*!
+     * Retrieves the closest node to the specified location.
+     * \param loc The specified location.
+     * \result The branch that starts at the position closest to the location within this tree.
+     */
+    LightningTreeNodeSPtr closestNode(const Point& loc);
+
+    /*!
      * Returns whether the given tree node is a descendant of this node.
      *
      * If this node itself is given, it is also considered to be a descendant.

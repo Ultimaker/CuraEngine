@@ -203,7 +203,11 @@ void LightningLayer::reconnectRoots(std::vector<LightningTreeNodeSPtr>& to_be_re
                         rootPolygonIntersection(root_ptr->getLocation(), root_ptr->getLastGroundingLocation().value(), current_outlines) :
                         ground.p()
                 );
-            new_root->addChild(root_ptr);
+
+            auto attach_ptr = root_ptr->closestNode(new_root->getLocation());
+            attach_ptr->reroot();
+
+            new_root->addChild(attach_ptr);
             tree_node_locator.insert(new_root->getLocation(), new_root);
 
             *old_root_it = std::move(new_root); // replace old root with new root
@@ -215,7 +219,10 @@ void LightningLayer::reconnectRoots(std::vector<LightningTreeNodeSPtr>& to_be_re
             assert(!root_ptr->hasOffspring(ground.tree_node));
             assert(!ground.tree_node->hasOffspring(root_ptr));
 
-            ground.tree_node->addChild(root_ptr);
+            auto attach_ptr = root_ptr->closestNode(ground.tree_node->getLocation());
+            attach_ptr->reroot();
+
+            ground.tree_node->addChild(attach_ptr);
 
             // remove old root
             *old_root_it = std::move(tree_roots.back());
