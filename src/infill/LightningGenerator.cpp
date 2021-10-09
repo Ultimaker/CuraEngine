@@ -100,7 +100,7 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
         // register all trees propagated from the previous layer as to-be-reconnected
         std::vector<LightningTreeNodeSPtr> to_be_reconnected_tree_roots = current_lightning_layer.tree_roots;
 
-        current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius);
+        current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius, wall_supporting_radius);
 
         current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, supporting_radius, wall_supporting_radius);
 

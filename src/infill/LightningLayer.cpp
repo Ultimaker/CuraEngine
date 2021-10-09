@@ -47,7 +47,7 @@ void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)
     }
 }
 
-void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius)
+void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius, coord_t wall_supporting_radius)
 {
     LightningDistanceField distance_field(supporting_radius, current_outlines, current_overhang);
 
@@ -59,8 +59,7 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
     Point unsupported_location;
     while (distance_field.tryGetNextPoint(&unsupported_location))
     {
-        constexpr coord_t min_dist_from_boundary_for_tree = 10;
-        GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, supporting_radius, min_dist_from_boundary_for_tree, tree_node_locator);
+        GroundingLocation grounding_loc = getBestGroundingLocation(unsupported_location, current_outlines, supporting_radius, wall_supporting_radius, tree_node_locator);
 
         LightningTreeNodeSPtr new_parent;
         LightningTreeNodeSPtr new_child;
@@ -81,7 +80,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation
     const Point& unsupported_location,
     const Polygons& current_outlines,
     const coord_t supporting_radius,
-    const coord_t min_dist_from_boundary_for_tree,
+    const coord_t wall_supporting_radius,
     const SparseLightningTreeNodeGrid& tree_node_locator,
     const LightningTreeNodeSPtr& exclude_tree
 )
@@ -92,7 +91,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation
 
     LightningTreeNodeSPtr sub_tree{ nullptr };
     coord_t current_dist = getWeightedDistance(node_location, unsupported_location);
-    if (current_dist >= min_dist_from_boundary_for_tree) // don't reconnect tree roots to other trees if they are already at/near the boundary
+    if (current_dist >= wall_supporting_radius) // Only reconnect tree roots to other trees if they are not already close to the outlines.
     {
         auto candidate_trees = tree_node_locator.getNearbyVals(unsupported_location, std::min(current_dist, within_dist));
         for (auto& candidate_wptr : candidate_trees)
