@@ -47,7 +47,7 @@ void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)
     }
 }
 
-void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius, coord_t wall_supporting_radius)
+void LightningLayer::generateNewTrees(const Polygons& current_overhang, const Polygons& current_outlines, coord_t supporting_radius, coord_t wall_supporting_radius)
 {
     LightningDistanceField distance_field(supporting_radius, current_outlines, current_overhang);
 
@@ -97,7 +97,12 @@ GroundingLocation LightningLayer::getBestGroundingLocation
         for (auto& candidate_wptr : candidate_trees)
         {
             auto candidate_sub_tree = candidate_wptr.lock();
-            if (candidate_sub_tree && candidate_sub_tree != exclude_tree && !(exclude_tree && exclude_tree->hasOffspring(candidate_sub_tree)))
+            if
+            (
+                (candidate_sub_tree && candidate_sub_tree != exclude_tree) &&
+                ! (exclude_tree && exclude_tree->hasOffspring(candidate_sub_tree)) &&
+                ! PolygonUtils::polygonCollidesWithLineSegment(current_outlines, unsupported_location, candidate_sub_tree->getLocation())
+            )
             {
                 const coord_t candidate_dist = candidate_sub_tree->getWeightedDistance(unsupported_location, supporting_radius);
                 if (candidate_dist < current_dist)

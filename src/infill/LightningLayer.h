@@ -36,7 +36,7 @@ class LightningLayer
 public:
     std::vector<LightningTreeNodeSPtr> tree_roots;
 
-    void generateNewTrees(const Polygons& current_overhang, Polygons& current_outlines, coord_t supporting_radius, coord_t wall_supporting_radius);
+    void generateNewTrees(const Polygons& current_overhang, const Polygons& current_outlines, coord_t supporting_radius, coord_t wall_supporting_radius);
 
     /*! Determine & connect to connection point in tree/outline.
      * \param min_dist_from_boundary_for_tree If the unsupported point is closer to the boundary than this then don't consider connecting it to a tree
@@ -52,7 +52,6 @@ public:
     );
 
     /*!
-     * 
      * \param[out] new_child The new child node introduced
      * \param[out] new_root The new root node if one had been made
      * \return Whether a new root was added
