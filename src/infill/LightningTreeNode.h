@@ -38,8 +38,10 @@ class LightningTreeNode : public std::enable_shared_from_this<LightningTreeNode>
 {
 public:
     // Workaround for private/protected constructors and 'make_shared': https://stackoverflow.com/a/27832765
-    template<typename ...Arg> LightningTreeNodeSPtr static create(Arg&&...arg) {
-        struct EnableMakeShared : public LightningTreeNode {
+    template<typename ...Arg> LightningTreeNodeSPtr static create(Arg&&...arg)
+    {
+        struct EnableMakeShared : public LightningTreeNode
+        {
             EnableMakeShared(Arg&&...arg) : LightningTreeNode(std::forward<Arg>(arg)...) {}
         };
         return std::make_shared<EnableMakeShared>(std::forward<Arg>(arg)...);
@@ -110,8 +112,6 @@ public:
      */
     void visitBranches(const std::function<void(const Point&, const Point&)>& visitor) const;
 
-    // NOTE: Depth-first, as currently implemented.
-    //       Also note that, unlike the visitBranches variant, this isn't (...) const!
     /*!
      * Execute a given function for every node in this node's sub-tree.
      *
@@ -124,6 +124,16 @@ public:
      */
     void visitNodes(const std::function<void(LightningTreeNodeSPtr)>& visitor);
 
+    /*!
+     * Get a weighted distance from an unsupported point to this node (given the current supporting radius).
+     *
+     * When attaching a unsupported location to a node, not all nodes have the same priority.
+     * (Eucludian) closer nodes are prioritised, but that's not the whole story.
+     * For instance, we give some nodes a 'valence boost' depending on the nr. of branches.
+     * \param unsupported_location The (unsuppported) location of which the weighted distance needs to be calculated.
+     * \param supporting_radius The maximum distance which can be bridged without (infill) supporting it.
+     * \return The weighted distance.
+     */
     coord_t getWeightedDistance(const Point& unsupported_location, const coord_t& supporting_radius) const;
 
     /*!
@@ -144,6 +154,7 @@ public:
      * or ``false`` if it is not in the sub-tree.
      */
     bool hasOffspring(const LightningTreeNodeSPtr& to_be_checked) const;
+
 protected:
     LightningTreeNode() = delete; // Don't allow empty contruction
 
@@ -160,7 +171,7 @@ protected:
      * \return The equivalent of this node in the copy (the root of the new sub-
      * tree).
      */
-    LightningTreeNodeSPtr deepCopy() const; //!< Copy this node and all its children
+    LightningTreeNodeSPtr deepCopy() const;
 
     /*! Reconnect trees from the layer above to the new outlines of the lower layer.
      * \return Wether or not the root is kept (false is no, true is yes).
@@ -191,6 +202,7 @@ protected:
      * \return The distance that has been pruned. If less than \p distance, then the whole tree was puned away.
      */
     coord_t prune(const coord_t& distance);
+
 public:
     /*!
      * Convert the tree into polylines

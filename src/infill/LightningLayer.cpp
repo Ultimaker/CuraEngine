@@ -14,6 +14,8 @@
 
 using namespace cura;
 
+constexpr coord_t locator_cell_size = 2000;
+
 coord_t LightningLayer::getWeightedDistance(const Point& boundary_loc, const Point& unsupported_location)
 {
     return vSize(boundary_loc - unsupported_location);
@@ -49,7 +51,6 @@ void LightningLayer::generateNewTrees(const Polygons& current_overhang, Polygons
 {
     LightningDistanceField distance_field(supporting_radius, current_outlines, current_overhang);
 
-    constexpr coord_t locator_cell_size = 2000;
     SparseLightningTreeNodeGrid tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator);
 
@@ -177,7 +178,6 @@ Point rootPolygonIntersection(const Point& inside_poly, const Point& old_root, c
 
 void LightningLayer::reconnectRoots(std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius)
 {
-    constexpr coord_t locator_cell_size = 2000;
     constexpr coord_t tree_connecting_ignore_offset = 100;
 
     SparseLightningTreeNodeGrid tree_node_locator(locator_cell_size);

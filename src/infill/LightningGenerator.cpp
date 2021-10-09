@@ -18,10 +18,9 @@
  * - Unit Tests?
  * - Optimization: let the square grid store the closest point on boundary
  * - Optimization: only compute the closest dist to / point on boundary for the outer cells and flood-fill the rest
- * - Make a pass with Arachne over the output.
+ * - Make a pass with Arachne over the output. Somehow.
  * - Generate all to-be-supported points at once instead of sequentially: See branch interlocking_gen PolygonUtils::spreadDots (Or work with sparse grids.)
- * - Make distance field cell size configurable? Whats the best value?
- * - LightningLayer::getBestGroundingLocation : make boundary size in which we ignore the valence rule configurable
+ * - Lots of magic values ... to many to parameterize. But are they the best?
  * - Move more complex computations from LightningGenerator constructor to elsewhere.
  */
 
