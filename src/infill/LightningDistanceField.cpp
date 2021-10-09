@@ -28,14 +28,17 @@ LightningDistanceField::LightningDistanceField
         const coord_t dist_to_boundary = vSize(p - cpp.p());
         unsupported_points.emplace_back(p, dist_to_boundary);
     }
-    unsupported_points.sort(
-        [](const UnsupCell& a, const UnsupCell& b)
+    unsupported_points.sort
+    (
+        [&radius](const UnsupCell& a, const UnsupCell& b)
         {
             constexpr coord_t prime_for_hash = 191;
-            const coord_t da = a.dist_to_boundary + std::hash<Point>{}(a.loc) % prime_for_hash;
-            const coord_t db = b.dist_to_boundary + std::hash<Point>{}(b.loc) % prime_for_hash;
-            return da < db;
-        });
+            return
+                std::abs(b.dist_to_boundary - a.dist_to_boundary) > radius ?
+                a.dist_to_boundary < b.dist_to_boundary :
+                (std::hash<Point>{}(a.loc) % prime_for_hash) < (std::hash<Point>{}(b.loc) % prime_for_hash);
+        }
+    );
     for (auto it = unsupported_points.begin(); it != unsupported_points.end(); ++it)
     {
         UnsupCell& cell = *it;
