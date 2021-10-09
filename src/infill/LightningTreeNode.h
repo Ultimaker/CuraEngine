@@ -16,6 +16,8 @@
 namespace cura
 {
 
+constexpr coord_t locator_cell_size = 4000;
+
 class LightningTreeNode;
 
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;

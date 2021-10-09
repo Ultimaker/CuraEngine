@@ -36,7 +36,14 @@ class LightningLayer
 public:
     std::vector<LightningTreeNodeSPtr> tree_roots;
 
-    void generateNewTrees(const Polygons& current_overhang, const Polygons& current_outlines, coord_t supporting_radius, coord_t wall_supporting_radius);
+    void generateNewTrees
+    (
+        const Polygons& current_overhang,
+        const Polygons& current_outlines,
+        const LocToLineGrid& outline_locator,
+        coord_t supporting_radius,
+        coord_t wall_supporting_radius
+    );
 
     /*! Determine & connect to connection point in tree/outline.
      * \param min_dist_from_boundary_for_tree If the unsupported point is closer to the boundary than this then don't consider connecting it to a tree
@@ -45,6 +52,7 @@ public:
     (
         const Point& unsupported_location,
         const Polygons& current_outlines,
+        const LocToLineGrid& outline_locator,
         const coord_t supporting_radius,
         const coord_t wall_supporting_radius,
         const SparseLightningTreeNodeGrid& tree_node_locator,
@@ -58,7 +66,14 @@ public:
      */
     bool attach(const Point& unsupported_location, const GroundingLocation& ground, LightningTreeNodeSPtr& new_child, LightningTreeNodeSPtr& new_root);
 
-    void reconnectRoots(std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots, const Polygons& current_outlines, const coord_t supporting_radius, const coord_t wall_supporting_radius);
+    void reconnectRoots
+    (
+        std::vector<LightningTreeNodeSPtr>& to_be_reconnected_tree_roots,
+        const Polygons& current_outlines,
+        const LocToLineGrid& outline_locator,
+        const coord_t supporting_radius,
+        const coord_t wall_supporting_radius
+    );
 
     Polygons convertToLines(const coord_t line_width) const;
 

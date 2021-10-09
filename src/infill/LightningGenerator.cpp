@@ -97,12 +97,17 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
         LightningLayer& current_lightning_layer = lightning_layers[layer_id];
         Polygons& current_outlines = infill_outlines[layer_id];
 
+        // for various operations its beneficial to quickly locate nearby features on the polygon
+        auto outlines_locator_ptr = PolygonUtils::createLocToLineGrid(current_outlines, locator_cell_size);
+        const auto& outlines_locator = *outlines_locator_ptr;
+
         // register all trees propagated from the previous layer as to-be-reconnected
         std::vector<LightningTreeNodeSPtr> to_be_reconnected_tree_roots = current_lightning_layer.tree_roots;
 
-        current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius, wall_supporting_radius);
+        current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, outlines_locator, supporting_radius, wall_supporting_radius);
 
-        current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, supporting_radius, wall_supporting_radius);
+        current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, outlines_locator, supporting_radius, wall_supporting_radius);
+        delete outlines_locator_ptr;
 
         // Initialize trees for next lower layer from the current one.
         if (layer_id == 0)
