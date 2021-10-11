@@ -213,12 +213,35 @@ public:
             optimizeClosestStartPoint(*line, current_pos);
             reordered.push_back(*line); //Plan the start of the sequence to be printed next!
             auto connection = connections.find(line);
+            auto previous_connection = connection;
             while(connection != connections.end() && starting_lines.find(connection->second) == starting_lines.end()) //Stop if the sequence ends or if we hit another starting point.
             {
                 line = connection->second;
+//                auto it = std::find(reordered.begin(), reordered.end(), *line);
+//                if (it != reordered.end())
+//                {
+//                    break;
+//                }
                 optimizeClosestStartPoint(*line, current_pos);
                 reordered.push_back(*line); //Plan this line in, to be printed next!
+
+//                if (cyclicConnection(line, connections, starting_lines))
+//                {
+//                    break;
+//                }
+                previous_connection = connection;
                 connection = connections.find(line);
+
+                // Check if the new connection leads to a cyclic connection between lines
+                if (connection != connections.end() && starting_lines.find(connection->second) == starting_lines.end())
+                {
+                    Path* next_line = connection->second;
+                    auto next_connection = connections.find(next_line);
+                    if (next_connection == previous_connection) // The next-next-line is the same as the current line.
+                    {
+                        break;
+                    }
+                }
             }
         }
 
@@ -227,7 +250,7 @@ public:
 
 protected:
     /*!
-     * The direction in which to print montonically, encoded as vector of length
+     * The direction in which to print monotonically, encoded as vector of length
      * ``monotonic_vector_resolution``.
      *
      * The resulting ordering will cause clusters of paths to be sorted
@@ -242,6 +265,25 @@ protected:
      * this distance together.
      */
     coord_t max_adjacent_distance;
+
+    bool cyclicConnection(Path* line, const std::unordered_map<Path*, Path*> connections, const std::unordered_set<Path*> starting_lines)
+    {
+        auto connection = connections.find(line);
+        if (connection != connections.end() && starting_lines.find(connection->second) == starting_lines.end())
+        {
+            Path* next_line = connection->second;
+            auto next_connection = connections.find(next_line);
+            if (next_connection != connections.end()
+                && starting_lines.find(next_connection->second) == starting_lines.end()
+                && next_connection->second == line)
+            {
+                // The current connections and its next connection are pointing to each other, which means that this is
+                // a cyclic connection
+                return true;
+            }
+        }
+        return false;
+    }
 
     /*!
      * For a given path, make sure that it is configured correctly to start
