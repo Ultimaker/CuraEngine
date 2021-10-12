@@ -232,7 +232,7 @@ void LightningLayer::reconnectRoots
     {
         auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
 
-        coord_t tree_connecting_ignore_width = wall_supporting_radius - tree_connecting_ignore_offset; // Ideally, the boundary size in which the valence rule is ignored would be configurable.
+        const coord_t tree_connecting_ignore_width = wall_supporting_radius - tree_connecting_ignore_offset; // Ideally, the boundary size in which the valence rule is ignored would be configurable.
         GroundingLocation ground =
             getBestGroundingLocation
             (
