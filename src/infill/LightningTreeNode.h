@@ -182,7 +182,7 @@ protected:
      * Connecting other nodes to this node indicates that a line segment should
      * be drawn between those two physical positions.
      */
-    LightningTreeNode(const Point& p);
+    LightningTreeNode(const Point& p, const std::optional<Point>& last_grounding_location = std::optional<Point>());
 
     /*!
      * Copy this node and its entire sub-tree.

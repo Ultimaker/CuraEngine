@@ -152,7 +152,7 @@ bool LightningLayer::attach
     // Update trees & distance fields.
     if (grounding_loc.boundary_location)
     {
-        new_root = LightningTreeNode::create(grounding_loc.p());
+        new_root = LightningTreeNode::create(grounding_loc.p(), std::make_optional(grounding_loc.p()));
         new_child = new_root->addChild(unsupported_location);
         tree_roots.push_back(new_root);
         return true;
@@ -232,6 +232,22 @@ void LightningLayer::reconnectRoots
     {
         auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
 
+        if (root_ptr->getLastGroundingLocation())
+        {
+            const Point& ground_loc = root_ptr->getLastGroundingLocation().value();
+            if (ground_loc != root_ptr->getLocation())
+            {
+                const Point new_root_pt = rootPolygonIntersection(root_ptr->getLocation(), ground_loc, current_outlines, outline_locator);
+                auto new_root = LightningTreeNode::create(new_root_pt, new_root_pt);
+                root_ptr->addChild(new_root);
+                new_root->reroot();
+
+                tree_node_locator.insert(new_root->getLocation(), new_root);
+                *old_root_it = std::move(new_root); // replace old root with new root
+                continue;
+            }
+        }
+
         const coord_t tree_connecting_ignore_width = wall_supporting_radius - tree_connecting_ignore_offset; // Ideally, the boundary size in which the valence rule is ignored would be configurable.
         GroundingLocation ground =
             getBestGroundingLocation
@@ -244,20 +260,14 @@ void LightningLayer::reconnectRoots
                 tree_node_locator,
                 root_ptr
             );
-        if (ground.boundary_location || root_ptr->getLastGroundingLocation())
+        if (ground.boundary_location)
         {
-            if ((! root_ptr->getLastGroundingLocation()) && ground.boundary_location.value().p() == root_ptr->getLocation())
+            if (ground.boundary_location.value().p() == root_ptr->getLocation())
             {
                 continue; // Already on the boundary.
             }
 
-            auto new_root = LightningTreeNode::create
-                (
-                    root_ptr->getLastGroundingLocation() ?
-                        rootPolygonIntersection(root_ptr->getLocation(), root_ptr->getLastGroundingLocation().value(), current_outlines, outline_locator) :
-                        ground.p()
-                );
-
+            auto new_root = LightningTreeNode::create(ground.p(), ground.p());
             auto attach_ptr = root_ptr->closestNode(new_root->getLocation());
             attach_ptr->reroot();
 

@@ -100,16 +100,20 @@ void LightningTreeNode::visitNodes(const std::function<void(LightningTreeNodeSPt
     }
 }
 
-LightningTreeNode::LightningTreeNode(const Point& p)
+LightningTreeNode::LightningTreeNode(const Point& p, const std::optional<Point>& last_grounding_location /*= std::optional<Point>()*/)
 : is_root(true)
 , p(p)
+, last_grounding_location(last_grounding_location)
 {}
 
 LightningTreeNodeSPtr LightningTreeNode::deepCopy() const
 {
     LightningTreeNodeSPtr local_root = LightningTreeNode::create(p);
     local_root->is_root = is_root;
-    local_root->last_grounding_location = last_grounding_location;
+    if (is_root)
+    {
+        local_root->last_grounding_location = last_grounding_location.value_or(p);
+    }
     local_root->children.reserve(children.size());
     for (const auto& node : children)
     {
@@ -196,10 +200,7 @@ bool LightningTreeNode::realign
         constexpr bool argument_with_disconnect = false;
         if (child->realign(outlines, rerooted_parts, argument_with_disconnect))
         {
-            if (is_root)
-            {
-                child->last_grounding_location = p;
-            }
+            child->last_grounding_location = p;
             child->parent.reset();
             child->is_root = true;
             rerooted_parts.push_back(child);
@@ -255,7 +256,6 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten
                 p = p + normal(destination - p, magnitude);
             }
         }
-        if (! is_root) // prevent the situation where the root itself is removed right afterwards, when reattaching to roots later on due to the next layer
         { // remove nodes on linear segments
             constexpr coord_t close_enough = 10;
 
