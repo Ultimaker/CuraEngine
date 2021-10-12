@@ -211,6 +211,7 @@ bool LightningTreeNode::realign
     {
         // This will now be a (new_ leaf:
         p = PolygonUtils::findClosest(p, outlines).p();
+        last_grounding_location = p;
         return true;
     }
 
@@ -254,6 +255,7 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten
                 p = p + normal(destination - p, magnitude);
             }
         }
+        if (! is_root) // prevent the situation where the root itself is removed right afterwards, when reattaching to roots later on due to the next layer
         { // remove nodes on linear segments
             constexpr coord_t close_enough = 10;
 

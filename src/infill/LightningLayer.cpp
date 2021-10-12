@@ -244,9 +244,9 @@ void LightningLayer::reconnectRoots
                 tree_node_locator,
                 root_ptr
             );
-        if (ground.boundary_location)
+        if (ground.boundary_location || root_ptr->getLastGroundingLocation())
         {
-            if (ground.boundary_location.value().p() == root_ptr->getLocation())
+            if ((! root_ptr->getLastGroundingLocation()) && ground.boundary_location.value().p() == root_ptr->getLocation())
             {
                 continue; // Already on the boundary.
             }
