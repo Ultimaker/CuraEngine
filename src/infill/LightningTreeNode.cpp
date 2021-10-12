@@ -168,8 +168,7 @@ LightningTreeNodeSPtr LightningTreeNode::closestNode(const Point& loc)
 bool LightningTreeNode::realign
 (
     const Polygons& outlines,
-    std::vector<LightningTreeNodeSPtr>& rerooted_parts,
-    const bool& connected_to_parent
+    std::vector<LightningTreeNodeSPtr>& rerooted_parts
 )
 {
     // TODO: Hole(s) in the _middle_ of a line-segement, not unlikely since reconnect.
@@ -186,8 +185,7 @@ bool LightningTreeNode::realign
         {
             [&outlines, &rerooted_parts](const LightningTreeNodeSPtr& child)
             {
-                constexpr bool argument_with_connected = true;
-                return ! child->realign(outlines, rerooted_parts, argument_with_connected);
+                return ! child->realign(outlines, rerooted_parts);
             }
         };
         children.erase(std::remove_if(children.begin(), children.end(), remove_unconnected_func), children.end());
@@ -197,8 +195,7 @@ bool LightningTreeNode::realign
     // 'Lift' any decendants out of this tree:
     for (auto& child : children)
     {
-        constexpr bool argument_with_disconnect = false;
-        if (child->realign(outlines, rerooted_parts, argument_with_disconnect))
+        if (child->realign(outlines, rerooted_parts))
         {
             child->last_grounding_location = p;
             child->parent.reset();
@@ -207,14 +204,6 @@ bool LightningTreeNode::realign
         }
     }
     children.clear();
-
-    if (connected_to_parent)
-    {
-        // This will now be a (new_ leaf:
-        p = PolygonUtils::findClosest(p, outlines).p();
-        last_grounding_location = p;
-        return true;
-    }
 
     return false;
 }

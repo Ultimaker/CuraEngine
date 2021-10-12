@@ -176,7 +176,8 @@ Point rootPolygonIntersection(const Point& inside_poly, const Point& old_root, c
             if
             (
                 LinearAlg2D::lineLineIntersection(inside_poly, old_root, p_start, p_end, coll) &&
-                ! LinearAlg2D::pointIsProjectedBeyondLine(coll, p_start, p_end)
+                ! LinearAlg2D::pointIsProjectedBeyondLine(coll, p_start, p_end) &&
+                ! LinearAlg2D::pointIsProjectedBeyondLine(coll, inside_poly, old_root)
             )
             {
                 const size_t dist2 = vSize2(old_root - coll);
