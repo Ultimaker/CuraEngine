@@ -16,6 +16,8 @@
 namespace cura
 {
 
+constexpr coord_t locator_cell_size = 4000;
+
 class LightningTreeNode;
 
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
@@ -38,8 +40,10 @@ class LightningTreeNode : public std::enable_shared_from_this<LightningTreeNode>
 {
 public:
     // Workaround for private/protected constructors and 'make_shared': https://stackoverflow.com/a/27832765
-    template<typename ...Arg> LightningTreeNodeSPtr static create(Arg&&...arg) {
-        struct EnableMakeShared : public LightningTreeNode {
+    template<typename ...Arg> LightningTreeNodeSPtr static create(Arg&&...arg)
+    {
+        struct EnableMakeShared : public LightningTreeNode
+        {
             EnableMakeShared(Arg&&...arg) : LightningTreeNode(std::forward<Arg>(arg)...) {}
         };
         return std::make_shared<EnableMakeShared>(std::forward<Arg>(arg)...);
@@ -93,6 +97,7 @@ public:
     (
         std::vector<LightningTreeNodeSPtr>& next_trees,
         const Polygons& next_outlines,
+        const LocToLineGrid& outline_locator,
         const coord_t& prune_distance,
         const coord_t& smooth_magnitude
     ) const;
@@ -110,8 +115,6 @@ public:
      */
     void visitBranches(const std::function<void(const Point&, const Point&)>& visitor) const;
 
-    // NOTE: Depth-first, as currently implemented.
-    //       Also note that, unlike the visitBranches variant, this isn't (...) const!
     /*!
      * Execute a given function for every node in this node's sub-tree.
      *
@@ -124,6 +127,16 @@ public:
      */
     void visitNodes(const std::function<void(LightningTreeNodeSPtr)>& visitor);
 
+    /*!
+     * Get a weighted distance from an unsupported point to this node (given the current supporting radius).
+     *
+     * When attaching a unsupported location to a node, not all nodes have the same priority.
+     * (Eucludian) closer nodes are prioritised, but that's not the whole story.
+     * For instance, we give some nodes a 'valence boost' depending on the nr. of branches.
+     * \param unsupported_location The (unsuppported) location of which the weighted distance needs to be calculated.
+     * \param supporting_radius The maximum distance which can be bridged without (infill) supporting it.
+     * \return The weighted distance.
+     */
     coord_t getWeightedDistance(const Point& unsupported_location, const coord_t& supporting_radius) const;
 
     /*!
@@ -135,6 +148,22 @@ public:
     bool isRoot() const { return is_root; }
 
     /*!
+     * Reverse the parent-child relationship all the way to the root, from this node onward.
+     * This has the effect of 're-rooting' the tree at the current node if no immediate parent is given as argument.
+     * That is, the current node will become the root, it's (former) parent if any, will become one of it's children.
+     * This is then recursively bubbled up until it reaches the (former) root, which then will become a leaf.
+     * \param new_parent The (new) parent-node of the root, useful for recursing or immediately attaching the node to another tree.
+     */
+    void reroot(LightningTreeNodeSPtr new_parent = nullptr);
+
+    /*!
+     * Retrieves the closest node to the specified location.
+     * \param loc The specified location.
+     * \result The branch that starts at the position closest to the location within this tree.
+     */
+    LightningTreeNodeSPtr closestNode(const Point& loc);
+
+    /*!
      * Returns whether the given tree node is a descendant of this node.
      *
      * If this node itself is given, it is also considered to be a descendant.
@@ -144,6 +173,7 @@ public:
      * or ``false`` if it is not in the sub-tree.
      */
     bool hasOffspring(const LightningTreeNodeSPtr& to_be_checked) const;
+
 protected:
     LightningTreeNode() = delete; // Don't allow empty contruction
 
@@ -153,19 +183,19 @@ protected:
      * Connecting other nodes to this node indicates that a line segment should
      * be drawn between those two physical positions.
      */
-    LightningTreeNode(const Point& p);
+    LightningTreeNode(const Point& p, const std::optional<Point>& last_grounding_location = std::nullopt);
 
     /*!
      * Copy this node and its entire sub-tree.
      * \return The equivalent of this node in the copy (the root of the new sub-
      * tree).
      */
-    LightningTreeNodeSPtr deepCopy() const; //!< Copy this node and all its children
+    LightningTreeNodeSPtr deepCopy() const;
 
     /*! Reconnect trees from the layer above to the new outlines of the lower layer.
      * \return Wether or not the root is kept (false is no, true is yes).
      */
-    bool realign(const Polygons& outlines, std::vector<LightningTreeNodeSPtr>& rerooted_parts, const bool& connected_to_parent = false);
+    bool realign(const Polygons& outlines, const LocToLineGrid& outline_locator, std::vector<LightningTreeNodeSPtr>& rerooted_parts);
 
     struct RectilinearJunction
     {
@@ -191,6 +221,7 @@ protected:
      * \return The distance that has been pruned. If less than \p distance, then the whole tree was puned away.
      */
     coord_t prune(const coord_t& distance);
+
 public:
     /*!
      * Convert the tree into polylines
@@ -229,7 +260,7 @@ protected:
     std::weak_ptr<LightningTreeNode> parent;
     std::vector<LightningTreeNodeSPtr> children;
 
-    std::optional<Point> last_grounding_location;
+    std::optional<Point> last_grounding_location;  //<! The last known grounding location, see 'getLastGroundingLocation()'.
 };
 
 } // namespace cura

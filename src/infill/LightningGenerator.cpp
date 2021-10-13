@@ -18,10 +18,9 @@
  * - Unit Tests?
  * - Optimization: let the square grid store the closest point on boundary
  * - Optimization: only compute the closest dist to / point on boundary for the outer cells and flood-fill the rest
- * - Make a pass with Arachne over the output.
+ * - Make a pass with Arachne over the output. Somehow.
  * - Generate all to-be-supported points at once instead of sequentially: See branch interlocking_gen PolygonUtils::spreadDots (Or work with sparse grids.)
- * - Make distance field cell size configurable? Whats the best value?
- * - LightningLayer::getBestGroundingLocation : make boundary size in which we ignore the valence rule configurable
+ * - Lots of magic values ... to many to parameterize. But are they the best?
  * - Move more complex computations from LightningGenerator constructor to elsewhere.
  */
 
@@ -32,7 +31,7 @@ LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
     const auto infill_extruder = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr");
     const auto layer_thickness = infill_extruder.settings.get<coord_t>("layer_height");  // Note: There's not going to be a layer below the first one, so the 'initial layer height' doesn't have to be taken into account.
 
-    supporting_radius = infill_extruder.settings.get<coord_t>("infill_line_distance") / 2;
+    supporting_radius = std::max(infill_extruder.settings.get<coord_t>("infill_line_distance"), infill_extruder.settings.get<coord_t>("infill_line_width")) / 2;
     wall_supporting_radius = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_overhang_angle"));
     prune_length = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_prune_angle"));
     straightening_max_distance = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_straightening_angle"));
@@ -92,18 +91,24 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
         }
     }
 
+    // For various operations its beneficial to quickly locate nearby features on the polygon:
+    const size_t top_layer_id = mesh.layers.size() - 1;
+    auto outlines_locator_ptr = PolygonUtils::createLocToLineGrid(infill_outlines[top_layer_id], locator_cell_size);
+
     // For-each layer from top to bottom:
-    for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
+    for (int layer_id = top_layer_id; layer_id >= 0; layer_id--)
     {
         LightningLayer& current_lightning_layer = lightning_layers[layer_id];
         Polygons& current_outlines = infill_outlines[layer_id];
+        const auto& outlines_locator = *outlines_locator_ptr;
 
         // register all trees propagated from the previous layer as to-be-reconnected
         std::vector<LightningTreeNodeSPtr> to_be_reconnected_tree_roots = current_lightning_layer.tree_roots;
 
-        current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, supporting_radius);
+        current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, outlines_locator, supporting_radius, wall_supporting_radius);
 
-        current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, supporting_radius, wall_supporting_radius);
+        current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, outlines_locator, supporting_radius, wall_supporting_radius);
+        delete outlines_locator_ptr;
 
         // Initialize trees for next lower layer from the current one.
         if (layer_id == 0)
@@ -111,11 +116,13 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
             return;
         }
         const Polygons& below_outlines = infill_outlines[layer_id - 1];
+        outlines_locator_ptr = PolygonUtils::createLocToLineGrid(below_outlines, locator_cell_size);
+        const auto& below_outlines_locator = *outlines_locator_ptr;
 
         std::vector<LightningTreeNodeSPtr>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
         for (auto& tree : current_lightning_layer.tree_roots)
         {
-            tree->propagateToNextLayer(lower_trees, below_outlines, prune_length, straightening_max_distance);
+            tree->propagateToNextLayer(lower_trees, below_outlines, below_outlines_locator, prune_length, straightening_max_distance);
         }
     }
 }

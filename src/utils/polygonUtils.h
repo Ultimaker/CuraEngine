@@ -141,6 +141,11 @@ public:
     static std::vector<Point> spreadDotsArea(const Polygons& polygons, coord_t grid_size);
 
     /*!
+     * Wether a polygon intersects with a line-segment. If true, the closest collission point to 'b' is stored in the result.
+     */
+    static bool lineSegmentPolygonsIntersection(const Point& a, const Point& b, const Polygons& current_outlines, const LocToLineGrid& outline_locator, Point& result);
+
+    /*!
      * Get the normal of a boundary point, pointing outward.
      * Only the direction is set.
      * Nothing is said about the length of the vector returned.
