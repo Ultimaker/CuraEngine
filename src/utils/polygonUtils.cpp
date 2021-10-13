@@ -121,8 +121,8 @@ bool PolygonUtils::lineSegmentPolygonsIntersection(const Point& a, const Point& 
         if
         (
             LinearAlg2D::lineLineIntersection(a, b, p_start, p_end, coll) &&
-            ! LinearAlg2D::pointIsProjectedBeyondLine(coll, p_start, p_end) &&
-            ! LinearAlg2D::pointIsProjectedBeyondLine(coll, a, b)
+            LinearAlg2D::pointIsProjectedBeyondLine(coll, p_start, p_end) == 0 &&
+            LinearAlg2D::pointIsProjectedBeyondLine(coll, a, b) == 0
         )
         {
             const coord_t dist2 = vSize2(b - coll);

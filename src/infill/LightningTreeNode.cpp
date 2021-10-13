@@ -101,7 +101,7 @@ void LightningTreeNode::visitNodes(const std::function<void(LightningTreeNodeSPt
     }
 }
 
-LightningTreeNode::LightningTreeNode(const Point& p, const std::optional<Point>& last_grounding_location /*= std::optional<Point>()*/)
+LightningTreeNode::LightningTreeNode(const Point& p, const std::optional<Point>& last_grounding_location /*= std::nullopt*/)
 : is_root(true)
 , p(p)
 , last_grounding_location(last_grounding_location)

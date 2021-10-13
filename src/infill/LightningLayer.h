@@ -41,8 +41,8 @@ public:
         const Polygons& current_overhang,
         const Polygons& current_outlines,
         const LocToLineGrid& outline_locator,
-        coord_t supporting_radius,
-        coord_t wall_supporting_radius
+        const coord_t supporting_radius,
+        const coord_t wall_supporting_radius
     );
 
     /*! Determine & connect to connection point in tree/outline.
