@@ -52,7 +52,7 @@ LightningTreeNodeSPtr LightningTreeNode::addChild(const Point& child_loc)
 LightningTreeNodeSPtr LightningTreeNode::addChild(LightningTreeNodeSPtr& new_child)
 {
     assert(new_child != shared_from_this());
-    assert(p != new_child->p);
+    //assert(p != new_child->p); // NOTE: No problem for now. Issue to solve later. Maybe even afetr final. Low prio.
     children.push_back(new_child);
     new_child->parent = shared_from_this();
     new_child->is_root = false;
@@ -63,6 +63,7 @@ void LightningTreeNode::propagateToNextLayer
 (
     std::vector<LightningTreeNodeSPtr>& next_trees,
     const Polygons& next_outlines,
+    const LocToLineGrid& outline_locator,
     const coord_t& prune_distance,
     const coord_t& smooth_magnitude
 ) const
@@ -71,7 +72,7 @@ void LightningTreeNode::propagateToNextLayer
 
     tree_below->prune(prune_distance);
     tree_below->straighten(smooth_magnitude);
-    if (tree_below->realign(next_outlines, next_trees))
+    if (tree_below->realign(next_outlines, outline_locator, next_trees))
     {
         next_trees.push_back(tree_below);
     }
@@ -168,11 +169,10 @@ LightningTreeNodeSPtr LightningTreeNode::closestNode(const Point& loc)
 bool LightningTreeNode::realign
 (
     const Polygons& outlines,
+    const LocToLineGrid& outline_locator,
     std::vector<LightningTreeNodeSPtr>& rerooted_parts
 )
 {
-    // TODO: Hole(s) in the _middle_ of a line-segement, not unlikely since reconnect.
-
     if (outlines.empty())
     {
         return false;
@@ -181,21 +181,38 @@ bool LightningTreeNode::realign
     if (outlines.inside(p, true))
     {
         // Only keep children that have an unbroken connection to here, realign will put the rest in rerooted parts due to recursion:
+        Point coll;
+        bool reground_me = false;
         const auto remove_unconnected_func
         {
-            [&outlines, &rerooted_parts](const LightningTreeNodeSPtr& child)
+            [&](const LightningTreeNodeSPtr& child)
             {
-                return ! child->realign(outlines, rerooted_parts);
+                bool connect_branch = child->realign(outlines, outline_locator, rerooted_parts);
+                if (connect_branch && PolygonUtils::lineSegmentPolygonsIntersection(child->p, p, outlines, outline_locator, coll))
+                {
+                    child->last_grounding_location.reset(); // child->last_grounding_location = coll;
+                    child->parent.reset();
+                    child->is_root = true;
+                    rerooted_parts.push_back(child);
+
+                    reground_me = true;
+                    connect_branch = false;
+                }
+                return ! connect_branch;
             }
         };
         children.erase(std::remove_if(children.begin(), children.end(), remove_unconnected_func), children.end());
+        if (reground_me)
+        {
+            last_grounding_location.reset();
+        }
         return true;
     }
 
     // 'Lift' any decendants out of this tree:
     for (auto& child : children)
     {
-        if (child->realign(outlines, rerooted_parts))
+        if (child->realign(outlines, outline_locator, rerooted_parts))
         {
             child->last_grounding_location = p;
             child->parent.reset();

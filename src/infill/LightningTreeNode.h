@@ -97,6 +97,7 @@ public:
     (
         std::vector<LightningTreeNodeSPtr>& next_trees,
         const Polygons& next_outlines,
+        const LocToLineGrid& outline_locator,
         const coord_t& prune_distance,
         const coord_t& smooth_magnitude
     ) const;
@@ -194,7 +195,7 @@ protected:
     /*! Reconnect trees from the layer above to the new outlines of the lower layer.
      * \return Wether or not the root is kept (false is no, true is yes).
      */
-    bool realign(const Polygons& outlines, std::vector<LightningTreeNodeSPtr>& rerooted_parts);
+    bool realign(const Polygons& outlines, const LocToLineGrid& outline_locator, std::vector<LightningTreeNodeSPtr>& rerooted_parts);
 
     struct RectilinearJunction
     {

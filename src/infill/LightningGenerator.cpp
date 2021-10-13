@@ -91,14 +91,15 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
         }
     }
 
+    // For various operations its beneficial to quickly locate nearby features on the polygon:
+    const size_t top_layer_id = mesh.layers.size() - 1;
+    auto outlines_locator_ptr = PolygonUtils::createLocToLineGrid(infill_outlines[top_layer_id], locator_cell_size);
+
     // For-each layer from top to bottom:
-    for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
+    for (int layer_id = top_layer_id; layer_id >= 0; layer_id--)
     {
         LightningLayer& current_lightning_layer = lightning_layers[layer_id];
         Polygons& current_outlines = infill_outlines[layer_id];
-
-        // for various operations its beneficial to quickly locate nearby features on the polygon
-        auto outlines_locator_ptr = PolygonUtils::createLocToLineGrid(current_outlines, locator_cell_size);
         const auto& outlines_locator = *outlines_locator_ptr;
 
         // register all trees propagated from the previous layer as to-be-reconnected
@@ -115,11 +116,13 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
             return;
         }
         const Polygons& below_outlines = infill_outlines[layer_id - 1];
+        outlines_locator_ptr = PolygonUtils::createLocToLineGrid(below_outlines, locator_cell_size);
+        const auto& below_outlines_locator = *outlines_locator_ptr;
 
         std::vector<LightningTreeNodeSPtr>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
         for (auto& tree : current_lightning_layer.tree_roots)
         {
-            tree->propagateToNextLayer(lower_trees, below_outlines, prune_length, straightening_max_distance);
+            tree->propagateToNextLayer(lower_trees, below_outlines, below_outlines_locator, prune_length, straightening_max_distance);
         }
     }
 }
