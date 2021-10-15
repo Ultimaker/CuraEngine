@@ -108,7 +108,6 @@ void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
         current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, outlines_locator, supporting_radius, wall_supporting_radius);
 
         current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, outlines_locator, supporting_radius, wall_supporting_radius);
-        delete outlines_locator_ptr;
 
         // Initialize trees for next lower layer from the current one.
         if (layer_id == 0)

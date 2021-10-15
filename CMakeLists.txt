@@ -1,4 +1,4 @@
-#Copyright (c) 2020 Ultimaker B.V.
+#Copyright (c) 2021 Ultimaker B.V.
 #CuraEngine is released under the terms of the AGPLv3 or higher.
 
 cmake_minimum_required(VERSION 3.8.0)
@@ -31,6 +31,10 @@ endif()
 #For reading image files.
 find_package(Stb REQUIRED)
 include_directories(${Stb_INCLUDE_DIRS})
+
+#arachne needs boost polygon/voronoi
+find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
 
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 if(USE_SYSTEM_LIBS)
@@ -145,17 +149,18 @@ set(engine_SRCS # Except main.cpp.
     src/layerPart.cpp
     src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
-    src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
     src/Mold.cpp
     src/multiVolumes.cpp
+    src/PathOrderOptimizer.cpp
     src/PathOrder.cpp
-    src/pathOrderOptimizer.cpp
     src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp
     src/Scene.cpp
+    src/SkeletalTrapezoidation.cpp
+    src/SkeletalTrapezoidationGraph.cpp
     src/skin.cpp
     src/SkirtBrim.cpp
     src/SupportInfillPart.cpp
@@ -167,9 +172,19 @@ set(engine_SRCS # Except main.cpp.
     src/TopSurface.cpp
     src/TreeSupport.cpp
     src/WallsComputation.cpp
-    src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
+    src/WallToolPaths.cpp
+
+    src/BeadingStrategy/BeadingOrderOptimizer.cpp
+    src/BeadingStrategy/BeadingStrategy.cpp
+    src/BeadingStrategy/BeadingStrategyFactory.cpp
+    src/BeadingStrategy/CenterDeviationBeadingStrategy.cpp
+    src/BeadingStrategy/DistributedBeadingStrategy.cpp
+    src/BeadingStrategy/LimitedBeadingStrategy.cpp
+    src/BeadingStrategy/RedistributeBeadingStrategy.cpp
+    src/BeadingStrategy/WideningBeadingStrategy.cpp
+    src/BeadingStrategy/OuterWallInsetBeadingStrategy.cpp
 
     src/communication/ArcusCommunication.cpp
     src/communication/ArcusCommunicationPrivate.cpp
@@ -206,6 +221,9 @@ set(engine_SRCS # Except main.cpp.
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
     src/utils/Date.cpp
+    src/utils/ExtrusionJunction.cpp
+    src/utils/ExtrusionLine.cpp
+    src/utils/ExtrusionSegment.cpp
     src/utils/FMatrix4x3.cpp
     src/utils/gettime.cpp
     src/utils/getpath.cpp
@@ -216,29 +234,27 @@ set(engine_SRCS # Except main.cpp.
     src/utils/Point3.cpp
     src/utils/PolygonConnector.cpp
     src/utils/PolygonsPointIndex.cpp
-    src/utils/PolygonProximityLinker.cpp
+    src/utils/PolygonsSegmentIndex.cpp
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
     src/utils/ProximityPointLink.cpp
     src/utils/SVG.cpp
     src/utils/socket.cpp
     src/utils/SquareGrid.cpp
+    src/utils/ToolpathVisualizer.cpp
+    src/utils/VoronoiUtils.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp.
 set(engine_TEST
+    ExtruderPlanTest
     GCodeExportTest
     InfillTest
     LayerPlanTest
-    MergeInfillLinesTest
+    PathOrderOptimizerTest
     PathOrderMonotonicTest
     TimeEstimateCalculatorTest
-)
-set(engine_TEST_INTEGRATION
-    SlicePhaseTest
-)
-set(engine_TEST_SETTINGS
-    SettingsTest
+    WallsComputationTest
 )
 if (ENABLE_ARCUS)
     set(engine_TEST_ARCUS
@@ -246,9 +262,21 @@ if (ENABLE_ARCUS)
         ArcusCommunicationPrivateTest
     )
 endif ()
+set(engine_TEST_BEADING_STRATEGY
+    CenterDeviationBeadingStrategyTest
+)
+set(engine_TEST_INFILL
+)
+set(engine_TEST_INTEGRATION
+    SlicePhaseTest
+)
+set(engine_TEST_SETTINGS
+    SettingsTest
+)
 set(engine_TEST_UTILS
     AABBTest
     AABB3DTest
+    ExtrusionLineTest
     IntPointTest
     LinearAlg2DTest
     MinimumSpanningTreeTest
@@ -342,6 +370,20 @@ if (BUILD_TESTS)
         add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
     endforeach()
+    if (ENABLE_ARCUS)
+        foreach(test ${engine_TEST_ARCUS})
+            add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
+            target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
+            add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
+            add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
+        endforeach()
+    endif()
+    foreach(test ${engine_TEST_BEADING_STRATEGY})
+        add_executable(${test} tests/main.cpp tests/beading_strategy/${test}.cpp)
+        target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
+        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
+        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
+    endforeach()
     foreach (test ${engine_TEST_INFILL})
         add_executable(${test} tests/main.cpp tests/infill/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
@@ -360,14 +402,6 @@ if (BUILD_TESTS)
         add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
         add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
     endforeach()
-    if (ENABLE_ARCUS)
-        foreach (test ${engine_TEST_ARCUS})
-            add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
-            target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-            add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-            add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-        endforeach()
-    endif ()
     foreach (test ${engine_TEST_UTILS})
         add_executable(${test} tests/main.cpp tests/utils/${test}.cpp)
         target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})

@@ -239,7 +239,7 @@ TEST_P(FindCloseTest, FindClose)
     const FindCloseParameters parameters = GetParam();
     Polygons polygons;
     polygons.add(test_square);
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* loc_to_line = PolygonUtils::createLocToLineGrid(polygons, parameters.cell_size);
+    auto loc_to_line = PolygonUtils::createLocToLineGrid(polygons, parameters.cell_size);
 
     std::optional<ClosestPolygonPoint> cpp;
     if (parameters.penalty_function)
