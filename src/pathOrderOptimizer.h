@@ -74,11 +74,13 @@ public:
     std::vector<int> polyOrder; //!< the optimized order as indices in #polygons
     LocToLineGrid* loc_to_line;
     const Polygons* combing_boundary; //!< travel moves that cross this boundary are penalised so they are less likely to be chosen
+    LineOptimizerAlgorithm tsp_algorithm;
 
-    LineOrderOptimizer(Point startPoint, const Polygons* combing_boundary = nullptr)
+    LineOrderOptimizer(Point startPoint, LineOptimizerAlgorithm tsp_algorithm, const Polygons* combing_boundary = nullptr)
     {
         this->startPoint = startPoint;
         this->combing_boundary = (combing_boundary != nullptr && combing_boundary->size() > 0) ? combing_boundary : nullptr;
+        this->tsp_algorithm = tsp_algorithm;
     }
 
     void addPolygon(PolygonRef polygon)
@@ -109,6 +111,8 @@ public:
     void optimize(bool find_chains = true); //!< sets #polyStart and #polyOrder
 
 private:
+    void NearestNeighbor(bool find_chains = true);
+
     /*!
      * Update LineOrderOptimizer::polyStart if the current line is better than the current best.
      * 

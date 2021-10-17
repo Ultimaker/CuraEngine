@@ -7786,6 +7786,15 @@
                     "type": "str",
                     "default_value": "[[1,0,0], [0,1,0], [0,0,1]]",
                     "enabled": false
+                },
+                "tsp_algorithm":
+                {
+                    "label": "Algorithm to resolve tsp",
+                    "description": "Algorithm to resolve tsp",
+                    "type": "str",
+                    "default_value": "ACO",
+                    "enabled": true,
+                    "settable_globally": true
                 }
             }
         }

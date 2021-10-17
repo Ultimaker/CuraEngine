@@ -595,6 +595,27 @@ template<> std::vector<AngleDegrees> Settings::get<std::vector<AngleDegrees>>(co
     return std::vector<AngleDegrees>(values_doubles.begin(), values_doubles.end()); //Cast them to AngleDegrees.
 }
 
+template<> LineOptimizerAlgorithm Settings::get<LineOptimizerAlgorithm>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "ACO")
+    {
+        return LineOptimizerAlgorithm::ANT_COLONY_OPTIMIZATION;
+    }
+    else if (value == "HuS")
+    {
+        return LineOptimizerAlgorithm::HUNTING_SEARCH;
+    }
+    else if (value == "CN")
+    {
+        return LineOptimizerAlgorithm::CLOSEST_NEIGHBOR;
+    }
+    else //Default.
+    {
+        return LineOptimizerAlgorithm::CLOSEST_NEIGHBOR;
+    }
+}
+
 const std::string Settings::getAllSettingsString() const
 {
     std::stringstream sstream;

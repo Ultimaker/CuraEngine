@@ -202,6 +202,11 @@ enum class EGCodeFlavor
     REPRAP = 8,
 };
 
+enum class LineOptimizerAlgorithm {
+    CLOSEST_NEIGHBOR,
+    ANT_COLONY_OPTIMIZATION,
+    HUNTING_SEARCH
+};
 } //Cura namespace.
 
 #endif //SETTINGSBASEVIRTUAL_H

@@ -259,6 +259,22 @@ static inline bool pointsAreCoincident(const Point& a, const Point& b)
 */
 void LineOrderOptimizer::optimize(bool find_chains)
 {
+    switch (tsp_algorithm)
+    {
+    case LineOptimizerAlgorithm::CLOSEST_NEIGHBOR:
+        NearestNeighbor(find_chains);
+        break;
+    case LineOptimizerAlgorithm::ANT_COLONY_OPTIMIZATION:
+        break;
+    case LineOptimizerAlgorithm::HUNTING_SEARCH:
+        break;
+    default:
+        NearestNeighbor(find_chains);
+        break;
+    }
+}
+
+void LineOrderOptimizer::NearestNeighbor(bool find_chains){
     const int grid_size = 2000; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(grid_size);
     // NOTE: Keep this vector fixed-size, it replaces an (non-standard, sized at runtime) array:

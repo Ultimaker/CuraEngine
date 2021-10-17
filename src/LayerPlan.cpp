@@ -1075,7 +1075,10 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         // simplify boundary to cut down processing time
         boundary.simplify(MM2INT(0.1), MM2INT(0.1));
     }
-    LineOrderOptimizer orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), &boundary);
+    
+    LineOptimizerAlgorithm tsp_algorithm = Application::getInstance().current_slice->scene.settings.get<LineOptimizerAlgorithm>("tsp_algorithm");
+
+    LineOrderOptimizer orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), tsp_algorithm, &boundary);
     for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
         orderOptimizer.addPolygon(polygons[line_idx]);
