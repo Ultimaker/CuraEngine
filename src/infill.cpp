@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::sort.
@@ -10,6 +10,7 @@
 #include "infill/GyroidInfill.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/NoZigZagConnectorProcessor.h"
+#include "infill/LightningGenerator.h"
 #include "infill/SierpinskiFill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
@@ -41,7 +42,8 @@ static inline int computeScanSegmentIdx(int x, int line_width)
     return x / line_width;
 }
 
-namespace cura {
+namespace cura
+{
 
 Polygons Infill::generateWallToolPaths(VariableWidthPaths& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings)
 {
@@ -62,7 +64,7 @@ Polygons Infill::generateWallToolPaths(VariableWidthPaths& toolpaths, Polygons& 
     return inner_contour;
 }
 
-void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer* lightning_trees, const SliceMeshStorage* mesh)
 {
     if (outer_contour.empty())
     {
@@ -139,7 +141,8 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         }
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, mesh);
+
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
         zig_zaggify = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
         result_polygons.add(generated_result_polygons);
@@ -151,7 +154,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         //So make sure we provide it with a Polygons that is safe to clear and only add stuff to result_lines.
         Polygons generated_result_polygons;
         Polygons generated_result_lines;
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
         result_polygons.add(generated_result_polygons);
         result_lines.add(generated_result_lines);
     }
@@ -171,7 +174,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     }
 }
 
-void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const SliceMeshStorage* mesh)
+void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer * lightning_trees, const SliceMeshStorage* mesh)
 {
     if (inner_contour.empty()) return;
     if (line_distance == 0) return;
@@ -224,6 +227,10 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
         break;
     case EFillMethod::GYROID:
         generateGyroidInfill(result_lines);
+        break;
+    case EFillMethod::LIGHTNING:
+        assert(lightning_trees); // "Cannot generate Lightning infill without a generator!\n"
+        generateLightningInfill(lightning_trees, result_lines);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -327,6 +334,16 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
 void Infill::generateGyroidInfill(Polygons& result_lines)
 {
     GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, line_distance, inner_contour, z);
+}
+
+void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& result_lines)
+{
+    // Don't need to support areas smaller than line width, as they are always within radius:
+    if(std::abs(inner_contour.area()) < infill_line_width || ! trees)
+    {
+        return;
+    }
+    result_lines.add(trees->convertToLines(infill_line_width));
 }
 
 void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const Settings& settings)

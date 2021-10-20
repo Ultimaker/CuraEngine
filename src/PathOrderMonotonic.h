@@ -213,12 +213,20 @@ public:
             optimizeClosestStartPoint(*line, current_pos);
             reordered.push_back(*line); //Plan the start of the sequence to be printed next!
             auto connection = connections.find(line);
-            while(connection != connections.end() && starting_lines.find(connection->second) == starting_lines.end()) //Stop if the sequence ends or if we hit another starting point.
+
+            std::unordered_map<Path*, Path*> checked_connections; // Which connections have already been iterated over
+            auto checked_connection = checked_connections.find(line);
+
+            while(connection != connections.end()                                                                           //Stop if the sequence ends
+                  && starting_lines.find(connection->second) == starting_lines.end()                                        // or if we hit another starting point.
+                  && (checked_connection == checked_connections.end() || checked_connection->second != connection->second)) // or if we have already checked the connection (to avoid falling into a cyclical connection)
             {
+                checked_connections.insert({connection->first, connection->second});
                 line = connection->second;
                 optimizeClosestStartPoint(*line, current_pos);
                 reordered.push_back(*line); //Plan this line in, to be printed next!
                 connection = connections.find(line);
+                checked_connection = checked_connections.find(line);
             }
         }
 
@@ -227,7 +235,7 @@ public:
 
 protected:
     /*!
-     * The direction in which to print montonically, encoded as vector of length
+     * The direction in which to print monotonically, encoded as vector of length
      * ``monotonic_vector_resolution``.
      *
      * The resulting ordering will cause clusters of paths to be sorted

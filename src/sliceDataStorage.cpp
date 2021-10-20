@@ -7,6 +7,7 @@
 #include "raft.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
+#include "infill/LightningGenerator.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h" // For the destructor
 #include "infill/DensityProvider.h" // for destructor
@@ -98,6 +99,7 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
 , bounding_box(mesh->getAABB())
 , base_subdiv_cube(nullptr)
 , cross_fill_provider(nullptr)
+, lightning_generator(nullptr)
 {
     layers.resize(slice_layer_count);
 }
@@ -111,6 +113,10 @@ SliceMeshStorage::~SliceMeshStorage()
     if (cross_fill_provider)
     {
         delete cross_fill_provider;
+    }
+    if (lightning_generator)
+    {
+        delete lightning_generator;
     }
 }
 

@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <assert.h>
@@ -55,6 +55,7 @@ GCodeExport::GCodeExport()
     is_z_hopped = 0;
     setFlavor(EGCodeFlavor::MARLIN);
     initial_bed_temp = 0;
+    bed_temperature = 0;
     build_volume_temperature = 0;
     machine_heated_build_volume = false;
 
@@ -1276,18 +1277,23 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
 
     if (wait)
     {
-        if(flavor == EGCodeFlavor::MARLIN)
+        if(bed_temperature != temperature) //Not already at the desired temperature.
         {
-            *output_stream << "M140 S"; // set the temperature, it will be used as target temperature from M105
-            *output_stream << PrecisionedDouble{1, temperature} << new_line;
-            *output_stream << "M105" << new_line;
+            if(flavor == EGCodeFlavor::MARLIN)
+            {
+                *output_stream << "M140 S"; // set the temperature, it will be used as target temperature from M105
+                *output_stream << PrecisionedDouble{1, temperature} << new_line;
+                *output_stream << "M105" << new_line;
+            }
         }
-
         *output_stream << "M190 S";
     }
-    else
+    else if(bed_temperature != temperature)
+    {
         *output_stream << "M140 S";
+    }
     *output_stream << PrecisionedDouble{1, temperature} << new_line;
+    bed_temperature = temperature;
 }
 
 void GCodeExport::writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait)

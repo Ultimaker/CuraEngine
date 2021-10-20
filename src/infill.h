@@ -4,6 +4,7 @@
 #ifndef INFILL_H
 #define INFILL_H
 
+#include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
 #include "settings/types/Angle.h"
@@ -108,7 +109,7 @@ public:
      * \param mesh A mesh for which to generate infill (should only be used for non-helper-mesh objects).
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
-    void generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider = nullptr, const LightningLayer * lightning_layer = nullptr, const SliceMeshStorage* mesh = nullptr);
 
     /*!
      * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
@@ -127,7 +128,7 @@ private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
-    void _generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const SliceMeshStorage* mesh = nullptr); // Todo: remove if no longer used
+    void _generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const LightningLayer * lightning_layer = nullptr, const SliceMeshStorage* mesh = nullptr);
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
@@ -242,6 +243,13 @@ private:
     void generateGyroidInfill(Polygons& result);
     
     /*!
+     * Generate lightning fill aka minfill aka 'Ribbed Support Vault Infill', see Tricard,Claux,Lefebvre/'Ribbed Support Vaults for 3D Printing of Hollowed Objects'
+     * see https://hal.archives-ouvertes.fr/hal-02155929/document
+     * \param result (output) The resulting polygons
+     */
+    void generateLightningInfill(const LightningLayer* lightning_layer, Polygons& result_lines);
+
+    /*!
      * Generate sparse concentric infill
      * 
      * \param toolpaths (output) The resulting toolpaths
@@ -320,7 +328,13 @@ private:
      * \param cut_list A mapping of each scanline to all y-coordinates (in the space transformed by rotation_matrix) where the polygons are crossing the scanline
      * \param total_shift total shift of the scanlines in the direction perpendicular to the fill_angle.
      */
-    void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t total_shift);
+    void addLineInfill( Polygons& result,
+                        const PointMatrix& rotation_matrix,
+                        const int scanline_min_idx,
+                        const int line_distance,
+                        const AABB boundary,
+                        std::vector<std::vector<coord_t>>& cut_list,
+                        coord_t total_shift);
 
     /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p line_distance
@@ -423,4 +437,4 @@ private:
 
 }//namespace cura
 
-#endif//INFILL_H
+#endif // INFILL_H

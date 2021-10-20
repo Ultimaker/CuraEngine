@@ -5,12 +5,13 @@
 #ifndef UTILS_SPARSE_GRID_H
 #define UTILS_SPARSE_GRID_H
 
-#include "IntPoint.h"
-
 #include <cassert>
 #include <unordered_map>
 #include <vector>
 #include <functional>
+
+#include "IntPoint.h"
+#include "SquareGrid.h"
 
 namespace cura {
 
@@ -22,10 +23,17 @@ namespace cura {
  * \tparam ElemT The element type to store.
  */
 template<class ElemT>
-class SparseGrid
+class SparseGrid : public SquareGrid
 {
 public:
     using Elem = ElemT;
+
+    using GridPoint = SquareGrid::GridPoint;
+    using grid_coord_t = SquareGrid::grid_coord_t;
+    using GridMap = std::unordered_multimap<GridPoint, Elem>;
+    
+    using iterator = typename GridMap::iterator;
+    using const_iterator = typename GridMap::const_iterator;
 
     /*! \brief Constructs a sparse grid with the specified cell size.
      *
@@ -35,7 +43,27 @@ public:
      * \param[in] max_load_factor Maximum average load factor before rehashing.
      */
     SparseGrid(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
+    
+    iterator begin()
+    {
+        return m_grid.begin();
+    }
+    
+    iterator end()
+    {
+        return m_grid.end();
+    }
 
+    const_iterator begin() const
+    {
+        return m_grid.begin();
+    }
+    
+    const_iterator end() const
+    {
+        return m_grid.end();
+    }
+    
     /*! \brief Returns all data within radius of query_pt.
      *
      * Finds all elements with location within radius of \p query_pt.  May
@@ -97,13 +125,7 @@ public:
     bool processLine(const std::pair<Point, Point> query_line,
                        const std::function<bool (const Elem&)>& process_elem_func) const;
 
-    coord_t getCellSize() const;
-
 protected:
-    using GridPoint = Point;
-    using grid_coord_t = coord_t;
-    using GridMap = std::unordered_multimap<GridPoint, Elem>;
-
     /*! \brief Process elements from the cell indicated by \p grid_pt.
      *
      * \param[in] grid_pt The grid coordinates of the cell.
@@ -114,62 +136,8 @@ protected:
     bool processFromCell(const GridPoint &grid_pt,
                          const std::function<bool (const Elem&)>& process_func) const;
 
-    /*! \brief Process cells along a line indicated by \p line.
-     *
-     * \param[in] line The line along which to process cells
-     * \param[in] process_func Processes each cell.  process_func(elem) is
-     *    called for each cell. Processing stops if function returns false.
-     * \return Whether we need to continue processing after this function
-     */
-    bool processLineCells(const std::pair<Point, Point> line,
-                         const std::function<bool (GridPoint)>& process_cell_func);
-
-    /*! \brief Process cells along a line indicated by \p line.
-     *
-     * \param[in] line The line along which to process cells
-     * \param[in] process_func Processes each cell.  process_func(elem) is
-     *    called for each cell. Processing stops if function returns false.
-     * \return Whether we need to continue processing after this function
-     */
-    bool processLineCells(const std::pair<Point, Point> line,
-                         const std::function<bool (GridPoint)>& process_cell_func) const;
-
-    /*! \brief Compute the grid coordinates of a point.
-     *
-     * \param[in] point The actual location.
-     * \return The grid coordinates that correspond to \p point.
-     */
-    GridPoint toGridPoint(const Point& point) const;
-
-    /*! \brief Compute the grid coordinate of a print space coordinate.
-     *
-     * \param[in] coord The actual location.
-     * \return The grid coordinate that corresponds to \p coord.
-     */
-    grid_coord_t toGridCoord(const coord_t& coord) const;
-
-    /*! \brief Compute the lowest point in a grid cell.
-     * The lowest point is the point in the grid cell closest to the origin.
-     *
-     * \param[in] location The grid location.
-     * \return The print space coordinates that correspond to \p location.
-     */
-    Point toLowerCorner(const GridPoint& location) const; 
-
-    /*! \brief Compute the lowest coord in a grid cell.
-     * The lowest point is the point in the grid cell closest to the origin.
-     *
-     * \param[in] grid_coord The grid coordinate.
-     * \return The print space coordinate that corresponds to \p grid_coord.
-     */
-    coord_t toLowerCoord(const grid_coord_t& grid_coord) const; 
-
     /*! \brief Map from grid locations (GridPoint) to elements (Elem). */
     GridMap m_grid;
-    /*! \brief The cell (square) size. */
-    coord_t m_cell_size;
-
-    grid_coord_t nonzero_sign(const grid_coord_t z) const;
 };
 
 
@@ -179,50 +147,13 @@ protected:
 
 SGI_TEMPLATE
 SGI_THIS::SparseGrid(coord_t cell_size, size_t elem_reserve, float max_load_factor)
+: SquareGrid(cell_size)
 {
-    m_cell_size = cell_size;
-
     // Must be before the reserve call.
     m_grid.max_load_factor(max_load_factor);
     if (elem_reserve != 0U) {
         m_grid.reserve(elem_reserve);
     }
-}
-
-SGI_TEMPLATE
-typename SGI_THIS::GridPoint SGI_THIS::toGridPoint(const Point &point)  const
-{
-    return Point(toGridCoord(point.X), toGridCoord(point.Y));
-}
-
-SGI_TEMPLATE
-typename SGI_THIS::grid_coord_t SGI_THIS::toGridCoord(const coord_t& coord)  const
-{
-    // This mapping via truncation results in the cells with
-    // GridPoint.x==0 being twice as large and similarly for
-    // GridPoint.y==0.  This doesn't cause any incorrect behavior,
-    // just changes the running time slightly.  The change in running
-    // time from this is probably not worth doing a proper floor
-    // operation.
-    return coord / m_cell_size;
-}
-
-SGI_TEMPLATE
-typename cura::Point SGI_THIS::toLowerCorner(const GridPoint& location)  const
-{
-    return cura::Point(toLowerCoord(location.X), toLowerCoord(location.Y));
-}
-
-SGI_TEMPLATE
-typename cura::coord_t SGI_THIS::toLowerCoord(const grid_coord_t& grid_coord)  const
-{
-    // This mapping via truncation results in the cells with
-    // GridPoint.x==0 being twice as large and similarly for
-    // GridPoint.y==0.  This doesn't cause any incorrect behavior,
-    // just changes the running time slightly.  The change in running
-    // time from this is probably not worth doing a proper floor
-    // operation.
-    return grid_coord * m_cell_size;
 }
 
 SGI_TEMPLATE
@@ -242,104 +173,14 @@ bool SGI_THIS::processFromCell(
 }
 
 SGI_TEMPLATE
-bool SGI_THIS::processLineCells(
-    const std::pair<Point, Point> line,
-    const std::function<bool (GridPoint)>& process_cell_func)
-{
-    return static_cast<const SGI_THIS*>(this)->processLineCells(line, process_cell_func);
-}
-
-SGI_TEMPLATE
-bool SGI_THIS::processLineCells(
-    const std::pair<Point, Point> line,
-    const std::function<bool (GridPoint)>& process_cell_func) const
-{
-
-    Point start = line.first;
-    Point end = line.second;
-    if (end.X < start.X)
-    { // make sure X increases between start and end
-        std::swap(start, end);
-    }
-
-    const GridPoint start_cell = toGridPoint(start);
-    const GridPoint end_cell = toGridPoint(end);
-    const coord_t y_diff = end.Y - start.Y;
-    const grid_coord_t y_dir = nonzero_sign(y_diff);
-
-    grid_coord_t x_cell_start = start_cell.X;
-    for (grid_coord_t cell_y = start_cell.Y; cell_y * y_dir <= end_cell.Y * y_dir; cell_y += y_dir)
-    { // for all Y from start to end
-        // nearest y coordinate of the cells in the next row
-        coord_t nearest_next_y = toLowerCoord(cell_y + ((nonzero_sign(cell_y) == y_dir || cell_y == 0) ? y_dir : coord_t(0)));
-        grid_coord_t x_cell_end; // the X coord of the last cell to include from this row
-        if (y_diff == 0)
-        {
-            x_cell_end = end_cell.X;
-        }
-        else
-        {
-            coord_t area = (end.X - start.X) * (nearest_next_y - start.Y);
-            // corresponding_x: the x coordinate corresponding to nearest_next_y
-            coord_t corresponding_x = start.X + area / y_diff;
-            x_cell_end = toGridCoord(corresponding_x + ((corresponding_x < 0) && ((area % y_diff) != 0)));
-            if (x_cell_end < start_cell.X)
-            { // process at least one cell!
-                x_cell_end = x_cell_start;
-            }
-        }
-
-        for (grid_coord_t cell_x = x_cell_start; cell_x <= x_cell_end; ++cell_x)
-        {
-            GridPoint grid_loc(cell_x, cell_y);
-            bool continue_ = process_cell_func(grid_loc);
-            if (!continue_)
-            {
-                return false;
-            }
-            if (grid_loc == end_cell)
-            {
-                return true;
-            }
-        }
-        // TODO: this causes at least a one cell overlap for each row, which
-        // includes extra cells when crossing precisely on the corners
-        // where positive slope where x > 0 and negative slope where x < 0
-        x_cell_start = x_cell_end;
-    }
-    assert(false && "We should have returned already before here!");
-    return false;
-}
-
-SGI_TEMPLATE
-typename SGI_THIS::grid_coord_t SGI_THIS::nonzero_sign(const grid_coord_t z) const
-{
-    return (z >= 0) - (z < 0);
-}
-
-SGI_TEMPLATE
 bool SGI_THIS::processNearby(const Point &query_pt, coord_t radius,
                              const std::function<bool (const Elem&)>& process_func) const
 {
-    Point min_loc(query_pt.X - radius, query_pt.Y - radius);
-    Point max_loc(query_pt.X + radius, query_pt.Y + radius);
-
-    GridPoint min_grid = toGridPoint(min_loc);
-    GridPoint max_grid = toGridPoint(max_loc);
-
-    for (coord_t grid_y = min_grid.Y; grid_y <= max_grid.Y; ++grid_y)
-    {
-        for (coord_t grid_x = min_grid.X; grid_x <= max_grid.X; ++grid_x)
-        {
-            GridPoint grid_pt(grid_x,grid_y);
-            bool continue_ = processFromCell(grid_pt, process_func);
-            if (!continue_)
-            {
-                return false;
-            }
-        }
-    }
-    return true;
+    return SquareGrid::processNearby(query_pt, radius,
+                                     [&process_func, this](const GridPoint& grid_pt)
+                                     {
+                                         return processFromCell(grid_pt, process_func);
+                                     });
 }
 
 SGI_TEMPLATE
@@ -400,12 +241,6 @@ bool SGI_THIS::getNearest(
         };
     processNearby(query_pt, radius, process_func);
     return found;
-}
-
-SGI_TEMPLATE
-coord_t SGI_THIS::getCellSize() const
-{
-    return m_cell_size;
 }
 
 #undef SGI_TEMPLATE

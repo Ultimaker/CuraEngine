@@ -338,6 +338,10 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     {
         return EFillMethod::GYROID;
     }
+    else if (value == "lightning")
+    {
+        return EFillMethod::LIGHTNING;
+    }
     else //Default.
     {
         return EFillMethod::NONE;
@@ -518,6 +522,10 @@ template<> CombingMode Settings::get<CombingMode>(const std::string& key) const
     else if (value == "noskin")
     {
         return CombingMode::NO_SKIN;
+    }
+    else if (value == "no_outer_surfaces")
+    {
+        return CombingMode::NO_OUTER_SURFACES;
     }
     else if (value == "infill")
     {

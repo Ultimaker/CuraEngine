@@ -29,6 +29,7 @@ namespace cura
 
 class Mesh;
 class SierpinskiFillProvider;
+class LightningGenerator;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
@@ -42,6 +43,8 @@ public:
     VariableWidthPaths inset_paths;       //!< The insets represented as variable line-width paths. The insets are also known as perimeters or the walls.
     Polygons skin_fill; //!< The part of the skin which is not roofing.
     Polygons roofing_fill; //!< The inner infill which has air directly above
+    Polygons top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
+    Polygons bottom_most_surface_fill; //!< The inner infill of the bottommost bottom layer which has air directly below.
 };
 
 /*!
@@ -257,6 +260,8 @@ public:
 
     SubDivCube* base_subdiv_cube;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
+
+    LightningGenerator* lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     /*!
      * \brief Creates a storage space for slice results of a mesh.

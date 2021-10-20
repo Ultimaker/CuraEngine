@@ -136,11 +136,30 @@ protected:
     void generateRoofing(SliceLayerPart& part);
 
     /*!
+     * Remove the areas which are directly under air in the top-most surface and directly above air in bottom-most
+     * surfaces from the \ref SkinPart::inner_infill and save them in the \ref SkinPart::bottom_most_surface_fill and
+     * \ref SkinPart::top_most_surface_fill (respectively) of the \p part.
+     *
+     * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the top and bottom-most
+     * infill areas
+     */
+    void generateTopAndBottomMostSkinSurfaces(SliceLayerPart& part);
+
+    /*!
      * Helper function to calculate and return the areas which are 'directly' under air.
      *
      * \param part Where to get the SkinParts to get the outline info from
+     * \param roofing_layer_count The number of layers above the layer which we are looking into
      */
-    Polygons generateNoAirAbove(SliceLayerPart& part);
+    Polygons generateNoAirAbove(SliceLayerPart& part, size_t roofing_layer_count);
+
+    /*!
+     * Helper function to calculate and return the areas which are 'directly' above air.
+     *
+     * \param part Where to get the SkinParts to get the outline info from
+     * \param flooring_layer_count The number of layers below the layer which we are looking into
+     */
+    Polygons generateNoAirBelow(SliceLayerPart& part, size_t flooring_layer_count);
 
     /*!
      * Helper function to recalculate the roofing fill and inner infill in roofing layers where the 

@@ -214,6 +214,19 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                     {
                         comb_boundary.add(part.outline.offset(offset).difference(part.inner_area.difference(part.infill_area)));
                     }
+                    else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
+                    {
+                        Polygons top_and_bottom_most_fill;
+                        for (const SliceLayerPart& part : layer.parts)
+                        {
+                            for (const SkinPart& skin_part : part.skin_parts)
+                            {
+                                top_and_bottom_most_fill.add(skin_part.top_most_surface_fill);
+                                top_and_bottom_most_fill.add(skin_part.bottom_most_surface_fill);
+                            }
+                        }
+                        comb_boundary.add(part.outline.offset(offset).difference(top_and_bottom_most_fill));
+                    }
                     else if (combing_mode == CombingMode::INFILL) // Add the infill (infill only)
                     {
                         comb_boundary.add(part.infill_area);

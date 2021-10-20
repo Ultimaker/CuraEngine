@@ -523,11 +523,12 @@ void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& stor
             gcode.writeLine(tmp.str().c_str());
         }
 
-        if (scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend"))
+        if(scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend") && scene.current_mesh_group->settings.get<bool>("machine_heated_bed"))
         {
-            if (scene.current_mesh_group->settings.get<bool>("machine_heated_bed"))
+            const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+            if(scene.current_mesh_group == scene.mesh_groups.begin() //Always write bed temperature for first mesh group.
+                || bed_temp != (scene.current_mesh_group - 1)->settings.get<Temperature>("material_bed_temperature")) //Don't write bed temperature if identical to temperature of previous group.
             {
-                const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
                 if (bed_temp != 0)
                 {
                     gcode.writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
@@ -661,19 +662,12 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
-    gcode.setZ(max_object_height + 5000);
+    gcode.setZ(max_object_height + MM2INT(5));
 
     Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
     Point start_pos(storage.model_min.x, storage.model_min.y);
     gcode.writeTravel(start_pos, Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
-
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    if (mesh_group_settings.get<bool>("machine_heated_bed") && mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0") != 0)
-    {
-        const bool wait = mesh_group_settings.get<bool>("material_bed_temp_wait");
-        gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0"), wait);
-    }
 
     processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
@@ -1479,13 +1473,18 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
             constexpr bool skip_some_zags = false;
             constexpr size_t zag_skip_count = 0;
 
+            const LightningLayer * lightning_layer = nullptr;
+            if (mesh.lightning_generator)
+            {
+                lightning_layer = &mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr());
+            }
             Infill infill_comp(infill_pattern, zig_zaggify_infill, connect_polygons,
                                part.infill_area_per_combine_per_density[density_idx][combine_idx], infill_line_width,
                                infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle,
                                gcode_layer.z, infill_shift, max_resolution, max_deviation, wall_line_count,
                                infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count,
                                mesh.settings.get<coord_t>("cross_infill_pocket_size"));
-            infill_comp.generate(infill_paths, infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
+            infill_comp.generate(infill_paths, infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
         }
         if (!infill_lines.empty() || !infill_polygons.empty())
         {
@@ -1624,7 +1623,13 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
         Polygons in_outline = part.infill_area_per_combine_per_density[density_idx][0];
 
-        if(hasSkinEdgeSupport)
+        const LightningLayer * lightning_layer = nullptr;
+        if (mesh.lightning_generator)
+        {
+            lightning_layer = &mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr());
+        }
+
+        if (hasSkinEdgeSupport)
         {
             // infill region with skin above has to have at least one infill wall line
             const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
@@ -1635,7 +1640,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                                infill_line_distance_here, overlap, infill_multiplier, infill_angle, gcode_layer.z,
                                infill_shift, max_resolution, max_deviation, skin_below_wall_count, infill_origin,
                                connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
-            infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
+            infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
 
             // Fixme: CURA-7848 for libArachne.
             if (density_idx < last_idx)
@@ -1673,7 +1678,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            infill_line_distance_here, overlap, infill_multiplier, infill_angle, gcode_layer.z,
                            infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin,
                            connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
-        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, &mesh);
+        infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
 
         // Fixme: CURA-7848 for libArachne.
         if (density_idx < last_idx)
@@ -1722,7 +1727,14 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
         }
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
-        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+        if (pattern == EFillMethod::GRID
+                || pattern == EFillMethod::LINES
+                || pattern == EFillMethod::TRIANGLES
+                || pattern == EFillMethod::CUBIC
+                || pattern == EFillMethod::TETRAHEDRAL
+                || pattern == EFillMethod::QUARTER_CUBIC
+                || pattern == EFillMethod::CUBICSUBDIV
+                || pattern == EFillMethod::LIGHTNING)
         {
             gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[0], SpaceFillType::Lines, enable_travel_optimization
                 , mesh.settings.get<coord_t>("infill_wipe_dist"), /*float_ratio = */ 1.0, near_start_location);
@@ -2375,7 +2387,14 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
             const AngleRadians monotonic_direction = AngleRadians(skin_angle);
             constexpr Ratio flow = 1.0_r;
             const coord_t max_adjacent_distance = config.getLineWidth() * 1.1; //Lines are considered adjacent if they are 1 line width apart, with 10% extra play. The monotonic order is enforced if they are adjacent.
-            if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+            if(pattern == EFillMethod::GRID
+                    || pattern == EFillMethod::LINES
+                    || pattern == EFillMethod::TRIANGLES
+                    || pattern == EFillMethod::CUBIC
+                    || pattern == EFillMethod::TETRAHEDRAL
+                    || pattern == EFillMethod::QUARTER_CUBIC
+                    || pattern == EFillMethod::CUBICSUBDIV
+                    || pattern == EFillMethod::LIGHTNING)
             {
                 gcode_layer.addLinesMonotonic(skin_lines, config, SpaceFillType::Lines, monotonic_direction, max_adjacent_distance, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, fan_speed);
             }
@@ -2399,7 +2418,14 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
 
             constexpr bool enable_travel_optimization = false;
             constexpr float flow = 1.0;
-            if(pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV)
+            if(pattern == EFillMethod::GRID
+                    || pattern == EFillMethod::LINES
+                    || pattern == EFillMethod::TRIANGLES
+                    || pattern == EFillMethod::CUBIC
+                    || pattern == EFillMethod::TETRAHEDRAL
+                    || pattern == EFillMethod::QUARTER_CUBIC
+                    || pattern == EFillMethod::CUBICSUBDIV
+                    || pattern == EFillMethod::LIGHTNING)
             {
                 gcode_layer.addLinesByOptimizer(skin_lines, config, SpaceFillType::Lines, enable_travel_optimization, mesh.settings.get<coord_t>("infill_wipe_dist"), flow, near_start_location, fan_speed);
             }
