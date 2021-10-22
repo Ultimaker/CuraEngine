@@ -2525,7 +2525,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
 
         if(monotonic)
         {
-            const coord_t exclude_distance = config.getLineWidth() * 2;
+            const coord_t exclude_distance = config.getLineWidth() * 0.8;
 
             const AngleRadians monotonic_direction = AngleRadians(skin_angle);
             constexpr Ratio flow = 1.0_r;
