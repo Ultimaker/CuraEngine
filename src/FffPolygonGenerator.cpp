@@ -138,13 +138,30 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             switch(mesh.settings.get<SlicingTolerance>("slicing_tolerance"))
             {
                 case SlicingTolerance::MIDDLE:
-                    slice_layer_count = std::max(slice_layer_count, int(round_divide_signed(storage.model_max.z - initial_layer_thickness, layer_thickness) + 1));
+                    if(storage.model_max.z < initial_layer_thickness)
+                    {
+                        slice_layer_count = std::max(slice_layer_count, (storage.model_max.z > initial_layer_thickness / 2) ? 1 : 0); //One layer if higher than half initial layer height.
+                    }
+                    else
+                    {
+                        slice_layer_count = std::max(slice_layer_count, int(round_divide_signed(storage.model_max.z - initial_layer_thickness, layer_thickness) + 1));
+                    }
                     break;
                 case SlicingTolerance::EXCLUSIVE:
-                    slice_layer_count = std::max(slice_layer_count, int(floor_divide_signed(storage.model_max.z - initial_layer_thickness, layer_thickness) + 1));
+                    if(storage.model_max.z >= initial_layer_thickness) //If less than the initial layer thickness, leave it at 0.
+                    {
+                        slice_layer_count = std::max(slice_layer_count, int(floor_divide_signed(storage.model_max.z - 1 - initial_layer_thickness, layer_thickness) + 1));
+                    }
                     break;
                 case SlicingTolerance::INCLUSIVE:
-                    slice_layer_count = std::max(slice_layer_count, int(ceil_divide_signed(storage.model_max.z - initial_layer_thickness, layer_thickness) + 1));
+                    if(storage.model_max.z < initial_layer_thickness)
+                    {
+                        slice_layer_count = std::max(slice_layer_count, (storage.model_max.z > 0) ? 1 : 0); //If less than the initial layer height, it always has 1 layer unless the height is truly zero.
+                    }
+                    else
+                    {
+                        slice_layer_count = std::max(slice_layer_count, int(ceil_divide_signed(storage.model_max.z - initial_layer_thickness, layer_thickness) + 1));
+                    }
                     break;
                 default:
                     logError("Unknown slicing tolerance. Did you forget to add a case here?");
