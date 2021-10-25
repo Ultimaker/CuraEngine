@@ -132,7 +132,25 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
     else
     {
-        slice_layer_count = round_divide_signed(storage.model_max.z - initial_layer_thickness, layer_thickness) + 1;
+        //Find highest layer count according to each mesh's settings.
+        for(const Mesh& mesh : meshgroup->meshes)
+        {
+            switch(mesh.settings.get<SlicingTolerance>("slicing_tolerance"))
+            {
+                case SlicingTolerance::MIDDLE:
+                    slice_layer_count = std::max(slice_layer_count, int(round_divide_signed(storage.model_max.z - initial_layer_thickness, layer_thickness) + 1));
+                    break;
+                case SlicingTolerance::EXCLUSIVE:
+                    slice_layer_count = std::max(slice_layer_count, int(floor_divide_signed(storage.model_max.z - initial_layer_thickness, layer_thickness) + 1));
+                    break;
+                case SlicingTolerance::INCLUSIVE:
+                    slice_layer_count = std::max(slice_layer_count, int(ceil_divide_signed(storage.model_max.z - initial_layer_thickness, layer_thickness) + 1));
+                    break;
+                default:
+                    logError("Unknown slicing tolerance. Did you forget to add a case here?");
+                    return false;
+            }
+        }
     }
 
     // Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
