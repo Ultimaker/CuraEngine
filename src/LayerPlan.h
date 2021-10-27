@@ -619,6 +619,10 @@ public:
      * be printed in a certain direction. Lines that are not adjacent may be
      * printed in any order. This limit is the longest distance at which two
      * lines are still considered to be adjacent.
+     * \param exclude_distance Excuse lines that are wholly closer to the walls than this, and of which the neighbours
+     * they would be connected to are also close to the walls (for efficiencies sake, this is really 'shorter than this
+     * distance and having a midpoint within this distance from the walls' from the required monotonicity. An exlcude
+     * distance of 0 (the default value) will truly lay out the lines monotonically however.
      * \param wipe_dist The distance wiped without extruding after laying down a
      * line.
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
