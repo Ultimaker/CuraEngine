@@ -1144,16 +1144,61 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     }
 }
 
-void LayerPlan::addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const coord_t wipe_dist, const Ratio flow_ratio, const double fan_speed)
+void LayerPlan::addLinesMonotonic
+(
+    const Polygons& area,
+    const Polygons& polygons,
+    const GCodePathConfig& config,
+    const SpaceFillType space_fill_type,
+    const AngleRadians monotonic_direction,
+    const coord_t max_adjacent_distance,
+    const coord_t exclude_distance,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const double fan_speed
+)
 {
+    const Polygons exclude_areas = area.tubeShape(exclude_distance, exclude_distance);
+    const size_t exclude_dist2 = exclude_distance * exclude_distance;
     const Point last_position = getLastPlannedPositionOrStartingPosition();
-    PathOrderMonotonic<ConstPolygonRef> order(monotonic_direction, max_adjacent_distance, last_position);
-    for(size_t line_idx = 0; line_idx < polygons.size(); ++line_idx)
+
+    // First lay all adjacent lines next to each other, to have a sensible input to the monotonic part of the algorithm.
+    LineOrderOptimizer line_order(last_position, nullptr);
+    for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
-        order.addPolyline(polygons[line_idx]);
+        line_order.addPolygon(polygons[line_idx]);
+    }
+    line_order.optimize();
+
+    const auto is_inside_exclusion =
+        [&exclude_areas, &exclude_dist2](ConstPolygonRef path)
+        {
+            return vSize2(path[1] - path[0]) < exclude_dist2 && exclude_areas.inside((path[0] + path[1]) / 2);
+        };
+
+    // Order monotonically, except for line-segments which stay in the excluded areas (read: close to the walls) consecutively.
+    PathOrderMonotonic<ConstPolygonRef> order(monotonic_direction, max_adjacent_distance, last_position);
+    Polygons left_over;
+    bool last_would_have_been_excluded = false;
+    for(const auto& line_idx : line_order.polyOrder)
+    {
+        const auto& polyline = polygons[line_idx];
+        const bool inside_exclusion = is_inside_exclusion(polyline);
+        const bool next_would_have_been_included = inside_exclusion && (line_idx < polygons.size() - 1 && is_inside_exclusion(polygons[line_idx + 1]));
+        if (inside_exclusion && last_would_have_been_excluded && next_would_have_been_included)
+        {
+            left_over.add(polyline);
+        }
+        else
+        {
+            order.addPolyline(polyline);
+        }
+        last_would_have_been_excluded = inside_exclusion;
     }
     order.optimize();
 
+    // Read out and process the monotonically ordered lines.
+    Point current_last_position = last_position;
     for (unsigned int order_idx = 0; order_idx < order.paths.size(); order_idx++)
     {
         const PathOrder<ConstPolygonRef>::Path& path = order.paths[order_idx];
@@ -1163,12 +1208,13 @@ void LayerPlan::addLinesMonotonic(const Polygons& polygons, const GCodePathConfi
         const Point& p0 = polygon[start];
         const Point& p1 = polygon[end];
         // ignore line segments that are less than 5uM long
-        if(vSize2(p1 - p0) < MINIMUM_SQUARED_LINE_LENGTH)
+        if (vSize2(p1 - p0) < MINIMUM_SQUARED_LINE_LENGTH)
         {
             continue;
         }
         addTravel(p0);
         addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+        current_last_position = p1;
 
         // Wipe
         if (wipe_dist != 0)
@@ -1197,10 +1243,13 @@ void LayerPlan::addLinesMonotonic(const Polygons& polygons, const GCodePathConfi
 
             if (wipe)
             {
-                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
+                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
             }
         }
     }
+
+    // Add all lines in the excluded areas the 'normal' way.
+    addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, current_last_position, fan_speed);
 }
 
 void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer)
