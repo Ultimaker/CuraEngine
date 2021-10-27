@@ -619,12 +619,28 @@ public:
      * be printed in a certain direction. Lines that are not adjacent may be
      * printed in any order. This limit is the longest distance at which two
      * lines are still considered to be adjacent.
+     * \param exclude_distance Excuse lines that are wholly closer to the walls than this, and of which the neighbours
+     * they would be connected to are also close to the walls (for efficiencies sake, this is really 'shorter than this
+     * distance and having a midpoint within this distance from the walls' from the required monotonicity. An exlcude
+     * distance of 0 (the default value) will truly lay out the lines monotonically however.
      * \param wipe_dist The distance wiped without extruding after laying down a
      * line.
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
      * \param fan_speed Fan speed override for this path.
      */
-    void addLinesMonotonic(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0_r, const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+    void addLinesMonotonic
+    (
+        const Polygons& area,
+        const Polygons& polygons,
+        const GCodePathConfig& config,
+        const SpaceFillType space_fill_type,
+        const AngleRadians monotonic_direction,
+        const coord_t max_adjacent_distance,
+        const coord_t exclude_distance = 0,
+        const coord_t wipe_dist = 0,
+        const Ratio flow_ratio = 1.0_r,
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT
+    );
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
