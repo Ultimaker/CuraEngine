@@ -1197,10 +1197,8 @@ void LayerPlan::addLinesMonotonic
     }
     order.optimize();
 
-    // Add all lines in the excluded areas the 'normal' way.
-    addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, last_position, fan_speed);
-
     // Read out and process the monotonically ordered lines.
+    Point current_last_position = last_position;
     for (unsigned int order_idx = 0; order_idx < order.paths.size(); order_idx++)
     {
         const PathOrder<ConstPolygonRef>::Path& path = order.paths[order_idx];
@@ -1210,12 +1208,13 @@ void LayerPlan::addLinesMonotonic
         const Point& p0 = polygon[start];
         const Point& p1 = polygon[end];
         // ignore line segments that are less than 5uM long
-        if(vSize2(p1 - p0) < MINIMUM_SQUARED_LINE_LENGTH)
+        if (vSize2(p1 - p0) < MINIMUM_SQUARED_LINE_LENGTH)
         {
             continue;
         }
         addTravel(p0);
         addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+        current_last_position = p1;
 
         // Wipe
         if (wipe_dist != 0)
@@ -1244,10 +1243,13 @@ void LayerPlan::addLinesMonotonic
 
             if (wipe)
             {
-                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
+                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
             }
         }
     }
+
+    // Add all lines in the excluded areas the 'normal' way.
+    addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, current_last_position, fan_speed);
 }
 
 void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer)
