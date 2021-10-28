@@ -448,7 +448,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
                     }
                 }
             }
-            return extra_perimeter_offset - innermost_wall_line_width / 2 + infill_overlap;
+            return extra_perimeter_offset - innermost_wall_line_width / 2 - infill_overlap;
         }
         return coord_t(0);
     };
