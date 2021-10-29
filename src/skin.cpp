@@ -187,7 +187,10 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
  */
 void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
-
+    if(part.insets.empty())
+    {
+        return;
+    }
     Polygons original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
 
     // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
