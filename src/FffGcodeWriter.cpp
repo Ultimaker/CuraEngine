@@ -2628,7 +2628,12 @@ bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLay
     const bool ironing_only_highest_layer = mesh.settings.get<bool>("ironing_only_highest_layer");
     if (ironing_enabled && (!ironing_only_highest_layer || mesh.layer_nr_max_filled_layer == gcode_layer.getLayerNr()))
     {
+        // Since we are ironing after all the parts are completed, it believes that it is outside.
+        // But the truth is that we are inside a part, so we need to change it before we do the ironing
+        // See CURA-8615
+        gcode_layer.setIsInside(true);
         added_something |= layer.top_surface.ironing(mesh, line_config, gcode_layer);
+        gcode_layer.setIsInside(false);
     }
     return added_something;
 }
