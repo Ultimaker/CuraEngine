@@ -421,6 +421,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
         return; // the last wall is not present, the part should only get inter perimeter gaps, but no infill.
     }
     const EFillMethod fill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+    const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
 
     coord_t inner_wall_offset = -innermost_wall_line_width / 2; //The innermost wall is a centerline, not the actual area covered by the wall.
     const Polygons* offset_from_wall = &part.insets.back();
@@ -430,14 +431,12 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
         //This means that effects such as alternate extra walls and initial layer line width should not be taken into account.
         //So instead, we'll offset from the outermost wall with a fixed size that is the same for every layer.
         offset_from_wall = &part.insets.front();
-        const coord_t wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
-        const coord_t wall_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x");
         inner_wall_offset = -wall_line_width_0 - (wall_line_count - 1) * wall_line_width_x + innermost_wall_line_width / 2;
     }
     const Polygons inside_area_border = offset_from_wall->offset(inner_wall_offset); //Area that should get filled with skin/infill.
 
     const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
-    part.infill_area = inside_area_border.difference(skin).offset(-10).offset(infill_overlap + 10); //First subtract skin, then inset by 10 units to prevent rounding errors, then apply infill overlap.
+    part.infill_area = inside_area_border.difference(skin).offset(-infill_line_width / 2).offset(infill_overlap + infill_line_width / 2); //First subtract skin, then apply an opening operation to prevent both rounding errors and thin areas, and apply infill overlap.
     part.infill_area.removeSmallAreas(MIN_AREA_SIZE);
 }
 
