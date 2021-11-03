@@ -82,9 +82,10 @@ void parallel_for(T from, T to, T increment, const std::function<void(const T)>&
         };
 
     // Run all tasks.
+    std::vector<std::future<void>> scope_guard;
     for (size_t index = from; index != to; index += increment)
     {
-        std::async(std::launch::async, func, index);
+        scope_guard.push_back(std::async(std::launch::async, func, index));
     }
 
     // Wait for the end-result before return.
