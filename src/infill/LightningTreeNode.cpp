@@ -188,9 +188,9 @@ bool LightningTreeNode::realign
             [&](const LightningTreeNodeSPtr& child)
             {
                 bool connect_branch = child->realign(outlines, outline_locator, rerooted_parts);
-                if (connect_branch && PolygonUtils::lineSegmentPolygonsIntersection(child->p, p, outlines, outline_locator, coll))
+                if (connect_branch && PolygonUtils::lineSegmentPolygonsIntersection(child->p, p, outlines, outline_locator, coll, outline_locator.getCellSize() * 2))
                 {
-                    child->last_grounding_location.reset(); // child->last_grounding_location = coll;
+                    child->last_grounding_location.reset();
                     child->parent.reset();
                     child->is_root = true;
                     rerooted_parts.push_back(child);

@@ -1,12 +1,13 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_UTILS_H
 #define UTILS_POLYGON_UTILS_H
 
-#include <vector>
 #include <functional> // function
+#include <limits>
 #include <optional>
+#include <vector>
 
 #include "polygon.h"
 #include "SparsePointGridInclusive.h"
@@ -143,7 +144,7 @@ public:
     /*!
      * Wether a polygon intersects with a line-segment. If true, the closest collission point to 'b' is stored in the result.
      */
-    static bool lineSegmentPolygonsIntersection(const Point& a, const Point& b, const Polygons& current_outlines, const LocToLineGrid& outline_locator, Point& result);
+    static bool lineSegmentPolygonsIntersection(const Point& a, const Point& b, const Polygons& current_outlines, const LocToLineGrid& outline_locator, Point& result, const coord_t within_max_dist2);
 
     /*!
      * Get the normal of a boundary point, pointing outward.
