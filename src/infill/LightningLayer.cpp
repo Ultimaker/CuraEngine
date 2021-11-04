@@ -178,6 +178,7 @@ void LightningLayer::reconnectRoots
     SparseLightningTreeNodeGrid tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator);
 
+    const coord_t within_max_dist = outline_locator.getCellSize() * 2;
     for (auto root_ptr : to_be_reconnected_tree_roots)
     {
         auto old_root_it = std::find(tree_roots.begin(), tree_roots.end(), root_ptr);
@@ -188,7 +189,7 @@ void LightningLayer::reconnectRoots
             if (ground_loc != root_ptr->getLocation())
             {
                 Point new_root_pt;
-                if (PolygonUtils::lineSegmentPolygonsIntersection(root_ptr->getLocation(), ground_loc, current_outlines, outline_locator, new_root_pt, outline_locator.getCellSize() * 2))
+                if (PolygonUtils::lineSegmentPolygonsIntersection(root_ptr->getLocation(), ground_loc, current_outlines, outline_locator, new_root_pt, within_max_dist))
                 {
                     auto new_root = LightningTreeNode::create(new_root_pt, new_root_pt);
                     root_ptr->addChild(new_root);
