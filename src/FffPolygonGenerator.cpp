@@ -132,14 +132,50 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
     else
     {
-        const coord_t height_without_first_layer = storage.model_max.z - initial_layer_thickness;
-        if(height_without_first_layer <= 0)
+        //Find highest layer count according to each mesh's settings.
+        for(const Mesh& mesh : meshgroup->meshes)
         {
-            slice_layer_count = 0;
-        }
-        else
-        {
-            slice_layer_count = round_divide(height_without_first_layer, layer_thickness) + 1;
+            const coord_t mesh_height = mesh.max().z;
+            switch(mesh.settings.get<SlicingTolerance>("slicing_tolerance"))
+            {
+                case SlicingTolerance::MIDDLE:
+                    if(storage.model_max.z < initial_layer_thickness)
+                    {
+                        slice_layer_count = std::max(slice_layer_count, (mesh_height > initial_layer_thickness / 2) ? 1 : 0); //One layer if higher than half initial layer height.
+                    }
+                    else
+                    {
+                        slice_layer_count = std::max(slice_layer_count, static_cast<int>(round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    }
+                    break;
+                case SlicingTolerance::EXCLUSIVE:
+                {
+                    int new_slice_layer_count = 0;
+                    if(mesh_height >= initial_layer_thickness) //If less than the initial layer thickness, leave it at 0.
+                    {
+                        new_slice_layer_count = static_cast<int>(floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
+                    }
+                    if(new_slice_layer_count > 0) // If there is at least one layer already, then...
+                    {
+                        new_slice_layer_count += 1; // ... need one extra, since we clear the top layer after the repeated intersections with the layer above.
+                    }
+                    slice_layer_count = std::max(slice_layer_count, new_slice_layer_count);
+                    break;
+                }
+                case SlicingTolerance::INCLUSIVE:
+                    if(mesh_height < initial_layer_thickness)
+                    {
+                        slice_layer_count = std::max(slice_layer_count, (mesh_height > 0) ? 1 : 0); //If less than the initial layer height, it always has 1 layer unless the height is truly zero.
+                    }
+                    else
+                    {
+                        slice_layer_count = std::max(slice_layer_count, static_cast<int>(ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    }
+                    break;
+                default:
+                    logError("Unknown slicing tolerance. Did you forget to add a case here?");
+                    return false;
+            }
         }
     }
 
@@ -626,8 +662,7 @@ void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
                         // we print them as a perimeter gap
                         inner = inner.offset(-skin_line_width / 2).offset(skin_line_width / 2);
                     }
-                    inner.add(part.infill_area.offset(-infill_line_width / 2).offset(infill_line_width / 2));
-                    inner = inner.unionPolygons();
+                    inner = inner.unionPolygons(part.infill_area);
                     part.perimeter_gaps.add(outer.difference(inner));
 
                     if (filter_out_tiny_gaps) {

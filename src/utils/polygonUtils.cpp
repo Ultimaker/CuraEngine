@@ -110,6 +110,56 @@ std::vector<Point> PolygonUtils::spreadDotsArea(const Polygons& polygons, coord_
     return result;
 }
 
+bool PolygonUtils::lineSegmentPolygonsIntersection(const Point& a, const Point& b, const Polygons& current_outlines, const LocToLineGrid& outline_locator, Point& result)
+{
+    Point coll;
+    coord_t closest_dist2 = std::numeric_limits<coord_t>::max();
+
+    const auto processOnIntersect =
+        [&result, &closest_dist2, &a, &b, &coll](const Point& p_start, const Point& p_end)
+    {
+        if
+        (
+            LinearAlg2D::lineLineIntersection(a, b, p_start, p_end, coll) &&
+            LinearAlg2D::pointIsProjectedBeyondLine(coll, p_start, p_end) == 0 &&
+            LinearAlg2D::pointIsProjectedBeyondLine(coll, a, b) == 0
+        )
+        {
+            const coord_t dist2 = vSize2(b - coll);
+            if (dist2 < closest_dist2)
+            {
+                closest_dist2 = dist2;
+                result = coll;
+            }
+        }
+    };
+
+    const auto nearby = outline_locator.getNearby(b, outline_locator.getCellSize() * 2);
+    if (! nearby.empty())
+    {
+        for (const auto& pp_idx : nearby)
+        {
+            processOnIntersect(pp_idx.p(), pp_idx.next().p());
+        }
+        if (closest_dist2 < std::numeric_limits<coord_t>::max())
+        {
+            return true;
+        }
+    }
+
+    for (const auto& poly : current_outlines)
+    {
+        const size_t poly_size = poly.size();
+        for (size_t i_segment_start = 0; i_segment_start < poly_size; ++i_segment_start)
+        {
+            const size_t i_segment_end = (i_segment_start + 1) % poly_size;
+            processOnIntersect(poly[i_segment_start], poly[i_segment_end]);
+        }
+    }
+
+    return closest_dist2 < std::numeric_limits<coord_t>::max();
+}
+
 Point PolygonUtils::getVertexInwardNormal(ConstPolygonRef poly, unsigned int point_idx)
 {
     Point p1 = poly[point_idx];

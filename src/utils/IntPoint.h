@@ -39,11 +39,6 @@ namespace cura
 /* 64bit Points are used mostly throughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
 
-class IntPoint {
-public:
-    int X, Y;
-    Point p() { return Point(X, Y); }
-};
 #define POINT_MIN std::numeric_limits<ClipperLib::cInt>::min()
 #define POINT_MAX std::numeric_limits<ClipperLib::cInt>::max()
 

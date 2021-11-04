@@ -298,10 +298,14 @@ void InsetOrderOptimizer::processHoleInsets()
 
                 // detect special case where the z-seam is located on the sharpest corner and there is only 1 hole and
                 // the gap between the walls is just a few line widths
-                if (z_seam_config.type == EZSeamType::SHARPEST_CORNER && inset_polys[0].size() == 2 && PolygonUtils::polygonOutlinesAdjacent(*inset_polys[0][1], *inset_polys[0][0], max_gap * 4))
+                if (z_seam_config.type == EZSeamType::SHARPEST_CORNER && inset_polys[0].size() == 2)
                 {
                     // align z-seam of hole with z-seam of outer wall - makes a nicer job when printing tubes
-                    outer_poly_start_idx = PolygonUtils::findNearestVert(start_point, hole_outer_wall.back());
+                    const size_t aligned_idx = PolygonUtils::findNearestVert(start_point, hole_outer_wall.back());
+                    if(vSize2(hole_outer_wall[0][aligned_idx] - start_point) < max_gap * max_gap * 16) //This aligned position is not too far from the outside.
+                    {
+                        outer_poly_start_idx = aligned_idx;
+                    }
                 }
                 const Point z_seam_location = hole_outer_wall[0][outer_poly_start_idx];
                 // move to the location of the vertex in the outermost enclosing inset that's closest to the z seam location

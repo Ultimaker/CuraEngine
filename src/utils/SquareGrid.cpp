@@ -183,8 +183,7 @@ bool SquareGrid::processNearby
         for (coord_t grid_x = min_grid.X; grid_x <= max_grid.X; ++grid_x)
         {
             GridPoint grid_pt(grid_x,grid_y);
-            bool continue_ = process_func(grid_pt);
-            if (!continue_)
+            if (!process_func(grid_pt))
             {
                 return false;
             }
