@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
@@ -110,10 +110,12 @@ std::vector<Point> PolygonUtils::spreadDotsArea(const Polygons& polygons, coord_
     return result;
 }
 
-bool PolygonUtils::lineSegmentPolygonsIntersection(const Point& a, const Point& b, const Polygons& current_outlines, const LocToLineGrid& outline_locator, Point& result)
+bool PolygonUtils::lineSegmentPolygonsIntersection(const Point& a, const Point& b, const Polygons& current_outlines, const LocToLineGrid& outline_locator, Point& result, const coord_t within_max_dist)
 {
+    const coord_t within_max_dist2 = within_max_dist * within_max_dist;
+
     Point coll;
-    coord_t closest_dist2 = std::numeric_limits<coord_t>::max();
+    coord_t closest_dist2 = within_max_dist2;
 
     const auto processOnIntersect =
         [&result, &closest_dist2, &a, &b, &coll](const Point& p_start, const Point& p_end)
@@ -134,14 +136,14 @@ bool PolygonUtils::lineSegmentPolygonsIntersection(const Point& a, const Point& 
         }
     };
 
-    const auto nearby = outline_locator.getNearby(b, outline_locator.getCellSize() * 2);
+    const auto nearby = outline_locator.getNearby(b, within_max_dist);
     if (! nearby.empty())
     {
         for (const auto& pp_idx : nearby)
         {
             processOnIntersect(pp_idx.p(), pp_idx.next().p());
         }
-        if (closest_dist2 < std::numeric_limits<coord_t>::max())
+        if (closest_dist2 < within_max_dist2)
         {
             return true;
         }
@@ -157,7 +159,7 @@ bool PolygonUtils::lineSegmentPolygonsIntersection(const Point& a, const Point& 
         }
     }
 
-    return closest_dist2 < std::numeric_limits<coord_t>::max();
+    return closest_dist2 < within_max_dist2;
 }
 
 Point PolygonUtils::getVertexInwardNormal(ConstPolygonRef poly, unsigned int point_idx)
