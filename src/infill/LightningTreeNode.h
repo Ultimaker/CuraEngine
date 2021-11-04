@@ -92,14 +92,17 @@ public:
      * \param smooth_magnitude The maximum distance that a line may be shifted
      * to straighten the tree's paths, such that it still supports the current
      * paths.
+     * \param max_remove_colinear_dist The maximum distance of a line-segment
+     * from which straightening may remove a colinear point.
      */
     void propagateToNextLayer
     (
         std::vector<LightningTreeNodeSPtr>& next_trees,
         const Polygons& next_outlines,
         const LocToLineGrid& outline_locator,
-        const coord_t& prune_distance,
-        const coord_t& smooth_magnitude
+        const coord_t prune_distance,
+        const coord_t smooth_magnitude,
+        const coord_t max_remove_colinear_dist
     ) const;
 
     /*!
@@ -207,15 +210,17 @@ protected:
      * Smoothen the tree to make it a bit more printable, while still supporting
      * the trees above.
      * \param magnitude The maximum allowed distance to move the node.
+     * \param max_remove_colinear_dist Maximum distance of the (compound) line-segment from which a co-linear point may be removed.
      */
-    void straighten(const coord_t& magnitude);
+    void straighten(const coord_t magnitude, const coord_t max_remove_colinear_dist);
 
     /*! Recursive part of \ref straighten(.)
      * \param junction_above The last seen junction with multiple children above
      * \param accumulated_dist The distance along the tree from the last seen junction to this node
+     * \param max_remove_colinear_dist2 Maximum distance _squared_ of the (compound) line-segment from which a co-linear point may be removed.
      * \return the total distance along the tree from the last junction above to the first next junction below and the location of the next junction below
      */
-    RectilinearJunction straighten(const coord_t& magnitude, const Point& junction_above, const coord_t accumulated_dist);
+    RectilinearJunction straighten(const coord_t magnitude, const Point& junction_above, const coord_t accumulated_dist, const coord_t max_remove_colinear_dist2);
 
     /*! Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
      * \return The distance that has been pruned. If less than \p distance, then the whole tree was puned away.
