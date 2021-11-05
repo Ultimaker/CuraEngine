@@ -3,12 +3,14 @@ import pathlib
 
 from conans import ConanFile, tools
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake
-from conan.tools.layout import LayoutPackager, clion_layout
+from conan.tools.layout import cmake_layout
+from conan.tools.files import AutoPackager
 
+required_conan_version = ">=1.42"
 
 class CuraEngineConan(ConanFile):
     name = "CuraEngine"
-    version = "4.11.0"
+    version = "4.13.0-dev"
     license = "AGPL-3.0"
     author = "Ultimaker B.V."
     url = "https://github.com/Ultimaker/CuraEngine"
@@ -61,10 +63,7 @@ class CuraEngineConan(ConanFile):
             tools.check_min_cppstd(self, 17)
 
     def layout(self):
-        clion_layout(self)
-        self.cpp.build.bindirs = ["."]
-        self.patterns.build.bin = ["*.dll", "*.a", "*.so", "*.exe", "CuraEngine*"]
-        self.cpp.package.bindirs = ["bin"]
+        cmake_layout(self)
 
     def generate(self):
         cmake = CMakeDeps(self)
@@ -90,7 +89,10 @@ class CuraEngineConan(ConanFile):
         cmake.build()
 
     def package(self):
-        LayoutPackager(self).package()
+        packager = AutoPackager(self)
+        packager.patterns.lib = ["*.dll", "*.a", "*.so"]
+        packager.patterns.bin = [ "*.exe", "CuraEngine*"]
+        packager.run()
 
     def package_info(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
