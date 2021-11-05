@@ -47,6 +47,7 @@ class CuraEngineConan(ConanFile):
 
     def build_requirements(self):
         self.build_requires("cmake/[>=3.16.2]")
+        self.build_requires("ninja/[>=1.9.0]")
         if self.options.tests:
             self.build_requires("gtest/[>=1.10.0]", force_host_context = True)
 
