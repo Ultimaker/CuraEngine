@@ -795,7 +795,7 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh, std::vector<
             }
 
 
-            if (int(dtt_roof) > layer_idx && roof_allowed_for_this_part) // reached buildplate
+            if (int(dtt_roof) >= layer_idx && roof_allowed_for_this_part) // reached buildplate
             {
 #pragma omp critical(storage)
                 {
@@ -1982,7 +1982,7 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
         {
             for (std::pair<SupportElement*, Polygons> data_pair : data_vector)
             {
-				layer_tree_polygons[layer_idx + 1][data_pair.first] = data_pair.second;
+                layer_tree_polygons[layer_idx + 1][data_pair.first] = data_pair.second;
             }
         }
     }
@@ -2090,13 +2090,12 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
     linear_inserts.clear();
     linear_data.clear();
 
-
     // Iterate over the generated circles in parallel and clean them up. Also add support floor.
 #pragma omp parallel for shared(support_layer_storage, storage) schedule(dynamic)
     for (LayerIndex layer_idx = 0; layer_idx < static_cast<coord_t>(support_layer_storage.size()); layer_idx++)
     {
         support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons().smooth(50);
-        if (!storage.support.supportLayers[layer_idx].support_roof.empty())
+        if (!storage.support.supportLayers[layer_idx].support_roof.empty() && support_layer_storage[layer_idx].intersection(storage.support.supportLayers[layer_idx].support_roof).area() < 1)
         {
             Polygons tree_lines = toPolylines(support_layer_storage[layer_idx].offset(-config.support_line_width / 2)).offsetPolyLine(config.support_line_width / 2);
             tree_lines = tree_lines.unionPolygons(toPolylines(generateSupportInfillLines(support_layer_storage[layer_idx], false, layer_idx, config.support_line_distance, storage.support.cross_fill_provider)).offsetPolyLine(config.support_line_width / 2));
