@@ -1045,7 +1045,7 @@ class TreeSupport
      */
     Polygons generateSupportInfillLines(const Polygons& area, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider = nullptr);
 
-    //todo comment
+    // todo comment
     Polygons safeUnion(const Polygons first, const Polygons second) const;
     Polygons safeUnion(const Polygons first) const;
 
@@ -1188,8 +1188,44 @@ class TreeSupport
      * \param move_bounds[in,out] All currently existing influence areas
      */
     void createNodesFromArea(std::vector<std::set<SupportElement*>>& move_bounds);
+
     /*!
-     * \brief Draws circles around resul_on_layer points of the influence areas
+     * \brief Draws circles around result_on_layer points of the influence areas
+     *
+     * \param linear_data[in] All currently existing influence areas with the layer they are on
+     * \param layer_tree_polygons[out] Resulting branch areas with the layerindex they appear on. layer_tree_polygons.size() has to be at least linear_data.size() as each Influence area in linear_data will save have at least one (thats why it's a vector<vector>) corresponding branch area in layer_tree_polygons.
+     * \param inverese_tree_order[in] A mapping that returns the child of every influence area.
+     */
+    void generateBranchAreas(std::vector<std::pair<LayerIndex, SupportElement*>>& linear_data, std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons, const std::map<SupportElement*, SupportElement*>& inverese_tree_order);
+
+    /*!
+     * \brief Applies some smoothing to the outer wall, intended to smooth out sudden jumps as they can happen when a branch moves though a hole.
+     *
+     * \param layer_tree_polygons[in,out] Resulting branch areas with the layerindex they appear on.
+     */
+    void smoothBranchAreas(std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons);
+
+    /*!
+     * \brief Drop down areas that do rest non-gracefully on the model to ensure the branch actually rests on something.
+     *
+     * \param layer_tree_polygons[in] Resulting branch areas with the layerindex they appear on.
+     * \param linear_data[in] All currently existing influence areas with the layer they are on
+     * \param dropped_down_areas[out] Areas that have to be added to support all non-gracefull areas.
+     * \param inverese_tree_order[in] A mapping that returns the child of every influence area.
+     */
+    void dropNonGraciousAreas(std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons, const std::vector<std::pair<LayerIndex, SupportElement*>>& linear_data, std::vector<std::vector<std::pair<LayerIndex, Polygons>>> dropped_down_areas, const std::map<SupportElement*, SupportElement*>& inverese_tree_order);
+
+
+    /*!
+     * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage
+     *
+     * \param support_layer_storage[in] Areas where support should be generated.
+     * \param storage[in,out] The storage where the support should be stored.
+     */
+    void finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage, SliceDataStorage& storage);
+
+    /*!
+     * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.
      *
      * \param move_bounds[in] All currently existing influence areas
      * \param storage[in,out] The storage where the support should be stored.
