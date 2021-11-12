@@ -10,12 +10,15 @@
 #include "settings/EnumSettings.h"
 #include "settings/types/Angle.h" //Creating the correct branch angles.
 #include "settings/types/Ratio.h"
+#include "utils/algorithm.h"
 #include "utils/IntPoint.h" //To normalize vectors.
 #include "utils/logoutput.h"
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
 #include "utils/polygon.h" //For splitting polygons into parts.
 #include "utils/polygonUtils.h" //For moveInside.
+
+#include <mutex>
 
 #define SQRT_2 1.4142135623730950488 //Square root of 2.
 #define CIRCLE_RESOLUTION 10 //The number of vertices in each circle.
@@ -102,10 +105,10 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
     const coord_t resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
-    size_t completed = 0; //To track progress in a multi-threaded environment.
-#pragma omp parallel for shared(storage, contact_nodes)
-    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
-    for (int layer_nr = 0; layer_nr < static_cast<int>(contact_nodes.size()); layer_nr++)
+
+    std::atomic<size_t> completed = 0; //To track progress in a multi-threaded environment.
+    std::mutex critical_sections;
+    cura::parallel_for<size_t>(0, contact_nodes.size(), 1, [&](const size_t layer_nr)
     {
         Polygons support_layer;
         Polygons& roof_layer = storage.support.supportLayers[layer_nr].support_roof;
@@ -181,23 +184,26 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
             storage.support.supportLayers[layer_nr].support_infill_parts.emplace_back(part, line_width, wall_count);
         }
 
-#pragma omp critical (support_max_layer_nr)
         {
+            std::lock_guard<std::mutex> critical_section_support_max_layer_nr(critical_sections);
+
             if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
             {
                 storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, static_cast<int>(layer_nr));
             }
         }
-#pragma omp atomic
-        completed++;
-#pragma omp critical (progress)
+
+        ++completed;
+
         {
+            std::lock_guard<std::mutex> critical_section_progress(critical_sections);
+
             const double progress_contact_nodes = contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN;
             const double progress_current = completed * PROGRESS_WEIGHT_AREAS;
             const double progress_total = completed * PROGRESS_WEIGHT_AREAS;
             Progress::messageProgress(Progress::Stage::SUPPORT, progress_contact_nodes + progress_current, progress_contact_nodes + progress_total);
         }
-    }
+    });
 }
 
 void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)

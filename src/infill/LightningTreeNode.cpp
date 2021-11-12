@@ -64,14 +64,15 @@ void LightningTreeNode::propagateToNextLayer
     std::vector<LightningTreeNodeSPtr>& next_trees,
     const Polygons& next_outlines,
     const LocToLineGrid& outline_locator,
-    const coord_t& prune_distance,
-    const coord_t& smooth_magnitude
+    const coord_t prune_distance,
+    const coord_t smooth_magnitude,
+    const coord_t max_remove_colinear_dist
 ) const
 {
     auto tree_below = deepCopy();
 
     tree_below->prune(prune_distance);
-    tree_below->straighten(smooth_magnitude);
+    tree_below->straighten(smooth_magnitude, max_remove_colinear_dist);
     if (tree_below->realign(next_outlines, outline_locator, next_trees))
     {
         next_trees.push_back(tree_below);
@@ -188,9 +189,9 @@ bool LightningTreeNode::realign
             [&](const LightningTreeNodeSPtr& child)
             {
                 bool connect_branch = child->realign(outlines, outline_locator, rerooted_parts);
-                if (connect_branch && PolygonUtils::lineSegmentPolygonsIntersection(child->p, p, outlines, outline_locator, coll))
+                if (connect_branch && PolygonUtils::lineSegmentPolygonsIntersection(child->p, p, outlines, outline_locator, coll, outline_locator.getCellSize() * 2))
                 {
-                    child->last_grounding_location.reset(); // child->last_grounding_location = coll;
+                    child->last_grounding_location.reset();
                     child->parent.reset();
                     child->is_root = true;
                     rerooted_parts.push_back(child);
@@ -225,16 +226,17 @@ bool LightningTreeNode::realign
     return false;
 }
 
-void LightningTreeNode::straighten(const coord_t& magnitude)
+void LightningTreeNode::straighten(const coord_t magnitude, const coord_t max_remove_colinear_dist)
 {
-    straighten(magnitude, p, 0);
+    straighten(magnitude, p, 0, max_remove_colinear_dist * max_remove_colinear_dist);
 }
 
 LightningTreeNode::RectilinearJunction LightningTreeNode::straighten
 (
-    const coord_t& magnitude,
+    const coord_t magnitude,
     const Point& junction_above,
-    const coord_t accumulated_dist
+    const coord_t accumulated_dist,
+    const coord_t max_remove_colinear_dist2
 )
 {
     constexpr coord_t junction_magnitude_factor_numerator = 3;
@@ -245,7 +247,7 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten
     {
         auto child_p = children.front();
         coord_t child_dist = vSize(p - child_p->p);
-        RectilinearJunction junction_below = child_p->straighten(magnitude, junction_above, accumulated_dist + child_dist);
+        RectilinearJunction junction_below = child_p->straighten(magnitude, junction_above, accumulated_dist + child_dist, max_remove_colinear_dist2);
         coord_t total_dist_to_junction_below = junction_below.total_recti_dist;
         Point a = junction_above;
         Point b = junction_below.junction_loc;
@@ -267,7 +269,12 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten
 
             child_p = children.front(); //recursive call to straighten might have removed the child
             const LightningTreeNodeSPtr& parent_node = parent.lock();
-            if (parent_node && LinearAlg2D::getDist2FromLineSegment(parent_node->p, p, child_p->p) < close_enough)
+            if
+            (
+                parent_node &&
+                vSize2(child_p->p - parent_node->p) < max_remove_colinear_dist2 &&
+                LinearAlg2D::getDist2FromLineSegment(parent_node->p, p, child_p->p) < close_enough
+            )
             {
                 child_p->parent = parent;
                 for (auto& sibling : parent_node->children)
@@ -290,7 +297,7 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten
         for (auto& child_p : children)
         {
             const coord_t child_dist = vSize(p - child_p->p);
-            RectilinearJunction below = child_p->straighten(magnitude, p, child_dist);
+            RectilinearJunction below = child_p->straighten(magnitude, p, child_dist, max_remove_colinear_dist2);
 
             junction_moving_dir += normal(below.junction_loc - p, weight);
             if (below.total_recti_dist < magnitude) // TODO: make configurable?

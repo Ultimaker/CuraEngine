@@ -706,7 +706,7 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed, feature);
 }
 
-void GCodeExport::writeTravel(const coord_t& x, const coord_t& y, const coord_t& z, const Velocity& speed)
+void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
     {
@@ -729,7 +729,7 @@ void GCodeExport::writeTravel(const coord_t& x, const coord_t& y, const coord_t&
     writeFXYZE(speed, x, y, z, current_e_value, travel_move_type);
 }
 
-void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Velocity& speed, const double extrusion_mm3_per_mm, const PrintFeatureType& feature, const bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const double extrusion_mm3_per_mm, const PrintFeatureType& feature, const bool update_extrusion_offset)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
     {
@@ -800,7 +800,7 @@ void GCodeExport::writeExtrusion(const int x, const int y, const int z, const Ve
     writeFXYZE(speed, x, y, z, new_e_value, feature);
 }
 
-void GCodeExport::writeFXYZE(const Velocity& speed, const int x, const int y, const int z, const double e, const PrintFeatureType& feature)
+void GCodeExport::writeFXYZE(const Velocity& speed, const coord_t x, const coord_t y, const coord_t z, const double e, const PrintFeatureType& feature)
 {
     if (currentSpeed != speed)
     {
@@ -1274,7 +1274,7 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
     { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
         return;
     }
-
+    bool wrote_command = false;
     if (wait)
     {
         if(bed_temperature != temperature) //Not already at the desired temperature.
@@ -1287,12 +1287,17 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
             }
         }
         *output_stream << "M190 S";
+        wrote_command = true;
     }
     else if(bed_temperature != temperature)
     {
         *output_stream << "M140 S";
+        wrote_command = true;
     }
-    *output_stream << PrecisionedDouble{1, temperature} << new_line;
+    if(wrote_command)
+    {
+        *output_stream << PrecisionedDouble{1, temperature} << new_line;
+    }
     bed_temperature = temperature;
 }
 

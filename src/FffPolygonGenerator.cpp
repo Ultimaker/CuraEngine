@@ -132,14 +132,50 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
     else
     {
-        const coord_t height_without_first_layer = storage.model_max.z - initial_layer_thickness;
-        if(height_without_first_layer <= 0)
+        //Find highest layer count according to each mesh's settings.
+        for(const Mesh& mesh : meshgroup->meshes)
         {
-            slice_layer_count = 0;
-        }
-        else
-        {
-            slice_layer_count = round_divide(height_without_first_layer, layer_thickness) + 1;
+            const coord_t mesh_height = mesh.max().z;
+            switch(mesh.settings.get<SlicingTolerance>("slicing_tolerance"))
+            {
+                case SlicingTolerance::MIDDLE:
+                    if(storage.model_max.z < initial_layer_thickness)
+                    {
+                        slice_layer_count = std::max(slice_layer_count, (mesh_height > initial_layer_thickness / 2) ? 1 : 0); //One layer if higher than half initial layer height.
+                    }
+                    else
+                    {
+                        slice_layer_count = std::max(slice_layer_count, static_cast<int>(round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    }
+                    break;
+                case SlicingTolerance::EXCLUSIVE:
+                {
+                    int new_slice_layer_count = 0;
+                    if(mesh_height >= initial_layer_thickness) //If less than the initial layer thickness, leave it at 0.
+                    {
+                        new_slice_layer_count = static_cast<int>(floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
+                    }
+                    if(new_slice_layer_count > 0) // If there is at least one layer already, then...
+                    {
+                        new_slice_layer_count += 1; // ... need one extra, since we clear the top layer after the repeated intersections with the layer above.
+                    }
+                    slice_layer_count = std::max(slice_layer_count, new_slice_layer_count);
+                    break;
+                }
+                case SlicingTolerance::INCLUSIVE:
+                    if(mesh_height < initial_layer_thickness)
+                    {
+                        slice_layer_count = std::max(slice_layer_count, (mesh_height > 0) ? 1 : 0); //If less than the initial layer height, it always has 1 layer unless the height is truly zero.
+                    }
+                    else
+                    {
+                        slice_layer_count = std::max(slice_layer_count, static_cast<int>(ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    }
+                    break;
+                default:
+                    logError("Unknown slicing tolerance. Did you forget to add a case here?");
+                    return false;
+            }
         }
     }
 
@@ -977,17 +1013,17 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                 { // 'a' is the (next) new point between p0 and p1
                     Point p0p1 = p1 - *p0;
                     int64_t p0p1_size = vSize(p0p1);
-                    int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
-                    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
+                    int64_t p0pa_dist = dist_left_over;
+                    for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                     {
                         int r = rand() % (fuzziness * 2) - fuzziness;
                         Point perp_to_p0p1 = turn90CCW(p0p1);
                         Point fuzz = normal(perp_to_p0p1, r);
                         Point pa = *p0 + normal(p0p1, p0pa_dist) + fuzz;
                         result.add(pa);
-                        dist_last_point = p0pa_dist;
                     }
-                    dist_left_over = p0p1_size - dist_last_point;
+                    // p0pa_dist > p0p1_size now because we broke out of the for-loop
+                    dist_left_over = p0pa_dist - p0p1_size;
 
                     p0 = &p1;
                 }
