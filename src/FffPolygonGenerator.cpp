@@ -1176,6 +1176,10 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                     Point p0p1 = p1 - *p0;
                     int64_t p0p1_size = vSize(p0p1);
                     int64_t p0pa_dist = dist_left_over;
+                    if (p0pa_dist >= p0p1_size)
+                    {
+                        result.add(p1 - (p0p1 / 2));
+                    }
                     for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                     {
                         int r = rand() % (fuzziness * 2) - fuzziness;
