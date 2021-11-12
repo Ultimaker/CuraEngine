@@ -80,7 +80,7 @@ double ExtruderPlan::getFanSpeed()
     return fan_speed;
 }
 
-void ExtruderPlan::applyBackPressureCompensation(const double back_pressure_compensation)
+void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compensation)
 {
     constexpr double epsilon_speed_factor = 0.001; // Don't put on actual 'limit double minimum', because we don't want printers to stall.
     for (auto& path : paths)
@@ -2011,8 +2011,8 @@ void LayerPlan::applyBackPressureCompensation()
 {
     for (auto& extruder_plan : extruder_plans)
     {
-        const double back_pressure_compensation =
-            Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<double>("speed_equalize_flow_width_factor");
+        const Ratio back_pressure_compensation =
+            Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr].settings.get<Ratio>("speed_equalize_flow_width_factor");
         if (back_pressure_compensation != 0.0)
         {
             extruder_plan.applyBackPressureCompensation(back_pressure_compensation);
