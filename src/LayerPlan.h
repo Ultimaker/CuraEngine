@@ -160,9 +160,9 @@ public:
      * This last type is called 'back-pressure'. In this function, properties of the path-outflow are adjusted so that the back-pressure is
      * compensated for. This is conjectured to be especially important if the printer has a Bowden-tube style setup.
      *
-     * \param The amount of back-pressure compensation in mm^3/s. 'Applying' a value of 0 is a no-op.
+     * \param The amount of back-pressure compensation as a ratio. 'Applying' a value of 0 is a no-op.
      */
-    void applyBackPressureCompensation(const double back_pressure_compensation);
+    void applyBackPressureCompensation(const Ratio back_pressure_compensation);
 
 protected:
     LayerIndex layer_nr; //!< The layer number at which we are currently printing.
