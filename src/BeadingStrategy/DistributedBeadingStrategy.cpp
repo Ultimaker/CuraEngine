@@ -16,9 +16,9 @@ DistributedBeadingStrategy::DistributedBeadingStrategy(const coord_t optimal_wid
     , wall_split_middle_threshold(wall_split_middle_threshold)
     , wall_add_middle_threshold(wall_add_middle_threshold)
 {
-    if(distribution_radius >= 1)
+    if(distribution_radius >= 2)
     {
-        one_over_distribution_radius_squared = 1.0f / distribution_radius * 1.0f / distribution_radius;
+        one_over_distribution_radius_squared = 1.0f / (distribution_radius - 1) * 1.0f / (distribution_radius - 1);
     }
     else
     {
