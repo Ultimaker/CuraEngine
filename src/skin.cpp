@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // std::ceil
@@ -9,7 +9,7 @@
 #include "skin.h"
 #include "sliceDataStorage.h"
 #include "settings/EnumSettings.h" //For EFillMethod.
-#include "settings/types/AngleRadians.h" //For the infill support angle.
+#include "settings/types/Angle.h" //For the infill support angle.
 #include "settings/types/Ratio.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
@@ -147,6 +147,8 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
         generateSkinInsetsAndInnerSkinInfill(&part);
 
         generateRoofing(part);
+
+        generateTopAndBottomMostSkinSurfaces(part);
     }
 }
 
@@ -185,7 +187,10 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
  */
 void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
-
+    if(part.insets.empty())
+    {
+        return;
+    }
     Polygons original_outline = part.insets.back().offset(-innermost_wall_line_width / 2);
 
     // make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
@@ -415,43 +420,22 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     {
         return; // the last wall is not present, the part should only get inter perimeter gaps, but no infill.
     }
+    const EFillMethod fill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+    const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
 
-    auto get_offset = [this]()
+    coord_t inner_wall_offset = -innermost_wall_line_width / 2; //The innermost wall is a centerline, not the actual area covered by the wall.
+    const Polygons* offset_from_wall = &part.insets.back();
+    if(fill_pattern == EFillMethod::CONCENTRIC)
     {
-        const auto infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
-        if (wall_line_count > 0)
-        { // calculate offset_from_inner_wall
-            coord_t extra_perimeter_offset = 0; // to align concentric polygons across layers
-            const auto fill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
-            if (fill_pattern == EFillMethod::CONCENTRIC
-                && infill_line_distance > mesh.settings.get<coord_t>("infill_line_width") * 2)
-            {
-                if (mesh.settings.get<bool>("alternate_extra_perimeter")
-                    && layer_nr % 2 == 0)
-                { // compensate shifts otherwise caused by alternating an extra perimeter
-                    extra_perimeter_offset = -innermost_wall_line_width;
-                }
-                if (layer_nr == 0)
-                { // compensate for shift caused by walls being expanded by the initial line width multiplier
-                    const auto normal_wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
-                    const auto normal_wall_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x");
-                    const coord_t normal_walls_width = normal_wall_line_width_0 + (wall_line_count - 1) * normal_wall_line_width_x;
-                    const coord_t walls_width = normal_walls_width * mesh.settings.get<Ratio>("initial_layer_line_width_factor");
-                    extra_perimeter_offset += walls_width - normal_walls_width;
-                    while (extra_perimeter_offset > 0)
-                    {
-                        extra_perimeter_offset -= infill_line_distance;
-                    }
-                }
-            }
-            return extra_perimeter_offset - innermost_wall_line_width / 2;
-        }
-        return coord_t(0);
-    };
+        //With concentric, we want the pattern to line up between layers if the outline is the same.
+        //This means that effects such as alternate extra walls and initial layer line width should not be taken into account.
+        //So instead, we'll offset from the outermost wall with a fixed size that is the same for every layer.
+        offset_from_wall = &part.insets.front();
+        inner_wall_offset = -wall_line_width_0 - (wall_line_count - 1) * wall_line_width_x + innermost_wall_line_width / 2;
+    }
+    const Polygons inside_area_border = offset_from_wall->offset(inner_wall_offset); //Area that should get filled with skin/infill.
 
-    const coord_t offset_from_inner_wall = get_offset();
-
-    part.infill_area = part.insets.back().offset(offset_from_inner_wall).difference(skin);
+    part.infill_area = inside_area_border.difference(skin).offset(-infill_line_width / 2).offset(infill_line_width / 2); //First subtract skin, then apply an opening operation to prevent both rounding errors and thin areas.
     part.infill_area.removeSmallAreas(MIN_AREA_SIZE);
 }
 
@@ -471,7 +455,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 
     for (SkinPart& skin_part : part.skin_parts)
     {
-        Polygons no_air_above = generateNoAirAbove(part);
+        Polygons no_air_above = generateNoAirAbove(part, roofing_layer_count);
         skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
         skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
 
@@ -510,9 +494,8 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
  *
  * this function may only read the skin and infill from the *current* layer.
  */
-Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part)
+Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part, size_t roofing_layer_count)
 {
-    const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
     const size_t wall_idx = std::min(size_t(2), mesh.settings.get<size_t>("wall_line_count"));
 
     Polygons no_air_above = getWalls(part, layer_nr + roofing_layer_count, wall_idx);
@@ -547,12 +530,43 @@ Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part)
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
+ * this function may only read the skin and infill from the *current* layer.
+ */
+    Polygons SkinInfillAreaComputation::generateNoAirBelow(SliceLayerPart& part, size_t flooring_layer_count)
+    {
+        if (layer_nr < flooring_layer_count)
+        {
+            return {};
+        }
+        constexpr size_t min_wall_line_count = 2;
+        const size_t wall_idx = std::min(min_wall_line_count, mesh.settings.get<size_t>("wall_line_count"));
+        const int lowest_flooring_layer = layer_nr - flooring_layer_count;
+        Polygons no_air_below = getWalls(part, lowest_flooring_layer, wall_idx);
+
+        if (!no_small_gaps_heuristic)
+        {
+            const int next_lowest_flooring_layer = lowest_flooring_layer + 1;
+            for (int layer_nr_below = next_lowest_flooring_layer; layer_nr_below < layer_nr; layer_nr_below++)
+            {
+                Polygons outlines_below = getWalls(part, layer_nr_below, wall_idx);
+                no_air_below = no_air_below.intersection(outlines_below);
+            }
+        }
+        return no_air_below;
+    }
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
  * this function may only read/write the skin and infill from the *current* layer.
  */
 void SkinInfillAreaComputation::regenerateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part)
 {
+    const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+
     generateInnerSkinInfill(skin_part);
-    Polygons no_air_above = generateNoAirAbove(part);
+    Polygons no_air_above = generateNoAirAbove(part, roofing_layer_count);
     skin_part.roofing_fill = skin_part.inner_infill.difference(no_air_above);
     skin_part.inner_infill = skin_part.inner_infill.intersection(no_air_above);
 }
@@ -670,7 +684,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
             infill_area_per_combine_current_density.push_back(infill_area);
-            part.infill_area_own = nullptr; // clear infill_area_own, it's not needed any more.
+            part.infill_area_own = std::nullopt; // clear infill_area_own, it's not needed any more.
             assert(!part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is now initialized");
         }
     }
@@ -754,6 +768,24 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
                 }
             }
         }
+    }
+}
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * this function may only read/write the skin and infill from the *current* layer.
+ */
+
+void SkinInfillAreaComputation::generateTopAndBottomMostSkinSurfaces(SliceLayerPart &part) {
+
+    for (SkinPart& skin_part : part.skin_parts) {
+        Polygons no_air_above = generateNoAirAbove(part, 1);
+        skin_part.top_most_surface_fill = skin_part.inner_infill.difference(no_air_above);
+
+        Polygons no_air_below = generateNoAirBelow(part, 1);
+        skin_part.bottom_most_surface_fill = skin_part.inner_infill.difference(no_air_below);
     }
 }
 

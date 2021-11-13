@@ -1,22 +1,23 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
 #include <map>
+#include <optional>
+
 #include "PrimeTower.h"
 #include "RetractionConfig.h"
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
-#include "settings/types/AngleDegrees.h" //Infill angles.
+#include "settings/types/Angle.h" //Infill angles.
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
 #include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
-#include "utils/optional.h"
 #include "utils/polygon.h"
 #include "WipeScriptConfig.h"
 
@@ -25,6 +26,7 @@ namespace cura
 
 class Mesh;
 class SierpinskiFillProvider;
+class LightningGenerator;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
@@ -39,6 +41,8 @@ public:
     Polygons perimeter_gaps; //!< The gaps between the extra skin walls and gaps between the outer skin wall and the inner part inset
     Polygons inner_infill; //!< The inner infill of the skin with which the area within the innermost inset is filled
     Polygons roofing_fill; //!< The inner infill which has air directly above
+    Polygons top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
+    Polygons bottom_most_surface_fill; //!< The inner infill of the bottommost bottom layer which has air directly below.
 };
 
 
@@ -252,6 +256,8 @@ public:
 
     SubDivCube* base_subdiv_cube;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
+
+    LightningGenerator* lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     /*!
      * \brief Creates a storage space for slice results of a mesh.

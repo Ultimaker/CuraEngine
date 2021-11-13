@@ -11,7 +11,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #define INLINE static inline
 
 //Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
-#include <clipper.hpp>
+#include "clipper.hpp"
 #include <cmath>
 #include <functional> // for hash function object
 #include <iostream> // auto-serialization / auto-toString()
@@ -39,11 +39,6 @@ namespace cura
 /* 64bit Points are used mostly throughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
 
-class IntPoint {
-public:
-    int X, Y;
-    Point p() { return Point(X, Y); }
-};
 #define POINT_MIN std::numeric_limits<ClipperLib::cInt>::min()
 #define POINT_MAX std::numeric_limits<ClipperLib::cInt>::max()
 

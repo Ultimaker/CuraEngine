@@ -7,7 +7,6 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
-#include "settings/types/AngleRadians.h" //Creating the correct branch angles.
 #include "support.h" //For precomputeCrossInfillTree
 #include "utils/logoutput.h"
 #include "utils/math.h" //For round_up_divide and PI.
@@ -30,6 +29,10 @@
 #define PROGRESS_GENERATE_NODES PROGRESS_TOTAL * 0.1
 #define PROGRESS_AREA_CALC PROGRESS_TOTAL * 0.3
 #define PROGRESS_DRAW_AREAS PROGRESS_TOTAL * 0.1
+
+#define PROGRESS_GENERATE_BRANCH_AREAS PROGRESS_DRAW_AREAS / 3
+#define PROGRESS_SMOOTH_BRANCH_AREAS PROGRESS_DRAW_AREAS / 3
+#define PROGRESS_FINALIZE_BRANCH_AREAS PROGRESS_DRAW_AREAS / 3
 
 
 #define SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL false
@@ -811,7 +814,7 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh, std::vector<
             }
 
 
-            if (int(dtt_roof) > layer_idx && roof_allowed_for_this_part) // reached buildplate
+            if (int(dtt_roof) >= layer_idx && roof_allowed_for_this_part) // reached buildplate
             {
 #pragma omp critical(storage)
                 {
@@ -1806,45 +1809,19 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<SupportElement*>>& mo
     }
 }
 
-
-void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds, SliceDataStorage& storage)
+void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, SupportElement*>>& linear_data, std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons, const std::map<SupportElement*, SupportElement*>& inverese_tree_order)
 {
     double progress_total = PROGRESS_PRECALC_AVO + PROGRESS_PRECALC_COLL + PROGRESS_GENERATE_NODES + PROGRESS_AREA_CALC;
-
+    constexpr int progress_report_steps = 10;
     Polygon branch_circle; // Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
     for (unsigned int i = 0; i < SUPPORT_TREE_CIRCLE_RESOLUTION; i++)
     {
         const AngleRadians angle = static_cast<double>(i) / SUPPORT_TREE_CIRCLE_RESOLUTION * TAU;
         branch_circle.emplace_back(cos(angle) * config.branch_radius, sin(angle) * config.branch_radius);
     }
-    const size_t z_distance_bottom_layers = config.z_distance_bottom_layers;
-    std::vector<Polygons> support_layer_storage(move_bounds.size());
-    const coord_t max_radius_change_per_layer = 1 + config.support_line_width / 2; // this is the upper limit a radius may change per layer. +1 to avoid rounding errors
-    std::map<SupportElement*, SupportElement*> inverese_tree_order; // in the tree structure only the parents can be accessed. Inverse this to be able to access the children.
-    std::vector<std::pair<LayerIndex, SupportElement*>> linear_data; // All SupportElements are put into a layer independent storage to improve parallelization. Was added at a point in time where this function had performance issues.
-                                                                     // These were fixed by creating less initial points, but i do not see a good reason to remove a working performance optimization.
-    for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(move_bounds.size()); layer_idx++)
-    {
-        for (SupportElement* elem : move_bounds[layer_idx])
-        {
-            if ((layer_idx > 0 && ((!inverese_tree_order.count(elem) && elem->target_height == layer_idx) || (inverese_tree_order.count(elem) && inverese_tree_order[elem]->result_on_layer == Point(-1, -1))))) // we either come from nowhere at the final layer or we had invalid parents 2. should never happen but just to be sure
-            {
-                continue;
-            }
 
-            for (SupportElement* par : elem->parents)
-            {
-                if (par->result_on_layer == Point(-1, -1))
-                {
-                    continue;
-                }
-                inverese_tree_order.emplace(par, elem);
-            }
-            linear_data.emplace_back(layer_idx, elem);
-        }
-    }
     std::vector<Polygons> linear_inserts(linear_data.size());
-    const size_t progress_inserts_check_interval = linear_data.size() / 10;
+    const size_t progress_inserts_check_interval = linear_data.size() / progress_report_steps;
 
     // parallel iterating over all elements
 #pragma omp parallel for
@@ -1951,28 +1928,30 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
         {
 #pragma omp critical(progress)
             {
-                progress_total += PROGRESS_DRAW_AREAS / 30; // one third of the amount of progress in done in this loop and only 10 samples are reported
+                progress_total += PROGRESS_GENERATE_BRANCH_AREAS / progress_report_steps;
                 Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, PROGRESS_TOTAL);
             }
         }
     }
-
-    std::vector<std::unordered_map<SupportElement*, Polygons>> layer_tree_polygons(move_bounds.size()); // reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Polygons>>.
 
     // single threaded combining all elements to the right layers. ONLY COPYS DATA!
     for (coord_t i = 0; i < static_cast<coord_t>(linear_data.size()); i++)
     {
         layer_tree_polygons[linear_data[i].first].emplace(linear_data[i].second, linear_inserts[i]);
     }
+}
 
-    // in some edgecases a branch may go though a hole, where the regular radius does not fit. This can result in an apparent jump in branch radius. As such this cases need to be caught and smoothed out.
+void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons)
+{
+    double progress_total = PROGRESS_PRECALC_AVO + PROGRESS_PRECALC_COLL + PROGRESS_GENERATE_NODES + PROGRESS_AREA_CALC + PROGRESS_GENERATE_BRANCH_AREAS;
+    const coord_t max_radius_change_per_layer = 1 + config.support_line_width / 2; // this is the upper limit a radius may change per layer. +1 to avoid rounding errors
 
     // smooth upwards
-    for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(move_bounds.size()) - 1; layer_idx++)
+    for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(layer_tree_polygons.size()) - 1; layer_idx++)
     {
         std::vector<std::pair<SupportElement*, Polygons>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
-        std::vector<std::pair<SupportElement*, Polygons>> update_next(processing.size(), std::pair<SupportElement*, Polygons>(nullptr, Polygons())); // with this a lock can be avoided
+        std::vector<std::vector<std::pair<SupportElement*, Polygons>>> update_next(processing.size()); // with this a lock can be avoided
 #pragma omp parallel for schedule(static, 1)
         for (coord_t processing_idx = 0; processing_idx < coord_t(processing.size()); processing_idx++)
         {
@@ -1996,26 +1975,27 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
                 {
                     if (config.getRadius(*parent) != config.getCollisionRadius(*parent))
                     {
-                        update_next[processing_idx] = std::pair<SupportElement*, Polygons>(parent, layer_tree_polygons[layer_idx + 1][parent].intersection(max_allowed_area));
+                        update_next[processing_idx].emplace_back(std::pair<SupportElement*, Polygons>(parent, layer_tree_polygons[layer_idx + 1][parent].intersection(max_allowed_area)));
                     }
                 }
             }
         }
-        for (std::pair<SupportElement*, Polygons> data_pair : update_next)
+        for (std::vector<std::pair<SupportElement*, Polygons>> data_vector : update_next)
         {
-            if (data_pair.first != nullptr)
+            for (std::pair<SupportElement*, Polygons> data_pair : data_vector)
             {
                 layer_tree_polygons[layer_idx + 1][data_pair.first] = data_pair.second;
             }
         }
     }
 
-    progress_total += PROGRESS_DRAW_AREAS / 6;
+
+    progress_total += PROGRESS_SMOOTH_BRANCH_AREAS / 2;
     Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, PROGRESS_TOTAL); // It is just assumed that both smoothing loops together are one third of the time spent in this function. This was guessed. As the whole function is only 10%, and the smoothing is hard to predict a progress report in the loop may be not useful.
 
     // smooth downwards
     std::unordered_set<SupportElement*> updated_last_iteration;
-    for (LayerIndex layer_idx = move_bounds.size() - 2; layer_idx >= 0; layer_idx--)
+    for (LayerIndex layer_idx = layer_tree_polygons.size() - 2; layer_idx >= 0; layer_idx--)
     {
         std::vector<std::pair<SupportElement*, Polygons>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
@@ -2064,12 +2044,12 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
         }
     }
 
-    progress_total += PROGRESS_DRAW_AREAS / 6;
+    progress_total += PROGRESS_SMOOTH_BRANCH_AREAS / 2;
     Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, PROGRESS_TOTAL);
+}
 
-
-    // drop down all trees that connect non gracefully with the model
-    std::vector<std::vector<std::pair<LayerIndex, Polygons>>> dropped_down_areas(linear_data.size());
+void TreeSupport::dropNonGraciousAreas(std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons, const std::vector<std::pair<LayerIndex, SupportElement*>>& linear_data, std::vector<std::vector<std::pair<LayerIndex, Polygons>>> dropped_down_areas, const std::map<SupportElement*, SupportElement*>& inverese_tree_order)
+{
 #pragma omp parallel for schedule(static, 1)
     for (coord_t idx = 0; idx < coord_t(linear_data.size()); idx++)
     {
@@ -2088,37 +2068,19 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
             }
         }
     }
-
-    // single threaded combining all dropped down support areas to the right layers. ONLY COPYS DATA!
-    for (coord_t i = 0; i < static_cast<coord_t>(dropped_down_areas.size()); i++)
-    {
-        for (std::pair<LayerIndex, Polygons> pair : dropped_down_areas[i])
-        {
-            support_layer_storage[pair.first].add(pair.second);
-        }
-    }
-
-    // single threaded combining all support areas to the right layers. ONLY COPYS DATA!
-    for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(move_bounds.size()); layer_idx++)
-    {
-        for (std::pair<SupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
-        {
-            support_layer_storage[layer_idx].add(data_pair.second);
-        }
-    }
+}
 
 
-    progress_total = PROGRESS_PRECALC_AVO + PROGRESS_PRECALC_COLL + PROGRESS_GENERATE_NODES + PROGRESS_AREA_CALC + 2 * PROGRESS_DRAW_AREAS / 3;
-    linear_inserts.clear();
-    linear_data.clear();
-
+void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage, SliceDataStorage& storage)
+{
+    double progress_total = PROGRESS_PRECALC_AVO + PROGRESS_PRECALC_COLL + PROGRESS_GENERATE_NODES + PROGRESS_AREA_CALC + PROGRESS_GENERATE_BRANCH_AREAS + PROGRESS_SMOOTH_BRANCH_AREAS;
 
     // Iterate over the generated circles in parallel and clean them up. Also add support floor.
 #pragma omp parallel for shared(support_layer_storage, storage) schedule(dynamic)
     for (LayerIndex layer_idx = 0; layer_idx < static_cast<coord_t>(support_layer_storage.size()); layer_idx++)
     {
         support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons().smooth(50);
-        if (!storage.support.supportLayers[layer_idx].support_roof.empty())
+        if (!storage.support.supportLayers[layer_idx].support_roof.empty() && support_layer_storage[layer_idx].intersection(storage.support.supportLayers[layer_idx].support_roof).area() < 1)
         {
             Polygons tree_lines = toPolylines(support_layer_storage[layer_idx].offset(-config.support_line_width / 2)).offsetPolyLine(config.support_line_width / 2);
             tree_lines = tree_lines.unionPolygons(toPolylines(generateSupportInfillLines(support_layer_storage[layer_idx], false, layer_idx, config.support_line_distance, storage.support.cross_fill_provider)).offsetPolyLine(config.support_line_width / 2));
@@ -2136,7 +2098,7 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
             while (layers_below <= config.support_bottom_layers)
             {
                 // one sample at 0 layers below, another at config.support_bottom_layers. In-between samples at config.performance_interface_skip_layers distance from each other.
-                const size_t sample_layer = static_cast<size_t>(std::max(0, (static_cast<int>(layer_idx) - static_cast<int>(layers_below)) - static_cast<int>(z_distance_bottom_layers)));
+                const size_t sample_layer = static_cast<size_t>(std::max(0, (static_cast<int>(layer_idx) - static_cast<int>(layers_below)) - static_cast<int>(config.z_distance_bottom_layers)));
                 constexpr bool no_support = false;
                 constexpr bool no_prime_tower = false;
                 floor_layer.add(layer_outset.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
@@ -2163,7 +2125,7 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
 
 #pragma omp critical(progress)
         {
-            progress_total += PROGRESS_DRAW_AREAS / (3 * support_layer_storage.size());
+            progress_total += PROGRESS_FINALIZE_BRANCH_AREAS / support_layer_storage.size();
             Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, PROGRESS_TOTAL);
         }
 
@@ -2175,6 +2137,66 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
             }
         }
     }
+}
+
+void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds, SliceDataStorage& storage)
+{
+    std::vector<Polygons> support_layer_storage(move_bounds.size());
+    std::map<SupportElement*, SupportElement*> inverese_tree_order; // in the tree structure only the parents can be accessed. Inverse this to be able to access the children.
+    std::vector<std::pair<LayerIndex, SupportElement*>> linear_data; // All SupportElements are put into a layer independent storage to improve parallelization. Was added at a point in time where this function had performance issues.
+                                                                     // These were fixed by creating less initial points, but i do not see a good reason to remove a working performance optimization.
+    for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(move_bounds.size()); layer_idx++)
+    {
+        for (SupportElement* elem : move_bounds[layer_idx])
+        {
+            if ((layer_idx > 0 && ((!inverese_tree_order.count(elem) && elem->target_height == layer_idx) || (inverese_tree_order.count(elem) && inverese_tree_order[elem]->result_on_layer == Point(-1, -1))))) // we either come from nowhere at the final layer or we had invalid parents 2. should never happen but just to be sure
+            {
+                continue;
+            }
+
+            for (SupportElement* par : elem->parents)
+            {
+                if (par->result_on_layer == Point(-1, -1))
+                {
+                    continue;
+                }
+                inverese_tree_order.emplace(par, elem);
+            }
+            linear_data.emplace_back(layer_idx, elem);
+        }
+    }
+
+    std::vector<std::unordered_map<SupportElement*, Polygons>> layer_tree_polygons(move_bounds.size()); // reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Polygons>>.
+
+    // Generate the circles that will be the branches.
+    generateBranchAreas(linear_data, layer_tree_polygons, inverese_tree_order);
+
+    // In some edgecases a branch may go though a hole, where the regular radius does not fit. This can result in an apparent jump in branch radius. As such this cases need to be caught and smoothed out.
+    smoothBranchAreas(layer_tree_polygons);
+
+    // drop down all trees that connect non gracefully with the model
+    std::vector<std::vector<std::pair<LayerIndex, Polygons>>> dropped_down_areas(linear_data.size());
+    dropNonGraciousAreas(layer_tree_polygons, linear_data, dropped_down_areas, inverese_tree_order);
+
+    // single threaded combining all dropped down support areas to the right layers. ONLY COPYS DATA!
+    for (coord_t i = 0; i < static_cast<coord_t>(dropped_down_areas.size()); i++)
+    {
+        for (std::pair<LayerIndex, Polygons> pair : dropped_down_areas[i])
+        {
+            support_layer_storage[pair.first].add(pair.second);
+        }
+    }
+
+    // single threaded combining all support areas to the right layers. ONLY COPYS DATA!
+    for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(layer_tree_polygons.size()); layer_idx++)
+    {
+        for (std::pair<SupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
+        {
+            support_layer_storage[layer_idx].add(data_pair.second);
+        }
+    }
+
+    finalizeInterfaceAndSupportAreas(support_layer_storage, storage);
 }
 
 

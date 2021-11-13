@@ -280,6 +280,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
             return true;
         }
     }
+    logWarning("Unable to recognize the extension of the file. Currently only .stl and .STL are supported.");
     return false;
 }
 

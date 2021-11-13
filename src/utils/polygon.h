@@ -7,7 +7,7 @@
 #include <vector>
 #include <assert.h>
 #include <float.h>
-#include <clipper.hpp>
+#include "clipper.hpp"
 
 #include <algorithm>    // std::reverse, fill_n array
 #include <cmath> // fabs
@@ -17,7 +17,7 @@
 #include <initializer_list>
 
 #include "IntPoint.h"
-#include "../settings/types/AngleDegrees.h" //For angles between vertices.
+#include "../settings/types/Angle.h" //For angles between vertices.
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -381,6 +381,11 @@ public:
         return (*path)[index];
     }
 
+    const Point& operator[] (const unsigned int& index) const
+    {
+        return path->at(index);
+    }
+
     ClipperLib::Path::iterator begin()
     {
         return path->begin();
@@ -659,6 +664,12 @@ public:
         }
         paths.resize(paths.size() - 1);
     }
+
+    void pop_back()
+    {
+        paths.pop_back();
+    }
+
     /*!
      * Remove a range of polygons
      */
@@ -769,9 +780,6 @@ public:
      */
     Polygons intersectionPolyLines(const Polygons& polylines) const;
 
-    Polygons differencePolyLines(const Polygons& polylines) const;
-
-
     /*!
      * Clips input line segments by this Polygons.
      * \param other Input line segments to be cropped
@@ -807,23 +815,10 @@ public:
     {
         Polygons ret;
         double miterLimit = 1.2;
+        ClipperLib::EndType end_type = (joinType == ClipperLib::jtMiter)? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
         ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
-        clipper.AddPaths(paths, joinType, ClipperLib::etOpenSquare);
+        clipper.AddPaths(paths, joinType, end_type);
         clipper.MiterLimit = miterLimit;
-        clipper.Execute(ret.paths, distance);
-        return ret;
-    }
-    
-        Polygons offsetPolyLineRound(int distance, ClipperLib::JoinType join_type, double miter_limit=1.2) const
-    {
-        if (distance == 0)
-        {
-            return *this;
-        }
-        Polygons ret;
-        ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-        clipper.AddPaths(paths, join_type, ClipperLib::etOpenRound);
-        clipper.MiterLimit = miter_limit;
         clipper.Execute(ret.paths, distance);
         return ret;
     }
