@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PATH_PLANNING_COMB_H
@@ -8,7 +8,6 @@
 #include <limits> //To find the maximum for coord_t.
 
 #include "../settings/types/LayerIndex.h" //To store the layer on which we comb.
-#include "../utils/optional.h"
 #include "../utils/polygon.h"
 #include "../utils/polygonUtils.h"
 #include "../utils/LazyInitialization.h"
@@ -133,7 +132,7 @@ private:
     LocToLineGrid* inside_loc_to_line_minimum; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LocToLineGrid* inside_loc_to_line_optimal; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    LazyInitialization<LocToLineGrid, Comb*, const coord_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
+    LazyInitialization<std::unique_ptr<LocToLineGrid>, Comb*, const coord_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
     coord_t move_inside_distance; //!< When using comb_boundary_inside_minimum for combing it tries to move points inside by this amount after calculating the path to move it from the border a bit.
 
     /*!
@@ -196,9 +195,13 @@ public:
      * \p startPoint (?) and \p endPoint.
      * \param startInside Whether we want to start inside the comb boundary.
      * \param endInside Whether we want to end up inside the comb boundary.
+     * \param unretract_before_last_travel_move Whether we should unretract before the last travel move when travelling
+     * because of combing. If the endpoint of a travel path changes with combing, then it means that an outer wall is
+     * involved, which means that we should then unretract before the last travel move to that wall to avoid any blips
+     * being introduced due to the unretraction.
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */
-    bool calc(const ExtruderTrain& train, Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, coord_t max_comb_distance_ignored);
+    bool calc(const ExtruderTrain& train, Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, coord_t max_comb_distance_ignored, bool &unretract_before_last_travel_move);
 };
 
 }//namespace cura

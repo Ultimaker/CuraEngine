@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODEEXPORT_H
@@ -154,6 +154,7 @@ private:
     bool always_write_active_tool; //!< whether to write the active tool after sending commands to inactive tool
 
     Temperature initial_bed_temp; //!< bed temperature at the beginning of the print.
+    Temperature bed_temperature; //!< Current build plate temperature.
     Temperature build_volume_temperature;  //!< build volume temperature
     bool machine_heated_build_volume;  //!< does the machine have the ability to control/stabilize build-volume-temperature
 protected:
@@ -375,7 +376,7 @@ private:
      * \param z build plate z
      * \param speed movement speed
      */
-    void writeTravel(const coord_t& x, const coord_t& y, const coord_t& z, const Velocity& speed);
+    void writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed);
 
     /*!
      * Perform un-z-hop
@@ -391,7 +392,7 @@ private:
      * \param feature the print feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const int x, const int y, const int z, const Velocity& speed, const double extrusion_mm3_per_mm, const PrintFeatureType& feature, const bool update_extrusion_offset = false);
+    void writeExtrusion(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const double extrusion_mm3_per_mm, const PrintFeatureType& feature, const bool update_extrusion_offset = false);
 
     /*!
      * Write the F, X, Y, Z and E value (if they are not different from the last)
@@ -403,7 +404,7 @@ private:
      * It estimates the time in \ref GCodeExport::estimateCalculator for the correct feature
      * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
-    void writeFXYZE(const Velocity& speed, const int x, const int y, const int z, const double e, const PrintFeatureType& feature);
+    void writeFXYZE(const Velocity& speed, const coord_t x, const coord_t y, const coord_t z, const double e, const PrintFeatureType& feature);
 
     /*!
      * The writeTravel and/or writeExtrusion when flavor == BFB

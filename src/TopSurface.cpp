@@ -122,7 +122,15 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
             }
         }
 
-        layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
+        if(!mesh.settings.get<bool>("ironing_monotonic"))
+        {
+            layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
+        }
+        else
+        {
+            const coord_t max_adjacent_distance = line_spacing * 1.1; //Lines are considered adjacent - meaning they need to be printed in monotonic order - if spaced 1 line apart, with 10% extra play.
+            layer.addLinesMonotonic(Polygons(), ironing_lines, line_config, SpaceFillType::PolyLines, AngleRadians(direction), max_adjacent_distance);
+        }
         added = true;
     }
 

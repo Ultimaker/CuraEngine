@@ -7,7 +7,6 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
-#include "settings/types/AngleRadians.h" //Creating the correct branch angles.
 #include "support.h" //For precomputeCrossInfillTree
 #include "utils/logoutput.h"
 #include "utils/math.h" //For round_up_divide and PI.

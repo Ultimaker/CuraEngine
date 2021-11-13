@@ -55,7 +55,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
     }
     const coord_t hole_offset = settings.get<coord_t>("hole_xy_offset");
-    for(unsigned int i=0; i<result.size(); i++)
+    for(auto & part : result)
     {
         storageLayer.parts.emplace_back();
         if (hole_offset != 0)
@@ -63,7 +63,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
             // holes are to be expanded or shrunk
             Polygons outline;
             Polygons holes;
-            for (const PolygonRef poly : result[i])
+            for (const PolygonRef poly : part)
             {
                 if (poly.orientation())
                 {
@@ -74,13 +74,17 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
                     holes.add(poly.offset(hole_offset));
                 }
             }
-            storageLayer.parts[i].outline.add(outline.difference(holes.unionPolygons()));
+            storageLayer.parts.back().outline.add(outline.difference(holes.unionPolygons()));
         }
         else
         {
-            storageLayer.parts[i].outline = result[i];
+            storageLayer.parts.back().outline = part;
         }
-        storageLayer.parts[i].boundaryBox.calculate(storageLayer.parts[i].outline);
+        storageLayer.parts.back().boundaryBox.calculate(storageLayer.parts.back().outline);
+        if (storageLayer.parts.back().outline.empty())
+        {
+            storageLayer.parts.pop_back();
+        }
     }
 }
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
