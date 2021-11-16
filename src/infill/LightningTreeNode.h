@@ -57,6 +57,12 @@ public:
     const Point& getLocation() const;
 
     /*!
+     * Get the point the furthest from the root.
+     * \return The furthest position, which may be the (local) root itself if the tree has no nodes.
+     */
+    Point getFurthestLocation() const;
+
+    /*!
      * Change the position on this layer that the node represents.
      * \param p The position that the node needs to represent.
      */

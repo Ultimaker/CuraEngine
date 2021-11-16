@@ -37,6 +37,23 @@ const Point& LightningTreeNode::getLocation() const
     return p;
 }
 
+Point LightningTreeNode::getFurthestLocation() const
+{
+    Point result{ p };
+    coord_t furthest_dist2 = 0;
+    for (const auto& child : children)
+    {
+        const Point cp{ child->getFurthestLocation() };
+        const coord_t dist2 = vSize2(cp - result);
+        if (dist2 >= furthest_dist2)
+        {
+            furthest_dist2 = dist2;
+            result = cp;
+        }
+    }
+    return result;
+}
+
 void LightningTreeNode::setLocation(const Point& loc)
 {
     p = loc;
