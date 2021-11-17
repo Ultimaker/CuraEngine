@@ -44,7 +44,7 @@ Point LightningTreeNode::getFurthestLocation() const
     for (const auto& child : children)
     {
         const Point cp{ child->getFurthestLocation() };
-        const coord_t dist2 = vSize2(cp - result);
+        const coord_t dist2 = vSize2(cp - p);
         if (dist2 >= furthest_dist2)
         {
             furthest_dist2 = dist2;
