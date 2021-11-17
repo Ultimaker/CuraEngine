@@ -57,7 +57,7 @@ public:
     const Point& getLocation() const;
 
     /*!
-     * Get the point the furthest from the root.
+     * Get the point the furthest from the root, measured along the branches of the path to that node.
      * \return The furthest position, which may be the (local) root itself if the tree has no nodes.
      */
     Point getFurthestLocation() const;
