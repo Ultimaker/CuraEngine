@@ -75,7 +75,7 @@ public:
         const coord_t wall_supporting_radius
     );
 
-    Polygons convertToLines(const coord_t line_width) const;
+    Polygons convertToLines(const Polygons& limit_to_outline, const coord_t line_width) const;
 
     coord_t getWeightedDistance(const Point& boundary_loc, const Point& unsupported_location);
 
