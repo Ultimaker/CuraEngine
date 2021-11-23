@@ -106,9 +106,10 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const coord_t z_distance_bottom = mesh_group_settings.get<coord_t>("support_bottom_distance");
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom, layer_height) > 0 ? round_up_divide(z_distance_bottom, layer_height) : 1;
-    const size_t tip_layers = branch_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; //Scale factor per layer to produce the desired angle.
     const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
+    const coord_t minimum_tip_radius = line_width / 2 * 1.5; //End up slightly wider than 1 line width in the tip.
+    const size_t tip_layers = (branch_radius - minimum_tip_radius) / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const coord_t resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
 
     std::atomic<size_t> completed = 0; //To track progress in a multi-threaded environment.
@@ -124,7 +125,10 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
             const Node& node = *p_node;
 
             Polygon circle;
-            const double scale = static_cast<double>(node.distance_to_top + 1) / tip_layers;
+            //Scale linearly between branch radius and 1 line width.
+            //At the tip we want to end up at 1 line width diameter so that the tip still prints if you have 1 support wall.
+            const double ratio_to_tip = static_cast<double>(node.distance_to_top) / tip_layers;
+            const double scale = (minimum_tip_radius + ratio_to_tip * (branch_radius - minimum_tip_radius)) / branch_radius;
             for (Point corner : branch_circle)
             {
                 if (node.distance_to_top < tip_layers) //We're in the tip.
