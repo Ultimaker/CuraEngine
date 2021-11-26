@@ -250,7 +250,7 @@ void LightningLayer::reconnectRoots
 }
 
 // Returns 'added someting'.
-Polygons LightningLayer::convertToLines(const coord_t line_width) const
+Polygons LightningLayer::convertToLines(const Polygons& limit_to_outline, const coord_t line_width) const
 {
     Polygons result_lines;
     if (tree_roots.empty())
@@ -260,7 +260,15 @@ Polygons LightningLayer::convertToLines(const coord_t line_width) const
 
     for (const auto& tree : tree_roots)
     {
-        tree->convertToPolylines(result_lines, line_width);
+        // If even the furthest location in the tree is inside the polygon, the entire tree must be inside of the polygon.
+        // (Don't take the root as that may be on the edge and cause rounding errors to register as 'outside'.)
+        constexpr coord_t epsilon = 5;
+        Point should_be_inside = tree->getLocation();
+        PolygonUtils::moveInside(limit_to_outline, should_be_inside, epsilon, epsilon * epsilon);
+        if (limit_to_outline.inside(should_be_inside))
+        {
+            tree->convertToPolylines(result_lines, line_width);
+        }
     }
 
     // TODO: allow for polylines!
