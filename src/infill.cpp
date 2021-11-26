@@ -343,7 +343,7 @@ void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& resu
     {
         return;
     }
-    result_lines.add(trees->convertToLines(in_outline, infill_line_width));
+    result_lines.add(trees->convertToLines(inner_contour, infill_line_width));
 }
 
 void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const Settings& settings)
