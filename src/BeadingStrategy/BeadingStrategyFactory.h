@@ -28,7 +28,7 @@ public:
         const coord_t preferred_bead_width_outer = MM2INT(0.5),
         const coord_t preferred_bead_width_inner = MM2INT(0.5),
         const coord_t preferred_transition_length = MM2INT(0.4),
-        const float transitioning_angle = M_PI_4,
+        const float transitioning_angle = M_PI / 4.0,
         const bool print_thin_walls = false,
         const coord_t min_bead_width = 0,
         const coord_t min_feature_size = 0,
