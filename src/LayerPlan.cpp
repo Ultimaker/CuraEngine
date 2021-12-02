@@ -1124,7 +1124,8 @@ void LayerPlan::addLinesByOptimizer
             // Instead of doing a small travel that is shorter than the line width (which is generally done at pretty high jerk & move) do a
             // "fake" extrusion move
             addExtrusionMove(p0, config, space_fill_type, 0, false, 1.0, fan_speed);
-        } else
+        }
+        else
         {
             addTravel(p0);
         }
@@ -1238,7 +1239,8 @@ void LayerPlan::addLinesMonotonic
             // Instead of doing a small travel that is shorter than the line width (which is generally done at pretty high jerk & move) do a
             // "fake" extrusion move
             addExtrusionMove(p0, config, space_fill_type, 0, false, 1.0, fan_speed);
-        } else
+        }
+        else
         {
             addTravel(p0);
         }
