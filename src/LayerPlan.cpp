@@ -1068,12 +1068,12 @@ void LayerPlan::addLinesByOptimizer
 (
     const Polygons& polygons,
     const GCodePathConfig& config,
-    SpaceFillType space_fill_type,
-    bool enable_travel_optimization,
-    int wipe_dist,
-    float flow_ratio,
-    std::optional<Point> near_start_location,
-    double fan_speed
+    const SpaceFillType space_fill_type,
+    const bool enable_travel_optimization,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const std::optional<Point> near_start_location,
+    const double fan_speed
 )
 {
     Polygons boundary;
