@@ -363,6 +363,11 @@ class ModelVolumes
     mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_to_model_slow_;
     mutable std::unordered_map<RadiusLayerPair, Polygons> placeable_areas_cache_;
 
+    /*!
+     * \brief Smalles radius a branch can have. This is the radius of a SupportElement with DTT=0.
+     */
+    coord_t radius_0;
+
 
     /*!
      * \brief Caches to avoid holes smaller than the radius until which the radius is always increased. Also called safe avoidances, as they are save regarding not running into holes.
@@ -685,7 +690,7 @@ class TreeSupport
               support_line_width(mesh_group_settings.get<coord_t>("support_line_width")),
               layer_height(mesh_group_settings.get<coord_t>("layer_height")),
               branch_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
-              min_radius(1.25 * support_line_width / 2),
+              min_radius(1.25 * support_line_width / 2), // The actual radius is 50 microns larger as the resulting branches will be increased by 50 microns to avoid rounding errors effectively increasing the xydistance
               maximum_move_distance((angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max()),
               maximum_move_distance_slow((angle_slow < TAU / 4) ? (coord_t)(tan(angle_slow) * layer_height) : std::numeric_limits<coord_t>::max()),
               support_bottom_layers(mesh_group_settings.get<bool>("support_bottom_enable") ? round_divide(mesh_group_settings.get<coord_t>("support_bottom_height"), layer_height) : 0),
@@ -716,18 +721,18 @@ class TreeSupport
               maximum_resolution(mesh_group_settings.get<coord_t>("meshfix_maximum_resolution"))
         {
             layer_start_bp_radius = (bp_radius - branch_radius) / (branch_radius * diameter_scale_bp_radius);
-
+            // safeOffsetInc can only work in steps of the size xy_min_distance (in the worst case) => xy_min_distance has be larger than 0 and should be large enough for performance to not suffer extremely
             // for performance reasons it is not possible to set a VERY low xy_distance or xy_min_distance (<0.1mm)
             // as such if such a value is set the support will be outset by .1mm to ensure all points are supported that should be.
             // This is not the best solution, but the only one to ensure areas can not lag though walls at high maximum_move_distance.
-            if (xy_distance < 100)
+            constexpr coord_t min_distance = 100; // If set to low rounding errors WILL cause errors. Best to keep it above 25.
+            if (xy_distance < min_distance)
             {
-                xy_distance = 100;
+                xy_distance = min_distance;
             }
-            if (xy_min_distance < 100)
+            if (xy_min_distance < min_distance)
             {
-                xy_min_distance = 100;
-                performance_increased_xy_min = true;
+                xy_min_distance = min_distance;
             }
 
             std::function<void(std::vector<AngleDegrees>&, EFillMethod)> getInterfaceAngles = [&](std::vector<AngleDegrees>& angles, EFillMethod pattern) { // (logic) from getInterfaceAngles in FFFGcodeWriter.
@@ -862,10 +867,6 @@ class TreeSupport
          */
         size_t performance_interface_skip_layers;
         /*!
-         * \brief Was the xy_min_dist increased by 100 microns ?
-         */
-        bool performance_increased_xy_min = false; // safeOffsetInc can only work in steps of the size xy_min_distance => has be larger than 0 and should be large enough for performance to not suffer extremely
-        /*!
          * \brief User specified angles for the support infill.
          */
         std::vector<AngleDegrees> support_infill_angles;
@@ -914,7 +915,7 @@ class TreeSupport
                    support_rests_on_model == other.support_rests_on_model && increase_radius_until_layer == other.increase_radius_until_layer && min_dtt_to_model == other.min_dtt_to_model && max_to_model_radius_increase == other.max_to_model_radius_increase && maximum_move_distance == other.maximum_move_distance && maximum_move_distance_slow == other.maximum_move_distance_slow && z_distance_bottom_layers == other.z_distance_bottom_layers && support_line_width == other.support_line_width && support_overrides == other.support_overrides && // requires new avoidance calculation. Could be changed so it does not, but because i expect that this case happens seldom i dont think it is worth it.
                    support_line_distance == other.support_line_distance && support_roof_line_width == other.support_roof_line_width && // can not be set on a per mesh basis currently, so code to enable processing different roof line width in the same iteration seems useless.
                    support_bottom_offset == other.support_bottom_offset && support_wall_count == other.support_wall_count && support_pattern == other.support_pattern && roof_pattern == other.roof_pattern && // can not be set on a per mesh basis currently, so code to enable processing different roof patterns in the same iteration seems useless.
-                   support_roof_angles == other.support_roof_angles && support_infill_angles == other.support_infill_angles && performance_increased_xy_min == other.performance_increased_xy_min && increase_radius_until_radius == other.increase_radius_until_radius && support_bottom_layers == other.support_bottom_layers && layer_height == other.layer_height && z_distance_top_layers == other.z_distance_top_layers && maximum_deviation == other.maximum_deviation && // Infill generation depends on deviation and resolution.
+                   support_roof_angles == other.support_roof_angles && support_infill_angles == other.support_infill_angles && increase_radius_until_radius == other.increase_radius_until_radius && support_bottom_layers == other.support_bottom_layers && layer_height == other.layer_height && z_distance_top_layers == other.z_distance_top_layers && maximum_deviation == other.maximum_deviation && // Infill generation depends on deviation and resolution.
                    maximum_resolution == other.maximum_resolution; // So they should be identical to ensure the tree will correctly support the roof.
         }
 
@@ -1051,10 +1052,13 @@ class TreeSupport
      */
     Polygons generateSupportInfillLines(const Polygons& area, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider = nullptr);
 
-    // todo comment
-    Polygons safeUnion(const Polygons first, const Polygons second) const;
-    Polygons safeUnion(const Polygons first) const;
-
+    /*!
+      * \brief Unions two Polygons. Ensures that if the input is non empty that the output also will be non empty.
+      * \param first[in] The first Polygon.
+      * \param second[in] The second Polygon.
+      * \return The union of both Polygons
+      */
+    Polygons safeUnion(const Polygons first, const Polygons second=Polygons()) const;
 
     /*!
      * \brief Creates a valid CrossInfillProvider
