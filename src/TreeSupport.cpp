@@ -113,7 +113,7 @@ void TreeSupport::showError(std::string message, bool critical)
 
     if (show)
     {
-        MessageBox(nullptr, std::string("TreeSupport_2 MOD detected an error while generating the tree support.\nPlease report this back to me with profile and model.\nRevision 2\n" + message + bugtype).c_str(), "Bug detected!", MB_OK | MB_SYSTEMMODAL | MB_SETFOREGROUND | MB_ICONWARNING);
+        MessageBox(nullptr, std::string("TreeSupport_2 MOD detected an error while generating the tree support.\nPlease report this back to me with profile and model.\nRevision 3\n" + message + bugtype).c_str(), "Bug detected!", MB_OK | MB_SYSTEMMODAL | MB_SETFOREGROUND | MB_ICONWARNING);
     }
 }
 
@@ -509,6 +509,8 @@ Polygons TreeSupport::ensureMaximumDistancePolyline(const Polygons& input, coord
                         {
                             // In case a fixpoint is encountered, better aggressively overcompensate so the code does not become stuck here...
                             logWarning("Tree Support: Encountered a fixpoint in getNextPointWithDistance. This is expected to happen if the distance (currently %lld) is smaller than 100\n", next_distance);
+                            TreeSupport::showError("Encountered issue while placing tips. Some tips may be missing.", true);
+
                             if (next_distance > 2 * current_distance)
                             {
                                 // This case should never happen, but better safe than sorry.
@@ -1390,12 +1392,8 @@ std::optional<TreeSupport::SupportElement> TreeSupport::increaseSingleArea(AreaI
             check_layer_data = current_elem.to_buildplate ? to_bp_data : to_model_data;
             if (check_layer_data.area() < 1)
             {
-<<<<<<< HEAD
-                logError("Lost area by doing catch up from %lld to radius %lld radius %d\n", ceil_radius_before, volumes_.ceilRadius(config.getCollisionRadius(current_elem), settings.use_min_distance));
-                TreeSupport::showError("Area lost catching up radius. May not cause visible malformation.", true);
-=======
                 logError("Lost area by doing catch up from %lld to radius %lld\n", ceil_radius_before, volumes_.ceilRadius(config.getCollisionRadius(current_elem), settings.use_min_distance));
->>>>>>> tree_support_2
+                TreeSupport::showError("Area lost catching up radius. May not cause visible malformation.", true);
             }
         }
     }
