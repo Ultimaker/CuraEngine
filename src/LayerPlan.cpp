@@ -1104,7 +1104,8 @@ void LayerPlan::addLinesByOptimizer
         orderOptimizer.addPolygon(polygons[line_idx]);
     }
     orderOptimizer.optimize();
-    coord_t line_width_2 = config.getLineWidth() * config.getLineWidth();
+    coord_t half_line_width = config.getLineWidth() / 2;
+    coord_t line_width_2 = half_line_width * half_line_width;
     for (unsigned int order_idx = 0; order_idx < orderOptimizer.polyOrder.size(); order_idx++)
     {
         const unsigned int poly_idx = orderOptimizer.polyOrder[order_idx];
@@ -1219,7 +1220,8 @@ void LayerPlan::addLinesMonotonic
 
     // Read out and process the monotonically ordered lines.
     Point current_last_position = last_position;
-    coord_t line_width_2 = config.getLineWidth() * config.getLineWidth();
+    coord_t half_line_width = config.getLineWidth() / 2;
+    coord_t line_width_2 = half_line_width * half_line_width;
     for (unsigned int order_idx = 0; order_idx < order.paths.size(); order_idx++)
     {
         const PathOrder<ConstPolygonRef>::Path& path = order.paths[order_idx];
