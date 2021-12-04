@@ -9,7 +9,9 @@
 namespace cura
 {
 
-const int vertex_meld_distance = MM2INT(0.03);
+const coord_t vertex_meld_distance = MM2INT(0.032);
+static_assert(vertex_meld_distance && (vertex_meld_distance & (vertex_meld_distance - 1)) == 0, "vertex_meld_distance should be a power of two for fast divisions");
+
 /*!
  * returns a hash for the location, but first divides by the vertex_meld_distance,
  * so that any point within a box of vertex_meld_distance by vertex_meld_distance would get mapped to the same hash.
