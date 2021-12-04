@@ -103,7 +103,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
             continue;
         }
 
-        mesh_group.meshes.emplace_back();
+        mesh_group.meshes.emplace_back(face_count);
         Mesh& mesh = mesh_group.meshes.back();
 
         // Load the settings for the mesh.

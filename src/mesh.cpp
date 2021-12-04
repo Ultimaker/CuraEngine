@@ -19,12 +19,10 @@ static inline uint32_t pointHash(const Point3& p)
     return ((p.x + vertex_meld_distance / 2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance / 2) / vertex_meld_distance) << 10) ^ (((p.z + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
 }
 
-Mesh::Mesh(Settings& parent) : settings(parent), has_disconnected_faces(false), has_overlapping_faces(false)
+Mesh::Mesh(size_t face_count)
 {
-}
-
-Mesh::Mesh() : settings(), has_disconnected_faces(false), has_overlapping_faces(false)
-{
+    faces.reserve(face_count);
+    vertices.reserve(face_count / 2);
 }
 
 void Mesh::addFace(Point3& v0, Point3& v1, Point3& v2)
@@ -56,7 +54,8 @@ void Mesh::clear()
 void Mesh::finish()
 {
     // Finish up the mesh, clear the vertex_hash_map, as it's no longer needed from this point on and uses quite a bit of memory.
-    vertex_hash_map.clear();
+    faces.shrink_to_fit();
+    vertices.shrink_to_fit();
 
     // For each face, store which other face is connected with it.
     for (unsigned int i = 0; i < faces.size(); i++)

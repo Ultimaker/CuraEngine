@@ -6,8 +6,9 @@
 
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
-#include "utils/floatpoint.h"
 #include "utils/FMatrix4x3.h"
+#include "utils/NoCopy.h"
+#include "utils/floatpoint.h"
 
 namespace cura
 {
@@ -59,7 +60,7 @@ A Mesh is the most basic representation of a 3D model. It contains all the faces
 
 See MeshFace for the specifics of how/when faces are connected.
 */
-class Mesh
+class Mesh : public NoCopy
 {
     //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
     std::unordered_map<uint32_t, std::vector<uint32_t> > vertex_hash_map;
@@ -67,11 +68,11 @@ class Mesh
 public:
     std::vector<MeshVertex> vertices;//!< list of all vertices in the mesh
     std::vector<MeshFace> faces; //!< list of all faces in the mesh
-    Settings settings;
+    Settings settings = {};
     std::string mesh_name;
 
-    Mesh(Settings& parent);
-    Mesh();
+    Mesh() = default;
+    Mesh(size_t face_count);
 
     void addFace(Point3& v0, Point3& v1, Point3& v2); //!< add a face to the mesh without settings it's connected_faces.
     void clear(); //!< clears all data
@@ -107,8 +108,8 @@ public:
      */
     bool isPrinted() const;
 private:
-    mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
-    mutable bool has_overlapping_faces; //!< Whether it has been logged that this mesh contains overlapping faces
+    mutable bool has_disconnected_faces = false; //!< Whether it has been logged that this mesh contains disconnected faces
+    mutable bool has_overlapping_faces = false; //!< Whether it has been logged that this mesh contains overlapping faces
     int findIndexOfVertex(const Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
 
     /*!

@@ -273,10 +273,11 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
-        Mesh mesh(object_parent_settings);
+        Mesh mesh;
+        mesh.settings.setParent(&object_parent_settings);
         if (loadMeshSTL(&mesh, filename, transformation)) // Load it! If successful...
         {
-            meshgroup->meshes.push_back(mesh);
+            meshgroup->meshes.emplace_back(std::move(mesh));
             spdlog::info("loading '{}' took {:3} seconds", filename, load_timer.restart());
             return true;
         }
