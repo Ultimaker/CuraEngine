@@ -440,7 +440,7 @@ Polygons TreeSupport::ensureMaximumDistancePolyline(const Polygons& input, coord
         if (length < 2 * distance && min_points <= 1)
         {
             ClosestPolygonPoint middle_point(part[0], 0, part);
-            middle_point = PolygonUtils::walk(middle_point, coord_t(length / 2 + 10));
+            middle_point = PolygonUtils::walk(middle_point, coord_t(length / 2));
             line.add(middle_point.location);
         }
         else
