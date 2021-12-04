@@ -12,6 +12,8 @@
 
 namespace cura
 {
+using mesh_idx_t = uint32_t; //!< Type for vertex and face indices
+
 /*!
 Vertex type to be used in a Mesh.
 
@@ -21,7 +23,7 @@ class MeshVertex
 {
 public:
     Point3 p; //!< location of the vertex
-    std::vector<uint32_t> connected_faces; //!< list of the indices of connected faces
+    std::vector<mesh_idx_t> connected_faces; //!< list of the indices of connected faces
 
     MeshVertex(Point3 p) : p(p) {connected_faces.reserve(8);} //!< doesn't set connected_faces
 };
@@ -50,8 +52,8 @@ In such a case the face_index stored in connected_face_index is the one connecte
 class MeshFace
 {
 public:
-    int vertex_index[3] = {-1}; //!< counter-clockwise ordering
-    int connected_face_index[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
+    mesh_idx_t vertex_index[3] = {}; //!< counter-clockwise ordering
+    mesh_idx_t connected_face_index[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
 };
 
 
@@ -110,7 +112,7 @@ public:
 private:
     mutable bool has_disconnected_faces = false; //!< Whether it has been logged that this mesh contains disconnected faces
     mutable bool has_overlapping_faces = false; //!< Whether it has been logged that this mesh contains overlapping faces
-    int findIndexOfVertex(const Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
+    mesh_idx_t findIndexOfVertex(const Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
 
     /*!
      * Get the index of the face connected to the face with index \p notFaceIdx, via vertices \p idx0 and \p idx1.
@@ -123,7 +125,7 @@ private:
      * \param notFaceVertexIdx should be the third vertex of face \p notFaceIdx.
      * \return the face index of a face sharing the edge from \p idx0 to \p idx1
     */
-    int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVertexIdx) const;
+    ptrdiff_t getFaceIdxWithPoints(mesh_idx_t idx0, mesh_idx_t idx1, mesh_idx_t notFaceIdx, mesh_idx_t notFaceVertexIdx) const;
 };
 
 }//namespace cura

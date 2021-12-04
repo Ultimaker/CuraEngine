@@ -27,21 +27,17 @@ Mesh::Mesh(size_t face_count)
 
 void Mesh::addFace(Point3& v0, Point3& v1, Point3& v2)
 {
-    int vi0 = findIndexOfVertex(v0);
-    int vi1 = findIndexOfVertex(v1);
-    int vi2 = findIndexOfVertex(v2);
+    mesh_idx_t vi0 = findIndexOfVertex(v0);
+    mesh_idx_t vi1 = findIndexOfVertex(v1);
+    mesh_idx_t vi2 = findIndexOfVertex(v2);
     if (vi0 == vi1 || vi1 == vi2 || vi0 == vi2)
         return; // the face has two vertices which get assigned the same location. Don't add the face.
 
-    int idx = faces.size(); // index of face to be added
-    faces.emplace_back();
-    MeshFace& face = faces[idx];
-    face.vertex_index[0] = vi0;
-    face.vertex_index[1] = vi1;
-    face.vertex_index[2] = vi2;
-    vertices[face.vertex_index[0]].connected_faces.push_back(idx);
-    vertices[face.vertex_index[1]].connected_faces.push_back(idx);
-    vertices[face.vertex_index[2]].connected_faces.push_back(idx);
+    mesh_idx_t idx = faces.size(); // index of face to be added
+    faces.emplace_back(MeshFace{ { vi0, vi1, vi2 }, {} });
+    vertices[vi0].connected_faces.push_back(idx);
+    vertices[vi1].connected_faces.push_back(idx);
+    vertices[vi2].connected_faces.push_back(idx);
 }
 
 void Mesh::clear()
@@ -58,7 +54,7 @@ void Mesh::finish()
     vertices.shrink_to_fit();
 
     // For each face, store which other face is connected with it.
-    for (unsigned int i = 0; i < faces.size(); i++)
+    for (ptrdiff_t i = 0; i < ptrdiff_t(faces.size()); i++)
     {
         MeshFace& face = faces[i];
         // faces are connected via the outside
@@ -104,7 +100,7 @@ bool Mesh::isPrinted() const
     return ! settings.get<bool>("infill_mesh") && ! settings.get<bool>("cutting_mesh") && ! settings.get<bool>("anti_overhang_mesh");
 }
 
-int Mesh::findIndexOfVertex(const Point3& v)
+mesh_idx_t Mesh::findIndexOfVertex(const Point3& v)
 {
     uint32_t hash = pointHash(v);
 
@@ -147,10 +143,10 @@ See <a href="http://stackoverflow.com/questions/14066933/direct-way-of-computing
 
 
 */
-int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVertexIdx) const
+ptrdiff_t Mesh::getFaceIdxWithPoints(mesh_idx_t idx0, mesh_idx_t idx1, mesh_idx_t notFaceIdx, mesh_idx_t notFaceVertexIdx) const
 {
-    std::vector<int> candidateFaces; // in case more than two faces meet at an edge, multiple candidates are generated
-    for (int f : vertices[idx0].connected_faces) // search through all faces connected to the first vertex and find those that are also connected to the second
+    std::vector<mesh_idx_t> candidateFaces; // in case more than two faces meet at an edge, multiple candidates are generated
+    for (mesh_idx_t f : vertices[idx0].connected_faces) // search through all faces connected to the first vertex and find those that are also connected to the second
     {
         if (f == notFaceIdx)
         {
@@ -202,11 +198,11 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
     }
 
     double smallestAngle = 1000; // more then 2 PI (impossible angle)
-    int bestIdx = -1;
+    ptrdiff_t bestIdx = -1;
 
-    for (int candidateFace : candidateFaces)
+    for (mesh_idx_t candidateFace : candidateFaces)
     {
-        int candidateVertex;
+        ptrdiff_t candidateVertex;
         { // find third vertex belonging to the face (besides idx0 and idx1)
             for (candidateVertex = 0; candidateVertex < 3; candidateVertex++)
                 if (faces[candidateFace].vertex_index[candidateVertex] != idx0 && faces[candidateFace].vertex_index[candidateVertex] != idx1)

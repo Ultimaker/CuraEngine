@@ -104,8 +104,8 @@ int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, const size_t st
     {
         // segment ended at vertex
 
-        const std::vector<uint32_t>& faces_to_try = segment.endVertex->connected_faces;
-        for (int face_to_try : faces_to_try)
+        const auto& faces_to_try = segment.endVertex->connected_faces;
+        for (mesh_idx_t face_to_try : faces_to_try)
         {
             const int result_segment_idx = tryFaceNextSegmentIdx(segment, face_to_try, start_segment_idx);
             if (result_segment_idx == static_cast<int>(start_segment_idx))
