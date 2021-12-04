@@ -10,18 +10,129 @@ namespace cura
 {
 
 const coord_t vertex_meld_distance = MM2INT(0.032);
-static_assert(vertex_meld_distance && (vertex_meld_distance & (vertex_meld_distance - 1)) == 0, "vertex_meld_distance should be a power of two for fast divisions");
+static_assert(vertex_meld_distance && (vertex_meld_distance & (vertex_meld_distance - 1)) == 0, "vertex_meld_distance must be a power of two");
 
-/*!
- * returns a hash for the location, but first divides by the vertex_meld_distance,
- * so that any point within a box of vertex_meld_distance by vertex_meld_distance would get mapped to the same hash.
- */
-static inline uint32_t pointHash(const Point3& p)
+/// 1D coordinate to discretized grid of 2 * vertex_meld_distance wide cells
+static inline uint32_t hash_coord(coord_t p)
 {
-    return ((p.x + vertex_meld_distance / 2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance / 2) / vertex_meld_distance) << 10) ^ (((p.z + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
+    return uint32_t(p / (2 * vertex_meld_distance));
+};
+
+/// Intersperse bits by inserting 2 zeros beetwen each bit from the input bitstring
+static inline uint32_t intersperse3bits(uint32_t x)
+{
+    x = (x | x << 16) & 0x30000ff;
+    x = (x | x << 8) & 0x300f00f;
+    x = (x | x << 4) & 0x30c30c3;
+    x = (x | x << 2) & 0x9249249;
+    return x;
 }
 
-Mesh::Mesh(size_t face_count)
+HashMap3D::HashMap3D(size_t nvertices)
+{
+    // 2/3 load factor, 8 slots per vertex
+    size_t size = (nvertices * 3 * 8) / 2;
+    bits = 0;
+    while (size)
+    {
+        bits++;
+        size >>= 1;
+    }
+    bits = std::max(bits, min_bits);
+
+    init();
+}
+
+void HashMap3D::init()
+{
+    clear();
+    // Number of vertices that can be inserted before reaching the load factor threshold
+    free_vertices = (1 << (bits - 2)) / 3;
+    mask = (1 << bits) - 1;
+    map = std::make_unique<Item[]>(mask + 1); // map slots, value-initialized to 0
+}
+
+void HashMap3D::clear()
+{
+    free_vertices = 0;
+    map.reset();
+}
+
+HashMap3D::Item HashMap3D::insert(const Point3& v, const std::vector<MeshVertex>& vertices)
+{
+    // Lookup
+    const auto predicate = [&vertices, &v](Item item) { return (vertices[item - 1].p - v).testLength(vertex_meld_distance); };
+    const hash_t hash = intersperse3bits(hash_coord(v.x)) | (intersperse3bits(hash_coord(v.y)) << 1) | (intersperse3bits(hash_coord(v.z)) << 2);
+    const Item& slot = probe(hash, predicate);
+
+    if (slot)
+    {
+        // Found a vertex within vertex_meld_distance of `v`
+        return slot - 1;
+    }
+    else
+    {
+        // Check if a rehash is needed
+        if (! free_vertices)
+        {
+            bits += 2; // growth factor: 4
+            init();
+            free_vertices -= vertices.size();
+            const auto end = static_cast<ptrdiff_t>(vertices.size());
+            for (ptrdiff_t i = 0; i < end; i++)
+            {
+                insert8(vertices[i].p, i + 1);
+            }
+        }
+
+        // Insertion
+        free_vertices--;
+        Item item = vertices.size(); // New index
+        insert8(v, item + 1);
+
+        return item;
+    }
+}
+
+inline void HashMap3D::insert8(const Point3& v, Item value)
+{
+    hash_t hash_x = hash_coord(v.x - vertex_meld_distance);
+    hash_t hash_y = hash_coord(v.y - vertex_meld_distance);
+    hash_t hash_z = hash_coord(v.z - vertex_meld_distance);
+    hash_t hash0_x = intersperse3bits(hash_x);
+    hash_t hash1_x = intersperse3bits(hash_x + 1);
+    hash_t hash0_y = intersperse3bits(hash_y) << 1;
+    hash_t hash1_y = intersperse3bits(hash_y + 1) << 1;
+    hash_t hash0_z = intersperse3bits(hash_z) << 2;
+    hash_t hash1_z = intersperse3bits(hash_z + 1) << 2;
+
+    constexpr auto constfalse = [](Item) { return false; };
+    probe(hash0_x | hash0_y | hash0_z, constfalse) = value;
+    probe(hash0_x | hash0_y | hash1_z, constfalse) = value;
+    probe(hash0_x | hash1_y | hash0_z, constfalse) = value;
+    probe(hash0_x | hash1_y | hash1_z, constfalse) = value;
+    probe(hash1_x | hash0_y | hash0_z, constfalse) = value;
+    probe(hash1_x | hash0_y | hash1_z, constfalse) = value;
+    probe(hash1_x | hash1_y | hash0_z, constfalse) = value;
+    probe(hash1_x | hash1_y | hash1_z, constfalse) = value;
+}
+
+template<typename P>
+inline HashMap3D::Item& HashMap3D::probe(hash_t hash, const P& predicate)
+{
+    // Python's dict hash perurbation algorithm https://github.com/python/cpython/blob/main/Objects/dictnotes.txt
+    hash_t perturb = hash;
+    hash_t idx = hash & mask;
+    while (map[idx] && ! predicate(map[idx]))
+    {
+        perturb >>= 5;
+        idx = (5 * idx) + 1 + perturb;
+        idx &= mask;
+    }
+    return map[idx];
+}
+
+Mesh::Mesh(size_t face_count) : spatial_map(face_count / 2)
 {
     faces.reserve(face_count);
     vertices.reserve(face_count / 2);
@@ -44,14 +155,15 @@ void Mesh::addFace(Point3& v0, Point3& v1, Point3& v2)
 
 void Mesh::clear()
 {
+    spatial_map.clear();
     faces.clear();
     vertices.clear();
-    vertex_hash_map.clear();
 }
 
 void Mesh::finish()
 {
     // Finish up the mesh, clear the vertex_hash_map, as it's no longer needed from this point on and uses quite a bit of memory.
+    spatial_map.clear();
     faces.shrink_to_fit();
     vertices.shrink_to_fit();
 
@@ -104,21 +216,14 @@ bool Mesh::isPrinted() const
 
 mesh_idx_t Mesh::findIndexOfVertex(const Point3& v)
 {
-    uint32_t hash = pointHash(v);
-
-    for (unsigned int idx = 0; idx < vertex_hash_map[hash].size(); idx++)
+    const mesh_idx_t new_idx = vertices.size();
+    auto idx = spatial_map.insert(v, vertices);
+    if (idx == new_idx)
     {
-        if ((vertices[vertex_hash_map[hash][idx]].p - v).testLength(vertex_meld_distance))
-        {
-            return vertex_hash_map[hash][idx];
-        }
+        vertices.emplace_back(v);
+        aabb.include(v);
     }
-    vertex_hash_map[hash].push_back(vertices.size());
-    vertices.emplace_back(v);
-
-    aabb.include(v);
-
-    return vertices.size() - 1;
+    return idx;
 }
 
 /*!
