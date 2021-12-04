@@ -11,20 +11,23 @@
 class NoCopy
 {
 protected:
-    NoCopy() {}
-
-private:
-    /*!
-     * Private copy constructor.
-     * Cannot be called because it is private.
-     */
-    NoCopy(const NoCopy&);
+    NoCopy() noexcept
+    {
+    }
+    NoCopy(NoCopy&&) noexcept = default;
+    NoCopy& operator=(NoCopy&&) noexcept = default;
 
     /*!
-     * Private assign operator.
-     * Cannot be called because it is private.
+     * Copy constructor.
+     * Cannot be called because it is deleted.
      */
-    NoCopy& operator =(const NoCopy&);
+    NoCopy(const NoCopy&) = delete;
+
+    /*!
+     * Assign (copy) operator.
+     * Cannot be called because it is deleted.
+     */
+    NoCopy& operator=(const NoCopy&) = delete;
 };
 
 #endif // UTILS_NO_COPY_H
