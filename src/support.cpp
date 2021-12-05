@@ -202,13 +202,13 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
         {
             SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
 
-            // NOTE: This both generates the walls _and_ returns the _actual_ infill area (the one _without_ walls) for use in the rest of the method.
             Polygons original_area = support_infill_part.getInfillArea();
-            const Polygons infill_area = Infill::generateWallToolPaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, overlap, infill_extruder.settings);
-            if (infill_area.empty())
+            if (original_area.empty())
             {
                 continue;
             }
+            // NOTE: This both generates the walls _and_ returns the _actual_ infill area (the one _without_ walls) for use in the rest of the method.
+            const Polygons infill_area = Infill::generateWallToolPaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, overlap, infill_extruder.settings);
             const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box;
 
             // calculate density areas for this island
