@@ -113,6 +113,10 @@ void MeshGroup::finalize()
 
 void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
 {
+    if (factor_xy == 1.0 && factor_z == 1.0)
+    {
+        return;
+    }
     const Point3 center = (max() + min()) / 2;
     const Point3 origin(center.x, center.y, 0);
 
