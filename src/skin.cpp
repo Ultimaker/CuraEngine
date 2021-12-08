@@ -698,7 +698,7 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
     }
 
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-    const size_t amount = std::max(1U, round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(layer_height, coord_t(1)))); //How many infill layers to combine to obtain the requested sparse thickness.
+    const size_t amount = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(layer_height, coord_t(1)))); //How many infill layers to combine to obtain the requested sparse thickness.
     if(amount <= 1) //If we must combine 1 layer, nothing needs to be combined. Combining 0 layers is invalid.
     {
         return;

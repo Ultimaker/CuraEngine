@@ -19,24 +19,24 @@ static constexpr float sqrt2 = 1.41421356237;
 
 template<typename T> inline T square(const T& a) { return a * a; }
 
-inline unsigned int round_divide_signed(int dividend, int divisor) //!< Return dividend divided by divisor rounded to the nearest integer
+inline uint64_t round_divide_signed(const int64_t dividend, const int64_t divisor) //!< Return dividend divided by divisor rounded to the nearest integer
 {
-    const int abs_div = std::abs(divisor);
+    const uint64_t abs_div = std::abs(divisor);
     return (dividend * divisor > 0 ? 1 : -1) * ((std::abs(dividend) + abs_div / 2) / abs_div);
 }
-inline unsigned int ceil_divide_signed(int dividend, int divisor) //!< Return dividend divided by divisor rounded up towards positive infinity.
+inline uint64_t ceil_divide_signed(const int64_t dividend, const int64_t divisor) //!< Return dividend divided by divisor rounded up towards positive infinity.
 {
     return (dividend / divisor) + (dividend * divisor > 0 ? 1 : 0);
 }
-inline unsigned int floor_divide_signed(int dividend, int divisor) //!< Return dividend divided by divisor rounded down towards negative infinity.
+inline uint64_t floor_divide_signed(const int64_t dividend, const int64_t divisor) //!< Return dividend divided by divisor rounded down towards negative infinity.
 {
     return (dividend / divisor) + (dividend * divisor > 0 ? 0 : -1);
 }
-inline unsigned int round_divide(unsigned int dividend, unsigned int divisor) //!< Return dividend divided by divisor rounded to the nearest integer
+inline uint64_t round_divide(const uint64_t dividend, const uint64_t divisor) //!< Return dividend divided by divisor rounded to the nearest integer
 {
     return (dividend + divisor / 2) / divisor;
 }
-inline unsigned int round_up_divide(unsigned int dividend, unsigned int divisor) //!< Return dividend divided by divisor rounded to the nearest integer
+inline uint64_t round_up_divide(const uint64_t dividend, const uint64_t divisor) //!< Return dividend divided by divisor rounded to the nearest integer
 {
     return (dividend + divisor - 1) / divisor;
 }
