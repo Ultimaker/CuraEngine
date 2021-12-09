@@ -4,11 +4,11 @@
 #ifndef UTILS_STRING_H
 #define UTILS_STRING_H
 
-#include <cstdio> // sprintf
-#include <ctype.h>
-#include <sstream> // ostringstream
+#include <cassert>
+#include <ostream>
 
-#include <spdlog/spdlog.h>
+#include "Coord_t.h"
+#include "math.h"
 
 namespace cura
 {
@@ -26,152 +26,160 @@ static inline int stringcasecompare(const char* a, const char* b)
     return *a - *b;
 }
 
+//! Same representation as std::string_view, but allows mutation of the buffer
+using mut_char_range_t = std::pair<char*, char*>;
+
 /*!
- * Efficient conversion of micron integer type to millimeter string.
- *
- * The integer type is half the size of the normal integer type because of implementation details.
- * However, half the integer type should suffice, because we made the basic coord_t twice as big as necessary
- * so as to support multiplication within the same integer type.
- *
- * \param coord The micron unit to convert
- * \param ss The output stream to write the string to
+ * \brief Format a fixed point unsigned integer as a decimal ascii string.
+ * \tparam fixed_precision log10 of the fixed point scaling factor
+ * \tparam out_precision Number of decimal places to be written
+ * \param buffer_end Pointer past the end of the output buffer
+ * \param value The unsigned value to format
+ * \return A pair of char*, delimiting the result range in the buffer
  */
-static inline void writeInt2mm(const int32_t coord, std::ostream& ss)
+template<unsigned fixed_precision, unsigned out_precision>
+static inline mut_char_range_t format_unsigned_decimal_fixed_point(char* const buffer_end, size_t value)
 {
-    constexpr size_t buffer_size = 24;
-    char buffer[buffer_size];
-    int char_count = sprintf(buffer, "%d", coord); // we haven't found any way for the windows compiler to accept formatting of a coord_t, so it has to be int32_t instead
-#ifdef DEBUG
-    if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
+    // Rounding to the required precision
+    if constexpr (fixed_precision > out_precision)
     {
-        spdlog::error("Cannot write {} to buffer of size {}", coord, buffer_size);
+        value = round_divide(value, ipow(size_t{ 10 }, fixed_precision - out_precision));
     }
-    if (char_count < 0)
+
+    if (value != 0)
     {
-        spdlog::error("Encoding error while writing {}", coord);
-    }
-#endif // DEBUG
-    int end_pos = char_count; // the first character not to write any more
-    int trailing_zeros = 1;
-    while (trailing_zeros < 4 && buffer[char_count - trailing_zeros] == '0')
-    {
-        trailing_zeros++;
-    }
-    trailing_zeros--;
-    end_pos = char_count - trailing_zeros;
-    if (trailing_zeros == 3)
-    { // no need to write the decimal dot
-        buffer[char_count - trailing_zeros] = '\0';
-        ss << buffer;
-        return;
-    }
-    if (char_count <= 3)
-    {
-        int start = 0; // where to start writing from the buffer
-        if (coord < 0)
+        // Writes pairs of digit backward in the buffer. This is heavily inspired by the fmt library.
+        size_t quotient = value;
+        char* begin = buffer_end;
+        while (quotient >= 10)
         {
-            ss << '-';
-            start = 1;
+            const char* twodigits = &"0001020304050607080910111213141516171819"
+                                     "2021222324252627282930313233343536373839"
+                                     "4041424344454647484950515253545556575859"
+                                     "6061626364656667686970717273747576777879"
+                                     "8081828384858687888990919293949596979899"[(quotient % 100) * 2];
+            quotient /= 100;
+            begin -= 2;
+            begin[0] = twodigits[0];
+            begin[1] = twodigits[1];
         }
-        ss << "0.";
-        for (int nulls = char_count - start; nulls < 3; nulls++)
-        { // fill up to 3 decimals with zeros
-            ss << '0';
+        if (quotient > 0)
+        { // Odd number of digits
+            *--begin = '0' + static_cast<char>(quotient);
         }
-        buffer[char_count - trailing_zeros] = '\0';
-        ss << (static_cast<char*>(buffer) + start);
+        else if (*begin == '0')
+        { // The last division by 100 might have produced a leading zero, drop it
+            begin++;
+        }
+        assert(*begin != '0');
+
+        // Trims zeros at the right of the fractional part
+        char* const first_integral_place = buffer_end - out_precision;
+        char* end = buffer_end;
+        while (end > first_integral_place)
+        {
+            if (*(end - 1) != '0')
+            { // Stop at the first non '0' (will break)
+                break;
+            }
+            else
+            {
+                --end; // Trims the rightmost '0'
+            }
+        }
+        if (end > first_integral_place)
+        { // We have a factional part
+            if (begin < first_integral_place)
+            {
+                // We also have an integral part: move it one char to the left to make room for the '.'
+                *std::copy(begin, first_integral_place, begin - 1) = '.';
+                --begin;
+            }
+            else
+            {
+                // fractional only: fill '0's at the left of the fractional part
+                std::fill(first_integral_place, begin, '0');
+                // In theory, a leading zero before the decimal point should not required by Gcode, however omitting it crashes PrusaSlicer viewer.
+                begin = first_integral_place - 2;
+                begin[0] = '0';
+                begin[1] = '.';
+            }
+        }
+        assert(*begin != '0' || begin[1] == '.');
+        assert(*begin != '.');
+        return { begin, end };
     }
     else
     {
-        char prev = '.';
-        int pos;
-        for (pos = char_count - 3; pos <= end_pos; pos++)
-        { // shift all characters and insert the decimal dot
-            char next_prev = buffer[pos];
-            buffer[pos] = prev;
-            prev = next_prev;
-        }
-        buffer[pos] = '\0';
-        ss << buffer;
+        char* const begin = buffer_end - 1;
+        *begin = '0';
+        return { begin, buffer_end };
     }
 }
 
 /*!
- * Struct to make it possible to inline calls to writeInt2mm with writing other stuff to the output stream
+ * \brief Format a fixed point signed integer as a decimal ascii string.
+ * \tparam fixed_precision log10 of the fixed point scaling factor
+ * \tparam out_precision Number of decimal places to be written
+ * \param buffer_end Pointer past the end of the output buffer
+ * \param value The unsigned value to format
+ * \return A pair of char*, delimiting the result range in the buffer
+ */
+template<unsigned fixed_precision, unsigned out_precision>
+static inline mut_char_range_t format_signed_decimal_fixed_point(char* const buffer_end, ptrdiff_t value)
+{
+    bool is_neg = value < 0;
+    auto abs_value = static_cast<size_t>(is_neg ? -value : value);
+    auto result = format_unsigned_decimal_fixed_point<fixed_precision, out_precision>(buffer_end, abs_value);
+    if (is_neg)
+    {
+        *--result.first = '-';
+    }
+    return result;
+}
+
+/*!
+ * \brief Wraps a coord_t for writing it in base 10 to a ostream.
  */
 struct MMtoStream
 {
-    int64_t value; //!< The coord in micron
+    coord_t value; //!< The coord in micron
 
     friend inline std::ostream& operator<<(std::ostream& out, const MMtoStream precision_and_input)
     {
-        writeInt2mm(precision_and_input.value, out);
+        constexpr size_t buffer_size = std::numeric_limits<coord_t>::digits10 + 3;
+        // +1 because digits10 is log_10(max) rounded down
+        // +1 for the sign
+        // +1 for the decimal separator
+        char buffer[buffer_size];
+        auto res = format_signed_decimal_fixed_point<INT10POW_PER_MM, INT10POW_PER_MM>(buffer + buffer_size, precision_and_input.value);
+        out.write(res.first, res.second - res.first);
         return out;
     }
 };
 
 /*!
- * Efficient writing of a double to a stringstream
- *
- * writes with \p precision digits after the decimal dot, but removes trailing zeros
- *
- * \warning only works with precision up to 9 and input up to 10^14
- *
- * \param precision The number of (non-zero) digits after the decimal dot
- * \param coord double to output
- * \param ss The output stream to write the string to
+ * \brief Wraps a double for writing it in base 10 to a ostream with a fixed number of decimal places.
+ * \tparam precision The number of decimal places
+ * \warning Does not allows values larger that LLONG_MAX / 10^precision
  */
-static inline void writeDoubleToStream(const unsigned int precision, const double coord, std::ostream& ss)
-{
-    char format[5] = "%.xF"; // write a float with [x] digits after the dot
-    format[2] = '0' + precision; // set [x]
-    constexpr size_t buffer_size = 400;
-    char buffer[buffer_size];
-    int char_count = sprintf(buffer, format, coord);
-#ifdef DEBUG
-    if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
-    {
-        spdlog::error("Cannot write {} to buffer of size {}", coord, buffer_size);
-    }
-    if (char_count < 0)
-    {
-        spdlog::error("Encoding error while writing {}", coord);
-    }
-#endif // DEBUG
-    if (char_count <= 0)
-    {
-        return;
-    }
-    if (buffer[char_count - precision - 1] == '.')
-    {
-        int non_nul_pos = char_count - 1;
-        while (buffer[non_nul_pos] == '0')
-        {
-            non_nul_pos--;
-        }
-        if (buffer[non_nul_pos] == '.')
-        {
-            buffer[non_nul_pos] = '\0';
-        }
-        else
-        {
-            buffer[non_nul_pos + 1] = '\0';
-        }
-    }
-    ss << buffer;
-}
-
-/*!
- * Struct to make it possible to inline calls to writeDoubleToStream with writing other stuff to the output stream
- */
+template<size_t precision>
 struct PrecisionedDouble
 {
-    unsigned int precision; //!< Number of digits after the decimal mark with which to convert to string
+    // unsigned int precision; //!< Number of digits after the decimal mark with which to convert to string
     double value; //!< The double value
 
-    friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble precision_and_input)
+    friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble input)
     {
-        writeDoubleToStream(precision_and_input.precision, precision_and_input.value, out);
+        constexpr size_t buffer_size = std::numeric_limits<coord_t>::digits10 + 3;
+        char buffer[buffer_size];
+
+        constexpr size_t factor = ipow(size_t{ 10 }, precision);
+        double scaled_value = input.value * factor;
+        assert(std::abs(scaled_value) < static_cast<double>(std::numeric_limits<coord_t>::max()));
+        coord_t fixed_point = std::llround(scaled_value);
+        auto res = format_signed_decimal_fixed_point<precision, precision>(buffer + buffer_size, fixed_point);
+        out.write(res.first, res.second - res.first);
         return out;
     }
 };
