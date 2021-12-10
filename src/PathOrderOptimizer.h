@@ -186,11 +186,19 @@ public:
             return;
         }
 
+        constexpr bool mirrored = true; // TODO: Make variable which (in other parts of the code will) depend(s) on layer- and inset-#'s
+        const std::function<Point(const Point&)> maybe_mirror =
+            [&mirrored](const Point& p)
+            {
+                return Point{ p.X, p.Y * (mirrored ? -1 : 1) };
+            };
+
         //Get the vertex data and store it in the paths.
         cached_vertices.reserve(paths.size()); //Prevent pointer invalidation.
         for(Path& path : paths)
         {
             path.converted = getVertexData(path.vertices);
+            path.backwards = mirrored;
         }
 
         //If necessary, check polylines to see if they are actually polygons.
@@ -219,13 +227,13 @@ public:
             {
                 for(const Point& point : *path.converted)
                 {
-                    line_bucket_grid.insert(point, i); //Store by index so that we can also mark them down in the `picked` vector.
+                    line_bucket_grid.insert(maybe_mirror(point), i); //Store by index so that we can also mark them down in the `picked` vector.
                 }
             }
             else //For polylines, only insert the endpoints. Those are the only places we can start from so the only relevant vertices to be near to.
             {
-                line_bucket_grid.insert(path.converted->front(), i);
-                line_bucket_grid.insert(path.converted->back(), i);
+                line_bucket_grid.insert(maybe_mirror(path.converted->front()), i);
+                line_bucket_grid.insert(maybe_mirror(path.converted->back()), i);
             }
         }
 
@@ -296,12 +304,12 @@ public:
                 if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
                 {
                     path.start_vertex = findStartLocation(path, current_position);
-                    if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they are backwards if they start at N-1.
+                    if(! path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
                     {
-                        path.backwards = path.start_vertex > 0;
+                        path.backwards = path.backwards ? (path.start_vertex == 0) : (path.start_vertex > 0);
                     }
                 }
-                const Point& candidate_position = (*path.converted)[path.start_vertex];
+                const Point candidate_position = maybe_mirror((*path.converted)[path.start_vertex]);
                 coord_t distance2 = getDirectDistance(current_position, candidate_position);
                 if(distance2 < best_distance2 && combing_boundary) //If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
                 {
@@ -322,12 +330,12 @@ public:
             {
                 if(best_path.is_closed)
                 {
-                    current_position = (*best_path.converted)[best_path.start_vertex]; //We end where we started.
+                    current_position = maybe_mirror((*best_path.converted)[best_path.start_vertex]); //We end where we started.
                 }
                 else
                 {
                     //Pick the other end from where we started.
-                    current_position = best_path.start_vertex == 0 ? best_path.converted->back() : best_path.converted->front();
+                    current_position = maybe_mirror(best_path.start_vertex == 0 ? best_path.converted->back() : best_path.converted->front());
                 }
             }
         }
