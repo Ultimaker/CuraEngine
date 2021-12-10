@@ -576,7 +576,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
-    orderOptimizer.optimize(layer_nr % 2 == 0);
+    orderOptimizer.optimize();
 
     if(!reverse_order)
     {
@@ -1090,7 +1090,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     {
         order_optimizer.addPolyline(polygons[line_idx]);
     }
-    order_optimizer.optimize(layer_nr % 2 == 0);
+    order_optimizer.optimize();
 
     for(size_t order_idx = 0; order_idx < order_optimizer.paths.size(); order_idx++)
     {
@@ -1165,7 +1165,7 @@ void LayerPlan::addLinesMonotonic
     {
         line_order.addPolyline(polyline);
     }
-    line_order.optimize(layer_nr % 2 == 0);
+    line_order.optimize();
 
     const auto is_inside_exclusion =
         [&exclude_areas, &exclude_dist2](ConstPolygonRef path)
