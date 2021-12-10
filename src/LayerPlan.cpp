@@ -1022,7 +1022,8 @@ void LayerPlan::addWalls
     {
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
-    orderOptimizer.optimize(layer_nr % 2 == 0);
+    const bool alternate_walls = settings.get<bool>("material_alternate_walls") && layer_nr % 2 == 0;
+    orderOptimizer.optimize(alternate_walls);
     for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
     {
         addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
@@ -1050,7 +1051,8 @@ void LayerPlan::addWalls
     }
 
     cura::Point p_end {0, 0};
-    order_optimizer.optimize(layer_nr % 2 == (alternate_direction_modifier ? 1 : 0));
+    const bool alternate_walls = settings.get<bool>("material_alternate_walls") && (layer_nr % 2 == (alternate_direction_modifier ? 1 : 0));
+    order_optimizer.optimize(alternate_walls);
     for(const PathOrderOptimizer<const LineJunctions*>::Path& path : order_optimizer.paths)
     {
         p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;
