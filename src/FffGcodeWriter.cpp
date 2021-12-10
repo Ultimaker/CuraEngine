@@ -1363,7 +1363,8 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     {
         part_order_optimizer.addPolygon(&part);
     }
-    part_order_optimizer.optimize(gcode_layer.getLayerNr() % 2 == 0);
+    const bool should_alternate_walls = mesh.settings.get<bool>("material_alternate_walls") && (gcode_layer.getLayerNr() % 2 == 0);
+    part_order_optimizer.optimize(should_alternate_walls);
     for(const PathOrderOptimizer<const SliceLayerPart*>::Path& path : part_order_optimizer.paths)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
