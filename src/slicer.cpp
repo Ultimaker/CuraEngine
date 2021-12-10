@@ -784,6 +784,13 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     polygons.simplify();
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
+
+    // Clean up polylines for Surface Mode printing
+    it = std::remove_if(openPolylines.begin(), openPolylines.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
+    openPolylines.erase(it, openPolylines.end());
+
+    openPolylines.simplify();
+    openPolylines.removeDegenerateVerts();
 }
 
 Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_count,
