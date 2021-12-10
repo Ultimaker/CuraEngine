@@ -39,6 +39,13 @@ void Raft::generate(SliceDataStorage& storage)
     }
     const coord_t smoothing = settings.get<coord_t>("raft_smoothing");
     storage.raftOutline = storage.raftOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound); // remove small holes and smooth inward corners
+
+    constexpr bool shrinkage_plate = true;
+    if (shrinkage_plate)
+    {
+        storage.raftOutline = storage.raftOutline.approxConvexHull();
+        storage.raftOutline.makeConvex();
+    }
 }
 
 coord_t Raft::getTotalThickness()
