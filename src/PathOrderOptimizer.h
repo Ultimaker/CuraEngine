@@ -179,14 +179,13 @@ public:
      * This reorders the \ref paths field and fills their starting vertices and
      * directions.
      */
-    void optimize()
+    void optimize(bool mirrored = false)
     {
         if(paths.empty())
         {
             return;
         }
 
-        constexpr bool mirrored = true; // TODO: Make variable which (in other parts of the code will) depend(s) on layer- and inset-#'s
         const std::function<Point(const Point&)> maybe_mirror =
             [&mirrored](const Point& p)
             {

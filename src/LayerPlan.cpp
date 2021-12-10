@@ -576,7 +576,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
-    orderOptimizer.optimize();
+    orderOptimizer.optimize(layer_nr % 2 == 0);
 
     if(!reverse_order)
     {
@@ -1012,7 +1012,7 @@ void LayerPlan::addWalls(const Polygons& walls, const Settings& settings, const 
     {
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
-    orderOptimizer.optimize();
+    orderOptimizer.optimize(layer_nr % 2 == 0);
     for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
     {
         addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
@@ -1029,7 +1029,7 @@ void LayerPlan::addWalls(const PathJunctions& walls, const Settings& settings, c
     }
 
     cura::Point p_end {0, 0};
-    order_optimizer.optimize();
+    order_optimizer.optimize(layer_nr % 2 == 0);
     for(const PathOrderOptimizer<const LineJunctions*>::Path& path : order_optimizer.paths)
     {
         p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;
@@ -1069,7 +1069,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
     {
         order_optimizer.addPolyline(polygons[line_idx]);
     }
-    order_optimizer.optimize();
+    order_optimizer.optimize(layer_nr % 2 == 0);
 
     for(size_t order_idx = 0; order_idx < order_optimizer.paths.size(); order_idx++)
     {
@@ -1144,7 +1144,7 @@ void LayerPlan::addLinesMonotonic
     {
         line_order.addPolyline(polyline);
     }
-    line_order.optimize();
+    line_order.optimize(layer_nr % 2 == 0);
 
     const auto is_inside_exclusion =
         [&exclude_areas, &exclude_dist2](ConstPolygonRef path)
