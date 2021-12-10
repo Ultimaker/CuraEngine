@@ -2205,7 +2205,7 @@ std::optional<Point> FffGcodeWriter::getSeamAvoidingLocation(const Polygons& fil
         return std::optional<Point>();
     }
     // now go to whichever of those vertices that is closest to where we are now
-    if (vSize2(pa.p() - last_position) < vSize2(pb.p() - last_position))
+    if (compareVSize2(pa.p(), pb.p(), last_position))
     {
         return std::optional<Point>(std::in_place, pa.p());
     }

@@ -217,7 +217,7 @@ Point PolygonUtils::moveInsideDiagonally(ClosestPolygonPoint point_on_boundary, 
     ConstPolygonRef poly = **point_on_boundary.poly;
     Point p0 = poly[point_on_boundary.point_idx];
     Point p1 = poly[(point_on_boundary.point_idx + 1) % poly.size()];
-    if (vSize2(p0 - point_on_boundary.location) < vSize2(p1 - point_on_boundary.location))
+    if (compareVSize2(p0, p1, point_on_boundary.location) < 0)
     {
         return point_on_boundary.location + normal(getVertexInwardNormal(poly, point_on_boundary.point_idx), inset);
     }
@@ -754,7 +754,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, ConstPolygonRef
     }
     ClosestPolygonPoint back = findNearestClosest(from, polygon, start_idx, -1);
     assert(back.isValid());
-    if (vSize2(forth.location - from) < vSize2(back.location - from))
+    if (compareVSize2(forth.location, back.location, from) < 0)
     {
         return forth;
     }

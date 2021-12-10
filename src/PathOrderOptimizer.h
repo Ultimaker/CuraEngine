@@ -436,7 +436,7 @@ protected:
             ? seam_config.pos
             : Point(0, std::sqrt(std::numeric_limits<coord_t>::max())); //Use sqrt, so the squared size can be used when comparing distances.
         const size_t start_from_pos = std::min_element(simple_poly.begin(), simple_poly.end(), [focus_fixed_point](const Point& a, const Point& b) {
-            return vSize2(a - focus_fixed_point) < vSize2(b - focus_fixed_point);
+            return compareVSize2(a, b, focus_fixed_point) < 0;
         }) - simple_poly.begin();
         const size_t end_before_pos = simple_poly.size() + start_from_pos;
 

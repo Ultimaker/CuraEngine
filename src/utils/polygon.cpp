@@ -857,7 +857,7 @@ void ConstPolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut
     const bool backward_has_converged = backward_is_blocked || backward_is_too_far;
     const Point p0 = p0_it.p();
     const Point p2 = p2_it.p();
-    bool walk_forward = !forward_has_converged && (backward_has_converged || (vSize2(p2 - p1) < vSize2(p0 - p1))); // whether to walk along the p1-p2 direction or in the p1-p0 direction
+    bool walk_forward = !forward_has_converged && (backward_has_converged || (compareVSize2(p2, p0, p1) < 0)); // whether to walk along the p1-p2 direction or in the p1-p0 direction
 
     if (walk_forward)
     {

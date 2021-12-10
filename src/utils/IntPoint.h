@@ -142,6 +142,13 @@ INLINE double vSizeMM(const Point& p0)
     return sqrt(fx*fx+fy*fy);
 }
 
+//! \returns vSize2(a - c) - vSize2(b - c)
+INLINE coord_t compareVSize2(const Point& a, const Point& b, const Point& c)
+{
+    Point ba = a - b;
+    return vSize2(a) + vSize2(b) - 2 * (c.X * ba.X + c.Y * + ba.Y);
+}
+
 INLINE Point normal(const Point& p0, coord_t len)
 {
     coord_t _len = vSize(p0);

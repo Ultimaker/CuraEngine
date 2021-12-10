@@ -740,7 +740,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const Settings& se
                 Point b0 = bridge[0];
                 Point b1 = bridge[1];
 
-                if (vSize2f(cur_point - b1) < vSize2f(cur_point - b0))
+                if (compareVSize2(b0, b1, cur_point) > 0)
                 {
                     // swap vertex order
                     b0 = bridge[1];
@@ -882,7 +882,7 @@ void LayerPlan::addWall(const ExtrusionLine& wall, int start_idx, const Settings
                         Point b0 = bridge[0];
                         Point b1 = bridge[1];
 
-                        if (vSize2f(p0.p - b1) < vSize2f(p0.p - b0))
+                        if (compareVSize2(b0, b1, p0.p) > 0)
                         {
                             // swap vertex order
                             b0 = bridge[1];
