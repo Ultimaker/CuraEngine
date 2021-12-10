@@ -599,7 +599,8 @@ public:
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
         float flow_ratio = 1.0,
-        bool always_retract = false
+        bool always_retract = false,
+        bool alternate_direction_modifier = false
     );
 
     /*!

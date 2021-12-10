@@ -115,13 +115,14 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
         gcode_layer.setIsInside(true); //Going to print walls, which are always inside.
         ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh.settings.get<coord_t>("wall_line_width_0") * 2);
 
+        const bool alternate_direction_modifier = inset % 2 == 0;
         if(bins_with_index_zero_insets.count(inset) > 0) //Print using outer wall config.
         {
-            gcode_layer.addWalls(insets[inset], mesh.settings, inset_0_non_bridge_config, inset_0_bridge_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall);
+            gcode_layer.addWalls(insets[inset], mesh.settings, inset_0_non_bridge_config, inset_0_bridge_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall, alternate_direction_modifier);
         }
         else
         {
-            gcode_layer.addWalls(insets[inset], mesh.settings, inset_X_non_bridge_config, inset_X_bridge_config, z_seam_config, 0, flow, false);
+            gcode_layer.addWalls(insets[inset], mesh.settings, inset_X_non_bridge_config, inset_X_bridge_config, z_seam_config, 0, flow, false, alternate_direction_modifier);
         }
     }
     return added_something;

@@ -1038,7 +1038,8 @@ void LayerPlan::addWalls
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
     float flow_ratio,
-    bool always_retract
+    bool always_retract,
+    bool alternate_direction_modifier
 )
 {
     constexpr bool detect_loops = true;
@@ -1049,7 +1050,7 @@ void LayerPlan::addWalls
     }
 
     cura::Point p_end {0, 0};
-    order_optimizer.optimize(layer_nr % 2 == 0);
+    order_optimizer.optimize(layer_nr % 2 == (alternate_direction_modifier ? 1 : 0));
     for(const PathOrderOptimizer<const LineJunctions*>::Path& path : order_optimizer.paths)
     {
         p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;
