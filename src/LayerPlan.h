@@ -579,8 +579,28 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
      */
-    void addWalls(const Polygons& walls, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
-    void addWalls(const PathJunctions& walls, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config = ZSeamConfig(), coord_t wall_0_wipe_dist = 0, float flow_ratio = 1.0, bool always_retract = false);
+    void addWalls
+    (
+        const Polygons& walls,
+        const Settings& settings,
+        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& bridge_config,
+        const ZSeamConfig& z_seam_config = ZSeamConfig(),
+        coord_t wall_0_wipe_dist = 0,
+        float flow_ratio = 1.0,
+        bool always_retract = false
+    );
+    void addWalls
+    (
+        const PathJunctions& walls,
+        const Settings& settings,
+        const GCodePathConfig& non_bridge_config,
+        const GCodePathConfig& bridge_config,
+        const ZSeamConfig& z_seam_config = ZSeamConfig(),
+        coord_t wall_0_wipe_dist = 0,
+        float flow_ratio = 1.0,
+        bool always_retract = false
+    );
 
     /*!
      * Add lines to the gcode with optimized order.
