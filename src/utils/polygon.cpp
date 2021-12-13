@@ -93,18 +93,18 @@ Polygons Polygons::approxConvexHull(int extra_outset)
 
 void Polygons::makeConvex()
 {
-    for (PolygonRef poly : *this)
+    for(PolygonRef poly : *this)
     {
         Polygon convexified;
-        Point a = poly.back();
-        for (size_t i = 0; i < poly.size(); ++i)
+        Point before = poly.back();
+        for(size_t i = 0; i < poly.size(); ++i)
         {
-            const Point& b = poly[i];
-            const Point& c = poly[(i + 1) % poly.size()];
-            if (LinearAlg2D::pointIsLeftOfLine(b, a, c) < 0)
+            const Point& current = poly[i];
+            const Point& after = poly[(i + 1) % poly.size()];
+            if(LinearAlg2D::pointIsLeftOfLine(current, before, after) < 0)
             {
-                convexified.path->push_back(b);
-                a = b;
+                convexified.path->push_back(current);
+                before = current;
             }
         }
         poly.path->swap(*convexified.path); //Due to vector's implementation, this is constant time.
