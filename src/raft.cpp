@@ -42,7 +42,6 @@ void Raft::generate(SliceDataStorage& storage)
 
     if (settings.get<bool>("raft_is_shrink_plate"))
     {
-        storage.raftOutline = storage.raftOutline.approxConvexHull();
         storage.raftOutline.makeConvex();
     }
 }
