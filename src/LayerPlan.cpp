@@ -1040,7 +1040,7 @@ void LayerPlan::addWalls
     coord_t wall_0_wipe_dist,
     float flow_ratio,
     bool always_retract,
-    bool alternate_direction_modifier
+    bool alternate_inset_direction_modifier
 )
 {
     constexpr bool detect_loops = true;
@@ -1051,7 +1051,9 @@ void LayerPlan::addWalls
     }
 
     cura::Point p_end {0, 0};
-    const bool alternate_walls = settings.get<bool>("material_alternate_walls") && (layer_nr % 2 == (alternate_direction_modifier ? 1 : 0));
+    //When we alternate walls, also alternate the direction at which the first wall starts in.
+    //On even layers we start with normal direction, on odd layers with inverted direction.
+    const bool alternate_walls = settings.get<bool>("material_alternate_walls") && (layer_nr % 2 == (alternate_inset_direction_modifier ? 1 : 0));
     order_optimizer.optimize(alternate_walls);
     for(const PathOrderOptimizer<const LineJunctions*>::Path& path : order_optimizer.paths)
     {

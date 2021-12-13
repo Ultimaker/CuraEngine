@@ -578,6 +578,7 @@ public:
      * \param wall_0_wipe_dist The distance to travel along each wall after it has been laid down, in order to wipe the start and end of the wall together
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
+     * \param alternate_inset_direction_modifier Whether to alternate the direction of the walls for each inset.
      */
     void addWalls
     (
@@ -600,7 +601,7 @@ public:
         coord_t wall_0_wipe_dist = 0,
         float flow_ratio = 1.0,
         bool always_retract = false,
-        bool alternate_direction_modifier = false
+        bool alternate_inset_direction_modifier = false
     );
 
     /*!
