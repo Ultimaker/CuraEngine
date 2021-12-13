@@ -107,10 +107,9 @@ void Polygons::makeConvex()
 
         for(size_t i = (start_index + 1) % poly.size(); i != start_index; i = (i + 1) % poly.size())
         {
-            const Point& before = poly[(start_index + poly.size() - 1) % poly.size()];
             const Point& current = poly[i];
             const Point& after = poly[(i + 1) % poly.size()];
-            if(LinearAlg2D::pointIsLeftOfLine(current, before, after) < 0)
+            if(LinearAlg2D::pointIsLeftOfLine(current, convexified.path->back(), after) < 0)
             {
                 convexified.path->push_back(current);
             }
