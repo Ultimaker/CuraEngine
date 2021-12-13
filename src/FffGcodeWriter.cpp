@@ -689,7 +689,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     coord_t max_deviation = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings.get<coord_t>("meshfix_maximum_deviation");
 
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
-    VariableWidthPaths raft_paths;
     std::optional<Point> last_planned_position = std::optional<Point>();
 
     unsigned int current_extruder_nr = extruder_nr;
@@ -715,16 +714,12 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
-        Polygons wall = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_base_config.getLineWidth() / 2);
-        wall.simplify(max_resolution, max_deviation); //Simplify because of a micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.raft_base_config);
-
         Polygons raftLines;
         double fill_angle = 0;
         constexpr bool zig_zaggify_infill = false;
         constexpr bool connect_polygons = true; // causes less jerks, so better adhesion
 
-        constexpr int wall_line_count = 0;
+        const size_t wall_line_count = train.settings.get<size_t>("raft_base_wall_count");
         const Point& infill_origin = Point();
         constexpr bool connected_zigzags = false;
         constexpr bool use_endpieces = true;
@@ -733,12 +728,21 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr coord_t pocket_size = 0;
 
         Infill infill_comp(
-            EFillMethod::LINES, zig_zaggify_infill, connect_polygons, wall, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train.settings.get<coord_t>("raft_base_line_spacing"),
+            EFillMethod::LINES, zig_zaggify_infill, connect_polygons, storage.raftOutline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train.settings.get<coord_t>("raft_base_line_spacing"),
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
             max_resolution, max_deviation,
             wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
+        VariableWidthPaths raft_paths;
         infill_comp.generate(raft_paths, raft_polygons, raftLines, train.settings);
+        if(!raft_paths.empty())
+        {
+            const BinJunctions binned_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(raft_paths);
+            for (const PathJunctions& wall_junctions : binned_paths)
+            {
+                gcode_layer.addWalls(wall_junctions, train.settings, gcode_layer.configs_storage.raft_base_config, gcode_layer.configs_storage.raft_base_config);
+            }
+        }
         gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
         // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
@@ -798,6 +802,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             max_resolution, max_deviation,
             wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
+        VariableWidthPaths raft_paths; //Should remain empty, since we have no walls.
         infill_comp.generate(raft_paths, raft_polygons, raftLines, train.settings);
         gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
@@ -852,6 +857,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             max_resolution, max_deviation,
             wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
+        VariableWidthPaths raft_paths; //Should remain empty, since we have no walls.
         infill_comp.generate(raft_paths, raft_polygons, raft_lines, train.settings);
         gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
