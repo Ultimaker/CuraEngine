@@ -95,16 +95,24 @@ void Polygons::makeConvex()
 {
     for(PolygonRef poly : *this)
     {
-        Polygon convexified;
-        Point before = poly.back();
-        for(size_t i = 0; i < poly.size(); ++i)
+        if(poly.size() <= 3)
         {
+            continue; //Already convex.
+        }
+        Polygon convexified;
+
+        //Start from a vertex that is known to be on the convex hull: The one with the lowest X.
+        const size_t start_index = std::min_element(poly.begin(), poly.end(), [](Point a, Point b) {return a.X < b.X;}) - poly.begin();
+        convexified.path->push_back(poly[start_index]);
+
+        for(size_t i = (start_index + 1) % poly.size(); i != start_index; i = (i + 1) % poly.size())
+        {
+            const Point& before = poly[(start_index + poly.size() - 1) % poly.size()];
             const Point& current = poly[i];
             const Point& after = poly[(i + 1) % poly.size()];
             if(LinearAlg2D::pointIsLeftOfLine(current, before, after) < 0)
             {
                 convexified.path->push_back(current);
-                before = current;
             }
         }
         poly.path->swap(*convexified.path); //Due to vector's implementation, this is constant time.
