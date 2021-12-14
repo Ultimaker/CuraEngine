@@ -1022,8 +1022,7 @@ void LayerPlan::addWalls
     {
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
-    const bool alternate_walls = settings.get<bool>("material_alternate_walls") && layer_nr % 2 == 0;
-    orderOptimizer.optimize(alternate_walls);
+    orderOptimizer.optimize();
     for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
     {
         addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
