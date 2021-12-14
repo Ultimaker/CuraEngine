@@ -107,15 +107,15 @@ void MeshGroup::finalize()
         }
         mesh.offset(mesh_offset + meshgroup_offset);
     }
-    scaleFromBottom(settings.get<Ratio>("material_shrinkage_percentage")); //Compensate for the shrinkage of the material.
+    scaleFromBottom(settings.get<Ratio>("material_shrinkage_percentage_xy"), settings.get<Ratio>("material_shrinkage_percentage_z")); //Compensate for the shrinkage of the material.
 }
 
-void MeshGroup::scaleFromBottom(const Ratio factor)
+void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
 {
     const Point3 center = (max() + min()) / 2;
     const Point3 origin(center.x, center.y, 0);
 
-    const FMatrix4x3 transformation = FMatrix4x3::scale(factor, origin);
+    const FMatrix4x3 transformation = FMatrix4x3::scale(factor_xy, factor_xy, factor_z, origin);
     for(Mesh& mesh : meshes)
     {
         mesh.transform(transformation);
