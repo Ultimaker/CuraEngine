@@ -1043,17 +1043,18 @@ void LayerPlan::addWalls
 )
 {
     constexpr bool detect_loops = true;
-    PathOrderOptimizer<const LineJunctions*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops);
+    constexpr Polygons* combing_boundary = nullptr;
+    //When we alternate walls, also alternate the direction at which the first wall starts in.
+    //On even layers we start with normal direction, on odd layers with inverted direction.
+    const bool alternate_walls = settings.get<bool>("material_alternate_walls") && (layer_nr % 2 == (alternate_inset_direction_modifier ? 1 : 0));
+    PathOrderOptimizer<const LineJunctions*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, alternate_walls);
     for(const LineJunctions& wall : walls)
     {
         order_optimizer.addPolyline(&wall);
     }
 
     cura::Point p_end {0, 0};
-    //When we alternate walls, also alternate the direction at which the first wall starts in.
-    //On even layers we start with normal direction, on odd layers with inverted direction.
-    const bool alternate_walls = settings.get<bool>("material_alternate_walls") && (layer_nr % 2 == (alternate_inset_direction_modifier ? 1 : 0));
-    order_optimizer.optimize(alternate_walls);
+    order_optimizer.optimize();
     for(const PathOrderOptimizer<const LineJunctions*>::Path& path : order_optimizer.paths)
     {
         p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;

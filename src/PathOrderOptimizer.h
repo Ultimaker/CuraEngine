@@ -146,11 +146,12 @@ public:
      * it into a polygon.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false)
     : start_point(start_point)
     , seam_config(seam_config)
     , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
     , detect_loops(detect_loops)
+    , reverse_direction(reverse_direction)
     {
     }
 
@@ -400,6 +401,14 @@ protected:
      * that is not one of the endpoints of the polyline.
      */
     bool detect_loops;
+
+    /*!
+     * Whether to reverse the ordering completely.
+     *
+     * This reverses the order in which parts are printed, and inverts the
+     * direction of each path as well.
+     */
+    bool reverse_direction;
 
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
