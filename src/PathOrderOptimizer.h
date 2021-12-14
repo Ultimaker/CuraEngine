@@ -11,7 +11,8 @@
 #include "utils/polygonUtils.h"
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
 
-namespace cura {
+namespace cura
+{
 
 /*!
  * Path order optimization class.
@@ -186,18 +187,11 @@ public:
             return;
         }
 
-        const std::function<Point(const Point&)> maybe_mirror =
-            [&mirrored](const Point& p)
-            {
-                return Point{ p.X, p.Y * (mirrored ? -1 : 1) };
-            };
-
         //Get the vertex data and store it in the paths.
         cached_vertices.reserve(paths.size()); //Prevent pointer invalidation.
         for(Path& path : paths)
         {
             path.converted = getVertexData(path.vertices);
-            path.backwards = mirrored;
         }
 
         //If necessary, check polylines to see if they are actually polygons.
@@ -226,13 +220,13 @@ public:
             {
                 for(const Point& point : *path.converted)
                 {
-                    line_bucket_grid.insert(maybe_mirror(point), i); //Store by index so that we can also mark them down in the `picked` vector.
+                    line_bucket_grid.insert(point, i); //Store by index so that we can also mark them down in the `picked` vector.
                 }
             }
             else //For polylines, only insert the endpoints. Those are the only places we can start from so the only relevant vertices to be near to.
             {
-                line_bucket_grid.insert(maybe_mirror(path.converted->front()), i);
-                line_bucket_grid.insert(maybe_mirror(path.converted->back()), i);
+                line_bucket_grid.insert(path.converted->front(), i);
+                line_bucket_grid.insert(path.converted->back(), i);
             }
         }
 
@@ -303,12 +297,12 @@ public:
                 if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
                 {
                     path.start_vertex = findStartLocation(path, current_position);
-                    if(! path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
+                    if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
                     {
-                        path.backwards = path.backwards ? (path.start_vertex == 0) : (path.start_vertex > 0);
+                        path.backwards = path.start_vertex > 0;
                     }
                 }
-                const Point candidate_position = maybe_mirror((*path.converted)[path.start_vertex]);
+                const Point candidate_position = (*path.converted)[path.start_vertex];
                 coord_t distance2 = getDirectDistance(current_position, candidate_position);
                 if(distance2 < best_distance2 && combing_boundary) //If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
                 {
@@ -329,16 +323,38 @@ public:
             {
                 if(best_path.is_closed)
                 {
-                    current_position = maybe_mirror((*best_path.converted)[best_path.start_vertex]); //We end where we started.
+                    current_position = (*best_path.converted)[best_path.start_vertex]; //We end where we started.
                 }
                 else
                 {
                     //Pick the other end from where we started.
-                    current_position = maybe_mirror(best_path.start_vertex == 0 ? best_path.converted->back() : best_path.converted->front());
+                    current_position = best_path.start_vertex == 0 ? best_path.converted->back() : best_path.converted->front();
                 }
             }
         }
-        std::swap(optimized_order, paths); //Apply the optimized order to the output field.
+
+        //Apply the optimized order to the output field. Reverse if ordered to reverse.
+        if(mirrored)
+        {
+            //Reverse-insert the optimized order, to invert the ordering.
+            std::vector<Path> reversed;
+            //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for PathType.
+            reversed.reserve(optimized_order.size());
+            for(auto it = optimized_order.rbegin(); it != optimized_order.rend(); it++)
+            {
+                reversed.push_back(*it);
+                reversed.back().backwards = !reversed.back().backwards;
+                if(!reversed.back().is_closed)
+                {
+                    reversed.back().start_vertex = reversed.back().converted->size() - 1 - reversed.back().start_vertex;
+                }
+            }
+            std::swap(reversed, paths);
+        }
+        else
+        {
+            std::swap(optimized_order, paths);
+        }
         combing_grid.reset();
     }
 
