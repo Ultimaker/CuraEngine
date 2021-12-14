@@ -181,7 +181,7 @@ public:
      * This reorders the \ref paths field and fills their starting vertices and
      * directions.
      */
-    void optimize(bool mirrored = false)
+    void optimize()
     {
         if(paths.empty())
         {
@@ -335,7 +335,7 @@ public:
         }
 
         //Apply the optimized order to the output field. Reverse if ordered to reverse.
-        if(mirrored)
+        if(reverse_direction)
         {
             //Reverse-insert the optimized order, to invert the ordering.
             std::vector<Path> reversed;
