@@ -384,11 +384,11 @@ public:
                 layer_plan.was_inside = true;
                 break;
         }
-        layer_plan.comb_boundary_inside1 = slice_data;
-        layer_plan.comb_boundary_inside2 = slice_data; //We don't care about the combing accuracy itself, so just use the same for both.
+        layer_plan.comb_boundary_minimum = slice_data;
+        layer_plan.comb_boundary_preferred = slice_data; //We don't care about the combing accuracy itself, so just use the same for both.
         if(parameters.combing != "off")
         {
-            layer_plan.comb = new Comb(*storage, /*layer_nr=*/100, layer_plan.comb_boundary_inside1, layer_plan.comb_boundary_inside2, /*comb_boundary_offset=*/20, /*travel_avoid_distance=*/5000, /*comb_move_inside_distance=*/10);
+            layer_plan.comb = new Comb(*storage, /*layer_nr=*/100, layer_plan.comb_boundary_minimum, layer_plan.comb_boundary_preferred, /*comb_boundary_offset=*/20, /*travel_avoid_distance=*/5000, /*comb_move_inside_distance=*/10);
         }
         else
         {

@@ -1,4 +1,6 @@
-/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef GCODE_LAYER_THREADER_H
 #define GCODE_LAYER_THREADER_H
 

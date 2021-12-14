@@ -1,4 +1,6 @@
-/** Copyright (C) 2021 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2021 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_ALGORITHM_H
 #define UTILS_ALGORITHM_H
 

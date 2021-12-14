@@ -31,8 +31,9 @@ public:
     const GCodePathConfig* config; //!< The configuration settings of the path.
     std::string mesh_id; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh ID should be 0.
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
-    Ratio flow; //!< A type-independent flow configuration (used for wall overlap compensation)
+    Ratio flow; //!< A type-independent flow configuration
     Ratio speed_factor; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
+    Ratio speed_back_pressure_factor; // <! The factor the (non-travel) speed should be multiplied with as a consequence of back pressure compensation.
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     bool unretract_before_last_travel_move; //!< Whether the last move of the path should be preceded by an unretraction. Used to unretract in the last travel move before an outer wall
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.

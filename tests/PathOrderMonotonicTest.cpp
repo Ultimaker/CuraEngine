@@ -86,6 +86,7 @@ namespace cura
     constexpr coord_t shift = 0;
     constexpr coord_t max_resolution = 10;
     constexpr coord_t max_deviation = 5;
+
     bool getInfillLines(const std::string& filename, const AngleRadians& angle, Polygons& output)
     {
         std::vector<Polygons> shapes;
@@ -94,7 +95,6 @@ namespace cura
             return false;
         }
 
-        Polygons dummy_polys;
         for (const auto& shape : shapes)
         {
             Infill infill_comp
@@ -103,7 +103,6 @@ namespace cura
                 zig_zagify,
                 connect_polygons,
                 shape,
-                outline_offset,
                 infill_line_width,
                 line_distance,
                 infill_overlap,
@@ -114,7 +113,10 @@ namespace cura
                 max_resolution,
                 max_deviation
             );
-            infill_comp.generate(dummy_polys, output);
+            Settings infill_settings;
+            VariableWidthPaths result_paths;
+            Polygons dummy_polys;
+            infill_comp.generate(result_paths, dummy_polys, output, infill_settings, nullptr, nullptr);
         }
         return true;
     }
@@ -252,15 +254,15 @@ namespace cura
 
     const std::vector<std::string> polygon_filenames =
     {
-        "../tests/resources/polygon_concave.txt",
-        "../tests/resources/polygon_concave_hole.txt",
-        "../tests/resources/polygon_square.txt",
-        "../tests/resources/polygon_square_hole.txt",
-        "../tests/resources/polygon_triangle.txt",
-        "../tests/resources/polygon_two_squares.txt",
-        "../tests/resources/polygon_slant_gap.txt",
-        "../tests/resources/polygon_sawtooth.txt",
-        "../tests/resources/polygon_letter_y.txt"
+        "resources/polygon_concave.txt",
+        "resources/polygon_concave_hole.txt",
+        "resources/polygon_square.txt",
+        "resources/polygon_square_hole.txt",
+        "resources/polygon_triangle.txt",
+        "resources/polygon_two_squares.txt",
+        "resources/polygon_slant_gap.txt",
+        "resources/polygon_sawtooth.txt",
+        "resources/polygon_letter_y.txt"
     };
     const std::vector<AngleRadians> angle_radians =
     {

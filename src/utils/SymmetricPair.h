@@ -1,4 +1,6 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_SYMMETRIC_PAIR
 #define UTILS_SYMMETRIC_PAIR
 

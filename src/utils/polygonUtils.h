@@ -7,7 +7,7 @@
 #include <functional> // function
 #include <limits>
 #include <optional>
-#include <vector>
+#include <memory> // unique_ptr
 
 #include "polygon.h"
 #include "SparsePointGridInclusive.h"
@@ -434,7 +434,7 @@ public:
      * \param square_size The cell size used to bundle line segments (also used to chop up lines so that multiple cells contain the same long line)
      * \return A bucket grid mapping spatial locations to poly-point indices into \p polygons
      */
-    static LocToLineGrid* createLocToLineGrid(const Polygons& polygons, int square_size);
+    static std::unique_ptr<LocToLineGrid> createLocToLineGrid(const Polygons& polygons, int square_size);
 
     /*!
      * Find the line segment closest to a given point \p from within a cell-block of a size defined in the SparsePointGridInclusive \p loc_to_line
@@ -629,6 +629,24 @@ public:
      * and 1.0 (the polygons are completely disjunct).
      */
     static double relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b);
+
+    /*!
+     * Create an approximation of a circle.
+     *
+     * This creates a regular polygon that is supposed to approximate a circle.
+     * \param mid The center of the circle.
+     * \param radius The radius of the circle.
+     * \param a_step The angle between segments of the circle.
+     * \return A new Polygon containing the circle.
+     */
+    static Polygon makeCircle(const Point mid, const coord_t radius, const AngleRadians a_step = M_PI / 8);
+
+    /*!
+     * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
+     */
+    static Polygons connect(const Polygons& input);
+
+    static void fixSelfIntersections(const coord_t epsilon, Polygons& thiss);
 
 private:
     /*!

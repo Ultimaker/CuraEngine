@@ -21,7 +21,10 @@
 #include "utils/polygon.h"
 #include "WipeScriptConfig.h"
 
-namespace cura 
+// libArachne
+#include "utils/ExtrusionLine.h"
+
+namespace cura
 {
 
 class Mesh;
@@ -36,15 +39,13 @@ class LightningGenerator;
 class SkinPart
 {
 public:
-    PolygonsPart outline;           //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module.
-    std::vector<Polygons> insets;   //!< The skin can have perimeters so that the skin lines always start at a perimeter instead of in the middle of an infill cell.
-    Polygons perimeter_gaps; //!< The gaps between the extra skin walls and gaps between the outer skin wall and the inner part inset
-    Polygons inner_infill; //!< The inner infill of the skin with which the area within the innermost inset is filled
+    PolygonsPart outline;           //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both roofing and non-roofing.
+    VariableWidthPaths inset_paths;       //!< The insets represented as variable line-width paths. The insets are also known as perimeters or the walls.
+    Polygons skin_fill; //!< The part of the skin which is not roofing.
     Polygons roofing_fill; //!< The inner infill which has air directly above
     Polygons top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
     Polygons bottom_most_surface_fill; //!< The inner infill of the bottommost bottom layer which has air directly below.
 };
-
 
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
@@ -54,13 +55,19 @@ public:
 class SliceLayerPart
 {
 public:
-    AABB boundaryBox;       //!< The boundaryBox is an axis-aligned bounardy box which is used to quickly check for possible collision between different parts on different layers. It's an optimalization used during skin calculations.
-    PolygonsPart outline;       //!< The outline is the first member that is filled, and it's filled with polygons that match a cross section of the 3D model. The first polygon is the outer boundary polygon and the rest are holes.
-    Polygons print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall. Too small parts will be omitted compared to the outline.
-    std::vector<Polygons> insets;         //!< The insets are generated with. The insets are also known as perimeters or the walls.
-    Polygons perimeter_gaps; //!< The gaps between consecutive walls and between the inner wall and outer skin inset
-    Polygons outline_gaps; //!< The gaps between the outline of the mesh and the first wall. a.k.a. thin walls.
-    std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
+    AABB boundaryBox; //!< The boundaryBox is an axis-aligned boundary box which is used to quickly check for possible
+                      //!< collision between different parts on different layers. It's an optimization used during
+                      //!< skin calculations.
+    PolygonsPart outline; //!< The outline is the first member that is filled, and it's filled with polygons that match
+                          //!< a cross-section of the 3D model. The first polygon is the outer boundary polygon and the
+                          //!< rest are holes.
+    Polygons print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
+                            //!< Too small parts will be omitted compared to the outline.
+    Polygons spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
+    Polygons inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
+    std::vector<SkinPart> skin_parts;  //!< The skin parts which are filled for 100% with lines and/or insets.
+    VariableWidthPaths wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets
+    VariableWidthPaths infill_wall_toolpaths; //!< toolpaths for the infill area's
 
     /*!
      * The areas inside of the mesh.
@@ -73,9 +80,9 @@ public:
      * The areas which need to be filled with sparse (0-99%) infill.
      * Like SliceLayerPart::outline, this class member is not used to actually determine the feature area,
      * but is used to compute the infill_area_per_combine_per_density.
-     * 
+     *
      * These polygons may be cleared once they have been used to generate gradual infill and/or infill combine.
-     * 
+     *
      * If these polygons are not initialized, simply use the normal infill area.
      */
     std::optional<Polygons> infill_area_own;
@@ -140,6 +147,13 @@ public:
      * \return the own infill area
      */
     const Polygons& getOwnInfillArea() const;
+
+    /*!
+     * Searches whether the part has any walls in the specified inset index
+     * \param inset_idx The index of the wall
+     * \return true if there is at least one ExtrusionLine at the specified wall index, false otherwise
+     */
+    bool hasWallAtInsetIndex(size_t inset_idx) const;
 };
 
 /*!
@@ -152,8 +166,6 @@ public:
     coord_t thickness;  //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
-    mutable std::map<size_t, Polygons> innermost_walls_cache; //!< Cache for the in some cases computationaly expensive calculations in 'getInnermostWalls'.
-        // ^^^^ NOTE: Caching function-results like this, when they don't change but are expensive to calculate, is generally considered one of the few 'acceptable uses' of the 'mutable' keyword.
 
     /*!
      * \brief The parts of the model that are exposed at the very top of the
@@ -179,14 +191,6 @@ public:
      * \param result The result: a collection of all the outline polygons
      */
     void getOutlines(Polygons& result, bool external_polys_only = false) const;
-
-    /*!
-     * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
-     * \result The collection of all polygons thus obtained.
-     * \param max_inset If <= 1, use (up to) the 1st inner wall, if >= 2, use the 2nd inner wall.
-     * \param mesh Pass mesh to let the function have access to wall-line-width settings.
-     */
-    Polygons& getInnermostWalls(const size_t max_inset, const SliceMeshStorage& mesh) const;
 
     ~SliceLayer();
 };

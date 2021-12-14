@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_LINEAR_ALG_2D_H
@@ -128,7 +128,7 @@ public:
     }
 
     /*!
-    * Find the point closest to \p from on the line from \p p0 to \p p1
+    * Find the point closest to \p from on the line segment from \p p0 to \p p1
     */
     static Point getClosestOnLineSegment(const Point& from, const Point& p0, const Point& p1)
     {
@@ -161,6 +161,20 @@ public:
             //vSize(direction) * vSize(direction) == vSize2(direction) == x_p1.
             return p0 + projected_x * direction / x_p1;
         }
+    }
+
+    /*!
+    * Find the point closest to \p from on the line through \p p0 to \p p1
+    */
+    static Point getClosestOnLine(const Point& from, const Point& p0, const Point& p1)
+    {
+        if (p1 == p0) { return p0; }
+
+        const Point direction = p1 - p0;
+        const Point to_from = from - p0;
+        const coord_t projected_x = dot(to_from, direction);
+        Point ret = p0 + projected_x / vSize(direction) * direction  / vSize(direction);
+        return ret;
     }
 
     /*!
@@ -402,6 +416,15 @@ public:
         Point3Matrix rotation_matrix_homogeneous(rotation_matrix);
         return Point3Matrix::translate(middle).compose(rotation_matrix_homogeneous).compose(Point3Matrix::translate(-middle));
     }
+
+    /*!
+     * Test whether a point is inside a corner.
+     * Whether point \p query_point is left of the corner abc.
+     * Whether the \p query_point is in the circle half left of ab and left of bc, rather than to the right.
+     * 
+     * Test whether the \p query_point is inside of a polygon w.r.t a single corner.
+     */
+    static bool isInsideCorner(const Point a, const Point b, const Point c, const Point query_point);
 };
 
 
