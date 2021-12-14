@@ -102,7 +102,7 @@ void Polygons::makeConvex()
         Polygon convexified;
 
         //Start from a vertex that is known to be on the convex hull: The one with the lowest X.
-        const size_t start_index = std::min_element(poly.begin(), poly.end(), [](Point a, Point b) {return a.X < b.X;}) - poly.begin();
+        const size_t start_index = std::min_element(poly.begin(), poly.end(), [](Point a, Point b) { return a.X == b.X ? a.Y < b.Y : a.X < b.X; }) - poly.begin();
         convexified.path->push_back(poly[start_index]);
 
         for(size_t i = (start_index + 1) % poly.size(); i != start_index; i = (i + 1) % poly.size())
