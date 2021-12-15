@@ -83,12 +83,11 @@ const Polygons& TreeModelVolumes::calculateCollision(const RadiusLayerPair& key)
     const auto& radius = key.first;
     const auto& layer_idx = key.second;
 
-    auto collision_areas = machine_border_;
-    if (layer_idx < static_cast<int>(layer_outlines_.size()))
+    Polygons collision_areas = machine_border_;
+    if(layer_idx < static_cast<int>(layer_outlines_.size()))
     {
-        collision_areas = collision_areas.unionPolygons(layer_outlines_[layer_idx]);
+        collision_areas = collision_areas.unionPolygons(layer_outlines_[layer_idx].offset(xy_distance_ + radius, ClipperLib::JoinType::jtRound));
     }
-    collision_areas = collision_areas.offset(xy_distance_ + radius, ClipperLib::JoinType::jtRound);
     const auto ret = collision_cache_.insert({key, std::move(collision_areas)});
     assert(ret.second);
     return ret.first->second;
