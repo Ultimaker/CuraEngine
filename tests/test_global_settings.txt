@@ -503,3 +503,5 @@ support_interface_height=1
 raft_interface_thickness=0.30000000000000004
 retraction_hop_only_when_collides=True
 ironing_flow=10.0
+material_shrinkage_percentage_z=100
+material_shrinkage_percentage_xy=100
