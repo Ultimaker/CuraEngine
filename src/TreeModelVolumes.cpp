@@ -94,9 +94,12 @@ const Polygons& TreeModelVolumes::calculateCollision(const RadiusLayerPair& key)
         else if(layer_idx + z_distance_layers < static_cast<LayerIndex>(layer_outlines_.size()))
         {
             //If Z overrides X/Y, use X/Y distance if the surface is vertical, or Min X/Y distance if not.
-            Polygons z_influenced = layer_outlines_[layer_idx + z_distance_layers].difference(layer_outlines_[layer_idx]); //In-between layers are ignored for performance.
+            Polygons z_influenced = layer_outlines_[layer_idx + z_distance_layers].difference(layer_outlines_[layer_idx]).offset(xy_distance_); //In-between layers are ignored for performance.
             Polygons collision_not_overhang = layer_outlines_[layer_idx].offset(xy_distance_); //In places where there is no overhang nearby, use the normal X/Y distance.
-            collision_not_overhang = collision_not_overhang.difference(z_influenced);
+            if(!z_influenced.empty())
+            {
+                collision_not_overhang = collision_not_overhang.difference(z_influenced);
+            }
             Polygons collision_model = collision_not_overhang.unionPolygons(layer_outlines_[layer_idx].offset(xy_distance_overhang)); //Apply the minimum distance everywhere else.
             collision_areas = collision_areas.unionPolygons(collision_model.offset(radius));
         }
