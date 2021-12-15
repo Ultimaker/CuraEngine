@@ -491,17 +491,17 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
     constexpr double rotate_angle = 22.0 / 180.0 * M_PI;
     const Point bounding_box_size = bounding_box.max - bounding_box.min;
 
-    // Store centre of AABB so we can relocate the generated points
-    const auto centre = bounding_box.getMiddle();
-    const auto sin_angle = std::sin(rotate_angle);
-    const auto cos_angle = std::cos(rotate_angle);
+    // Store center of AABB so we can relocate the generated points
+    const Point center = bounding_box.getMiddle();
+    const double sin_angle = std::sin(rotate_angle);
+    const double cos_angle = std::cos(rotate_angle);
     // Calculate the dimensions of the AABB of the mesh AABB after being rotated
     // by `rotate_angle`. Halve the dimensions since we'll be using it as a +-
     // offset from the centre of `bounding_box`.
     // This formulation will only work with rotation angles <90 degrees. If the
     // rotation angle becomes a user-configurable value then this will need to
     // be changed
-    const auto rotated_dims = Point(
+    const Point rotated_dims = Point(
         bounding_box_size.X * cos_angle + bounding_box_size.Y * sin_angle,
         bounding_box_size.X * sin_angle + bounding_box_size.Y * cos_angle) / 2;
 
@@ -510,9 +510,9 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
     {
         for (auto y = -rotated_dims.Y; y <= rotated_dims.Y; y += point_spread)
         {
-            // Construct a point as an offset from the mesh AABB centre, rotated
-            // about the mesh AABB centre
-            const auto pt = rotate(Point(x, y), rotate_angle) + centre;
+            // Construct a point as an offset from the mesh AABB center, rotated
+            // about the mesh AABB center
+            const Point pt = rotate(Point(x, y), rotate_angle) + center;
             // Only add to grid points if we have a chance to collide with the
             // mesh
             if (bounding_box.contains(pt))
