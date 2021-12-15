@@ -1004,7 +1004,17 @@ void LayerPlan::addInfillWall(const LineJunctions& wall, const GCodePathConfig& 
     }
 }
 
-void LayerPlan::addWalls(const Polygons& walls, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWalls
+(
+    const Polygons& walls,
+    const Settings& settings,
+    const GCodePathConfig& non_bridge_config,
+    const GCodePathConfig& bridge_config,
+    const ZSeamConfig& z_seam_config,
+    coord_t wall_0_wipe_dist,
+    float flow_ratio,
+    bool always_retract
+)
 {
     //TODO: Deprecated in favor of ExtrusionJunction version below.
     PathOrderOptimizer<ConstPolygonRef> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
@@ -1019,10 +1029,25 @@ void LayerPlan::addWalls(const Polygons& walls, const Settings& settings, const 
     }
 }
 
-void LayerPlan::addWalls(const PathJunctions& walls, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, const ZSeamConfig& z_seam_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract)
+void LayerPlan::addWalls
+(
+    const PathJunctions& walls,
+    const Settings& settings,
+    const GCodePathConfig& non_bridge_config,
+    const GCodePathConfig& bridge_config,
+    const ZSeamConfig& z_seam_config,
+    coord_t wall_0_wipe_dist,
+    float flow_ratio,
+    bool always_retract,
+    bool alternate_inset_direction_modifier
+)
 {
     constexpr bool detect_loops = true;
-    PathOrderOptimizer<const LineJunctions*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops);
+    constexpr Polygons* combing_boundary = nullptr;
+    //When we alternate walls, also alternate the direction at which the first wall starts in.
+    //On even layers we start with normal direction, on odd layers with inverted direction.
+    const bool alternate_walls = settings.get<bool>("material_alternate_walls") && (layer_nr % 2 == (alternate_inset_direction_modifier ? 1 : 0));
+    PathOrderOptimizer<const LineJunctions*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, alternate_walls);
     for(const LineJunctions& wall : walls)
     {
         order_optimizer.addPolyline(&wall);

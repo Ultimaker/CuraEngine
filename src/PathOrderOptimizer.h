@@ -11,7 +11,8 @@
 #include "utils/polygonUtils.h"
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
 
-namespace cura {
+namespace cura
+{
 
 /*!
  * Path order optimization class.
@@ -145,11 +146,12 @@ public:
      * it into a polygon.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false)
     : start_point(start_point)
     , seam_config(seam_config)
     , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
     , detect_loops(detect_loops)
+    , reverse_direction(reverse_direction)
     {
     }
 
@@ -296,12 +298,12 @@ public:
                 if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
                 {
                     path.start_vertex = findStartLocation(path, current_position);
-                    if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they are backwards if they start at N-1.
+                    if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
                     {
                         path.backwards = path.start_vertex > 0;
                     }
                 }
-                const Point& candidate_position = (*path.converted)[path.start_vertex];
+                const Point candidate_position = (*path.converted)[path.start_vertex];
                 coord_t distance2 = getDirectDistance(current_position, candidate_position);
                 if(distance2 < best_distance2 && combing_boundary) //If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
                 {
@@ -331,7 +333,29 @@ public:
                 }
             }
         }
-        std::swap(optimized_order, paths); //Apply the optimized order to the output field.
+
+        //Apply the optimized order to the output field. Reverse if ordered to reverse.
+        if(reverse_direction)
+        {
+            //Reverse-insert the optimized order, to invert the ordering.
+            std::vector<Path> reversed;
+            //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for PathType.
+            reversed.reserve(optimized_order.size());
+            for(auto it = optimized_order.rbegin(); it != optimized_order.rend(); it++)
+            {
+                reversed.push_back(*it);
+                reversed.back().backwards = !reversed.back().backwards;
+                if(!reversed.back().is_closed)
+                {
+                    reversed.back().start_vertex = reversed.back().converted->size() - 1 - reversed.back().start_vertex;
+                }
+            }
+            std::swap(reversed, paths);
+        }
+        else
+        {
+            std::swap(optimized_order, paths);
+        }
         combing_grid.reset();
     }
 
@@ -377,6 +401,14 @@ protected:
      * that is not one of the endpoints of the polyline.
      */
     bool detect_loops;
+
+    /*!
+     * Whether to reverse the ordering completely.
+     *
+     * This reverses the order in which parts are printed, and inverts the
+     * direction of each path as well.
+     */
+    bool reverse_direction;
 
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
