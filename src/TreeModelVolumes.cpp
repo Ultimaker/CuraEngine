@@ -10,11 +10,14 @@ namespace cura
 TreeModelVolumes::TreeModelVolumes(const SliceDataStorage& storage, const Settings& settings)
     : machine_border_(calculateMachineBorderCollision(storage.getMachineBorder()))
     , xy_distance_(settings.get<coord_t>("support_xy_distance"))
+    , xy_distance_overhang(settings.get<coord_t>("support_xy_distance_overhang"))
+    , distance_priority(settings.get<SupportDistPriority>("support_xy_overrides_z"))
     , radius_sample_resolution_(settings.get<coord_t>("support_tree_collision_resolution"))
 {
     const coord_t layer_height = settings.get<coord_t>("layer_height");
     const AngleRadians angle = settings.get<AngleRadians>("support_tree_angle");
     max_move_ = (angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
+    z_distance_layers = round_up_divide(settings.get<coord_t>("support_top_distance"), layer_height) + 1;
     for (std::size_t layer_idx  = 0; layer_idx < storage.support.supportLayers.size(); ++layer_idx)
     {
         constexpr bool include_support = false;

@@ -6,6 +6,7 @@
 
 #include <unordered_map>
 
+#include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
 #include "utils/polygon.h" //For polygon parameters.
 
@@ -140,6 +141,27 @@ private:
      * \brief The required clearance between the model and the tree branches
      */
     coord_t xy_distance_;
+
+    /*!
+     * The minimum X/Y distance between the model and the tree branches.
+     *
+     * Used only if the Z distance overrides the X/Y distance and in places that
+     * are near the surface where the Z distance applies.
+     */
+    coord_t xy_distance_overhang;
+
+    /*!
+     * The number of layers of spacing to hold as Z distance.
+     *
+     * This determines where the overhang X/Y distance is used, if the Z
+     * distance overrides the X/Y distance.
+     */
+    int z_distance_layers;
+
+    /*!
+     * The priority of X/Y distance over Z distance.
+     */
+    SupportDistPriority distance_priority;
 
     /*!
      * \brief The maximum distance that the centrepoint of a tree branch may
