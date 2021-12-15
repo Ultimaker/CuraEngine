@@ -555,7 +555,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
             {
                 if (overhang_bounds.contains(candidate))
                 {
-                    constexpr coord_t distance_inside = 0; //Move point towards the border of the polygon if it is closer than half the overhang distance: Catch points that fall between overhang areas on constant surfaces.
+                    constexpr coord_t distance_inside = 1; //Move point towards the border of the polygon if it is closer than half the overhang distance: Catch points that fall between overhang areas on constant surfaces.
                     PolygonUtils::moveInside(overhang_part, candidate, distance_inside, half_overhang_distance * half_overhang_distance);
                     constexpr bool border_is_inside = true;
                     if (overhang_part.inside(candidate, border_is_inside) && !volumes_.getCollision(0, layer_nr).inside(candidate, border_is_inside))
