@@ -93,11 +93,11 @@ public:
 
     void writeAreas(ConstPolygonRef polygon, ColorObject color = Color::GRAY, ColorObject outline_color = Color::BLACK, float stroke_width = 1);
 
-    void writePoint(const Point& p, bool write_coords=false, int size = 5, ColorObject color = Color::BLACK);
+    void writePoint(const Point& p, bool write_coords=false, float size = 5, ColorObject color = Color::BLACK);
 
-    void writePoints(ConstPolygonRef poly, bool write_coords=false, int size = 5, ColorObject color = Color::BLACK);
+    void writePoints(ConstPolygonRef poly, bool write_coords=false, float size = 5, ColorObject color = Color::BLACK);
 
-    void writePoints(Polygons& polygons, bool write_coords=false, int size = 5, ColorObject color = Color::BLACK);
+    void writePoints(Polygons& polygons, bool write_coords=false, float size = 5, ColorObject color = Color::BLACK);
 
     /*!
      * \brief Draws a polyline on the canvas.
