@@ -89,7 +89,7 @@ const Polygons& TreeModelVolumes::calculateCollision(const RadiusLayerPair& key)
         if(distance_priority == SupportDistPriority::XY_OVERRIDES_Z)
         {
             //If X/Y overrides Z, simply use the X/Y distance as distance to keep away from the model.
-            collision_areas = collision_areas.unionPolygons(layer_outlines_[layer_idx].offset(xy_distance_ + radius, ClipperLib::JoinType::jtRound));
+            collision_areas = collision_areas.unionPolygons(layer_outlines_[layer_idx].offset(xy_distance_ + radius));
         }
         else if(layer_idx + z_distance_layers < static_cast<LayerIndex>(layer_outlines_.size()))
         {
