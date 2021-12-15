@@ -14,6 +14,7 @@ namespace cura
 
 class SliceDataStorage;
 class LayerIndex;
+class Settings;
 
 /*!
  * \brief Lazily generates tree guidance volumes.
@@ -29,14 +30,14 @@ public:
      *
      * \param storage The slice data storage object to extract the model
      * contours from.
+     * \param settings The settings object to get relevant settings from.
      * \param xy_distance The required clearance between the model and the
      * tree branches.
      * \param max_move The maximum allowable movement between nodes on
      * adjacent layers
      * \param radius_sample_resolution Sample size used to round requested node radii.
      */
-    TreeModelVolumes(const SliceDataStorage& storage, coord_t xy_distance, coord_t max_move,
-                     coord_t radius_sample_resolution);
+    TreeModelVolumes(const SliceDataStorage& storage, const Settings& settings);
 
     TreeModelVolumes(TreeModelVolumes&& original) = default;
     TreeModelVolumes& operator=(TreeModelVolumes&& original) = default;

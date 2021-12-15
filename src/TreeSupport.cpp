@@ -34,15 +34,7 @@ namespace cura
 TreeSupport::TreeSupport(const SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-
-    const coord_t xy_distance = mesh_group_settings.get<coord_t>("support_xy_distance");
-    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
-    const AngleRadians angle = mesh_group_settings.get<AngleRadians>("support_tree_angle");
-    const coord_t maximum_move_distance
-        = (angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
-    const coord_t radius_sample_resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
-
-    volumes_ = TreeModelVolumes(storage, xy_distance, maximum_move_distance, radius_sample_resolution);
+    volumes_ = TreeModelVolumes(storage, mesh_group_settings);
 }
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)

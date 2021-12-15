@@ -7,13 +7,14 @@
 namespace cura
 {
 
-TreeModelVolumes::TreeModelVolumes(const SliceDataStorage& storage, coord_t xy_distance, coord_t max_move,
-                           coord_t radius_sample_resolution) :
-    machine_border_{calculateMachineBorderCollision(storage.getMachineBorder())},
-    xy_distance_{xy_distance},
-    max_move_{max_move},
-    radius_sample_resolution_{radius_sample_resolution}
+TreeModelVolumes::TreeModelVolumes(const SliceDataStorage& storage, const Settings& settings)
+    : machine_border_(calculateMachineBorderCollision(storage.getMachineBorder()))
+    , xy_distance_(settings.get<coord_t>("support_xy_distance"))
+    , radius_sample_resolution_(settings.get<coord_t>("support_tree_collision_resolution"))
 {
+    const coord_t layer_height = settings.get<coord_t>("layer_height");
+    const AngleRadians angle = settings.get<AngleRadians>("support_tree_angle");
+    max_move_ = (angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
     for (std::size_t layer_idx  = 0; layer_idx < storage.support.supportLayers.size(); ++layer_idx)
     {
         constexpr bool include_support = false;
