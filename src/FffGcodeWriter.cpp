@@ -812,7 +812,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     
     coord_t layer_height = train.settings.get<coord_t>("raft_surface_thickness");
 
-    for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= train.settings.get<size_t>("raft_surface_layers"); raft_surface_layer++)
+    const size_t num_surface_layers = train.settings.get<size_t>("raft_surface_layers");
+    for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= num_surface_layers; raft_surface_layer++)
     { // raft surface layers
         const LayerIndex layer_nr = initial_raft_layer_nr + 2 + raft_surface_layer - 1; // 2: 1 base layer, 1 interface layer
         z += layer_height;
@@ -839,7 +840,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         raft_outline_path.simplify(); //Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
         Polygons raft_lines;
-        AngleDegrees fill_angle = 90 * raft_surface_layer;
+        AngleDegrees fill_angle = (num_surface_layers - raft_surface_layer) % 2 ? 45 : 135; //Alternate between -45 and +45 degrees, ending up 90 degrees rotated from the default skin angle.
         constexpr bool zig_zaggify_infill = true;
 
         constexpr size_t wall_line_count = 0;
