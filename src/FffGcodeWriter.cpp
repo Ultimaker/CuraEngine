@@ -2638,6 +2638,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
             gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
 
+            const bool alternate_layer_print_direction = gcode_layer.getLayerNr() % 2 == 1;
+
             if (! wall_toolpaths.empty())
             {
                 const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths);
@@ -2661,8 +2663,17 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             if (!support_lines.empty())
             {
+                const bool enable_travel_optimization = false;
+                const coord_t wipe_dist = 0;
+                const Ratio flow_ratio = 1.0;
+                const std::optional<Point> near_start_location = std::optional<Point>();
+                const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+                const bool reverse_print_direction = infill_extruder.settings.get<bool>("material_alternate_walls") && alternate_layer_print_direction;
+
                 gcode_layer.addLinesByOptimizer(support_lines, gcode_layer.configs_storage.support_infill_config[combine_idx],
-                                                (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+                                                (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines,
+                                                enable_travel_optimization, wipe_dist, flow_ratio, near_start_location, fan_speed, reverse_print_direction);
+
                 added_something = true;
             }
         }
