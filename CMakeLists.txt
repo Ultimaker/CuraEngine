@@ -169,6 +169,7 @@ set(engine_SRCS # Except main.cpp.
     src/support.cpp
     src/timeEstimate.cpp
     src/TopSurface.cpp
+    src/TreeModelVolumes.cpp
     src/TreeSupport.cpp
     src/WallsComputation.cpp
     src/wallOverlap.cpp
