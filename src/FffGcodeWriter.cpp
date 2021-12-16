@@ -680,6 +680,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     coord_t z = 0;
     const LayerIndex initial_raft_layer_nr = -Raft::getTotalExtraLayers();
+    const size_t num_surface_layers = train.settings.get<size_t>("raft_surface_layers");
 
     // some infill config for all lines infill generation below
     constexpr double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
@@ -715,7 +716,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
         Polygons raftLines;
-        double fill_angle = 0;
+        AngleDegrees fill_angle = (num_surface_layers + 1) % 2 ? 45 : 135; //90 degrees rotated from the interface layer.
         constexpr bool zig_zaggify_infill = false;
         constexpr bool connect_polygons = true; // causes less jerks, so better adhesion
 
@@ -784,7 +785,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         raft_outline_path.simplify(); //Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
         Polygons raftLines;
-        AngleDegrees fill_angle = train.settings.get<size_t>("raft_surface_layers") > 0 ? 45 : 90;
+        AngleDegrees fill_angle = num_surface_layers % 2 ? 45 : 135; //90 degrees rotated from the first top layer.
         constexpr bool zig_zaggify_infill = true;
         constexpr bool connect_polygons = true; // why not?
 
@@ -812,7 +813,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     
     coord_t layer_height = train.settings.get<coord_t>("raft_surface_thickness");
 
-    const size_t num_surface_layers = train.settings.get<size_t>("raft_surface_layers");
     for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= num_surface_layers; raft_surface_layer++)
     { // raft surface layers
         const LayerIndex layer_nr = initial_raft_layer_nr + 2 + raft_surface_layer - 1; // 2: 1 base layer, 1 interface layer
