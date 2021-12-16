@@ -2657,7 +2657,17 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx]);
+
+                const ZSeamConfig& z_seam_config = ZSeamConfig();
+                const coord_t wall_0_wipe_dist = 0;
+                const bool spiralize = false;
+                const Ratio flow_ratio = 1.0_r;
+                const bool always_retract = false;
+                const bool reverse_order = infill_extruder.settings.get<bool>("material_alternate_walls") && alternate_layer_print_direction;
+                const std::optional<Point> start_near_location = std::optional<Point>();
+
+                gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx],
+                       z_seam_config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_order, start_near_location);
                 added_something = true;
             }
 
