@@ -2642,12 +2642,18 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             if (! wall_toolpaths.empty())
             {
+                bool alternate_inset_print_direction = false;
                 const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths);
                 for (const PathJunctions& paths : bins)
                 {
                     for (const LineJunctions& line : paths)
                     {
-                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[0], false);
+                        const bool reverse_order = infill_extruder.settings.get<bool>("material_alternate_walls") &&
+                                (alternate_layer_print_direction ^ alternate_inset_print_direction); // XOR as reversing a path two times is the same as not reversing at all
+                        // TODO actually reverse the infill walls
+                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[0],
+                                                      false);
+                        alternate_inset_print_direction = !alternate_inset_print_direction;
                     }
                 }
                 added_something = true;
