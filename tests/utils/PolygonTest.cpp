@@ -664,4 +664,138 @@ TEST_F(PolygonTest, simplifyToDegenerate)
     EXPECT_NE(d.size(), 2);
 }
 
+/*
+ * The convex hull of a cube should still be a cube
+ */
+TEST_F(PolygonTest, convexTestCube)
+{
+    Polygons d_polygons;
+    PolygonRef d = d_polygons.newPoly();
+    d.add(Point(0, 0));
+    d.add(Point(10, 0));
+    d.add(Point(10, 10));
+    d.add(Point(0, 10));
+
+    d_polygons.makeConvex();
+
+    EXPECT_EQ(d.size(), 4);
+    EXPECT_EQ(d[0], Point(0, 0));
+    EXPECT_EQ(d[1], Point(10, 0));
+    EXPECT_EQ(d[2], Point(10, 10));
+    EXPECT_EQ(d[3], Point(0, 10));
+}
+
+/*
+ * The convex hull of a star should remove the inner points of the star
+ */
+TEST_F(PolygonTest, convexHullStar)
+{
+    Polygons d_polygons;
+    PolygonRef d = d_polygons.newPoly();
+
+    const int num_points = 10;
+    const int outer_radius = 20;
+    const int inner_radius = 10;
+    const double angle_step = M_PI * 2.0 / num_points;
+    for (int i = 0; i < num_points; ++ i)
+    {
+        coord_t x_outer = -std::cos(angle_step * i) * outer_radius;
+        coord_t y_outer = -std::sin(angle_step * i) * outer_radius;
+        d.add(Point(x_outer, y_outer));
+
+        coord_t x_inner = -std::cos(angle_step * (i + 0.5)) * inner_radius;
+        coord_t y_inner = -std::sin(angle_step * (i + 0.5)) * inner_radius;
+        d.add(Point(x_inner, y_inner));
+    }
+
+    d_polygons.makeConvex();
+
+    EXPECT_EQ(d.size(), num_points);
+    for (int i = 0; i < num_points; ++ i)
+    {
+        double angle = angle_step * i;
+        coord_t x = -std::cos(angle) * outer_radius;
+        coord_t y = -std::sin(angle) * outer_radius;
+        EXPECT_EQ(d[i], Point(x, y));
+    }
+}
+
+/*
+ * Multiple min-x points
+ * the convex hull the point with minimal x value. if there are multiple it might go wrong
+ */
+TEST_F(PolygonTest, convexHullMultipleMinX)
+{
+    Polygons d_polygons;
+    PolygonRef d = d_polygons.newPoly();
+    d.add(Point(0, 0));
+    d.add(Point(0, -10));
+    d.add(Point(10, 0));
+    d.add(Point(0, 10));
+
+    /*
+     *   x\                          x\
+     *   | \                        | \
+     *   x  x    should result in   |  x
+     *   | /                        | /
+     *   x/                         x/
+     *
+     */
+
+    d_polygons.makeConvex();
+
+    EXPECT_EQ(d.size(), 3);
+}
+
+/*
+ * The convex hull should remove collinear points
+ */
+TEST_F(PolygonTest, convexTestCubeColinear)
+{
+    Polygons d_polygons;
+    PolygonRef d = d_polygons.newPoly();
+    d.add(Point(0, 0));
+    d.add(Point(5, 0));
+    d.add(Point(10, 0));
+    d.add(Point(10, 5));
+    d.add(Point(10, 10));
+    d.add(Point(5, 10));
+    d.add(Point(0, 10));
+    d.add(Point(0, 5));
+
+    d_polygons.makeConvex();
+
+    EXPECT_EQ(d.size(), 4);
+    EXPECT_EQ(d[0], Point(0, 0));
+    EXPECT_EQ(d[1], Point(10, 0));
+    EXPECT_EQ(d[2], Point(10, 10));
+    EXPECT_EQ(d[3], Point(0, 10));
+}
+
+
+/*
+ * The convex hull should remove duplicate points
+ */
+TEST_F(PolygonTest, convexHullRemoveDuplicatePoints)
+{
+    Polygons d_polygons;
+    PolygonRef d = d_polygons.newPoly();
+    d.add(Point(0, 0));
+    d.add(Point(0, 0));
+    d.add(Point(10, 0));
+    d.add(Point(10, 0));
+    d.add(Point(10, 10));
+    d.add(Point(10, 10));
+    d.add(Point(0, 10));
+    d.add(Point(0, 10));
+
+    d_polygons.makeConvex();
+
+    EXPECT_EQ(d.size(), 4);
+    EXPECT_EQ(d[0], Point(0, 0));
+    EXPECT_EQ(d[1], Point(10, 0));
+    EXPECT_EQ(d[2], Point(10, 10));
+    EXPECT_EQ(d[3], Point(0, 10));
+}
+
 }

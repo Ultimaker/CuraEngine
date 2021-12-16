@@ -93,20 +93,32 @@ Polygons Polygons::approxConvexHull(int extra_outset)
 
 void Polygons::makeConvex()
 {
-    for (PolygonRef poly : *this)
+    for(PolygonRef poly : *this)
     {
-        Polygon convexified;
-        Point a = poly.back();
-        for (size_t i = 0; i < poly.size(); ++i)
+        if(poly.size() <= 3)
         {
-            const Point& b = poly[i];
-            const Point& c = poly[(i + 1) % poly.size()];
-            if (LinearAlg2D::pointIsLeftOfLine(b, a, c) < 0)
-            {
-                convexified.path->push_back(b);
-                a = b;
-            }
+            continue; //Already convex.
         }
+        Polygon convexified;
+
+        //Start from a vertex that is known to be on the convex hull: The one with the lowest X.
+        const size_t start_index = std::min_element(poly.begin(), poly.end(), [](Point a, Point b) { return a.X == b.X ? a.Y < b.Y : a.X < b.X; }) - poly.begin();
+        convexified.path->push_back(poly[start_index]);
+
+        for(size_t i = 1; i <= poly.size(); ++ i)
+        {
+            const Point& current = poly[(start_index + i) % poly.size()];
+
+            //Track backwards to make sure we haven't been in a concave pocket for multiple vertices already.
+            while(convexified.size() >= 2 && LinearAlg2D::pointIsLeftOfLine(convexified.path->back(), (*convexified.path)[convexified.size() - 2], current) >= 0)
+            {
+                convexified.path->pop_back();
+            }
+            convexified.path->push_back(current);
+        }
+        //remove last vertex as the starting vertex is added in the last iteration of the loop
+        convexified.path->pop_back();
+
         poly.path->swap(*convexified.path); //Due to vector's implementation, this is constant time.
     }
 }

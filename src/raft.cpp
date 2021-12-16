@@ -37,8 +37,16 @@ void Raft::generate(SliceDataStorage& storage)
                                         .difference(ooze_shield.offset(-distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
         storage.raftOutline = storage.raftOutline.unionPolygons(ooze_shield_raft);
     }
-    const coord_t smoothing = settings.get<coord_t>("raft_smoothing");
-    storage.raftOutline = storage.raftOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound); // remove small holes and smooth inward corners
+
+    if(settings.get<bool>("raft_remove_inside_corners"))
+    {
+        storage.raftOutline.makeConvex();
+    }
+    else
+    {
+        const coord_t smoothing = settings.get<coord_t>("raft_smoothing");
+        storage.raftOutline = storage.raftOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound); // remove small holes and smooth inward corners
+    }
 }
 
 coord_t Raft::getTotalThickness()
