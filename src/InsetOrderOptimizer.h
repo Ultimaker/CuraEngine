@@ -86,7 +86,9 @@ public:
             const VariableWidthPaths& toolpaths,
             const bool pack_regions_by_inset = true,
             const bool center_last = false,
-            std::set<size_t>* p_bins_with_index_zero_insets = nullptr
+            std::set<size_t>* p_bins_with_index_zero_insets = nullptr,
+            const bool alternate_inset_direction = false,
+            const bool reverse_initial_inset = false
     );
 };
 

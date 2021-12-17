@@ -164,7 +164,9 @@ size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths
     return outer_region_id;
 }
 
-BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool pack_regions_by_inset, const bool center_last, std::set<size_t>* p_bins_with_index_zero_insets)
+BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool pack_regions_by_inset,
+                                                                  const bool center_last, std::set<size_t>* p_bins_with_index_zero_insets,
+                                                                  const bool alternate_inset_direction, const bool reverse_initial_inset)
 {
     // Find the largest inset-index:
     size_t max_inset_index = 0;
@@ -216,6 +218,25 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
             }
         }
     }
+
+    if (alternate_inset_direction) {
+        bool alternate_inset_print_direction = reverse_initial_inset;
+        for (PathJunctions &paths: insets) {
+            for (LineJunctions &line: paths) {
+                if (alternate_inset_print_direction) {
+                    int left = 0;
+                    int right = line.size() - 1;
+                    while (left < right) {
+                        swap(line[left], line[right]);
+                        left++;
+                        right--;
+                    }
+                }
+            }
+            alternate_inset_print_direction = !alternate_inset_print_direction;
+        }
+    }
+
     return insets;
 }
 

@@ -47,6 +47,14 @@ struct ExtrusionJunction
     ExtrusionJunction(const Point p, const coord_t w, const coord_t perimeter_index, const size_t region_id = 0);
 
     bool operator==(const ExtrusionJunction& other) const;
+
+    void InternalSwap(ExtrusionJunction* other);
+
+    void Swap(ExtrusionJunction* other);
+    friend void swap(ExtrusionJunction& a, ExtrusionJunction& b)
+    {
+        a.Swap(&b);
+    }
 };
 
 

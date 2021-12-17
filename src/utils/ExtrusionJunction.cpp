@@ -20,4 +20,17 @@ ExtrusionJunction::ExtrusionJunction(const Point p, const coord_t w, const coord
       region_id(region_id)
 {}
 
+void ExtrusionJunction::Swap(ExtrusionJunction* other) {
+  if (other == this) return;
+  InternalSwap(other);
+}
+void ExtrusionJunction::InternalSwap(ExtrusionJunction* other) {
+  using std::swap;
+
+  swap(p, other->p);
+  swap(w, other->w);
+  swap(perimeter_index, other->perimeter_index);
+  swap(region_id, other->region_id);
+}
+
 }
