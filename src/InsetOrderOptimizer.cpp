@@ -222,7 +222,7 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
     if (alternate_inset_direction)
     {
         bool alternate_inset_print_direction = reverse_initial_inset;
-        for (PathJunctions &paths: insets)
+        for (PathJunctions &paths : insets)
         {
             for (LineJunctions &line: paths)
             {
@@ -230,6 +230,10 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
                 {
                     std::reverse(line.begin(), line.end());
                 }
+            }
+            if(alternate_inset_print_direction)
+            {
+                std::reverse(paths.begin(), paths.end());
             }
             alternate_inset_print_direction = !alternate_inset_print_direction;
         }
