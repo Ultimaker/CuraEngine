@@ -2646,7 +2646,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr bool center_last = false;
                 std::set<size_t>* p_bins_with_index_zero_insets = nullptr;
                 constexpr bool alternate_inset_direction = true;
-                constexpr bool reverse_initial_inset = true;
+                const bool reverse_initial_inset = alternate_layer_print_direction;
                 const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(
                         wall_toolpaths, pack_regions_by_inset, center_last, p_bins_with_index_zero_insets,
                         alternate_inset_direction, reverse_initial_inset);
