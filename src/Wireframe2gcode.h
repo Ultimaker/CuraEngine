@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef WIREFRAME2GCODE_H
@@ -7,7 +7,7 @@
 #include <functional> // passing function pointer or lambda as argument to a function
 
 #include "RetractionConfig.h"
-#include "settings/types/AngleRadians.h" //For the nozzle expansion angle setting.
+#include "settings/types/Angle.h" //For the nozzle expansion angle setting.
 #include "utils/NoCopy.h"
 
 namespace cura

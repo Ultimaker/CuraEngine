@@ -1,4 +1,6 @@
-/** Copyright (C) 2017 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2020 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef GCODE_LAYER_THREADER_H
 #define GCODE_LAYER_THREADER_H
 
@@ -6,9 +8,9 @@
 #include <functional> // function
 #include <thread> // sleep
 #include <chrono> // milliseconds
+#include <optional>
 
 #include "utils/logoutput.h"
-#include "utils/optional.h"
 #include "utils/Lock.h"
 
 namespace cura
@@ -185,7 +187,7 @@ void GcodeLayerThreader<T>::act()
             if (to_be_consumed_item_idx && consume_lock.test_lock())
             {
                 item_idx = *to_be_consumed_item_idx;
-                to_be_consumed_item_idx = nullptr;
+                to_be_consumed_item_idx = std::nullopt;
             }
         }
         if (item_idx >= 0)

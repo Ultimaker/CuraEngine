@@ -1,12 +1,11 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SETTINGSBASEVIRTUAL_H
-#define SETTINGSBASEVIRTUAL_H
+#ifndef ENUMSETTINGS_H
+#define ENUMSETTINGS_H
 
 namespace cura
 {
-
 /*!
  * In Cura different infill methods are available.
  * This enum defines which fill patterns are available to get a uniform naming throughout the engine.
@@ -27,6 +26,7 @@ enum class EFillMethod
     CROSS,
     CROSS_3D,
     GYROID,
+    LIGHTNING,
     NONE  // NOTE: Should remain last! (May be used in testing to enumarate the enum.)
 };
 
@@ -101,6 +101,7 @@ enum class CombingMode
     OFF,
     ALL,
     NO_SKIN,
+    NO_OUTER_SURFACES,
     INFILL
 };
 
@@ -204,6 +205,28 @@ enum class EGCodeFlavor
     FLASHFORGE = 9,
 };
 
+/*!
+ * Direction in which to print walls, inside vs. outside.
+ */
+enum class InsetDirection
+{
+    /*!
+     * The innermost wall is printed first, then the second-innermost wall, etc.
+     */
+    INSIDE_OUT,
+
+    /*!
+     * The outermost wall is printed first, then the second wall, etc.
+     */
+    OUTSIDE_IN,
+
+    /*!
+     * If the innermost wall is a central wall, it is printed last. Otherwise
+     * prints the same as inside out.
+     */
+    CENTER_LAST
+};
+
 } //Cura namespace.
 
-#endif //SETTINGSBASEVIRTUAL_H
+#endif //ENUMSETTINGS_H

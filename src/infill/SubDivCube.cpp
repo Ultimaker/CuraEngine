@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SubDivCube.h"
@@ -6,7 +6,7 @@
 #include <functional>
 
 #include "../sliceDataStorage.h"
-#include "../settings/types/AngleRadians.h" //For the infill angle.
+#include "../settings/types/Angle.h" //For the infill angle.
 #include "../utils/math.h"
 #include "../utils/polygonUtils.h"
 
@@ -233,7 +233,12 @@ coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerI
         return 2;
         *distance2 = 0;
     }
-    Polygons& collide = mesh.layers[layer_nr].getInnermostWalls(2, mesh);
+    Polygons collide;
+    for (const SliceLayerPart& part : mesh.layers[layer_nr].parts)
+    {
+        collide.add(part.infill_area);
+    }
+
     Point centerpoint = location;
     bool inside = collide.inside(centerpoint);
     ClosestPolygonPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);

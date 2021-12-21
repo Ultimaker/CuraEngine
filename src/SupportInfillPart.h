@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "utils/AABB.h"
+#include "utils/ExtrusionLine.h"
 #include "utils/polygon.h"
 
 
@@ -25,32 +26,22 @@ class SupportInfillPart
 {
 public:
     PolygonsPart outline;  //!< The outline of the support infill area
-    std::vector<Polygons> insets;  //!< The insets are also known as perimeters or the walls.
     AABB outline_boundary_box;  //!< The boundary box for the infill area
     coord_t support_line_width;  //!< The support line width
     int inset_count_to_generate;  //!< The number of insets need to be generated from the outline. This is not the actual insets that will be generated.
     std::vector<std::vector<Polygons>> infill_area_per_combine_per_density;  //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
                                                                               //   for infill_areas[x][n], x means the density level and n means the thickness
+    VariableWidthPaths wall_toolpaths; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls).
 
     SupportInfillPart(const PolygonsPart& outline, coord_t support_line_width, int inset_count_to_generate = 0);
 
-    /*!
-     * Initializes this SupportInfillPart by generating its insets and infill area.
-     *
-     * \return false if the area is too small and no insets and infill area can be generated, otherwise true.
-     */
-    bool generateInsetsAndInfillAreas(const coord_t max_resolution, const coord_t max_deviation);
-
     const Polygons& getInfillArea() const;
-
-private:
-    Polygons infill_area;  //!< The support infill area for generating patterns
 };
 
 inline const Polygons& SupportInfillPart::getInfillArea() const
 {
     // if there is no wall, we use the original outline as the infill area
-    return (inset_count_to_generate == 0) ? outline : infill_area;
+    return outline;
 }
 
 } // namespace cura

@@ -731,9 +731,8 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
 
     Polygon ret;
 
-    std::function<Point (int, Edge)> get_edge_crossing_location = [&ret, z, min_dist_to_side](int depth, Edge e)
+    std::function<Point (int, Edge)> get_edge_crossing_location = [z, min_dist_to_side](const coord_t period, const Edge e)
     {
-        coord_t period =  8 << (14 - depth / 2);
         coord_t from_l = z % (period * 2);
         if (from_l > period)
         {
@@ -750,12 +749,22 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
     {
         SierpinskiTriangle& triangle = *node;
 
-        ret.add(get_edge_crossing_location(triangle.depth, triangle.getFromEdge()));
+        /* The length of a side of the triangle is used as the period of
+        repetition. That way the edges overhang by not more than 45 degrees.
+
+        While there is a vertex is moving back and forth on the diagonal between
+        A and B, this doesn't cause a steeper angle of parallel lines in the
+        Cross pattern because the other side is sliding along the straight
+        sides. The steeper overhang is then only in the corner, which is deemed
+        acceptable since the corners are never too sharp. */
+        const coord_t period = vSize(triangle.straight_corner - triangle.a);
+        ret.add(get_edge_crossing_location(period, triangle.getFromEdge()));
 
         last_triangle = &triangle;
     }
     assert(last_triangle);
-    ret.add(get_edge_crossing_location(last_triangle->depth, last_triangle->getToEdge()));
+    const coord_t period = vSize(last_triangle->straight_corner - last_triangle->a);
+    ret.add(get_edge_crossing_location(period, last_triangle->getToEdge()));
 
     if (pocket_size > 10)
     {

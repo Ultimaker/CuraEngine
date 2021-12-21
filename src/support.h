@@ -61,18 +61,6 @@ public:
      */
     static void generateSupportInfillFeatures(SliceDataStorage& storage);
 
-    /*!
-     * Generate the insets of the given support infill outline.
-     *
-     * \param[out] insets The insets result to output.
-     * \param outline The given support infill outline.
-     * \param inset_count The number of perimeters to surround the support infill outline.
-     * \param wall_line_width_x The wall line width in microns on the X axis.
-     * \param max_resolution the intended minimum segment length
-     * \param max_deviation the max deviation between the output poly and the input when trying to enforce the \p max_resolution
-     */
-    static void generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x, const coord_t max_resolution, const coord_t max_deviation);
-
 private:
     /*!
      * Splits the global support areas into separete SupportInfillParts.
@@ -82,12 +70,6 @@ private:
      * \param total_layer_count total number of layers
      */
     static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Polygons>& global_support_areas_per_layer, unsigned int total_layer_count);
-
-    /*!
-     * Generate insets and infill areas for all support infill parts.
-     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
-     */
-    static void prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage);
 
     /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().

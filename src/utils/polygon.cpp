@@ -1,7 +1,10 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "polygon.h"
+
+#include <numeric>
+#include <unordered_set>
 
 #include "linearAlg2D.h" // pointLiesOnTheRightOfLine
 
@@ -22,19 +25,7 @@ bool ConstPolygonRef::empty() const
 
 bool ConstPolygonRef::shorterThan(const coord_t check_length) const
 {
-    const ConstPolygonRef& polygon = *this;
-    const Point* p0 = &polygon.back();
-    int64_t length = 0;
-    for (const Point& p1 : polygon)
-    {
-        length += vSize(*p0 - p1);
-        if (length >= check_length)
-        {
-            return false;
-        }
-        p0 = &p1;
-    }
-    return true;
+    return cura::shorterThan(*this, check_length);
 }
 
 bool ConstPolygonRef::_inside(Point p, bool border_result) const
@@ -83,7 +74,7 @@ bool Polygons::empty() const
 
 Polygons Polygons::approxConvexHull(int extra_outset)
 {
-    constexpr int overshoot = 100000; //10cm (hard-coded value).
+    constexpr int overshoot = MM2INT(100); //10cm (hard-coded value).
 
     Polygons convex_hull;
     //Perform the offset for each polygon one at a time.
@@ -98,6 +89,38 @@ Polygons Polygons::approxConvexHull(int extra_outset)
         convex_hull.add(offset_result);
     }
     return convex_hull.unionPolygons().offset(-overshoot + extra_outset, ClipperLib::jtRound);
+}
+
+void Polygons::makeConvex()
+{
+    for(PolygonRef poly : *this)
+    {
+        if(poly.size() <= 3)
+        {
+            continue; //Already convex.
+        }
+        Polygon convexified;
+
+        //Start from a vertex that is known to be on the convex hull: The one with the lowest X.
+        const size_t start_index = std::min_element(poly.begin(), poly.end(), [](Point a, Point b) { return a.X == b.X ? a.Y < b.Y : a.X < b.X; }) - poly.begin();
+        convexified.path->push_back(poly[start_index]);
+
+        for(size_t i = 1; i <= poly.size(); ++ i)
+        {
+            const Point& current = poly[(start_index + i) % poly.size()];
+
+            //Track backwards to make sure we haven't been in a concave pocket for multiple vertices already.
+            while(convexified.size() >= 2 && LinearAlg2D::pointIsLeftOfLine(convexified.path->back(), (*convexified.path)[convexified.size() - 2], current) >= 0)
+            {
+                convexified.path->pop_back();
+            }
+            convexified.path->push_back(current);
+        }
+        //remove last vertex as the starting vertex is added in the last iteration of the loop
+        convexified.path->pop_back();
+
+        poly.path->swap(*convexified.path); //Due to vector's implementation, this is constant time.
+    }
 }
 
 unsigned int Polygons::pointCount() const
@@ -309,8 +332,81 @@ Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, d
     return ret;
 }
 
+void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
+{
+    // TODO: Can be made more efficient (for example, use pointer-types for process-/skip-indices, so we can swap them without copy).
 
+    size_t num_removed_in_iteration = 0;
+    do
+    {
+        num_removed_in_iteration = 0;
 
+        std::vector<bool> process_indices(path->size(), true);
+
+        bool go = true;
+        while (go)
+        {
+            go = false;
+
+            const auto& rpath = *path;
+            const size_t pathlen = rpath.size();
+            if (pathlen <= 3)
+            {
+                return;
+            }
+
+            std::vector<bool> skip_indices(path->size(), false);
+
+            ClipperLib::Path new_path;
+            for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
+            {
+                // Don't iterate directly over process-indices, but do it this way, because there are points _in_ process-indices that should nonetheless be skipped:
+                if (! process_indices[point_idx])
+                {
+                    new_path.push_back(rpath[point_idx]);
+                    continue;
+                }
+
+                // Should skip the last point for this iteration if the old first was removed (which can be seen from the fact that the new first was skipped):
+                if (point_idx == (pathlen - 1) && skip_indices[0])
+                {
+                    skip_indices[new_path.size()] = true;
+                    go = true;
+                    new_path.push_back(rpath[point_idx]);
+                    break;
+                }
+
+                const Point& prev = rpath[(point_idx - 1 + pathlen) % pathlen];
+                const Point& pt = rpath[point_idx];
+                const Point& next = rpath[(point_idx + 1) % pathlen];
+
+                float angle = LinearAlg2D::getAngleLeft(prev, pt, next);  // [0 : 2 * pi]
+                if (angle >= M_PI) {angle -= M_PI;}  // map [pi : 2 * pi] to [0 : pi]
+
+                // Check if the angle is within limits for the point to 'make sense', given the maximum deviation.
+                // If the angle indicates near-parallel segments ignore the point 'pt'
+                if (angle > max_deviation_angle && angle < M_PI - max_deviation_angle)
+                {
+                    new_path.push_back(pt);
+                }
+                else if (point_idx != (pathlen - 1))
+                {
+                    // Skip the next point, since the current one was removed:
+                    skip_indices[new_path.size()] = true;
+                    go = true;
+                    new_path.push_back(next);
+                    ++point_idx;
+                }
+            }
+            *path = new_path;
+            num_removed_in_iteration += pathlen - path->size();
+
+            process_indices.clear();
+            process_indices.insert(process_indices.end(), skip_indices.begin(), skip_indices.end());
+        }
+    }
+    while (num_removed_in_iteration > 0);
+}
 
 void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared)
 {
@@ -390,8 +486,8 @@ void PolygonRef::simplify(const coord_t smallest_line_segment_squared, const coo
         //h^2 = (L / b)^2     [square it]
         //h^2 = L^2 / b^2     [factor the divisor]
         const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
-        if ((height_2 <= 1 //Almost exactly colinear (barring rounding errors).
-            && LinearAlg2D::getDistFromLine(current, previous, next) <= 1)) // make sure that height_2 is not small because of cancellation of positive and negative areas
+        if ((height_2 <= 5 * 5 //Almost exactly colinear (barring rounding errors).
+            && LinearAlg2D::getDistFromLine(current, previous, next) <= 5)) // make sure that height_2 is not small because of cancellation of positive and negative areas
         {
             continue;
         }
@@ -526,56 +622,63 @@ void Polygons::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& 
 
 void Polygons::removeSmallAreas(const double min_area_size, const bool remove_holes)
 {
-    std::vector<ConstPolygonRef> outlines_removed;
-    std::vector<size_t> small_hole_indices;
-    Polygons& thiss = *this;
-    for(size_t i = 0; i < size(); i++)
+    auto new_end = paths.end();
+    if(remove_holes)
     {
-        double area = INT2MM(INT2MM(thiss[i].area()));
-        // holes have negative area and small holes will be ignored unless remove_holes is true
-        // or the hole is contained within an outline that is itself smaller in area than the threshold
-        if (fabs(area) < min_area_size)
+        for(auto it = paths.begin(); it < new_end; it++)
         {
-            if (!remove_holes)
+            // All polygons smaller than target are removed by replacing them with a polygon from the back of the vector
+            if(fabs(INT2MM2(ClipperLib::Area(*it))) < min_area_size)
             {
-                if (area > 0)
-                {
-                    // remember this outline has been removed so we can later check if it contains any holes that also need to be removed
-                    outlines_removed.push_back(thiss[i]);
-                }
-                else
-                {
-                    // remember this small hole so we can later check if it is contained within an outline that has been removed
-                    small_hole_indices.push_back(i);
-                }
-            }
-            // the polygon area is below the threshold, remove it if it is an outline or we are removing holes as well as outlines
-            if (area > 0 || remove_holes)
-            {
-                remove(i);
-                i -= 1;
+                new_end--;
+                *it = std::move(*new_end);
+                it--; // wind back the iterator such that the polygon just swaped in is checked next
             }
         }
     }
-    if (outlines_removed.size() > 0 && small_hole_indices.size() > 0)
+    else
     {
-        size_t num_holes_removed = 0;
-        // now remove any holes that are inside outlines that have been removed
-        for (size_t small_hole_index : small_hole_indices)
-        {
-            const size_t hole_index = small_hole_index - num_holes_removed; // adjust index to account for removed holes
-            // if hole polygon's first point is inside a removed polygon, remove the hole polygon also
-            for (ConstPolygonRef removed_outline : outlines_removed)
+        // For each polygon, computes the signed area, move small outlines at the end of the vector and keep references on small holes
+        std::vector<PolygonRef> small_holes;
+        for(auto it = paths.begin(); it < new_end; it++) {
+            double area = INT2MM2(ClipperLib::Area(*it));
+            if (fabs(area) < min_area_size)
             {
-                if (removed_outline.inside(thiss[hole_index][0]))
+                if(area >= 0)
                 {
-                    remove(hole_index);
-                    ++num_holes_removed;
+                    new_end--;
+                    if(it < new_end) {
+                        std::swap(*new_end, *it);
+                        it--;
+                    }
+                    else
+                    { // Don't self-swap the last Path
+                        break;
+                    }
+                }
+                else
+                {
+                    small_holes.push_back(*it);
+                }
+            }
+        }
+
+        // Removes small holes that have their first point inside one of the removed outlines
+        // Iterating in reverse ensures that unprocessed small holes won't be moved
+        const auto removed_outlines_start = new_end;
+        for(auto hole_it = small_holes.rbegin(); hole_it < small_holes.rend(); hole_it++)
+        {
+            for(auto outline_it = removed_outlines_start; outline_it < paths.end() ; outline_it++)
+            {
+                if(PolygonRef(*outline_it).inside(*hole_it->begin())) {
+                    new_end--;
+                    **hole_it = std::move(*new_end);
                     break;
                 }
             }
         }
     }
+    paths.resize(new_end-paths.begin());
 }
 
 Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
@@ -720,7 +823,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
         if (success)
         {
 #ifdef ASSERT_INSANE_OUTPUT
-            assert(vSize(new_p0) < 400000);
+            assert(new_p0.X < 400000 && new_p0.Y < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
             p0_it = ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
         }
@@ -749,7 +852,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
         if (success)
         {
 #ifdef ASSERT_INSANE_OUTPUT
-            assert(vSize(new_p2) < 400000);
+            assert(new_p2.X < 400000 && new_p2.Y < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
             p2_it = ListPolyIt::insertPointNonDuplicate(p2_it, p2_2_it, new_p2);
         }
@@ -1318,5 +1421,37 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
 }
 
 
+void Polygons::ensureManifold()
+{
+    const Polygons& polys = *this;
+    std::vector<Point> duplicate_locations;
+    std::unordered_set<Point> poly_locations;
+    for (size_t poly_idx = 0; poly_idx < polys.size(); poly_idx++)
+    {
+        ConstPolygonRef poly = polys[poly_idx];
+        for (size_t point_idx = 0; point_idx < poly.size(); point_idx++)
+        {
+            Point p = poly[point_idx];
+            if (poly_locations.find(p) != poly_locations.end())
+            {
+                duplicate_locations.push_back(p);
+            }
+            poly_locations.emplace(p);
+        }
+    }
+    Polygons removal_dots;
+    for (Point p : duplicate_locations)
+    {
+        PolygonRef dot = removal_dots.newPoly();
+        dot.add(p + Point(0,5));
+        dot.add(p + Point(5,0));
+        dot.add(p + Point(0,-5));
+        dot.add(p + Point(-5,0));
+    }
+    if ( ! removal_dots.empty())
+    {
+        *this = polys.difference(removal_dots);
+    }
+}
 
 }//namespace cura

@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
@@ -31,6 +31,7 @@
 #include "WallsComputation.h"
 #include "infill/DensityProvider.h"
 #include "infill/ImageBasedDensityProvider.h"
+#include "infill/LightningGenerator.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
@@ -39,7 +40,7 @@
 #include "progress/ProgressEstimatorLinear.h"
 #include "progress/ProgressStageEstimator.h"
 #include "settings/AdaptiveLayerHeights.h"
-#include "settings/types/AngleRadians.h"
+#include "settings/types/Angle.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/algorithm.h"
 #include "utils/gettime.h"
@@ -131,7 +132,51 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
     else
     {
-        slice_layer_count = (storage.model_max.z - initial_layer_thickness) / layer_thickness + 1;
+        //Find highest layer count according to each mesh's settings.
+        for(const Mesh& mesh : meshgroup->meshes)
+        {
+            const coord_t mesh_height = mesh.max().z;
+            switch(mesh.settings.get<SlicingTolerance>("slicing_tolerance"))
+            {
+                case SlicingTolerance::MIDDLE:
+                    if(storage.model_max.z < initial_layer_thickness)
+                    {
+                        slice_layer_count = std::max(slice_layer_count, (mesh_height > initial_layer_thickness / 2) ? 1 : 0); //One layer if higher than half initial layer height.
+                    }
+                    else
+                    {
+                        slice_layer_count = std::max(slice_layer_count, static_cast<int>(round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    }
+                    break;
+                case SlicingTolerance::EXCLUSIVE:
+                {
+                    int new_slice_layer_count = 0;
+                    if(mesh_height >= initial_layer_thickness) //If less than the initial layer thickness, leave it at 0.
+                    {
+                        new_slice_layer_count = static_cast<int>(floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
+                    }
+                    if(new_slice_layer_count > 0) // If there is at least one layer already, then...
+                    {
+                        new_slice_layer_count += 1; // ... need one extra, since we clear the top layer after the repeated intersections with the layer above.
+                    }
+                    slice_layer_count = std::max(slice_layer_count, new_slice_layer_count);
+                    break;
+                }
+                case SlicingTolerance::INCLUSIVE:
+                    if(mesh_height < initial_layer_thickness)
+                    {
+                        slice_layer_count = std::max(slice_layer_count, (mesh_height > 0) ? 1 : 0); //If less than the initial layer height, it always has 1 layer unless the height is truly zero.
+                    }
+                    else
+                    {
+                        slice_layer_count = std::max(slice_layer_count, static_cast<int>(ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    }
+                    break;
+                default:
+                    logError("Unknown slicing tolerance. Did you forget to add a case here?");
+                    return false;
+            }
+        }
     }
 
     // Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
@@ -377,10 +422,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         processPlatformAdhesion(storage);
     }
 
-    logDebug("Processing gaps\n");
-    processOutlineGaps(storage);
-    processPerimeterGaps(storage);
-
     logDebug("Meshes post-processing\n");
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
@@ -421,7 +462,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
     {
         logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
-        processInsets(mesh, layer_number);
+        processWalls(mesh, layer_number);
 #ifdef _OPENMP
         if (omp_get_thread_num() == 0)
 #endif
@@ -500,150 +541,6 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             }
 #pragma omp atomic
                 processed_layer_count++;
-        }
-    }
-}
-
-void FffPolygonGenerator::processOutlineGaps(SliceDataStorage& storage)
-{
-    for (SliceMeshStorage& mesh : storage.meshes)
-    {
-        constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
-        const coord_t wall_0_inset = mesh.settings.get<coord_t>("wall_0_inset");
-        if (!mesh.settings.get<bool>("fill_outline_gaps") || mesh.settings.get<size_t>("wall_line_count") <= 0)
-        {
-            continue;
-        }
-        for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
-        {
-            SliceLayer& layer = mesh.layers[layer_nr];
-            coord_t wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
-            if (layer_nr == 0)
-            {
-                const ExtruderTrain& train = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr");
-                Ratio initial_layer_line_width_factor = train.settings.get<Ratio>("initial_layer_line_width_factor");
-                wall_line_width_0 *= initial_layer_line_width_factor;
-            }
-            for (SliceLayerPart& part : layer.parts)
-            {
-                // handle outline gaps
-                if (mesh.settings.get<bool>("fill_outline_gaps"))
-                {
-                    const Polygons& outer = part.outline;
-                    Polygons inner;
-                    if (part.insets.size() > 0)
-                    {
-                        inner.add(part.insets[0].offset(wall_line_width_0 / 2 + perimeter_gaps_extra_offset + wall_0_inset));
-                    }
-                    Polygons outline_gaps = outer.difference(inner);
-                    outline_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
-                    part.outline_gaps.add(outline_gaps);
-                }
-            }
-        }
-    }
-}
-
-void FffPolygonGenerator::processPerimeterGaps(SliceDataStorage& storage)
-{
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    for (SliceMeshStorage& mesh : storage.meshes)
-    {
-        constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
-        const bool fill_perimeter_gaps = mesh.settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
-            && !mesh_group_settings.get<bool>("magic_spiralize");
-        bool filter_out_tiny_gaps = mesh.settings.get<bool>("filter_out_tiny_gaps");
-
-        if (!fill_perimeter_gaps)
-        {
-            continue;
-        }
-        for (LayerIndex layer_nr = 0; layer_nr < static_cast<LayerIndex>(mesh.layers.size()); layer_nr++)
-        {
-            const ExtruderTrain& train_wall_x = mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr");
-            bool fill_gaps_between_inner_wall_and_skin_or_infill =
-                mesh.settings.get<coord_t>("infill_line_distance") > 0
-                && mesh.settings.get<coord_t>("infill_overlap_mm") >= 0
-                && !(mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CONCENTRIC
-                    && (mesh.settings.get<bool>("alternate_extra_perimeter") || (layer_nr == 0 && train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor") > 1.0))
-                );
-            SliceLayer& layer = mesh.layers[layer_nr];
-            coord_t wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
-            coord_t wall_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x");
-            coord_t skin_line_width = mesh.settings.get<coord_t>("skin_line_width");
-            if (layer_nr == 0)
-            {
-                const ExtruderTrain& train_wall_0 = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr");
-                wall_line_width_0 *= train_wall_0.settings.get<Ratio>("initial_layer_line_width_factor");
-                const ExtruderTrain& train_wall_x = mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr");
-                wall_line_width_x *= train_wall_x.settings.get<Ratio>("initial_layer_line_width_factor");
-                const ExtruderTrain& train_skin = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr");
-                skin_line_width *= train_skin.settings.get<Ratio>("initial_layer_line_width_factor");
-            }
-            for (SliceLayerPart& part : layer.parts)
-            {
-                 // handle perimeter gaps of normal insets
-                int line_width = wall_line_width_0;
-                for (unsigned int inset_idx = 0; static_cast<int>(inset_idx) < static_cast<int>(part.insets.size()) - 1; inset_idx++)
-                {
-                    const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-                    line_width = wall_line_width_x;
-
-                    Polygons inner = part.insets[inset_idx + 1].offset(line_width / 2);
-                    part.perimeter_gaps.add(outer.difference(inner));
-                }
-
-                if (filter_out_tiny_gaps) {
-                    part.perimeter_gaps.removeSmallAreas(2 * INT2MM(wall_line_width_0) * INT2MM(wall_line_width_0)); // remove small outline gaps to reduce blobs on outside of model
-                }
-
-                // gap between inner wall and skin/infill
-                if (fill_gaps_between_inner_wall_and_skin_or_infill && part.insets.size() > 0)
-                {
-                    const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
-
-                    // accumulate area of skin and infill that will be printed
-                    Polygons inner;
-                    for (const SkinPart& skin_part : part.skin_parts)
-                    {
-                        inner.add(skin_part.outline);
-                    }
-                    // for some reason the zig-zag and lines patterns behave differently and a narrow region that isn't filled with zig-zag pattern can be filled with
-                    // lines pattern so we only add the narrow region to the perimeter gaps when the pattern is zig-zag.
-                    if (((layer_nr == 0) ? mesh.settings.get<EFillMethod>("top_bottom_pattern_0") : mesh.settings.get<EFillMethod>("top_bottom_pattern")) == EFillMethod::ZIG_ZAG)
-                    {
-                        // remove skin areas that are narrower than skin_line_width as they won't get printed unless
-                        // we print them as a perimeter gap
-                        inner = inner.offset(-skin_line_width / 2).offset(skin_line_width / 2);
-                    }
-                    inner.add(part.infill_area);
-                    inner = inner.unionPolygons();
-                    part.perimeter_gaps.add(outer.difference(inner));
-                }
-
-                // add perimeter gaps for skin insets
-                for (SkinPart& skin_part : part.skin_parts)
-                {
-                    if (skin_part.insets.size() > 0)
-                    {
-                        // add perimeter gaps between the outer skin inset and the innermost wall
-                        const Polygons outer = skin_part.outline;
-                        const Polygons inner = skin_part.insets[0].offset(skin_line_width / 2 + perimeter_gaps_extra_offset);
-                        skin_part.perimeter_gaps.add(outer.difference(inner));
-
-                        for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
-                        { // add perimeter gaps between consecutive skin walls
-                            const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * skin_line_width / 2 - perimeter_gaps_extra_offset);
-                            const Polygons inner = skin_part.insets[inset_idx].offset(skin_line_width / 2);
-                            skin_part.perimeter_gaps.add(outer.difference(inner));
-                        }
-
-                        if (filter_out_tiny_gaps) {
-                            skin_part.perimeter_gaps.removeSmallAreas(2 * INT2MM(skin_line_width) * INT2MM(skin_line_width)); // remove small outline gaps to reduce blobs on outside of model
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -760,11 +657,18 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         }
     }
 
+    // Pre-compute lightning fill (aka minfill, aka ribbed support vaults)
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::LIGHTNING)
+    {
+        // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
+        mesh.lightning_generator = new LightningGenerator(mesh);
+    }
+
     // combine infill
     SkinInfillAreaComputation::combineInfillLayers(mesh);
 
     // fuzzy skin
-    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled"))
+    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled") && false) //TODO make fuzzy skin work with libArachne (CURA-7887) and then re-enable it
     {
         processFuzzyWalls(mesh);
     }
@@ -776,22 +680,11 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
  *
  * processInsets only reads and writes data for the current layer
  */
-void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, size_t layer_nr)
+void FffPolygonGenerator::processWalls(SliceMeshStorage& mesh, size_t layer_nr)
 {
     SliceLayer* layer = &mesh.layers[layer_nr];
-    if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
-    {
-        WallsComputation walls_computation(mesh.settings, layer_nr);
-        walls_computation.generateInsets(layer);
-    }
-    else
-    {
-        for (SliceLayerPart& part : layer->parts)
-        {
-            part.insets.push_back(part.outline); // Fake an inset
-            part.print_outline = part.outline;
-        }
-    }
+    WallsComputation walls_computation(mesh.settings, layer_nr);
+    walls_computation.generateWalls(layer);
 }
 
 bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned int layer_idx)
@@ -1086,7 +979,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
 
 void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
-{
+{//TODO make fuzzy skin work with libArachne (CURA-7887)
     if (mesh.settings.get<size_t>("wall_line_count") == 0)
     {
         return;
@@ -1102,7 +995,8 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         for (SliceLayerPart& part : layer.parts)
         {
             Polygons results;
-            Polygons& skin = (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0];
+//            Polygons& skin = (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0]; insets no longer used in libArachne
+            Polygons& skin = part.outline;
             for (PolygonRef poly : skin)
             {
                 if (mesh.settings.get<bool>("magic_fuzzy_skin_outside_only") && poly.area() < 0)
@@ -1119,17 +1013,21 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                 { // 'a' is the (next) new point between p0 and p1
                     Point p0p1 = p1 - *p0;
                     int64_t p0p1_size = vSize(p0p1);
-                    int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
-                    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
+                    int64_t p0pa_dist = dist_left_over;
+                    if (p0pa_dist >= p0p1_size)
+                    {
+                        result.add(p1 - (p0p1 / 2));
+                    }
+                    for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                     {
                         int r = rand() % (fuzziness * 2) - fuzziness;
                         Point perp_to_p0p1 = turn90CCW(p0p1);
                         Point fuzz = normal(perp_to_p0p1, r);
                         Point pa = *p0 + normal(p0p1, p0pa_dist) + fuzz;
                         result.add(pa);
-                        dist_last_point = p0pa_dist;
                     }
-                    dist_left_over = p0p1_size - dist_last_point;
+                    // p0pa_dist > p0p1_size now because we broke out of the for-loop
+                    dist_left_over = p0pa_dist - p0p1_size;
 
                     p0 = &p1;
                 }

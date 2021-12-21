@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
@@ -7,6 +7,7 @@
 #include "raft.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
+#include "infill/LightningGenerator.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h" // For the destructor
 #include "infill/DensityProvider.h" // for destructor
@@ -50,6 +51,21 @@ const Polygons& SliceLayerPart::getOwnInfillArea() const
     }
 }
 
+bool SliceLayerPart::hasWallAtInsetIndex(size_t inset_idx) const
+{
+    for (const VariableWidthLines& lines : wall_toolpaths)
+    {
+        for (const ExtrusionLine& line : lines)
+        {
+            if (line.inset_idx == inset_idx)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 SliceLayer::~SliceLayer()
 {
 }
@@ -76,89 +92,6 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
     }
 }
 
-Polygons& SliceLayer::getInnermostWalls(const size_t max_inset, const SliceMeshStorage& mesh) const
-{
-    if (innermost_walls_cache.count(max_inset) > 0)
-    {
-        return innermost_walls_cache[max_inset];
-    }
-    Polygons& result = innermost_walls_cache.emplace(std::make_pair(max_inset, Polygons())).first->second;
-
-    const coord_t half_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0") / 2;
-    const coord_t half_line_width_x = mesh.settings.get<coord_t>("wall_line_width_x") / 2;
-
-    for (const SliceLayerPart& part : parts)
-    {
-        Polygons outer; // outer boundary limit (centre of 1st wall where present, otherwise part's outline)
-
-        if (part.insets.size() > 0)
-        {
-            // part has at least one wall, test if it is complete
-
-            if (part.insets[0].size() == part.outline.size())
-            {
-                // 1st wall is complete, use it for the outer boundary
-                outer = part.insets[0];
-            }
-            else
-            {
-                // 1st wall is incomplete, merge the 1st wall with the part's outline (where the 1st wall is missing)
-
-                // first we calculate the part outline for those portions of the part where the 1st wall is missing
-                // this is done by shrinking the part outline so that it is very slightly smaller than the 1st wall outline, then expanding it again so it is very
-                // slightly larger than its original size and subtracting that from the original part outline
-                // NOTE - the additional small shrink/expands are required to ensure that the polygons overlap a little so we do not rely on exact results
-
-                Polygons outline_where_there_are_no_inner_insets(part.outline.difference(part.outline.offset(-(half_line_width_0+5)).offset(half_line_width_0+10)));
-
-                // merge the 1st wall outline with the portions of the part outline we just calculated
-                // the trick here is to expand the outlines sufficiently so that they overlap when unioned and then the result is shrunk back to the correct size
-
-                outer = part.insets[0].offset(half_line_width_0).unionPolygons(outline_where_there_are_no_inner_insets.offset(half_line_width_0)).offset(-half_line_width_0);
-            }
-        }
-        else
-        {
-            // part has no walls, just use its outline
-            outer = part.outline;
-        }
-
-        if (max_inset >= 2 && part.insets.size() >= 2)
-        {
-            // use the 2nd wall - if the 2nd wall is incomplete because the part is narrow, we use the 2nd wall where it does exist
-            // and where it is missing, we use outer instead
-
-            const coord_t inset_spacing = half_line_width_0 + half_line_width_x; // distance between the centre lines of the 1st and 2nd walls
-
-            // first we calculate the regions of outer that correspond to where the 2nd wall is missing using a similar technique to what we used to calculate outer
-
-            Polygons outer_where_there_are_no_inner_insets(outer.difference(outer.offset(-(inset_spacing+5)).offset(inset_spacing+10)));
-
-            if (outer_where_there_are_no_inner_insets.size() > 0)
-            {
-                // there are some regions where the 2nd wall is missing so we must merge the 2nd wall outline
-                // with the portions of outer we just calculated
-                // NOTE - expanding the 2nd wall by an extra factor of 2 is needed to successfully merge tiny 2nd wall outlines with sharp corners into the outer wall
-                // the effect of the extra expansion is that the boundary will hug the outline of the 2nd wall regions rather than its centre line
-                result.add(part.insets[1].offset(2*half_line_width_x).unionPolygons(outer_where_there_are_no_inner_insets.offset(half_line_width_0))
-                    .offset(-std::min(half_line_width_0, half_line_width_x)).intersection(outer));
-            }
-            else
-            {
-                // the 2nd wall is complete so use its centre line
-                result.add(part.insets[1]);
-            }
-        }
-        else
-        {
-            // fall back to using outer computed above
-            result.add(outer);
-        }
-    }
-
-    return result;
-}
-
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
 : settings(mesh->settings)
 , mesh_name(mesh->mesh_name)
@@ -166,6 +99,7 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
 , bounding_box(mesh->getAABB())
 , base_subdiv_cube(nullptr)
 , cross_fill_provider(nullptr)
+, lightning_generator(nullptr)
 {
     layers.resize(slice_layer_count);
 }
@@ -179,6 +113,10 @@ SliceMeshStorage::~SliceMeshStorage()
     if (cross_fill_provider)
     {
         delete cross_fill_provider;
+    }
+    if (lightning_generator)
+    {
+        delete lightning_generator;
     }
 }
 
@@ -204,7 +142,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
     {
         return true;
     }
-    if ((settings.get<size_t>("wall_line_count") > 1 || settings.get<bool>("alternate_extra_perimeter") || settings.get<bool>("fill_perimeter_gaps"))
+    if ((settings.get<size_t>("wall_line_count") > 1 || settings.get<bool>("alternate_extra_perimeter"))
         && settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr == extruder_nr)
     {
         return true;
@@ -217,7 +155,8 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
     {
         return true;
     }
-    if ((settings.get<size_t>("top_layers") > 0 || settings.get<size_t>("bottom_layers") > 0) && settings.get<size_t>("roofing_layer_count") > 0 && settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr == extruder_nr)
+    const size_t roofing_layer_count = std::min(settings.get<size_t>("roofing_layer_count"), settings.get<size_t>("top_layers"));
+    if (roofing_layer_count > 0 && settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr == extruder_nr)
     {
         return true;
     }
@@ -240,47 +179,16 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     {
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (part.insets.size() > 0 && part.insets[0].size() > 0)
+            if ((part.hasWallAtInsetIndex(0)) || !part.spiral_wall.empty())
             {
                 return true;
             }
             for (const SkinPart& skin_part : part.skin_parts)
             {
-                if (!skin_part.insets.empty())
+                if (!skin_part.inset_paths.empty())
                 {
                     return true;
                 }
-            }
-        }
-    }
-    if (settings.get<FillPerimeterGapMode>("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
-        && (settings.get<size_t>("wall_line_count") > 0 || settings.get<size_t>("skin_outline_count") > 0)
-        && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr)
-    {
-        for (const SliceLayerPart& part : layer.parts)
-        {
-            if (part.perimeter_gaps.size() > 0)
-            {
-                return true;
-            }
-            for (const SkinPart& skin_part : part.skin_parts)
-            {
-                if (skin_part.perimeter_gaps.size() > 0)
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    if (settings.get<bool>("fill_outline_gaps")
-        && settings.get<size_t>("wall_line_count") > 0
-        && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr)
-    {
-        for (const SliceLayerPart& part : layer.parts)
-        {
-            if (part.outline_gaps.size() > 0)
-            {
-                return true;
             }
         }
     }
@@ -288,7 +196,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     {
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (part.insets.size() > 1 && part.insets[1].size() > 0)
+            if (part.hasWallAtInsetIndex(1))
             {
                 return true;
             }
@@ -310,7 +218,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
         {
             for (const SkinPart& skin_part : part.skin_parts)
             {
-                if (!skin_part.inner_infill.empty())
+                if (!skin_part.skin_fill.empty())
                 {
                     return true;
                 }
@@ -432,7 +340,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                 }
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
-                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
+                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(MM2INT(0.1)));
                 }
             }
         }
@@ -546,7 +454,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(LayerIndex layer_nr) const
         { // process brim/skirt
             for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
             {
-                if (skirt_brim[extruder_nr].size() > 0)
+                if(!skirt_brim[extruder_nr].empty())
                 {
                     ret[extruder_nr] = true;
                     continue;

@@ -50,7 +50,8 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     constexpr bool connect_polygons = false; // midway connections can make the surface less smooth
     const coord_t line_spacing = mesh.settings.get<coord_t>("ironing_line_spacing");
     const coord_t line_width = line_config.getLineWidth();
-    const std::vector<AngleDegrees>& top_most_skin_angles = (mesh.settings.get<size_t>("roofing_layer_count") > 0) ? mesh.roofing_angles : mesh.skin_angles;
+    const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+    const std::vector<AngleDegrees>& top_most_skin_angles = (roofing_layer_count > 0) ? mesh.roofing_angles : mesh.skin_angles;
     assert(top_most_skin_angles.size() > 0);
     const AngleDegrees direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + AngleDegrees(90.0); //Always perpendicular to the skin lines.
     constexpr coord_t infill_overlap = 0;
@@ -77,11 +78,13 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         ironing_inset -= ironing_flow * line_width / 2;
     }
     const coord_t outline_offset = ironing_inset;
+    areas.offset(outline_offset);
 
-    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, outline_offset, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation);
+    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation);
+    VariableWidthPaths ironing_paths;
     Polygons ironing_polygons;
     Polygons ironing_lines;
-    infill_generator.generate(ironing_polygons, ironing_lines);
+    infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings);
 
     if (ironing_polygons.empty() && ironing_lines.empty())
     {
@@ -95,7 +98,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     {
         constexpr bool force_comb_retract = false;
         layer.addTravel(ironing_polygons[0][0], force_comb_retract);
-        layer.addPolygonsByOptimizer(ironing_polygons, line_config, nullptr, ZSeamConfig());
+        layer.addPolygonsByOptimizer(ironing_polygons, line_config, ZSeamConfig());
         added = true;
     }
 
@@ -121,7 +124,15 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
             }
         }
 
-        layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
+        if(!mesh.settings.get<bool>("ironing_monotonic"))
+        {
+            layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
+        }
+        else
+        {
+            const coord_t max_adjacent_distance = line_spacing * 1.1; //Lines are considered adjacent - meaning they need to be printed in monotonic order - if spaced 1 line apart, with 10% extra play.
+            layer.addLinesMonotonic(Polygons(), ironing_lines, line_config, SpaceFillType::PolyLines, AngleRadians(direction), max_adjacent_distance);
+        }
         added = true;
     }
 

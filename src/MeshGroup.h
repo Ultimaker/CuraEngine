@@ -38,7 +38,7 @@ public:
      * that's the center in the X and Y directions, but Z=0. This simulates the
      * shrinkage while sticking to the build plate.
      */
-    void scaleFromBottom(const Ratio factor);
+    void scaleFromBottom(const Ratio factor_xy, const Ratio factor_z);
 };
 
 /*!

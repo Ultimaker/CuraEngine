@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
@@ -6,7 +6,7 @@
 
 #include "Application.h" //To get the communication channel.
 #include "ExtruderTrain.h"
-#include "pathOrderOptimizer.h" //For skirt/brim.
+#include "PathOrderOptimizer.h" //For skirt/brim.
 #include "PrintFeature.h"
 #include "Slice.h"
 #include "weaveDataStorage.h"
@@ -111,7 +111,7 @@ void Wireframe2gcode::writeGCode()
             {
                 if (vSize2(gcode.getPositionXY() - part.connection.from) > connectionHeight)
                 {
-                    Point3 point_same_height(part.connection.from.x, part.connection.from.y, layer.z1+100);
+                    Point3 point_same_height(part.connection.from.x, part.connection.from.y, layer.z1 + MM2INT(0.1));
                     writeMoveWithRetract(point_same_height);
                 }
                 writeMoveWithRetract(part.connection.from);
@@ -248,7 +248,7 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
     Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
     RetractionConfig retraction_config;
     // TODO: get these from the settings!
-    retraction_config.distance = 500; //INT2MM(getSettingInt("retraction_amount"))
+    retraction_config.distance = MM2INT(0.5); //INT2MM(getSettingInt("retraction_amount"))
     retraction_config.prime_volume = 0;//INT2MM(getSettingInt("retractionPrime
     retraction_config.speed = 20; // 40;
     retraction_config.primeSpeed = 15; // 30;
@@ -258,7 +258,7 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
     retraction_config.retraction_min_travel_distance = scene_settings.get<coord_t>("retraction_min_travel");
 
     double top_retract_pause = 2.0;
-    int retract_hop_dist = 1000;
+    const coord_t retract_hop_dist = MM2INT(1);
     bool after_retract_hop = false;
     //bool go_horizontal_first = true;
     bool lower_retract_start = true;
@@ -636,21 +636,22 @@ void Wireframe2gcode::processSkirt()
     {
         return;
     }
-    Polygons skirt = wireFrame.bottom_outline.offset(100000+5000).offset(-100000);
-    PathOrderOptimizer order(Point(INT32_MIN, INT32_MIN));
-    order.addPolygons(skirt);
+    Polygons skirt = wireFrame.bottom_outline.offset(MM2INT(100 + 5), ClipperLib::jtRound).offset(MM2INT(-100), ClipperLib::jtRound);
+    PathOrderOptimizer<PolygonRef> order(Point(INT32_MIN, INT32_MIN));
+    for(PolygonRef skirt_path : skirt)
+    {
+        order.addPolygon(skirt_path);
+    }
     order.optimize();
 
     const Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
-    for (size_t poly_order_idx = 0; poly_order_idx < skirt.size(); poly_order_idx++)
+    for(const PathOrderOptimizer<PolygonRef>::Path& path : order.paths)
     {
-        const size_t poly_idx = order.polyOrder[poly_order_idx];
-        PolygonRef poly = skirt[poly_idx];
-        gcode.writeTravel(poly[order.polyStart[poly_idx]], scene_settings.get<Velocity>("speed_travel"));
-        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+        gcode.writeTravel(path.vertices[path.start_vertex], scene_settings.get<Velocity>("speed_travel"));
+        for(size_t vertex_index = 0; vertex_index < path.vertices.size(); ++vertex_index)
         {
-            Point& p = poly[(point_idx + order.polyStart[poly_idx] + 1) % poly.size()];
-            gcode.writeExtrusion(p, scene_settings.get<Velocity>("skirt_brim_speed"), scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * INT2MM(initial_layer_thickness), PrintFeatureType::SkirtBrim);
+            Point vertex = path.vertices[(vertex_index + path.start_vertex + 1) % path.vertices.size()];
+            gcode.writeExtrusion(vertex, scene_settings.get<Velocity>("skirt_brim_speed"), scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * INT2MM(initial_layer_thickness), PrintFeatureType::SkirtBrim);
         }
     }
 }

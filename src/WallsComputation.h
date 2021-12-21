@@ -5,6 +5,7 @@
 #define WALLS_COMPUTATION_H
 
 #include "settings/types/LayerIndex.h"
+#include "utils/Coord_t.h"
 
 namespace cura 
 {
@@ -28,14 +29,13 @@ public:
     WallsComputation(const Settings& settings, const LayerIndex layer_nr);
 
     /*!
-     * Generates the insets / perimeters for all parts in a layer.
-     * 
-     * Note that the second inset gets offsetted by WallsComputation::line_width_0 instead of the first, 
-     * which leads to better results for a smaller WallsComputation::line_width_0 than WallsComputation::line_width_x and when printing the outer wall last.
+     * \brief Generates the walls / inner area for all parts in a layer.
      *
-     * \param layer The layer for which to generate the insets.
+     * Generates walls for all parts, by calling the generateWall for the individual parts.
+     *
+     * \param layer The layer for which to generate the walls and inner area.
      */ 
-    void generateInsets(SliceLayer* layer);
+    void generateWalls(SliceLayer* layer);
 
 private:
     /*!
@@ -51,12 +51,23 @@ private:
     const LayerIndex layer_nr;
 
     /*!
-     * Generates the insets / perimeters for a single layer part.
+     * Generates the walls / inner area for a single layer part.
      *
      * \param part The part for which to generate the insets.
      */
-    void generateInsets(SliceLayerPart* part);
+    void generateWalls(SliceLayerPart* part);
 
+    /*!
+     * Generates the outer inset / perimeter used in spiralize mode for a single layer part. The spiral inset is
+     * generated using offsets.
+     *
+     * \param part The part for which to generate the spiral inset.
+     * \param line_width_0 The width of the outer (spiralized) wall.
+     * \param wall_0_inset The part for which to generate the spiral inset.
+     * \param recompute_outline_based_on_outer_wall Whether we need to recompute the print outline according to the
+     *        generated spiral inset.
+     */
+    void generateSpiralInsets(SliceLayerPart *part, coord_t line_width_0, coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
 };
 }//namespace cura
 

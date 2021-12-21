@@ -1,16 +1,17 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_UTILS_H
 #define UTILS_POLYGON_UTILS_H
 
-#include <vector>
 #include <functional> // function
+#include <limits>
+#include <optional>
+#include <memory> // unique_ptr
 
 #include "polygon.h"
 #include "SparsePointGridInclusive.h"
 #include "SparseLineGrid.h"
-#include "optional.h"
 #include "PolygonsPointIndex.h"
 
 namespace cura 
@@ -37,7 +38,7 @@ struct ClosestPolygonPoint
     {
         return point_idx != NO_INDEX;
     }
-    bool operator==(const ClosestPolygonPoint& rhs)
+    bool operator==(const ClosestPolygonPoint& rhs) const
     {
         // no need to compare on poy_idx
         // it's sometimes unused while poly is always initialized
@@ -134,6 +135,16 @@ public:
      * \param result Where to store the generated points
      */
     static void spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPolygonPoint>& result);
+
+    /*!
+     * Generate a grid of dots inside of the area of the \p polygons.
+     */
+    static std::vector<Point> spreadDotsArea(const Polygons& polygons, coord_t grid_size);
+
+    /*!
+     * Whether a polygon intersects with a line-segment. If true, the closest collision point to 'b' is stored in the result.
+     */
+    static bool lineSegmentPolygonsIntersection(const Point& a, const Point& b, const Polygons& current_outlines, const LocToLineGrid& outline_locator, Point& result, const coord_t within_max_dist);
 
     /*!
      * Get the normal of a boundary point, pointing outward.
@@ -423,7 +434,7 @@ public:
      * \param square_size The cell size used to bundle line segments (also used to chop up lines so that multiple cells contain the same long line)
      * \return A bucket grid mapping spatial locations to poly-point indices into \p polygons
      */
-    static LocToLineGrid* createLocToLineGrid(const Polygons& polygons, int square_size);
+    static std::unique_ptr<LocToLineGrid> createLocToLineGrid(const Polygons& polygons, int square_size);
 
     /*!
      * Find the line segment closest to a given point \p from within a cell-block of a size defined in the SparsePointGridInclusive \p loc_to_line
@@ -480,6 +491,10 @@ public:
     */
     static bool getNextPointWithDistance(Point from, int64_t dist, ConstPolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
 
+    /*!
+     * Walk a given \p distance along the polygon from a given point \p from on the polygon
+     */
+    static ClosestPolygonPoint walk(const ClosestPolygonPoint& from, coord_t distance);
 
     /*!
      * Get the point on a polygon which intersects a line parallel to a line going through the starting point and through another point.
@@ -614,6 +629,24 @@ public:
      * and 1.0 (the polygons are completely disjunct).
      */
     static double relativeHammingDistance(const Polygons& poly_a, const Polygons& poly_b);
+
+    /*!
+     * Create an approximation of a circle.
+     *
+     * This creates a regular polygon that is supposed to approximate a circle.
+     * \param mid The center of the circle.
+     * \param radius The radius of the circle.
+     * \param a_step The angle between segments of the circle.
+     * \return A new Polygon containing the circle.
+     */
+    static Polygon makeCircle(const Point mid, const coord_t radius, const AngleRadians a_step = M_PI / 8);
+
+    /*!
+     * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
+     */
+    static Polygons connect(const Polygons& input);
+
+    static void fixSelfIntersections(const coord_t epsilon, Polygons& thiss);
 
 private:
     /*!

@@ -1,4 +1,4 @@
-//Copyright (C) 2019 Ultimaker B.V.
+//Copyright (C) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <iterator>
@@ -8,7 +8,7 @@
 
 #include "AdaptiveLayerHeights.h"
 #include "EnumSettings.h"
-#include "types/AngleRadians.h"
+#include "types/Angle.h"
 #include "../Application.h"
 #include "../Slice.h"
 #include "../utils/floatpoint.h"
@@ -230,8 +230,8 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
                 z_angle = M_PI;
             }
 
-            face_min_z_values.push_back(min_z * 1000);
-            face_max_z_values.push_back(max_z * 1000);
+            face_min_z_values.push_back(MM2INT(min_z));
+            face_max_z_values.push_back(MM2INT(max_z));
             face_slopes.push_back(z_angle);
         }
     }
