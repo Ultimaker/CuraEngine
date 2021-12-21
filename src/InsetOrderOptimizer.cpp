@@ -219,14 +219,19 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
         }
     }
 
-    if (alternate_inset_direction) {
+    if (alternate_inset_direction)
+    {
         bool alternate_inset_print_direction = reverse_initial_inset;
-        for (PathJunctions &paths: insets) {
-            for (LineJunctions &line: paths) {
-                if (alternate_inset_print_direction) {
+        for (PathJunctions &paths: insets)
+        {
+            for (LineJunctions &line: paths)
+            {
+                if (alternate_inset_print_direction)
+                {
                     int left = 0;
                     int right = line.size() - 1;
-                    while (left < right) {
+                    while (left < right)
+                    {
                         swap(line[left], line[right]);
                         left++;
                         right--;
