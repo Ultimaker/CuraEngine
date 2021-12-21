@@ -2638,24 +2638,23 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
             gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
 
-            const bool alternate_layer_print_direction = gcode_layer.getLayerNr() % 2 == 1;
+            const bool alternate_inset_direction = infill_extruder.settings.get<bool>("material_alternate_walls");
+            const bool alternate_layer_print_direction = alternate_inset_direction && gcode_layer.getLayerNr() % 2 == 1;
 
             if (! wall_toolpaths.empty())
             {
                 constexpr bool pack_regions_by_inset = true;
                 constexpr bool center_last = false;
                 std::set<size_t>* p_bins_with_index_zero_insets = nullptr;
-                constexpr bool alternate_inset_direction = true;
-                const bool reverse_initial_inset = alternate_layer_print_direction;
                 const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(
                         wall_toolpaths, pack_regions_by_inset, center_last, p_bins_with_index_zero_insets,
-                        alternate_inset_direction, reverse_initial_inset);
+                        alternate_inset_direction, alternate_layer_print_direction);
                 for (const PathJunctions& paths : bins)
                 {
                     for (const LineJunctions& line : paths)
                     {
-                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[0],
-                                                      false);
+                        constexpr bool force_retract = false;
+                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[0], force_retract);
                     }
                 }
                 added_something = true;
@@ -2671,11 +2670,10 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr bool spiralize = false;
                 constexpr Ratio flow_ratio = 1.0_r;
                 constexpr bool always_retract = false;
-                const bool reverse_order = infill_extruder.settings.get<bool>("material_alternate_walls") && alternate_layer_print_direction;
                 const std::optional<Point> start_near_location = std::optional<Point>();
 
                 gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx],
-                       z_seam_config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_order, start_near_location);
+                       z_seam_config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract, alternate_layer_print_direction, start_near_location);
                 added_something = true;
             }
 
@@ -2686,11 +2684,10 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr Ratio flow_ratio = 1.0;
                 const std::optional<Point> near_start_location = std::optional<Point>();
                 constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
-                const bool reverse_print_direction = infill_extruder.settings.get<bool>("material_alternate_walls") && alternate_layer_print_direction;
 
                 gcode_layer.addLinesByOptimizer(support_lines, gcode_layer.configs_storage.support_infill_config[combine_idx],
                                                 (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines,
-                                                enable_travel_optimization, wipe_dist, flow_ratio, near_start_location, fan_speed, reverse_print_direction);
+                                                enable_travel_optimization, wipe_dist, flow_ratio, near_start_location, fan_speed, alternate_layer_print_direction);
 
                 added_something = true;
             }
