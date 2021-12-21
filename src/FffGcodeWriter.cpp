@@ -2642,11 +2642,11 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             if (! wall_toolpaths.empty())
             {
-                const bool pack_regions_by_inset = true;
-                const bool center_last = false;
+                constexpr bool pack_regions_by_inset = true;
+                constexpr bool center_last = false;
                 std::set<size_t>* p_bins_with_index_zero_insets = nullptr;
-                const bool alternate_inset_direction = true;
-                const bool reverse_initial_inset = true;
+                constexpr bool alternate_inset_direction = true;
+                constexpr bool reverse_initial_inset = true;
                 const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(
                         wall_toolpaths, pack_regions_by_inset, center_last, p_bins_with_index_zero_insets,
                         alternate_inset_direction, reverse_initial_inset);
@@ -2667,10 +2667,10 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
 
                 const ZSeamConfig& z_seam_config = ZSeamConfig();
-                const coord_t wall_0_wipe_dist = 0;
-                const bool spiralize = false;
-                const Ratio flow_ratio = 1.0_r;
-                const bool always_retract = false;
+                constexpr coord_t wall_0_wipe_dist = 0;
+                constexpr bool spiralize = false;
+                constexpr Ratio flow_ratio = 1.0_r;
+                constexpr bool always_retract = false;
                 const bool reverse_order = infill_extruder.settings.get<bool>("material_alternate_walls") && alternate_layer_print_direction;
                 const std::optional<Point> start_near_location = std::optional<Point>();
 
@@ -2681,11 +2681,11 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             if (!support_lines.empty())
             {
-                const bool enable_travel_optimization = false;
-                const coord_t wipe_dist = 0;
-                const Ratio flow_ratio = 1.0;
+                constexpr bool enable_travel_optimization = false;
+                constexpr coord_t wipe_dist = 0;
+                constexpr Ratio flow_ratio = 1.0;
                 const std::optional<Point> near_start_location = std::optional<Point>();
-                const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+                constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
                 const bool reverse_print_direction = infill_extruder.settings.get<bool>("material_alternate_walls") && alternate_layer_print_direction;
 
                 gcode_layer.addLinesByOptimizer(support_lines, gcode_layer.configs_storage.support_infill_config[combine_idx],
