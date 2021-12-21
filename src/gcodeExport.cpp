@@ -157,6 +157,8 @@ const std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor) const
             return "Repetier";
         case EGCodeFlavor::REPRAP:
             return "RepRap";
+        case EGCodeFlavor::FLASHFORGE:
+            return "Flashforge";
         case EGCodeFlavor::MARLIN:
         default:
             return "Marlin";
@@ -861,7 +863,7 @@ void GCodeExport::writeUnretractionAndPrime()
     }
     extruder_attr[current_extruder].prime_volume = 0.0;
     
-    if (getCurrentExtrudedVolume() > 10000.0 && flavor != EGCodeFlavor::BFB && flavor != EGCodeFlavor::MAKERBOT) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
+    if (getCurrentExtrudedVolume() > 10000.0 && flavor != EGCodeFlavor::BFB && flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::FLASHFORGE) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
     {
         resetExtrusionValue();
     }
@@ -994,6 +996,10 @@ void GCodeExport::startExtruder(const size_t new_extruder)
         if (flavor == EGCodeFlavor::MAKERBOT)
         {
             *output_stream << "M135 T" << new_extruder << new_line;
+        }
+        else if (flavor == EGCodeFlavor::FLASHFORGE)
+        {
+            *output_stream << "M108 T" << new_extruder << new_line;
         }
         else
         {
@@ -1146,7 +1152,7 @@ void GCodeExport::writeFanCommand(double speed)
     {
         return;
     }
-    if(flavor == EGCodeFlavor::MAKERBOT)
+    if(flavor == EGCodeFlavor::MAKERBOT || flavor == EGCodeFlavor::FLASHFORGE)
     {
         if(speed >= 50)
         {
@@ -1155,6 +1161,17 @@ void GCodeExport::writeFanCommand(double speed)
         else
         {
             *output_stream << "M127 T0" << new_line;
+        }
+    }
+    if(flavor == EGCodeFlavor::FLASHFORGE)
+    {
+        if(speed >= 50)
+        {
+            *output_stream << "M106" << new_line; //Makerbot cannot PWM the fan speed...
+        }
+        else
+        {
+            *output_stream << "M107" << new_line;
         }
     }
     else if (speed > 0)
@@ -1220,7 +1237,7 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         return;
     }
 
-    if (wait && flavor != EGCodeFlavor::MAKERBOT)
+    if (wait && flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::FLASHFORGE)
     {
         if(flavor == EGCodeFlavor::MARLIN)
         {
@@ -1234,7 +1251,7 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
         *output_stream << "M104";
         extruder_attr[extruder].waited_for_temperature = false;
     }
-    if (extruder != current_extruder)
+    if (extruder != current_extruder || flavor == EGCodeFlavor::FLASHFORGE) //Flashforge always needs extruder
     {
         *output_stream << " T" << extruder;
     }
@@ -1251,6 +1268,11 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
     {
         //Makerbot doesn't use M109 for heat-and-wait. Instead, use M104 and then wait using M116.
         *output_stream << "M116" << new_line;
+    }
+    if (wait && flavor == EGCodeFlavor::FLASHFORGE)
+    {
+        //Same as Makerbot but wait using M6 T<> instead of M116
+        *output_stream << "M6" << " T" << extruder << new_line;
     }
     extruder_attr[extruder].currentTemperature = temperature;
 }

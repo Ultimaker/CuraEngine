@@ -200,6 +200,8 @@ enum class EGCodeFlavor
  * Real RepRap GCode suitable for printers using RepRap firmware (e.g. Duet controllers)
  **/
     REPRAP = 8,
+
+    FLASHFORGE = 9,
 };
 
 } //Cura namespace.

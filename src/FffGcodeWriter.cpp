@@ -485,13 +485,21 @@ void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& stor
     }
     else if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
     {
-        if (num_extruders > 1 || gcode.getFlavor() == EGCodeFlavor::REPRAP)
+        if (gcode.getFlavor() == EGCodeFlavor::FLASHFORGE)
         {
+            // Flashforge crashes when seeing plain "T[0|1]" G-code
             std::ostringstream tmp;
-            tmp << "T" << start_extruder_nr;
+            tmp << "M108" << " T" << start_extruder_nr;
             gcode.writeLine(tmp.str().c_str());
         }
-
+        else
+        {
+            if (num_extruders > 1 || gcode.getFlavor() == EGCodeFlavor::REPRAP) {
+                std::ostringstream tmp;
+                tmp << "T" << start_extruder_nr;
+                gcode.writeLine(tmp.str().c_str());
+            }
+        }
         if (scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend"))
         {
             if (scene.current_mesh_group->settings.get<bool>("machine_heated_bed"))

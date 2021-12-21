@@ -1494,22 +1494,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             gcode.ResetLastEValueAfterWipe(prev_extruder);
 
             const ExtruderTrain& prev_extruder_train = Application::getInstance().current_slice->scene.extruders[prev_extruder];
-            if (prev_extruder_train.settings.get<bool>("retraction_hop_after_extruder_switch"))
-            {
-                z_hop_height = storage.extruder_switch_retraction_config_per_extruder[prev_extruder].zHop;
-                gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder], z_hop_height);
-            }
-            else
-            {
-                gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
-            }
 
             const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-
-            { // require printing temperature to be met
-                constexpr bool wait = true;
-                gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature, wait);
-            }
 
             if (extruder_plan.prev_extruder_standby_temp)
             { // turn off previous extruder
@@ -1520,8 +1506,26 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
                 }
+
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
+
+            if (prev_extruder_train.settings.get<bool>("retraction_hop_after_extruder_switch"))
+            {
+                z_hop_height = storage.extruder_switch_retraction_config_per_extruder[prev_extruder].zHop;
+                gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder], z_hop_height);
+            }
+            else
+            {
+                gcode.switchExtruder(extruder_nr, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
+            }
+
+            { // require printing temperature to be met
+                constexpr bool wait = true;
+                gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature, wait);
+            }
+
+
 
             const double extra_prime_amount = extruder.settings.get<bool>("retraction_enable") ? extruder.settings.get<double>("switch_extruder_extra_prime_amount") : 0;
             gcode.addExtraPrimeAmount(extra_prime_amount);

@@ -279,6 +279,10 @@ template<> EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) cons
     {
         return EGCodeFlavor::REPRAP;
     }
+    else if (value == "Flashforge")
+    {
+        return EGCodeFlavor::FLASHFORGE;
+    }
     //Default:
     return EGCodeFlavor::MARLIN;
 }
