@@ -228,14 +228,7 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
             {
                 if (alternate_inset_print_direction)
                 {
-                    int left = 0;
-                    int right = line.size() - 1;
-                    while (left < right)
-                    {
-                        swap(line[left], line[right]);
-                        left++;
-                        right--;
-                    }
+                    std::reverse(line.begin(), line.end());
                 }
             }
             alternate_inset_print_direction = !alternate_inset_print_direction;

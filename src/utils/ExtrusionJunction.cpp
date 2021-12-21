@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ExtrusionJunction.h"
@@ -19,21 +19,5 @@ ExtrusionJunction::ExtrusionJunction(const Point p, const coord_t w, const coord
       perimeter_index(perimeter_index),
       region_id(region_id)
 {}
-
-void ExtrusionJunction::swap(ExtrusionJunction* other)
-{
-  if (other == this) return;
-  InternalSwap(other);
-}
-
-void ExtrusionJunction::internalSwap(ExtrusionJunction* other)
-{
-  using std::swap;
-
-  swap(p, other->p);
-  swap(w, other->w);
-  swap(perimeter_index, other->perimeter_index);
-  swap(region_id, other->region_id);
-}
 
 }
