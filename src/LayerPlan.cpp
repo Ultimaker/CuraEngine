@@ -821,11 +821,6 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
-    const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
-    const bool is_small_feature = (small_feature_max_length > 0) && cura::shorterThan(wall, small_feature_max_length);
-    Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
-    const Velocity min_speed = fan_speed_layer_time_settings_per_extruder[getLastPlannedExtruderTrain()->extruder_nr].cool_min_speed;
-    small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
 
     const Ratio nominal_line_width_multiplier = 1.0 / Ratio(non_bridge_config.getLineWidth()); // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
 
@@ -913,6 +908,13 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
     };
 
     bool first_line = true;
+    const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
+    const bool is_small_feature = (small_feature_max_length > 0) && cura::shorterThan(wall, small_feature_max_length);
+    Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
+    const Velocity min_speed = fan_speed_layer_time_settings_per_extruder[getLastPlannedExtruderTrain()->extruder_nr].cool_min_speed;
+    small_feature_speed_factor = std::max((double)small_feature_speed_factor, (double)(min_speed / non_bridge_config.getSpeed()));
+    const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); //Square micrometres!
+    const coord_t max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
 
     ExtrusionJunction p0 = wall[start_idx];
 
@@ -921,26 +923,56 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
     for(size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
         const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
-        const coord_t line_width = (p0.w + p1.w) / 2; //For lines which in itself vary in width, use the average width of the variable line.
 
-        if (!bridge_wall_mask.empty())
+        if(!bridge_wall_mask.empty())
         {
             computeDistanceToBridgeStart((wall.size() + start_idx + point_idx * direction - 1) % wall.size());
         }
 
-        if (first_line)
+        if(first_line)
         {
             addTravel(p0.p, always_retract);
             first_line = false;
         }
-        if (is_small_feature)
+
+        /*
+        If the line has variable width, break it up into pieces with the
+        following constraints:
+        - Each piece must be smaller than the Maximum Resolution setting.
+        - The difference between the trapezoidal shape of the line and the
+          rectangular shape of the line may not exceed the Maximum Extrusion
+          Area Deviation setting, unless required by the first constraint.
+        Since breaking up a line segment into N pieces (each with averaged
+        width) divides the area deviation by N, we can simply check how many
+        pieces we'd want to get low enough deviation, then check if each piece
+        is not too short at the end.
+        */
+        const coord_t delta_line_width = p1.w - p0.w;
+        const Point line_vector = p1.p - p0.p;
+        const coord_t line_length = vSize(line_vector);
+        const coord_t line_area_deviation = std::abs(delta_line_width) * line_length / 8; //How much the line would deviate from the trapezoidal shape if printed at average width.
+        size_t pieces = std::max(size_t(1), round_up_divide(line_area_deviation, max_area_deviation)); //How many pieces we'd need to stay beneath the max area deviation.
+        if(coord_t(line_length / pieces) < max_resolution) //This line is bound by the maximum resolution, not the maximum area deviation.
         {
-            constexpr bool spiralize = false;
-            addExtrusionMove(p1.p, non_bridge_config, SpaceFillType::Polygons, flow_ratio * (line_width * nominal_line_width_multiplier), spiralize, small_feature_speed_factor);
+            pieces = std::max(size_t(1), size_t(line_length / max_resolution)); //Round down this time, to not exceed the maximum resolution.
         }
-        else
+        const coord_t piece_length = round_divide(line_length, pieces);
+
+        for(size_t piece = 0; piece < pieces; ++piece)
         {
-            addWallLine(p0.p, p1.p, settings, non_bridge_config, bridge_config, flow_ratio * (line_width * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            const float average_progress = (float(piece) + 0.5) / pieces; //How far along this line to sample the line width in the middle of this piece.
+            const coord_t line_width = p0.w + average_progress * delta_line_width;
+            const Point destination = p0.p + normal(line_vector, piece_length * (piece + 1));
+            if(is_small_feature)
+            {
+                constexpr bool spiralize = false;
+                addExtrusionMove(destination, non_bridge_config, SpaceFillType::Polygons, flow_ratio * (line_width * nominal_line_width_multiplier), spiralize, small_feature_speed_factor);
+            }
+            else
+            {
+                const Point origin = p0.p + normal(line_vector, piece_length * piece);
+                addWallLine(origin, destination, settings, non_bridge_config, bridge_config, flow_ratio * (line_width * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+            }
         }
 
         p0 = p1;
