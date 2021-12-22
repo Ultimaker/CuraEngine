@@ -191,6 +191,8 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
         }
         const size_t inset_index = path.front().inset_idx;
 
+        const bool reverse_order = alternate_inset_direction && ((inset_index % 2 == 0) ^ reverse_initial_inset);
+
         // Convert list of extrusion lines to vectors of extrusion junctions, and add those to the binned insets.
         for (const ExtrusionLine& line : path)
         {
@@ -209,33 +211,21 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
             {
                 bin_index = inset_index + (in_hole_region ? (max_inset_index + 1) : 0) + center_last * 2;
             }
-            insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
+
+            if (reverse_order)
+            {
+                insets[bin_index].emplace_back(line.junctions.rbegin(), line.junctions.rend());
+            }
+            else
+            {
+                insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
+            }
 
             // Collect all bins that have zero-inset indices in them, if needed:
             if (inset_index == 0 && p_bins_with_index_zero_insets != nullptr)
             {
                 p_bins_with_index_zero_insets->insert(bin_index);
             }
-        }
-    }
-
-    if (alternate_inset_direction)
-    {
-        bool alternate_inset_print_direction = reverse_initial_inset;
-        for (PathJunctions &paths : insets)
-        {
-            for (LineJunctions &line: paths)
-            {
-                if (alternate_inset_print_direction)
-                {
-                    std::reverse(line.begin(), line.end());
-                }
-            }
-            if(alternate_inset_print_direction)
-            {
-                std::reverse(paths.begin(), paths.end());
-            }
-            alternate_inset_print_direction = !alternate_inset_print_direction;
         }
     }
 
