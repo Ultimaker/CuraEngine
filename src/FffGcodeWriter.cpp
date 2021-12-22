@@ -2651,11 +2651,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                         alternate_inset_direction, alternate_layer_print_direction);
                 for (const PathJunctions& paths : bins)
                 {
-                    for (const LineJunctions& line : paths)
-                    {
-                        constexpr bool force_retract = false;
-                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[0], force_retract);
-                    }
+                    gcode_layer.addWalls(paths, infill_extruder.settings, gcode_layer.configs_storage.support_bottom_config, gcode_layer.configs_storage.support_bottom_config);
                 }
                 added_something = true;
             }
