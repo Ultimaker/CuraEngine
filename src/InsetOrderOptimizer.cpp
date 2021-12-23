@@ -165,8 +165,7 @@ size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths
 }
 
 BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool pack_regions_by_inset,
-                                                                  const bool center_last, std::set<size_t>* p_bins_with_index_zero_insets,
-                                                                  const bool alternate_inset_direction, const bool reverse_initial_inset)
+                                                                  const bool center_last, std::set<size_t>* p_bins_with_index_zero_insets)
 {
     // Find the largest inset-index:
     size_t max_inset_index = 0;
@@ -191,8 +190,6 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
         }
         const size_t inset_index = path.front().inset_idx;
 
-        const bool reverse_order = alternate_inset_direction && ((inset_index % 2 == 0) ^ reverse_initial_inset);
-
         // Convert list of extrusion lines to vectors of extrusion junctions, and add those to the binned insets.
         for (const ExtrusionLine& line : path)
         {
@@ -212,14 +209,7 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
                 bin_index = inset_index + (in_hole_region ? (max_inset_index + 1) : 0) + center_last * 2;
             }
 
-            if (reverse_order)
-            {
-                insets[bin_index].emplace_back(line.junctions.rbegin(), line.junctions.rend());
-            }
-            else
-            {
-                insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
-            }
+            insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
 
             // Collect all bins that have zero-inset indices in them, if needed:
             if (inset_index == 0 && p_bins_with_index_zero_insets != nullptr)
