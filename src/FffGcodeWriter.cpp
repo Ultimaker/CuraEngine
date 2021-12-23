@@ -2781,8 +2781,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     }
     if (! roof_paths.empty())
     {
-        auto converted_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(roof_paths);
-        for (auto& wall_junctions : converted_paths)
+        const auto converted_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(roof_paths);
+        for (const auto& wall_junctions : converted_paths)
         {
             gcode_layer.addWalls(wall_junctions, roof_extruder.settings, gcode_layer.configs_storage.support_roof_config, gcode_layer.configs_storage.support_roof_config);
         }
@@ -2854,8 +2854,8 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     }
     if (! bottom_paths.empty())
     {
-        auto converted_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(bottom_paths);
-        for (auto& wall_junctions : converted_paths)
+        const auto converted_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(bottom_paths);
+        for (const auto& wall_junctions : converted_paths)
         {
             gcode_layer.addWalls(wall_junctions, bottom_extruder.settings, gcode_layer.configs_storage.support_bottom_config, gcode_layer.configs_storage.support_bottom_config);
         }
