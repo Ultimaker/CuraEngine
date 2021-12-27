@@ -950,7 +950,15 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
         const coord_t delta_line_width = p1.w - p0.w;
         const Point line_vector = p1.p - p0.p;
         const coord_t line_length = vSize(line_vector);
-        const coord_t line_area_deviation = std::abs(delta_line_width) * line_length / 8; //How much the line would deviate from the trapezoidal shape if printed at average width.
+        /*
+        Calculate how much the line would deviate from the trapezoidal shape if printed at average width.
+        This formula is:
+        - Half the length times half the delta width, for the rectangular shape of the deviating side.
+        - Half of that because the ideal line width is trapezoidal, making the deviating part triangular.
+        - Double of that because the deviation occurs on both sides of the idealised line width.
+        This results in delta_line_width / 2 * line_length / 2 / 2 * 2 == delta_line_width * line_length / 4.
+        */
+        const coord_t line_area_deviation = std::abs(delta_line_width) * line_length / 4;
         size_t pieces = std::max(size_t(1), round_up_divide(line_area_deviation, max_area_deviation)); //How many pieces we'd need to stay beneath the max area deviation.
         if(coord_t(line_length / pieces) < max_resolution) //This line is bound by the maximum resolution, not the maximum area deviation.
         {
