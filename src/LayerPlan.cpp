@@ -959,11 +959,9 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
         This results in delta_line_width / 2 * line_length / 2 / 2 * 2 == delta_line_width * line_length / 4.
         */
         const coord_t line_area_deviation = std::abs(delta_line_width) * line_length / 4;
-        size_t pieces = std::max(size_t(1), round_up_divide(line_area_deviation, max_area_deviation)); //How many pieces we'd need to stay beneath the max area deviation.
-        if(coord_t(line_length / pieces) < max_resolution) //This line is bound by the maximum resolution, not the maximum area deviation.
-        {
-            pieces = std::max(size_t(1), size_t(line_length / max_resolution)); //Round down this time, to not exceed the maximum resolution.
-        }
+        const size_t pieces_limit_deviation = round_up_divide(line_area_deviation, max_area_deviation); //How many pieces we'd need to stay beneath the max area deviation.
+        const size_t pieces_limit_resolution = line_length / max_resolution; //Round down this time, to not exceed the maximum resolution.
+        const size_t pieces = std::max(size_t(1), std::min(pieces_limit_deviation, pieces_limit_resolution)); //Resolution overrides deviation, if resolution is a constraint.
         const coord_t piece_length = round_divide(line_length, pieces);
 
         for(size_t piece = 0; piece < pieces; ++piece)
