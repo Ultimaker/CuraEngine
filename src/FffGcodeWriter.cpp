@@ -2652,11 +2652,10 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     constexpr coord_t wall_0_wipe_dist = 0;
                     constexpr float flow_ratio = 1.0;
                     constexpr bool always_retract = false;
-                    const bool alternate_inset_direction_modifier = alternate_inset_direction && (alternate_layer_print_direction ^ alternate_bin_direction);
-                    alternate_bin_direction = !alternate_bin_direction;
                     gcode_layer.addWalls(paths, infill_extruder.settings, gcode_layer.configs_storage.support_infill_config[0],
                                          gcode_layer.configs_storage.support_infill_config[0], z_seam_config, wall_0_wipe_dist,
-                                         flow_ratio, always_retract, alternate_inset_direction_modifier);
+                                         flow_ratio, always_retract, alternate_bin_direction);
+                    alternate_bin_direction = !alternate_bin_direction;
                 }
                 added_something = true;
             }
