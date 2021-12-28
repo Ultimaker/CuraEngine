@@ -142,8 +142,16 @@ void Mesh::finish()
 {
     // Finish up the mesh, clear the vertex_hash_map, as it's no longer needed from this point on and uses quite a bit of memory.
     spatial_map.clear();
-    faces.shrink_to_fit();
-    vertices.shrink_to_fit();
+    // Shrink to fit vectors if more than 1/3 is wasted
+    if (faces.size() * 3 < 2 * faces.capacity())
+    {
+        faces.shrink_to_fit();
+    }
+    if (vertices.size() * 3 < 2 * vertices.capacity())
+    {
+        vertices.shrink_to_fit();
+    }
+
 
     // For each face, store which other face is connected with it.
     for (ptrdiff_t i = 0; i < ptrdiff_t(faces.size()); i++)
