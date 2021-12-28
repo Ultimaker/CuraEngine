@@ -9,26 +9,7 @@
 namespace cura
 {
 
-const coord_t vertex_meld_distance = MM2INT(0.032);
-static_assert(vertex_meld_distance && (vertex_meld_distance & (vertex_meld_distance - 1)) == 0, "vertex_meld_distance must be a power of two");
-
-/// 1D coordinate to discretized grid of 2 * vertex_meld_distance wide cells
-static inline HashMap3D::hash_t hash_coord(coord_t p)
-{
-    return HashMap3D::hash_t(p / (2 * vertex_meld_distance));
-};
-
-/// Intersperse bits by inserting 2 zeros beetwen each bit from the input bitstring
-[[maybe_unused]] static inline uint32_t intersperse3bits(uint32_t x)
-{
-    x = (x | x << 16) & 0x30000ff;
-    x = (x | x << 8) & 0x300f00f;
-    x = (x | x << 4) & 0x30c30c3;
-    x = (x | x << 2) & 0x9249249;
-    return x;
-}
-
-[[maybe_unused]] static inline uint64_t intersperse3bits(uint64_t x)
+static inline uint64_t intersperse3bits(uint64_t x)
 {
     x = (x | x << 32) & 0x1f00000000ffff;
     x = (x | x << 16) & 0x1f0000ff0000ff;
@@ -40,8 +21,8 @@ static inline HashMap3D::hash_t hash_coord(coord_t p)
 
 HashMap3D::HashMap3D(size_t nvertices)
 {
-    // 2/3 load factor, 8 slots per vertex
-    size_t size = (nvertices * 3 * 8) / 2;
+    // 2/3 load factor
+    size_t size = (nvertices * 3) / 2;
     bits = 0;
     while (size)
     {
@@ -57,7 +38,7 @@ void HashMap3D::init()
 {
     clear();
     // Number of vertices that can be inserted before reaching the load factor threshold
-    free_vertices = (1 << (bits - 2)) / 3;
+    free_vertices = (1 << (bits + 1)) / 3;
     mask = (1 << bits) - 1;
     map = std::make_unique<Item[]>(mask + 1); // map slots, value-initialized to 0
 }
@@ -71,8 +52,8 @@ void HashMap3D::clear()
 HashMap3D::Item HashMap3D::insert(const Point3& v, const std::vector<MeshVertex>& vertices)
 {
     // Lookup
-    const auto predicate = [&vertices, &v](Item item) { return (vertices[item - 1].p - v).testLength(vertex_meld_distance); };
-    const hash_t hash = intersperse3bits(hash_coord(v.x)) | (intersperse3bits(hash_coord(v.y)) << 1) | (intersperse3bits(hash_coord(v.z)) << 2);
+    const auto predicate = [&vertices, &v](Item item) { return vertices[item - 1].p == v; };
+    const hash_t hash = intersperse3bits(v.x) | (intersperse3bits(v.y) << 1) | (intersperse3bits(v.z) << 2);
     const Item& slot = probe(hash, predicate);
 
     if (slot)
@@ -106,25 +87,12 @@ HashMap3D::Item HashMap3D::insert(const Point3& v, const std::vector<MeshVertex>
 
 inline void HashMap3D::insert8(const Point3& v, Item value)
 {
-    hash_t hash_x = hash_coord(v.x - vertex_meld_distance);
-    hash_t hash_y = hash_coord(v.y - vertex_meld_distance);
-    hash_t hash_z = hash_coord(v.z - vertex_meld_distance);
-    hash_t hash0_x = intersperse3bits(hash_x);
-    hash_t hash1_x = intersperse3bits(hash_x + 1);
-    hash_t hash0_y = intersperse3bits(hash_y) << 1;
-    hash_t hash1_y = intersperse3bits(hash_y + 1) << 1;
-    hash_t hash0_z = intersperse3bits(hash_z) << 2;
-    hash_t hash1_z = intersperse3bits(hash_z + 1) << 2;
+    hash_t hash0_x = intersperse3bits(v.x);
+    hash_t hash0_y = intersperse3bits(v.y) << 1;
+    hash_t hash0_z = intersperse3bits(v.z) << 2;
 
     constexpr auto constfalse = [](Item) { return false; };
     probe(hash0_x | hash0_y | hash0_z, constfalse) = value;
-    probe(hash0_x | hash0_y | hash1_z, constfalse) = value;
-    probe(hash0_x | hash1_y | hash0_z, constfalse) = value;
-    probe(hash0_x | hash1_y | hash1_z, constfalse) = value;
-    probe(hash1_x | hash0_y | hash0_z, constfalse) = value;
-    probe(hash1_x | hash0_y | hash1_z, constfalse) = value;
-    probe(hash1_x | hash1_y | hash0_z, constfalse) = value;
-    probe(hash1_x | hash1_y | hash1_z, constfalse) = value;
 }
 
 template<typename P>
