@@ -2643,8 +2643,13 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             if (! wall_toolpaths.empty())
             {
+                const bool pack_by_inset = !infill_extruder.settings.get<bool>("optimize_wall_printing_order");
+                const InsetDirection inset_direction = infill_extruder.settings.get<InsetDirection>("inset_direction");
+                const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
+
                 std::set<size_t>* p_bins_with_index_zero_insets = nullptr;
-                BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths);
+                BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths, pack_by_inset, center_last, p_bins_with_index_zero_insets);
+
                 bool alternate_bin_direction = false;
                 for (PathJunctions& paths : bins)
                 {
