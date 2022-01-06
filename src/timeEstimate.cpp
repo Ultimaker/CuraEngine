@@ -159,8 +159,7 @@ void TimeEstimateCalculator::calculateTrapezoidForBlock(Block *block, const Rati
 
 void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatureType feature)
 {
-    Block block;
-    memset(&block, 0, sizeof(block));
+    Block block{};
 
     block.feature = feature;
 
