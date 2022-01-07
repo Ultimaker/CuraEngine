@@ -320,9 +320,9 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
             }
             poly.add(poly[0]);
         }
-        Polygons polylines = inner_contour.intersectionPolyLines(result_polygons);
-        result_lines.add(polylines);
-        result_polygons.clear(); // the output should only contain polylines
+        Polygons polylines = inner_contour.intersectionPolyLines(result_polygons.splitPolygonsIntoSegments());
+        result_polygons.clear();
+        PolylineStitcher::stitch(polylines, result_lines, result_polygons, infill_line_width);
     }
 }
 
@@ -423,7 +423,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 {
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
-    result.add(outer_contour.offset(infill_overlap).intersectionPolyLines(uncropped));
+    addLineSegmentsInfill(result, uncropped);
 }
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
@@ -448,10 +448,17 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
 
         Polygons cross_pattern_polygons;
         cross_pattern_polygons.add(cross_pattern_polygon);
-        Polygons poly_lines = inner_contour.intersectionPolyLines(cross_pattern_polygons);
-
-        result_lines.add(poly_lines);
+        Polygons poly_lines = inner_contour.intersectionPolyLines(cross_pattern_polygons.splitPolygonsIntoSegments());
+        PolylineStitcher::stitch(poly_lines, result_lines, result_polygons, infill_line_width);
     }
+}
+
+void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
+{
+    Polygons polylines = outer_contour.offset(infill_overlap).intersectionPolyLines(input);
+    Polygons result_polygons;
+    PolylineStitcher::stitch(polylines, result, result_polygons, infill_line_width);
+    assert(result_polygons.empty());
 }
 
 void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t shift)

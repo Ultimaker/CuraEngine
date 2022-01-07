@@ -263,7 +263,7 @@ namespace cura
         ASSERT_LT((coord_t)out_infill_area, (coord_t)max_expected_infill_area) << "Infill area should be less than the maximum area to be covered.";
 
         const Polygons padded_shape_outline = params.outline_polygons.offset(infill_line_width / 2);
-        ASSERT_EQ(padded_shape_outline.intersectionPolyLines(params.result_lines).polyLineLength(), params.result_lines.polyLineLength()) << "Infill (lines) should not be outside target polygon.";
+        ASSERT_EQ(padded_shape_outline.intersectionPolyLines(params.result_lines.splitPolylinesIntoSegments()).polyLineLength(), params.result_lines.polyLineLength()) << "Infill (lines) should not be outside target polygon.";
         ASSERT_EQ(params.result_polygons.difference(padded_shape_outline).area(), 0) << "Infill (polys) should not be outside target polygon.";
     }
 
