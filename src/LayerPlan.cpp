@@ -1150,29 +1150,38 @@ void LayerPlan::addLinesByOptimizer
     for(size_t order_idx = 0; order_idx < order_optimizer.paths.size(); order_idx++)
     {
         const PathOrderOptimizer<ConstPolygonRef>::Path& path = order_optimizer.paths[order_idx];
-        ConstPolygonRef polygon = *path.vertices;
-        const size_t start = path.start_vertex;
-        const size_t end = 1 - start;
-        const Point& p0 = polygon[start];
-        const Point& p1 = polygon[end];
-        // ignore line segments that are less than 5uM long
-        if(vSize2(p1 - p0) < MINIMUM_SQUARED_LINE_LENGTH)
-        {
-            continue;
-        }
+        ConstPolygonRef polyline = *path.vertices;
+        const size_t start_idx = path.start_vertex;
+        const Point start = polyline[start_idx];
 
-        if(vSize2(getLastPlannedPositionOrStartingPosition() - p0) < line_width_2)
+        if(vSize2(getLastPlannedPositionOrStartingPosition() - start) < line_width_2)
         {
             // Instead of doing a small travel that is shorter than the line width (which is generally done at pretty high jerk & move) do a
             // "fake" extrusion move
-            addExtrusionMove(p0, config, space_fill_type, 0, false, 1.0, fan_speed);
+            addExtrusionMove(start, config, space_fill_type, 0, false, 1.0, fan_speed);
         }
         else
         {
-            addTravel(p0);
+            addTravel(start);
         }
 
-        addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+        Point p0 = start;
+        for (size_t idx = 0; idx < polyline.size(); idx++)
+        {
+            size_t point_idx = (start_idx == 0) ? idx : polyline.size() - 1 - idx;
+            Point p1 = polyline[point_idx];
+
+            // ignore line segments that are less than 5uM long
+            if (vSize2(p1 - p0) >= MINIMUM_SQUARED_LINE_LENGTH)
+            {
+                addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+                p0 = p1;
+            }
+        }
+
+        p0 = polyline[(start_idx == 0) ? polyline.size() - 1 : 0];
+        Point p1 = (polyline.size() <= 1) ? p0
+            : polyline[(start_idx == 0) ? polyline.size() - 2 : 1];
 
         // Wipe
         if(wipe_dist != 0)
@@ -1180,13 +1189,14 @@ void LayerPlan::addLinesByOptimizer
             bool wipe = true;
             int line_width = config.getLineWidth();
 
-            // Don't wipe is current extrusion is too small
-            if(vSize2(p1 - p0) <= line_width * line_width * 4)
+            // Don't wipe if current extrusion is too small
+            if (polyline.polylineLength() <= line_width * 2)
             {
                 wipe = false;
             }
 
             // Don't wipe if next starting point is very near
+            // TODO: remove this condition once all polylines are properly chained
             if(wipe && (order_idx < order_optimizer.paths.size() - 1))
             {
                 const PathOrderOptimizer<ConstPolygonRef>::Path& next_path = order_optimizer.paths[order_idx + 1];
