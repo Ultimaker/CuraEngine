@@ -789,7 +789,6 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     it = std::remove_if(openPolylines.begin(), openPolylines.end(), [snap_distance](PolygonRef poly) { return poly.shorterThan(snap_distance); });
     openPolylines.erase(it, openPolylines.end());
 
-    openPolylines.simplify();
     openPolylines.removeDegenerateVerts();
 }
 
