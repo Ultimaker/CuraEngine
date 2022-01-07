@@ -1111,7 +1111,8 @@ void LayerPlan::addLinesByOptimizer
     const coord_t wipe_dist,
     const Ratio flow_ratio,
     const std::optional<Point> near_start_location,
-    const double fan_speed
+    const double fan_speed,
+    const bool reverse_print_direction
 )
 {
     Polygons boundary;
@@ -1137,7 +1138,7 @@ void LayerPlan::addLinesByOptimizer
         boundary.simplify(MM2INT(0.1), MM2INT(0.1));
     }
     constexpr bool detect_loops = true;
-    PathOrderOptimizer<ConstPolygonRef> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary);
+    PathOrderOptimizer<ConstPolygonRef> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction);
     for(size_t line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
         order_optimizer.addPolyline(polygons[line_idx]);

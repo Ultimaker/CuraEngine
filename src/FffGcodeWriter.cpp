@@ -2645,15 +2645,38 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
             gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
 
+            const bool alternate_inset_direction = infill_extruder.settings.get<bool>("material_alternate_walls");
+            const bool alternate_layer_print_direction = alternate_inset_direction && gcode_layer.getLayerNr() % 2 == 1;
+
             if (! wall_toolpaths.empty())
             {
-                const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths);
-                for (const PathJunctions& paths : bins)
+                const bool pack_by_inset = !infill_extruder.settings.get<bool>("optimize_wall_printing_order");
+                const InsetDirection inset_direction = infill_extruder.settings.get<InsetDirection>("inset_direction");
+                const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
+
+                std::set<size_t>* p_bins_with_index_zero_insets = nullptr;
+                BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths, pack_by_inset, center_last, p_bins_with_index_zero_insets);
+
+                bool alternate_bin_direction = false;
+                for (PathJunctions& paths : bins)
                 {
-                    for (const LineJunctions& line : paths)
-                    {
-                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[0], false);
-                    }
+                    const ZSeamConfig& z_seam_config = ZSeamConfig();
+                    constexpr coord_t wall_0_wipe_dist = 0;
+                    constexpr float flow_ratio = 1.0;
+                    constexpr bool always_retract = false;
+                    gcode_layer.addWalls
+                    (
+                        paths,
+                        infill_extruder.settings,
+                        gcode_layer.configs_storage.support_infill_config[0],
+                        gcode_layer.configs_storage.support_infill_config[0],
+                        z_seam_config,
+                        wall_0_wipe_dist,
+                        flow_ratio,
+                        always_retract,
+                        alternate_bin_direction
+                    );
+                    alternate_bin_direction = !alternate_bin_direction;
                 }
                 added_something = true;
             }
@@ -2662,14 +2685,50 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[combine_idx]);
+
+                const ZSeamConfig& z_seam_config = ZSeamConfig();
+                constexpr coord_t wall_0_wipe_dist = 0;
+                constexpr bool spiralize = false;
+                constexpr Ratio flow_ratio = 1.0_r;
+                constexpr bool always_retract = false;
+                const std::optional<Point> start_near_location = std::optional<Point>();
+
+                gcode_layer.addPolygonsByOptimizer
+                (
+                    support_polygons,
+                    gcode_layer.configs_storage.support_infill_config[combine_idx],
+                    z_seam_config,
+                    wall_0_wipe_dist,
+                    spiralize,
+                    flow_ratio,
+                    always_retract,
+                    alternate_layer_print_direction,
+                    start_near_location
+                );
                 added_something = true;
             }
 
             if (!support_lines.empty())
             {
-                gcode_layer.addLinesByOptimizer(support_lines, gcode_layer.configs_storage.support_infill_config[combine_idx],
-                                                (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+                constexpr bool enable_travel_optimization = false;
+                constexpr coord_t wipe_dist = 0;
+                constexpr Ratio flow_ratio = 1.0;
+                const std::optional<Point> near_start_location = std::optional<Point>();
+                constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+
+                gcode_layer.addLinesByOptimizer
+                (
+                    support_lines,
+                    gcode_layer.configs_storage.support_infill_config[combine_idx],
+                    (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines,
+                    enable_travel_optimization,
+                    wipe_dist,
+                    flow_ratio,
+                    near_start_location,
+                    fan_speed,
+                    alternate_layer_print_direction
+                );
+
                 added_something = true;
             }
         }

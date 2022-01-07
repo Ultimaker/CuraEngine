@@ -164,7 +164,8 @@ size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths
     return outer_region_id;
 }
 
-BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool pack_regions_by_inset, const bool center_last, std::set<size_t>* p_bins_with_index_zero_insets)
+BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool pack_regions_by_inset,
+                                                                  const bool center_last, std::set<size_t>* p_bins_with_index_zero_insets)
 {
     // Find the largest inset-index:
     size_t max_inset_index = 0;
@@ -207,6 +208,7 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
             {
                 bin_index = inset_index + (in_hole_region ? (max_inset_index + 1) : 0) + center_last * 2;
             }
+
             insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
 
             // Collect all bins that have zero-inset indices in them, if needed:
@@ -216,6 +218,7 @@ BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const Variable
             }
         }
     }
+
     return insets;
 }
 
