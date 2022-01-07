@@ -868,13 +868,6 @@ public:
      */
     Polygons intersectionPolyLines(const Polygons& polylines) const;
 
-
-    /*!
-     * Cut this polygon using an other polygon as a tool
-     * \param tool a closed polygon serving as boundary
-     */
-    Polygons& cut(const Polygons& tool);
-
     Polygons xorPolygons(const Polygons& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const
     {
         Polygons ret;

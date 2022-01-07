@@ -1644,7 +1644,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                 const coord_t cut_offset =
                     get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
                 Polygons tool = infill_below_skin.offset(static_cast<int>(cut_offset));
-                infill_lines_here.cut(tool);
+                infill_lines_here = tool.intersectionPolyLines(infill_lines_here);
             }
             infill_lines.add(infill_lines_here);
             // normal processing for the infill that isn't below skin
@@ -1681,7 +1681,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
             Polygons tool = sparse_in_outline.offset(static_cast<int>(cut_offset));
-            infill_lines_here.cut(tool);
+            infill_lines_here = tool.intersectionPolyLines(infill_lines_here);
         }
         infill_lines.add(infill_lines_here);
         infill_polygons.add(infill_polygons_here);

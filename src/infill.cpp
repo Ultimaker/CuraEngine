@@ -423,7 +423,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 {
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
-    result = uncropped.cut(outer_contour.offset(infill_overlap));
+    result.add(outer_contour.offset(infill_overlap).intersectionPolyLines(uncropped));
 }
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
