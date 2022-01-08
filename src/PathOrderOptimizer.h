@@ -209,7 +209,8 @@ public:
         }
 
         //Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
-        SparsePointGridInclusive<size_t> line_bucket_grid(2000); //Grid size of 2mm. TODO: Optimize for performance; smaller grid size yields fewer false positives, but uses more memory.
+        const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
+        SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
         for(size_t i = 0; i < paths.size(); ++i)
         {
             const Path& path = paths[i];
@@ -260,7 +261,7 @@ public:
             coord_t best_distance2 = std::numeric_limits<coord_t>::max();
 
             //First see if we already know about some nearby paths due to the line bucket grid.
-            std::vector<size_t> nearby_candidates = line_bucket_grid.getNearbyVals(current_position, 10);
+            std::vector<size_t> nearby_candidates = line_bucket_grid.getNearbyVals(current_position, snap_radius);
             std::vector<size_t> available_candidates;
             available_candidates.reserve(nearby_candidates.size());
             for(const size_t candidate : nearby_candidates)
