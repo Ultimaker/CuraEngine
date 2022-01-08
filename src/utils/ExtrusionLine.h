@@ -43,6 +43,15 @@ struct ExtrusionLine
     size_t region_id;
 
     /*!
+     * Gets the number of vertices in this polygon.
+     * \return The number of vertices in this polygon.
+     */
+    size_t size() const
+    {
+        return junctions.size();
+    }
+
+    /*!
      * The list of vertices along which this path runs.
      *
      * Each junction has a width, making this path a variable-width path.
@@ -50,11 +59,135 @@ struct ExtrusionLine
     std::vector<ExtrusionJunction> junctions;
 
     ExtrusionLine(const size_t inset_idx, const bool is_odd, const size_t region_id = 0);
+    ExtrusionLine()
+    : inset_idx(-1)
+    , is_odd(true)
+    , region_id(-1)
+    {}
 
+    ExtrusionLine(const ExtrusionLine& other)
+    : inset_idx(other.inset_idx)
+    , is_odd(other.is_odd)
+    , region_id(other.region_id)
+    , junctions(other.junctions)
+    {}
+    
+    ExtrusionLine& operator=(ExtrusionLine&& other)
+    {
+        junctions = std::move(other.junctions);
+        inset_idx = other.inset_idx;
+        is_odd = other.is_odd;
+        region_id = other.region_id;
+        return *this;
+    }
+
+    ExtrusionLine& operator=(const ExtrusionLine& other)
+    {
+        junctions = other.junctions;
+        inset_idx = other.inset_idx;
+        is_odd = other.is_odd;
+        region_id = other.region_id;
+        return *this;
+    }
+
+    
+    std::vector<ExtrusionJunction>::const_iterator begin() const
+    {
+        return junctions.begin();
+    }
+
+    std::vector<ExtrusionJunction>::const_iterator end() const
+    {
+        return junctions.end();
+    }
+
+    std::vector<ExtrusionJunction>::const_reverse_iterator rbegin() const
+    {
+        return junctions.rbegin();
+    }
+
+    std::vector<ExtrusionJunction>::const_reverse_iterator rend() const
+    {
+        return junctions.rend();
+    }
+
+    std::vector<ExtrusionJunction>::const_reference front() const
+    {
+        return junctions.front();
+    }
+
+    std::vector<ExtrusionJunction>::const_reference back() const
+    {
+        return junctions.back();
+    }
+
+    const ExtrusionJunction& operator[] (unsigned int index) const
+    {
+        return junctions[index];
+    }
+
+    ExtrusionJunction& operator[] (unsigned int index)
+    {
+        return junctions[index];
+    }
+
+    std::vector<ExtrusionJunction>::iterator begin()
+    {
+        return junctions.begin();
+    }
+
+    std::vector<ExtrusionJunction>::iterator end()
+    {
+        return junctions.end();
+    }
+
+    std::vector<ExtrusionJunction>::reference front()
+    {
+        return junctions.front();
+    }
+
+    std::vector<ExtrusionJunction>::reference back()
+    {
+        return junctions.back();
+    }
+
+    template <typename... Args>
+    void emplace_back(Args&&... args)
+    {
+        junctions.emplace_back(args...);
+    }
+
+    void remove(unsigned int index)
+    {
+        junctions.erase(junctions.begin() + index);
+    }
+
+    void insert(size_t index, const ExtrusionJunction& p)
+    {
+        junctions.insert(junctions.begin() + index, p);
+    }
+
+    template <class iterator>
+    std::vector<ExtrusionJunction>::iterator insert(std::vector<ExtrusionJunction>::const_iterator pos, iterator first, iterator last)
+    {
+        return junctions.insert(pos, first, last);
+    }
+
+    void clear()
+    {
+        junctions.clear();
+    }
+
+    void reverse()
+    {
+        std::reverse(junctions.begin(), junctions.end());
+    }
+    
     /*!
      * Sum the total length of this path.
      */
     coord_t getLength() const;
+    coord_t polylineLength() const { return getLength(); }
 
     /*!
      * Get the minimal width of this path

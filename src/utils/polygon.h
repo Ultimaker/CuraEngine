@@ -799,6 +799,21 @@ public:
         paths.emplace_back(ClipperLib::Path{from, to});
     }
 
+    void emplace_back(const Polygon& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+
+    void emplace_back(const ConstPolygonRef& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+
+    void emplace_back(const PolygonRef& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+    
     template<typename... Args>
     void emplace_back(Args... args)
     {
