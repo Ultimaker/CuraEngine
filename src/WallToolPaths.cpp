@@ -10,6 +10,7 @@
 #include "utils/SparsePointGrid.h" //To stitch the inner contour.
 #include "utils/polygonUtils.h"
 #include "ExtruderTrain.h"
+#include "utils/PolylineStitcher.h"
 
 namespace cura
 {
@@ -104,6 +105,37 @@ const VariableWidthPaths& WallToolPaths::generate()
         wall_maker.generateToolpaths(toolpaths);
         computeInnerContour();
     }
+    
+    const size_t inset_count = toolpaths.size();
+    for (unsigned int wall_idx = 0; wall_idx < inset_count; wall_idx++)
+    {
+        VariableWidthLines& wall_lines = toolpaths[wall_idx];
+        
+        VariableWidthLines stitched_polylines;
+        VariableWidthLines closed_polygons;
+        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_lines, stitched_polylines, closed_polygons);
+        wall_lines.clear();
+        
+        if (wall_idx >= wall_lines.size())
+        {
+            wall_lines.resize(wall_idx + 1);
+        }
+        wall_lines.insert(wall_lines.end(), stitched_polylines.begin(), stitched_polylines.end());
+
+        for (ExtrusionLine& wall_polygon : closed_polygons)
+        {
+            if (wall_polygon.junctions.empty())
+            {
+                continue;
+            }
+            if (wall_polygon.junctions.size() > 1)
+            {
+                wall_polygon.junctions.emplace_back(wall_polygon.junctions.front()); // Make polygon back into polyline
+            }
+            wall_lines.emplace_back(std::move(wall_polygon));
+        }
+    }
+    
     simplifyToolPaths(toolpaths, settings);
 
     removeEmptyToolPaths(toolpaths);
