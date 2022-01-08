@@ -1089,6 +1089,7 @@ void LayerPlan::addWalls
     order_optimizer.optimize();
     for(const PathOrderOptimizer<const LineJunctions*>::Path& path : order_optimizer.paths)
     {
+        if (path.vertices->empty()) continue;
         p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;
         const cura::Point p_start = path.backwards ? path.vertices->front().p : path.vertices->back().p;
         const bool linked_path = p_start != p_end;
