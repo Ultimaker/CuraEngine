@@ -111,11 +111,29 @@ const VariableWidthPaths& WallToolPaths::generate()
     for (unsigned int wall_idx = 0; wall_idx < inset_count; wall_idx++)
     {
         VariableWidthLines& wall_lines = toolpaths[wall_idx];
+        for (ExtrusionLine& line : wall_lines)
+        {
+            assert(line.inset_idx == wall_idx);
+        }
+        
+        VariableWidthLines wall_polygon_lines;
+        VariableWidthLines odd_gap_filling_wall_lines;
+        for (ExtrusionLine& line : wall_lines)
+        {
+            if (line.is_odd)
+            {
+                odd_gap_filling_wall_lines.emplace_back(line);
+            }
+            else
+            {
+                wall_polygon_lines.emplace_back(line);
+            }
+        }
         
         VariableWidthLines stitched_polylines;
         VariableWidthLines closed_polygons;
-        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_lines, stitched_polylines, closed_polygons);
-        wall_lines.clear();
+        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_polygon_lines, stitched_polylines, closed_polygons);
+        wall_lines = odd_gap_filling_wall_lines;
         
         if (wall_idx >= wall_lines.size())
         {
@@ -134,6 +152,11 @@ const VariableWidthPaths& WallToolPaths::generate()
                 wall_polygon.junctions.emplace_back(wall_polygon.junctions.front()); // Make polygon back into polyline
             }
             wall_lines.emplace_back(std::move(wall_polygon));
+        }
+        
+        for (ExtrusionLine& line : wall_lines)
+        {
+            line.inset_idx = wall_idx;
         }
     }
     
