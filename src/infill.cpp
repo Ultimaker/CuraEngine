@@ -252,7 +252,7 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
         pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID || pattern == EFillMethod::ZIG_ZAG)
     { // don't stich for non-zig-zagged line infill types
         Polygons stiched_lines;
-        PolylineStitcher::stitch(result_lines, stiched_lines, result_polygons, infill_line_width);
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(result_lines, stiched_lines, result_polygons, infill_line_width);
         result_lines = stiched_lines;
     }
     result_lines.simplifyPolylines(max_resolution, max_deviation);
@@ -323,7 +323,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
         }
         Polygons polylines = inner_contour.intersectionPolyLines(result_polygons.splitPolygonsIntoSegments());
         result_polygons.clear();
-        PolylineStitcher::stitch(polylines, result_lines, result_polygons, infill_line_width);
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(polylines, result_lines, result_polygons, infill_line_width);
     }
 }
 
@@ -450,7 +450,7 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
         Polygons cross_pattern_polygons;
         cross_pattern_polygons.add(cross_pattern_polygon);
         Polygons poly_lines = inner_contour.intersectionPolyLines(cross_pattern_polygons.splitPolygonsIntoSegments());
-        PolylineStitcher::stitch(poly_lines, result_lines, result_polygons, infill_line_width);
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(poly_lines, result_lines, result_polygons, infill_line_width);
     }
 }
 
@@ -458,7 +458,7 @@ void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
 {
     Polygons polylines = outer_contour.offset(infill_overlap).intersectionPolyLines(input);
     Polygons result_polygons;
-    PolylineStitcher::stitch(polylines, result, result_polygons, infill_line_width);
+    PolylineStitcher<Polygons, Polygon, Point>::stitch(polylines, result, result_polygons, infill_line_width);
     assert(result_polygons.empty());
 }
 
