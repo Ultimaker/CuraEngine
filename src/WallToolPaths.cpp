@@ -107,6 +107,26 @@ const VariableWidthPaths& WallToolPaths::generate()
         computeInnerContour();
     }
     
+    stitchToolPaths(toolpaths, settings);
+    
+    simplifyToolPaths(toolpaths, settings);
+
+    removeEmptyToolPaths(toolpaths);
+    assert(std::is_sorted(toolpaths.cbegin(), toolpaths.cend(),
+                          [](const VariableWidthLines& l, const VariableWidthLines& r)
+                          {
+                              return l.front().inset_idx < r.front().inset_idx;
+                          }) && "WallToolPaths should be sorted from the outer 0th to inner_walls");
+    toolpaths_generated = true;
+    return toolpaths;
+}
+
+
+void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Settings& settings)
+{
+    const coord_t stitch_distance = settings.get<coord_t>("wall_line_width_x") / 4;
+
+    // separate polygonal wall lines and gap filling odd lines and stitch the polygonal lines into closed polygons
     const size_t inset_count = toolpaths.size();
     for (unsigned int wall_idx = 0; wall_idx < inset_count; wall_idx++)
     {
@@ -132,8 +152,8 @@ const VariableWidthPaths& WallToolPaths::generate()
         
         VariableWidthLines stitched_polylines;
         VariableWidthLines closed_polygons;
-        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_polygon_lines, stitched_polylines, closed_polygons);
-        wall_lines = odd_gap_filling_wall_lines;
+        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_polygon_lines, stitched_polylines, closed_polygons, stitch_distance);
+        wall_lines.clear();
         
         if (wall_idx >= wall_lines.size())
         {
@@ -149,27 +169,18 @@ const VariableWidthPaths& WallToolPaths::generate()
             }
             if (wall_polygon.junctions.size() > 1)
             {
-                wall_polygon.junctions.emplace_back(wall_polygon.junctions.front()); // Make polygon back into polyline
+                wall_polygon.junctions.emplace_back(wall_polygon.junctions.front()); // Make polygon back into polyline. TODO: make it possibleto simplify polygonal toolpaths and don't convert from polygons backto polylines here
             }
             wall_lines.emplace_back(std::move(wall_polygon));
         }
-        
+
         for (ExtrusionLine& line : wall_lines)
         {
             line.inset_idx = wall_idx;
         }
-    }
-    
-    simplifyToolPaths(toolpaths, settings);
 
-    removeEmptyToolPaths(toolpaths);
-    assert(std::is_sorted(toolpaths.cbegin(), toolpaths.cend(),
-                          [](const VariableWidthLines& l, const VariableWidthLines& r)
-                          {
-                              return l.front().inset_idx < r.front().inset_idx;
-                          }) && "WallToolPaths should be sorted from the outer 0th to inner_walls");
-    toolpaths_generated = true;
-    return toolpaths;
+        wall_lines.insert(wall_lines.end(), odd_gap_filling_wall_lines.begin(), odd_gap_filling_wall_lines.end());
+    }
 }
 
 void WallToolPaths::simplifyToolPaths(VariableWidthPaths& toolpaths, const Settings& settings)

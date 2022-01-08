@@ -101,6 +101,12 @@ public:
 
 protected:
     /*!
+     * Stitch the polylines together and form closed polygons.
+     * \param settings The settings as provided by the user
+     */
+    static void stitchToolPaths(VariableWidthPaths& toolpaths, const Settings& settings);
+
+    /*!
      * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
      * settings.
      * \param settings The settings as provided by the user
