@@ -255,6 +255,7 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
         PolylineStitcher::stitch(result_lines, stiched_lines, result_polygons, infill_line_width);
         result_lines = stiched_lines;
     }
+    result_lines.simplifyPolylines(max_resolution, max_deviation);
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
