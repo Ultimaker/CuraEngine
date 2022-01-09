@@ -181,7 +181,6 @@ set(engine_SRCS # Except main.cpp.
     src/Wireframe2gcode.cpp
     src/WallToolPaths.cpp
 
-    src/BeadingStrategy/BeadingOrderOptimizer.cpp
     src/BeadingStrategy/BeadingStrategy.cpp
     src/BeadingStrategy/BeadingStrategyFactory.cpp
     src/BeadingStrategy/CenterDeviationBeadingStrategy.cpp
