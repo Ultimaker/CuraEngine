@@ -7,7 +7,6 @@
 #include "WallToolPaths.h"
 
 #include "SkeletalTrapezoidation.h"
-#include "BeadingStrategy/BeadingOrderOptimizer.h"
 #include "utils/SparsePointGrid.h" //To stitch the inner contour.
 #include "utils/polygonUtils.h"
 #include "ExtruderTrain.h"
