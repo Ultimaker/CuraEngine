@@ -152,6 +152,7 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
         VariableWidthLines stitched_polylines;
         VariableWidthLines closed_polygons;
         PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_polygon_lines, stitched_polylines, closed_polygons, stitch_distance);
+        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(odd_gap_filling_wall_lines, stitched_polylines, closed_polygons, stitch_distance);
         wall_lines.clear();
         
         if (wall_idx >= wall_lines.size())
@@ -177,8 +178,6 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
         {
             line.inset_idx = wall_idx;
         }
-
-        wall_lines.insert(wall_lines.end(), odd_gap_filling_wall_lines.begin(), odd_gap_filling_wall_lines.end());
     }
 }
 
