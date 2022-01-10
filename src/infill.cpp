@@ -321,7 +321,7 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
             }
             poly.add(poly[0]);
         }
-        Polygons polylines = inner_contour.intersectionPolyLines(result_polygons.splitPolygonsIntoSegments());
+        Polygons polylines = inner_contour.intersectionPolyLines(result_polygons);
         result_polygons.clear();
         PolylineStitcher<Polygons, Polygon, Point>::stitch(polylines, result_lines, result_polygons, infill_line_width);
     }
@@ -424,7 +424,8 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 {
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
-    addLineSegmentsInfill(result, uncropped);
+    constexpr bool restitch = false; // cubic subdivision lines are always single line segments - not polylines consisting of multiple segments.
+    Polygons polylines = outer_contour.offset(infill_overlap).intersectionPolyLines(uncropped, restitch);
 }
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
@@ -447,19 +448,11 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
         // make the polyline closed in order to handle cross_pattern_polygon as a polyline, rather than a closed polygon
         cross_pattern_polygon.add(cross_pattern_polygon[0]);
 
-        Polygons cross_pattern_polygons;
-        cross_pattern_polygons.add(cross_pattern_polygon);
-        Polygons poly_lines = inner_contour.intersectionPolyLines(cross_pattern_polygons.splitPolygonsIntoSegments());
+        Polygons cross_pattern_polylines;
+        cross_pattern_polylines.add(cross_pattern_polygon);
+        Polygons poly_lines = inner_contour.intersectionPolyLines(cross_pattern_polylines);
         PolylineStitcher<Polygons, Polygon, Point>::stitch(poly_lines, result_lines, result_polygons, infill_line_width);
     }
-}
-
-void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
-{
-    Polygons polylines = outer_contour.offset(infill_overlap).intersectionPolyLines(input);
-    Polygons result_polygons;
-    PolylineStitcher<Polygons, Polygon, Point>::stitch(polylines, result, result_polygons, infill_line_width);
-    assert(result_polygons.empty());
 }
 
 void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<coord_t>>& cut_list, coord_t shift)

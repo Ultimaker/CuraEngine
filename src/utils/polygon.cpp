@@ -10,6 +10,8 @@
 
 #include "ListPolyIt.h"
 
+#include "PolylineStitcher.h"
+
 namespace cura
 {
 
@@ -260,15 +262,36 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
-Polygons Polygons::intersectionPolyLines(const Polygons& polylines) const
+Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitch, const coord_t max_stitch_distance) const
 {
+    Polygons split_polylines = polylines.splitPolylinesIntoSegments();
+    
     ClipperLib::PolyTree result;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPaths(polylines.paths, ClipperLib::ptSubject, false);
+    clipper.AddPaths(split_polylines.paths, ClipperLib::ptSubject, false);
     clipper.AddPaths(paths, ClipperLib::ptClip, true);
     clipper.Execute(ClipperLib::ctIntersection, result);
     Polygons ret;
     ClipperLib::OpenPathsFromPolyTree(result, ret.paths);
+    
+    if (restitch)
+    {
+        Polygons result_lines, result_polygons;
+        const coord_t snap_distance = 10_mu;
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(ret, result_lines, result_polygons, max_stitch_distance, snap_distance);
+        ret = result_lines;
+        // if polylines got stitched into polygons, split them back up into a polyline again, because the result only admits polylines
+        for (PolygonRef poly : result_polygons)
+        {
+            if (poly.empty()) continue;
+            if (poly.size() > 2)
+            {
+                poly.emplace_back(poly[0]);
+            }
+            ret.add(poly);
+        }
+    }
+
     return ret;
 }
 

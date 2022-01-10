@@ -268,12 +268,14 @@ namespace cura
         ASSERT_GT((coord_t)out_infill_area, (coord_t)min_expected_infill_area) << "Infill area should be greater than the minimum area expected to be covered.";
         ASSERT_LT((coord_t)out_infill_area, (coord_t)max_expected_infill_area) << "Infill area should be less than the maximum area to be covered.";
 
+        const coord_t maximum_error = 10_mu; // potential rounding error
         const Polygons padded_shape_outline = params.outline_polygons.offset(infill_line_width / 2);
-        ASSERT_EQ(padded_shape_outline.intersectionPolyLines(params.result_lines.splitPolylinesIntoSegments()).polyLineLength(), params.result_lines.polyLineLength()) << "Infill (lines) should not be outside target polygon.";
+        constexpr bool restitch = false; // No need to restitch polylines - that would introduce stitching errors.
+        ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(params.result_lines, restitch).polyLineLength() - params.result_lines.polyLineLength()), maximum_error) << "Infill (lines) should not be outside target polygon.";
         Polygons result_polygon_lines = params.result_polygons;
         for (PolygonRef poly : result_polygon_lines)
             poly.add(poly.front());
-        ASSERT_EQ(padded_shape_outline.intersectionPolyLines(result_polygon_lines.splitPolylinesIntoSegments()).polyLineLength(), result_polygon_lines.polyLineLength()) << "Infill (lines) should not be outside target polygon.";
+        ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(result_polygon_lines, restitch).polyLineLength() - result_polygon_lines.polyLineLength()), maximum_error) << "Infill (lines) should not be outside target polygon.";
     }
 
 } //namespace cura

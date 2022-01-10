@@ -895,10 +895,14 @@ public:
     /*!
      * Intersect polylines with this area Polygons object.
      * 
-     * \warning Should never be called on polylines which have several collinear segments.
-     * Call \ref splitPolylinesIntoSegments first!
+     * \note Due to a clipper bug with polylines with nearly collinear segments, the polylines are cut up into separate polylines, and restitched back together at the end.
+     * 
+     * \param polylines The (non-closed!) polylines to limit to the area of this Polygons object
+     * \param restitch Whether to stitch the resulting segments into longer polylines, or leave every segment as a single segment
+     * \param max_stitch_distance The maximum distance for two polylines to be stitched together with a segment
+     * \return The resulting polylines limited to the area of this Polygons object
      */
-    Polygons intersectionPolyLines(const Polygons& polylines) const;
+    Polygons intersectionPolyLines(const Polygons& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
     /*!
      * Split this poly line object into several line segment objects
