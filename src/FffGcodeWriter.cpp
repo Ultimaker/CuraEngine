@@ -955,8 +955,6 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     }
 
     const Scene& scene = Application::getInstance().current_slice->scene;
-#pragma omp critical
-    Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_thickness);
 
     coord_t avoid_distance = 0; // minimal avoid distance is zero
     const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
