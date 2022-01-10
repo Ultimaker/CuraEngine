@@ -6,10 +6,6 @@
 #include <numeric>
 #include <fstream> // ifstream.good()
 
-#ifdef _OPENMP
-    #include <omp.h>
-#endif // _OPENMP
-
 #include "Application.h"
 #include "ConicalOverhang.h"
 #include "ExtruderTrain.h"
@@ -459,32 +455,39 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     ProgressEstimatorLinear* inset_estimator = new ProgressEstimatorLinear(mesh_layer_count);
     mesh_inset_skin_progress_estimator->nextStage(inset_estimator);
 
+    struct
+    {
+        ProgressStageEstimator& progress_estimator;
+        std::mutex mutex {};
+        std::atomic<size_t> processed_layer_count = 0;
+
+        void operator++(int)
+        {
+            std::unique_lock<std::mutex> lock(mutex, std::try_to_lock);
+            if(lock)
+            {   // progress estimation is done only in one thread so that no two threads message progress at the same time
+                size_t processed_layer_count_ = processed_layer_count.fetch_add(1, std::memory_order_relaxed);
+                double progress = progress_estimator.progress(processed_layer_count_);
+                Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
+            }
+            else
+            {
+                processed_layer_count.fetch_add(1, std::memory_order_release);
+            }
+        }
+        void reset()
+        {
+            processed_layer_count.store(0, std::memory_order_relaxed);
+        }
+    } guarded_progress = {inset_skin_progress_estimate};
 
     // walls
-    size_t processed_layer_count = 0;
-#pragma omp parallel for default(none) shared(mesh_layer_count, storage, mesh, inset_skin_progress_estimate, processed_layer_count) schedule(dynamic)
-    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
-    for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
+    cura::parallel_for<size_t>(0, mesh_layer_count, 1, [&](size_t layer_number)
     {
-        logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
+        logDebug("Processing insets for layer %i of %i\n", layer_number, mesh.layers.size());
         processWalls(mesh, layer_number);
-#ifdef _OPENMP
-        if (omp_get_thread_num() == 0)
-#endif
-        { // progress estimation is done only in one thread so that no two threads message progress at the same time
-            int _processed_layer_count;
-#if _OPENMP < 201107
-#pragma omp critical
-#else
-#pragma omp atomic read
-#endif
-                _processed_layer_count = processed_layer_count;
-            double progress = inset_skin_progress_estimate.progress(_processed_layer_count);
-            Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
-        }
-#pragma omp atomic
-        processed_layer_count++;
-    }
+        guarded_progress++;
+    });
 
     ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(mesh_layer_count);
     mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
@@ -508,46 +511,26 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             }
         }
     }
-    // skin & infill
 
+    // skin & infill
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    bool magic_spiralize = mesh_group_settings.get<bool>("magic_spiralize");
     size_t mesh_max_initial_bottom_layer_count = 0;
-    if (mesh_group_settings.get<bool>("magic_spiralize"))
+    if (magic_spiralize)
     {
         mesh_max_initial_bottom_layer_count = std::max(mesh_max_initial_bottom_layer_count, mesh.settings.get<size_t>("initial_bottom_layers"));
     }
 
-    processed_layer_count = 0;
-#pragma omp parallel default(none) shared(mesh_layer_count, mesh, mesh_max_initial_bottom_layer_count, process_infill, inset_skin_progress_estimate, processed_layer_count, mesh_group_settings)
+    guarded_progress.reset();
+    cura::parallel_for<size_t>(0,mesh_layer_count, 1, [&](size_t layer_number)
     {
-
-#pragma omp for schedule(dynamic)
-        // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
-        for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
+        logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh.layers.size());
+        if (!magic_spiralize || layer_number < mesh_max_initial_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
-            logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
-            if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < static_cast<int>(mesh_max_initial_bottom_layer_count))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
-            {
-                processSkinsAndInfill(mesh, layer_number, process_infill);
-            }
-#ifdef _OPENMP
-            if (omp_get_thread_num() == 0)
-#endif
-            { // progress estimation is done only in one thread so that no two threads message progress at the same time
-                int _processed_layer_count;
-#if _OPENMP < 201107
-#pragma omp critical
-#else
-#pragma omp atomic read
-#endif
-                    _processed_layer_count = processed_layer_count;
-                double progress = inset_skin_progress_estimate.progress(_processed_layer_count);
-                Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
-            }
-#pragma omp atomic
-                processed_layer_count++;
+            processSkinsAndInfill(mesh, layer_number, process_infill);
         }
-    }
+        guarded_progress++;
+    });
 }
 
 void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const size_t mesh_order_idx, const std::vector<size_t>& mesh_order)

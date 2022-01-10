@@ -6,10 +6,6 @@
 #include <deque>
 #include <fstream> // ifstream.good()
 
-#ifdef _OPENMP
-    #include <omp.h>
-#endif // _OPENMP
-
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
