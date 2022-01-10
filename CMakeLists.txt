@@ -121,16 +121,6 @@ if (WIN32)
     add_definitions(-DNOMINMAX)
 endif()
 
-option (ENABLE_OPENMP
-    "Use OpenMP for parallel code" ON)
-
-if (ENABLE_OPENMP)
-    FIND_PACKAGE( OpenMP )
-    if( OPENMP_FOUND )
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
-    endif()
-endif()
-
 if(USE_SYSTEM_LIBS)
     include_directories(${Polyclipping_INCLUDE_DIRS} "${CMAKE_BINARY_DIR}" ${RAPIDJSON_INCLUDE_DIRS})
 else()
