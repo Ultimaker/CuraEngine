@@ -83,7 +83,8 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                             // line hits the boundary, add the part that's inside the boundary
                             Polygons line;
                             line.addLine(last, current);
-                            line = in_outline.intersectionPolyLines(line);
+                            constexpr bool restitch = false; // only a single line doesn't need stitching
+                            line = in_outline.intersectionPolyLines(line, restitch);
                             if (line.size() > 0)
                             {
                                 // some of the line is inside the boundary
@@ -174,7 +175,8 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                             // line hits the boundary, add the part that's inside the boundary
                             Polygons line;
                             line.addLine(last, current);
-                            line = in_outline.intersectionPolyLines(line);
+                            constexpr bool restitch = false; // only a single line doesn't need stitching
+                            line = in_outline.intersectionPolyLines(line, restitch);
                             if (line.size() > 0)
                             {
                                 // some of the line is inside the boundary

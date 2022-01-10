@@ -171,7 +171,7 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                 new_outlines.add(intersection);
                 if (cutting_mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // niet te geleuven
                 {
-                    new_polylines.add(carved_mesh_layer.intersectionPolyLines(cutting_mesh_polylines.splitPolylinesIntoSegments()));
+                    new_polylines.add(carved_mesh_layer.intersectionPolyLines(cutting_mesh_polylines));
                 }
 
                 carved_mesh_layer = carved_mesh_layer.difference(*cutting_mesh_area);
