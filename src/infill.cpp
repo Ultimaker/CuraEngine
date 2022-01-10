@@ -227,7 +227,7 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
         generateCrossInfill(*cross_fill_provider, result_polygons, result_lines);
         break;
     case EFillMethod::GYROID:
-        generateGyroidInfill(result_lines);
+        generateGyroidInfill(result_lines, result_polygons);
         break;
     case EFillMethod::LIGHTNING:
         assert(lightning_trees); // "Cannot generate Lightning infill without a generator!\n"
@@ -327,9 +327,11 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
     }
 }
 
-void Infill::generateGyroidInfill(Polygons& result_lines)
+void Infill::generateGyroidInfill(Polygons& result_lines, Polygons& result_polygons)
 {
-    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, line_distance, inner_contour, z);
+    Polygons line_segments;
+    GyroidInfill::generateTotalGyroidInfill(line_segments, zig_zaggify, line_distance, inner_contour, z);
+    PolylineStitcher<Polygons, Polygon, Point>::stitch(line_segments, result_lines, result_polygons, infill_line_width);
 }
 
 void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& result_lines)

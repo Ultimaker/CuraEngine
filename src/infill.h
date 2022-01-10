@@ -238,9 +238,10 @@ private:
 
     /*!
      * Generate gyroid infill
-     * \param result (output) The resulting polygons
+     * \param result_polylines (output) The resulting polylines
+     * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect gyroid lines in a circle.
      */
-    void generateGyroidInfill(Polygons& result);
+    void generateGyroidInfill(Polygons& result_polylines, Polygons& result_polygons);
     
     /*!
      * Generate lightning fill aka minfill aka 'Ribbed Support Vault Infill', see Tricard,Claux,Lefebvre/'Ribbed Support Vaults for 3D Printing of Hollowed Objects'
