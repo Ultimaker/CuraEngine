@@ -142,10 +142,6 @@ public:
 
     void writePolyline(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const float stroke_width = 1) const;
 
-    void writePolylines(const Polygons& polys, const Color color = Color::BLACK, const float stroke_width = 1) const;
-
-    void writePolyline(ConstPolygonRef poly, const Color color = Color::BLACK, const float stroke_width = 1) const;
-
     /*!
      * Draws a grid across the image and writes down coordinates.
      *
