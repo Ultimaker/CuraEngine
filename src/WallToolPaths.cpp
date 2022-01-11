@@ -135,31 +135,10 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
             assert(line.inset_idx == wall_idx);
         }
         
-        VariableWidthLines wall_polygon_lines;
-        VariableWidthLines odd_gap_filling_wall_lines;
-        for (ExtrusionLine& line : wall_lines)
-        {
-            if (line.is_odd)
-            {
-                odd_gap_filling_wall_lines.emplace_back(line);
-            }
-            else
-            {
-                wall_polygon_lines.emplace_back(line);
-            }
-        }
-        
         VariableWidthLines stitched_polylines;
         VariableWidthLines closed_polygons;
-        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_polygon_lines, stitched_polylines, closed_polygons, stitch_distance);
-        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(odd_gap_filling_wall_lines, stitched_polylines, closed_polygons, stitch_distance);
-        wall_lines.clear();
-        
-        if (wall_idx >= wall_lines.size())
-        {
-            wall_lines.resize(wall_idx + 1);
-        }
-        wall_lines.insert(wall_lines.end(), stitched_polylines.begin(), stitched_polylines.end());
+        PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
+        wall_lines = stitched_polylines;
 
         for (ExtrusionLine& wall_polygon : closed_polygons)
         {

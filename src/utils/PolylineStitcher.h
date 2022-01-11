@@ -107,6 +107,10 @@ public:
                             { // connecting the segment would reverse the polygon direction
                                 return true; // keep looking for a connection
                             }
+                            if (!canConnect(chain, (*nearby.polygons)[nearby.poly_idx]))
+                            {
+                                return true; // keep looking for a connection
+                            }
                             if (dist < closest_distance)
                             {
                                 closest_distance = dist;
@@ -179,6 +183,12 @@ public:
      * Whether a polyline is allowed to be reversed. (Not true for wall polylines which are not odd)
      */
     static bool canReverse(const PathsPointIndex<Paths>& polyline);
+
+    /*!
+     * Whether two paths are allowed to be connected.
+     * (Not true for an odd and an even wall.)
+     */
+    static bool canConnect(const Path& a, const Path& b);
 };
 
 }//namespace cura

@@ -23,9 +23,22 @@ bool PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::can
 }
 
 template<>
-bool PolylineStitcher<Polygons, Polygon, Point>::canReverse(const PathsPointIndex<Polygons>& ppi)
+bool PolylineStitcher<Polygons, Polygon, Point>::canReverse(const PathsPointIndex<Polygons>&)
 {
     return true;
 }
+
+template<>
+bool PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::canConnect(const ExtrusionLine& a, const ExtrusionLine& b)
+{
+    return a.is_odd == b.is_odd;
+}
+
+template<>
+bool PolylineStitcher<Polygons, Polygon, Point>::canConnect(const Polygon&, const Polygon&)
+{
+    return true;
+}
+
 }//namespace cura
 
