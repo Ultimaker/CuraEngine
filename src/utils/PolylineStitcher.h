@@ -78,7 +78,8 @@ public:
                     coord_t closest_distance = std::numeric_limits<coord_t>::max();
                     grid.processNearby(from, max_stitch_distance, 
                         std::function<bool (const PathsPointIndex<Paths>&)> (
-                            [from, &chain, &closest, &closest_is_closing_polygon, &closest_distance, &processed, max_stitch_distance, snap_distance](const PathsPointIndex<Paths>& nearby)->bool
+                            [from, &chain, &closest, &closest_is_closing_polygon, &closest_distance, &processed, go_in_reverse_direction, max_stitch_distance, snap_distance]
+                            (const PathsPointIndex<Paths>& nearby)->bool
                         {
                             bool is_closing_segment = false;
                             coord_t dist = vSize(nearby.p() - from);
@@ -100,6 +101,10 @@ public:
                             }
                             else if (processed[nearby.poly_idx])
                             { // it was already moved to output
+                                return true; // keep looking for a connection
+                            }
+                            if (!canReverse(nearby) && ((nearby.point_idx == 0) == go_in_reverse_direction))
+                            { // connecting the segment would reverse the polygon direction
                                 return true; // keep looking for a connection
                             }
                             if (dist < closest_distance)
@@ -147,8 +152,15 @@ public:
                     assert( ! processed[closest.poly_idx]);
                     processed[closest.poly_idx] = true;
                 }
+
                 if (closest_is_closing_polygon)
                 {
+                    if (go_in_reverse_direction)
+                    { // re-reverse chain to retain original direction
+                        // NOTE: not sure if this code could ever be reached, since if a polygon can be closed that should be already possible in the forward direction
+                        chain.reverse();
+                    }
+
                     break; // don't consider reverse direction
                 }
             }
@@ -162,6 +174,11 @@ public:
             }
         }
     }
+    
+    /*!
+     * Whether a polyline is allowed to be reversed. (Not true for wall polylines which are not odd)
+     */
+    static bool canReverse(const PathsPointIndex<Paths>& polyline);
 };
 
 }//namespace cura
