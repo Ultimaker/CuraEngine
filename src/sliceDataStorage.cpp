@@ -489,7 +489,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
         // support
         if (layer_nr < int(support.supportLayers.size()))
         {
-            const SupportLayer& support_layer = support.supportLayers[layer_nr];
+            const SupportLayer& support_layer = support.supportLayers[std::max(LayerIndex(0), layer_nr)]; //Below layer 0, it's the same as layer 0 (even though it's not stored here).
             if (layer_nr == 0)
             {
                 if (!support_layer.support_infill_parts.empty())
