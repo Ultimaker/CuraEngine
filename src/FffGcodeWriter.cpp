@@ -693,18 +693,16 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 {
     Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     size_t extruder_nr = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
     coord_t z = 0;
     const LayerIndex initial_raft_layer_nr = -Raft::getTotalExtraLayers();
-    const size_t num_surface_layers = train.settings.get<size_t>("raft_surface_layers");
+    const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
+    const size_t num_surface_layers = surface_train.settings.get<size_t>("raft_surface_layers");
 
     // some infill config for all lines infill generation below
     constexpr double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
     constexpr int infill_multiplier = 1; // rafts use single lines
     constexpr int extra_infill_shift = 0;
-    coord_t max_resolution = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings.get<coord_t>("meshfix_maximum_resolution");
-    coord_t max_deviation = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings.get<coord_t>("meshfix_maximum_deviation");
 
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
     std::optional<Point> last_planned_position = std::optional<Point>();
@@ -712,20 +710,23 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     unsigned int current_extruder_nr = extruder_nr;
 
     { // raft base layer
+        const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
         LayerIndex layer_nr = initial_raft_layer_nr;
-        const coord_t layer_height = train.settings.get<coord_t>("raft_base_thickness");
+        const coord_t layer_height = base_train.settings.get<coord_t>("raft_base_thickness");
         z += layer_height;
-        const coord_t comb_offset = train.settings.get<coord_t>("raft_base_line_spacing");
+        const coord_t comb_offset = base_train.settings.get<coord_t>("raft_base_line_spacing");
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_base = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
         for (FanSpeedLayerTimeSettings& fan_speed_layer_time_settings : fan_speed_layer_time_settings_per_extruder_raft_base)
         {
-            double regular_fan_speed = train.settings.get<Ratio>("raft_base_fan_speed") * 100.0;
+            double regular_fan_speed = base_train.settings.get<Ratio>("raft_base_fan_speed") * 100.0;
             fan_speed_layer_time_settings.cool_fan_speed_min = regular_fan_speed;
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, comb_offset, train.settings.get<bool>("raft_base_line_width"), train.settings.get<coord_t>("travel_avoid_distance"));
+        const coord_t line_width = base_train.settings.get<coord_t>("raft_base_line_width");
+        const coord_t avoid_distance = base_train.settings.get<coord_t>("travel_avoid_distance");
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, comb_offset, line_width, avoid_distance);
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr);
@@ -737,28 +738,31 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr bool zig_zaggify_infill = false;
         constexpr bool connect_polygons = true; // causes less jerks, so better adhesion
 
-        const size_t wall_line_count = train.settings.get<size_t>("raft_base_wall_count");
+        const size_t wall_line_count = base_train.settings.get<size_t>("raft_base_wall_count");
+        const coord_t line_spacing = base_train.settings.get<coord_t>("raft_base_line_spacing");
         const Point& infill_origin = Point();
         constexpr bool connected_zigzags = false;
         constexpr bool use_endpieces = true;
         constexpr bool skip_some_zags = false;
         constexpr int zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
+        const coord_t max_resolution = base_train.settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t max_deviation = base_train.settings.get<coord_t>("meshfix_maximum_deviation");
 
         Infill infill_comp(
-            EFillMethod::LINES, zig_zaggify_infill, connect_polygons, storage.raftOutline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), train.settings.get<coord_t>("raft_base_line_spacing"),
+            EFillMethod::LINES, zig_zaggify_infill, connect_polygons, storage.raftOutline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), line_spacing,
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
             max_resolution, max_deviation,
             wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         VariableWidthPaths raft_paths;
-        infill_comp.generate(raft_paths, raft_polygons, raftLines, train.settings);
+        infill_comp.generate(raft_paths, raft_polygons, raftLines, base_train.settings);
         if(!raft_paths.empty())
         {
             const BinJunctions binned_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(raft_paths);
             for (const PathJunctions& wall_junctions : binned_paths)
             {
-                gcode_layer.addWalls(wall_junctions, train.settings, gcode_layer.configs_storage.raft_base_config, gcode_layer.configs_storage.raft_base_config);
+                gcode_layer.addWalls(wall_junctions, base_train.settings, gcode_layer.configs_storage.raft_base_config, gcode_layer.configs_storage.raft_base_config);
             }
         }
         gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
@@ -778,19 +782,22 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     { // raft interface layer
         const LayerIndex layer_nr = initial_raft_layer_nr + 1;
-        const coord_t layer_height = train.settings.get<coord_t>("raft_interface_thickness");
+        const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
+        const coord_t layer_height = interface_train.settings.get<coord_t>("raft_interface_thickness");
         z += layer_height;
-        const coord_t comb_offset = train.settings.get<coord_t>("raft_interface_line_spacing");
+        const coord_t comb_offset = interface_train.settings.get<coord_t>("raft_interface_line_spacing");
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_interface = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
         for (FanSpeedLayerTimeSettings& fan_speed_layer_time_settings : fan_speed_layer_time_settings_per_extruder_raft_interface)
         {
-            double regular_fan_speed = train.settings.get<Ratio>("raft_interface_fan_speed") * 100.0;
+            double regular_fan_speed = interface_train.settings.get<Ratio>("raft_interface_fan_speed") * 100.0;
             fan_speed_layer_time_settings.cool_fan_speed_min = regular_fan_speed;
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, comb_offset, train.settings.get<coord_t>("raft_interface_line_width"), train.settings.get<coord_t>("travel_avoid_distance"));
+        const coord_t line_width = interface_train.settings.get<coord_t>("raft_interface_line_width");
+        const coord_t avoid_distance = interface_train.settings.get<coord_t>("travel_avoid_distance");
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, comb_offset, line_width, avoid_distance);
         gcode_layer.setIsInside(true);
 
         gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
@@ -807,44 +814,53 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr bool connect_polygons = true; // why not?
 
         constexpr int wall_line_count = 0;
+        const coord_t line_spacing = interface_train.settings.get<coord_t>("raft_interface_line_spacing");
         const Point& infill_origin = Point();
         constexpr bool connected_zigzags = false;
         constexpr bool use_endpieces = true;
         constexpr bool skip_some_zags = false;
         constexpr int zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
+        const coord_t max_resolution = interface_train.settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t max_deviation = interface_train.settings.get<coord_t>("meshfix_maximum_deviation");
 
         Infill infill_comp(
-            EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, infill_outline_width, train.settings.get<coord_t>("raft_interface_line_spacing"),
+            EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, infill_outline_width, line_spacing,
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
             max_resolution, max_deviation,
             wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         VariableWidthPaths raft_paths; //Should remain empty, since we have no walls.
-        infill_comp.generate(raft_paths, raft_polygons, raftLines, train.settings);
+        infill_comp.generate(raft_paths, raft_polygons, raftLines, interface_train.settings);
         gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_interface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
         layer_plan_buffer.handle(gcode_layer, gcode);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
-    
-    coord_t layer_height = train.settings.get<coord_t>("raft_surface_thickness");
+
+    coord_t layer_height = surface_train.settings.get<coord_t>("raft_surface_thickness");
+    const coord_t surface_line_spacing = surface_train.settings.get<coord_t>("raft_surface_line_spacing");
+    const coord_t surface_max_resolution = surface_train.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t surface_max_deviation = surface_train.settings.get<coord_t>("meshfix_maximum_deviation");
+    const coord_t surface_line_width = surface_train.settings.get<coord_t>("raft_surface_line_width");
+    const coord_t surface_avoid_distance = surface_train.settings.get<coord_t>("travel_avoid_distance");
+    const Ratio surface_fan_speed = surface_train.settings.get<Ratio>("raft_surface_fan_speed");
 
     for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= num_surface_layers; raft_surface_layer++)
     { // raft surface layers
         const LayerIndex layer_nr = initial_raft_layer_nr + 2 + raft_surface_layer - 1; // 2: 1 base layer, 1 interface layer
         z += layer_height;
-        const coord_t comb_offset = train.settings.get<coord_t>("raft_surface_line_spacing");
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_surface = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
         for (FanSpeedLayerTimeSettings& fan_speed_layer_time_settings : fan_speed_layer_time_settings_per_extruder_raft_surface)
         {
-            double regular_fan_speed = train.settings.get<Ratio>("raft_surface_fan_speed") * 100.0;
+            double regular_fan_speed = surface_fan_speed * 100.0;
             fan_speed_layer_time_settings.cool_fan_speed_min = regular_fan_speed;
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, comb_offset, train.settings.get<coord_t>("raft_surface_line_width"), train.settings.get<coord_t>("travel_avoid_distance"));
+        const coord_t comb_offset = surface_line_spacing;
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, comb_offset, surface_line_width, surface_avoid_distance);
         gcode_layer.setIsInside(true);
 
         // make sure that we are using the correct extruder to print raft
@@ -870,13 +886,13 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr coord_t pocket_size = 0;
 
         Infill infill_comp(
-            EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, infill_outline_width, train.settings.get<coord_t>("raft_surface_line_spacing"),
+            EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, infill_outline_width, surface_line_spacing,
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
-            max_resolution, max_deviation,
+            surface_max_resolution, surface_max_deviation,
             wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         VariableWidthPaths raft_paths; //Should remain empty, since we have no walls.
-        infill_comp.generate(raft_paths, raft_polygons, raft_lines, train.settings);
+        infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_train.settings);
         gcode_layer.addLinesByOptimizer(raft_lines, gcode_layer.configs_storage.raft_surface_config, SpaceFillType::Lines, false, 0, 1.0, last_planned_position);
 
         layer_plan_buffer.handle(gcode_layer, gcode);
