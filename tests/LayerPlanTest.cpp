@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <gtest/gtest.h>
@@ -97,7 +97,7 @@ public:
         settings->add("acceleration_support_infill", "5009");
         settings->add("acceleration_support_roof", "5004");
         settings->add("acceleration_travel", "5006");
-        settings->add("adhesion_extruder_nr", "0");
+        settings->add("skirt_brim_extruder_nr", "0");
         settings->add("adhesion_type", "brim");
         settings->add("cool_fan_full_layer", "3");
         settings->add("cool_fan_speed_0", "0");

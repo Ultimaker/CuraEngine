@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt, round
@@ -480,12 +480,12 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 break;
         }
         coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
-        const ExtruderTrain& adhesion_extruder = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+        const ExtruderTrain& skirt_brim_extruder = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
         coord_t extra_skirt_line_width = 0;
         const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
         for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
         {
-            if (extruder_nr == adhesion_extruder.extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+            if (extruder_nr == skirt_brim_extruder.extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
             {
                 continue;
             }
@@ -495,13 +495,16 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
         {
             case EPlatformAdhesion::BRIM:
-                adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
+                adhesion_size = skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width") * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * skirt_brim_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
                 break;
             case EPlatformAdhesion::RAFT:
-                adhesion_size = adhesion_extruder.settings.get<coord_t>("raft_margin");
+            {
+                const ExtruderTrain& raft_extruder = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+                adhesion_size = raft_extruder.settings.get<coord_t>("raft_margin");
                 break;
+            }
             case EPlatformAdhesion::SKIRT:
-                adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_gap") + adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;
+                adhesion_size = skirt_brim_extruder.settings.get<coord_t>("skirt_gap") + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width") * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * skirt_brim_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;
                 break;
             case EPlatformAdhesion::NONE:
                 adhesion_size = 0;
