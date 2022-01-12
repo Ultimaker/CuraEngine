@@ -379,7 +379,7 @@ size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
     {
         start_extruder_nr = skirt_brim_extruder.extruder_nr;
     }
-    else if((adhesion_type == EPlatformAdhesion::BRIM || mesh_group_settings.get<bool>("prime_tower_brim_enabled"))
+    else if((adhesion_type == EPlatformAdhesion::BRIM || mesh_group_settings.get<bool>("prime_tower_brim_enable"))
         && (skirt_brim_extruder.settings.get<int>("brim_line_count") > 0 || skirt_brim_extruder.settings.get<coord_t>("skirt_brim_minimal_length") > 0))
     {
         start_extruder_nr = skirt_brim_extruder.extruder_nr;
@@ -692,7 +692,9 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 {
     Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    size_t extruder_nr = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
+    const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
+    const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr;
+    const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr;
 
     coord_t z = 0;
     const LayerIndex initial_raft_layer_nr = -Raft::getTotalExtraLayers();
@@ -707,7 +709,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
     std::optional<Point> last_planned_position = std::optional<Point>();
 
-    unsigned int current_extruder_nr = extruder_nr;
+    unsigned int current_extruder_nr = base_extruder_nr;
 
     { // raft base layer
         const Settings& base_settings = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings;
@@ -726,10 +728,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         const coord_t line_width = base_settings.get<coord_t>("raft_base_line_width");
         const coord_t avoid_distance = base_settings.get<coord_t>("travel_avoid_distance");
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, comb_offset, line_width, avoid_distance);
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, base_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, comb_offset, line_width, avoid_distance);
         gcode_layer.setIsInside(true);
 
-        gcode_layer.setExtruder(extruder_nr);
+        gcode_layer.setExtruder(base_extruder_nr);
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
@@ -769,7 +771,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         // When we use raft, we need to make sure that all used extruders for this print will get primed on the first raft layer,
         // and then switch back to the original extruder.
-        std::vector<size_t> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, extruder_nr, layer_nr);
+        std::vector<size_t> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, base_extruder_nr, layer_nr);
         for (const size_t to_be_primed_extruder_nr : extruder_order)
         {
             setExtruder_addPrime(storage, gcode_layer, to_be_primed_extruder_nr);
@@ -800,8 +802,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, comb_offset, line_width, avoid_distance);
         gcode_layer.setIsInside(true);
 
-        gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
-        current_extruder_nr = extruder_nr;
+        gcode_layer.setExtruder(interface_extruder_nr);
+        current_extruder_nr = interface_extruder_nr;
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
@@ -860,12 +862,12 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         }
 
         const coord_t comb_offset = surface_line_spacing;
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, comb_offset, surface_line_width, surface_avoid_distance);
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, layer_height, surface_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, comb_offset, surface_line_width, surface_avoid_distance);
         gcode_layer.setIsInside(true);
 
         // make sure that we are using the correct extruder to print raft
-        gcode_layer.setExtruder(extruder_nr);
-        current_extruder_nr = extruder_nr;
+        gcode_layer.setExtruder(surface_extruder_nr);
+        current_extruder_nr = surface_extruder_nr;
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
 
