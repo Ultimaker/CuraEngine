@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SETTINGS_PATH_CONFIGS_H
@@ -26,10 +26,13 @@ private:
     const size_t support_infill_extruder_nr;
     const size_t support_roof_extruder_nr;
     const size_t support_bottom_extruder_nr;
-    const ExtruderTrain& adhesion_extruder_train;
-    const ExtruderTrain& support_infill_train;
-    const ExtruderTrain& support_roof_train;
-    const ExtruderTrain& support_bottom_train;
+    ExtruderTrain& skirt_brim_train;
+    ExtruderTrain& raft_base_train;
+    ExtruderTrain& raft_interface_train;
+    ExtruderTrain& raft_surface_train;
+    ExtruderTrain& support_infill_train;
+    ExtruderTrain& support_roof_train;
+    ExtruderTrain& support_bottom_train;
 
     const std::vector<Ratio> line_width_factor_per_extruder;
     static std::vector<Ratio> getLineWidthFactorPerExtruder(const LayerIndex& layer_nr);

@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
@@ -374,18 +374,25 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     ret.resize(Application::getInstance().current_slice->scene.extruders.size(), false);
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::NONE)
+    const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
+    if(adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM)
     {
-        ret[mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr] = true;
-        { // process brim/skirt
-            for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+        for(size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+        {
+            if(!skirt_brim[extruder_nr].empty())
             {
-                if (skirt_brim[extruder_nr].size() > 0)
-                {
-                    ret[extruder_nr] = true;
-                    continue;
-                }
+                ret[extruder_nr] = true;
             }
+        }
+    }
+    else if(adhesion_type == EPlatformAdhesion::RAFT)
+    {
+        ret[mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr] = true;
+        ret[mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr] = true;
+        const size_t num_surface_layers = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings.get<size_t>("raft_surface_layers");
+        if(num_surface_layers > 0)
+        {
+            ret[mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr] = true;
         }
     }
 
@@ -421,11 +428,12 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     return ret;
 }
 
-std::vector<bool> SliceDataStorage::getExtrudersUsed(LayerIndex layer_nr) const
+std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) const
 {
     std::vector<bool> ret;
     ret.resize(Application::getInstance().current_slice->scene.extruders.size(), false);
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
     bool include_adhesion = true;
     bool include_helper_parts = true;
@@ -437,28 +445,39 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(LayerIndex layer_nr) const
         {
             include_helper_parts = false;
         }
-        else
-        {
-            layer_nr = 0; // because the helper parts are copied from the initial layer in the filler layer
-            include_adhesion = false;
-        }
     }
-    else if (layer_nr > 0 || mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
+    else if(layer_nr > 0 || adhesion_type == EPlatformAdhesion::RAFT)
     { // only include adhesion only for layers where platform adhesion actually occurs
         // i.e. layers < 0 are for raft, layer 0 is for brim/skirt
         include_adhesion = false;
     }
-    if (include_adhesion && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::NONE)
+
+    if(include_adhesion)
     {
-        ret[mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr] = true;
-        { // process brim/skirt
-            for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+        if(layer_nr == 0 && (adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM))
+        {
+            for(size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); ++extruder_nr)
             {
                 if(!skirt_brim[extruder_nr].empty())
                 {
                     ret[extruder_nr] = true;
-                    continue;
                 }
+            }
+        }
+        if(adhesion_type == EPlatformAdhesion::RAFT)
+        {
+            const LayerIndex raft_layers = Raft::getTotalExtraLayers();
+            if(layer_nr == -raft_layers) //Base layer.
+            {
+                ret[mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr] = true;
+            }
+            else if(layer_nr == -raft_layers + 1) //Interface layer.
+            {
+                ret[mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr] = true;
+            }
+            else if(layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount())) //Any of the surface layers.
+            {
+                ret[mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr] = true;
             }
         }
     }
@@ -470,7 +489,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(LayerIndex layer_nr) const
         // support
         if (layer_nr < int(support.supportLayers.size()))
         {
-            const SupportLayer& support_layer = support.supportLayers[layer_nr];
+            const SupportLayer& support_layer = support.supportLayers[std::max(LayerIndex(0), layer_nr)]; //Below layer 0, it's the same as layer 0 (even though it's not stored here).
             if (layer_nr == 0)
             {
                 if (!support_layer.support_infill_parts.empty())

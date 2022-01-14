@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODE_WRITER_H
@@ -166,12 +166,14 @@ private:
     /*!
      * Get the extruder with which to start the print.
      * 
-     * Generally this is the adhesion_extruder_nr, but in case the platform adhesion type is none,
-     * the extruder with lowest number which is used on the first layer is used as initial extruder.
+     * Generally this is the extruder of the adhesion type in use, but in case
+     * the platform adhesion type is none, the support extruder is used. If
+     * support is also disabled, the extruder with lowest number which is used
+     * on the first layer is used as initial extruder.
      * 
      * \param[in] storage where to get settings from.
      */
-    unsigned int getStartExtruder(const SliceDataStorage& storage);
+    size_t getStartExtruder(const SliceDataStorage& storage);
 
     /*!
      * Set the infill angles and skin angles in the SliceDataStorage.

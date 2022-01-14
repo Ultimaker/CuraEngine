@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PathConfigStorage.h"
@@ -132,31 +132,34 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
 : support_infill_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr)
 , support_roof_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr)
 , support_bottom_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr)
-, adhesion_extruder_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr"))
+, skirt_brim_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("skirt_brim_extruder_nr"))
+, raft_base_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr"))
+, raft_interface_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_interface_extruder_nr"))
+, raft_surface_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_surface_extruder_nr"))
 , support_infill_train(Application::getInstance().current_slice->scene.extruders[support_infill_extruder_nr])
 , support_roof_train(Application::getInstance().current_slice->scene.extruders[support_roof_extruder_nr])
 , support_bottom_train(Application::getInstance().current_slice->scene.extruders[support_bottom_extruder_nr])
 , line_width_factor_per_extruder(PathConfigStorage::getLineWidthFactorPerExtruder(layer_nr))
 , raft_base_config(
             PrintFeatureType::SupportInterface
-            , adhesion_extruder_train.settings.get<coord_t>("raft_base_line_width")
-            , adhesion_extruder_train.settings.get<coord_t>("raft_base_thickness")
-            , ((layer_nr == 0) ? adhesion_extruder_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
-            , GCodePathConfig::SpeedDerivatives{adhesion_extruder_train.settings.get<Velocity>("raft_base_speed"), adhesion_extruder_train.settings.get<Acceleration>("raft_base_acceleration"), adhesion_extruder_train.settings.get<Velocity>("raft_base_jerk")}
+            , raft_base_train.settings.get<coord_t>("raft_base_line_width")
+            , raft_base_train.settings.get<coord_t>("raft_base_thickness")
+            , Ratio(1.0)
+            , GCodePathConfig::SpeedDerivatives{raft_base_train.settings.get<Velocity>("raft_base_speed"), raft_base_train.settings.get<Acceleration>("raft_base_acceleration"), raft_base_train.settings.get<Velocity>("raft_base_jerk")}
         )
 , raft_interface_config(
             PrintFeatureType::Support
-            , adhesion_extruder_train.settings.get<coord_t>("raft_interface_line_width")
-            , adhesion_extruder_train.settings.get<coord_t>("raft_interface_thickness")
-            , (layer_nr == 0) ? adhesion_extruder_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)
-            , GCodePathConfig::SpeedDerivatives{adhesion_extruder_train.settings.get<Velocity>("raft_interface_speed"), adhesion_extruder_train.settings.get<Acceleration>("raft_interface_acceleration"), adhesion_extruder_train.settings.get<Velocity>("raft_interface_jerk")}
+            , raft_interface_train.settings.get<coord_t>("raft_interface_line_width")
+            , raft_interface_train.settings.get<coord_t>("raft_interface_thickness")
+            , Ratio(1.0)
+            , GCodePathConfig::SpeedDerivatives{raft_interface_train.settings.get<Velocity>("raft_interface_speed"), raft_interface_train.settings.get<Acceleration>("raft_interface_acceleration"), raft_interface_train.settings.get<Velocity>("raft_interface_jerk")}
         )
 , raft_surface_config(
             PrintFeatureType::SupportInterface
-            , adhesion_extruder_train.settings.get<coord_t>("raft_surface_line_width")
-            , adhesion_extruder_train.settings.get<coord_t>("raft_surface_thickness")
-            , (layer_nr == 0) ? adhesion_extruder_train.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0)
-            , GCodePathConfig::SpeedDerivatives{adhesion_extruder_train.settings.get<Velocity>("raft_surface_speed"), adhesion_extruder_train.settings.get<Acceleration>("raft_surface_acceleration"), adhesion_extruder_train.settings.get<Velocity>("raft_surface_jerk")}
+            , raft_surface_train.settings.get<coord_t>("raft_surface_line_width")
+            , raft_surface_train.settings.get<coord_t>("raft_surface_thickness")
+            , Ratio(1.0)
+            , GCodePathConfig::SpeedDerivatives{raft_surface_train.settings.get<Velocity>("raft_surface_speed"), raft_surface_train.settings.get<Acceleration>("raft_surface_acceleration"), raft_surface_train.settings.get<Velocity>("raft_surface_jerk")}
         )
 , support_roof_config(
             PrintFeatureType::SupportInterface

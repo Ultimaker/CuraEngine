@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
@@ -306,7 +306,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             // add the raft offset to each layer
             if (has_raft)
             {
-                const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+                const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
                 layer.printZ +=
                     Raft::getTotalThickness()
                     + train.settings.get<coord_t>("raft_airgap")
@@ -792,7 +792,8 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
-    max_print_height_per_extruder.resize(extruder_count, -(Raft::getTotalExtraLayers() + 1)); //Initialize all as -1 (or lower in case of raft).
+    const int raft_layers = Raft::getTotalExtraLayers();
+    max_print_height_per_extruder.resize(extruder_count, -(raft_layers + 1)); //Initialize all as -1 (or lower in case of raft).
     { // compute max_object_height_per_extruder
         //Height of the meshes themselves.
         for (SliceMeshStorage& mesh : storage.meshes)
@@ -816,25 +817,43 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 
         //Height of where the support reaches.
         Scene& scene = Application::getInstance().current_slice->scene;
-        const size_t support_infill_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr; // TODO: Support extruder should be configurable per object.
+        const Settings& mesh_group_settings = scene.current_mesh_group->settings;
+        const size_t support_infill_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr; // TODO: Support extruder should be configurable per object.
         max_print_height_per_extruder[support_infill_extruder_nr] =
             std::max(max_print_height_per_extruder[support_infill_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
-        const size_t support_roof_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr; // TODO: Support roof extruder should be configurable per object.
+        const size_t support_roof_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr; // TODO: Support roof extruder should be configurable per object.
         max_print_height_per_extruder[support_roof_extruder_nr] =
             std::max(max_print_height_per_extruder[support_roof_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
-        const size_t support_bottom_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr; //TODO: Support bottom extruder should be configurable per object.
+        const size_t support_bottom_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr; //TODO: Support bottom extruder should be configurable per object.
         max_print_height_per_extruder[support_bottom_extruder_nr] =
             std::max(max_print_height_per_extruder[support_bottom_extruder_nr],
                      storage.support.layer_nr_max_filled_layer);
 
         //Height of where the platform adhesion reaches.
-        if (scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::NONE)
+        const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
+        switch(adhesion_type)
         {
-            const size_t adhesion_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
-            max_print_height_per_extruder[adhesion_extruder_nr] =
-                std::max(0, max_print_height_per_extruder[adhesion_extruder_nr]);
+            case EPlatformAdhesion::SKIRT:
+            case EPlatformAdhesion::BRIM:
+            {
+                const size_t skirt_brim_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr;
+                max_print_height_per_extruder[skirt_brim_extruder_nr] = std::max(0, max_print_height_per_extruder[skirt_brim_extruder_nr]); //Includes layer 0.
+                break;
+            }
+            case EPlatformAdhesion::RAFT:
+            {
+                const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
+                max_print_height_per_extruder[base_extruder_nr] = std::max(-raft_layers, max_print_height_per_extruder[base_extruder_nr]); //Includes the lowest raft layer.
+                const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr;
+                max_print_height_per_extruder[interface_extruder_nr] = std::max(-raft_layers + 1, max_print_height_per_extruder[interface_extruder_nr]); //Includes the second-lowest raft layer.
+                const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr;
+                max_print_height_per_extruder[surface_extruder_nr] = std::max(-1, max_print_height_per_extruder[surface_extruder_nr]); //Includes up to the first layer below the model (so -1).
+                break;
+            }
+            default:
+                break; //No adhesion, so no maximum necessary.
         }
     }
 
@@ -846,7 +865,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
     }
     else
     {
-        storage.max_print_height_second_to_last_extruder = -(Raft::getTotalExtraLayers() + 1);
+        storage.max_print_height_second_to_last_extruder = -(raft_layers + 1);
     }
 }
 
@@ -926,7 +945,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+    ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
 
     Polygons first_layer_outline;
     coord_t primary_line_count;
