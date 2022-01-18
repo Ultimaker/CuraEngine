@@ -1347,6 +1347,10 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
         polygons.add(part.outline);
     }
 
+    coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
+    polygons.simplify(max_resolution, max_deviation);
+
     ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh.settings.get<coord_t>("wall_line_width_0") * 2);
     const bool spiralize = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize");
     gcode_layer.addPolygonsByOptimizer(polygons, mesh_config.inset0_config, z_seam_config, mesh.settings.get<coord_t>("wall_0_wipe_dist"), spiralize);
