@@ -11,6 +11,7 @@
 #include "ListPolyIt.h"
 
 #include "PolylineStitcher.h"
+#include "logoutput.h"
 
 namespace cura
 {
@@ -1575,6 +1576,112 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
     }
 }
 
+
+std::vector<std::vector<size_t>> Polygons::getNesting() const
+{
+    ClipperLib::Clipper clipper(clipper_init);
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
+    ClipperLib::PolyTree resultPolyTree;
+    clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftEvenOdd);
+
+    std::unordered_map<const ClipperLib::PolyNode*, size_t> node_to_index = getPolyTreeToPolygonsMapping(resultPolyTree);
+
+    std::vector<std::vector<size_t>> ret(size());
+
+    for (auto [node, index] : node_to_index)
+    {
+        for (auto child : node->Childs)
+        {
+            auto it = node_to_index.find(child);
+            assert(it != node_to_index.end() && "Each PolyNode should be mapped to the corresponding Polygon index!");
+            ret[index].emplace_back(it->second);
+        }
+    }
+    return ret;
+}
+
+
+std::unordered_map<const ClipperLib::PolyNode*, size_t> Polygons::getPolyTreeToPolygonsMapping(const ClipperLib::PolyNode& root) const
+{
+    std::unordered_map<const ClipperLib::PolyNode*, size_t> result;
+
+    std::unordered_map<Point, size_t> start_loc_to_index;
+    for (size_t idx = 0; idx < paths.size(); idx++)
+    {
+        const ClipperLib::Path& path = paths[idx];
+        if (path.empty()) continue;
+        start_loc_to_index.emplace(path.front(), idx);
+    }
+
+    std::queue<const ClipperLib::PolyNode*> queue;
+    std::vector<const ClipperLib::PolyNode*> unprocessed;
+    for (int i = 0; i < 2; i++)
+    {
+        
+
+        queue.emplace(&root);
+        while ( ! queue.empty())
+        {
+            const ClipperLib::PolyNode* node = queue.front();
+            queue.pop();
+            for (auto child : node->Childs)
+                queue.emplace(child);
+            if (node->Contour.empty()) continue;
+
+            std::unordered_map<Point, size_t>::iterator it;
+            for (Point p : node->Contour)
+            {
+                it = start_loc_to_index.find(p);
+                if (it != start_loc_to_index.end())
+                {
+                    // If Clipper preserves the order of points then the first iteration should already get here
+                    result.emplace(node, it->second);
+                    break;
+                }
+            }
+            if (it == start_loc_to_index.end())
+            {
+                unprocessed.emplace_back(node);
+            }
+        }
+
+        if (unprocessed.empty())
+        {
+            return result;
+        }
+        
+        // some points in the original polygons were removed by clipper, probably because of colinear segments
+        // retry with mapping all points
+        start_loc_to_index.clear();
+        for (size_t idx = 0; idx < paths.size(); idx++)
+        {
+            const ClipperLib::Path& path = paths[idx];
+            for (Point p : path)
+            {
+                start_loc_to_index.emplace(p, idx);
+            }
+        }
+        for (const ClipperLib::PolyNode* node : unprocessed)
+            queue.emplace(node);
+        unprocessed.clear();
+    }
+    
+    for (auto node : unprocessed)
+    {
+        std::cerr << "Couldn't find match for node with locations:\n";
+        for (auto p : node->Contour)
+            std::cerr << Point(p) << ", ";
+        std::cerr << '\n';
+    }
+    std::cerr << "Among registered locations: \n";
+    for (auto [p, i] : start_loc_to_index)
+        std::cerr << p << " to index " << i << '\n';
+    std::cerr <<'\n';
+ 
+    assert(false && "The first Point in each polygon should be contained in the clipper output!");
+    logError("Polygons::getPolyTreeToPolygonsMapping(.): Extensive polygon matching not implemented.\n");
+    return result;
+}
 
 void Polygons::ensureManifold()
 {
