@@ -9,15 +9,16 @@ PROJECT_DIR="$( cd "${SCRIPT_DIR}/.." && pwd )"
 # Make sure that environment variables are set properly
 export PATH="${CURA_BUILD_ENV_PATH}/bin:${PATH}"
 export PKG_CONFIG_PATH="${CURA_BUILD_ENV_PATH}/lib/pkgconfig:${PKG_CONFIG_PATH}"
+export LD_LIBRARY_PATH="${CURA_BUILD_ENV_PATH}/lib:${LD_LIBRARY_PATH}"
 
 cd "${PROJECT_DIR}"
 
 mkdir build
 cd build
-cmake3 \
+cmake \
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_PREFIX_PATH="${CURA_BUILD_ENV_PATH}" \
     -DBUILD_TESTS=ON \
     ..
 make
-ctest3 --output-on-failure -T Test
+ctest --output-on-failure -T Test
