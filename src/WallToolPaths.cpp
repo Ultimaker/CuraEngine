@@ -415,4 +415,156 @@ void WallToolPaths::stitchContours(const VariableWidthPaths& input, const coord_
 }
 
 
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> WallToolPaths::getWeakOrder(const VariableWidthPaths& input, const bool outer_to_inner, const bool include_transitive)
+{
+    size_t max_inset_idx = 0;
+    Polygons all_polygons;
+    std::unordered_map<size_t, const ExtrusionLine*> poly_idx_to_extrusionline;
+    for (const VariableWidthLines& inset : input)
+    {
+        for (const ExtrusionLine& line : inset)
+        {
+            if (line.empty()) continue;
+            max_inset_idx = std::max(max_inset_idx, line.inset_idx);
+            if ( ! shorterThan(line.front().p - line.back().p, coincident_point_distance)) // TODO: check if it is a closed polygon or not
+            {
+                // Make a small triangle representative of the polyline
+                // otherwise the polyline would get erased by the clipping operation
+                all_polygons.emplace_back();
+                assert(line.junctions.size() >= 2);
+                Point middle = ( line.junctions[line.junctions.size() / 2 - 1].p + line.junctions[line.junctions.size() / 2].p ) / 2;
+                PolygonRef poly = all_polygons.back();
+                poly.emplace_back(middle);
+                poly.emplace_back(middle + Point(5, 0));
+                poly.emplace_back(middle + Point(0, 5));
+            }
+            else
+            {
+                all_polygons.emplace_back(line.toPolygon());
+            }
+            poly_idx_to_extrusionline.emplace(all_polygons.size() - 1, &line);
+        }
+    }
+
+    std::vector<std::vector<size_t>> nesting = all_polygons.getNesting();
+
+    {
+        SVG svg("/tmp/nesting.svg", AABB(all_polygons));
+        svg.writePolygons(all_polygons, SVG::Color::BLUE);
+        for (size_t i = 0; i < all_polygons.size(); i++)
+        {
+            for (size_t child_idx : nesting[i])
+            {
+                svg.writeArrow(all_polygons[i][0], all_polygons[child_idx][1]);
+            }
+        }
+    }
+
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> result;
+
+    getWeakOrder(0, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
+
+    if (include_transitive)
+    {
+        std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order_mapping;
+        for (auto [from, to] : result)
+        {
+            order_mapping.emplace(from, to);
+        }
+        std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> transitive_order = result;
+        for (auto [from, to] : result)
+        {
+            std::queue<const ExtrusionLine*> starts_of_next_relation;
+            starts_of_next_relation.emplace(to);
+            while ( ! starts_of_next_relation.empty())
+            {
+                const ExtrusionLine* start_of_next_relation = starts_of_next_relation.front();
+                starts_of_next_relation.pop();
+                auto range = order_mapping.equal_range(start_of_next_relation);
+                for (auto it = range.first; it != range.second; ++it)
+                {
+                    auto [ next_from, next_to ] = *it;
+                    starts_of_next_relation.emplace(next_to);
+                    transitive_order.emplace(from, next_to);
+                }
+            }
+        }
+        result = transitive_order;
+    }
+
+    return result;
+}
+
+void WallToolPaths::getWeakOrder(size_t node_idx, const std::unordered_map<size_t, const ExtrusionLine*>& poly_idx_to_extrusionline, const std::vector<std::vector<size_t>>& nesting, size_t max_inset_idx, const bool outer_to_inner, std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>& result)
+{
+    auto parent_it = poly_idx_to_extrusionline.find(node_idx);
+    assert(parent_it != poly_idx_to_extrusionline.end());
+    const ExtrusionLine* parent = parent_it->second;
+    
+    assert(node_idx < nesting.size());
+    for (size_t child_idx : nesting[node_idx])
+    {
+        auto child_it = poly_idx_to_extrusionline.find(child_idx);
+        assert(child_it != poly_idx_to_extrusionline.end());
+        const ExtrusionLine* child = child_it->second;
+
+        if ( ! child->is_odd && child->inset_idx == parent->inset_idx && child->inset_idx == max_inset_idx)
+        {
+            // There is no order requirement between the innermost wall of a hole and the innermost wall of the outline.
+        }
+        else if ( ! child->is_odd && child->inset_idx == parent->inset_idx && child->inset_idx <= max_inset_idx)
+        {
+            // There are insets with one higher inset index which are adjacent to both this child and the parent.
+            // And potentially also insets which are adjacent to this child and other children.
+            // Moreover there are probably gap filler lines in between the child and the parent.
+            // The nesting information doesn't tell which ones are adjacent,
+            // so just to be safe we add order requirements between the child and all gap fillers and wall lines.
+            for (size_t other_child_idx : nesting[node_idx])
+            {
+                auto other_child_it = poly_idx_to_extrusionline.find(other_child_idx);
+                assert(other_child_it != poly_idx_to_extrusionline.end());
+                const ExtrusionLine* other_child = other_child_it->second;
+
+                if (other_child == child) continue;
+                if (other_child->is_odd)
+                {
+                    assert(other_child->inset_idx == child->inset_idx + 1);
+                    result.emplace(child, other_child);
+                }
+                else
+                {
+                    if (other_child->inset_idx == child->inset_idx) continue;
+                    assert(other_child->inset_idx == child->inset_idx + 1);
+
+                    const ExtrusionLine* before = child;
+                    const ExtrusionLine* after = other_child;
+                    if ( ! outer_to_inner)
+                    {
+                        std::swap(before, after);
+                    }
+                    result.emplace(before, after);
+                }
+            }
+        }
+        else
+        {
+            assert( ! parent->is_odd && "There can be no polygons inside a polyline");
+
+            const ExtrusionLine* before = parent;
+            const ExtrusionLine* after = child;
+            if ( (child->inset_idx < parent->inset_idx) == outer_to_inner
+                // ^ Order should be reversed for hole polyons
+                // and it should be reversed again when the global order is the other way around
+                && ! child->is_odd) // Odd polylines should always go after their enclosing wall polygon
+            {
+                std::swap(before, after);
+            }
+            result.emplace(before, after);
+        }
+
+        // Recurvise call
+        getWeakOrder(child_idx, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
+    }
+}
+
 } // namespace cura
