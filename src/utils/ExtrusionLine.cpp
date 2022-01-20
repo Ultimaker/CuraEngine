@@ -15,6 +15,18 @@ ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd, const si
 , region_id(region_id)
 {}
 
+template <>
+void ExtrusionLine::erase(std::vector<ExtrusionJunction>::iterator begin, std::vector<ExtrusionJunction>::iterator end)
+{
+    junctions.erase(begin, end);
+}
+
+template <>
+void ExtrusionLine::erase(std::vector<ExtrusionJunction>::reverse_iterator begin, std::vector<ExtrusionJunction>::reverse_iterator end)
+{
+    junctions.erase(--end.base(), --begin.base());
+}
+
 coord_t ExtrusionLine::getLength() const
 {
     if (junctions.empty())

@@ -6,6 +6,7 @@
 #define UTILS_EXTRUSION_LINE_H
 
 #include "ExtrusionJunction.h"
+#include "polygon.h"
 
 namespace cura
 {
@@ -49,6 +50,14 @@ struct ExtrusionLine
     size_t size() const
     {
         return junctions.size();
+    }
+
+    /*!
+     * Whether there are no junctions.
+     */
+    bool empty() const
+    {
+        return junctions.empty();
     }
 
     /*!
@@ -189,6 +198,16 @@ struct ExtrusionLine
     coord_t getLength() const;
     coord_t polylineLength() const { return getLength(); }
 
+    Polygon toPolygon() const
+    {
+        Polygon ret;
+        
+        for (const ExtrusionJunction& j : junctions)
+            ret.add(j.p);
+        
+        return ret;
+    }
+
     /*!
      * Get the minimal width of this path
      */
@@ -199,6 +218,78 @@ struct ExtrusionLine
      */
     void appendJunctionsTo(LineJunctions& result) const;
 
+    /*!
+     * Chop off a segment of \p length of either end of this extrusionline
+     * 
+     * \warning Should only be called on non closed extrusionlines.
+     * 
+     * \param start_at_front Whether we chop from the beginning or from th eend of this line.
+     * \return whether the line has collapsed to a single point
+     */
+    bool chopEnd(bool start_at_front, coord_t length)
+    {
+        assert(length > 10 && "Too small lengths will never be chopped due to rounding.");
+        if (start_at_front)
+            return chopEnd(junctions.begin(), junctions.end(), length);
+        else
+            return chopEnd(junctions.rbegin(), junctions.rend(), length);
+    }
+protected:
+    /*!
+     * Chop off a segment of \p length of either end of this extrusionline
+     * 
+     * \warning Should only be called on non closed extrusionlines.
+     * 
+     * \warning the \p start_pos and \p other_end should refer to iterators in this ExtrusionLine
+     * 
+     * \param start_pos Iterator to either begin() or rbegin()
+     * \param other_end Iterator to either end() or rend()
+     * \return whether the line has collapsed to a single point
+     */
+    template <class iterator>
+    bool chopEnd(iterator start_pos, iterator other_end, coord_t length)
+    {
+        iterator current_it = start_pos;
+        
+        coord_t length_removed = 0;
+        ExtrusionJunction last = *current_it;
+        for (++current_it; current_it != other_end; ++current_it)
+        {
+            ExtrusionJunction here = *current_it;
+            Point p1 = last.p;
+            Point p2 = here.p;
+            Point v12 = p2 - p1;
+            coord_t dist = vSize(v12);
+            if (length_removed + dist >= length - 10)
+            {
+                if (length_removed + dist <= length)
+                {
+                    erase(start_pos, current_it);
+                    return junctions.size() <= 1;
+                }
+                else
+                { // Cut My Line Into Pieces
+                    --current_it;
+                    current_it->p = p1 + (length - length_removed) * v12 / dist;
+                    current_it->w = last.w + (length - length_removed) * (here.w - last.w) / dist;
+                    erase(start_pos, current_it);
+                    return false;
+                }
+            }
+            length_removed += dist;
+            last = here;
+        }
+        erase(start_pos, --other_end);
+        junctions.emplace_back(junctions.front());
+        junctions.back().p.X += 10;
+        return true;
+    }
+
+
+    template <class iterator>
+    void erase(iterator begin, iterator end);
+
+public:
     /*!
      * Removes vertices of the ExtrusionLines to make sure that they are not too high
      * resolution.
