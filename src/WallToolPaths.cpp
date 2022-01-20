@@ -526,6 +526,38 @@ void WallToolPaths::getWeakOrder(size_t node_idx, const std::unordered_map<size_
                 const ExtrusionLine* other_child = other_child_it->second;
 
                 if (other_child == child) continue;
+                
+                
+                // See if there's an overlap in region_id.
+                // If not then they are not adjacent, so we don't include order requirement
+                bool overlap = false;
+                {
+                    std::unordered_set<size_t> other_child_region_ids;
+                    for (const ExtrusionJunction& j : other_child->junctions)
+                    {
+                        other_child_region_ids.emplace(j.region_id);
+                    }
+                    for (const ExtrusionJunction& j : child->junctions)
+                    {
+                        if (other_child_region_ids.count(j.region_id))
+                        {
+                            overlap = true;
+                            break;
+                        }
+                    }
+                    if (other_child->is_odd)
+                    { // Odd gap fillers should have two region_ids, but they don't, so let's be more conservative on them
+                        for (const ExtrusionJunction& j : parent->junctions)
+                        {
+                            if (other_child_region_ids.count(j.region_id))
+                            { // if an odd gap filler has the region_id set to the outline then it could also be adjacent to child, but not registered as such.
+                                overlap = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if ( ! overlap) continue;
                 if (other_child->is_odd)
                 {
                     assert(other_child->inset_idx == child->inset_idx + 1);
