@@ -94,6 +94,27 @@ public:
          */
         size_t start_vertex;
 
+        Point getStartLocation() const
+        {
+            return (*converted)[start_vertex];
+        }
+        
+        Point getEndLocation() const
+        {
+            if (is_closed)
+            {
+                return getStartLocation();
+            }
+            if (start_vertex == 0)
+            {
+                return converted->back();
+            }
+            else
+            {
+                return converted->front();
+            }
+        }
+
         /*!
          * Whether the path should be closed at the ends or not.
          *
@@ -146,12 +167,13 @@ public:
      * it into a polygon.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, bool selection_optimization = true)
     : start_point(start_point)
     , seam_config(seam_config)
     , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
     , detect_loops(detect_loops)
     , reverse_direction(reverse_direction)
+    , selection_optimization(selection_optimization)
     {
     }
 
@@ -207,7 +229,20 @@ public:
                 }
             }
         }
-
+        
+        if (selection_optimization)
+        {
+            optimizeSelection();
+        }
+        else
+        {
+            optimizeInsertion();
+        }
+        
+        combing_grid.reset();
+    }
+    void optimizeSelection()
+    {
         //Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
         const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
         SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
@@ -357,7 +392,132 @@ public:
         {
             std::swap(optimized_order, paths);
         }
-        combing_grid.reset();
+    }
+    
+    void optimizeInsertion()
+    {
+        if (seam_config.type == EZSeamType::USER_SPECIFIED)
+        {
+            start_point = seam_config.pos; // WARNING: is this correct?!
+        }
+        
+        for (Path& path : paths)
+        {
+            if (!path.is_closed)
+            {
+                continue; //Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
+            }
+            if (path.converted->empty())
+            {
+                continue;
+            }
+            path.start_vertex = findStartLocation(path, seam_config.pos);
+        }
+
+        std::list<std::pair<coord_t, Path>> optimized_order; // Distance to and next location
+        
+        std::function<coord_t (Point, Point)> getDistance = 
+            combing_boundary ?
+              std::function<coord_t (Point, Point)>( [this](Point from, Point to) { return getCombingDistance(from, to); } )
+            : std::function<coord_t (Point, Point)>( [this](Point from, Point to) { return getDirectDistance(from, to); } );
+        
+        Path& first_path = paths.front(); // arbitrarily select the first path to add
+        coord_t distance = std::sqrt(getDistance(start_point, first_path.getStartLocation()));
+        optimized_order.emplace_back(distance, first_path);
+            
+        for (size_t to_be_inserted_idx = 1; to_be_inserted_idx < paths.size(); to_be_inserted_idx++)
+        {
+            typename std::list<std::pair<coord_t, Path>>::iterator best_pos_it = optimized_order.end();
+            coord_t best_detour_distance = std::numeric_limits<coord_t>::max();
+            coord_t best_dist_before_to_here = 0;
+            coord_t best_dist_here_to_after = 0;
+            bool best_is_flipped = false;
+
+            Path& to_be_inserted = paths[to_be_inserted_idx];
+            Point start_here = to_be_inserted.getStartLocation();
+            Point end_here = to_be_inserted.getEndLocation();
+
+            // TODO: use grid
+
+            for (auto pos_after_it = optimized_order.end(); ; --pos_after_it) // update is performed at the end of the for loop
+            {
+                auto pos_before_it = pos_after_it;
+                pos_before_it--;
+                Path* path_before = (pos_after_it == optimized_order.begin()) ? nullptr : &pos_before_it->second;
+                Path* path_after = (pos_after_it == optimized_order.end()) ? nullptr : &pos_after_it->second;
+                Point loc_before = path_before? path_before->getEndLocation() : start_point;
+                coord_t current_distance = path_after? pos_after_it->first : 0;
+                
+                coord_t dist_before = std::sqrt(getDistance(loc_before, start_here));
+                coord_t dist_after = path_after ? std::sqrt(getDistance(end_here, path_after->getStartLocation())) : 0;
+
+                if ( ! to_be_inserted.is_closed)
+                {
+                    coord_t flipped_dist_before = std::sqrt(getDistance(loc_before, end_here));
+                    coord_t flipped_dist_after = path_after ? std::sqrt(getDistance(start_here, path_after->getStartLocation())) : 0;
+                    best_is_flipped = false;
+                    if (flipped_dist_before + flipped_dist_after < dist_before + dist_after)
+                    {
+                        dist_before = flipped_dist_before;
+                        dist_after = flipped_dist_after;
+                        best_is_flipped = true;
+                    }
+                }
+                
+                coord_t detour_distance = dist_before + dist_after - current_distance;
+                if (detour_distance < best_detour_distance) // Less of a detour than the best candidate so far.
+                {
+                    best_pos_it = pos_after_it;
+                    best_detour_distance = detour_distance;
+                    best_dist_before_to_here = dist_before;
+                    best_dist_here_to_after = dist_after;
+                }
+                
+                if (pos_after_it == optimized_order.begin())
+                {
+                    break;
+                }
+            }
+
+            if (best_is_flipped)
+            {
+                assert( ! to_be_inserted.is_closed);
+                to_be_inserted.start_vertex = (to_be_inserted.start_vertex != 0) * (to_be_inserted.converted->size() - 1);
+            }
+            if (best_pos_it != optimized_order.end())
+            {
+                best_pos_it->first = best_dist_here_to_after;
+            }
+            optimized_order.insert(best_pos_it, std::make_pair(best_dist_before_to_here, to_be_inserted));
+
+        }
+        
+        if (seam_config.type == EZSeamType::SHORTEST)
+        { // only recompute the start when needed
+            Point current_location = start_point;
+            for (auto& [dist, path] : optimized_order)
+            {
+                path.start_vertex = findStartLocation(path, current_location);
+                current_location = path.getStartLocation();
+            }
+        }
+
+        //Apply the optimized order to the output field. Reverse if ordered to reverse.
+        paths.clear();
+        if (reverse_direction)
+        {
+            for (auto it = optimized_order.rbegin(); it != optimized_order.rend(); ++it)
+            {
+                paths.emplace_back(it->second);
+            }
+        }
+        else
+        {
+            for (auto& [fist, path] : optimized_order)
+            {
+                paths.emplace_back(path);
+            }
+        }
     }
 
 protected:
@@ -410,6 +570,18 @@ protected:
      * direction of each path as well.
      */
     bool reverse_direction;
+
+    /*!
+     * The core algorithm to use:
+     * - Selection sort based
+     * - Insertion sort based
+     * 
+     * Selection does a greedy approach of finding the next best candidate to append to the result.
+     * Insertion considers the best location within the result to insert each path.
+     * 
+     * Insertion sort can be wildly inefficient when polylines haven't been stitched.
+     */
+    bool selection_optimization;
 
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
