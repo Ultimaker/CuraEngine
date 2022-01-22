@@ -415,35 +415,33 @@ void WallToolPaths::stitchContours(const VariableWidthPaths& input, const coord_
 }
 
 
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> WallToolPaths::getWeakOrder(const VariableWidthPaths& input, const bool outer_to_inner, const bool include_transitive)
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> WallToolPaths::getWeakOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner, const bool include_transitive)
 {
     size_t max_inset_idx = 0;
     Polygons all_polygons;
     std::unordered_map<size_t, const ExtrusionLine*> poly_idx_to_extrusionline;
-    for (const VariableWidthLines& inset : input)
+    for (const ExtrusionLine* line_p : input)
     {
-        for (const ExtrusionLine& line : inset)
+        const ExtrusionLine& line = *line_p;
+        if (line.empty()) continue;
+        max_inset_idx = std::max(max_inset_idx, line.inset_idx);
+        if ( ! shorterThan(line.front().p - line.back().p, coincident_point_distance)) // TODO: check if it is a closed polygon or not
         {
-            if (line.empty()) continue;
-            max_inset_idx = std::max(max_inset_idx, line.inset_idx);
-            if ( ! shorterThan(line.front().p - line.back().p, coincident_point_distance)) // TODO: check if it is a closed polygon or not
-            {
-                // Make a small triangle representative of the polyline
-                // otherwise the polyline would get erased by the clipping operation
-                all_polygons.emplace_back();
-                assert(line.junctions.size() >= 2);
-                Point middle = ( line.junctions[line.junctions.size() / 2 - 1].p + line.junctions[line.junctions.size() / 2].p ) / 2;
-                PolygonRef poly = all_polygons.back();
-                poly.emplace_back(middle);
-                poly.emplace_back(middle + Point(5, 0));
-                poly.emplace_back(middle + Point(0, 5));
-            }
-            else
-            {
-                all_polygons.emplace_back(line.toPolygon());
-            }
-            poly_idx_to_extrusionline.emplace(all_polygons.size() - 1, &line);
+            // Make a small triangle representative of the polyline
+            // otherwise the polyline would get erased by the clipping operation
+            all_polygons.emplace_back();
+            assert(line.junctions.size() >= 2);
+            Point middle = ( line.junctions[line.junctions.size() / 2 - 1].p + line.junctions[line.junctions.size() / 2].p ) / 2;
+            PolygonRef poly = all_polygons.back();
+            poly.emplace_back(middle);
+            poly.emplace_back(middle + Point(5, 0));
+            poly.emplace_back(middle + Point(0, 5));
         }
+        else
+        {
+            all_polygons.emplace_back(line.toPolygon());
+        }
+        poly_idx_to_extrusionline.emplace(all_polygons.size() - 1, &line);
     }
 
     std::vector<std::vector<size_t>> nesting = all_polygons.getNesting();

@@ -155,7 +155,11 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     
     const bool outer_to_inner = false;
     const bool include_transitive = false;
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = WallToolPaths::getWeakOrder(part.wall_toolpaths, outer_to_inner, include_transitive);
+    std::vector<const ExtrusionLine*> all_paths;
+    for (auto& inset : part.wall_toolpaths)
+        for (auto& line : inset)
+            all_paths.emplace_back(&line);
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = WallToolPaths::getWeakOrder(all_paths, outer_to_inner, include_transitive);
 
     //Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
