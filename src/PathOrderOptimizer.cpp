@@ -52,4 +52,13 @@ namespace cura
         return ConstPolygonRef(poly);
     }
 
+    template<>
+    ConstPolygonRef PathOrderOptimizer<const ExtrusionLine*>::getVertexData(const ExtrusionLine* path)
+    {
+        cached_vertices.emplace_back();
+        Polygon& poly = cached_vertices.back();
+        poly = path->toPolygon();
+        return ConstPolygonRef(poly);
+    }
+
 }

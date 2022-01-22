@@ -167,13 +167,14 @@ public:
      * it into a polygon.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, bool selection_optimization = true)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, bool selection_optimization = true, const std::function<bool (const Path&, const Path&)>& canPrecede = canAlwaysPrecede)
     : start_point(start_point)
     , seam_config(seam_config)
     , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
     , detect_loops(detect_loops)
     , reverse_direction(reverse_direction)
     , selection_optimization(selection_optimization)
+    , canPrecede(canPrecede)
     {
     }
 
@@ -424,7 +425,7 @@ public:
         Path& first_path = paths.front(); // arbitrarily select the first path to add
         coord_t distance = std::sqrt(getDistance(start_point, first_path.getStartLocation()));
         optimized_order.emplace_back(distance, first_path);
-            
+        
         for (size_t to_be_inserted_idx = 1; to_be_inserted_idx < paths.size(); to_be_inserted_idx++)
         {
             typename std::list<std::pair<coord_t, Path>>::iterator best_pos_it = optimized_order.end();
@@ -439,42 +440,71 @@ public:
 
             // TODO: use grid
 
+            auto upper_bound = optimized_order.end();
             for (auto pos_after_it = optimized_order.end(); ; --pos_after_it) // update is performed at the end of the for loop
             {
                 auto pos_before_it = pos_after_it;
                 pos_before_it--;
                 Path* path_before = (pos_after_it == optimized_order.begin()) ? nullptr : &pos_before_it->second;
                 Path* path_after = (pos_after_it == optimized_order.end()) ? nullptr : &pos_after_it->second;
-                Point loc_before = path_before? path_before->getEndLocation() : start_point;
-                coord_t current_distance = path_after? pos_after_it->first : 0;
                 
-                coord_t dist_before = std::sqrt(getDistance(loc_before, start_here));
-                coord_t dist_after = path_after ? std::sqrt(getDistance(end_here, path_after->getStartLocation())) : 0;
-
-                if ( ! to_be_inserted.is_closed)
+                if (path_before && ! canPrecede(*path_before, to_be_inserted))
                 {
-                    coord_t flipped_dist_before = std::sqrt(getDistance(loc_before, end_here));
-                    coord_t flipped_dist_after = path_after ? std::sqrt(getDistance(start_here, path_after->getStartLocation())) : 0;
-                    best_is_flipped = false;
-                    if (flipped_dist_before + flipped_dist_after < dist_before + dist_after)
-                    {
-                        dist_before = flipped_dist_before;
-                        dist_after = flipped_dist_after;
-                        best_is_flipped = true;
-                    }
-                }
-                
-                coord_t detour_distance = dist_before + dist_after - current_distance;
-                if (detour_distance < best_detour_distance) // Less of a detour than the best candidate so far.
-                {
-                    best_pos_it = pos_after_it;
-                    best_detour_distance = detour_distance;
-                    best_dist_before_to_here = dist_before;
-                    best_dist_here_to_after = dist_after;
+                    upper_bound = pos_before_it;
                 }
                 
                 if (pos_after_it == optimized_order.begin())
                 {
+                    break;
+                }
+            }
+            
+            for (auto pos_after_it = upper_bound; ; --pos_after_it) // update is performed at the end of the for loop
+            {
+                auto pos_before_it = pos_after_it;
+                pos_before_it--;
+                Path* path_before = (pos_after_it == optimized_order.begin()) ? nullptr : &pos_before_it->second;
+                Path* path_after = (pos_after_it == optimized_order.end()) ? nullptr : &pos_after_it->second;
+                
+                if ( ! path_before || canPrecede(*path_before, to_be_inserted))
+                {
+                
+                    Point loc_before = path_before? path_before->getEndLocation() : start_point;
+                    coord_t dist_before = std::sqrt(getDistance(loc_before, start_here));
+                    coord_t dist_after = path_after ? std::sqrt(getDistance(end_here, path_after->getStartLocation())) : 0;
+
+                    if ( ! to_be_inserted.is_closed)
+                    {
+                        coord_t flipped_dist_before = std::sqrt(getDistance(loc_before, end_here));
+                        coord_t flipped_dist_after = path_after ? std::sqrt(getDistance(start_here, path_after->getStartLocation())) : 0;
+                        best_is_flipped = false;
+                        if (flipped_dist_before + flipped_dist_after < dist_before + dist_after)
+                        {
+                            dist_before = flipped_dist_before;
+                            dist_after = flipped_dist_after;
+                            best_is_flipped = true;
+                        }
+                    }
+                    
+                    coord_t current_distance = path_after? pos_after_it->first : 0;
+                    coord_t detour_distance = dist_before + dist_after - current_distance;
+                    if (detour_distance < best_detour_distance) // Less of a detour than the best candidate so far.
+                    {
+                        best_pos_it = pos_after_it;
+                        best_detour_distance = detour_distance;
+                        best_dist_before_to_here = dist_before;
+                        best_dist_here_to_after = dist_after;
+                    }
+                }
+                
+                if (path_before && ! canPrecede(to_be_inserted, *path_before))
+                {
+                    assert(best_detour_distance != std::numeric_limits<coord_t>::max());
+                    break;
+                }
+                if (pos_after_it == optimized_order.begin())
+                {
+                    assert(best_detour_distance != std::numeric_limits<coord_t>::max());
                     break;
                 }
             }
@@ -490,7 +520,16 @@ public:
             }
             optimized_order.insert(best_pos_it, std::make_pair(best_dist_before_to_here, to_be_inserted));
 
+#ifdef DEBUG
+            for (auto it = optimized_order.begin(); it != optimized_order.end(); ++it)
+            {
+                auto second_it = it;
+                for (second_it++; second_it != optimized_order.end(); ++second_it)
+                    assert(canPrecede(it->second, second_it->second));
+            }
+#endif // DEBUG
         }
+        
         
         if (seam_config.type == EZSeamType::SHORTEST)
         { // only recompute the start when needed
@@ -582,6 +621,10 @@ protected:
      * Insertion sort can be wildly inefficient when polylines haven't been stitched.
      */
     bool selection_optimization;
+    
+    static std::function<bool (const Path&, const Path&)> canAlwaysPrecede;
+
+    std::function<bool (Path, Path)> canPrecede;
 
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
@@ -833,6 +876,10 @@ protected:
      */
     ConstPolygonRef getVertexData(const PathType path);
 };
+
+template <typename PathType>
+std::function<bool (const typename PathOrderOptimizer<PathType>::Path&, const typename PathOrderOptimizer<PathType>::Path&)> PathOrderOptimizer<PathType>::canAlwaysPrecede =
+    std::function<bool (const Path&, const Path&)>( [](const Path&, const Path&) { return true; } );
 
 } //namespace cura
 
