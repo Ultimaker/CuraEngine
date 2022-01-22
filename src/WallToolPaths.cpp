@@ -462,7 +462,13 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> WallTo
 
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> result;
 
-    getWeakOrder(0, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
+    for (auto [idx, line] : poly_idx_to_extrusionline)
+    { // there might be multiple roots
+        if (line->inset_idx == 0)
+        {
+            getWeakOrder(idx, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
+        }
+    }
 
     if (include_transitive)
     {
@@ -513,7 +519,7 @@ void WallToolPaths::getWeakOrder(size_t node_idx, const std::unordered_map<size_
             // There is no order requirement between the innermost wall of a hole and the innermost wall of the outline.
         }
         else if ( ! child->is_odd && child->inset_idx == parent->inset_idx && child->inset_idx <= max_inset_idx)
-        {
+        { // unusual case
             // There are insets with one higher inset index which are adjacent to both this child and the parent.
             // And potentially also insets which are adjacent to this child and other children.
             // Moreover there are probably gap filler lines in between the child and the parent.
@@ -560,11 +566,21 @@ void WallToolPaths::getWeakOrder(size_t node_idx, const std::unordered_map<size_
                 if ( ! overlap) continue;
                 if (other_child->is_odd)
                 {
-                    assert(other_child->inset_idx == child->inset_idx + 1);
-                    result.emplace(child, other_child);
+                    if (other_child->inset_idx == child->inset_idx + 1)
+                    { // normal gap filler
+                        result.emplace(child, other_child);
+                    }
+                    else
+                    { // outer thin wall 'gap filler' enclosed in an internal hole.
+                        // E.g. in the middle of a thin '8' shape when the middle looks like '>-<=>-<'
+                        assert(parent->inset_idx == 0); // enclosing 8 shape
+                        assert(child->inset_idx == 0); // thick section of the middle
+                        assert(other_child->inset_idx == 0); // thin section of the middle
+                        // no order requirement between thin wall, because it has no eclosing wall
+                    }
                 }
                 else
-                {
+                { // other child is an even wall as well
                     if (other_child->inset_idx == child->inset_idx) continue;
                     assert(other_child->inset_idx == child->inset_idx + 1);
 
@@ -579,7 +595,7 @@ void WallToolPaths::getWeakOrder(size_t node_idx, const std::unordered_map<size_
             }
         }
         else
-        {
+        { // normal case
             assert( ! parent->is_odd && "There can be no polygons inside a polyline");
 
             const ExtrusionLine* before = parent;
