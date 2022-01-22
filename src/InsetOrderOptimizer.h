@@ -83,28 +83,6 @@ private:
     bool retraction_region_calculated; //Whether the retraction_region field has been calculated or not.
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
     Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
-
-    /*!
-     * Retrieves the region-id of the outer region (belongs to the outer outline, not to a hole).
-     */
-    static size_t getOuterRegionId(const VariableWidthPaths& toolpaths, size_t& out_max_region_id);
-
-public:
-    /*!
-     * Converts the VariableWidthPath to a bin of walls, consisting of a vector of paths, consisting of a vector of
-     * lines
-     * \param toolpaths The toolpaths to convert
-     * \param pack_by_inset Pack regions by inset, otherwise, pack insets by region. Useful for outer/inner first situations.
-     * \param p_bins_with_index_zero_insets When optimizing, not all inset zero indices are in the zeroth bin. (Can be set to nullptr, which won't negate optimize.)
-     * \return A bin of walls, consisting of a vector of paths consisting of vector of lines
-     */
-    static BinJunctions variableWidthPathToBinJunctions
-    (
-            const VariableWidthPaths& toolpaths,
-            const bool pack_regions_by_inset = true,
-            const bool center_last = false,
-            std::set<size_t>* p_bins_with_index_zero_insets = nullptr
-    );
 };
 
 } //namespace cura

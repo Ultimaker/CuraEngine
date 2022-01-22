@@ -39,19 +39,6 @@ namespace cura
     {
         return path->outline.outerPolygon();
     }
-
-    template<>
-    ConstPolygonRef PathOrderOptimizer<const LineJunctions*>::getVertexData(const LineJunctions* path)
-    {
-        cached_vertices.emplace_back();
-        Polygon& poly = cached_vertices.back();
-        for (const ExtrusionJunction junction : *path)
-        {
-            poly.add(junction.p);
-        }
-        return ConstPolygonRef(poly);
-    }
-
     template<>
     ConstPolygonRef PathOrderOptimizer<const ExtrusionLine*>::getVertexData(const ExtrusionLine* path)
     {
