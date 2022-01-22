@@ -37,13 +37,6 @@ struct ExtrusionLine
     bool is_odd;
 
     /*!
-     * Which region this line is part of. A solid polygon without holes has only one region.
-     * A polygon with holes has 2. Disconnected parts of the polygon are also separate regions.
-     * Will be 0 if no region was given.
-     */
-    size_t region_id;
-
-    /*!
      * Gets the number of vertices in this polygon.
      * \return The number of vertices in this polygon.
      */
@@ -71,13 +64,11 @@ struct ExtrusionLine
     ExtrusionLine()
     : inset_idx(-1)
     , is_odd(true)
-    , region_id(-1)
     {}
 
     ExtrusionLine(const ExtrusionLine& other)
     : inset_idx(other.inset_idx)
     , is_odd(other.is_odd)
-    , region_id(other.region_id)
     , junctions(other.junctions)
     {}
     
@@ -86,7 +77,6 @@ struct ExtrusionLine
         junctions = std::move(other.junctions);
         inset_idx = other.inset_idx;
         is_odd = other.is_odd;
-        region_id = other.region_id;
         return *this;
     }
 
@@ -95,7 +85,6 @@ struct ExtrusionLine
         junctions = other.junctions;
         inset_idx = other.inset_idx;
         is_odd = other.is_odd;
-        region_id = other.region_id;
         return *this;
     }
 

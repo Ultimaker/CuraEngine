@@ -508,8 +508,6 @@ void SkeletalTrapezoidation::generateToolpaths(VariableWidthPaths& generated_too
     markRegions();
 
     generateSegments();
-
-    liftRegionInfoToLines();
 }
 
 void SkeletalTrapezoidation::updateIsCentral()
@@ -2023,17 +2021,6 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             // TODO: ^^^ magic value ... + Point(50, 0) ^^^
         }
     }
-}
-
-void SkeletalTrapezoidation::liftRegionInfoToLines()
-{
-    std::for_each(p_generated_toolpaths->begin(), p_generated_toolpaths->end(), [](VariableWidthLines& lines)
-    {
-        std::for_each(lines.begin(), lines.end(), [](ExtrusionLine& line)
-        {
-            line.region_id = line.junctions.front().region_id;
-        });
-    });
 }
 
 //

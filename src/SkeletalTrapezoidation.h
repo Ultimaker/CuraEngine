@@ -588,11 +588,6 @@ protected:
      * Genrate small segments for local maxima where the beading would only result in a single bead
      */
     void generateLocalMaximaSingleBeads();
-
-    /*!
-     * Extract region information from the junctions, for easier access to that info directly from the lines.
-     */
-    void liftRegionInfoToLines();
 };
 
 } // namespace cura
