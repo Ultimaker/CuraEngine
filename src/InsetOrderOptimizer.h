@@ -4,6 +4,8 @@
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
 
+#include <unordered_set>
+
 #include "PathOrderOptimizer.h"
 #include "sliceDataStorage.h" //For SliceMeshStorage, which is used here at implementation in the header.
 
@@ -60,7 +62,22 @@ public:
      */
     bool addToLayer();
 
+    /*!
+     * Get the order constraints of the insets assuming the Wall Ordering is outer to inner.
+     * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
+     * 
+     * Odd walls should always go after their enclosing wall polygons.
+     * 
+     * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
+     */
+    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getWeakOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner, const bool include_transitive = true);
 private:
+
+    /*!
+     * Recursive part of \ref WallToolpPaths::getWeakOrder.
+     * For each node at \p node_idx we recurse on all its children at nesting[node_idx]
+     */
+    static void getWeakOrder(size_t node_idx, const std::unordered_map<size_t, const ExtrusionLine*>& poly_idx_to_extrusionline, const std::vector<std::vector<size_t>>& nesting, size_t max_inset_idx, const bool outer_to_inner, std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>& result);
 
     const FffGcodeWriter& gcode_writer;
     const SliceDataStorage& storage;
@@ -79,10 +96,18 @@ private:
     const ZSeamConfig& z_seam_config;
     const VariableWidthPaths& paths;
     const unsigned int layer_nr;
+    
     bool added_something;
     bool retraction_region_calculated; //Whether the retraction_region field has been calculated or not.
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
     Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
+
+    /*!
+     * Endpoints of polylines that are closer together than this distance
+     * will be considered to be coincident,
+     * closing that polyline into a polygon.
+     */
+    constexpr static coord_t coincident_point_distance = 10;
 };
 
 } //namespace cura

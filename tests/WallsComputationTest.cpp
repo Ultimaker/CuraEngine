@@ -8,7 +8,7 @@
 #include "../src/utils/polygon.h" //To create example polygons.
 #include "../src/sliceDataStorage.h" //Sl
 #include "../src/WallsComputation.h" //Unit under test.
-#include "../src/WallToolPaths.h" //Unit also under test.
+#include "../src/InsetOrderOptimizer.h" //Unit also under test.
 
 #define WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
@@ -159,7 +159,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     for (auto& inset : part.wall_toolpaths)
         for (auto& line : inset)
             all_paths.emplace_back(&line);
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = WallToolPaths::getWeakOrder(all_paths, outer_to_inner, include_transitive);
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = InsetOrderOptimizer::getWeakOrder(all_paths, outer_to_inner, include_transitive);
 
     //Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";

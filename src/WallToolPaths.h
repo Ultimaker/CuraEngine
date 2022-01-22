@@ -5,7 +5,6 @@
 #define CURAENGINE_WALLTOOLPATHS_H
 
 #include <memory>
-#include <unordered_set>
 
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "settings/Settings.h"
@@ -84,29 +83,7 @@ public:
      */
     static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
 
-    /*!
-     * Get the order constraints of the insets assuming the Wall Ordering is outer to inner.
-     * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
-     * 
-     * Odd walls should always go after their enclosing wall polygons.
-     * 
-     * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
-     */
-    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getWeakOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner, const bool include_transitive = true);
 protected:
-
-    /*!
-     * Recursive part of \ref WallToolpPaths::getWeakOrder.
-     * For each node at \p node_idx we recurse on all its children at nesting[node_idx]
-     */
-    static void getWeakOrder(size_t node_idx, const std::unordered_map<size_t, const ExtrusionLine*>& poly_idx_to_extrusionline, const std::vector<std::vector<size_t>>& nesting, size_t max_inset_idx, const bool outer_to_inner, std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>& result);
-
-    /*!
-     * Endpoints of polylines that are closer together than this distance
-     * will be considered to be coincident,
-     * closing that polyline into a polygon.
-     */
-    constexpr static coord_t coincident_point_distance = 10;
 
     /*!
      * Stitches toolpaths together to form contours.
