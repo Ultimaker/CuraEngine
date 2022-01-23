@@ -9,7 +9,7 @@
 namespace cura
 {
 
-ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd, const size_t region_id)
+ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd)
 : inset_idx(inset_idx)
 , is_odd(is_odd)
 {}
@@ -50,12 +50,6 @@ coord_t ExtrusionLine::getMinimalWidth() const
                                 return l.w < r.w;
                             })->w;
 }
-
-void ExtrusionLine::appendJunctionsTo(LineJunctions& result) const
-{
-    result.insert(result.end(), junctions.begin(), junctions.end());
-}
-
 
 void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, const coord_t maximum_extrusion_area_deviation)
 {

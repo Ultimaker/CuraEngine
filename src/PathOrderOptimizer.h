@@ -446,8 +446,7 @@ public:
                 auto pos_before_it = pos_after_it;
                 pos_before_it--;
                 Path* path_before = (pos_after_it == optimized_order.begin()) ? nullptr : &pos_before_it->second;
-                Path* path_after = (pos_after_it == optimized_order.end()) ? nullptr : &pos_after_it->second;
-                
+
                 if (path_before && ! canPrecede(*path_before, to_be_inserted))
                 {
                     upper_bound = pos_before_it;

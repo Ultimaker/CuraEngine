@@ -60,7 +60,8 @@ struct ExtrusionLine
      */
     std::vector<ExtrusionJunction> junctions;
 
-    ExtrusionLine(const size_t inset_idx, const bool is_odd, const size_t region_id = 0);
+    ExtrusionLine(const size_t inset_idx, const bool is_odd);
+
     ExtrusionLine()
     : inset_idx(-1)
     , is_odd(true)
@@ -201,11 +202,6 @@ struct ExtrusionLine
      * Get the minimal width of this path
      */
     coord_t getMinimalWidth() const;
-
-    /*!
-     * Export the included junctions as vector.
-     */
-    void appendJunctionsTo(LineJunctions& result) const;
 
     /*!
      * Chop off a segment of \p length of either end of this extrusionline
