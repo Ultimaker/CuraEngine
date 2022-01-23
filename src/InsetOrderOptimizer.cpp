@@ -173,7 +173,7 @@ bool InsetOrderOptimizer::addToLayer()
     
     bool added_something = false;
 
-    constexpr bool detect_loops = true;
+    constexpr bool detect_loops = false;
     constexpr Polygons* combing_boundary = nullptr;
     //When we alternate walls, also alternate the direction at which the first wall starts in.
     //On even layers we start with normal direction, on odd layers with inverted direction.
@@ -183,7 +183,14 @@ bool InsetOrderOptimizer::addToLayer()
     
     for (const ExtrusionLine* line : walls_to_be_added)
     {
-        order_optimizer.addPolyline(line);
+        if (line->is_closed)
+        {
+            order_optimizer.addPolygon(line);
+        }
+        else
+        {
+            order_optimizer.addPolyline(line);
+        }
     }
     
     

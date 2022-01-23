@@ -60,7 +60,7 @@ public:
      * The inside can then be filled, e.g. with skin/infill for the walls of a part, or with a pattern in the case of
      * infill with extra infill walls.
      */
-    void computeInnerContour();
+    void separateOutInnerContour();
 
     /*!
      * Gets the inner contour of the area which is inside of the generated tool
@@ -84,22 +84,6 @@ public:
     static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
 
 protected:
-
-    /*!
-     * Stitches toolpaths together to form contours.
-     *
-     * All toolpaths are used. Paths that are not closed will get closed in the
-     * output by virtue of becoming polygons. As such, the input is expected to
-     * consist of almost completely closed contours, which may be split up into
-     * different polylines.
-     * This function combines those polylines into the polygons they are
-     * probably intended to depict.
-     * \param input The paths to stitch together.
-     * \param stitch_distance Any endpoints closer than this distance can be
-     * stitched together. An additional line segment will bridge the gap.
-     * \param output Where to store the output polygons.
-     */
-    static void stitchContours(const VariableWidthPaths& input, const coord_t stitch_distance, Polygons& output) ;
     /*!
      * Stitch the polylines together and form closed polygons.
      * \param settings The settings as provided by the user

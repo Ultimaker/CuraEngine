@@ -12,6 +12,7 @@ namespace cura
 ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd)
 : inset_idx(inset_idx)
 , is_odd(is_odd)
+, is_closed(false)
 {}
 
 template <>
@@ -39,6 +40,10 @@ coord_t ExtrusionLine::getLength() const
         len += vSize(next.p - prev.p);
         prev = next;
     }
+    if (is_closed)
+    {
+        len += vSize(front().p - back().p);
+    }
     return len;
 }
 
@@ -53,10 +58,12 @@ coord_t ExtrusionLine::getMinimalWidth() const
 
 void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, const coord_t maximum_extrusion_area_deviation)
 {
-    if (junctions.size() <= 3)
+    if (junctions.size() <= 2 + is_closed)
     {
         return;
     }
+
+    // TODO: allow for the first point to be removed in case of simplifying closed Extrusionlines.
 
     /* ExtrusionLines are treated as (open) polylines, so in case an ExtrusionLine is actually a closed polygon, its
      * starting and ending points will be equal (or almost equal). Therefore, the simplification of the ExtrusionLine

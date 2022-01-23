@@ -37,6 +37,11 @@ struct ExtrusionLine
     bool is_odd;
 
     /*!
+     * Whether this is a closed polygonal path
+     */
+    bool is_closed;
+
+    /*!
      * Gets the number of vertices in this polygon.
      * \return The number of vertices in this polygon.
      */
@@ -65,11 +70,13 @@ struct ExtrusionLine
     ExtrusionLine()
     : inset_idx(-1)
     , is_odd(true)
+    , is_closed(false)
     {}
 
     ExtrusionLine(const ExtrusionLine& other)
     : inset_idx(other.inset_idx)
     , is_odd(other.is_odd)
+    , is_closed(other.is_closed)
     , junctions(other.junctions)
     {}
     
@@ -78,6 +85,7 @@ struct ExtrusionLine
         junctions = std::move(other.junctions);
         inset_idx = other.inset_idx;
         is_odd = other.is_odd;
+        is_closed = other.is_closed;
         return *this;
     }
 
@@ -86,6 +94,7 @@ struct ExtrusionLine
         junctions = other.junctions;
         inset_idx = other.inset_idx;
         is_odd = other.is_odd;
+        is_closed = other.is_closed;
         return *this;
     }
 
