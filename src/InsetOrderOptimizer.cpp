@@ -143,31 +143,6 @@ bool InsetOrderOptimizer::addToLayer()
             // [before] cannot precede [after] if we have an order constraint that [after] must be before [before]
             return ! order.count(std::make_pair(after.vertices, before.vertices));
         };
-#ifdef DEBUG
-    {
-        AABB aabb;
-        for (auto& inset : paths)
-            for (auto& line : inset)
-                for (auto p : line)
-                    aabb.include(p.p);
-        SVG svg("/tmp/order.svg", aabb);
-        for (auto& inset : paths)
-            for (auto& line : inset)
-                svg.writePolyline(line.toPolygon(), line.is_odd? SVG::Color::RED : SVG::Color::GREEN);
-        svg.nextLayer();
-        for (auto& inset : paths)
-            for (auto& line : inset)
-                svg.writePoints(line.toPolygon(), true, 1.0);
-        svg.nextLayer();
-        for (auto [before, after] : order)
-            if ( ! after->is_odd)
-                svg.writeArrow(before->junctions[1 % before->junctions.size()].p, after->junctions[2 % after->junctions.size()].p, SVG::Color::BLUE);
-        svg.nextLayer();
-        for (auto [before, after] : order)
-            if (after->is_odd)
-                svg.writeArrow(before->junctions[1 % before->junctions.size()].p, after->junctions[2 % after->junctions.size()].p, SVG::Color::MAGENTA);
-    }
-#endif // DEBUG
     
     constexpr Ratio flow = 1.0_r;
     
@@ -258,18 +233,6 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     }
 
     std::vector<std::vector<size_t>> nesting = all_polygons.getNesting();
-
-    {
-        SVG svg("/tmp/nesting.svg", AABB(all_polygons));
-        svg.writePolygons(all_polygons, SVG::Color::BLUE);
-        for (size_t i = 0; i < all_polygons.size(); i++)
-        {
-            for (size_t child_idx : nesting[i])
-            {
-                svg.writeArrow(all_polygons[i][0], all_polygons[child_idx][1]);
-            }
-        }
-    }
 
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> result;
 
