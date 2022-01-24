@@ -1023,9 +1023,15 @@ public:
     void removeSmallAreas(const double min_area_size, const bool remove_holes = false);
 
     /*!
-     * Removes overlapping consecutive line segments which don't delimit a positive area.
+     * Removes overlapping consecutive line segments which don't delimit a
+     * positive area.
+     * \param for_polyline Indicate that we're removing degenerate vertices from
+     * a polyline, causing the endpoints of the polyline to be left untouched.
+     * When removing vertices from a polygon, the start and end can be
+     * considered for removal too, but when processing a polyline, removing
+     * those would cause the polyline to become shorter.
      */
-    void removeDegenerateVerts();
+    void removeDegenerateVerts(const bool for_polyline = false);
 
     /*!
      * Removes the same polygons from this set (and also empty polygons).

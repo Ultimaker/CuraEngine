@@ -586,7 +586,7 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
 }
 
 
-void Polygons::removeDegenerateVerts()
+void Polygons::removeDegenerateVerts(const bool for_polyline)
 {
     Polygons& thiss = *this;
     for(size_t poly_idx = 0; poly_idx < size(); poly_idx++)
@@ -600,15 +600,24 @@ void Polygons::removeDegenerateVerts()
             Point next_line = next - now;
             return dot(last_line, next_line) == -1 * vSize(last_line) * vSize(next_line);
         };
+
+        //With polylines, skip the first and last vertex.
+        const size_t start_vertex = for_polyline ? 1 : 0;
+        const size_t end_vertex = for_polyline ? poly.size() - 1 : poly.size();
+        for(size_t i = 0; i < start_vertex; ++i)
+        {
+            result.add(poly[i]); //Add everything before the start vertex.
+        }
+
         bool isChanged = false;
-        for(size_t idx = 0; idx < poly.size(); idx++)
+        for(size_t idx = start_vertex; idx < end_vertex; idx++)
         {
             const Point& last = (result.size() == 0) ? poly.back() : result.back();
-            if(idx + 1 == poly.size() && result.size() == 0)
+            if(idx + 1 >= poly.size() && result.size() == 0)
             {
                 break;
             }
-            const Point& next = (idx + 1 == poly.size())? result[0] : poly[idx + 1];
+            const Point& next = (idx + 1 >= poly.size()) ? result[0] : poly[idx + 1];
             if(isDegenerate(last, poly[idx], next))
             { // lines are in the opposite direction
                 // don't add vert to the result
@@ -624,9 +633,14 @@ void Polygons::removeDegenerateVerts()
             }
         }
 
+        for(size_t i = end_vertex; i < poly.size(); ++i)
+        {
+            result.add(poly[i]); //Add everything after the end vertex.
+        }
+
         if(isChanged)
         {
-            if(result.size() > 2)
+            if(for_polyline || result.size() > 2)
             {
                 *poly = *result;
             }
