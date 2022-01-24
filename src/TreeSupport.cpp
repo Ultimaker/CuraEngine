@@ -146,6 +146,9 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         }
         support_layer = support_layer.unionPolygons();
         roof_layer = roof_layer.unionPolygons();
+        const size_t z_collision_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(z_distance_bottom_layers) + 1)); //Layer to test against to create a Z-distance.
+        support_layer = support_layer.difference(volumes_.getCollision(0, z_collision_layer)); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
+        roof_layer = roof_layer.difference(volumes_.getCollision(0, z_collision_layer));
         support_layer = support_layer.difference(roof_layer);
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = static_cast<double>(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
@@ -209,6 +212,7 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     //Use Minimum Spanning Tree to connect the points on each layer and move them while dropping them down.
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    const auto support_xy_distance = mesh_group_settings.get<coord_t>("support_xy_distance");
     const double angle = mesh_group_settings.get<AngleRadians>("support_tree_angle");
     const coord_t maximum_move_distance = angle < 90 ? static_cast<coord_t>(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max();
     const coord_t branch_radius = mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2;
@@ -225,7 +229,7 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
         std::deque<std::pair<size_t, Node*>> unsupported_branch_leaves; // All nodes that are leaves on this layer that would result in unsupported ('mid-air') branches.
 
         //Group together all nodes for each part.
-        std::vector<PolygonsPart> parts = volumes_.getAvoidance(0, layer_nr).splitIntoParts();
+        std::vector<PolygonsPart> parts = volumes_.getAvoidance(support_xy_distance, layer_nr).splitIntoParts();
         std::vector<std::unordered_map<Point, Node*>> nodes_per_part;
         nodes_per_part.emplace_back(); //All nodes that aren't inside a part get grouped together in the 0th part.
         for (size_t part_index = 0; part_index < parts.size(); part_index++)
