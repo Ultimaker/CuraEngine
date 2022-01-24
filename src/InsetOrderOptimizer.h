@@ -6,8 +6,8 @@
 
 #include <unordered_set>
 
-#include "PathOrderOptimizer.h"
 #include "sliceDataStorage.h" //For SliceMeshStorage, which is used here at implementation in the header.
+#include "settings/ZSeamConfig.h"
 
 namespace cura
 {
@@ -70,7 +70,14 @@ public:
      * 
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
-    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getWeakOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner, const bool include_transitive = true);
+    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getWeakOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner);
+
+    /*!
+     * Make order requirements transitive.
+     * If the input contains A,B and B,C then after this call it will also include A,C.
+     */
+    template<typename PathType>
+    static std::unordered_set<std::pair<PathType, PathType>> makeOrderIncludeTransitive(const std::unordered_set<std::pair<PathType, PathType>>& order_requirements);
 private:
 
     /*!
@@ -109,6 +116,38 @@ private:
      */
     constexpr static coord_t coincident_point_distance = 10;
 };
+
+
+template<typename PathType>
+std::unordered_set<std::pair<PathType, PathType>> InsetOrderOptimizer::makeOrderIncludeTransitive(const std::unordered_set<std::pair<PathType, PathType>>& order_requirements)
+{
+    if (order_requirements.empty()) return order_requirements;
+
+    std::unordered_multimap<PathType, PathType> order_mapping;
+    for (auto [from, to] : order_requirements)
+    {
+        order_mapping.emplace(from, to);
+    }
+    std::unordered_set<std::pair<PathType, PathType>> transitive_order = order_requirements;
+    for (auto [from, to] : order_requirements)
+    {
+        std::queue<PathType> starts_of_next_relation;
+        starts_of_next_relation.emplace(to);
+        while ( ! starts_of_next_relation.empty())
+        {
+            PathType start_of_next_relation = starts_of_next_relation.front();
+            starts_of_next_relation.pop();
+            auto range = order_mapping.equal_range(start_of_next_relation);
+            for (auto it = range.first; it != range.second; ++it)
+            {
+                auto [ next_from, next_to ] = *it;
+                starts_of_next_relation.emplace(next_to);
+                transitive_order.emplace(from, next_to);
+            }
+        }
+    }
+    return transitive_order;    
+}
 
 } //namespace cura
 

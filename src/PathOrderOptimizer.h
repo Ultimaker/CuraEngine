@@ -4,6 +4,10 @@
 #ifndef PATHORDEROPTIMIZER_H
 #define PATHORDEROPTIMIZER_H
 
+
+#include <unordered_set>
+
+#include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "settings/EnumSettings.h" //To get the seam settings.
@@ -167,14 +171,14 @@ public:
      * it into a polygon.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, bool selection_optimization = true, const std::function<bool (const Path&, const Path&)>& canPrecede = canAlwaysPrecede)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, bool selection_optimization = true, const std::unordered_set<std::pair<PathType, PathType>>& order_requirements = no_order_requirements)
     : start_point(start_point)
     , seam_config(seam_config)
     , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
     , detect_loops(detect_loops)
     , reverse_direction(reverse_direction)
     , selection_optimization(selection_optimization)
-    , canPrecede(canPrecede)
+    , order_requirements(&order_requirements)
     {
     }
 
@@ -397,6 +401,16 @@ public:
     
     void optimizeInsertion()
     {
+        const std::unordered_set<std::pair<PathType, PathType>> transitive_requirements = InsetOrderOptimizer::makeOrderIncludeTransitive<PathType>(*order_requirements);      
+
+        using Optimizer = PathOrderOptimizer<const PathType>;
+        std::function<bool (const Path&, const Path&)> canPrecede =
+            [&transitive_requirements](const Path& before, const Path& after)
+            {
+                // [before] cannot precede [after] if we have an order constraint that [after] must be before [before]
+                return ! transitive_requirements.count(std::make_pair(after.vertices, before.vertices));
+            };
+
         if (seam_config.type == EZSeamType::USER_SPECIFIED)
         {
             start_point = seam_config.pos; // WARNING: is this correct?!
@@ -620,10 +634,14 @@ protected:
      * Insertion sort can be wildly inefficient when polylines haven't been stitched.
      */
     bool selection_optimization;
-    
-    static std::function<bool (const Path&, const Path&)> canAlwaysPrecede;
 
-    std::function<bool (Path, Path)> canPrecede;
+    static const std::unordered_set<std::pair<PathType, PathType>> no_order_requirements;
+
+    /*!
+     * Order requirements on the paths.
+     * For each pair the first needs to be printe before the second.
+     */
+    const std::unordered_set<std::pair<PathType, PathType>>* order_requirements;
 
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
@@ -876,9 +894,8 @@ protected:
     ConstPolygonRef getVertexData(const PathType path);
 };
 
-template <typename PathType>
-std::function<bool (const typename PathOrderOptimizer<PathType>::Path&, const typename PathOrderOptimizer<PathType>::Path&)> PathOrderOptimizer<PathType>::canAlwaysPrecede =
-    std::function<bool (const Path&, const Path&)>( [](const Path&, const Path&) { return true; } );
+template<typename PathType>
+const std::unordered_set<std::pair<PathType, PathType>> PathOrderOptimizer<PathType>::no_order_requirements;
 
 } //namespace cura
 

@@ -124,8 +124,7 @@ bool InsetOrderOptimizer::addToLayer()
     }
     
     
-    constexpr bool include_transitive = true;
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = getWeakOrder(walls_to_be_added, outer_to_inner, include_transitive);
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = getWeakOrder(walls_to_be_added, outer_to_inner);
     
     if (center_last)
     {
@@ -135,14 +134,6 @@ bool InsetOrderOptimizer::addToLayer()
                     if ( ! other_line->is_odd)
                         order.emplace(std::make_pair(other_line, line));
     }
-    
-    using Optimizer = PathOrderOptimizer<const ExtrusionLine*>;
-    std::function<bool (const Optimizer::Path&, const Optimizer::Path&)> canPrecede =
-        [&order](const Optimizer::Path& before, const Optimizer::Path& after)
-        {
-            // [before] cannot precede [after] if we have an order constraint that [after] must be before [before]
-            return ! order.count(std::make_pair(after.vertices, before.vertices));
-        };
     
     constexpr Ratio flow = 1.0_r;
     
@@ -154,7 +145,7 @@ bool InsetOrderOptimizer::addToLayer()
     //On even layers we start with normal direction, on odd layers with inverted direction.
     constexpr bool reverse_all_paths = false;
     constexpr bool selection_optimization = false;
-    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse_all_paths, selection_optimization, canPrecede);
+    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse_all_paths, selection_optimization, order);
     
     for (const ExtrusionLine* line : walls_to_be_added)
     {
@@ -203,7 +194,7 @@ bool InsetOrderOptimizer::addToLayer()
 
 
 
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getWeakOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner, const bool include_transitive)
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getWeakOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
 {
     size_t max_inset_idx = 0;
     Polygons all_polygons;
@@ -242,34 +233,6 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
         {
             getWeakOrder(idx, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
         }
-    }
-
-    if (include_transitive)
-    {
-        std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order_mapping;
-        for (auto [from, to] : result)
-        {
-            order_mapping.emplace(from, to);
-        }
-        std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> transitive_order = result;
-        for (auto [from, to] : result)
-        {
-            std::queue<const ExtrusionLine*> starts_of_next_relation;
-            starts_of_next_relation.emplace(to);
-            while ( ! starts_of_next_relation.empty())
-            {
-                const ExtrusionLine* start_of_next_relation = starts_of_next_relation.front();
-                starts_of_next_relation.pop();
-                auto range = order_mapping.equal_range(start_of_next_relation);
-                for (auto it = range.first; it != range.second; ++it)
-                {
-                    auto [ next_from, next_to ] = *it;
-                    starts_of_next_relation.emplace(next_to);
-                    transitive_order.emplace(from, next_to);
-                }
-            }
-        }
-        result = transitive_order;
     }
 
     return result;
