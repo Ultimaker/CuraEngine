@@ -643,6 +643,40 @@ public:
     }
 };
 
+} // namespace cura
+
+
+namespace std
+{
+template<>
+struct hash<cura::ConstPolygonRef>
+{
+    size_t operator()(const cura::ConstPolygonRef& poly) const
+    {
+        return std::hash<const ClipperLib::Path*>()(&*poly);
+    }
+};
+template<>
+struct hash<cura::ConstPolygonPointer>
+{
+    size_t operator()(const cura::ConstPolygonPointer& poly) const
+    {
+        return std::hash<const ClipperLib::Path*>()(&**poly);
+    }
+};
+template<>
+struct hash<cura::PolygonPointer>
+{
+    size_t operator()(const cura::PolygonPointer& poly) const
+    {
+        const cura::ConstPolygonRef ref = *static_cast<cura::PolygonPointer>(poly);
+        return std::hash<const ClipperLib::Path*>()(&*ref);
+    }
+};
+}//namespace std
+
+namespace cura {
+
 class Polygon : public PolygonRef
 {
     ClipperLib::Path poly;
