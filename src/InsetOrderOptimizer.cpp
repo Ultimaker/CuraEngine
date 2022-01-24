@@ -206,7 +206,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
         const ExtrusionLine& line = *line_p;
         if (line.empty()) continue;
         max_inset_idx = std::max(max_inset_idx, line.inset_idx);
-        if ( ! shorterThan(line.front().p - line.back().p, coincident_point_distance)) // TODO: check if it is a closed polygon or not
+        if ( ! line.is_closed)
         {
             // Make a small triangle representative of the polyline
             // otherwise the polyline would get erased by the clipping operation
