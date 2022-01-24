@@ -719,8 +719,17 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
     paths.resize(new_end-paths.begin());
 }
 
+void Polygons::removeDegenerateVerts()
+{
+    _removeDegenerateVerts(false);
+}
 
-void Polygons::removeDegenerateVerts(const bool for_polyline)
+void Polygons::removeDegenerateVertsPolyline()
+{
+    _removeDegenerateVerts(true);
+}
+
+void Polygons::_removeDegenerateVerts(const bool for_polyline)
 {
     Polygons& thiss = *this;
     for(size_t poly_idx = 0; poly_idx < size(); poly_idx++)
