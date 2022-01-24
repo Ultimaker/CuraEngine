@@ -1025,13 +1025,35 @@ public:
     /*!
      * Removes overlapping consecutive line segments which don't delimit a
      * positive area.
+     *
+     * This function is meant to work on polygons, not polylines. When misused
+     * on polylines, it may cause too many vertices to be removed.
+     * See \ref removeDegenerateVertsPolyline for a version that works on
+     * polylines.
+     */
+    void removeDegenerateVerts();
+
+    /*!
+     * Removes overlapping consecutive line segments which don't delimit a
+     * positive area.
+     *
+     * This version is meant to work on polylines, not polygons. It leaves the
+     * endpoints of the polyline untouched. When misused on polygons, it may
+     * leave some degenerate vertices in.
+     * See \ref removeDegenerateVerts for a version that works on polygons.
+     */
+    void removeDegenerateVertsPolyline();
+
+    /*!
+     * Removes overlapping consecutive line segments which don't delimit a
+     * positive area.
      * \param for_polyline Indicate that we're removing degenerate vertices from
      * a polyline, causing the endpoints of the polyline to be left untouched.
      * When removing vertices from a polygon, the start and end can be
      * considered for removal too, but when processing a polyline, removing
      * those would cause the polyline to become shorter.
      */
-    void removeDegenerateVerts(const bool for_polyline = false);
+    void _removeDegenerateVerts(const bool for_polyline = false);
 
     /*!
      * Removes the same polygons from this set (and also empty polygons).
