@@ -571,7 +571,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         return;
     }
-    PathOrderOptimizer<ConstPolygonRef> orderOptimizer(start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    PathOrderOptimizer<ConstPolygonPointer> orderOptimizer(start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for(size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(polygons[poly_idx]);
@@ -580,7 +580,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 
     if(!reverse_order)
     {
-        for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
+        for(const PathOrderOptimizer<ConstPolygonPointer>::Path& path : orderOptimizer.paths)
         {
             addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
@@ -589,8 +589,8 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         for(int index = orderOptimizer.paths.size() - 1; index >= 0; --index)
         {
-            const PathOrderOptimizer<ConstPolygonRef>::Path& path = orderOptimizer.paths[index];
-            addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            const PathOrderOptimizer<ConstPolygonPointer>::Path& path = orderOptimizer.paths[index];
+            addPolygon(**path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
 }
@@ -1051,15 +1051,15 @@ void LayerPlan::addWalls
 )
 {
     //TODO: Deprecated in favor of ExtrusionJunction version below.
-    PathOrderOptimizer<ConstPolygonRef> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    PathOrderOptimizer<ConstPolygonPointer> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for(size_t poly_idx = 0; poly_idx < walls.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
     orderOptimizer.optimize();
-    for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
+    for(const PathOrderOptimizer<ConstPolygonPointer>::Path& path : orderOptimizer.paths)
     {
-        addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(**path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
@@ -1100,7 +1100,7 @@ void LayerPlan::addLinesByOptimizer
         boundary.simplify(MM2INT(0.1), MM2INT(0.1));
     }
     constexpr bool detect_loops = true;
-    PathOrderOptimizer<ConstPolygonRef> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction);
+    PathOrderOptimizer<ConstPolygonPointer> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction);
     for(size_t line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
         order_optimizer.addPolyline(polygons[line_idx]);
@@ -1111,7 +1111,7 @@ void LayerPlan::addLinesByOptimizer
     coord_t line_width_2 = half_line_width * half_line_width;
     for(size_t order_idx = 0; order_idx < order_optimizer.paths.size(); order_idx++)
     {
-        const PathOrderOptimizer<ConstPolygonRef>::Path& path = order_optimizer.paths[order_idx];
+        const PathOrderOptimizer<ConstPolygonPointer>::Path& path = order_optimizer.paths[order_idx];
         ConstPolygonRef polyline = *path.vertices;
         const size_t start_idx = path.start_vertex;
         const Point start = polyline[start_idx];
@@ -1160,7 +1160,7 @@ void LayerPlan::addLinesByOptimizer
             // Don't wipe if next starting point is very near
             if(wipe && (order_idx < order_optimizer.paths.size() - 1))
             {
-                const PathOrderOptimizer<ConstPolygonRef>::Path& next_path = order_optimizer.paths[order_idx + 1];
+                const PathOrderOptimizer<ConstPolygonPointer>::Path& next_path = order_optimizer.paths[order_idx + 1];
                 ConstPolygonRef next_polygon = *next_path.vertices;
                 const size_t next_start = next_path.start_vertex;
                 const Point& next_p0 = next_polygon[next_start];
@@ -1197,7 +1197,7 @@ void LayerPlan::addLinesMonotonic
     const Point last_position = getLastPlannedPositionOrStartingPosition();
 
     // First lay all adjacent lines next to each other, to have a sensible input to the monotonic part of the algorithm.
-    PathOrderOptimizer<ConstPolygonRef> line_order(last_position);
+    PathOrderOptimizer<ConstPolygonPointer> line_order(last_position);
     for(const ConstPolygonRef polyline : polygons)
     {
         line_order.addPolyline(polyline);
@@ -1216,9 +1216,9 @@ void LayerPlan::addLinesMonotonic
     bool last_would_have_been_excluded = false;
     for(size_t line_idx = 0; line_idx < line_order.paths.size(); ++line_idx)
     {
-        const ConstPolygonRef polyline = line_order.paths[line_idx].vertices;
+        const ConstPolygonRef polyline = *line_order.paths[line_idx].vertices;
         const bool inside_exclusion = is_inside_exclusion(polyline);
-        const bool next_would_have_been_included = inside_exclusion && (line_idx < line_order.paths.size() - 1 && is_inside_exclusion(line_order.paths[line_idx + 1].vertices));
+        const bool next_would_have_been_included = inside_exclusion && (line_idx < line_order.paths.size() - 1 && is_inside_exclusion(*line_order.paths[line_idx + 1].vertices));
         if (inside_exclusion && last_would_have_been_excluded && next_would_have_been_included)
         {
             left_over.add(polyline);

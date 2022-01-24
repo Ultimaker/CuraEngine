@@ -637,7 +637,7 @@ void Wireframe2gcode::processSkirt()
         return;
     }
     Polygons skirt = wireFrame.bottom_outline.offset(MM2INT(100 + 5), ClipperLib::jtRound).offset(MM2INT(-100), ClipperLib::jtRound);
-    PathOrderOptimizer<PolygonRef> order(Point(INT32_MIN, INT32_MIN));
+    PathOrderOptimizer<PolygonPointer> order(Point(INT32_MIN, INT32_MIN));
     for(PolygonRef skirt_path : skirt)
     {
         order.addPolygon(skirt_path);
@@ -645,12 +645,12 @@ void Wireframe2gcode::processSkirt()
     order.optimize();
 
     const Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
-    for(const PathOrderOptimizer<PolygonRef>::Path& path : order.paths)
+    for(const PathOrderOptimizer<PolygonPointer>::Path& path : order.paths)
     {
-        gcode.writeTravel(path.vertices[path.start_vertex], scene_settings.get<Velocity>("speed_travel"));
-        for(size_t vertex_index = 0; vertex_index < path.vertices.size(); ++vertex_index)
+        gcode.writeTravel((*path.vertices)[path.start_vertex], scene_settings.get<Velocity>("speed_travel"));
+        for(size_t vertex_index = 0; vertex_index < path.vertices->size(); ++vertex_index)
         {
-            Point vertex = path.vertices[(vertex_index + path.start_vertex + 1) % path.vertices.size()];
+            Point vertex = (*path.vertices)[(vertex_index + path.start_vertex + 1) % path.vertices->size()];
             gcode.writeExtrusion(vertex, scene_settings.get<Velocity>("skirt_brim_speed"), scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * INT2MM(initial_layer_thickness), PrintFeatureType::SkirtBrim);
         }
     }

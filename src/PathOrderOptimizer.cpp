@@ -11,15 +11,15 @@ namespace cura
 {
 
     template<>
-    ConstPolygonRef PathOrderOptimizer<ConstPolygonRef>::getVertexData(ConstPolygonRef path)
+    ConstPolygonRef PathOrderOptimizer<ConstPolygonPointer>::getVertexData(ConstPolygonPointer path)
     {
-        return path;
+        return *path;
     }
 
     template<>
-    ConstPolygonRef PathOrderOptimizer<PolygonRef>::getVertexData(PolygonRef path)
+    ConstPolygonRef PathOrderOptimizer<PolygonPointer>::getVertexData(PolygonPointer path)
     {
-        return path;
+        return *path;
     }
 
     template<>
