@@ -82,6 +82,8 @@ public:
     : path(const_cast<ClipperLib::Path*>(&polygon))
     {}
 
+    ConstPolygonRef() =delete; // you cannot have a reference without an object!
+
     virtual ~ConstPolygonRef()
     {
     }
@@ -411,6 +413,8 @@ public:
     : ConstPolygonRef(*other.path)
     {}
 
+    PolygonRef() =delete; // you cannot have a reference without an object!
+
     virtual ~PolygonRef()
     {
     }
@@ -611,28 +615,39 @@ public:
     }
 };
 
-class PolygonPointer
+class PolygonPointer : public ConstPolygonPointer
 {
-protected:
-    ClipperLib::Path* path;
 public:
     PolygonPointer()
-    : path(nullptr)
+    : ConstPolygonPointer(nullptr)
     {}
     PolygonPointer(PolygonRef* ref)
-    : path(ref->path)
+    : ConstPolygonPointer(ref)
     {}
 
     PolygonPointer(PolygonRef& ref)
-    : path(ref.path)
+    : ConstPolygonPointer(ref)
     {}
 
     PolygonRef operator*()
     {
         assert(path);
-        return PolygonRef(*path);
+        return PolygonRef(*const_cast<ClipperLib::Path*>(path));
     }
+
+    ConstPolygonRef operator*() const
+    {
+        assert(path);
+        return ConstPolygonRef(*path);
+    }
+
     ClipperLib::Path* operator->()
+    {
+        assert(path);
+        return const_cast<ClipperLib::Path*>(path);
+    }
+
+    const ClipperLib::Path* operator->() const
     {
         assert(path);
         return path;
