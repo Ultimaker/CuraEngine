@@ -98,11 +98,18 @@ public:
          */
         size_t start_vertex;
 
+        /*!
+         * Get the location of the start vertex
+         */
         Point getStartLocation() const
         {
             return (*converted)[start_vertex];
         }
         
+        /*!
+         * Get the location of the end vertex.
+         * In case of a polygonal line which isn't stitched yet this might be the same / near the start location.
+         */
         Point getEndLocation() const
         {
             if (is_closed)

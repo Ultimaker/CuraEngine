@@ -86,6 +86,9 @@ public:
 protected:
     /*!
      * Stitch the polylines together and form closed polygons.
+     * 
+     * Works on both toolpaths and inner contours simultaneously.
+     * 
      * \param settings The settings as provided by the user
      */
     static void stitchToolPaths(VariableWidthPaths& toolpaths, const Settings& settings);
