@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_H
@@ -1140,57 +1140,16 @@ public:
     void removeSmallAreas(const double min_area_size, const bool remove_holes = false);
 
     /*!
-     * Removes overlapping consecutive line segments which don't delimit a positive area.
+     * Removes overlapping consecutive line segments which don't delimit a
+     * positive area.
+     * \param for_polyline Indicate that we're removing degenerate vertices from
+     * a polyline, causing the endpoints of the polyline to be left untouched.
+     * When removing vertices from a polygon, the start and end can be
+     * considered for removal too, but when processing a polyline, removing
+     * those would cause the polyline to become shorter.
      */
-    void removeDegenerateVerts()
-    {
-        Polygons& thiss = *this;
-        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
-        {
-            PolygonRef poly = thiss[poly_idx];
-            Polygon result;
+    void removeDegenerateVerts(const bool for_polyline = false);
 
-            auto isDegenerate = [](Point& last, Point& now, Point& next)
-            {
-                Point last_line = now - last;
-                Point next_line = next - now;
-                return dot(last_line, next_line) == -1 * vSize(last_line) * vSize(next_line);
-            };
-            bool isChanged = false;
-            for (unsigned int idx = 0; idx < poly.size(); idx++)
-            {
-                Point& last = (result.size() == 0) ? poly.back() : result.back();
-                if (idx+1 == poly.size() && result.size() == 0) { break; }
-                Point& next = (idx+1 == poly.size())? result[0] : poly[idx+1];
-                if ( isDegenerate(last, poly[idx], next) )
-                { // lines are in the opposite direction
-                    // don't add vert to the result
-                    isChanged = true;
-                    while (result.size() > 1 && isDegenerate(result[result.size()-2], result.back(), next) )
-                    {
-                        result.pop_back();
-                    }
-                }
-                else
-                {
-                    result.add(poly[idx]);
-                }
-            }
-
-            if (isChanged)
-            {
-                if (result.size() > 2)
-                {
-                    *poly = *result;
-                }
-                else
-                {
-                    thiss.remove(poly_idx);
-                    poly_idx--; // effectively the next iteration has the same poly_idx (referring to a new poly which is not yet processed)
-                }
-            }
-        }
-    }
     /*!
      * Removes the same polygons from this set (and also empty polygons).
      * Polygons are considered the same if all points lie within [same_distance] of their counterparts.
