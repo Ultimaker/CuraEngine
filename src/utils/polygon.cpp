@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "polygon.h"
@@ -583,6 +583,60 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
         }
     }
     paths.resize(new_end-paths.begin());
+}
+
+
+void Polygons::removeDegenerateVerts()
+{
+    Polygons& thiss = *this;
+    for(size_t poly_idx = 0; poly_idx < size(); poly_idx++)
+    {
+        PolygonRef poly = thiss[poly_idx];
+        Polygon result;
+
+        auto isDegenerate = [](const Point& last, const Point& now, const Point& next)
+        {
+            Point last_line = now - last;
+            Point next_line = next - now;
+            return dot(last_line, next_line) == -1 * vSize(last_line) * vSize(next_line);
+        };
+        bool isChanged = false;
+        for(size_t idx = 0; idx < poly.size(); idx++)
+        {
+            const Point& last = (result.size() == 0) ? poly.back() : result.back();
+            if(idx + 1 == poly.size() && result.size() == 0)
+            {
+                break;
+            }
+            const Point& next = (idx + 1 == poly.size())? result[0] : poly[idx + 1];
+            if(isDegenerate(last, poly[idx], next))
+            { // lines are in the opposite direction
+                // don't add vert to the result
+                isChanged = true;
+                while(result.size() > 1 && isDegenerate(result[result.size() - 2], result.back(), next))
+                {
+                    result.pop_back();
+                }
+            }
+            else
+            {
+                result.add(poly[idx]);
+            }
+        }
+
+        if(isChanged)
+        {
+            if(result.size() > 2)
+            {
+                *poly = *result;
+            }
+            else
+            {
+                thiss.remove(poly_idx);
+                poly_idx--; // effectively the next iteration has the same poly_idx (referring to a new poly which is not yet processed)
+            }
+        }
+    }
 }
 
 Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
