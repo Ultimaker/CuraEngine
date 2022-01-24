@@ -99,34 +99,6 @@ public:
         size_t start_vertex;
 
         /*!
-         * Get the location of the start vertex
-         */
-        Point getStartLocation() const
-        {
-            return (*converted)[start_vertex];
-        }
-        
-        /*!
-         * Get the location of the end vertex.
-         * In case of a polygonal line which isn't stitched yet this might be the same / near the start location.
-         */
-        Point getEndLocation() const
-        {
-            if (is_closed)
-            {
-                return getStartLocation();
-            }
-            if (start_vertex == 0)
-            {
-                return converted->back();
-            }
-            else
-            {
-                return converted->front();
-            }
-        }
-
-        /*!
          * Whether the path should be closed at the ends or not.
          *
          * If this path should be closed, it represents a polygon. If it should
