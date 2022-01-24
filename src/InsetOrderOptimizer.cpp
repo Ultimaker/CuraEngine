@@ -144,8 +144,7 @@ bool InsetOrderOptimizer::addToLayer()
     //When we alternate walls, also alternate the direction at which the first wall starts in.
     //On even layers we start with normal direction, on odd layers with inverted direction.
     constexpr bool reverse_all_paths = false;
-    constexpr bool selection_optimization = false;
-    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse_all_paths, selection_optimization, order);
+    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse_all_paths, order);
     
     for (const ExtrusionLine* line : walls_to_be_added)
     {
