@@ -129,20 +129,14 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
 {
     const coord_t stitch_distance = settings.get<coord_t>("wall_line_width_x") / 4;
 
-    // separate polygonal wall lines and gap filling odd lines and stitch the polygonal lines into closed polygons
-    const size_t inset_count = toolpaths.size();
-    for (unsigned int wall_idx = 0; wall_idx < inset_count; wall_idx++)
+    for (unsigned int wall_idx = 0; wall_idx < toolpaths.size(); wall_idx++)
     {
         VariableWidthLines& wall_lines = toolpaths[wall_idx];
-        for (ExtrusionLine& line : wall_lines)
-        {
-            assert(line.inset_idx == wall_idx);
-        }
         
         VariableWidthLines stitched_polylines;
         VariableWidthLines closed_polygons;
         PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
-        wall_lines = stitched_polylines;
+        wall_lines = stitched_polylines; // replace input toolpaths with stitched polylines
 
         for (ExtrusionLine& wall_polygon : closed_polygons)
         {
@@ -151,13 +145,14 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
                 continue;
             }
             wall_polygon.is_closed = true;
-            wall_lines.emplace_back(std::move(wall_polygon));
+            wall_lines.emplace_back(std::move(wall_polygon)); // add stitched polygons to result
         }
-
+#ifdef DEBUG
         for (ExtrusionLine& line : wall_lines)
         {
             assert(line.inset_idx == wall_idx);
         }
+#endif // DEBUG
     }
 }
 
