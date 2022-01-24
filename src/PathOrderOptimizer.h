@@ -290,6 +290,25 @@ public:
                 path.start_vertex = findStartLocation(path, seam_config.pos);
             }
         }
+        
+        std::vector<size_t> blocked(paths.size(), 0); // Flag for seeing whether a path is blocked by a preceding toolpath to be printed first (and how many such blocking toolpaths there are)
+        std::vector<std::vector<size_t>> is_blocking(paths.size()); // For each path all paths that it is blocking, i.e. each path that it should precede
+        std::unordered_map<PathType, size_t> path_to_index;
+        for (size_t idx = 0; idx < paths.size(); idx++)
+        {
+            path_to_index.emplace(paths[idx].vertices, idx);
+        }
+        for (auto [before, after] : *order_requirements)
+        {
+            auto after_it = path_to_index.find(after);
+            assert(after_it != path_to_index.end());
+            blocked[after_it->second]++;
+
+            auto before_it = path_to_index.find(before);
+            assert(before_it != path_to_index.end());
+            is_blocking[before_it->second].emplace_back(after_it->second);
+        }
+        
 
         std::vector<bool> picked(paths.size(), false); //Fixed size boolean flag for whether each path is already in the optimized vector.
         Point current_position = start_point;
@@ -306,7 +325,7 @@ public:
             available_candidates.reserve(nearby_candidates.size());
             for(const size_t candidate : nearby_candidates)
             {
-                if(picked[candidate])
+                if(picked[candidate] || blocked[candidate])
                 {
                     continue; //Not a valid candidate.
                 }
@@ -316,7 +335,7 @@ public:
             {
                 for(size_t candidate = 0; candidate < paths.size(); ++candidate)
                 {
-                    if(picked[candidate])
+                    if(picked[candidate] || blocked[candidate])
                     {
                         continue; //Not a valid candidate.
                     }
@@ -360,6 +379,10 @@ public:
             Path& best_path = paths[best_candidate];
             optimized_order.push_back(best_path);
             picked[best_candidate] = true;
+            for (size_t unlocked_idx : is_blocking[best_candidate])
+            {
+                blocked[unlocked_idx]--;
+            }
 
             if(!best_path.converted->empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
             {
