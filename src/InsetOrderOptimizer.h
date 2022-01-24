@@ -63,14 +63,24 @@ public:
     bool addToLayer();
 
     /*!
-     * Get the order constraints of the insets assuming the Wall Ordering is outer to inner.
+     * Get the order constraints of the insets when printing walls per region / hole.
      * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
      * 
      * Odd walls should always go after their enclosing wall polygons.
      * 
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
-    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getWeakOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner);
+    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getRegionOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner);
+
+    /*!
+     * Get the order constraints of the insets when printing walls per inset.
+     * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
+     * 
+     * Odd walls should always go after their enclosing wall polygons.
+     * 
+     * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
+     */
+    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getInsetOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner);
 
     /*!
      * Make order requirements transitive.
@@ -84,7 +94,7 @@ private:
      * Recursive part of \ref WallToolpPaths::getWeakOrder.
      * For each node at \p node_idx we recurse on all its children at nesting[node_idx]
      */
-    static void getWeakOrder(size_t node_idx, const std::unordered_map<size_t, const ExtrusionLine*>& poly_idx_to_extrusionline, const std::vector<std::vector<size_t>>& nesting, size_t max_inset_idx, const bool outer_to_inner, std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>& result);
+    static void getRegionOrder(size_t node_idx, const std::unordered_map<size_t, const ExtrusionLine*>& poly_idx_to_extrusionline, const std::vector<std::vector<size_t>>& nesting, size_t max_inset_idx, const bool outer_to_inner, std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>& result);
 
     const FffGcodeWriter& gcode_writer;
     const SliceDataStorage& storage;

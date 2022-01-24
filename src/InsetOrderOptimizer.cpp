@@ -52,7 +52,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
 bool InsetOrderOptimizer::addToLayer()
 {
     // Settings & configs:
-    const bool pack_by_inset = ! settings.get<bool>("optimize_wall_printing_order"); // TODO
+    const bool pack_by_inset = settings.get<bool>("optimize_wall_printing_order");
     const InsetDirection inset_direction = settings.get<InsetDirection>("inset_direction");
     const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
     const bool alternate_walls = settings.get<bool>("material_alternate_walls");
@@ -124,7 +124,10 @@ bool InsetOrderOptimizer::addToLayer()
     }
     
     
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = getWeakOrder(walls_to_be_added, outer_to_inner);
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = 
+        pack_by_inset?
+        getInsetOrder(walls_to_be_added, outer_to_inner)
+        : getRegionOrder(walls_to_be_added, outer_to_inner);
     
     if (center_last)
     {
@@ -193,7 +196,7 @@ bool InsetOrderOptimizer::addToLayer()
 
 
 
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getWeakOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
 {
     size_t max_inset_idx = 0;
     Polygons all_polygons;
@@ -230,14 +233,14 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     { // there might be multiple roots
         if (line->inset_idx == 0)
         {
-            getWeakOrder(idx, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
+            getRegionOrder(idx, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
         }
     }
 
     return result;
 }
 
-void InsetOrderOptimizer::getWeakOrder(size_t node_idx, const std::unordered_map<size_t, const ExtrusionLine*>& poly_idx_to_extrusionline, const std::vector<std::vector<size_t>>& nesting, size_t max_inset_idx, const bool outer_to_inner, std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>& result)
+void InsetOrderOptimizer::getRegionOrder(size_t node_idx, const std::unordered_map<size_t, const ExtrusionLine*>& poly_idx_to_extrusionline, const std::vector<std::vector<size_t>>& nesting, size_t max_inset_idx, const bool outer_to_inner, std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>& result)
 {
     auto parent_it = poly_idx_to_extrusionline.find(node_idx);
     assert(parent_it != poly_idx_to_extrusionline.end());
@@ -347,10 +350,68 @@ void InsetOrderOptimizer::getWeakOrder(size_t node_idx, const std::unordered_map
         }
 
         // Recurvise call
-        getWeakOrder(child_idx, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
+        getRegionOrder(child_idx, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
     }
 }
 
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
+{
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
+    
+    std::vector<std::vector<const ExtrusionLine*>> walls_by_inset;
+    std::vector<std::vector<const ExtrusionLine*>> fillers_by_inset;
+
+    for (const ExtrusionLine* line : input)
+    {
+        if (line->is_odd)
+        {
+            if (line->inset_idx >= fillers_by_inset.size())
+            {
+                fillers_by_inset.resize(line->inset_idx + 1);
+            }
+            fillers_by_inset[line->inset_idx].emplace_back(line);
+        }
+        else
+        {
+            if (line->inset_idx >= walls_by_inset.size())
+            {
+                walls_by_inset.resize(line->inset_idx + 1);
+            }
+            walls_by_inset[line->inset_idx].emplace_back(line);
+        }
+    }
+    for (size_t inset_idx = 0; inset_idx + 1 < walls_by_inset.size(); inset_idx++)
+    {
+        for (const ExtrusionLine* line : walls_by_inset[inset_idx])
+        {
+            for (const ExtrusionLine* inner_line : walls_by_inset[inset_idx + 1])
+            {
+                const ExtrusionLine* before = inner_line;
+                const ExtrusionLine* after = line;
+                if (outer_to_inner)
+                {
+                    std::swap(before, after);
+                }
+                order.emplace(before, after);
+            }
+        }
+    }
+    for (size_t inset_idx = 1; inset_idx < fillers_by_inset.size(); inset_idx++)
+    {
+        for (const ExtrusionLine* line : fillers_by_inset[inset_idx])
+        {
+            assert(inset_idx - 1 < walls_by_inset.size());
+            if (inset_idx - 1 >= walls_by_inset.size()) continue;
+            for (const ExtrusionLine* enclosing_wall : walls_by_inset[inset_idx - 1])
+            {
+                order.emplace(enclosing_wall, line);
+            }
+        }
+        
+    }
+    
+    return order;
+}
 
 
 }//namespace cura
