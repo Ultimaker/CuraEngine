@@ -335,7 +335,7 @@ void InsetOrderOptimizer::getRegionOrder(size_t node_idx, const std::unordered_m
         }
         else
         { // normal case
-            assert( ! parent->is_odd && "There can be no polygons inside a polyline");
+            assert(parent->is_closed && "There can be no polygons inside a polyline");
 
             const ExtrusionLine* before = parent;
             const ExtrusionLine* after = child;
