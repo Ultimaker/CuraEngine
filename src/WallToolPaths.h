@@ -94,6 +94,11 @@ protected:
     static void stitchToolPaths(VariableWidthPaths& toolpaths, const Settings& settings);
 
     /*!
+     * Remove polylines shorter than half the smallest line width along that polyline.
+     */
+    static void removeSmallLines(VariableWidthPaths& toolpaths);
+
+    /*!
      * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
      * settings.
      * \param settings The settings as provided by the user

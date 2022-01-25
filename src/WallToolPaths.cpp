@@ -107,8 +107,10 @@ const VariableWidthPaths& WallToolPaths::generate()
         wall_transition_length
     );
     wall_maker.generateToolpaths(toolpaths);
-    
+
     stitchToolPaths(toolpaths, settings);
+    
+    removeSmallLines(toolpaths);
 
     separateOutInnerContour();
     
@@ -187,6 +189,27 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
             assert(line.inset_idx == wall_idx);
         }
 #endif // DEBUG
+    }
+}
+
+void WallToolPaths::removeSmallLines(VariableWidthPaths& toolpaths)
+{
+    for (VariableWidthLines& inset : toolpaths)
+    {
+        for (size_t line_idx = 0; line_idx < inset.size(); line_idx++)
+        {
+            ExtrusionLine& line = inset[line_idx];
+            coord_t min_width = std::numeric_limits<coord_t>::max();
+            for (const ExtrusionJunction& j : line)
+            {
+                min_width = std::min(min_width, j.w);
+            }
+            if (line.is_odd && ! line.is_closed && shorterThan(line, min_width / 2))
+            { // remove line
+                line = std::move(inset.back());
+                inset.erase(--inset.end());
+            }
+        }
     }
 }
 
