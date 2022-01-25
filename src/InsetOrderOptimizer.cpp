@@ -52,7 +52,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
 bool InsetOrderOptimizer::addToLayer()
 {
     // Settings & configs:
-    const bool pack_by_inset = settings.get<bool>("optimize_wall_printing_order");
+    const bool pack_by_inset = ! settings.get<bool>("optimize_wall_printing_order");
     const InsetDirection inset_direction = settings.get<InsetDirection>("inset_direction");
     const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
     const bool alternate_walls = settings.get<bool>("material_alternate_walls");
