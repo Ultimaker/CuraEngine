@@ -137,6 +137,40 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
         VariableWidthLines closed_polygons;
         PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
         wall_lines = stitched_polylines; // replace input toolpaths with stitched polylines
+#ifdef DEBUG
+        for (const ExtrusionLine& line : stitched_polylines)
+        {
+            if ( ! line.is_odd &&  ! line.is_closed && 
+                line.polylineLength() > 3 * stitch_distance && line.size() > 3)
+            {
+                logError("Some even contour lines could not be closed into a polygon!\n");
+                AABB aabb;
+                for (const VariableWidthLines& inset : toolpaths)
+                    for (auto line : inset)
+                        for (auto j : line)
+                            aabb.include(j.p);
+                SVG svg("/tmp/contours.svg", aabb);
+                for (const VariableWidthLines& inset : toolpaths)
+                {
+                    for (auto line : inset)
+                    {
+                        SVG::Color col = SVG::Color::BLACK;
+                        if ( ! line.is_closed && line.is_odd) col = SVG::Color::GRAY;
+                        if (line.is_closed && ! line.is_odd) col = SVG::Color::BLUE;
+                        if ( ! line.is_closed && ! line.is_odd) col = SVG::Color::RED;
+                        if ( ! line.is_closed && ! line.is_odd) std::cerr << "Non-closed even wall of size: " << line.size() << "\n";
+                        if ( ! line.is_closed && ! line.is_odd) svg.writePoint(line.front().p, true, 1.0);
+                        if (line.is_closed && line.is_odd) col = SVG::Color::MAGENTA;
+                        if (line.is_closed)
+                            svg.writePolygon(line.toPolygon(), col);
+                        else
+                            svg.writePolyline(line.toPolygon(), col);
+                    }
+                }
+                assert( false && "Long even polylines should be closed into polygons.");
+            }
+        }
+#endif // DEBUG
 
         for (ExtrusionLine& wall_polygon : closed_polygons)
         {
@@ -230,13 +264,9 @@ void WallToolPaths::separateOutInnerContour()
                 {
                     continue; // odd lines don't contribute to the contour
                 }
-                else
+                else if (line.is_closed) // sometimes an very small even polygonal wall is not stitched into a polygon
                 {
-                    assert(line.is_closed && "All contour polylines should have been closed into a polygon");
-                    if (line.is_closed)
-                    {
-                        inner_contour.emplace_back(line.toPolygon());
-                    }
+                    inner_contour.emplace_back(line.toPolygon());
                 }
             }
         }

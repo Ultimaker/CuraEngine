@@ -30,6 +30,8 @@ public:
      * Only stitch polylines into closed polygons if they are larger than 3 * \p max_stitch_distance,
      * in order to prevent small segments to accidentally get closed into a polygon.
      * 
+     * \warning Tiny polylines (smaller than 3 * max_stitch_distance) will not be closed into polygons. 
+     * 
      * \note Resulting polylines and polygons are added onto the existing containers, so you can directly output onto a polygons container with existing polygons in it.
      * However, you shouldn't call this function with the same parameter in \p lines as \p result_lines, because that would duplicate (some of) the polylines.
      */
