@@ -320,8 +320,11 @@ void InsetOrderOptimizer::getRegionOrder(size_t node_idx, const std::unordered_m
                 }
                 else
                 { // other child is an even wall as well
-                    if (other_child->inset_idx == child->inset_idx) continue;
-                    assert(other_child->inset_idx == child->inset_idx + 1);
+                    if (other_child->inset_idx == child->inset_idx)
+                    {
+                        logError("Nesting provided child with unexpected inset relation.\n");
+                        continue;
+                    }
 
                     const ExtrusionLine* before = child;
                     const ExtrusionLine* after = other_child;
@@ -335,7 +338,10 @@ void InsetOrderOptimizer::getRegionOrder(size_t node_idx, const std::unordered_m
         }
         else
         { // normal case
-            assert(parent->is_closed && "There can be no polygons inside a polyline");
+            if ( ! parent->is_closed)
+            {
+                logWarning("Stitching polyline into a polygon failed.\n");
+            }
 
             const ExtrusionLine* before = parent;
             const ExtrusionLine* after = child;
