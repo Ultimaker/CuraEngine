@@ -12,6 +12,7 @@
 
 #include "PolylineStitcher.h"
 #include "logoutput.h"
+#include "SVG.h"
 
 namespace cura
 {
@@ -1588,15 +1589,39 @@ std::vector<std::vector<size_t>> Polygons::getNesting() const
 
     std::vector<std::vector<size_t>> ret(size());
 
+    bool loops_detected = false;
     for (auto [node, index] : node_to_index)
     {
         for (auto child : node->Childs)
         {
             auto it = node_to_index.find(child);
             assert(it != node_to_index.end() && "Each PolyNode should be mapped to the corresponding Polygon index!");
-            ret[index].emplace_back(it->second);
+            size_t child_idx = it->second;
+            if (child_idx == index)
+            {
+                loops_detected = true;
+            }
+            if (child_idx != index)
+                ret[index].emplace_back(child_idx);
         }
     }
+#ifdef DEBUG
+    if (loops_detected)
+    {
+        logError("Nesting loops detected. Wall printing order might suffer.\n");
+        SVG svg("/tmp/nesting.svg", AABB(*this));
+        svg.writePolygons(*this);
+        for (auto& path : paths)
+            svg.writePoint(path[0], true, 1.0);
+        for (size_t idx = 0; idx < ret.size(); idx++)
+        {
+            for (size_t child_idx : ret[idx])
+            {
+                svg.writeArrow(paths[idx][0], paths[child_idx][1], SVG::Color::BLUE);
+            }
+        }
+    }
+#endif // DEBUG
     return ret;
 }
 
