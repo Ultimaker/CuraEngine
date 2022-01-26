@@ -310,19 +310,15 @@ void InsetOrderOptimizer::getRegionOrder(size_t node_idx, const std::unordered_m
                         result.emplace(child, other_child);
                     }
                     else
-                    { // outer thin wall 'gap filler' enclosed in an internal hole.
-                        // E.g. in the middle of a thin '8' shape when the middle looks like '>-<=>-<'
-                        assert(parent->inset_idx == 0); // enclosing 8 shape
-                        assert(child->inset_idx == 0); // thick section of the middle
-                        assert(other_child->inset_idx == 0); // thin section of the middle
-                        // no order requirement between thin wall, because it has no eclosing wall
+                    { // all 3 lines considered are on the same level
+                        assert(other_child->inset_idx == child->inset_idx);
+                        // no order requirement needed
                     }
                 }
                 else
                 { // other child is an even wall as well
                     if (other_child->inset_idx == child->inset_idx)
-                    {
-                        logError("Nesting provided child with unexpected inset relation.\n");
+                    { // There is no order relation between two children of the same inset index
                         continue;
                     }
 
