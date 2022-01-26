@@ -1630,67 +1630,63 @@ std::unordered_map<const ClipperLib::PolyNode*, size_t> Polygons::getPolyTreeToP
 {
     std::unordered_map<const ClipperLib::PolyNode*, size_t> result;
 
-    std::unordered_map<Point, size_t> start_loc_to_index;
+    std::unordered_map<Point, size_t> loc_to_index;
+    std::vector<Point> duplicates;
     for (size_t idx = 0; idx < paths.size(); idx++)
     {
         const ClipperLib::Path& path = paths[idx];
-        if (path.empty()) continue;
-        start_loc_to_index.emplace(path.front(), idx);
+        for (Point p : path)
+        {
+            auto it = loc_to_index.find(p);
+            if (it != loc_to_index.end())
+            { // Multiple polygons share a point
+                duplicates.emplace_back(p);
+            }
+            else
+            {
+                loc_to_index.emplace(p, idx);
+            }
+        }
+    }
+    for (Point dup : duplicates)
+    {
+        loc_to_index.erase(dup);
     }
 
     std::queue<const ClipperLib::PolyNode*> queue;
     std::vector<const ClipperLib::PolyNode*> unprocessed;
-    for (int i = 0; i < 2; i++)
+
+    queue.emplace(&root);
+    while ( ! queue.empty())
     {
-        
+        const ClipperLib::PolyNode* node = queue.front();
+        queue.pop();
+        for (auto child : node->Childs)
+            queue.emplace(child);
+        if (node->Contour.empty()) continue;
 
-        queue.emplace(&root);
-        while ( ! queue.empty())
+        std::unordered_map<Point, size_t>::iterator it;
+        for (Point p : node->Contour)
         {
-            const ClipperLib::PolyNode* node = queue.front();
-            queue.pop();
-            for (auto child : node->Childs)
-                queue.emplace(child);
-            if (node->Contour.empty()) continue;
-
-            std::unordered_map<Point, size_t>::iterator it;
-            for (Point p : node->Contour)
-            {
-                it = start_loc_to_index.find(p);
-                if (it != start_loc_to_index.end())
-                {
-                    // If Clipper preserves the order of points then the first iteration should already get here
-                    result.emplace(node, it->second);
-                    break;
-                }
-            }
-            if (it == start_loc_to_index.end())
-            {
-                unprocessed.emplace_back(node);
+            it = loc_to_index.find(p);
+            if (it != loc_to_index.end())
+            { // should be true for the first point that's not shared with other polygons
+                result.emplace(node, it->second);
+                break;
             }
         }
-
-        if (unprocessed.empty())
+        if (it == loc_to_index.end())
         {
-            return result;
+            unprocessed.emplace_back(node);
         }
-        
-        // some points in the original polygons were removed by clipper, probably because of colinear segments
-        // retry with mapping all points
-        start_loc_to_index.clear();
-        for (size_t idx = 0; idx < paths.size(); idx++)
-        {
-            const ClipperLib::Path& path = paths[idx];
-            for (Point p : path)
-            {
-                start_loc_to_index.emplace(p, idx);
-            }
-        }
-        for (const ClipperLib::PolyNode* node : unprocessed)
-            queue.emplace(node);
-        unprocessed.clear();
     }
-    
+
+    if (unprocessed.empty())
+    {
+        return result;
+    }
+
+    logWarning("Couldn't find result of nesting in original polygons");
     for (auto node : unprocessed)
     {
         std::cerr << "Couldn't find match for node with locations:\n";
@@ -1699,12 +1695,11 @@ std::unordered_map<const ClipperLib::PolyNode*, size_t> Polygons::getPolyTreeToP
         std::cerr << '\n';
     }
     std::cerr << "Among registered locations: \n";
-    for (auto [p, i] : start_loc_to_index)
+    for (auto [p, i] : loc_to_index)
         std::cerr << p << " to index " << i << '\n';
     std::cerr <<'\n';
  
     assert(false && "The first Point in each polygon should be contained in the clipper output!");
-    logError("Polygons::getPolyTreeToPolygonsMapping(.): Extensive polygon matching not implemented.\n");
     return result;
 }
 
