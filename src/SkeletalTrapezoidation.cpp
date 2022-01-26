@@ -1847,7 +1847,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
     return nullptr;
 }
 
-void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path)
+void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path, bool from_is_3way, bool to_is_3way)
 {
     if (from == to) return;
 
@@ -1859,23 +1859,36 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
         generated_toolpaths.resize(inset_idx + 1);
     }
     assert((generated_toolpaths[inset_idx].empty() || !generated_toolpaths[inset_idx].back().junctions.empty()) && "empty extrusion lines should never have been generated");
-    if (!force_new_path
-        && !generated_toolpaths[inset_idx].empty()
-        && generated_toolpaths[inset_idx].back().is_odd == is_odd
-        && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - to.p, 10)
-        && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - to.w) < 10
+    if (generated_toolpaths[inset_idx].empty()
+        || generated_toolpaths[inset_idx].back().is_odd != is_odd
+        || generated_toolpaths[inset_idx].back().junctions.back().perimeter_index != inset_idx // inset_idx should always be consistent
+        || ( ! is_odd && ! from_is_3way && ! to_is_3way && ( // if this is a normal even line ...
+            from.region_id != to.region_id // It should always have a consistent region_id
+            || generated_toolpaths[inset_idx].back().junctions.back().region_id != to.region_id
+            ))
         )
     {
-        generated_toolpaths[inset_idx].back().junctions.push_back(from);
+        force_new_path = true;
     }
-    else if (!force_new_path
-        && !generated_toolpaths[inset_idx].empty()
-        && generated_toolpaths[inset_idx].back().is_odd == is_odd
+    if (!force_new_path
         && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - from.p, 10)
         && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - from.w) < 10
+        && ! from_is_3way // force new path at 3way intersection
         )
     {
         generated_toolpaths[inset_idx].back().junctions.push_back(to);
+    }
+    else if (!force_new_path
+        && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - to.p, 10)
+        && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - to.w) < 10
+        && ! to_is_3way // force new path at 3way intersection
+        )
+    {
+        if ( ! is_odd)
+        {
+            logError("Reversing even wall line causes it to be printed CCW instead of CW!\n");
+        }
+        generated_toolpaths[inset_idx].back().junctions.push_back(from);
     }
     else
     {
@@ -1922,12 +1935,14 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 edge_junctions.emplace_back(std::make_shared<LineJunctions>());
                 edge_to_peak->data.setExtrusionJunctions(edge_junctions.back());
             }
+            // The junctions on the edge(s) from the start of the quad to the node with highest R
             LineJunctions from_junctions = *edge_to_peak->data.getExtrusionJunctions();
             if (! edge_from_peak->twin->data.hasExtrusionJunctions())
             {
                 edge_junctions.emplace_back(std::make_shared<LineJunctions>());
                 edge_from_peak->twin->data.setExtrusionJunctions(edge_junctions.back());
             }
+            // The junctions on the edge(s) from the end of the quad to the node with highest R
             LineJunctions to_junctions = *edge_from_peak->twin->data.getExtrusionJunctions();
             if (edge_to_peak->prev)
             {
@@ -1975,20 +1990,30 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 {
                     logWarning("Connecting two perimeters with different indices! Perimeter %i and %i", from.perimeter_index, to.perimeter_index);
                 }
-                const bool is_odd_segment = edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
-                    && edge_to_peak->to->data.transition_ratio == 0 && edge_to_peak->from->data.transition_ratio == 0 && edge_from_peak->to->data.transition_ratio == 0 // We're not in a transition
+                const bool from_is_odd = 
+                    quad_start->to->data.bead_count > 0 && quad_start->to->data.bead_count % 2 == 1 // quad contains single bead segment
+                    && quad_start->to->data.transition_ratio == 0 // We're not in a transition
                     && junction_rev_idx == segment_count - 1 // Is single bead segment
-                    && shorterThen(from.p - quad_start->to->p, 5) && shorterThen(to.p - quad_end->from->p, 5);
+                    && shorterThen(from.p - quad_start->to->p, 5);
+                const bool to_is_odd = 
+                    quad_end->from->data.bead_count > 0 && quad_end->from->data.bead_count % 2 == 1 // quad contains single bead segment
+                    && quad_end->from->data.transition_ratio == 0 // We're not in a transition
+                    && junction_rev_idx == segment_count - 1 // Is single bead segment
+                    && shorterThen(to.p - quad_end->from->p, 5);
+                const bool is_odd_segment = from_is_odd && to_is_odd;
                 
                 if (is_odd_segment
                     && passed_odd_edges.count(quad_start->next->twin) > 0) // Only generate toolpath for odd segments once
                 {
                     continue; // Prevent duplication of single bead segments
                 }
-                
+
+                bool from_is_3way = from_is_odd && quad_start->to->isMultiIntersection();
+                bool to_is_3way = to_is_odd && quad_end->from->isMultiIntersection();
+
                 passed_odd_edges.emplace(quad_start->next);
-                const bool force_new_path = new_domain_start || (is_odd_segment && quad_start->to->isMultiIntersection());
-                addToolpathSegment(from, to, is_odd_segment, force_new_path);
+
+                addToolpathSegment(from, to, is_odd_segment, new_domain_start, from_is_3way, to_is_3way);
             }
             new_domain_start = false;
         }

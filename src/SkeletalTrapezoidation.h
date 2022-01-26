@@ -475,7 +475,7 @@ protected:
 
     /*!
      * From a quad (a group of linked edges in one cell of the Voronoi), find
-     * the edge that is furthest away from the border of the polygon.
+     * the edge pointing to the node that is furthest away from the border of the polygon.
      * \param quad_start_edge The first edge of the quad.
      * \return The edge of the quad that is furthest away from the border.
      */
@@ -577,7 +577,7 @@ protected:
     /*!
      * add a new toolpath segment, defined between two extrusion-juntions
      */
-    void addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path);
+    void addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path, bool from_is_3way, bool to_is_3way);
 
     /*!
      * connect junctions in each quad
