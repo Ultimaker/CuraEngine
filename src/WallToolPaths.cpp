@@ -234,6 +234,7 @@ void WallToolPaths::removeSmallLines(VariableWidthPaths& toolpaths)
             { // remove line
                 line = std::move(inset.back());
                 inset.erase(--inset.end());
+                line_idx--; // reconsider the current position
             }
         }
     }
