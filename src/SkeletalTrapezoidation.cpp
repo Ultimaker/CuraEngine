@@ -1902,6 +1902,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
     {
         edge_t* poly_domain_start = *unprocessed_quad_starts.begin();
         edge_t* quad_start = poly_domain_start;
+        bool new_domain_start = true;
         do
         {
             edge_t* quad_end = quad_start;
@@ -1986,9 +1987,10 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 }
                 
                 passed_odd_edges.emplace(quad_start->next);
-                const bool force_new_path = is_odd_segment && quad_start->to->isMultiIntersection();
+                const bool force_new_path = new_domain_start || (is_odd_segment && quad_start->to->isMultiIntersection());
                 addToolpathSegment(from, to, is_odd_segment, force_new_path);
             }
+            new_domain_start = false;
         }
         while(quad_start = quad_start->getNextUnconnected(), quad_start != poly_domain_start);
     }
