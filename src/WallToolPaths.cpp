@@ -138,41 +138,67 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
         VariableWidthLines stitched_polylines;
         VariableWidthLines closed_polygons;
         PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
-        wall_lines = stitched_polylines; // replace input toolpaths with stitched polylines
 #ifdef DEBUG
         for (const ExtrusionLine& line : stitched_polylines)
         {
-            if ( ! line.is_odd &&  ! line.is_closed && 
+            if ( ! line.is_odd &&
                 line.polylineLength() > 3 * stitch_distance && line.size() > 3)
             {
-                logError("Some even contour lines could not be closed into a polygon!\n");
+                logError("Some even contour lines could not be closed into polygons!\n");
                 AABB aabb;
-                for (const VariableWidthLines& inset : toolpaths)
-                    for (auto line : inset)
-                        for (auto j : line)
-                            aabb.include(j.p);
-                SVG svg("/tmp/contours.svg", aabb);
-                for (const VariableWidthLines& inset : toolpaths)
+                for (auto line2 : wall_lines)
+                    for (auto j : line2)
+                        aabb.include(j.p);
                 {
-                    for (auto line : inset)
-                    {
-                        SVG::Color col = SVG::Color::BLACK;
-                        if ( ! line.is_closed && line.is_odd) col = SVG::Color::GRAY;
-                        if (line.is_closed && ! line.is_odd) col = SVG::Color::BLUE;
-                        if ( ! line.is_closed && ! line.is_odd) col = SVG::Color::RED;
-                        if ( ! line.is_closed && ! line.is_odd) std::cerr << "Non-closed even wall of size: " << line.size() << "\n";
-                        if ( ! line.is_closed && ! line.is_odd) svg.writePoint(line.front().p, true, 1.0);
-                        if (line.is_closed && line.is_odd) col = SVG::Color::MAGENTA;
-                        if (line.is_closed)
-                            svg.writePolygon(line.toPolygon(), col);
-                        else
-                            svg.writePolyline(line.toPolygon(), col);
-                    }
+                    SVG svg("/tmp/contours_before.svg", aabb);
+                    SVG::Color col = SVG::Color::GRAY;
+                    for (auto& inset : toolpaths)
+                        for (auto& line2 : inset)
+                        {
+//                             svg.writePolyline(line2.toPolygon(), col);
+                            
+                            Polygon poly = line2.toPolygon();
+                            Point last = poly.front();
+                            for (size_t idx = 1 ; idx < poly.size(); idx++)
+                            {
+                                Point here = poly[idx];
+                                svg.writeLine(last, here, col);
+                                svg.writeText((last + here) / 2, std::to_string(line2.junctions[idx].region_id), SVG::Color::BLACK, 2.0);
+                                last = here;
+                            }
+                            svg.writePoint(poly[0], false, 2.0, col);
+                            svg.nextLayer();
+//                             svg.writePoints(poly, true, 0.1);
+//                             svg.nextLayer();
+                            col = SVG::Color((int(col) + 1) % int(SVG::Color::NONE));
+                        }
                 }
-                assert( false && "Long even polylines should be closed into polygons.");
+                {
+                    SVG svg("/tmp/contours.svg", aabb);
+                    for (auto& inset : toolpaths)
+                        for (auto& line2 : inset)
+                            svg.writePolyline(line2.toPolygon(), SVG::Color::GRAY);
+                    for (auto& line2 : stitched_polylines)
+                    {
+                        SVG::Color col = line2.is_odd ? SVG::Color::GRAY : SVG::Color::RED;
+                        if ( ! line2.is_odd) std::cerr << "Non-closed even wall of size: " << line2.size()  << " at " << line2.front().p << "\n";
+                        if ( ! line2.is_odd) svg.writePoint(line2.front().p, true, 1.0);
+                        Polygon poly = line2.toPolygon();
+                        Point last = poly.front();
+                        for (size_t idx = 1 ; idx < poly.size(); idx++)
+                        {
+                            Point here = poly[idx];
+                            svg.writeLine(last, here, col);
+                            last = here;
+                        }
+                    }
+                    for (auto line2 : closed_polygons)
+                        svg.writePolygon(line2.toPolygon());
+                }
             }
         }
 #endif // DEBUG
+        wall_lines = stitched_polylines; // replace input toolpaths with stitched polylines
 
         for (ExtrusionLine& wall_polygon : closed_polygons)
         {
