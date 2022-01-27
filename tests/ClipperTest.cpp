@@ -16,7 +16,7 @@
 namespace cura
 {
 
-class ClipperTest : public testing::Test
+class DISABLED_ClipperTest : public testing::Test
 {
 public:
     using Paths = ClipperLib::Paths;
@@ -86,7 +86,7 @@ public:
     static void outputSVG(const Paths& outlines, const Paths& polylines, const Paths& intersected, const char* filename);
 };
 
-ClipperTest::Paths ClipperTest::intersectPolylines(const Paths& outlines, const Paths& polylines)
+DISABLED_ClipperTest::Paths DISABLED_ClipperTest::intersectPolylines(const Paths& outlines, const Paths& polylines)
 {
     ClipperLib::PolyTree result_tree;
     ClipperLib::Clipper clipper(0);
@@ -98,7 +98,7 @@ ClipperTest::Paths ClipperTest::intersectPolylines(const Paths& outlines, const 
     return result;
 }
 
-ClipperTest::coord_t ClipperTest::calculateLength(const Paths& polylines)
+DISABLED_ClipperTest::coord_t DISABLED_ClipperTest::calculateLength(const Paths& polylines)
 {
     coord_t polyline_length = 0;
     for (const Path& path : polylines)
@@ -117,14 +117,14 @@ ClipperTest::coord_t ClipperTest::calculateLength(const Paths& polylines)
 }
 
 
-TEST_F(ClipperTest, PolylinesTest1)
+TEST_F(DISABLED_ClipperTest, PolylinesTest1)
 {
     Paths intersected = intersectPolylines(all_outlines[0], all_polylines[0]);
     outputSVG(all_outlines[0], all_polylines[0], intersected, "/tmp/clipper_test_0");
     ASSERT_EQ(calculateLength(intersected), calculateLength(all_polylines[0]));
 }
 
-TEST_F(ClipperTest, PolylinesTest2)
+TEST_F(DISABLED_ClipperTest, PolylinesTest2)
 {
     Paths intersected = intersectPolylines(all_outlines[1], all_polylines[1]);
     outputSVG(all_outlines[1], all_polylines[1], intersected, "/tmp/clipper_test_1");
