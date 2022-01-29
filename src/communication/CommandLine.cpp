@@ -5,9 +5,6 @@
 #include <fstream> //To check if files exist.
 #include <errno.h> // error number when trying to read file
 #include <numeric> //For std::accumulate.
-#ifdef _OPENMP
-    #include <omp.h> //To change the number of threads to slice with.
-#endif //_OPENMP
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/error/en.h> //Loading JSON documents to get settings from them.
 #include <rapidjson/filereadstream.h>
@@ -147,15 +144,12 @@ void CommandLine::sliceNext()
                         increaseVerboseLevel();
                         break;
                     }
-#ifdef _OPENMP
                     case 'm':
                     {
                         int threads = stoi(argument.substr(2));
-                        threads = std::max(1, threads);
-                        omp_set_num_threads(threads);
+                        Application::getInstance().startThreadPool(threads);
                         break;
                     }
-#endif //_OPENMP
                     case 'p':
                     {
                         enableProgressLogging();

@@ -5,6 +5,7 @@
 #include <map> // multimap (ordered map allowing duplicate keys)
 #include <numeric>
 #include <fstream> // ifstream.good()
+#include <atomic>
 
 #include "Application.h"
 #include "ConicalOverhang.h"
@@ -40,6 +41,7 @@
 #include "settings/types/Angle.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/algorithm.h"
+#include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/math.h"
@@ -482,7 +484,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     } guarded_progress = {inset_skin_progress_estimate};
 
     // walls
-    cura::parallel_for<size_t>(0, mesh_layer_count, 1, [&](size_t layer_number)
+    cura::parallel_for<size_t>(0, mesh_layer_count, [&](size_t layer_number)
     {
         logDebug("Processing insets for layer %i of %i\n", layer_number, mesh.layers.size());
         processWalls(mesh, layer_number);
@@ -522,7 +524,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     }
 
     guarded_progress.reset();
-    cura::parallel_for<size_t>(0,mesh_layer_count, 1, [&](size_t layer_number)
+    cura::parallel_for<size_t>(0, mesh_layer_count, [&](size_t layer_number)
     {
         logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh.layers.size());
         if (!magic_spiralize || layer_number < mesh_max_initial_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.

@@ -1,9 +1,6 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifdef _OPENMP
-    #include <omp.h> // omp_get_num_threads
-#endif // _OPENMP
 #include <string>
 #include "Application.h"
 #include "FffProcessor.h"
@@ -13,18 +10,19 @@
 #include "utils/logoutput.h"
 #include "utils/string.h" //For stringcasecompare.
 
+#include "utils/ThreadPool.h"
+
 namespace cura
 {
 
 Application::Application()
-: communication(nullptr)
-, current_slice(0)
 {
 }
 
 Application::~Application()
 {
     delete communication;
+    delete thread_pool;
 }
 
 Application& Application::getInstance()
@@ -48,9 +46,7 @@ void Application::connect()
         port = std::stoi(ip_port.substr(found_pos + 1).data());
     }
 
-#ifdef _OPENMP
     int n_threads;
-#endif // _OPENMP
 
     for(size_t argn = 3; argn < argc; argn++)
     {
@@ -64,15 +60,12 @@ void Application::connect()
                 case 'v':
                     increaseVerboseLevel();
                     break;
-#ifdef _OPENMP
                 case 'm':
                     str++;
                     n_threads = std::strtol(str, &str, 10);
                     str--;
-                    n_threads = std::max(1, n_threads);
-                    omp_set_num_threads(n_threads);
+                    startThreadPool(n_threads);
                     break;
-#endif // _OPENMP
                 default:
                     logError("Unknown option: %c\n", *str);
                     printCall();
@@ -181,18 +174,6 @@ void Application::run(const size_t argc, char** argv)
         exit(1);
     }
 
-#pragma omp parallel
-    {
-#pragma omp master
-        {
-#ifdef _OPENMP
-            log("OpenMP multithreading enabled, likely number of threads to be used: %u\n", omp_get_num_threads());
-#else
-            log("OpenMP multithreading disabled\n");
-#endif
-        }
-    }
-
 #ifdef ARCUS
     if (stringcasecompare(argv[1], "connect") == 0)
     {
@@ -224,10 +205,33 @@ void Application::run(const size_t argc, char** argv)
         //In either case, we don't want to slice.
         exit(0);
     }
+    startThreadPool(); // Start the thread pool
     while (communication->hasSlice())
     {
         communication->sliceNext();
     }
+}
+
+void Application::startThreadPool(int nworkers) {
+    size_t nthreads;
+    if(nworkers <= 0)
+    {
+        if(thread_pool)
+        {
+            return; // Keep the previous ThreadPool
+        }
+        nthreads = std::thread::hardware_concurrency() - 1;
+    }
+    else
+    {
+        nthreads = nworkers - 1; // Minus one for the main thread
+    }
+    if(thread_pool && thread_pool->thread_count() == nthreads)
+    {
+        return; // Keep the previous ThreadPool
+    }
+    delete thread_pool;
+    thread_pool = new ThreadPool(nthreads);
 }
 
 } //Cura namespace.

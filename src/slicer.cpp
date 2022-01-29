@@ -11,7 +11,7 @@
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/gettime.h"
-#include "utils/algorithm.h"
+#include "utils/ThreadPool.h"
 #include "utils/logoutput.h"
 #include "utils/SparsePointGridInclusive.h"
 
@@ -828,10 +828,11 @@ void Slicer::buildSegments
     std::vector<SlicerLayer>& layers
 )
 {
-    cura::parallel_for<size_t>(0, layers.size(), 1, [&](size_t layer_nr)
+    cura::parallel_for(layers, [&](auto layer_it)
     {
-        const int32_t& z = layers[layer_nr].z;
-        layers[layer_nr].segments.reserve(100);
+        SlicerLayer& layer = *layer_it;
+        const int32_t& z = layer.z;
+        layer.segments.reserve(100);
 
         // loop over all mesh faces
         for (unsigned int mesh_idx = 0; mesh_idx < mesh.faces.size(); mesh_idx++)
@@ -946,11 +947,11 @@ void Slicer::buildSegments
             }
 
             // store the segments per layer
-            layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
+            layer.face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layer.segments.size()));
             s.faceIndex = mesh_idx;
             s.endOtherFaceIdx = face.connected_face_index[end_edge_idx];
             s.addedToPolygon = false;
-            layers[layer_nr].segments.push_back(s);
+            layer.segments.push_back(s);
         }
     });
 }
@@ -994,9 +995,9 @@ std::vector<SlicerLayer> Slicer::buildLayersWithHeight(size_t slice_layer_count,
 
 void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers)
 {
-    cura::parallel_for<size_t>(0, layers.size(), 1, [&layers, &mesh](size_t layer_nr)
+    cura::parallel_for(layers, [&mesh](auto layer_it)
     {
-        layers[layer_nr].makePolygons(&mesh);
+        layer_it->makePolygons(&mesh);
     });
 
     switch(slicing_tolerance)
@@ -1034,7 +1035,7 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
     const coord_t xy_offset = mesh.settings.get<coord_t>("xy_offset");
     const coord_t xy_offset_0 = mesh.settings.get<coord_t>("xy_offset_layer_0");
 
-    cura::parallel_for<size_t>(0, layers.size(), 1, [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0](size_t layer_nr)
+    cura::parallel_for<size_t>(0, layers.size(), [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0](size_t layer_nr)
     {
         const coord_t xy_offset_local = (layer_nr <= layer_apply_initial_xy_offset) ? xy_offset : xy_offset_0;
         if (xy_offset_local != 0)

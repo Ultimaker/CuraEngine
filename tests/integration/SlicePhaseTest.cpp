@@ -23,6 +23,8 @@ class SlicePhaseTest : public testing::Test
 {
     void SetUp()
     {
+        // Start the thread pool
+        Application::getInstance().startThreadPool();
         //Set up a scene so that we may request settings.
         Application::getInstance().current_slice = new Slice(1);
 

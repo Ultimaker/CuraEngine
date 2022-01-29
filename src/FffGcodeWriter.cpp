@@ -11,7 +11,7 @@
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
 #include "FffProcessor.h"
-#include "GcodeLayerThreader.h"
+#include "utils/ThreadPool.h"
 #include "infill.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
@@ -143,30 +143,18 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         }
     }
 
-
-    const std::function<LayerPlan* (int)>& produce_item =
+    run_multiple_producers_ordered_consumer(process_layer_starting_layer_nr, total_layers,
         [&storage, total_layers, this](int layer_nr)
         {
-            LayerPlan& gcode_layer = processLayer(storage, layer_nr, total_layers);
-            return &gcode_layer;
-        };
-    const std::function<void (LayerPlan*)>& consume_item =
+          return &processLayer(storage, layer_nr, total_layers);
+        },
         [this, total_layers](LayerPlan* gcode_layer)
         {
-            Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, gcode_layer->getLayerNr()) + 1, total_layers);
-            layer_plan_buffer.handle(*gcode_layer, gcode);
-        };
-    const unsigned int max_task_count = OMP_MAX_ACTIVE_LAYERS_PROCESSED;
-    GcodeLayerThreader<LayerPlan> threader(
-        process_layer_starting_layer_nr
-        , static_cast<int>(total_layers)
-        , produce_item
-        , consume_item
-        , max_task_count
+          Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, gcode_layer->getLayerNr()) + 1, total_layers);
+          layer_plan_buffer.handle(*gcode_layer, gcode);
+        }
     );
 
-    // process all layers, process buffer for preheating and minimal layer time etc, write layers to gcode:
-    threader.run();
 
     layer_plan_buffer.flush();
 

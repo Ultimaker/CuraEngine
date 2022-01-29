@@ -7,7 +7,7 @@
 #include "settings/EnumSettings.h" //For ESurfaceMode.
 #include "settings/Settings.h"
 #include "progress/Progress.h"
-#include "utils/algorithm.h"
+#include "utils/ThreadPool.h"
 
 #include "utils/PolylineStitcher.h"
 #include "utils/SVG.h" // debug output
@@ -98,7 +98,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
 
-    cura::parallel_for<size_t>(0, total_layers, 1, [slicer, &mesh](size_t layer_nr)
+    cura::parallel_for<size_t>(0, total_layers, [slicer, &mesh](size_t layer_nr)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
         SlicerLayer& slice_layer = slicer->layers[layer_nr];

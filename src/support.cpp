@@ -20,7 +20,7 @@
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/Angle.h" //To compute overhang distance from the angle.
 #include "settings/types/Ratio.h"
-#include "utils/algorithm.h"
+#include "utils/ThreadPool.h"
 #include "utils/logoutput.h"
 #include "utils/math.h"
 
@@ -769,7 +769,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     }
 
     //Generate the actual areas and store them in the mesh.
-    cura::parallel_for<size_t>(1, storage.print_layer_count, 1, [&](const size_t layer_idx)
+    cura::parallel_for<size_t>(1, storage.print_layer_count, [&](const size_t layer_idx)
     {
         std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx);
         mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; //Store the results.
@@ -833,7 +833,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const coord_t sloped_area_detection_width = 10 + static_cast<coord_t>(layer_thickness / std::tan(sloped_areas_angle)) / 2;
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
 
-    cura::parallel_for<size_t>(1, layer_count, 1, [&](const size_t layer_idx)
+    cura::parallel_for<size_t>(1, layer_count, [&](const size_t layer_idx)
     {
         const Polygons outlines = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
 
@@ -944,19 +944,15 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         // but only in chunks of `bottom_stair_step_layer_count` steps, since, within such a chunk,
         // the order of execution is important.
         // Unless thinking about optimization & threading, you can just think of this as a single for-loop.
-        cura::parallel_for<size_t>(1, layer_count, bottom_stair_step_layer_count, [&](const size_t base_layer_idx)
+        cura::parallel_for<size_t>(1, layer_count, [&](const size_t layer_idx)
         {
             // Add the sloped areas together for each stair of the stair stepping.
-            const int max_layer_stair_step = std::min(base_layer_idx + bottom_stair_step_layer_count, layer_count);
-            for (int layer_idx = base_layer_idx; layer_idx < max_layer_stair_step; ++layer_idx)
+            // Start a new stair every modulo bottom_stair_step_layer_count steps.
+            if (layer_idx % bottom_stair_step_layer_count != 1)
             {
-                // Start a new stair every modulo bottom_stair_step_layer_count steps.
-                if (layer_idx % bottom_stair_step_layer_count != 1)
-                {
-                    sloped_areas_per_layer[layer_idx] = sloped_areas_per_layer[layer_idx].unionPolygons(sloped_areas_per_layer[layer_idx - 1]);
-                }
+                sloped_areas_per_layer[layer_idx] = sloped_areas_per_layer[layer_idx].unionPolygons(sloped_areas_per_layer[layer_idx - 1]);
             }
-        });
+        }, bottom_stair_step_layer_count);
     }
 
     for (size_t layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != static_cast<size_t>(-1); layer_idx--)
@@ -1098,7 +1094,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                                                     std::min(static_cast<int>(storage.support.supportLayers.size()),
                                                              static_cast<int>(layer_count - (layer_z_distance_top - 1))));
 
-        cura::parallel_for<size_t>(0, max_checking_layer_idx, 1, [&](const size_t layer_idx)
+        cura::parallel_for<size_t>(0, max_checking_layer_idx, [&](const size_t layer_idx)
         {
             constexpr bool no_support = false;
             constexpr bool no_prime_tower = false;
