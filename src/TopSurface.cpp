@@ -1,4 +1,4 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill.h"
@@ -77,10 +77,9 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         //Align the edge of the ironing line with the edge of the outer wall
         ironing_inset -= ironing_flow * line_width / 2;
     }
-    const coord_t outline_offset = ironing_inset;
-    areas.offset(outline_offset);
+    Polygons ironed_areas = areas.offset(ironing_inset);
 
-    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, areas, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation);
+    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, ironed_areas, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation);
     VariableWidthPaths ironing_paths;
     Polygons ironing_polygons;
     Polygons ironing_lines;
@@ -107,13 +106,13 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
         {
             //Move to a corner of the area that is perpendicular to the ironing lines, to reduce the number of seams.
-            const AABB bounding_box(areas);
+            const AABB bounding_box(ironed_areas);
             PointMatrix rotate(-direction + 90);
             const Point center = bounding_box.getMiddle();
             const Point far_away = rotate.apply(Point(0, vSize(bounding_box.max - center) * 100)); //Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
             //Two options to start, both perpendicular to the ironing lines. Which is closer?
-            const Point front_side = PolygonUtils::findNearestVert(center + far_away, areas).p();
-            const Point back_side = PolygonUtils::findNearestVert(center - far_away, areas).p();
+            const Point front_side = PolygonUtils::findNearestVert(center + far_away, ironed_areas).p();
+            const Point back_side = PolygonUtils::findNearestVert(center - far_away, ironed_areas).p();
             if (vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
             {
                 layer.addTravel(front_side);
