@@ -418,12 +418,13 @@ void PolygonRef::simplifyPolyline(const coord_t smallest_line_segment_squared, c
 }
 void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, bool processing_polylines)
 {
-    if (size() < 3 - static_cast<size_t>(processing_polylines))
+    const size_t min_poly_length = processing_polylines ? 2 : 3;
+    if (size() < min_poly_length)
     {
         clear();
         return;
     }
-    if (size() == 3 - static_cast<size_t>(processing_polylines))
+    if (size() == min_poly_length)
     {
         return;
     }
