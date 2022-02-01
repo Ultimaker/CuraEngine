@@ -561,15 +561,6 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
         }
     }
 
-    if (processing_polylines)
-    { // make sure the last segment is not 5u short
-        size_t second_to_last_idx = new_path.size() - 2;
-        if (vSize2(new_path.back() - new_path[second_to_last_idx]) < 25)
-        {
-            new_path.erase(new_path.begin() + second_to_last_idx);
-        }
-    }
-
     *path = new_path;
 }
 
