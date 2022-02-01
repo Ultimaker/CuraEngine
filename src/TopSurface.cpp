@@ -85,7 +85,7 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     Polygons ironing_lines;
     infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings);
 
-    if (ironing_polygons.empty() && ironing_lines.empty())
+    if(ironing_polygons.empty() && ironing_lines.empty() && ironing_paths.empty())
     {
         return false; //Nothing to do.
     }
@@ -93,15 +93,14 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     layer.mode_skip_agressive_merge = true;
 
     bool added = false;
-    if (!ironing_polygons.empty())
+    if(!ironing_polygons.empty())
     {
         constexpr bool force_comb_retract = false;
         layer.addTravel(ironing_polygons[0][0], force_comb_retract);
         layer.addPolygonsByOptimizer(ironing_polygons, line_config, ZSeamConfig());
         added = true;
     }
-
-    if (!ironing_lines.empty())
+    if(!ironing_lines.empty())
     {
         if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
         {
@@ -131,6 +130,15 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
         {
             const coord_t max_adjacent_distance = line_spacing * 1.1; //Lines are considered adjacent - meaning they need to be printed in monotonic order - if spaced 1 line apart, with 10% extra play.
             layer.addLinesMonotonic(Polygons(), ironing_lines, line_config, SpaceFillType::PolyLines, AngleRadians(direction), max_adjacent_distance);
+        }
+        added = true;
+    }
+    if(!ironing_paths.empty())
+    {
+        const BinJunctions binned_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(ironing_paths);
+        for(const PathJunctions& wall_junctions : binned_paths)
+        {
+            layer.addWalls(wall_junctions, mesh.settings, line_config, line_config);
         }
         added = true;
     }
