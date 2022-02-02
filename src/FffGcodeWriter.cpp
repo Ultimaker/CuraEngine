@@ -1738,23 +1738,32 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     }
 
     const bool walls_generated = std::any_of(wall_tool_paths.cbegin(), wall_tool_paths.cend(), [](const VariableWidthPaths& tp){ return !tp.empty(); });
-    if (!infill_lines.empty() || !infill_polygons.empty()  || walls_generated)
+    if(!infill_lines.empty() || !infill_polygons.empty() || walls_generated)
     {
         added_something = true;
         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         std::optional<Point> near_start_location;
-        if (mesh.settings.get<bool>("infill_randomize_start_location"))
+        if(mesh.settings.get<bool>("infill_randomize_start_location"))
         {
             srand(gcode_layer.getLayerNr());
-            if(! infill_lines.empty())
+            if(!infill_lines.empty())
             {
                 near_start_location = infill_lines[rand() % infill_lines.size()][0];
             }
-            else
+            else if(!infill_polygons.empty())
             {
                 PolygonRef start_poly = infill_polygons[rand() % infill_polygons.size()];
                 near_start_location = start_poly[rand() % start_poly.size()];
+            }
+            else //So walls_generated must be true.
+            {
+                VariableWidthPaths* start_paths = &wall_tool_paths[rand() % wall_tool_paths.size()];
+                while(start_paths->empty()) //We know for sure (because walls_generated) that one of them is not empty. So randomise until we hit it. Should almost always be very quick.
+                {
+                    start_paths = &wall_tool_paths[rand() % wall_tool_paths.size()];
+                }
+                near_start_location = (*start_paths)[0][0].junctions[0].p;
             }
         }
         if (walls_generated)
