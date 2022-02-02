@@ -28,7 +28,7 @@ public:
     std::vector<Paths> all_outlines;
     std::vector<Paths> all_polylines;
 
-    ClipperTest()
+    DISABLED_ClipperTest()
     {
     }
 
@@ -134,7 +134,7 @@ TEST_F(DISABLED_ClipperTest, PolylinesTest2)
 
     
     
-void ClipperTest::outputSVG(const Paths& outlines, const Paths& polylines, const Paths& intersected, const char* filename)
+void DISABLED_ClipperTest::outputSVG(const Paths& outlines, const Paths& polylines, const Paths& intersected, const char* filename)
 {
 #ifdef TEST_INFILL_SVG_OUTPUT
     Polygons outs;
