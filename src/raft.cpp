@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "clipper.hpp"
@@ -53,7 +53,7 @@ coord_t Raft::getTotalThickness()
 {
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
     return train.settings.get<coord_t>("raft_base_thickness")
-        + train.settings.get<coord_t>("raft_interface_thickness")
+        + train.settings.get<size_t>("raft_interface_layers") * train.settings.get<coord_t>("raft_interface_thickness")
         + train.settings.get<size_t>("raft_surface_layers") * train.settings.get<coord_t>("raft_surface_thickness");
 }
 
@@ -99,7 +99,7 @@ size_t Raft::getTotalExtraLayers()
     {
         return 0;
     }
-    return 2 + train.settings.get<size_t>("raft_surface_layers") + getFillerLayerCount();
+    return 1 + train.settings.get<size_t>("raft_interface_layers") + train.settings.get<size_t>("raft_surface_layers") + getFillerLayerCount();
 }
 
 
