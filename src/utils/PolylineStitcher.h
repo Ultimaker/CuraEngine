@@ -31,7 +31,7 @@ public:
      * in order to prevent small segments to accidentally get closed into a polygon.
      * 
      * \note Resulting polylines and polygons are added onto the existing containers, so you can directly output onto a polygons container with existing polygons in it.
-     * Hewever, you shouldn't call this function with the same parameter in \p lines as \p result_lines, because that would duplicate (some of) the polylines.
+     * However, you shouldn't call this function with the same parameter in \p lines as \p result_lines, because that would duplicate (some of) the polylines.
      */
     static void stitch(const Paths& lines, Paths& result_lines, Paths& result_polygons, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10)
     {
