@@ -427,7 +427,7 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
     constexpr bool restitch = false; // cubic subdivision lines are always single line segments - not polylines consisting of multiple segments.
-    Polygons polylines = outer_contour.offset(infill_overlap).intersectionPolyLines(uncropped, restitch);
+    result = outer_contour.offset(infill_overlap).intersectionPolyLines(uncropped, restitch);
 }
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
