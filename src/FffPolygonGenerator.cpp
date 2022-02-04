@@ -549,11 +549,31 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
 {
     size_t mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    coord_t surface_line_width = mesh.settings.get<coord_t>("wall_line_width_0");
+
     mesh.layer_nr_max_filled_layer = -1;
     for (LayerIndex layer_idx = 0; layer_idx < static_cast<LayerIndex>(mesh.layers.size()); layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
+
+        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+        {
+            // break up polygons into polylines
+            // they have to be polylines, because they might break up further when doing the cutting
+            Polygons outline_polylines;
+            for (SliceLayerPart& part : layer.parts)
+            {
+                for (PolygonRef poly : part.outline)
+                {
+                    layer.openPolyLines.add(poly);
+                    layer.openPolyLines.back().add(layer.openPolyLines.back()[0]); // add the segment which closes the polygon
+                }
+            }
+            layer.parts.clear();
+        }
+
         std::vector<PolygonsPart> new_parts;
+        Polygons new_polylines;
 
         for (const size_t other_mesh_idx : mesh_order)
         { // limit the infill mesh's outline to within the infill of all meshes with lower order
@@ -569,33 +589,43 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
 
             SliceLayer& other_layer = other_mesh.layers[layer_idx];
 
-            for (SliceLayerPart& part : layer.parts)
+            for (SliceLayerPart& other_part : other_layer.parts)
             {
-                for (SliceLayerPart& other_part : other_layer.parts)
-                { // limit the outline of each part of this infill mesh to the infill of parts of the other mesh with lower infill mesh order
-                    if (!part.boundaryBox.hit(other_part.boundaryBox))
-                    { // early out
-                        continue;
-                    }
-                    Polygons new_outline = part.outline.intersection(other_part.getOwnInfillArea());
-                    if (new_outline.size() == 1)
-                    { // we don't have to call splitIntoParts, because a single polygon can only be a single part
-                        PolygonsPart outline_part_here;
-                        outline_part_here.add(new_outline[0]);
-                        new_parts.push_back(outline_part_here);
-                    }
-                    else if (new_outline.size() > 1)
-                    { // we don't know whether it's a multitude of parts because of newly introduced holes, or because the polygon has been split up
-                        std::vector<PolygonsPart> new_parts_here = new_outline.splitIntoParts();
-                        for (PolygonsPart& new_part_here : new_parts_here)
-                        {
-                            new_parts.push_back(new_part_here);
+                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
+                {
+                    for (SliceLayerPart& part : layer.parts)
+                    { // limit the outline of each part of this infill mesh to the infill of parts of the other mesh with lower infill mesh order
+                        if (!part.boundaryBox.hit(other_part.boundaryBox))
+                        { // early out
+                            continue;
                         }
+                        Polygons new_outline = part.outline.intersection(other_part.getOwnInfillArea());
+                        if (new_outline.size() == 1)
+                        { // we don't have to call splitIntoParts, because a single polygon can only be a single part
+                            PolygonsPart outline_part_here;
+                            outline_part_here.add(new_outline[0]);
+                            new_parts.push_back(outline_part_here);
+                        }
+                        else if (new_outline.size() > 1)
+                        { // we don't know whether it's a multitude of parts because of newly introduced holes, or because the polygon has been split up
+                            std::vector<PolygonsPart> new_parts_here = new_outline.splitIntoParts();
+                            for (PolygonsPart& new_part_here : new_parts_here)
+                            {
+                                new_parts.push_back(new_part_here);
+                            }
+                        }
+                        // change the infill area of the non-infill mesh which is to be filled with e.g. lines
+                        other_part.infill_area_own = other_part.getOwnInfillArea().difference(part.outline);
+                        // note: don't change the part.infill_area, because we change the structure of that area, while the basic area in which infill is printed remains the same
+                        //       the infill area remains the same for combing
                     }
-                    // change the infill area of the non-infill mesh which is to be filled with e.g. lines
-                    other_part.infill_area_own = other_part.getOwnInfillArea().difference(part.outline);
-                    // note: don't change the part.infill_area, because we change the structure of that area, while the basic area in which infill is printed remains the same
-                    //       the infill area remains the same for combing
+                }
+                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+                {
+                    const Polygons& own_infill_area = other_part.getOwnInfillArea();
+                    Polygons cut_lines = own_infill_area.intersectionPolyLines(layer.openPolyLines);
+                    new_polylines.add(cut_lines);
+                    other_part.infill_area_own = other_part.getOwnInfillArea().difference(layer.openPolyLines.offsetPolyLine(surface_line_width / 2));
                 }
             }
         }
@@ -606,6 +636,12 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             layer.parts.emplace_back();
             layer.parts.back().outline = part;
             layer.parts.back().boundaryBox.calculate(part);
+        }
+        // TODO: reclose surface mode polygons which weren't cut up into broken polylines; and make LayerParts for them
+
+        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+        {
+            layer.openPolyLines = new_polylines;
         }
 
         if (layer.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0) )

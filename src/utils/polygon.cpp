@@ -10,6 +10,8 @@
 
 #include "ListPolyIt.h"
 
+#include "PolylineStitcher.h"
+
 namespace cura
 {
 
@@ -260,44 +262,73 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
-Polygons Polygons::intersectionPolyLines(const Polygons& polylines) const
+Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitch, const coord_t max_stitch_distance) const
 {
+    Polygons split_polylines = polylines.splitPolylinesIntoSegments();
+    
     ClipperLib::PolyTree result;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPaths(polylines.paths, ClipperLib::ptSubject, false);
+    clipper.AddPaths(split_polylines.paths, ClipperLib::ptSubject, false);
     clipper.AddPaths(paths, ClipperLib::ptClip, true);
     clipper.Execute(ClipperLib::ctIntersection, result);
     Polygons ret;
-    ret.addPolyTreeNodeRecursive(result);
+    ClipperLib::OpenPathsFromPolyTree(result, ret.paths);
+    
+    if (restitch)
+    {
+        Polygons result_lines, result_polygons;
+        const coord_t snap_distance = 10_mu;
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(ret, result_lines, result_polygons, max_stitch_distance, snap_distance);
+        ret = result_lines;
+        // if polylines got stitched into polygons, split them back up into a polyline again, because the result only admits polylines
+        for (PolygonRef poly : result_polygons)
+        {
+            if (poly.empty()) continue;
+            if (poly.size() > 2)
+            {
+                poly.emplace_back(poly[0]);
+            }
+            ret.add(poly);
+        }
+    }
+
     return ret;
 }
 
-Polygons& Polygons::cut(const Polygons& tool)
+void Polygons::splitPolylinesIntoSegments(Polygons& result) const
 {
-    ClipperLib::PolyTree interior_segments_tree;
-    tool.lineSegmentIntersection(*this, interior_segments_tree);
-    ClipperLib::Paths interior_segments;
-    ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
-    this->clear();
-    for (const std::vector<ClipperLib::IntPoint>& interior_segment : interior_segments)
+    for (ConstPolygonRef poly : *this)
     {
-        this->addLine(interior_segment[0], interior_segment[1]);
+        poly.splitPolylineIntoSegments(result);
     }
-    return *this;
+}
+Polygons Polygons::splitPolylinesIntoSegments() const
+{
+    Polygons ret;
+    splitPolylinesIntoSegments(ret);
+    return ret;
+}
+
+void Polygons::splitPolygonsIntoSegments(Polygons& result) const
+{
+    for (ConstPolygonRef poly : *this)
+    {
+        poly.splitPolygonIntoSegments(result);
+    }
+}
+Polygons Polygons::splitPolygonsIntoSegments() const
+{
+    Polygons ret;
+    splitPolygonsIntoSegments(ret);
+    return ret;
 }
 
 coord_t Polygons::polyLineLength() const
 {
     coord_t length = 0;
-    for (unsigned int poly_idx = 0; poly_idx < paths.size(); poly_idx++)
+    for (ConstPolygonRef poly : *this)
     {
-        Point p0 = paths[poly_idx][0];
-        for (unsigned int point_idx = 1; point_idx < paths[poly_idx].size(); point_idx++)
-        {
-            Point p1 = paths[poly_idx][point_idx];
-            length += vSize(p0 - p1);
-            p0 = p1;
-        }
+        length += poly.polylineLength();
     }
     return length;
 }
@@ -786,19 +817,8 @@ void Polygons::_removeDegenerateVerts(const bool for_polyline)
 Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
 {
     Polygons ret;
-    ret.addPolyTreeNodeRecursive(poly_tree);
+    ClipperLib::PolyTreeToPaths(poly_tree, ret.paths);
     return ret;
-}
-
-
-void Polygons::addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node)
-{
-    for (int outer_poly_idx = 0; outer_poly_idx < node.ChildCount(); outer_poly_idx++)
-    {
-        ClipperLib::PolyNode* child = node.Childs[outer_poly_idx];
-        paths.push_back(child->Contour);
-        addPolyTreeNodeRecursive(*child);
-    }
 }
 
 bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
@@ -1232,6 +1252,39 @@ Polygons Polygons::smooth_outward(const AngleDegrees max_angle, int shortcut_len
     return ret;
 }
 
+
+
+
+void ConstPolygonRef::splitPolylineIntoSegments(Polygons& result) const 
+{
+    Point last = front();
+    for (size_t idx = 1; idx < size(); idx++)
+    {
+        Point p = (*this)[idx];
+        result.addLine(last, p);
+        last = p;
+    }
+}
+
+Polygons ConstPolygonRef::splitPolylineIntoSegments() const 
+{
+    Polygons ret;
+    splitPolylineIntoSegments(ret);
+    return ret;
+}
+
+void ConstPolygonRef::splitPolygonIntoSegments(Polygons& result) const
+{
+    splitPolylineIntoSegments(result);
+    result.addLine(back(), front());
+}
+
+Polygons ConstPolygonRef::splitPolygonIntoSegments() const 
+{
+    Polygons ret;
+    splitPolygonIntoSegments(ret);
+    return ret;
+}
 
 void ConstPolygonRef::smooth(int remove_length, PolygonRef result) const
 {

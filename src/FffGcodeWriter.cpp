@@ -1021,9 +1021,10 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
             {
                 const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
                 const PathConfigStorage::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
-                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
+                    && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr // mesh surface mode should always only be printed with the outer wall extruder!
+                )
                 {
-                    assert(extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr && "mesh surface mode should always only be printed with the outer wall extruder!");
                     addMeshLayerToGCode_meshSurfaceMode(storage, mesh, mesh_config, gcode_layer);
                 }
                 else
@@ -1362,18 +1363,7 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, c
 {
     const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
     
-    Polygons lines;
-    for(ConstPolygonRef polyline : layer->openPolyLines)
-    {
-        for(unsigned int point_idx = 1; point_idx<polyline.size(); point_idx++)
-        {
-            Polygon p;
-            p.add(polyline[point_idx-1]);
-            p.add(polyline[point_idx]);
-            lines.add(p);
-        }
-    }
-    gcode_layer.addLinesByOptimizer(lines, mesh_config.inset0_config, SpaceFillType::PolyLines);
+    gcode_layer.addLinesByOptimizer(layer->openPolyLines, mesh_config.inset0_config, SpaceFillType::PolyLines);
 }
 
 void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
@@ -1694,7 +1684,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                 const coord_t cut_offset =
                     get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
                 Polygons tool = infill_below_skin.offset(static_cast<int>(cut_offset));
-                infill_lines_here.cut(tool);
+                infill_lines_here = tool.intersectionPolyLines(infill_lines_here);
             }
             infill_lines.add(infill_lines_here);
             // normal processing for the infill that isn't below skin
@@ -1731,7 +1721,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
             Polygons tool = sparse_in_outline.offset(static_cast<int>(cut_offset));
-            infill_lines_here.cut(tool);
+            infill_lines_here = tool.intersectionPolyLines(infill_lines_here);
         }
         infill_lines.add(infill_lines_here);
         infill_polygons.add(infill_polygons_here);

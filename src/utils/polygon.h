@@ -123,14 +123,24 @@ public:
         return path->end();
     }
 
-    ClipperLib::Path::const_reference back() const
+    ClipperLib::Path::const_reverse_iterator rbegin() const
     {
-        return path->back();
+        return path->rbegin();
+    }
+
+    ClipperLib::Path::const_reverse_iterator rend() const
+    {
+        return path->rend();
     }
 
     ClipperLib::Path::const_reference front() const
     {
         return path->front();
+    }
+
+    ClipperLib::Path::const_reference back() const
+    {
+        return path->back();
     }
 
     const void* data() const
@@ -151,11 +161,16 @@ public:
 
     Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
-    int64_t polygonLength() const
+    coord_t polygonLength() const
     {
-        int64_t length = 0;
-        Point p0 = (*path)[path->size()-1];
-        for(unsigned int n=0; n<path->size(); n++)
+        return polylineLength() + vSize(path->front() - path->back());
+    }
+
+    coord_t polylineLength() const
+    {
+        coord_t length = 0;
+        Point p0 = path->front();
+        for (unsigned int n = 1; n < path->size(); n++)
         {
             Point p1 = (*path)[n];
             length += vSize(p0 - p1);
@@ -163,6 +178,20 @@ public:
         }
         return length;
     }
+
+    /*!
+     * Split these poly line objects into several line segment objects consisting of only two verts
+     * and store them in the \p result
+     */
+    void splitPolylineIntoSegments(Polygons& result) const;
+    Polygons splitPolylineIntoSegments() const;
+
+    /*!
+     * Split these polygon objects into several line segment objects consisting of only two verts
+     * and store them in the \p result
+     */
+    void splitPolygonIntoSegments(Polygons& result) const;
+    Polygons splitPolygonIntoSegments() const;
 
     bool shorterThan(const coord_t check_length) const;
 
@@ -390,6 +419,12 @@ public:
         path->reserve(min_size);
     }
 
+    template <class iterator>
+    ClipperLib::Path::iterator insert(ClipperLib::Path::const_iterator pos, iterator first, iterator last)
+    {
+        return path->insert(pos, first, last);
+    }
+
     PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
 
     PolygonRef& operator=(ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
@@ -421,6 +456,11 @@ public:
     ClipperLib::Path::iterator end()
     {
         return path->end();
+    }
+
+    ClipperLib::Path::reference front()
+    {
+        return path->front();
     }
 
     ClipperLib::Path::reference back()
@@ -664,6 +704,11 @@ public:
         return paths.size();
     }
 
+    void set(const ClipperLib::Paths& new_paths)
+    {
+        paths = new_paths;
+    }
+
     /*!
      * Convenience function to check if the polygon has no points.
      *
@@ -754,6 +799,21 @@ public:
         paths.emplace_back(ClipperLib::Path{from, to});
     }
 
+    void emplace_back(const Polygon& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+
+    void emplace_back(const ConstPolygonRef& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+
+    void emplace_back(const PolygonRef& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+    
     template<typename... Args>
     void emplace_back(Args... args)
     {
@@ -764,6 +824,14 @@ public:
     {
         paths.emplace_back();
         return PolygonRef(paths.back());
+    }
+    PolygonRef front()
+    {
+        return PolygonRef(paths.front());
+    }
+    ConstPolygonRef front() const
+    {
+        return ConstPolygonRef(paths.front());
     }
     PolygonRef back()
     {
@@ -826,27 +894,29 @@ public:
 
     /*!
      * Intersect polylines with this area Polygons object.
+     * 
+     * \note Due to a clipper bug with polylines with nearly collinear segments, the polylines are cut up into separate polylines, and restitched back together at the end.
+     * 
+     * \param polylines The (non-closed!) polylines to limit to the area of this Polygons object
+     * \param restitch Whether to stitch the resulting segments into longer polylines, or leave every segment as a single segment
+     * \param max_stitch_distance The maximum distance for two polylines to be stitched together with a segment
+     * \return The resulting polylines limited to the area of this Polygons object
      */
-    Polygons intersectionPolyLines(const Polygons& polylines) const;
+    Polygons intersectionPolyLines(const Polygons& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
     /*!
-     * Clips input line segments by this Polygons.
-     * \param other Input line segments to be cropped
-     * \param segment_tree the resulting interior line segments
+     * Split this poly line object into several line segment objects
+     * and store them in the \p result
      */
-    void lineSegmentIntersection(const Polygons& other, ClipperLib::PolyTree& segment_tree) const
-    {
-        ClipperLib::Clipper clipper(clipper_init);
-        clipper.AddPaths(paths, ClipperLib::ptClip, true);
-        clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
-        clipper.Execute(ClipperLib::ctIntersection, segment_tree);
-    }
+    void splitPolylinesIntoSegments(Polygons& result) const;
+    Polygons splitPolylinesIntoSegments() const;
 
     /*!
-     * Cut this polygon using an other polygon as a tool
-     * \param tool a closed polygon serving as boundary
+     * Split this polygon object into several line segment objects
+     * and store them in the \p result
      */
-    Polygons& cut(const Polygons& tool);
+    void splitPolygonsIntoSegments(Polygons& result) const;
+    Polygons splitPolygonsIntoSegments() const;
 
     Polygons xorPolygons(const Polygons& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const
     {
@@ -1116,11 +1186,6 @@ private:
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
 
-    /*!
-     * Convert a node from a ClipperLib::PolyTree and add it to a Polygons object,
-     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
-     */
-    void addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node);
 public:
     /*!
      * Split up the polygons into groups according to the even-odd rule.
@@ -1251,15 +1316,9 @@ public:
     coord_t polygonLength() const
     {
         coord_t length = 0;
-        for(unsigned int i=0; i<paths.size(); i++)
+        for (ConstPolygonRef poly : *this)
         {
-            Point p0 = paths[i][paths[i].size()-1];
-            for(unsigned int n=0; n<paths[i].size(); n++)
-            {
-                Point p1 = paths[i][n];
-                length += vSize(p0 - p1);
-                p0 = p1;
-            }
+            length += poly.polygonLength();
         }
         return length;
     }

@@ -271,19 +271,5 @@ Polygons LightningLayer::convertToLines(const Polygons& limit_to_outline, const 
         }
     }
 
-    // TODO: allow for polylines!
-    Polygons split_lines;
-    for (PolygonRef line : result_lines)
-    {
-        if (line.size() <= 1) continue;
-        Point last = line[0];
-        for (size_t point_idx = 1; point_idx < line.size(); point_idx++)
-        {
-            Point here = line[point_idx];
-            split_lines.addLine(last, here);
-            last = here;
-        }
-    }
-
-    return split_lines;
+    return result_lines;
 }
