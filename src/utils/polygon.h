@@ -1030,12 +1030,12 @@ private:
     {
         const coord_t allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
         const coord_t smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
+        const size_t min_poly_length = processing_polylines ? 2 : 3;
         Polygons& thiss = *this;
         for (size_t p = 0; p < size(); p++)
         {
             thiss[p]._simplify(smallest_line_segment_squared, allowed_error_distance_squared, processing_polylines);
-            if (thiss[p].size() < 3 // remove polygons with 2 verts
-                - static_cast<size_t>(processing_polylines)) // remove polylines with 1 vert
+            if (thiss[p].size() < min_poly_length) // remove polys with not enough verts to be a polyline/polygon
             {
                 remove(p);
                 p--;

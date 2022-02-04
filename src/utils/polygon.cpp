@@ -418,12 +418,13 @@ void PolygonRef::simplifyPolyline(const coord_t smallest_line_segment_squared, c
 }
 void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, bool processing_polylines)
 {
-    if (size() < 3 - static_cast<size_t>(processing_polylines))
+    const size_t min_poly_length = processing_polylines ? 2 : 3;
+    if (size() < min_poly_length)
     {
         clear();
         return;
     }
-    if (size() == 3 - static_cast<size_t>(processing_polylines))
+    if (size() == min_poly_length)
     {
         return;
     }
@@ -468,7 +469,6 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
         {
             next = path->at((point_idx + 1) % size());
         }
-        bool bypass = processing_polylines && (point_idx == 0 || point_idx + 1 == size()); // bypass all checks for deleting a vertex when processing the start or end of a polyline
 
         const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Twice the Shoelace formula for area of polygon per line segment.
         const coord_t negative_area_closing = next.X * previous.Y - next.Y * previous.X; // area between the origin and the short-cutting segment
@@ -478,8 +478,7 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
         if (!processing_polylines || (point_idx != 0 && point_idx + 1 != size()))
         { // bypass all checks for deleting a vertex when processing the start or end of a polyline
             const coord_t length2 = vSize2(current - previous);
-            if (length2 < 25
-                && !bypass) // never delete when bypassing 
+            if (length2 < 25)
             {
                 // We're allowed to always delete segments of less than 5 micron.
                 continue;
@@ -488,8 +487,7 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
             const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shortcut area polygon
             const coord_t base_length_2 = vSize2(next - previous);
 
-            if (base_length_2 == 0 //Two line segments form a line back and forth with no area.
-                && !bypass) // never delete when bypassing 
+            if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
             {
                 continue; //Remove the vertex.
             }
@@ -502,15 +500,13 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
             //h^2 = L^2 / b^2     [factor the divisor]
             const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
             if ((height_2 <= 5 * 5 //Almost exactly colinear (barring rounding errors).
-                && LinearAlg2D::getDistFromLine(current, previous, next) <= 5) // make sure that height_2 is not small because of cancellation of positive and negative areas
-                && !bypass) // never delete when bypassing 
+                && LinearAlg2D::getDistFromLine(current, previous, next) <= 5)) // make sure that height_2 is not small because of cancellation of positive and negative areas
             {
                 continue;
             }
 
             if (length2 < smallest_line_segment_squared
-                && height_2 <= allowed_error_distance_squared // removing the vertex doesn't introduce too much error.)
-                && !bypass) // never delete when bypassing 
+                && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.)
             {
                 const coord_t next_length2 = vSize2(current - next);
                 if (next_length2 > smallest_line_segment_squared)
@@ -554,15 +550,6 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
         previous_previous = previous;
         previous = current; //Note that "previous" is only updated if we don't remove the vertex.
         new_path.push_back(current);
-    }
-
-    if (processing_polylines)
-    { // make sure the last segment is not 5u short
-        size_t second_to_last_idx = new_path.size() - 2;
-        if (vSize2(new_path.back() - new_path[second_to_last_idx]) < 25)
-        {
-            new_path.erase(new_path.begin() + second_to_last_idx);
-        }
     }
 
     if (processing_polylines)
