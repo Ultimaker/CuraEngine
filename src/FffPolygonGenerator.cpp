@@ -560,7 +560,6 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
         {
             // break up polygons into polylines
             // they have to be polylines, because they might break up further when doing the cutting
-            Polygons outline_polylines;
             for (SliceLayerPart& part : layer.parts)
             {
                 for (PolygonRef poly : part.outline)
