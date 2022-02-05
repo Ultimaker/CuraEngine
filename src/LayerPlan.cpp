@@ -1274,7 +1274,7 @@ void LayerPlan::addLinesMonotonic
         const PathOrder<ConstPolygonRef>::Path& path = order.paths[order_idx];
         ConstPolygonRef polygon = *path.vertices;
         const size_t start = path.start_vertex;
-        const size_t end = 1 - start;
+        const size_t end = path.vertices.size() - 1 - start;
         const Point& p0 = polygon[start];
         const Point& p1 = polygon[end];
         // ignore line segments that are less than 5uM long
