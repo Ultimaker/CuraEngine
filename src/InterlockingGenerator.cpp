@@ -52,18 +52,17 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
     */
 
 
-    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
-    coord_t line_width_per_extruder[2];
-    line_width_per_extruder[0] = mesh_a.mesh->settings.get<coord_t>("wall_line_width_0");
-    line_width_per_extruder[1] = mesh_b.mesh->settings.get<coord_t>("wall_line_width_0");
+    coord_t line_width_per_mesh[2];
+    line_width_per_mesh[0] = mesh_a.mesh->settings.get<coord_t>("wall_line_width_0");
+    line_width_per_mesh[1] = mesh_b.mesh->settings.get<coord_t>("wall_line_width_0");
 
     coord_t layer_height = Application::getInstance().current_slice->scene.settings.get<coord_t>("layer_height");
 
 
 
     // TODO: make settigns for these:
-    coord_t cell_width = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2 * 1.1;
-    coord_t beam_layer_count = round_divide((line_width_per_extruder[0] + line_width_per_extruder[1]) * 2 / 3, layer_height);
+    coord_t cell_width = (line_width_per_mesh[0] + line_width_per_mesh[1]) * 2 * 1.1;
+    coord_t beam_layer_count = round_divide((line_width_per_mesh[0] + line_width_per_mesh[1]) * 2 / 3, layer_height);
 
     PointMatrix rotation(0.0);
 
@@ -90,16 +89,16 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
 
 
 
-    InterlockingGenerator gen(mesh_a, mesh_b, line_width_per_extruder, layer_heights, rotation, cell_size, beam_layer_count);
+    InterlockingGenerator gen(mesh_a, mesh_b, line_width_per_mesh, layer_heights, rotation, cell_size, beam_layer_count);
 
-    std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
+    std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh = gen.getShellVoxels(interface_dilation);
 
     std::vector<Polygons> layer_regions(layer_heights.size());
     gen.computeLayerRegions(layer_regions);
 
-    std::unordered_set<GridPoint3>& has_any_extruder = voxels_per_extruder[0];
-    std::unordered_set<GridPoint3>& has_all_extruders = voxels_per_extruder[1];
-    has_any_extruder.merge(has_all_extruders);
+    std::unordered_set<GridPoint3>& has_any_mesh = voxels_per_mesh[0];
+    std::unordered_set<GridPoint3>& has_all_meshes = voxels_per_mesh[1];
+    has_any_mesh.merge(has_all_meshes); // perform intersection and union simultaneously
 
     if (air_filtering)
     {
@@ -108,31 +107,31 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
 
         for (const GridPoint3& p : air_cells)
         {
-            has_all_extruders.erase(p);
+            has_all_meshes.erase(p);
         }
     }
 
-    std::vector<std::vector<Polygons>> cell_area_per_extruder_per_layer;
-    gen.generateMicrostructure(cell_area_per_extruder_per_layer);
+    std::vector<std::vector<Polygons>> cell_area_per_mesh_per_layer;
+    gen.generateMicrostructure(cell_area_per_mesh_per_layer);
 
-    gen.applyMicrostructureToOutlines(has_all_extruders, cell_area_per_extruder_per_layer, layer_regions);
+    gen.applyMicrostructureToOutlines(has_all_meshes, cell_area_per_mesh_per_layer, layer_regions);
 }
 
 InterlockingGenerator::Cell::Cell()
-: has_extruder(Application::getInstance().current_slice->scene.extruders.size(), false)
+: has_mesh(2, false)
 {
-    assert(has_extruder.size() >= 1);
+    assert(has_mesh.size() >= 1);
 }
 
 std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxels(const DilationKernel& kernel)
 {
-    std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder(2);
+    std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh(2);
 
     // mark all cells which contain some boundary
     for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
     {
         Slicer* mesh = (mesh_idx == 0)? &mesh_a : &mesh_b;
-        std::unordered_set<GridPoint3>& mesh_voxels = voxels_per_extruder[mesh_idx];
+        std::unordered_set<GridPoint3>& mesh_voxels = voxels_per_mesh[mesh_idx];
         
         
         std::vector<Polygons> rotated_polygons_per_layer(mesh->layers.size());
@@ -146,7 +145,7 @@ std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxel
         addBoundaryCells(rotated_polygons_per_layer, kernel, mesh_voxels);
     }
     
-    return voxels_per_extruder;
+    return voxels_per_mesh;
 }
 
 void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells)
@@ -186,26 +185,26 @@ void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_reg
     }
 }
 
-void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer)
+void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer)
 {
-    cell_area_per_extruder_per_layer.resize(2);
-    cell_area_per_extruder_per_layer[0].resize(2);
-    const coord_t line_w_sum = line_width_per_extruder[0] + line_width_per_extruder[1];
-    const coord_t middle = cell_size.x * line_width_per_extruder[0] / line_w_sum;
+    cell_area_per_mesh_per_layer.resize(2);
+    cell_area_per_mesh_per_layer[0].resize(2);
+    const coord_t line_w_sum = line_width_per_mesh[0] + line_width_per_mesh[1];
+    const coord_t middle = cell_size.x * line_width_per_mesh[0] / line_w_sum;
     const coord_t width[2] = { middle, cell_size.x - middle };
-    for (size_t extruder_nr : {0, 1})
+    for (size_t mesh_idx : {0, 1})
     {
-        Point offset(extruder_nr? middle : 0, 0);
-        Point area_size(width[extruder_nr], cell_size.y);
+        Point offset(mesh_idx? middle : 0, 0);
+        Point area_size(width[mesh_idx], cell_size.y);
 
-        PolygonRef poly = cell_area_per_extruder_per_layer[0][extruder_nr].newPoly();
+        PolygonRef poly = cell_area_per_mesh_per_layer[0][mesh_idx].newPoly();
         poly.emplace_back(offset);
         poly.emplace_back(offset + Point(area_size.X, 0));
         poly.emplace_back(offset + area_size);
         poly.emplace_back(offset + Point(0, area_size.Y));
     }
-    cell_area_per_extruder_per_layer[1] = cell_area_per_extruder_per_layer[0];
-    for (Polygons& polys : cell_area_per_extruder_per_layer[1])
+    cell_area_per_mesh_per_layer[1] = cell_area_per_mesh_per_layer[0];
+    for (Polygons& polys : cell_area_per_mesh_per_layer[1])
     {
         for (PolygonRef poly : polys)
         {
@@ -217,7 +216,7 @@ void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polyg
     }
 }
 
-void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, const std::vector<Polygons>& layer_regions)
+void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer, const std::vector<Polygons>& layer_regions)
 {
     PointMatrix unapply_rotation = rotation.inverse();
 
@@ -234,8 +233,8 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
                 if (z < bottom_corner.z) continue;
                 if (z > bottom_corner.z + cell_size.z) break;
 
-                Polygons areas_here = cell_area_per_extruder_per_layer[(layer_nr / beam_layer_count) % cell_area_per_extruder_per_layer.size()][mesh_idx];
-                Polygons areas_other = cell_area_per_extruder_per_layer[(layer_nr / beam_layer_count) % cell_area_per_extruder_per_layer.size()][ ! mesh_idx];
+                Polygons areas_here = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count) % cell_area_per_mesh_per_layer.size()][mesh_idx];
+                Polygons areas_other = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count) % cell_area_per_mesh_per_layer.size()][ ! mesh_idx];
 
                 areas_here.translate(Point(bottom_corner.x, bottom_corner.y));
                 areas_other.translate(Point(bottom_corner.x, bottom_corner.y));
