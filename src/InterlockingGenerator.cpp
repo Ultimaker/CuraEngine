@@ -250,21 +250,6 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
             }
         }
     }
-    // TODO: remove this code and prevent any bug which this code solves in thefirst place
-    for (Slicer* mesh : volumes)
-    {
-        for (unsigned int layer_nr = 0; layer_nr < mesh->layers.size(); layer_nr++)
-        {
-            SlicerLayer& layer = mesh->layers[layer_nr];
-            layer.polygons = layer.polygons.offset(10).offset(-10);
-        }
-        if (false)
-        {
-            Polygons& layer = mesh->layers[0].polygons;
-            SVG svg("interlock.svg", AABB(layer));
-            svg.writePolygons(layer);
-        }
-    }
 }
 
 }//namespace cura
