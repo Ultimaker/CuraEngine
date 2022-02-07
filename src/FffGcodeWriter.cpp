@@ -1405,7 +1405,10 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
     }
 
-    processIroning(mesh, layer, mesh_config.ironing_config, gcode_layer);
+    if (extruder_nr == mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr)
+    {
+        processIroning(storage, mesh, layer, mesh_config.ironing_config, gcode_layer);
+    }
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
@@ -2486,7 +2489,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     }
 }
 
-bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLayer& layer, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const
+bool FffGcodeWriter::processIroning(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const SliceLayer& layer, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const
 {
     bool added_something = false;
     const bool ironing_enabled = mesh.settings.get<bool>("ironing_enabled");
@@ -2497,7 +2500,7 @@ bool FffGcodeWriter::processIroning(const SliceMeshStorage& mesh, const SliceLay
         // But the truth is that we are inside a part, so we need to change it before we do the ironing
         // See CURA-8615
         gcode_layer.setIsInside(true);
-        added_something |= layer.top_surface.ironing(mesh, line_config, gcode_layer);
+        added_something |= layer.top_surface.ironing(storage, mesh, line_config, gcode_layer, *this);
         gcode_layer.setIsInside(false);
     }
     return added_something;

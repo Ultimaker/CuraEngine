@@ -5,6 +5,7 @@
 #include "LayerPlan.h"
 #include "sliceDataStorage.h"
 #include "TopSurface.h"
+#include "ExtruderTrain.h"
 
 namespace cura
 {
@@ -38,13 +39,14 @@ void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t l
     }
 }
 
-bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer) const
+bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer, const FffGcodeWriter& gcode_writer) const
 {
     if (areas.empty())
     {
         return false; //Nothing to do.
     }
     //Generate the lines to cover the surface.
+    const bool extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
     const EFillMethod pattern = mesh.settings.get<EFillMethod>("ironing_pattern");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     constexpr bool connect_polygons = false; // midway connections can make the surface less smooth
