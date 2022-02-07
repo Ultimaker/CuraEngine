@@ -5,9 +5,6 @@
 #define MULTIVOLUMES_H
 
 #include <vector>
-#include <cassert>
-
-#include "utils/polygon.h"
 
 /* This file contains code to help fixing up and changing layers that are built from multiple volumes. */
 namespace cura

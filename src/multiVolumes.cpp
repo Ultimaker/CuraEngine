@@ -4,15 +4,12 @@
 #include "multiVolumes.h"
 
 #include <algorithm>
-#include <unordered_set>
 
 #include "Application.h"
-#include "utils/logoutput.h"
 #include "Slice.h"
 #include "slicer.h"
 #include "utils/PolylineStitcher.h"
 #include "settings/EnumSettings.h"
-#include "utils/polygonUtils.h"
 
 namespace cura 
 {
@@ -193,5 +190,6 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
         }
     }
 }
+
 
 }//namespace cura
