@@ -14,8 +14,6 @@
 #include "settings/EnumSettings.h"
 #include "utils/polygonUtils.h"
 
-#include "utils/SparseCellGrid3D.h"
-
 namespace cura 
 {
  

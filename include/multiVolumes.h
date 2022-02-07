@@ -8,7 +8,6 @@
 #include <cassert>
 
 #include "utils/polygon.h"
-#include "utils/SparseCellGrid3D.h"
 
 /* This file contains code to help fixing up and changing layers that are built from multiple volumes. */
 namespace cura
