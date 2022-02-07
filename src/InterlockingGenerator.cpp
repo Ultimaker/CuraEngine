@@ -64,7 +64,6 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     PatternType type = PatternType::ZIGZAG;
     coord_t cell_width = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2 * 1.1;
     coord_t bulge_straight = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 3 / 4;
-    const bool alternating_offset = cell_width > (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2;
     coord_t beam_layer_count = round_divide((line_width_per_extruder[0] + line_width_per_extruder[1]) * 2 / 3, layer_height);
 
     PointMatrix rotation(0.0);
@@ -115,7 +114,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     }
 
     std::vector<std::vector<Polygons>> cell_area_per_extruder_per_layer;
-    gen.generateMicrostructure(cell_area_per_extruder_per_layer, type, alternating_offset);
+    gen.generateMicrostructure(cell_area_per_extruder_per_layer, type);
 
     gen.applyMicrostructureToOutlines(has_all_extruders, cell_area_per_extruder_per_layer, layer_regions);
 }
@@ -183,15 +182,15 @@ void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_reg
             z = layer.z;
             layer_region.add(layer.polygons);
         }
-        layer_region = layer_region.offset(100).offset(-100); // TODO hardcoded value
+        layer_region = layer_region.offset(100).offset(-100); // Morphological close to merge meshes into single volume TODO hardcoded value
         layer_region.applyMatrix(rotation);
         layer_heights[layer_nr] = z;
     }
 }
 
-void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, PatternType type, bool alternating_offset)
+void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, PatternType type)
 {
-    cell_area_per_extruder_per_layer.resize(alternating_offset? 4 : 2);
+    cell_area_per_extruder_per_layer.resize(2);
     cell_area_per_extruder_per_layer[0].resize(2);
     const coord_t line_w_sum = line_width_per_extruder[0] + line_width_per_extruder[1];
     const coord_t middle = cell_size.x * line_width_per_extruder[0] / line_w_sum;
@@ -300,24 +299,6 @@ void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polyg
     { // swap top and bottom area
         cell_area_per_extruder_per_layer[1][0].translate(Point(0, cell_size.x - middle));
         cell_area_per_extruder_per_layer[1][1].translate(Point(0, - middle));
-    }
-    if (alternating_offset)
-    {
-        cell_area_per_extruder_per_layer[2] = cell_area_per_extruder_per_layer[0];
-        cell_area_per_extruder_per_layer[3] = cell_area_per_extruder_per_layer[1];
-        for (size_t layer_nr : {2, 3})
-        {
-            for (Polygons& polys : cell_area_per_extruder_per_layer[layer_nr])
-            {
-                for (PolygonRef poly : polys)
-                {
-                    for (Point& p : poly)
-                    {
-                        p = Point(cell_size.x, cell_size.y) - p;
-                    }
-                }
-            }
-        }
     }
 }
 

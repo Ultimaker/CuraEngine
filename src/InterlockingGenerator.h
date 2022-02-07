@@ -53,7 +53,7 @@ protected:
 
     void computeLayerRegions(std::vector<Polygons>& layer_regions);
 
-    void generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, PatternType type, bool alternating_offset);
+    void generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, PatternType type);
 
     void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, const std::vector<Polygons>& layer_regions);
 
