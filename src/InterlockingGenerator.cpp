@@ -14,17 +14,35 @@
 namespace cura 
 {
 
-// TODO make robust against if there's only 1 extruder
-
 // TODO: make dilation user parameter
 
 // TODO: option for different amount of dilation for shell removal
 
-// TODO: allow for multiple models on the same extruder:
-// dont add all patterns to each mesh. This leads to each mesh printing the interfaces of all other meshes.
+// TODO: fix pattern appearing on top of two simple cubes next to each other
 
+// TODO more documentation
+    
+// TODO early out for when meshes dont share any overlap in their bounding box
 
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
+{
+    for (size_t mesh_a_idx = 0; mesh_a_idx < volumes.size(); mesh_a_idx++)
+    {
+        Slicer& mesh_a = *volumes[mesh_a_idx];
+        size_t extruder_nr_a = mesh_a.mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
+        for (size_t mesh_b_idx = mesh_a_idx + 1; mesh_b_idx < volumes.size(); mesh_b_idx++)
+        {
+            Slicer& mesh_b = *volumes[mesh_b_idx];
+            size_t extruder_nr_b = mesh_b.mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
+            if (extruder_nr_a != extruder_nr_b)
+            {
+                generateInterlockingStructure(mesh_a, mesh_b);
+            }
+        }
+        
+    }
+}
+void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer& mesh_b)
 {
     /*
     if ( ! Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("interlocking_structure_gen"))
@@ -33,28 +51,11 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     }
     */
 
-    
-    const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
-    if (extruder_count > 2)
-    {
-        // TODO: fix for > 2 extruders (apply first to extruder 0 & 1, then to 0 & 2, etc.)
-        logError("generateInterlockingStructure not implemented for >2 extruders!\n");
-        return;
-    }
-    if (volumes.size() > 2)
-    {
-        logError("Currently too buggy to operate on multiple models! Each voxel needs to be associated to 2 meshes.");
-        std::exit(-1);
-    }
-
-
 
     const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
-    std::vector<coord_t> line_width_per_extruder(extruder_count);
-    for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-    {
-        line_width_per_extruder[extruder_nr] = extruders[extruder_nr].settings.get<coord_t>("wall_line_width_0");
-    }
+    coord_t line_width_per_extruder[2];
+    line_width_per_extruder[0] = mesh_a.mesh->settings.get<coord_t>("wall_line_width_0");
+    line_width_per_extruder[1] = mesh_b.mesh->settings.get<coord_t>("wall_line_width_0");
 
     coord_t layer_height = Application::getInstance().current_slice->scene.settings.get<coord_t>("layer_height");
 
@@ -77,7 +78,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     std::vector<coord_t> layer_heights;
     {
         size_t layer_idx = 0;
-        for (Slicer* mesh : volumes)
+        for (Slicer* mesh : {&mesh_a, &mesh_b})
         {
             layer_heights.resize(std::max(layer_heights.size(), mesh->layers.size()));
             for ( ; layer_idx < mesh->layers.size() ; layer_idx++)
@@ -89,7 +90,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
 
 
 
-    InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, beam_layer_count);
+    InterlockingGenerator gen(mesh_a, mesh_b, line_width_per_extruder, layer_heights, rotation, cell_size, beam_layer_count);
 
     std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
 
@@ -128,11 +129,10 @@ std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxel
     std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder(2);
 
     // mark all cells which contain some boundary
-    for (Slicer* mesh : volumes)
+    for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
     {
-        size_t extruder_nr = mesh->mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").settings.get<size_t>("extruder_nr");
-        assert(extruder_nr < 2);
-        std::unordered_set<GridPoint3>& mesh_voxels = voxels_per_extruder[extruder_nr];
+        Slicer* mesh = (mesh_idx == 0)? &mesh_a : &mesh_b;
+        std::unordered_set<GridPoint3>& mesh_voxels = voxels_per_extruder[mesh_idx];
         
         
         std::vector<Polygons> rotated_polygons_per_layer(mesh->layers.size());
@@ -173,7 +173,7 @@ void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_reg
     {
         Polygons& layer_region = layer_regions[layer_nr];
         coord_t z;
-        for (Slicer* mesh : volumes)
+        for (Slicer* mesh : {&mesh_a, &mesh_b})
         {
             if (layer_nr >= mesh->layers.size()) break;
             SlicerLayer& layer = mesh->layers[layer_nr];
@@ -224,9 +224,9 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     for (const GridPoint3& grid_loc : cells)
     {
         Point3 bottom_corner = vu.toLowerCorner(grid_loc);
-        for (Slicer* mesh : volumes)
+        for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
         {
-            size_t extruder_nr = mesh->mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").settings.get<size_t>("extruder_nr");
+            Slicer* mesh = (mesh_idx == 0)? &mesh_a : &mesh_b;
             for (unsigned int layer_nr = 0; layer_nr < mesh->layers.size(); layer_nr++)
             {
                 SlicerLayer& layer = mesh->layers[layer_nr];
@@ -234,8 +234,8 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
                 if (z < bottom_corner.z) continue;
                 if (z > bottom_corner.z + cell_size.z) break;
 
-                Polygons areas_here = cell_area_per_extruder_per_layer[(layer_nr / beam_layer_count) % cell_area_per_extruder_per_layer.size()][extruder_nr];
-                Polygons areas_other = cell_area_per_extruder_per_layer[(layer_nr / beam_layer_count) % cell_area_per_extruder_per_layer.size()][ ! extruder_nr];
+                Polygons areas_here = cell_area_per_extruder_per_layer[(layer_nr / beam_layer_count) % cell_area_per_extruder_per_layer.size()][mesh_idx];
+                Polygons areas_other = cell_area_per_extruder_per_layer[(layer_nr / beam_layer_count) % cell_area_per_extruder_per_layer.size()][ ! mesh_idx];
 
                 areas_here.translate(Point(bottom_corner.x, bottom_corner.y));
                 areas_other.translate(Point(bottom_corner.x, bottom_corner.y));

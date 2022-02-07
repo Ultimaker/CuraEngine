@@ -31,8 +31,12 @@ public:
     };
 
 protected:
-    InterlockingGenerator(std::vector<Slicer*>& volumes, std::vector<coord_t>& line_width_per_extruder, const std::vector<coord_t>& layer_heights, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count)
-    : volumes(volumes)
+    
+    static void generateInterlockingStructure(Slicer& mesh_a, Slicer& mesh_b);
+
+    InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t (& line_width_per_extruder)[2], const std::vector<coord_t>& layer_heights, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count)
+    : mesh_a(mesh_a)
+    , mesh_b(mesh_b)
     , line_width_per_extruder(line_width_per_extruder)
     , layer_heights(layer_heights)
     , vu(cell_size)
@@ -53,8 +57,9 @@ protected:
 
     void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, const std::vector<Polygons>& layer_regions);
 
-    std::vector<Slicer*>& volumes;
-    std::vector<coord_t> line_width_per_extruder;
+    Slicer& mesh_a;
+    Slicer& mesh_b;
+    coord_t (& line_width_per_extruder)[2]; // reference to an array of length 2
     std::vector<coord_t> layer_heights;
 
     VoxelUtils vu;
