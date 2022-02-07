@@ -137,11 +137,13 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     }
     if(!ironing_paths.empty())
     {
-        const BinJunctions binned_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(ironing_paths);
-        for(const PathJunctions& wall_junctions : binned_paths)
-        {
-            layer.addWalls(wall_junctions, mesh.settings, line_config, line_config);
-        }
+        constexpr bool retract_before_outer_wall = false;
+        constexpr coord_t wipe_dist = 0u;
+        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+        InsetOrderOptimizer wall_orderer(gcode_writer, storage, layer, mesh.settings, extruder_nr,
+                                            line_config, line_config, line_config, line_config,
+                                            retract_before_outer_wall, wipe_dist, wipe_dist, extruder_nr, extruder_nr, z_seam_config, ironing_paths);
+        wall_orderer.addToLayer();
         added = true;
     }
 

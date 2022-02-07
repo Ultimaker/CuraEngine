@@ -16,12 +16,6 @@ class LayerPlan;
 class InsetOrderOptimizer
 {
 public:
-    enum class WallType
-    {
-        OUTER_WALL,
-        EXTRA_SKIN,
-        EXTRA_INFILL
-    };
 
     /*!
      * Constructor for inset ordering optimizer.
@@ -40,7 +34,22 @@ public:
      * \param part The part from which to read the previously generated insets.
      * \param layer_nr The current layer number.
      */
-    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const VariableWidthPaths& paths, unsigned int layer_nr);
+    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
+                        const SliceDataStorage& storage,
+                        LayerPlan& gcode_layer,
+                        const Settings& settings,
+                        const int extruder_nr,
+                        const GCodePathConfig& inset_0_non_bridge_config,
+                        const GCodePathConfig& inset_X_non_bridge_config,
+                        const GCodePathConfig& inset_0_bridge_config,
+                        const GCodePathConfig& inset_X_bridge_config,
+                        const bool retract_before_outer_wall,
+                        const coord_t wall_0_wipe_dist,
+                        const coord_t wall_x_wipe_dist,
+                        const size_t wall_0_extruder_nr,
+                        const size_t wall_x_extruder_nr,
+                        const ZSeamConfig& z_seam_config,
+                        const VariableWidthPaths& paths);
 
     /*!
      * Adds the insets to the given layer plan.
@@ -49,19 +58,27 @@ public:
      * class, so this optimize function needs no additional information.
      * \return Whether anything was added to the layer plan.
      */
-    bool optimize(const WallType& wall_type = WallType::OUTER_WALL);
+    bool addToLayer();
 
 private:
 
     const FffGcodeWriter& gcode_writer;
     const SliceDataStorage& storage;
     LayerPlan& gcode_layer;
-    const SliceMeshStorage& mesh;
+    const Settings& settings;
     const size_t extruder_nr;
-    const PathConfigStorage::MeshPathConfigs& mesh_config;
+    const GCodePathConfig& inset_0_non_bridge_config;
+    const GCodePathConfig& inset_X_non_bridge_config;
+    const GCodePathConfig& inset_0_bridge_config;
+    const GCodePathConfig& inset_X_bridge_config;
+    const bool retract_before_outer_wall;
+    const coord_t wall_0_wipe_dist;
+    const coord_t wall_x_wipe_dist;
+    const size_t wall_0_extruder_nr;
+    const size_t wall_x_extruder_nr;
+    const ZSeamConfig& z_seam_config;
     const VariableWidthPaths& paths;
     const unsigned int layer_nr;
-    const ZSeamConfig z_seam_config;
     bool added_something;
     bool retraction_region_calculated; //Whether the retraction_region field has been calculated or not.
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons

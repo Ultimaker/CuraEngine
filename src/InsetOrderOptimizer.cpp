@@ -11,50 +11,59 @@
 namespace cura
 {
 
-InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const VariableWidthPaths& paths, unsigned int layer_nr) :
+InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
+                                         const SliceDataStorage& storage,
+                                         LayerPlan& gcode_layer,
+                                         const Settings& settings,
+                                         const int extruder_nr,
+                                         const GCodePathConfig& inset_0_non_bridge_config,
+                                         const GCodePathConfig& inset_X_non_bridge_config,
+                                         const GCodePathConfig& inset_0_bridge_config,
+                                         const GCodePathConfig& inset_X_bridge_config,
+                                         const bool retract_before_outer_wall,
+                                         const coord_t wall_0_wipe_dist,
+                                         const coord_t wall_x_wipe_dist,
+                                         const size_t wall_0_extruder_nr,
+                                         const size_t wall_x_extruder_nr,
+                                         const ZSeamConfig& z_seam_config,
+                                         const VariableWidthPaths& paths) :
     gcode_writer(gcode_writer),
     storage(storage),
     gcode_layer(gcode_layer),
-    mesh(mesh),
+    settings(settings),
     extruder_nr(extruder_nr),
-    mesh_config(mesh_config),
+    inset_0_non_bridge_config(inset_0_non_bridge_config),
+    inset_X_non_bridge_config(inset_X_non_bridge_config),
+    inset_0_bridge_config(inset_0_bridge_config),
+    inset_X_bridge_config(inset_X_bridge_config),
+    retract_before_outer_wall(retract_before_outer_wall),
+    wall_0_wipe_dist(wall_0_wipe_dist),
+    wall_x_wipe_dist(wall_x_wipe_dist),
+    wall_0_extruder_nr(wall_0_extruder_nr),
+    wall_x_extruder_nr(wall_x_extruder_nr),
+    z_seam_config(z_seam_config),
     paths(paths),
-    layer_nr(layer_nr),
-    z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh.settings.get<coord_t>("wall_line_width_0") * 2),
+    layer_nr(gcode_layer.getLayerNr()),
     added_something(false),
     retraction_region_calculated(false)
 {
 }
 
-bool InsetOrderOptimizer::optimize(const WallType& wall_type)
+bool InsetOrderOptimizer::addToLayer()
 {
     // Settings & configs:
-    const GCodePathConfig& skin_or_infill_config = wall_type == WallType::EXTRA_SKIN ? mesh_config.skin_config : mesh_config.infill_config[0];
-    const bool do_outer_wall = wall_type == WallType::OUTER_WALL;
-    const GCodePathConfig& inset_0_non_bridge_config = do_outer_wall ? mesh_config.inset0_config : skin_or_infill_config;
-    const GCodePathConfig& inset_X_non_bridge_config = do_outer_wall ? mesh_config.insetX_config : skin_or_infill_config;
-    const GCodePathConfig& inset_0_bridge_config = do_outer_wall ? mesh_config.bridge_inset0_config : skin_or_infill_config;
-    const GCodePathConfig& inset_X_bridge_config = do_outer_wall ? mesh_config.bridge_insetX_config : skin_or_infill_config;
-
-    const size_t wall_0_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
-    const size_t wall_x_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr;
-    const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
-    const size_t infill_extruder_nr = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr;
-
-    const bool pack_by_inset = !mesh.settings.get<bool>("optimize_wall_printing_order");
-    const InsetDirection inset_direction = mesh.settings.get<InsetDirection>("inset_direction");
+    const bool pack_by_inset = ! settings.get<bool>("optimize_wall_printing_order"); // TODO
+    const InsetDirection inset_direction = settings.get<InsetDirection>("inset_direction");
     const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
+    const bool alternate_walls = settings.get<bool>("material_alternate_walls");
 
-    
     const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
     
     size_t start_inset;
     size_t end_inset;
     int direction;
     //If the entire wall is printed with the current extruder, print all of it.
-    if((wall_type == WallType::OUTER_WALL && wall_0_extruder_nr == wall_x_extruder_nr && wall_x_extruder_nr == extruder_nr) ||
-            (wall_type == WallType::EXTRA_SKIN && extruder_nr == top_bottom_extruder_nr) ||
-            (wall_type == WallType::EXTRA_INFILL && extruder_nr == infill_extruder_nr))
+    if (wall_0_extruder_nr == wall_x_extruder_nr && wall_x_extruder_nr == extruder_nr)
     {
         //If printing the outer inset first, start with the lowest inset.
         //Otherwise start with the highest inset and iterate backwards.
@@ -72,7 +81,7 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
         }
     }
     //If the wall is partially printed with the current extruder, print the correct part.
-    else if(wall_type == WallType::OUTER_WALL && wall_0_extruder_nr != wall_x_extruder_nr)
+    else if (wall_0_extruder_nr != wall_x_extruder_nr)
     {
         //If the wall_0 and wall_x extruders are different, then only include the insets that should be printed by the
         //current extruder_nr.
@@ -179,10 +188,6 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
     
     
     order_optimizer.optimize();
-
-    const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
-    const coord_t wall_0_wipe_dist = mesh.settings.get<coord_t>("wall_0_wipe_dist");
-    const bool alternate_walls = mesh.settings.get<bool>("material_alternate_walls");
     
     cura::Point p_end {0, 0};
     for(const PathOrderOptimizer<const ExtrusionLine*>::Path& path : order_optimizer.paths)
@@ -193,7 +198,7 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
         const bool is_gap_filler = path.vertices->is_odd;
         const GCodePathConfig& non_bridge_config = is_outer_wall ? inset_0_non_bridge_config : inset_X_non_bridge_config;
         const GCodePathConfig& bridge_config = is_outer_wall? inset_0_bridge_config : inset_X_bridge_config;
-        const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist : 0;
+        const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist : wall_x_wipe_dist;
         const bool retract_before = is_outer_wall ? retract_before_outer_wall : false;
         
         const bool alternate_direction_modifier = alternate_walls && (path.vertices->inset_idx % 2 == layer_nr % 2);
@@ -207,7 +212,7 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
         added_something = true;
         gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); //Going to print walls, which are always inside.
-        gcode_layer.addWall(*path.vertices, path.start_vertex, mesh.settings, non_bridge_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed, backwards, linked_path);
+        gcode_layer.addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed, backwards, linked_path);
         added_something = true;
     }
     return added_something;

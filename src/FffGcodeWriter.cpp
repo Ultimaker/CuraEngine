@@ -4,6 +4,7 @@
 #include <list>
 #include <limits> // numeric_limits
 #include <algorithm>
+#include <optional>
 
 #include "Application.h"
 #include "bridge.h"
@@ -739,6 +740,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         AngleDegrees fill_angle = (num_surface_layers + 1) % 2 ? 45 : 135; //90 degrees rotated from the interface layer.
         constexpr bool zig_zaggify_infill = false;
         constexpr bool connect_polygons = true; // causes less jerks, so better adhesion
+        constexpr bool retract_before_outer_wall = false;
+        constexpr coord_t wipe_dist = 0;
 
         const size_t wall_line_count = base_settings.get<size_t>("raft_base_wall_count");
         const coord_t line_spacing = base_settings.get<coord_t>("raft_base_line_spacing");
@@ -761,11 +764,12 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         infill_comp.generate(raft_paths, raft_polygons, raftLines, base_settings);
         if(!raft_paths.empty())
         {
-            const BinJunctions binned_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(raft_paths);
-            for (const PathJunctions& wall_junctions : binned_paths)
-            {
-                gcode_layer.addWalls(wall_junctions, base_settings, gcode_layer.configs_storage.raft_base_config, gcode_layer.configs_storage.raft_base_config);
-            }
+            const GCodePathConfig& config = gcode_layer.configs_storage.raft_base_config;
+            const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+            InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, base_settings, base_extruder_nr,
+                                             config, config, config, config,
+                                             retract_before_outer_wall, wipe_dist, wipe_dist, base_extruder_nr, base_extruder_nr, z_seam_config, raft_paths);
+            wall_orderer.addToLayer();
         }
         gcode_layer.addLinesByOptimizer(raftLines, gcode_layer.configs_storage.raft_base_config, SpaceFillType::Lines);
 
@@ -1763,8 +1767,13 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         {
             for(const VariableWidthPaths& tool_paths: wall_tool_paths)
             {
-                InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, tool_paths, gcode_layer.getLayerNr());
-                added_something |= inset_order_optimizer.optimize(InsetOrderOptimizer::WallType::EXTRA_INFILL);
+                constexpr bool retract_before_outer_wall = false;
+                constexpr coord_t wipe_dist = 0;
+                const ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh_config.infill_config[0].getLineWidth() * 2);
+                InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
+                                                 mesh_config.infill_config[0], mesh_config.infill_config[0], mesh_config.infill_config[0], mesh_config.infill_config[0],
+                                                 retract_before_outer_wall, wipe_dist, wipe_dist, extruder_nr, extruder_nr, z_seam_config, tool_paths);
+                added_something |= wall_orderer.addToLayer();
             }
         }
         if (!infill_polygons.empty())
@@ -2106,8 +2115,14 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
     else
     {
         //Main case: Optimize the insets with the InsetOrderOptimizer.
-        InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, extruder_nr, mesh_config, part.wall_toolpaths, gcode_layer.getLayerNr());
-        added_something |= inset_order_optimizer.optimize();
+        const coord_t wall_x_wipe_dist = 0;
+        const ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh.settings.get<coord_t>("wall_line_width_0") * 2);
+        InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
+                                         mesh_config.inset0_config, mesh_config.insetX_config, mesh_config.bridge_inset0_config, mesh_config.bridge_insetX_config,
+                                         mesh.settings.get<bool>("travel_retract_before_outer_wall"), mesh.settings.get<coord_t>("wall_0_wipe_dist"), wall_x_wipe_dist,
+                                         mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr, mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr,
+                                         z_seam_config, part.wall_toolpaths);
+        added_something |= wall_orderer.addToLayer();
     }
     return added_something;
 }
@@ -2419,8 +2434,13 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
             const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
             if (extruder_nr == skin_extruder_nr)
             {
-                InsetOrderOptimizer inset_order_optimizer(*this, storage, gcode_layer, mesh, skin_extruder_nr, mesh_config, skin_paths, gcode_layer.getLayerNr());
-                added_something |= inset_order_optimizer.optimize(InsetOrderOptimizer::WallType::EXTRA_SKIN);
+                constexpr bool retract_before_outer_wall = false;
+                constexpr coord_t wipe_dist = 0;
+                const ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), config.getLineWidth() * 2);
+                InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
+                                                 mesh_config.skin_config, mesh_config.skin_config, mesh_config.skin_config, mesh_config.skin_config,
+                                                 retract_before_outer_wall, wipe_dist, wipe_dist, skin_extruder_nr, skin_extruder_nr, z_seam_config, skin_paths);
+                added_something |= wall_orderer.addToLayer();
             }
         }
         if(!skin_polygons.empty())
@@ -2691,35 +2711,14 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             if (! wall_toolpaths.empty())
             {
-                const bool pack_by_inset = !infill_extruder.settings.get<bool>("optimize_wall_printing_order");
-                const InsetDirection inset_direction = infill_extruder.settings.get<InsetDirection>("inset_direction");
-                const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
-
-                std::set<size_t>* p_bins_with_index_zero_insets = nullptr;
-                BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths, pack_by_inset, center_last, p_bins_with_index_zero_insets);
-
-                bool alternate_bin_direction = false;
-                for (PathJunctions& paths : bins)
-                {
-                    const ZSeamConfig& z_seam_config = ZSeamConfig();
-                    constexpr coord_t wall_0_wipe_dist = 0;
-                    constexpr float flow_ratio = 1.0;
-                    constexpr bool always_retract = false;
-                    gcode_layer.addWalls
-                    (
-                        paths,
-                        infill_extruder.settings,
-                        gcode_layer.configs_storage.support_infill_config[0],
-                        gcode_layer.configs_storage.support_infill_config[0],
-                        z_seam_config,
-                        wall_0_wipe_dist,
-                        flow_ratio,
-                        always_retract,
-                        alternate_bin_direction
-                    );
-                    alternate_bin_direction = !alternate_bin_direction;
-                }
-                added_something = true;
+                const GCodePathConfig& config = gcode_layer.configs_storage.support_infill_config[0];
+                constexpr bool retract_before_outer_wall = false;
+                constexpr coord_t wipe_dist = 0;
+                const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+                InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, infill_extruder.settings, extruder_nr,
+                                                config, config, config, config,
+                                                retract_before_outer_wall, wipe_dist, wipe_dist, extruder_nr, extruder_nr, z_seam_config, wall_toolpaths);
+                added_something |= wall_orderer.addToLayer();
             }
 
             if (!support_polygons.empty())
@@ -2861,11 +2860,15 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     }
     if (! roof_paths.empty())
     {
-        const auto converted_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(roof_paths);
-        for (const auto& wall_junctions : converted_paths)
-        {
-            gcode_layer.addWalls(wall_junctions, roof_extruder.settings, gcode_layer.configs_storage.support_roof_config, gcode_layer.configs_storage.support_roof_config);
-        }
+        const GCodePathConfig& config = gcode_layer.configs_storage.support_roof_config;
+        constexpr bool retract_before_outer_wall = false;
+        constexpr coord_t wipe_dist = 0;
+        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+
+        InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, roof_extruder.settings, roof_extruder_nr,
+                                         config, config, config, config,
+                                         retract_before_outer_wall, wipe_dist, wipe_dist, roof_extruder_nr, roof_extruder_nr, z_seam_config, roof_paths);
+        wall_orderer.addToLayer();
     }
     gcode_layer.addLinesByOptimizer(roof_lines, gcode_layer.configs_storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
@@ -2934,11 +2937,15 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     }
     if (! bottom_paths.empty())
     {
-        const auto converted_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(bottom_paths);
-        for (const auto& wall_junctions : converted_paths)
-        {
-            gcode_layer.addWalls(wall_junctions, bottom_extruder.settings, gcode_layer.configs_storage.support_bottom_config, gcode_layer.configs_storage.support_bottom_config);
-        }
+        const GCodePathConfig& config = gcode_layer.configs_storage.support_bottom_config;
+        constexpr bool retract_before_outer_wall = false;
+        constexpr coord_t wipe_dist = 0;
+        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+
+        InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, bottom_extruder.settings, bottom_extruder_nr,
+                                         config, config, config, config,
+                                         retract_before_outer_wall, wipe_dist, wipe_dist, bottom_extruder_nr, bottom_extruder_nr, z_seam_config, bottom_paths);
+        wall_orderer.addToLayer();
     }
     gcode_layer.addLinesByOptimizer(bottom_lines, gcode_layer.configs_storage.support_bottom_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
