@@ -61,9 +61,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
 
 
     // TODO: make settigns for these:
-    PatternType type = PatternType::ZIGZAG;
     coord_t cell_width = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2 * 1.1;
-    coord_t bulge_straight = (line_width_per_extruder[0] + line_width_per_extruder[1]) * 3 / 4;
     coord_t beam_layer_count = round_divide((line_width_per_extruder[0] + line_width_per_extruder[1]) * 2 / 3, layer_height);
 
     PointMatrix rotation(0.0);
@@ -91,7 +89,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
 
 
 
-    InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, type, bulge_straight, beam_layer_count);
+    InterlockingGenerator gen(volumes, line_width_per_extruder, layer_heights, rotation, cell_size, beam_layer_count);
 
     std::vector<std::unordered_set<GridPoint3>> voxels_per_extruder = gen.getShellVoxels(interface_dilation);
 
@@ -114,7 +112,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
     }
 
     std::vector<std::vector<Polygons>> cell_area_per_extruder_per_layer;
-    gen.generateMicrostructure(cell_area_per_extruder_per_layer, type);
+    gen.generateMicrostructure(cell_area_per_extruder_per_layer);
 
     gen.applyMicrostructureToOutlines(has_all_extruders, cell_area_per_extruder_per_layer, layer_regions);
 }
@@ -188,101 +186,23 @@ void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_reg
     }
 }
 
-void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, PatternType type)
+void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer)
 {
     cell_area_per_extruder_per_layer.resize(2);
     cell_area_per_extruder_per_layer[0].resize(2);
     const coord_t line_w_sum = line_width_per_extruder[0] + line_width_per_extruder[1];
     const coord_t middle = cell_size.x * line_width_per_extruder[0] / line_w_sum;
     const coord_t width[2] = { middle, cell_size.x - middle };
-    if (type == PatternType::STRAIGHT || cell_size.x <= (line_width_per_extruder[0] + line_width_per_extruder[1]) * 2)
+    for (size_t extruder_nr : {0, 1})
     {
-        for (size_t extruder_nr : {0, 1})
-        {
-            Point offset(extruder_nr? middle : 0, 0);
-            Point area_size(width[extruder_nr], cell_size.y);
+        Point offset(extruder_nr? middle : 0, 0);
+        Point area_size(width[extruder_nr], cell_size.y);
 
-            PolygonRef poly = cell_area_per_extruder_per_layer[0][extruder_nr].newPoly();
-            poly.emplace_back(offset);
-            poly.emplace_back(offset + Point(area_size.X, 0));
-            poly.emplace_back(offset + area_size);
-            poly.emplace_back(offset + Point(0, area_size.Y));
-        }
-    }
-    else if (type == PatternType::BULGING)
-    {
-        const coord_t h = cell_size.x / 4;
-        const coord_t r = (cell_size.x - line_w_sum * 2) / 4;
-        const coord_t& w = middle;
-        const coord_t s = bulge_straight / 2;
-        {
-            PolygonRef poly = cell_area_per_extruder_per_layer[0][0].newPoly();
-            poly.emplace_back(0, 4*h);
-            poly.emplace_back(r, 3*h+s);
-            if (s > 0)
-            {
-                poly.emplace_back(r, 3*h-s);
-                poly.emplace_back(-r, h+s);
-            }
-            poly.emplace_back(-r, h-s);
-            poly.emplace_back(0, 0);
-            poly.emplace_back(w, 0);
-            poly.emplace_back(w+r, h-s);
-            if (s > 0)
-            {
-                poly.emplace_back(w+r, h+s);
-                poly.emplace_back(w-r, 3*h-s);
-            }
-            poly.emplace_back(w-r, 3*h+s);
-            poly.emplace_back(w, 4*h);
-        }
-        {
-            PolygonRef poly = cell_area_per_extruder_per_layer[0][1].newPoly();
-            coord_t e = cell_size.x;
-            poly.emplace_back(w, 4*h);
-            poly.emplace_back(w-r, 3*h+s);
-            if (s > 0)
-            {
-                poly.emplace_back(w-r, 3*h-s);
-                poly.emplace_back(w+r, h+s);
-            }
-            poly.emplace_back(w+r, h-s);
-            poly.emplace_back(w, 0);
-            poly.emplace_back(e, 0);
-            poly.emplace_back(e-r, h-s);
-            if (s > 0)
-            {
-                poly.emplace_back(e-r, h+s);
-                poly.emplace_back(e+r, 3*h-s);
-            }
-            poly.emplace_back(e+r, 3*h+s);
-            poly.emplace_back(e, 4*h);
-        }
-    }
-    else if (type == PatternType::ZIGZAG)
-    {
-        const coord_t h = cell_size.x / 2;
-        const coord_t& w = middle;
-        const double inside = 1.0 - double(line_w_sum*line_w_sum) / double(h*h);
-        const coord_t r = (h*h * std::sqrt(inside)) / (2 * line_w_sum);
-        {
-            PolygonRef poly = cell_area_per_extruder_per_layer[0][0].newPoly();
-            poly.emplace_back(r, 2*h);
-            poly.emplace_back(-r, h);
-            poly.emplace_back(r, 0);
-            poly.emplace_back(w + r, 0);
-            poly.emplace_back(w - r, h);
-            poly.emplace_back(w + r, 2*h);
-        }
-        {
-            PolygonRef poly = cell_area_per_extruder_per_layer[0][1].newPoly();
-            poly.emplace_back(w + r, 2*h);
-            poly.emplace_back(w - r, h);
-            poly.emplace_back(w + r, 0);
-            poly.emplace_back(2*h + r, 0);
-            poly.emplace_back(2*h - r, h);
-            poly.emplace_back(2*h + r, 2*h);
-        }
+        PolygonRef poly = cell_area_per_extruder_per_layer[0][extruder_nr].newPoly();
+        poly.emplace_back(offset);
+        poly.emplace_back(offset + Point(area_size.X, 0));
+        poly.emplace_back(offset + area_size);
+        poly.emplace_back(offset + Point(0, area_size.Y));
     }
     cell_area_per_extruder_per_layer[1] = cell_area_per_extruder_per_layer[0];
     for (Polygons& polys : cell_area_per_extruder_per_layer[1])
@@ -294,11 +214,6 @@ void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polyg
                 std::swap(p.X, p.Y);
             }
         }
-    }
-    if (type == PatternType::ZIGZAG)
-    { // swap top and bottom area
-        cell_area_per_extruder_per_layer[1][0].translate(Point(0, cell_size.x - middle));
-        cell_area_per_extruder_per_layer[1][1].translate(Point(0, - middle));
     }
 }
 

@@ -30,18 +30,14 @@ public:
         Cell();
     };
 
-    enum class PatternType { STRAIGHT, BULGING, ZIGZAG };
-
 protected:
-    InterlockingGenerator(std::vector<Slicer*>& volumes, std::vector<coord_t>& line_width_per_extruder, const std::vector<coord_t>& layer_heights, const PointMatrix& rotation, Point3 cell_size, PatternType type, coord_t bulge_straight, coord_t beam_layer_count)
+    InterlockingGenerator(std::vector<Slicer*>& volumes, std::vector<coord_t>& line_width_per_extruder, const std::vector<coord_t>& layer_heights, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count)
     : volumes(volumes)
     , line_width_per_extruder(line_width_per_extruder)
     , layer_heights(layer_heights)
     , vu(cell_size)
     , rotation(rotation)
     , cell_size(cell_size)
-    , type(type)
-    , bulge_straight(bulge_straight)
     , beam_layer_count(beam_layer_count)
     {}
 
@@ -53,7 +49,7 @@ protected:
 
     void computeLayerRegions(std::vector<Polygons>& layer_regions);
 
-    void generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, PatternType type);
+    void generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer);
 
     void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_extruder_per_layer, const std::vector<Polygons>& layer_regions);
 
@@ -65,8 +61,6 @@ protected:
 
     PointMatrix rotation;
     Point3 cell_size;
-    PatternType type;
-    coord_t bulge_straight;
     coord_t beam_layer_count;
 };
 
