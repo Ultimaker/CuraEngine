@@ -1409,7 +1409,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
     }
 
-    if (extruder_nr == mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr)
+    if (extruder_nr == mesh.settings.get<ExtruderTrain&>((mesh.settings.get<size_t>("roofing_layer_count") > 0)? "roofing_extruder_nr" : "top_bottom_extruder_nr").extruder_nr)
     {
         processIroning(storage, mesh, layer, mesh_config.ironing_config, gcode_layer);
     }
