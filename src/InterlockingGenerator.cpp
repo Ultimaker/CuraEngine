@@ -27,11 +27,11 @@ namespace cura
     
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
-    // TODO: make settigns for these:
-    const PointMatrix rotation(22.5);
-    const coord_t beam_layer_count = 2;
-    const int interface_depth = 2;
-    const int boundary_avoidance = 3;
+    Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const PointMatrix rotation(global_settings.get<AngleDegrees>("interlocking_orientation"));
+    const coord_t beam_layer_count = global_settings.get<int>("interlocking_beam_layer_count");
+    const int interface_depth = global_settings.get<int>("interlocking_depth");
+    const int boundary_avoidance = global_settings.get<int>("interlocking_boundary_avoidance");
 
     for (size_t mesh_a_idx = 0; mesh_a_idx < volumes.size(); mesh_a_idx++)
     {
@@ -45,10 +45,9 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
                 && mesh_a.mesh->getAABB().offset(ignored_gap).hit(mesh_b.mesh->getAABB()) // early out for when meshes dont share any overlap in their bounding box
             )
             {
-                // TODO: make settigns for these:
                 coord_t beam_widths[2];
-                beam_widths[0] = 2 * mesh_a.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO: make setting
-                beam_widths[1] = 2 * mesh_b.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO: make setting
+                beam_widths[0] = mesh_a.mesh->settings.get<coord_t>("interlocking_beam_width");
+                beam_widths[1] = mesh_b.mesh->settings.get<coord_t>("interlocking_beam_width");
 
                 // TODO: why are these two kernels different kernal types?!
                 const DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::PRISM);

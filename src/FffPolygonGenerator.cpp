@@ -245,10 +245,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     
     generateMultipleVolumesOverlap(slicerList);
 
-    TimeKeeper timer;
-    InterlockingGenerator::generateInterlockingStructure(slicerList);
-    std::cerr << "interlocking took " << timer.restart() << "seconds\n";
     
+    if (Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("interlocking_enable"))
+    {
+        InterlockingGenerator::generateInterlockingStructure(slicerList);
+    }
+
     storage.print_layer_count = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
