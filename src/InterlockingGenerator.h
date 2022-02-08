@@ -74,7 +74,7 @@ protected:
     InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t (& line_width_per_mesh)[2], const size_t max_layer_count, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count, bool air_filtering)
     : mesh_a(mesh_a)
     , mesh_b(mesh_b)
-    , line_width_per_mesh(line_width_per_mesh)
+    , beam_widths(line_width_per_mesh)
     , max_layer_count(max_layer_count)
     , vu(cell_size)
     , rotation(rotation)
@@ -129,7 +129,7 @@ protected:
 
     Slicer& mesh_a;
     Slicer& mesh_b;
-    coord_t (& line_width_per_mesh)[2]; // reference to an array of length 2
+    coord_t (& beam_widths)[2]; // reference to an array of length 2
     const size_t max_layer_count;
 
     VoxelUtils vu;

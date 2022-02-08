@@ -59,16 +59,16 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
     */
 
 
-    coord_t line_width_per_mesh[2];
-    line_width_per_mesh[0] = mesh_a.mesh->settings.get<coord_t>("wall_line_width_0");
-    line_width_per_mesh[1] = mesh_b.mesh->settings.get<coord_t>("wall_line_width_0");
+    coord_t beam_widths[2];
+    beam_widths[0] = 2 * mesh_a.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO: make setting
+    beam_widths[1] = 2 * mesh_b.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO: make setting
 
 
     // TODO: make settigns for these:
-    coord_t cell_width = (line_width_per_mesh[0] + line_width_per_mesh[1]) * 2 * 1.1;
+    coord_t cell_width = beam_widths[0] + beam_widths[1];
     coord_t beam_layer_count = 2;
 
-    PointMatrix rotation(22.5);
+    PointMatrix rotation(22.5); // TODO: make setting
 
     DilationKernel interface_dilation(GridPoint3(2,2,2), DilationKernel::Type::PRISM);
 
@@ -89,7 +89,7 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
 
 
 
-    InterlockingGenerator gen(mesh_a, mesh_b, line_width_per_mesh, max_layer_count, rotation, cell_size, beam_layer_count, air_filtering);
+    InterlockingGenerator gen(mesh_a, mesh_b, beam_widths, max_layer_count, rotation, cell_size, beam_layer_count, air_filtering);
 
     std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh = gen.getShellVoxels(interface_dilation);
 
@@ -182,8 +182,8 @@ void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polyg
 {
     cell_area_per_mesh_per_layer.resize(2);
     cell_area_per_mesh_per_layer[0].resize(2);
-    const coord_t line_w_sum = line_width_per_mesh[0] + line_width_per_mesh[1];
-    const coord_t middle = cell_size.x * line_width_per_mesh[0] / line_w_sum;
+    const coord_t beam_w_sum = beam_widths[0] + beam_widths[1];
+    const coord_t middle = cell_size.x * beam_widths[0] / beam_w_sum;
     const coord_t width[2] = { middle, cell_size.x - middle };
     for (size_t mesh_idx : {0, 1})
     {
