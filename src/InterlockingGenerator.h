@@ -111,22 +111,21 @@ protected:
      * A morphological close is performed so that we don't register small gaps between the two models as being separate.
      * \return layer_regions The computed layer regions
      */
-    std::vector<Polygons> computeLayerRegions() const;
+    std::vector<Polygons> computeUnionedVolumeRegions() const;
 
     /*!
      * Generate the polygons for the beams of a single cell
-     * \param[out] cell_area_per_mesh_per_layer The output polygons for each beam
+     * \return cell_area_per_mesh_per_layer The output polygons for each beam
      */
-    void generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer) const;
+    std::vector<std::vector<Polygons>> generateMicrostructure() const;
 
     /*!
      * Change the outlines of the meshes with the computed interlocking structure.
      * 
      * \param cells The cells where we want to apply the interlocking structure.
-     * \param cell_area_per_mesh_per_layer The layer polygons of a single cell
      * \param layer_regions The total volume of the two meshes combined (and small gaps closed)
      */
-    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer, const std::vector<Polygons>& layer_regions) const;
+    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, const std::vector<Polygons>& layer_regions) const;
 
     static const coord_t ignored_gap = 100u; //!< Distance between models to be considered next to each other so that an interlocking structure will be generated there
 
