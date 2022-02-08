@@ -214,15 +214,15 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     PointMatrix unapply_rotation = rotation.inverse();
 
     std::vector<Polygons> structure_per_layer[2]; // for each mesh the structure on each layer
-    structure_per_layer[0].resize(max_layer_count / beam_layer_count);
-    structure_per_layer[1].resize(max_layer_count / beam_layer_count);
+    structure_per_layer[0].resize((max_layer_count + 1) / beam_layer_count);
+    structure_per_layer[1].resize((max_layer_count + 1) / beam_layer_count);
     // Only compute cell structure for half the layers, because since our beams are two layers high, every odd layer of the structure will be the same as the layer below.
     for (const GridPoint3& grid_loc : cells)
     {
         Point3 bottom_corner = vu.toLowerCorner(grid_loc);
         for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
         {
-            for (unsigned int layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z; layer_nr += beam_layer_count)
+            for (unsigned int layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z && layer_nr < max_layer_count; layer_nr += beam_layer_count)
             {
                 Polygons areas_here = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count) % cell_area_per_mesh_per_layer.size()][mesh_idx];
                 areas_here.translate(Point(bottom_corner.x, bottom_corner.y));
