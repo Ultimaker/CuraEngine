@@ -58,7 +58,7 @@ protected:
     /*!
      * Generate an interlocking structure between two meshes
      */
-    static void generateInterlockingStructure(Slicer& mesh_a, Slicer& mesh_b);
+    void generateInterlockingStructure();
 
     /*!
      * Private class for storing some variables used in the computation of the interlocking structure between two meshes.
@@ -69,17 +69,20 @@ protected:
      * \param rotation The angle by which to rotate the interlocking pattern
      * \param cell_size The size of a voxel cell in (coord_t, coord_t, layer_count)
      * \param beam_layer_count The number of layers for the height of the beams
-     * \param air_filtering Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut off midway in a beam.
+     * \param interface_dilation The thicknening kernel for the interface
+     * \param air_dilation The thickening kernel applied to air so that cells near the outside of the model won't be generated
+     * \param air_filtering Whether to fully remove all of the interlocking cells which would be visible on the outside (i.e. touching air). If no air filtering then those cells will be cut off in the middle of a beam.
      */
-    InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t (& line_width_per_mesh)[2], const size_t max_layer_count, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count, bool air_filtering)
+    InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t (& line_width_per_mesh)[2], const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count, DilationKernel interface_dilation, DilationKernel air_dilation, bool air_filtering)
     : mesh_a(mesh_a)
     , mesh_b(mesh_b)
     , beam_widths(line_width_per_mesh)
-    , max_layer_count(max_layer_count)
     , vu(cell_size)
     , rotation(rotation)
     , cell_size(cell_size)
     , beam_layer_count(beam_layer_count)
+    , interface_dilation(interface_dilation)
+    , air_dilation(air_dilation)
     , air_filtering(air_filtering)
     {}
 
@@ -106,9 +109,9 @@ protected:
      * Compute the regions occupied by both models.
      * 
      * A morphological close is performed so that we don't register small gaps between the two models as being separate.
-     * \param[out] layer_regions The computed layer regions
+     * \return layer_regions The computed layer regions
      */
-    void computeLayerRegions(std::vector<Polygons>& layer_regions) const;
+    std::vector<Polygons> computeLayerRegions() const;
 
     /*!
      * Generate the polygons for the beams of a single cell
@@ -130,13 +133,14 @@ protected:
     Slicer& mesh_a;
     Slicer& mesh_b;
     coord_t (& beam_widths)[2]; // reference to an array of length 2
-    const size_t max_layer_count;
 
     VoxelUtils vu;
 
     PointMatrix rotation;
     Point3 cell_size;
     coord_t beam_layer_count;
+    DilationKernel interface_dilation;
+    DilationKernel air_dilation;
     bool air_filtering; //!< Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut off midway in a beam.
 };
 

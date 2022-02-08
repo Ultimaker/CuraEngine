@@ -43,58 +43,39 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
                 && mesh_a.mesh->getAABB().offset(ignored_gap).hit(mesh_b.mesh->getAABB()) // early out for when meshes dont share any overlap in their bounding box
             )
             {
-                generateInterlockingStructure(mesh_a, mesh_b);
+                // TODO: make settigns for these:
+                coord_t beam_widths[2];
+                beam_widths[0] = 2 * mesh_a.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO: make setting
+                beam_widths[1] = 2 * mesh_b.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO: make setting
+                PointMatrix rotation(22.5);
+                coord_t beam_layer_count = 2;
+                int interface_depth = 2;
+                int boundary_avoidance = 0;
+                
+                            
+                coord_t cell_width = beam_widths[0] + beam_widths[1];
+                Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count);
+
+                DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::PRISM);
+                
+                const bool air_filtering = boundary_avoidance > 0;
+                DilationKernel air_dilation(GridPoint3(boundary_avoidance, boundary_avoidance, boundary_avoidance), DilationKernel::Type::DIAMOND);
+                
+                InterlockingGenerator gen(mesh_a, mesh_b, beam_widths, rotation, cell_size, beam_layer_count, interface_dilation, air_dilation, air_filtering);
+
+                
+                gen.generateInterlockingStructure();
             }
         }
         
     }
 }
-void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer& mesh_b)
+
+void InterlockingGenerator::generateInterlockingStructure()
 {
-    /*
-    if ( ! Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("interlocking_structure_gen"))
-    {
-        return;
-    }
-    */
+    std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh = getShellVoxels(interface_dilation);
 
-
-    coord_t beam_widths[2];
-    beam_widths[0] = 2 * mesh_a.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO: make setting
-    beam_widths[1] = 2 * mesh_b.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO: make setting
-
-
-    // TODO: make settigns for these:
-    coord_t cell_width = beam_widths[0] + beam_widths[1];
-    coord_t beam_layer_count = 2;
-
-    PointMatrix rotation(22.5); // TODO: make setting
-
-    DilationKernel interface_dilation(GridPoint3(2,2,2), DilationKernel::Type::PRISM);
-
-    constexpr bool air_filtering = true;
-    DilationKernel air_dilation(GridPoint3(3,3,3), DilationKernel::Type::DIAMOND);
-
-
-    Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count);
-    
-    size_t max_layer_count = 0;
-    {
-        for (Slicer* mesh : {&mesh_a, &mesh_b})
-        {
-            max_layer_count = std::max(max_layer_count, mesh->layers.size());
-        }
-        max_layer_count++; // introduce ghost layer on top for correct skin computation of topmost layer.
-    }
-
-
-
-    InterlockingGenerator gen(mesh_a, mesh_b, beam_widths, max_layer_count, rotation, cell_size, beam_layer_count, air_filtering);
-
-    std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh = gen.getShellVoxels(interface_dilation);
-
-    std::vector<Polygons> layer_regions(max_layer_count);
-    gen.computeLayerRegions(layer_regions);
+    std::vector<Polygons> layer_regions = computeLayerRegions();
 
     std::unordered_set<GridPoint3>& has_any_mesh = voxels_per_mesh[0];
     std::unordered_set<GridPoint3>& has_all_meshes = voxels_per_mesh[1];
@@ -103,7 +84,7 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
     if (air_filtering)
     {
         std::unordered_set<GridPoint3> air_cells;
-        gen.addBoundaryCells(layer_regions, air_dilation, air_cells);
+        addBoundaryCells(layer_regions, air_dilation, air_cells);
 
         for (const GridPoint3& p : air_cells)
         {
@@ -112,9 +93,9 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
     }
 
     std::vector<std::vector<Polygons>> cell_area_per_mesh_per_layer;
-    gen.generateMicrostructure(cell_area_per_mesh_per_layer);
+    generateMicrostructure(cell_area_per_mesh_per_layer);
 
-    gen.applyMicrostructureToOutlines(has_all_meshes, cell_area_per_mesh_per_layer, layer_regions);
+    applyMicrostructureToOutlines(has_all_meshes, cell_area_per_mesh_per_layer, layer_regions);
 }
 
 std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxels(const DilationKernel& kernel) const
@@ -160,8 +141,11 @@ void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, cons
     }
 }
 
-void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_regions) const
+std::vector<Polygons> InterlockingGenerator::computeLayerRegions() const
 {
+    size_t max_layer_count = std::max(mesh_a.layers.size(), mesh_b.layers.size()) + 1; // introduce ghost layer on top for correct skin computation of topmost layer.
+    std::vector<Polygons> layer_regions(max_layer_count);
+
     for (unsigned int layer_nr = 0; layer_nr < layer_regions.size(); layer_nr++)
     {
         Polygons& layer_region = layer_regions[layer_nr];
@@ -176,6 +160,7 @@ void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_reg
         layer_region = layer_region.offset(ignored_gap).offset(-ignored_gap); // Morphological close to merge meshes into single volume
         layer_region.applyMatrix(rotation);
     }
+    return layer_regions;
 }
 
 void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer) const
@@ -212,6 +197,7 @@ void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polyg
 void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer, const std::vector<Polygons>& layer_regions) const
 {
     PointMatrix unapply_rotation = rotation.inverse();
+    size_t max_layer_count = std::max(mesh_a.layers.size(), mesh_b.layers.size());
 
     std::vector<Polygons> structure_per_layer[2]; // for each mesh the structure on each layer
     structure_per_layer[0].resize((max_layer_count + 1) / beam_layer_count);
