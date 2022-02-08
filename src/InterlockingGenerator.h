@@ -103,7 +103,7 @@ protected:
      * \param kernel The dilation kernel to give the returned voxel shell more thickness
      * \param[out] cells The output cells which elong to the shell
      */
-    void addBoundaryCells(std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const;
+    void addBoundaryCells(const std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const;
 
     /*!
      * Compute the regions occupied by both models.
@@ -131,16 +131,16 @@ protected:
 
     Slicer& mesh_a;
     Slicer& mesh_b;
-    coord_t (& beam_widths)[2]; // reference to an array of length 2
+    const coord_t (& beam_widths)[2]; // reference to an array of length 2
 
-    VoxelUtils vu;
+    const VoxelUtils vu;
 
-    PointMatrix rotation;
-    Point3 cell_size;
-    coord_t beam_layer_count;
-    DilationKernel interface_dilation;
-    DilationKernel air_dilation;
-    bool air_filtering; //!< Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut off midway in a beam.
+    const PointMatrix rotation;
+    const Point3 cell_size;
+    const coord_t beam_layer_count;
+    const DilationKernel interface_dilation;
+    const DilationKernel air_dilation;
+    const bool air_filtering; //!< Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut off midway in a beam.
 };
 
 }//namespace cura

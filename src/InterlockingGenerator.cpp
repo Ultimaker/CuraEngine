@@ -18,10 +18,6 @@ namespace cura
 
 // TODO: option for different amount of dilation for shell removal
 
-// TODO more documentation
-
-// TODO more const
-
 // TODO fix test
     
 // TODO: only go up to the min layer count
@@ -32,10 +28,10 @@ namespace cura
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
     // TODO: make settigns for these:
-    PointMatrix rotation(22.5);
-    coord_t beam_layer_count = 2;
-    int interface_depth = 2;
-    int boundary_avoidance = 3;
+    const PointMatrix rotation(22.5);
+    const coord_t beam_layer_count = 2;
+    const int interface_depth = 2;
+    const int boundary_avoidance = 3;
 
     for (size_t mesh_a_idx = 0; mesh_a_idx < volumes.size(); mesh_a_idx++)
     {
@@ -55,13 +51,13 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
                 beam_widths[1] = 2 * mesh_b.mesh->settings.get<coord_t>("wall_line_width_0"); // TODO: make setting
 
                 // TODO: why are these two kernels different kernal types?!
-                DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::PRISM);
+                const DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::PRISM);
 
                 const bool air_filtering = boundary_avoidance > 0;
-                DilationKernel air_dilation(GridPoint3(boundary_avoidance, boundary_avoidance, boundary_avoidance), DilationKernel::Type::DIAMOND);
+                const DilationKernel air_dilation(GridPoint3(boundary_avoidance, boundary_avoidance, boundary_avoidance), DilationKernel::Type::DIAMOND);
 
-                coord_t cell_width = beam_widths[0] + beam_widths[1];
-                Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count);
+                const coord_t cell_width = beam_widths[0] + beam_widths[1];
+                const Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count);
                 
                 InterlockingGenerator gen(mesh_a, mesh_b, beam_widths, rotation, cell_size, beam_layer_count, interface_dilation, air_dilation, air_filtering);
 
@@ -81,7 +77,7 @@ void InterlockingGenerator::generateInterlockingStructure()
     std::unordered_set<GridPoint3>& has_all_meshes = voxels_per_mesh[1];
     has_any_mesh.merge(has_all_meshes); // perform union and intersection simultaneously. Cannibalizes voxels_per_mesh
 
-    std::vector<Polygons> layer_regions = computeUnionedVolumeRegions();
+    const std::vector<Polygons> layer_regions = computeUnionedVolumeRegions();
 
     if (air_filtering)
     {
@@ -122,13 +118,13 @@ std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxel
     return voxels_per_mesh;
 }
 
-void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const
+void InterlockingGenerator::addBoundaryCells(const std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const
 {
     auto voxel_emplacer = [&cells](GridPoint3 p) { cells.emplace(p); return true; };
 
     for (size_t layer_nr = 0; layer_nr < layers.size(); layer_nr++)
     {
-        coord_t z = layer_nr;
+        const coord_t z = layer_nr;
         vu.walkDilatedPolygons(layers[layer_nr], z, kernel, voxel_emplacer);
         Polygons skin = layers[layer_nr];
         if (layer_nr > 0)
@@ -142,18 +138,16 @@ void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, cons
 
 std::vector<Polygons> InterlockingGenerator::computeUnionedVolumeRegions() const
 {
-    size_t max_layer_count = std::max(mesh_a.layers.size(), mesh_b.layers.size()) + 1; // introduce ghost layer on top for correct skin computation of topmost layer.
+    const size_t max_layer_count = std::max(mesh_a.layers.size(), mesh_b.layers.size()) + 1; // introduce ghost layer on top for correct skin computation of topmost layer.
     std::vector<Polygons> layer_regions(max_layer_count);
 
     for (unsigned int layer_nr = 0; layer_nr < layer_regions.size(); layer_nr++)
     {
         Polygons& layer_region = layer_regions[layer_nr];
-        coord_t z;
         for (Slicer* mesh : {&mesh_a, &mesh_b})
         {
             if (layer_nr >= mesh->layers.size()) break;
-            SlicerLayer& layer = mesh->layers[layer_nr];
-            z = layer.z;
+            const SlicerLayer& layer = mesh->layers[layer_nr];
             layer_region.add(layer.polygons);
         }
         layer_region = layer_region.offset(ignored_gap).offset(-ignored_gap); // Morphological close to merge meshes into single volume
@@ -199,8 +193,8 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
 {
     std::vector<std::vector<Polygons>> cell_area_per_mesh_per_layer = generateMicrostructure();
 
-    PointMatrix unapply_rotation = rotation.inverse();
-    size_t max_layer_count = std::max(mesh_a.layers.size(), mesh_b.layers.size());
+    const PointMatrix unapply_rotation = rotation.inverse();
+    const size_t max_layer_count = std::max(mesh_a.layers.size(), mesh_b.layers.size());
 
     std::vector<Polygons> structure_per_layer[2]; // for each mesh the structure on each layer
     structure_per_layer[0].resize((max_layer_count + 1) / beam_layer_count);
