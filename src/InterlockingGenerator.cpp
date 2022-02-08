@@ -66,12 +66,12 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
     coord_t cell_width = (line_width_per_mesh[0] + line_width_per_mesh[1]) * 2 * 1.1;
     coord_t beam_layer_count = round_divide((line_width_per_mesh[0] + line_width_per_mesh[1]) * 2 / 3, layer_thickness);
 
-    PointMatrix rotation(0.0);
+    PointMatrix rotation(22.5);
 
-    DilationKernel interface_dilation(GridPoint3(3,3,3), DilationKernel::Type::PRISM);
+    DilationKernel interface_dilation(GridPoint3(2,2,2), DilationKernel::Type::PRISM);
 
-    constexpr bool air_filtering = true;
-    DilationKernel air_dilation(GridPoint3(1,1,1), DilationKernel::Type::DIAMOND);
+    constexpr bool air_filtering = true; // Whether to remove all of the interlocking structure which would be visible on the outside
+    DilationKernel air_dilation(GridPoint3(3,3,3), DilationKernel::Type::DIAMOND);
 
 
     Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count * layer_thickness);
