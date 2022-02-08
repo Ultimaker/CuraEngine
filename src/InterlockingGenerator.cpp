@@ -233,9 +233,15 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
 
     for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
     {
-        for (Polygons& layer_structure : structure_per_layer[mesh_idx])
+        for (size_t layer_nr = 0; layer_nr < structure_per_layer[mesh_idx].size(); layer_nr++)
         {
+            Polygons& layer_structure = structure_per_layer[mesh_idx][layer_nr];
             layer_structure = layer_structure.unionPolygons();
+            if ( ! air_filtering)
+            {
+                const Polygons& layer_region = layer_regions[layer_nr];
+                layer_structure = layer_region.intersection(layer_structure); // Prevent structure from protruding out of the models
+            }
             layer_structure.applyMatrix(unapply_rotation);
         }
     }
@@ -246,19 +252,11 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         for (size_t layer_nr = 0; layer_nr < max_layer_count; layer_nr++)
         {
             if (layer_nr >= mesh->layers.size()) break;
-            const Polygons& layer_region = layer_regions[layer_nr];
-            const Polygons* areas_here = &structure_per_layer[mesh_idx][layer_nr / beam_layer_count];
-            Polygons areas_here_limited_to_layer_outlines;
-            if ( ! air_filtering)
-            {
-                areas_here_limited_to_layer_outlines = layer_region.intersection(*areas_here); // Prevent structure from protruding out of the models
-                areas_here = &areas_here_limited_to_layer_outlines;
-            }
-
+            const Polygons& areas_here = structure_per_layer[mesh_idx][layer_nr / beam_layer_count];
             const Polygons& areas_other = structure_per_layer[ ! mesh_idx][layer_nr / beam_layer_count];
 
             SlicerLayer& layer = mesh->layers[layer_nr];
-            layer.polygons = layer.polygons.unionPolygons(*areas_here) // extend layer areas outward with newly added beams
+            layer.polygons = layer.polygons.unionPolygons(areas_here) // extend layer areas outward with newly added beams
                                             .difference(areas_other); // reduce layer areas inward with beams from other mesh
         }
     }
