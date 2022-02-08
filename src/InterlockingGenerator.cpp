@@ -125,7 +125,7 @@ InterlockingGenerator::Cell::Cell()
     assert(has_mesh.size() >= 1);
 }
 
-std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxels(const DilationKernel& kernel)
+std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxels(const DilationKernel& kernel) const
 {
     std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh(2);
 
@@ -150,7 +150,7 @@ std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxel
     return voxels_per_mesh;
 }
 
-void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells)
+void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const
 {
     auto voxel_emplacer = [&cells](GridPoint3 p) { cells.emplace(p); return true; };
 
@@ -168,7 +168,7 @@ void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, cons
     }
 }
 
-void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_regions)
+void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_regions) const
 {
     for (unsigned int layer_nr = 0; layer_nr < layer_regions.size(); layer_nr++)
     {
@@ -187,7 +187,7 @@ void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_reg
     }
 }
 
-void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer)
+void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer) const
 {
     cell_area_per_mesh_per_layer.resize(2);
     cell_area_per_mesh_per_layer[0].resize(2);
@@ -218,7 +218,7 @@ void InterlockingGenerator::generateMicrostructure(std::vector<std::vector<Polyg
     }
 }
 
-void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer, const std::vector<Polygons>& layer_regions)
+void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer, const std::vector<Polygons>& layer_regions) const
 {
     PointMatrix unapply_rotation = rotation.inverse();
 

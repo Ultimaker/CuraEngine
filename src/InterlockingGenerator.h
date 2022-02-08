@@ -49,16 +49,16 @@ protected:
      * 
      * \return The shell voxels for mesh a and those for mesh b
      */
-    std::vector<std::unordered_set<GridPoint3>> getShellVoxels(const DilationKernel& kernel);
+    std::vector<std::unordered_set<GridPoint3>> getShellVoxels(const DilationKernel& kernel) const;
     
     
-    void addBoundaryCells(std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells);
+    void addBoundaryCells(std::vector<Polygons>& layers, const DilationKernel& kernel, std::unordered_set<GridPoint3>& cells) const;
 
-    void computeLayerRegions(std::vector<Polygons>& layer_regions);
+    void computeLayerRegions(std::vector<Polygons>& layer_regions) const;
 
-    void generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer);
+    void generateMicrostructure(std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer) const;
 
-    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer, const std::vector<Polygons>& layer_regions);
+    void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer, const std::vector<Polygons>& layer_regions) const;
 
     static const coord_t ignored_gap = 100u; //!< Distance between models to be considered next to each other so that an interlocking structure will be generated there
 

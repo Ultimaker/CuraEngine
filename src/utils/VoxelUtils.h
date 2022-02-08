@@ -48,21 +48,21 @@ public:
     /*!
      * \return Whether executing was stopped short as indicated by the \p cell_processing_function
      */
-    bool walkLine(Point3 start, Point3 end, const std::function<bool (GridPoint3)>& process_cell_func);
+    bool walkLine(Point3 start, Point3 end, const std::function<bool (GridPoint3)>& process_cell_func) const;
 
-    bool walkPolygons(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func);
+    bool walkPolygons(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func) const;
 
-    bool walkDilatedPolygons(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func);
+    bool walkDilatedPolygons(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func) const;
 
 private:
     /*!
      * \warning the \p polys is assumed to be translated by half the cell_size in xy alreadu
      */
-    bool _walkAreas(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func);
+    bool _walkAreas(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func) const;
 
 public:
-    bool walkAreas(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func);
-    bool walkDilatedAreas(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func);
+    bool walkAreas(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func) const;
+    bool walkDilatedAreas(const Polygons& polys, coord_t z, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func) const;
 
     /*!
      * Dilate with a kernel
@@ -71,9 +71,9 @@ public:
      * 
      * If the \p kernel_size is even then the kernel is applied off center, such that \p loc is toward the lower end
      */
-    bool dilate(GridPoint3 loc, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func);
+    bool dilate(GridPoint3 loc, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func) const;
 
-    std::function<bool (GridPoint3)> dilate(const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func);
+    std::function<bool (GridPoint3)> dilate(const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func) const;
     
     GridPoint3 toGridPoint(const Point3& point)  const
     {
