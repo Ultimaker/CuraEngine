@@ -58,13 +58,13 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
     line_width_per_mesh[0] = mesh_a.mesh->settings.get<coord_t>("wall_line_width_0");
     line_width_per_mesh[1] = mesh_b.mesh->settings.get<coord_t>("wall_line_width_0");
 
-    coord_t layer_height = Application::getInstance().current_slice->scene.settings.get<coord_t>("layer_height");
+    coord_t layer_thickness = Application::getInstance().current_slice->scene.settings.get<coord_t>("layer_height");
 
 
 
     // TODO: make settigns for these:
     coord_t cell_width = (line_width_per_mesh[0] + line_width_per_mesh[1]) * 2 * 1.1;
-    coord_t beam_layer_count = round_divide((line_width_per_mesh[0] + line_width_per_mesh[1]) * 2 / 3, layer_height);
+    coord_t beam_layer_count = round_divide((line_width_per_mesh[0] + line_width_per_mesh[1]) * 2 / 3, layer_thickness);
 
     PointMatrix rotation(0.0);
 
@@ -74,7 +74,7 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
     DilationKernel air_dilation(GridPoint3(1,1,1), DilationKernel::Type::DIAMOND);
 
 
-    Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count * layer_height);
+    Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count * layer_thickness);
     
     std::vector<coord_t> layer_heights;
     {
