@@ -21,15 +21,6 @@ class InterlockingGenerator
 public:
     static void generateInterlockingStructure(std::vector<Slicer*>& volumes);
 
-    /*!
-     * Voxel cell for interlocking microstructure
-     */
-    struct Cell
-    {
-        std::vector<bool> has_mesh;
-        Cell();
-    };
-
 protected:
     
     static void generateInterlockingStructure(Slicer& mesh_a, Slicer& mesh_b);

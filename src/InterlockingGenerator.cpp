@@ -117,12 +117,6 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
     gen.applyMicrostructureToOutlines(has_all_meshes, cell_area_per_mesh_per_layer, layer_regions);
 }
 
-InterlockingGenerator::Cell::Cell()
-: has_mesh(2, false)
-{
-    assert(has_mesh.size() >= 1);
-}
-
 std::vector<std::unordered_set<GridPoint3>> InterlockingGenerator::getShellVoxels(const DilationKernel& kernel) const
 {
     std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh(2);
