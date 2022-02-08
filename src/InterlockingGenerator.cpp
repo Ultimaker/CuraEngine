@@ -53,7 +53,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
                 const DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::PRISM);
 
                 const bool air_filtering = boundary_avoidance > 0;
-                const DilationKernel air_dilation(GridPoint3(boundary_avoidance, boundary_avoidance, boundary_avoidance), DilationKernel::Type::DIAMOND);
+                const DilationKernel air_dilation(GridPoint3(boundary_avoidance, boundary_avoidance, boundary_avoidance), DilationKernel::Type::PRISM);
 
                 const coord_t cell_width = beam_widths[0] + beam_widths[1];
                 const Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count);
