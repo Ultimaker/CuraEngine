@@ -185,7 +185,6 @@ void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_reg
         }
         layer_region = layer_region.offset(ignored_gap).offset(-ignored_gap); // Morphological close to merge meshes into single volume
         layer_region.applyMatrix(rotation);
-        layer_heights[layer_nr] = z;
     }
 }
 
