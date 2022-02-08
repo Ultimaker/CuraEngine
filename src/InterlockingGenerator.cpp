@@ -26,7 +26,8 @@ namespace cura
     
 // TODO: only go up to the min layer count
 
-// TODO: only compute structure for half of the layers. The structure on odd layers is the same as on even layers!
+//TODO omit 0ca229dd6af196358733d076df108209c737f6b0 prevent empty layers from being generated on top
+
     
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
@@ -219,19 +220,19 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     PointMatrix unapply_rotation = rotation.inverse();
 
     std::vector<Polygons> structure_per_layer[2]; // for each mesh the structure on each layer
-    structure_per_layer[0].resize(max_layer_count);
-    structure_per_layer[1].resize(max_layer_count);
-    
+    structure_per_layer[0].resize(max_layer_count / beam_layer_count);
+    structure_per_layer[1].resize(max_layer_count / beam_layer_count);
+    // Only compute cell structure for half the layers, because since our beams are two layers high, every odd layer of the structure will be the same as the layer below.
     for (const GridPoint3& grid_loc : cells)
     {
         Point3 bottom_corner = vu.toLowerCorner(grid_loc);
         for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
         {
-            for (unsigned int layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z; layer_nr++)
+            for (unsigned int layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z; layer_nr += beam_layer_count)
             {
                 Polygons areas_here = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count) % cell_area_per_mesh_per_layer.size()][mesh_idx];
                 areas_here.translate(Point(bottom_corner.x, bottom_corner.y));
-                structure_per_layer[mesh_idx][layer_nr].add(areas_here);
+                structure_per_layer[mesh_idx][layer_nr / beam_layer_count].add(areas_here);
             }
         }
     }
@@ -252,7 +253,7 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         {
             if (layer_nr >= mesh->layers.size()) break;
             const Polygons& layer_region = layer_regions[layer_nr];
-            const Polygons* areas_here = &structure_per_layer[mesh_idx][layer_nr];
+            const Polygons* areas_here = &structure_per_layer[mesh_idx][layer_nr / beam_layer_count];
             Polygons areas_here_limited_to_layer_outlines;
             if ( ! air_filtering)
             {
@@ -260,7 +261,7 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
                 areas_here = &areas_here_limited_to_layer_outlines;
             }
 
-            const Polygons& areas_other = structure_per_layer[ ! mesh_idx][layer_nr];
+            const Polygons& areas_other = structure_per_layer[ ! mesh_idx][layer_nr / beam_layer_count];
 
             SlicerLayer& layer = mesh->layers[layer_nr];
             layer.polygons = layer.polygons.unionPolygons(*areas_here) // extend layer areas outward with newly added beams
