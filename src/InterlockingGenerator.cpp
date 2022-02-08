@@ -25,6 +25,8 @@ namespace cura
 // TODO more const
 
 // TODO fix test
+    
+// TODO: only go up to the min layer count
 
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
@@ -60,13 +62,10 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
     line_width_per_mesh[0] = mesh_a.mesh->settings.get<coord_t>("wall_line_width_0");
     line_width_per_mesh[1] = mesh_b.mesh->settings.get<coord_t>("wall_line_width_0");
 
-    coord_t layer_thickness = Application::getInstance().current_slice->scene.settings.get<coord_t>("layer_height");
-
-
 
     // TODO: make settigns for these:
     coord_t cell_width = (line_width_per_mesh[0] + line_width_per_mesh[1]) * 2 * 1.1;
-    coord_t beam_layer_count = round_divide((line_width_per_mesh[0] + line_width_per_mesh[1]) * 2 / 3, layer_thickness);
+    coord_t beam_layer_count = 2;
 
     PointMatrix rotation(22.5);
 
@@ -76,29 +75,24 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
     DilationKernel air_dilation(GridPoint3(3,3,3), DilationKernel::Type::DIAMOND);
 
 
-    Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count * layer_thickness);
+    Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count);
     
-    std::vector<coord_t> layer_heights;
+    size_t max_layer_count = 0;
     {
-        size_t layer_idx = 0;
         for (Slicer* mesh : {&mesh_a, &mesh_b})
         {
-            layer_heights.resize(std::max(layer_heights.size(), mesh->layers.size()));
-            for ( ; layer_idx < mesh->layers.size() ; layer_idx++)
-            {
-                layer_heights[layer_idx] = mesh->layers[layer_idx].z;
-            }
+            max_layer_count = std::max(max_layer_count, mesh->layers.size());
         }
-        layer_heights.push_back(layer_heights.back() + layer_thickness); // introduce ghost layer on top for correct skin computation of topmost layer.
+        max_layer_count++; // introduce ghost layer on top for correct skin computation of topmost layer.
     }
 
 
 
-    InterlockingGenerator gen(mesh_a, mesh_b, line_width_per_mesh, layer_heights, rotation, cell_size, beam_layer_count);
+    InterlockingGenerator gen(mesh_a, mesh_b, line_width_per_mesh, max_layer_count, rotation, cell_size, beam_layer_count);
 
     std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh = gen.getShellVoxels(interface_dilation);
 
-    std::vector<Polygons> layer_regions(layer_heights.size());
+    std::vector<Polygons> layer_regions(max_layer_count);
     gen.computeLayerRegions(layer_regions);
 
     std::unordered_set<GridPoint3>& has_any_mesh = voxels_per_mesh[0];
@@ -159,8 +153,7 @@ void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, cons
 
     for (size_t layer_nr = 0; layer_nr < layers.size(); layer_nr++)
     {
-        assert(layer_nr < layer_heights.size());
-        coord_t z = layer_heights[layer_nr];
+        coord_t z = layer_nr;
         vu.walkDilatedPolygons(layers[layer_nr], z, kernel, voxel_emplacer);
         Polygons skin = layers[layer_nr];
         if (layer_nr > 0)
@@ -231,13 +224,8 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
         {
             Slicer* mesh = (mesh_idx == 0)? &mesh_a : &mesh_b;
-            for (unsigned int layer_nr = 0; layer_nr < mesh->layers.size(); layer_nr++)
+            for (unsigned int layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z; layer_nr++)
             {
-                SlicerLayer& layer = mesh->layers[layer_nr];
-                coord_t z = layer.z;
-                if (z < bottom_corner.z) continue;
-                if (z > bottom_corner.z + cell_size.z) break;
-
                 Polygons areas_here = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count) % cell_area_per_mesh_per_layer.size()][mesh_idx];
                 Polygons areas_other = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count) % cell_area_per_mesh_per_layer.size()][ ! mesh_idx];
 
@@ -250,6 +238,7 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
                 areas_here.applyMatrix(unapply_rotation);
                 areas_other.applyMatrix(unapply_rotation);
 
+                SlicerLayer& layer = mesh->layers[layer_nr];
                 layer.polygons = layer.polygons.unionPolygons(areas_here) // extend layer areas outward with newly added beams
                                                .difference(areas_other); // reduce layer areas inward with beams from other mesh
             }

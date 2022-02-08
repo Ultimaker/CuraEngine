@@ -34,11 +34,11 @@ protected:
     
     static void generateInterlockingStructure(Slicer& mesh_a, Slicer& mesh_b);
 
-    InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t (& line_width_per_mesh)[2], const std::vector<coord_t>& layer_heights, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count)
+    InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t (& line_width_per_mesh)[2], const size_t max_layer_count, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count)
     : mesh_a(mesh_a)
     , mesh_b(mesh_b)
     , line_width_per_mesh(line_width_per_mesh)
-    , layer_heights(layer_heights)
+    , max_layer_count(max_layer_count)
     , vu(cell_size)
     , rotation(rotation)
     , cell_size(cell_size)
@@ -65,7 +65,7 @@ protected:
     Slicer& mesh_a;
     Slicer& mesh_b;
     coord_t (& line_width_per_mesh)[2]; // reference to an array of length 2
-    std::vector<coord_t> layer_heights;
+    const size_t max_layer_count;
 
     VoxelUtils vu;
 
