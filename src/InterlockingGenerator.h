@@ -34,7 +34,7 @@ protected:
     
     static void generateInterlockingStructure(Slicer& mesh_a, Slicer& mesh_b);
 
-    InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t (& line_width_per_mesh)[2], const size_t max_layer_count, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count)
+    InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t (& line_width_per_mesh)[2], const size_t max_layer_count, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count, bool air_filtering)
     : mesh_a(mesh_a)
     , mesh_b(mesh_b)
     , line_width_per_mesh(line_width_per_mesh)
@@ -43,6 +43,7 @@ protected:
     , rotation(rotation)
     , cell_size(cell_size)
     , beam_layer_count(beam_layer_count)
+    , air_filtering(air_filtering)
     {}
 
     /*!
@@ -72,6 +73,7 @@ protected:
     PointMatrix rotation;
     Point3 cell_size;
     coord_t beam_layer_count;
+    bool air_filtering; //!< Whether to fully remove all of the interlocking cells which would be visible on the outside. If no air filtering then those cells will be cut off midway in a beam.
 };
 
 }//namespace cura

@@ -73,7 +73,7 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
 
     DilationKernel interface_dilation(GridPoint3(2,2,2), DilationKernel::Type::PRISM);
 
-    constexpr bool air_filtering = true; // Whether to remove all of the interlocking structure which would be visible on the outside
+    constexpr bool air_filtering = true;
     DilationKernel air_dilation(GridPoint3(3,3,3), DilationKernel::Type::DIAMOND);
 
 
@@ -90,7 +90,7 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
 
 
 
-    InterlockingGenerator gen(mesh_a, mesh_b, line_width_per_mesh, max_layer_count, rotation, cell_size, beam_layer_count);
+    InterlockingGenerator gen(mesh_a, mesh_b, line_width_per_mesh, max_layer_count, rotation, cell_size, beam_layer_count, air_filtering);
 
     std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh = gen.getShellVoxels(interface_dilation);
 
@@ -254,13 +254,18 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         {
             if (layer_nr >= mesh->layers.size()) break;
             const Polygons& layer_region = layer_regions[layer_nr];
-            Polygons areas_here = layer_region.intersection(structure_per_layer[mesh_idx][layer_nr]); // Prevent structure from protruding out of the models
-            // TODO should only be needed when not air_filtering!
+            const Polygons* areas_here = &structure_per_layer[mesh_idx][layer_nr];
+            Polygons areas_here_limited_to_layer_outlines;
+            if ( ! air_filtering)
+            {
+                areas_here_limited_to_layer_outlines = layer_region.intersection(*areas_here); // Prevent structure from protruding out of the models
+                areas_here = &areas_here_limited_to_layer_outlines;
+            }
 
             const Polygons& areas_other = structure_per_layer[ ! mesh_idx][layer_nr];
 
             SlicerLayer& layer = mesh->layers[layer_nr];
-            layer.polygons = layer.polygons.unionPolygons(areas_here) // extend layer areas outward with newly added beams
+            layer.polygons = layer.polygons.unionPolygons(*areas_here) // extend layer areas outward with newly added beams
                                             .difference(areas_other); // reduce layer areas inward with beams from other mesh
         }
     }
