@@ -22,6 +22,8 @@ namespace cura
 
 // TODO more documentation
 
+// TODO more const
+
 // TODO fix test
 
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
@@ -243,12 +245,13 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
                 areas_other.translate(Point(bottom_corner.x, bottom_corner.y));
 
                 const Polygons& layer_region = layer_regions[layer_nr];
-                areas_here = layer_region.intersection(areas_here);
+                areas_here = layer_region.intersection(areas_here); // Prevent structure from protruding out of the models
 
                 areas_here.applyMatrix(unapply_rotation);
                 areas_other.applyMatrix(unapply_rotation);
 
-                layer.polygons = layer.polygons.unionPolygons(areas_here).difference(areas_other);
+                layer.polygons = layer.polygons.unionPolygons(areas_here) // extend layer areas outward with newly added beams
+                                               .difference(areas_other); // reduce layer areas inward with beams from other mesh
             }
         }
     }
