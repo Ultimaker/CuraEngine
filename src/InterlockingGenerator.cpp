@@ -21,8 +21,8 @@ namespace cura
 // TODO: fix pattern appearing on top of two simple cubes next to each other
 
 // TODO more documentation
-    
-// TODO early out for when meshes dont share any overlap in their bounding box
+
+// TODO fix test
 
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
@@ -34,7 +34,9 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
         {
             Slicer& mesh_b = *volumes[mesh_b_idx];
             size_t extruder_nr_b = mesh_b.mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
-            if (extruder_nr_a != extruder_nr_b)
+            if (extruder_nr_a != extruder_nr_b
+                && mesh_a.mesh->getAABB().offset(ignored_gap).hit(mesh_b.mesh->getAABB()) // early out for when meshes dont share any overlap in their bounding box
+            )
             {
                 generateInterlockingStructure(mesh_a, mesh_b);
             }
@@ -179,7 +181,7 @@ void InterlockingGenerator::computeLayerRegions(std::vector<Polygons>& layer_reg
             z = layer.z;
             layer_region.add(layer.polygons);
         }
-        layer_region = layer_region.offset(100).offset(-100); // Morphological close to merge meshes into single volume TODO hardcoded value
+        layer_region = layer_region.offset(ignored_gap).offset(-ignored_gap); // Morphological close to merge meshes into single volume
         layer_region.applyMatrix(rotation);
         layer_heights[layer_nr] = z;
     }

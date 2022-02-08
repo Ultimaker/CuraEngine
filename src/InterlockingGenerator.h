@@ -60,6 +60,8 @@ protected:
 
     void applyMicrostructureToOutlines(const std::unordered_set<GridPoint3>& cells, std::vector<std::vector<Polygons>>& cell_area_per_mesh_per_layer, const std::vector<Polygons>& layer_regions);
 
+    static const coord_t ignored_gap = 100u; //!< Distance between models to be considered next to each other so that an interlocking structure will be generated there
+
     Slicer& mesh_a;
     Slicer& mesh_b;
     coord_t (& line_width_per_mesh)[2]; // reference to an array of length 2
