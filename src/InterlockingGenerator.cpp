@@ -28,6 +28,8 @@ namespace cura
     
 // TODO: only go up to the min layer count
 
+// TODO: only compute structure for half of the layers. The structure on odd layers is the same as on even layers!
+    
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
     for (size_t mesh_a_idx = 0; mesh_a_idx < volumes.size(); mesh_a_idx++)
@@ -218,30 +220,48 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
 {
     PointMatrix unapply_rotation = rotation.inverse();
 
+    std::vector<Polygons> structure_per_layer[2]; // for each mesh the structure on each layer
+    structure_per_layer[0].resize(max_layer_count);
+    structure_per_layer[1].resize(max_layer_count);
+    
     for (const GridPoint3& grid_loc : cells)
     {
         Point3 bottom_corner = vu.toLowerCorner(grid_loc);
         for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
         {
-            Slicer* mesh = (mesh_idx == 0)? &mesh_a : &mesh_b;
             for (unsigned int layer_nr = bottom_corner.z; layer_nr < bottom_corner.z + cell_size.z; layer_nr++)
             {
                 Polygons areas_here = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count) % cell_area_per_mesh_per_layer.size()][mesh_idx];
-                Polygons areas_other = cell_area_per_mesh_per_layer[(layer_nr / beam_layer_count) % cell_area_per_mesh_per_layer.size()][ ! mesh_idx];
-
                 areas_here.translate(Point(bottom_corner.x, bottom_corner.y));
-                areas_other.translate(Point(bottom_corner.x, bottom_corner.y));
-
-                const Polygons& layer_region = layer_regions[layer_nr];
-                areas_here = layer_region.intersection(areas_here); // Prevent structure from protruding out of the models
-
-                areas_here.applyMatrix(unapply_rotation);
-                areas_other.applyMatrix(unapply_rotation);
-
-                SlicerLayer& layer = mesh->layers[layer_nr];
-                layer.polygons = layer.polygons.unionPolygons(areas_here) // extend layer areas outward with newly added beams
-                                               .difference(areas_other); // reduce layer areas inward with beams from other mesh
+                structure_per_layer[mesh_idx][layer_nr].add(areas_here);
             }
+        }
+    }
+
+    for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
+    {
+        for (Polygons& layer_structure : structure_per_layer[mesh_idx])
+        {
+            layer_structure = layer_structure.unionPolygons();
+            layer_structure.applyMatrix(unapply_rotation);
+        }
+    }
+
+    for (size_t mesh_idx = 0; mesh_idx < 2; mesh_idx++)
+    {
+        Slicer* mesh = (mesh_idx == 0)? &mesh_a : &mesh_b;
+        for (size_t layer_nr = 0; layer_nr < max_layer_count; layer_nr++)
+        {
+            if (layer_nr >= mesh->layers.size()) break;
+            const Polygons& layer_region = layer_regions[layer_nr];
+            Polygons areas_here = layer_region.intersection(structure_per_layer[mesh_idx][layer_nr]); // Prevent structure from protruding out of the models
+            // TODO should only be needed when not air_filtering!
+
+            const Polygons& areas_other = structure_per_layer[ ! mesh_idx][layer_nr];
+
+            SlicerLayer& layer = mesh->layers[layer_nr];
+            layer.polygons = layer.polygons.unionPolygons(areas_here) // extend layer areas outward with newly added beams
+                                            .difference(areas_other); // reduce layer areas inward with beams from other mesh
         }
     }
 }
