@@ -87,6 +87,7 @@ void InterlockingGenerator::generateInterlockingStructure(Slicer& mesh_a, Slicer
                 layer_heights[layer_idx] = mesh->layers[layer_idx].z;
             }
         }
+        layer_heights.push_back(layer_heights.back() + layer_thickness); // introduce ghost layer on top for correct skin computation of topmost layer.
     }
 
 
@@ -156,6 +157,7 @@ void InterlockingGenerator::addBoundaryCells(std::vector<Polygons>& layers, cons
 
     for (size_t layer_nr = 0; layer_nr < layers.size(); layer_nr++)
     {
+        assert(layer_nr < layer_heights.size());
         coord_t z = layer_heights[layer_nr];
         vu.walkDilatedPolygons(layers[layer_nr], z, kernel, voxel_emplacer);
         Polygons skin = layers[layer_nr];
