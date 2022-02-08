@@ -18,8 +18,6 @@ namespace cura
 
 // TODO: option for different amount of dilation for shell removal
 
-// TODO: fix pattern appearing on top of two simple cubes next to each other
-
 // TODO more documentation
 
 // TODO more const
