@@ -47,7 +47,7 @@ bool AABB3D::hit(const AABB3D& other) const
     return true;
 }
 
-void AABB3D::include(Point3 p)
+AABB3D AABB3D::include(Point3 p)
 {
     min.x = std::min(min.x, p.x);
     min.y = std::min(min.y, p.y);
@@ -55,9 +55,10 @@ void AABB3D::include(Point3 p)
     max.x = std::max(max.x, p.x);
     max.y = std::max(max.y, p.y);
     max.z = std::max(max.z, p.z);   
+    return *this;
 }
 
-void AABB3D::include(const AABB3D& aabb)
+AABB3D AABB3D::include(const AABB3D& aabb)
 {
     // Note that this is different from including the min and max points, since when 'min > max' it's used to denote an negative/empty box.
     min.x = std::min(min.x, aabb.min.x);
@@ -66,27 +67,31 @@ void AABB3D::include(const AABB3D& aabb)
     max.x = std::max(max.x, aabb.max.x);
     max.y = std::max(max.y, aabb.max.y);
     max.z = std::max(max.z, aabb.max.z);
+    return *this;
 }
 
-void AABB3D::includeZ(coord_t z)
+AABB3D AABB3D::includeZ(coord_t z)
 {
     min.z = std::min(min.z, z);
     max.z = std::max(max.z, z);
+    return *this;
 }
 
-void AABB3D::offset(Point3 offset)
+AABB3D AABB3D::offset(Point3 offset)
 {
     min += offset;
     max += offset;
+    return *this;
 }
 
-void AABB3D::offset(Point offset)
+AABB3D AABB3D::offset(Point offset)
 {
     min += offset;
     max += offset;
+    return *this;
 }
 
-void AABB3D::expandXY(int outset)
+AABB3D AABB3D::expandXY(int outset)
 {
     min -= Point3(outset, outset, 0);
     max += Point3(outset, outset, 0);
@@ -94,6 +99,7 @@ void AABB3D::expandXY(int outset)
     { // make this AABB3D invalid
         *this = AABB3D();
     }
+    return *this;
 }
 
 }//namespace cura
