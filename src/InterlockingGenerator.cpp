@@ -237,8 +237,8 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
             const Polygons& areas_other = structure_per_layer[ ! mesh_idx][layer_nr / beam_layer_count];
 
             SlicerLayer& layer = mesh->layers[layer_nr];
-            layer.polygons = layer.polygons.unionPolygons(*areas_here) // extend layer areas outward with newly added beams
-                                            .difference(areas_other); // reduce layer areas inward with beams from other mesh
+            layer.polygons = layer.polygons.difference(areas_other) // reduce layer areas inward with beams from other mesh
+                                            .unionPolygons(*areas_here); // extend layer areas outward with newly added beams
         }
     }
 }
