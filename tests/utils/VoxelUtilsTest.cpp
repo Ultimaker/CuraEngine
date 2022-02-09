@@ -25,8 +25,9 @@ public:
     static constexpr coord_t e = 5u; // should be less than half the cell_size
     static constexpr double allowed_area_error = 20.0 * 20.0;
     static constexpr int n_tests = 1000;
-    static constexpr int n_poly_points = 10;
-    static constexpr coord_t poly_size = 1000u;
+    static constexpr int min_n_poly_points = 5;
+    static constexpr int max_n_poly_points = 50;
+    static constexpr coord_t poly_size = 2000u;
     static constexpr coord_t z = 0u;
 
     void SetUp()
@@ -42,6 +43,7 @@ public:
             {
                 polys.emplace_back();
                 PolygonRef rand_points = polys.back();
+                int n_poly_points = min_n_poly_points + rand() % max_n_poly_points;
                 for (int i = 0; i < n_poly_points; i++)
                 {
                     rand_points.emplace_back(rand() % poly_size, rand() % poly_size);
