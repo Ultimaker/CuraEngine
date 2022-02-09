@@ -131,7 +131,7 @@ std::vector<Polygons> InterlockingGenerator::computeUnionedVolumeRegions() const
     const size_t max_layer_count = std::max(mesh_a.layers.size(), mesh_b.layers.size()) + 1; // introduce ghost layer on top for correct skin computation of topmost layer.
     std::vector<Polygons> layer_regions(max_layer_count);
 
-    for (unsigned int layer_nr = 0; layer_nr < layer_regions.size(); layer_nr++)
+    for (unsigned int layer_nr = 0; layer_nr < max_layer_count; layer_nr++)
     {
         Polygons& layer_region = layer_regions[layer_nr];
         for (Slicer* mesh : {&mesh_a, &mesh_b})
@@ -210,15 +210,6 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         {
             Polygons& layer_structure = structure_per_layer[mesh_idx][layer_nr];
             layer_structure = layer_structure.unionPolygons();
-            if ( ! air_filtering
-                || air_dilation.kernel_size.x < interface_dilation.kernel_size.x // prevent voxels floating in mid air
-                || air_dilation.kernel_size.y < interface_dilation.kernel_size.y
-                || air_dilation.kernel_size.z < interface_dilation.kernel_size.z
-            )
-            {
-                const Polygons& layer_region = layer_regions[layer_nr];
-                layer_structure = layer_region.intersection(layer_structure); // Prevent structure from protruding out of the models
-            }
             layer_structure.applyMatrix(unapply_rotation);
         }
     }
@@ -229,11 +220,24 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         for (size_t layer_nr = 0; layer_nr < max_layer_count; layer_nr++)
         {
             if (layer_nr >= mesh->layers.size()) break;
-            const Polygons& areas_here = structure_per_layer[mesh_idx][layer_nr / beam_layer_count];
+            const Polygons* areas_here = &structure_per_layer[mesh_idx][layer_nr / beam_layer_count];
+            Polygons area_here_limited_to_outline;
+            if ( ! air_filtering
+                || air_dilation.kernel_size.x < interface_dilation.kernel_size.x // prevent voxels floating in mid air
+                || air_dilation.kernel_size.y < interface_dilation.kernel_size.y
+                || air_dilation.kernel_size.z < interface_dilation.kernel_size.z
+            )
+            {
+                area_here_limited_to_outline = *areas_here;
+                Polygons layer_outlines = layer_regions[layer_nr];
+                layer_outlines.applyMatrix(unapply_rotation);
+                area_here_limited_to_outline = area_here_limited_to_outline.intersection(layer_outlines); // Prevent structure from protruding out of the models
+                areas_here = &area_here_limited_to_outline;
+            }
             const Polygons& areas_other = structure_per_layer[ ! mesh_idx][layer_nr / beam_layer_count];
 
             SlicerLayer& layer = mesh->layers[layer_nr];
-            layer.polygons = layer.polygons.unionPolygons(areas_here) // extend layer areas outward with newly added beams
+            layer.polygons = layer.polygons.unionPolygons(*areas_here) // extend layer areas outward with newly added beams
                                             .difference(areas_other); // reduce layer areas inward with beams from other mesh
         }
     }
