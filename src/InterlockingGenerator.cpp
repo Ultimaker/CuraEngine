@@ -33,7 +33,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
             Slicer& mesh_b = *volumes[mesh_b_idx];
             size_t extruder_nr_b = mesh_b.mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
             if (extruder_nr_a != extruder_nr_b
-                && mesh_a.mesh->getAABB().translate(ignored_gap).hit(mesh_b.mesh->getAABB()) // early out for when meshes dont share any overlap in their bounding box
+                && mesh_a.mesh->getAABB().expand(ignored_gap).hit(mesh_b.mesh->getAABB()) // early out for when meshes dont share any overlap in their bounding box
             )
             {
                 coord_t beam_widths[2];
