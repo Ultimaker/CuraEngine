@@ -108,7 +108,7 @@ bool VoxelUtils::walkDilatedPolygons(const Polygons& polys, coord_t z, const Dil
     {
         translated.translate(Point(translation.x, translation.y));
     }
-    return walkPolygons(translated, z + translation.z, [&kernel, &process_cell_func, this](GridPoint3 cell) { return dilate(cell, kernel, process_cell_func); });
+    return walkPolygons(translated, z + translation.z, dilate(kernel, process_cell_func));
 }
 
 bool VoxelUtils::walkAreas(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func) const
@@ -143,21 +143,18 @@ bool VoxelUtils::walkDilatedAreas(const Polygons& polys, coord_t z, const Dilati
     {
         translated.translate(Point(translation.x, translation.y));
     }
-    return _walkAreas(translated, z + translation.z, [&kernel, &process_cell_func, this](GridPoint3 cell) { return dilate(cell, kernel, process_cell_func); });
-}
-
-bool VoxelUtils::dilate(GridPoint3 loc, const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func) const
-{
-    for (const GridPoint3& rel : kernel.relative_cells)
-    {
-        bool continue_ = process_cell_func(loc + rel);
-        if ( ! continue_) return false;
-    }
-    return true;
+    return _walkAreas(translated, z + translation.z, dilate(kernel, process_cell_func));
 }
 
 std::function<bool (GridPoint3)> VoxelUtils::dilate(const DilationKernel& kernel, const std::function<bool (GridPoint3)>& process_cell_func) const
 {
-    return [&process_cell_func, &kernel, this](GridPoint3 p) { return dilate(p, kernel, process_cell_func); };
+    return [&process_cell_func, &kernel](GridPoint3 loc) {
+        for (const GridPoint3& rel : kernel.relative_cells)
+        {
+            bool continue_ = process_cell_func(loc + rel);
+            if ( ! continue_) return false;
+        }
+        return true;
+    };
 }
 } // namespace cura
