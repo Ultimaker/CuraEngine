@@ -62,6 +62,17 @@ public:
     }
 };
 
+TEST_F(VoxelUtilsTest, TestWalkLine)
+{
+    Point3 start(22, 16, 0);
+    Point3 end(0, 20, 0);
+    Point3 cell_size(30, 20, 1);
+    VoxelUtils vu(cell_size);
+    std::unordered_set<Point3> voxels;
+    vu.walkLine(start, end, [&voxels](GridPoint3 v) { voxels.emplace(v); return true; } );
+    ASSERT_LE(voxels.size(), 4)
+        << "A line ending in the cross-section between 4 voxels can cover 1 to 4 voxels at that end point";
+}
 TEST_F(VoxelUtilsTest, TestWalkBasic)
 {
     
