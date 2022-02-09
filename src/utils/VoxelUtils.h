@@ -12,23 +12,35 @@
 
 namespace cura 
 {
-/*
-struct GridPoint3 : public Point3
-{
-    template<typename... Args>
-    GridPoint3(Args... args)
-    : Point3(args...)
-    {}
-    GridPoint3()
-    : Point3()
-    {}
-};
-*/
+
+//TODO cleanup and documentation
 
 using GridPoint3 = Point3;
 
 struct DilationKernel
 {
+    /*!
+     * A cubic kernel checks all voxels in a cube around a reference voxel.
+     *  _____
+     * |\ ___\
+     * | |    |
+     *  \|____|
+     * 
+     * A diamond kernel uses a manhattan distance to create a diamond shape.
+     *  /|\
+     * /_|_\
+     * \ | /
+     *  \|/
+     * 
+     * A prism kernel is diamond in XY, but extrudes straight in Z.
+     *   / \
+     *  /   \
+     * |\   /|
+     * | \ / |
+     * |  |  |
+     *  \ | /
+     *   \|/
+     */
     enum class Type { CUBE, DIAMOND, PRISM };
     DilationKernel(GridPoint3 kernel_size, Type type);
     GridPoint3 kernel_size;
@@ -56,7 +68,7 @@ public:
 
 private:
     /*!
-     * \warning the \p polys is assumed to be translated by half the cell_size in xy alreadu
+     * \warning the \p polys is assumed to be translated by half the cell_size in xy already
      */
     bool _walkAreas(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func) const;
 

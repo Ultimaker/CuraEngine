@@ -14,11 +14,7 @@
 namespace cura 
 {
 
-// TODO: make dilation user parameter
-
-// TODO: option for different amount of dilation for shell removal
-
-// TODO fix test
+// TODO: use offsets instead of dilation kernels.
     
 // TODO: only go up to the min layer count
 
