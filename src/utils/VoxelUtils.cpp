@@ -63,10 +63,9 @@ bool VoxelUtils::walkLine(Point3 start, Point3 end, const std::function<bool (Gr
         bool continue_ = process_cell_func(current_cell);
         
         if ( ! continue_) return false;
-        if (current_cell == end_cell) break;
-        
+
         int stepping_dim = -1; // dimension in which the line next exits the current cell
-        float percentage_along_line = 1.1;
+        float percentage_along_line = std::numeric_limits<float>::max();
         for (int dim = 0; dim < 3; dim++)
         {
             if (diff[dim] == 0) continue;
@@ -79,6 +78,7 @@ bool VoxelUtils::walkLine(Point3 start, Point3 end, const std::function<bool (Gr
             }
         }
         assert(stepping_dim != -1);
+        if (percentage_along_line > 1.0) return true; // next cell is beyond the end
         current_cell[stepping_dim] += (diff[stepping_dim] > 0) ? 1 : -1;
     }
     return true;
