@@ -80,14 +80,22 @@ struct AABB3D
      * \param offset The offset with which to offset the AABB3D.
      * \return this object (which has changed)
      */
-    AABB3D offset(Point3 offset);
+    AABB3D translate(Point3 offset);
 
     /*!
      * Offset the coordinates of the bounding box.
      * \param offset The offset with which to offset the AABB3D.
      * \return this object (which has changed)
      */
-    AABB3D offset(Point offset);
+    AABB3D translate(Point offset);
+
+    /*!
+     * Offset the bounding box in the horizontal direction; outward or inward.
+     * 
+     * \param outset the distance (positive or negative) to expand the bounding box outward
+     * \return this object (which has changed)
+     */
+    AABB3D expand(coord_t outset);
 
     /*!
      * Offset the bounding box in the horizontal direction; outward or inward.

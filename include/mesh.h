@@ -86,12 +86,12 @@ public:
      * Offset the whole mesh (all vertices and the bounding box).
      * \param offset The offset byu which to offset the whole mesh.
      */
-    void offset(Point3 offset)
+    void translate(Point3 offset)
     {
         if (offset == Point3(0,0,0)) { return; }
         for(MeshVertex& v : vertices)
             v.p += offset;
-        aabb.offset(offset);
+        aabb.translate(offset);
     }
 
     /*!

@@ -106,7 +106,7 @@ void MeshGroup::finalize()
             Point3 object_size = object_max - object_min;
             mesh_offset += Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
         }
-        mesh.offset(mesh_offset + meshgroup_offset);
+        mesh.translate(mesh_offset + meshgroup_offset);
     }
     scaleFromBottom(settings.get<Ratio>("material_shrinkage_percentage_xy"), settings.get<Ratio>("material_shrinkage_percentage_z")); // Compensate for the shrinkage of the material.
 }

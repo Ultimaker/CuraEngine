@@ -77,17 +77,28 @@ AABB3D AABB3D::includeZ(coord_t z)
     return *this;
 }
 
-AABB3D AABB3D::offset(Point3 offset)
+AABB3D AABB3D::translate(Point3 offset)
 {
     min += offset;
     max += offset;
     return *this;
 }
 
-AABB3D AABB3D::offset(Point offset)
+AABB3D AABB3D::translate(Point offset)
 {
     min += offset;
     max += offset;
+    return *this;
+}
+
+AABB3D AABB3D::expand(coord_t outset)
+{
+    min -= Point3(outset, outset, outset);
+    max += Point3(outset, outset, outset);
+    if (min.x > max.x || min.y > max.y || min.z > max.z)
+    { // make this AABB3D invalid
+        *this = AABB3D();
+    }
     return *this;
 }
 
