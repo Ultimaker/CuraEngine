@@ -13,14 +13,9 @@
 
 namespace cura 
 {
-
-// TODO: use offsets instead of dilation kernels.
     
-// TODO: only go up to the min layer count
-
-//TODO omit 0ca229dd6af196358733d076df108209c737f6b0 prevent empty layers from being generated on top
-
-    
+// TODO: optimization: only go up to the min layer count + a couple of layers instead of max_layer_count
+  
 void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
 {
     Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
@@ -215,7 +210,11 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         {
             Polygons& layer_structure = structure_per_layer[mesh_idx][layer_nr];
             layer_structure = layer_structure.unionPolygons();
-            if ( ! air_filtering)
+            if ( ! air_filtering
+                || air_dilation.kernel_size.x < interface_dilation.kernel_size.x // prevent voxels floating in mid air
+                || air_dilation.kernel_size.y < interface_dilation.kernel_size.y
+                || air_dilation.kernel_size.z < interface_dilation.kernel_size.z
+            )
             {
                 const Polygons& layer_region = layer_regions[layer_nr];
                 layer_structure = layer_region.intersection(layer_structure); // Prevent structure from protruding out of the models
