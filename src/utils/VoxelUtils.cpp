@@ -124,7 +124,7 @@ bool VoxelUtils::walkAreas(const Polygons& polys, coord_t z, const std::function
 
 bool VoxelUtils::_walkAreas(const Polygons& polys, coord_t z, const std::function<bool (GridPoint3)>& process_cell_func) const
 {
-    std::vector<Point> skin_points = PolygonUtils::spreadDotsArea(polys, cell_size.x);
+    std::vector<Point> skin_points = PolygonUtils::spreadDotsArea(polys, Point(cell_size.x, cell_size.y));
     for (Point p : skin_points)
     {
         bool continue_ = process_cell_func(toGridPoint(Point3(p.X + cell_size.x / 2, p.Y + cell_size.y / 2, z)));
