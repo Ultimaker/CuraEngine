@@ -2644,6 +2644,18 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         // process sub-areas in this support infill area with different densities
         if ((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density.empty())
         {
+            if (! part.wall_toolpaths.empty())
+            {
+                const BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(part.wall_toolpaths);
+                for (const PathJunctions& paths : bins)
+                {
+                    for (const LineJunctions& line : paths)
+                    {
+                        gcode_layer.addInfillWall(line, gcode_layer.configs_storage.support_infill_config[0], false);
+                    }
+                }
+                added_something = true;
+            }
             continue;
         }
 
