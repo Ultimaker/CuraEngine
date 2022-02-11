@@ -1168,19 +1168,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     for (const SkirtBrimLine& line : storage.skirt_brim[extruder_nr])
     {
         gcode_layer.addPolygonsByOptimizer(line.closed_polygons, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
-        Polygons separate_lines;
-        for (ConstPolygonRef poly : line.open_polylines)
-        {
-            if (poly.empty()) continue;
-            Point a = poly[0];
-            for (size_t point_idx = 1; point_idx < poly.size(); point_idx++)
-            {
-                Point b = poly[point_idx];
-                separate_lines.addLine(a, b);
-                a = b;
-            }
-        }
-        gcode_layer.addLinesByOptimizer(separate_lines, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], SpaceFillType::PolyLines);
+        gcode_layer.addLinesByOptimizer(line.open_polylines, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], SpaceFillType::PolyLines);
     }
     /*
     const Polygons& original_skirt_brim = storage.skirt_brim[extruder_nr];
