@@ -495,7 +495,12 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
         {
             case EPlatformAdhesion::BRIM:
-                adhesion_size = skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width") * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * skirt_brim_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
+                adhesion_size = 
+                    skirt_brim_extruder.settings.get<coord_t>("brim_width")
+                    + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width")
+                    * skirt_brim_extruder.settings.get<size_t>("brim_line_count")
+                    * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
+                    + extra_skirt_line_width;
                 break;
             case EPlatformAdhesion::RAFT:
             {
