@@ -873,8 +873,12 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             case EPlatformAdhesion::SKIRT:
             case EPlatformAdhesion::BRIM:
             {
-                const size_t skirt_brim_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr;
-                max_print_height_per_extruder[skirt_brim_extruder_nr] = std::max(0, max_print_height_per_extruder[skirt_brim_extruder_nr]); //Includes layer 0.
+                const std::vector<ExtruderTrain*> skirt_brim_extruder_trains = mesh_group_settings.get<std::vector<ExtruderTrain*>>("skirt_brim_extruder_nr");
+                for (ExtruderTrain* train : skirt_brim_extruder_trains)
+                {
+                    const size_t skirt_brim_extruder_nr = train->extruder_nr;
+                    max_print_height_per_extruder[skirt_brim_extruder_nr] = std::max(0, max_print_height_per_extruder[skirt_brim_extruder_nr]); //Includes layer 0.
+                }
                 break;
             }
             case EPlatformAdhesion::RAFT:
@@ -980,7 +984,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
+//     ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
     EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
     if (adhesion_type == EPlatformAdhesion::RAFT)
@@ -998,8 +1002,8 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
 
     // Also apply maximum_[deviation|resolution] to skirt/brim.
-    const coord_t line_segment_resolution = train.settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t line_segment_deviation = train.settings.get<coord_t>("meshfix_maximum_deviation");
+//     const coord_t line_segment_resolution = train.settings.get<coord_t>("meshfix_maximum_resolution");
+//     const coord_t line_segment_deviation = train.settings.get<coord_t>("meshfix_maximum_deviation");
     // TODO:
 //     for (Polygons& polygons : storage.skirt_brim)
 //     {

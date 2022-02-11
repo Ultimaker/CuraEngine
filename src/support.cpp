@@ -480,27 +480,31 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 break;
         }
         coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
-        const ExtruderTrain& skirt_brim_extruder = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
         coord_t extra_skirt_line_width = 0;
         const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
         for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
         {
-            if (extruder_nr == skirt_brim_extruder.extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+            if (!is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
             {
                 continue;
             }
             const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
             extra_skirt_line_width += other_extruder.settings.get<coord_t>("skirt_brim_line_width") * other_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
         }
+        const std::vector<ExtruderTrain*> skirt_brim_extruders = mesh_group_settings.get<std::vector<ExtruderTrain*>>("skirt_brim_extruder_nr");
         switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
         {
             case EPlatformAdhesion::BRIM:
-                adhesion_size = 
-                    skirt_brim_extruder.settings.get<coord_t>("brim_width")
-                    + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width")
-                    * skirt_brim_extruder.settings.get<size_t>("brim_line_count")
-                    * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
-                    + extra_skirt_line_width;
+                for (ExtruderTrain* skirt_brim_extruder_p : skirt_brim_extruders)
+                {
+                    ExtruderTrain& skirt_brim_extruder = *skirt_brim_extruder_p;
+                    adhesion_size = std::max(adhesion_size, coord_t(
+                        skirt_brim_extruder.settings.get<coord_t>("brim_width")
+                        + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width")
+                        * (skirt_brim_extruder.settings.get<size_t>("brim_line_count") - 1) // - 1 because the line is also included in extra_skirt_line_width
+                        * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
+                        + extra_skirt_line_width));
+                }
                 break;
             case EPlatformAdhesion::RAFT:
             {
@@ -509,7 +513,16 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 break;
             }
             case EPlatformAdhesion::SKIRT:
-                adhesion_size = skirt_brim_extruder.settings.get<coord_t>("skirt_gap") + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width") * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * skirt_brim_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;
+                for (ExtruderTrain* skirt_brim_extruder_p : skirt_brim_extruders)
+                {
+                    ExtruderTrain& skirt_brim_extruder = *skirt_brim_extruder_p;
+                    adhesion_size = std::max(adhesion_size, coord_t(
+                        skirt_brim_extruder.settings.get<coord_t>("skirt_gap")
+                        + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width")
+                        * (skirt_brim_extruder.settings.get<size_t>("skirt_line_count") - 1) // - 1 because the line is also included in extra_skirt_line_width
+                        * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
+                        + extra_skirt_line_width));
+                }
                 break;
             case EPlatformAdhesion::NONE:
                 adhesion_size = 0;
@@ -519,6 +532,8 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 break;
         }
         machine_volume_border = machine_volume_border.offset(-adhesion_size);
+        
+        // TODO: translate machine volume with extruder offset
 
         const coord_t conical_smallest_breadth = infill_settings.get<coord_t>("support_conical_min_width");
         Polygons insetted = supportLayer_up.offset(-conical_smallest_breadth / 2);

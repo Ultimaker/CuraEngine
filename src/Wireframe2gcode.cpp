@@ -24,7 +24,7 @@ namespace cura
 void Wireframe2gcode::writeGCode()
 {
     Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
-    const size_t start_extruder_nr = scene_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr; // TODO: figure out how Wireframe works with dual extrusion
+    const size_t start_extruder_nr = scene_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr; // TODO: figure out how Wireframe works with dual extrusion // TODO: what if the extruder is not overridden?!
     gcode.preSetup(start_extruder_nr);
     gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
 
@@ -567,7 +567,7 @@ void Wireframe2gcode::processStartingCode()
 {
     const Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
     const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
-    size_t start_extruder_nr = scene_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr;
+    size_t start_extruder_nr = scene_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr; // TODO
 
     if (Application::getInstance().communication->isSequential())
     {

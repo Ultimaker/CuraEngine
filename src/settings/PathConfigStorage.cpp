@@ -132,7 +132,6 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
 : support_infill_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr)
 , support_roof_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr)
 , support_bottom_extruder_nr(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr)
-, skirt_brim_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("skirt_brim_extruder_nr"))
 , raft_base_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr"))
 , raft_interface_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_interface_extruder_nr"))
 , raft_surface_train(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_surface_extruder_nr"))
