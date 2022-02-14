@@ -295,6 +295,15 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitc
     return ret;
 }
 
+void Polygons::toPolylines()
+{
+    for (PolygonRef poly : *this)
+    {
+        if (poly.empty()) continue;
+        poly.emplace_back(poly.front());
+    }
+}
+
 void Polygons::splitPolylinesIntoSegments(Polygons& result) const
 {
     for (ConstPolygonRef poly : *this)
