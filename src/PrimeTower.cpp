@@ -70,25 +70,14 @@ void PrimeTower::generateGroundpoly()
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
-    
-    const int brim_extruder_nr = std::max(0, mesh_group_settings.get<int>("skirt_brim_extruder_nr"));
-    const Settings& brim_extruder_settings = Application::getInstance().current_slice->scene.extruders[brim_extruder_nr].settings;
-    const bool has_raft = (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT);
-    const bool has_prime_brim = mesh_group_settings.get<bool>("prime_tower_brim_enable");
-    const coord_t offset = (has_raft || ! has_prime_brim) ? 0 :
-        brim_extruder_settings.get<size_t>("brim_line_count") *
-        brim_extruder_settings.get<coord_t>("skirt_brim_line_width") *
-        brim_extruder_settings.get<Ratio>("initial_layer_line_width_factor");
 
-    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x") - offset;
-    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y") - offset;
+    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
+    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
     const coord_t tower_radius = tower_size / 2;
     outer_poly.add(PolygonUtils::makeCircle(Point(x - tower_radius, y + tower_radius), tower_radius, TAU / CIRCLE_RESOLUTION));
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
     post_wipe_point = Point(x - tower_size / 2, y + tower_size / 2);
-
-    outer_poly_first_layer = outer_poly.offset(offset);
 }
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
