@@ -550,11 +550,13 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) con
     return train.settings.get<bool>("prime_blob_enable");
 }
 
-Polygon SliceDataStorage::getMachineBorder(bool adhesion_offset) const
+Polygons SliceDataStorage::getMachineBorder(bool adhesion_offset) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
-    Polygon border{};
+    Polygons border;
+    border.emplace_back();
+    PolygonRef outline = border.back();
     switch(mesh_group_settings.get<BuildPlateShape>("machine_shape"))
     {
         case BuildPlateShape::ELLIPTIC:
@@ -566,16 +568,23 @@ Polygon SliceDataStorage::getMachineBorder(bool adhesion_offset) const
             for (unsigned int i = 0; i < circle_resolution; i++)
             {
                 const double angle = M_PI * 2 * i / circle_resolution;
-                border.emplace_back(machine_size.getMiddle().x + std::cos(angle) * width / 2,
+                outline.emplace_back(machine_size.getMiddle().x + std::cos(angle) * width / 2,
                                     machine_size.getMiddle().y + std::sin(angle) * depth / 2);
             }
             break;
         }
         case BuildPlateShape::RECTANGULAR:
         default:
-            border = machine_size.flatten().toPolygon();
+            outline = machine_size.flatten().toPolygon();
             break;
     }
+
+    Polygons disallowed_areas = mesh_group_settings.get<Polygons>("machine_disallowed_areas");
+    disallowed_areas.translate(machine_size.flatten().getMiddle()); // apparently the frontend offsets the disallowed areas from the middle?
+    disallowed_areas = disallowed_areas.unionPolygons(); // union overlapping disallowed areas
+    
+    border = border.difference(disallowed_areas);
+    
     if (!adhesion_offset) {
         return border;
     }
@@ -611,7 +620,7 @@ Polygon SliceDataStorage::getMachineBorder(bool adhesion_offset) const
             log("Unknown platform adhesion type! Please implement the width of the platform adhesion here.");
             break;
     }
-    return border.offset(-adhesion_size)[0];
+    return border.offset(-adhesion_size);
 }
 
 

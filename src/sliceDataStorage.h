@@ -390,9 +390,9 @@ public:
      *
      * \param adhesion_offset whether to offset the border by the adhesion width to account for brims, skirts and
      * rafts, if present.
-     * \return a Polygon representing the usable area of the print bed.
+     * \return the Polygons representing the usable area of the print bed.
      */
-    Polygon getMachineBorder(bool adhesion_offset = false) const;
+    Polygons getMachineBorder(bool adhesion_offset = false) const;
 
 private:
     /*!
