@@ -115,8 +115,10 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     }
     
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
-    Polygons allowed_areas = covered_area.offset(max_offset * 2) // just a large enough offset so that we can work with intersection polylines with allowed areas, rather than differencing polylines iwth disallowed areas, since polygon.differencePolylines is not implemented
-                                        .difference(covered_area);
+    
+    Polygons machine_area;
+    machine_area.emplace_back(storage.machine_size.flatten().toPolygon());
+    Polygons allowed_areas = machine_area.difference(covered_area);
     // TODO: make allowed areas a bit smaller so that internal external-only brims don't overlap with model by half the line width
 
     bool brim_lines_can_be_cut = skirt_brim_extruder_nr < 0; // brims can interfere with each other.
