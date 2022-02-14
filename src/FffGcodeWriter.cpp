@@ -2642,23 +2642,57 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         // always process the wall overlap if walls are generated
         const int current_support_infill_overlap = (part.inset_count_to_generate > 0) ? default_support_infill_overlap : 0;
 
-        // process sub-areas in this support infill area with different densities
-        if ((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density.empty())
+        //The support infill walls were generated separately, first. Always add them, regardless of how many densities we have.
+        VariableWidthPaths wall_toolpaths = part.wall_toolpaths;
+        if(!wall_toolpaths.empty())
+        {
+            const bool pack_by_inset = !infill_extruder.settings.get<bool>("optimize_wall_printing_order");
+            const InsetDirection inset_direction = infill_extruder.settings.get<InsetDirection>("inset_direction");
+            const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
+
+            std::set<size_t>* p_bins_with_index_zero_insets = nullptr;
+            BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths, pack_by_inset, center_last, p_bins_with_index_zero_insets);
+
+            bool alternate_bin_direction = false;
+            for(PathJunctions& paths : bins)
+            {
+                const ZSeamConfig& z_seam_config = ZSeamConfig();
+                constexpr coord_t wall_0_wipe_dist = 0;
+                constexpr float flow_ratio = 1.0;
+                constexpr bool always_retract = false;
+                gcode_layer.addWalls
+                (
+                    paths,
+                    infill_extruder.settings,
+                    gcode_layer.configs_storage.support_infill_config[0],
+                    gcode_layer.configs_storage.support_infill_config[0],
+                    z_seam_config,
+                    wall_0_wipe_dist,
+                    flow_ratio,
+                    always_retract,
+                    alternate_bin_direction
+                );
+                alternate_bin_direction = !alternate_bin_direction;
+            }
+            added_something = true;
+        }
+
+        if((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density.empty())
         {
             continue;
         }
 
-        for (unsigned int combine_idx = 0; combine_idx < part.infill_area_per_combine_per_density[0].size(); ++combine_idx)
+        for(unsigned int combine_idx = 0; combine_idx < part.infill_area_per_combine_per_density[0].size(); ++combine_idx)
         {
             const coord_t support_line_width = default_support_line_width * (combine_idx + 1);
 
             Polygons support_polygons;
-            VariableWidthPaths wall_toolpaths = part.wall_toolpaths;
+            VariableWidthPaths wall_toolpaths_here;
             Polygons support_lines;
             const size_t max_density_idx = part.infill_area_per_combine_per_density.size() - 1;
-            for (size_t density_idx = max_density_idx; (density_idx + 1) > 0; --density_idx)
+            for(size_t density_idx = max_density_idx; (density_idx + 1) > 0; --density_idx)
             {
-                if (combine_idx >= part.infill_area_per_combine_per_density[density_idx].size())
+                if(combine_idx >= part.infill_area_per_combine_per_density[density_idx].size())
                 {
                     continue;
                 }
@@ -2666,7 +2700,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int support_line_distance_here = default_support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 const int support_shift = support_line_distance_here / 2;
-                if (density_idx == max_density_idx || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
+                if(density_idx == max_density_idx || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D)
                 {
                     support_line_distance_here /= 2;
                 }
@@ -2682,7 +2716,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                    max_resolution, max_deviation,
                                    wall_count, infill_origin, support_connect_zigzags,
                                    use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
-                infill_comp.generate(wall_toolpaths, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
+                infill_comp.generate(wall_toolpaths_here, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
             }
 
             setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
@@ -2691,7 +2725,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             const bool alternate_inset_direction = infill_extruder.settings.get<bool>("material_alternate_walls");
             const bool alternate_layer_print_direction = alternate_inset_direction && gcode_layer.getLayerNr() % 2 == 1;
 
-            if (! wall_toolpaths.empty())
+            if(!wall_toolpaths_here.empty())
             {
                 const bool pack_by_inset = !infill_extruder.settings.get<bool>("optimize_wall_printing_order");
                 const InsetDirection inset_direction = infill_extruder.settings.get<InsetDirection>("inset_direction");
@@ -2701,7 +2735,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 BinJunctions bins = InsetOrderOptimizer::variableWidthPathToBinJunctions(wall_toolpaths, pack_by_inset, center_last, p_bins_with_index_zero_insets);
 
                 bool alternate_bin_direction = false;
-                for (PathJunctions& paths : bins)
+                for(PathJunctions& paths : bins)
                 {
                     const ZSeamConfig& z_seam_config = ZSeamConfig();
                     constexpr coord_t wall_0_wipe_dist = 0;
@@ -2723,8 +2757,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 }
                 added_something = true;
             }
-
-            if (!support_polygons.empty())
+            if(!support_polygons.empty())
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
@@ -2751,7 +2784,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 added_something = true;
             }
 
-            if (!support_lines.empty())
+            if(!support_lines.empty())
             {
                 constexpr bool enable_travel_optimization = false;
                 constexpr coord_t wipe_dist = 0;

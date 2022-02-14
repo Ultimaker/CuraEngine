@@ -226,7 +226,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                         break;
                     }
 
-                    // compute intersections with relevent upper parts
+                    // compute intersections with relevant upper parts
                     const std::vector<SupportInfillPart> upper_infill_parts = storage.support.supportLayers[upper_layer_idx].support_infill_parts;
                     Polygons relevant_upper_polygons;
                     for (unsigned int upper_part_idx = 0; upper_part_idx < upper_infill_parts.size(); ++upper_part_idx)
