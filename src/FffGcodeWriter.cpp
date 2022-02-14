@@ -1712,8 +1712,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
         constexpr coord_t overlap = 0; // overlap is already applied for the sparsest density in the generateGradualInfill
-        wall_tool_paths.emplace_back(part.infill_wall_toolpaths);
 
+        wall_tool_paths.emplace_back();
         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, infill_line_width,
                            infill_line_distance_here, overlap, infill_multiplier, infill_angle, gcode_layer.z,
                            infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin,
@@ -1731,6 +1731,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         infill_polygons.add(infill_polygons_here);
     }
 
+    wall_tool_paths.emplace_back(part.infill_wall_toolpaths); //The extra infill walls were generated separately. Add these too.
     const bool walls_generated = std::any_of(wall_tool_paths.cbegin(), wall_tool_paths.cend(), [](const VariableWidthPaths& tp){ return !tp.empty(); });
     if(!infill_lines.empty() || !infill_polygons.empty() || walls_generated)
     {
