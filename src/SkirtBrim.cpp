@@ -39,14 +39,18 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     
     struct Offset
     {
-        Offset(const Polygons& reference_polygons, const coord_t offset_value, const coord_t line_idx, const int extruder_nr)
+        Offset(const Polygons& reference_polygons, const coord_t offset_value, coord_t line_width, coord_t gap, const coord_t line_idx, const int extruder_nr)
         : reference_polygons(&reference_polygons)
         , offset_value(offset_value)
+        , line_width(line_width)
+        , gap(gap)
         , line_idx(line_idx)
         , extruder_nr(extruder_nr)
         {}
         const Polygons* reference_polygons;
         coord_t offset_value;
+        coord_t line_width;
+        coord_t gap;
         coord_t line_idx;
         int extruder_nr;
     };
@@ -55,6 +59,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     const int extruder_count = extruders.size();
     
     std::vector<coord_t> line_widths(extruder_count);
+    std::vector<bool> external_polys_only(extruder_count);
     
     std::vector<Offset> all_brim_offsets;
 
@@ -64,31 +69,45 @@ void SkirtBrim::generate(SliceDataStorage& storage)
 //             return (line_count[extruder_nr] + max_extra_line_to_meet_min_length_constraint) * line_width[extruder_nr];
 //         };
     
+    const int skirt_brim_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<int>("skirt_brim_extruder_nr");
+    
     std::vector<Polygons> starting_outlines(extruder_count);
+    constexpr LayerIndex layer_nr = 0;
+    const bool include_support = false; // TODO: extruder_nr == mesh_group_settings.get<int>("support_infill_extruder_nr");
+    const bool include_prime_tower = false; // extruder_nr == prime_tower_brim_extruder;
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
+
+        if (skirt_brim_extruder_nr >= 0 && extruder_nr != skirt_brim_extruder_nr)
+        {
+            continue; // only include offsets for brim extruder
+        }
+
+
+        
         const ExtruderTrain& extruder = extruders[extruder_nr];
         coord_t line_width = extruder.settings.get<coord_t>("skirt_brim_line_width");
         int line_count = extruder.settings.get<int>(is_brim? "brim_line_count" : "skirt_line_count");
         coord_t gap = extruder.settings.get<coord_t>(is_brim? "brim_gap" : "skirt_gap");
         
+        external_polys_only[extruder_nr] = ! is_brim || extruder.settings.get<bool>("brim_outside_only");
+
         line_widths[extruder_nr] = line_width;
+
+        storage.skirt_brim[extruder_nr].resize(line_count + 20); // 20 should be enough for the extra lines required for minimum length
         
-        std::cerr << "Considering extruder " << extruder_nr << '\n';
-
 //         max_dists[extruder_nr] = getMaxDist(extruder_nr);
-
-        constexpr LayerIndex layer_nr = 0;
-        const bool include_support = false; // TODO: extruder_nr == mesh_group_settings.get<int>("support_infill_extruder_nr");
-        const bool include_prime_tower = false; // extruder_nr == prime_tower_brim_extruder;
-        bool external_polys_only = false; // TODO
-        starting_outlines[extruder_nr] = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr);
 //         starting_outlines[extruder_nr] = starting_outlines[extruder_nr].offset(gap[extruder_nr]);
+
+        const int include_polys_from_extruder = (skirt_brim_extruder_nr < 0)? extruder_nr : -1; // include polys from all extruders if we print one brim for all materials
+        starting_outlines[extruder_nr] = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only[extruder_nr], include_polys_from_extruder);
+
+        
         
         for (int line_idx = 0; line_idx < line_count; line_idx++)
         {
             coord_t offset = gap + line_width / 2 + line_width * line_idx;
-            all_brim_offsets.emplace_back(starting_outlines[extruder_nr], offset, line_idx, extruder_nr);
+            all_brim_offsets.emplace_back(starting_outlines[extruder_nr], offset, line_width, gap, line_idx, extruder_nr);
         }
     }
 
@@ -112,49 +131,77 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         max_offset = std::max(max_offset, offset.offset_value);
     }
     
-    Polygons covered_area;
-    for (Polygons& area : starting_outlines)
-    {
-        covered_area = covered_area.unionPolygons(area);
-    }
+    Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, /*external_polys_only*/ false);
     Polygons allowed_areas = covered_area.offset(max_offset * 2) // just a large enough offset so that we can work with intersection polylines with allowed areas, rather than differencing polylines iwth disallowed areas, since polygon.differencePolylines is not implemented
                                         .difference(covered_area);
-    
-                                        
-    SVG svg("/tmp/brim.svg", AABB(allowed_areas));
+    // TODO: make allowed areas a bit smaller so that internal external-only brims don't overlap with model by half the line width
+
+    bool brim_lines_can_be_cut = skirt_brim_extruder_nr < 0; // brims can interfere with each other.
+    for (bool external_only : external_polys_only)
+    {
+        brim_lines_can_be_cut |= external_only;
+    }
+
+
     for (const Offset& offset : all_brim_offsets)
     {
-        svg.writePolygons(allowed_areas, SVG::Color::RED);
-        Polygons brim = offset.reference_polygons->offset(offset.offset_value, ClipperLib::jtRound);
-        
-        // convert to polylines
-        for (PolygonRef poly : brim)
-        {
-            if (poly.empty()) continue;
-            poly.add(poly[0]);
-        }
-        
-        Polygons brim_lines = allowed_areas.intersectionPolyLines(brim, false);
-        if (size_t(offset.line_idx + 1) > storage.skirt_brim[offset.extruder_nr].size())
-        {
-            storage.skirt_brim[offset.extruder_nr].resize(offset.line_idx + 1);
-        }
-//         storage.skirt_brim[offset.extruder_nr][offset.line_idx].open_polylines = brim_lines;
-        const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
-        PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, storage.skirt_brim[offset.extruder_nr][offset.line_idx].open_polylines, storage.skirt_brim[offset.extruder_nr][offset.line_idx].closed_polygons, max_stitch_distance);
-        
-        allowed_areas = allowed_areas.difference(brim.offset(line_widths[offset.extruder_nr] / 2));
-    }
-    for (auto& eb : storage.skirt_brim)
-        for (auto& bi : eb)
-        {
-            svg.writePolylines(bi.open_polylines);
-            for (auto& line : bi.open_polylines)
+        Polygons brim;
+        Polygons newly_covered;
+        if (external_polys_only[offset.extruder_nr])
+        { // prevent unioning of external polys enclosed by other parts, e.g. a small part inside a hollow cylinder.
+            if (offset.line_idx == 0)
             {
-                svg.writePoint(line[0]);
-                svg.writePoint(line.back(), false, 2.);
+                for (ConstPolygonRef poly : *offset.reference_polygons)
+                {
+                    brim.add(poly.offset(offset.offset_value, ClipperLib::jtRound));
+                    if (brim_lines_can_be_cut)
+                    {
+                        newly_covered.add(poly.offset(offset.offset_value + offset.line_width / 2, ClipperLib::jtRound));
+                        Polygon reference = poly;
+                        reference.reverse();
+                        newly_covered.add(reference); // don't remove area inside external polygon
+                    }
+                }
+            }
+            else
+            {
+                
+                Polygons polylines = storage.skirt_brim[offset.extruder_nr][offset.line_idx - 1].closed_polygons;
+                polylines.toPolylines();
+                polylines.add(storage.skirt_brim[offset.extruder_nr][offset.line_idx - 1].open_polylines);
+                brim.add(polylines.offsetPolyLine(offset.line_width, ClipperLib::jtRound));
+                if (brim_lines_can_be_cut) newly_covered.add(polylines.offsetPolyLine(offset.line_width * 3 / 2, ClipperLib::jtRound));
             }
         }
+        else
+        {
+            brim = offset.reference_polygons->offset(offset.offset_value, ClipperLib::jtRound);
+            if (brim_lines_can_be_cut) newly_covered = offset.reference_polygons->offset(offset.offset_value + offset.line_width / 2, ClipperLib::jtRound);
+        }
+
+        if (brim_lines_can_be_cut)
+        {
+            brim.toPolylines();
+            Polygons brim_lines = allowed_areas.intersectionPolyLines(brim, false);
+            const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
+            PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, storage.skirt_brim[offset.extruder_nr][offset.line_idx].open_polylines, storage.skirt_brim[offset.extruder_nr][offset.line_idx].closed_polygons, max_stitch_distance);
+        }
+        else
+        {
+            storage.skirt_brim[offset.extruder_nr][offset.line_idx].closed_polygons = brim;
+        }
+
+        if (brim_lines_can_be_cut)
+        {
+            allowed_areas = allowed_areas.difference(newly_covered.unionPolygons());
+        }
+    }
+    
+//     ensureMinimalLength();
+
+//     generate extra skirt for non-primary extruders
+
+    
 }
 /*
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline)
