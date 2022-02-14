@@ -151,12 +151,10 @@ const Polygons& TreeModelVolumes::calculateInternalModel(const RadiusLayerPair& 
     return ret.first->second;
 }
 
-Polygons TreeModelVolumes::calculateMachineBorderCollision(Polygon machine_border)
+Polygons TreeModelVolumes::calculateMachineBorderCollision(const Polygons&& machine_border)
 {
-    Polygons machine_volume_border;
-    machine_volume_border.add(machine_border.offset(MM2INT(1000))); //Put a border of 1m around the print volume so that we don't collide.
-    machine_border.reverse(); //Makes the polygon negative so that we subtract the actual volume from the collision area.
-    machine_volume_border.add(machine_border);
+    Polygons machine_volume_border = machine_border.offset(MM2INT(1000.0)); // Put a border of 1 meter around the print volume so that we don't collide.
+    machine_volume_border = machine_volume_border.difference(machine_border); // Subtract the actual volume from the collision area.
     return machine_volume_border;
 }
 
