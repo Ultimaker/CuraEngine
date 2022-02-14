@@ -33,7 +33,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
-    const int prime_tower_brim_extruder = 0; // TODO
+    const int prime_tower_brim_extruder = 0; // The prime tower brim always start with extruder 0 and so does its brim
 
     const bool is_brim = adhesion_type == EPlatformAdhesion::BRIM;
     
@@ -63,12 +63,6 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     
     std::vector<Offset> all_brim_offsets;
 
-//     auto getMaxDist = [&](const int extruder_nr)
-//         {
-//             constexpr coord_t max_extra_line_to_meet_min_length_constraint = 0; // TODO: this many extra lines should be enough for whatever is the skirt_brim_minimal_length
-//             return (line_count[extruder_nr] + max_extra_line_to_meet_min_length_constraint) * line_width[extruder_nr];
-//         };
-    
     const int skirt_brim_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<int>("skirt_brim_extruder_nr");
     
     std::vector<Polygons> starting_outlines(extruder_count);
@@ -86,7 +80,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
 
         
         const ExtruderTrain& extruder = extruders[extruder_nr];
-        coord_t line_width = extruder.settings.get<coord_t>("skirt_brim_line_width");
+        coord_t line_width = extruder.settings.get<coord_t>("skirt_brim_line_width") * extruder.settings.get<Ratio>("initial_layer_line_width_factor");
         int line_count = extruder.settings.get<int>(is_brim? "brim_line_count" : "skirt_line_count");
         coord_t gap = extruder.settings.get<coord_t>(is_brim? "brim_gap" : "skirt_gap");
         
@@ -95,16 +89,11 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         line_widths[extruder_nr] = line_width;
 
         storage.skirt_brim[extruder_nr].resize(line_count + 20); // 20 should be enough for the extra lines required for minimum length
-        
-//         max_dists[extruder_nr] = getMaxDist(extruder_nr);
-//         starting_outlines[extruder_nr] = starting_outlines[extruder_nr].offset(gap[extruder_nr]);
 
         const bool prime_tower_here = include_prime_tower && (extruder_nr == prime_tower_brim_extruder);
         const int include_polys_from_extruder = (skirt_brim_extruder_nr < 0)? extruder_nr : -1; // include polys from all extruders if we print one brim for all materials
         starting_outlines[extruder_nr] = storage.getLayerOutlines(layer_nr, include_support, prime_tower_here, external_polys_only[extruder_nr], include_polys_from_extruder);
 
-        
-        
         for (int line_idx = 0; line_idx < line_count; line_idx++)
         {
             coord_t offset = gap + line_width / 2 + line_width * line_idx;
@@ -135,7 +124,6 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     {
         brim_lines_can_be_cut |= external_only;
     }
-
 
     for (const Offset& offset : all_brim_offsets)
     {
