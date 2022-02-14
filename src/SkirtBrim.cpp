@@ -74,7 +74,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     std::vector<Polygons> starting_outlines(extruder_count);
     constexpr LayerIndex layer_nr = 0;
     const bool include_support = false; // TODO: extruder_nr == mesh_group_settings.get<int>("support_infill_extruder_nr");
-    const bool include_prime_tower = false; // extruder_nr == prime_tower_brim_extruder;
+    const bool include_prime_tower = mesh_group_settings.get<bool>("prime_tower_brim_enable");
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
 
@@ -99,8 +99,9 @@ void SkirtBrim::generate(SliceDataStorage& storage)
 //         max_dists[extruder_nr] = getMaxDist(extruder_nr);
 //         starting_outlines[extruder_nr] = starting_outlines[extruder_nr].offset(gap[extruder_nr]);
 
+        const bool prime_tower_here = include_prime_tower && (extruder_nr == prime_tower_brim_extruder);
         const int include_polys_from_extruder = (skirt_brim_extruder_nr < 0)? extruder_nr : -1; // include polys from all extruders if we print one brim for all materials
-        starting_outlines[extruder_nr] = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only[extruder_nr], include_polys_from_extruder);
+        starting_outlines[extruder_nr] = storage.getLayerOutlines(layer_nr, include_support, prime_tower_here, external_polys_only[extruder_nr], include_polys_from_extruder);
 
         
         
@@ -118,20 +119,13 @@ void SkirtBrim::generate(SliceDataStorage& storage)
                     < b.offset_value + b.extruder_nr; // add extruder_nr so that it's more stable when both extruders have the same offset settings
             } );
     
-    // add prime tower brim
-//     if (mesh_group_settings.get<bool>("prime_tower_brim_enable"))
-//     {
-//         starting_outlines.emplace_back(storage.primeTower.outer_poly);
-//         max_dists.push_back(getMaxDist(prime_tower_brim_extruder));
-//     }
-    
     coord_t max_offset = 0;
     for (const Offset& offset : all_brim_offsets)
     {
         max_offset = std::max(max_offset, offset.offset_value);
     }
     
-    Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, /*external_polys_only*/ false);
+    Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
     Polygons allowed_areas = covered_area.offset(max_offset * 2) // just a large enough offset so that we can work with intersection polylines with allowed areas, rather than differencing polylines iwth disallowed areas, since polygon.differencePolylines is not implemented
                                         .difference(covered_area);
     // TODO: make allowed areas a bit smaller so that internal external-only brims don't overlap with model by half the line width
@@ -197,10 +191,16 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         }
     }
     
+    // support brim
+    
+    // ooze/draft shield brim
+    
 //     ensureMinimalLength();
 
 //     generate extra skirt for non-primary extruders
+    // make extra skirt around outer brim of other material if this material has no room for more brim!
 
+    // simplify
     
 }
 /*
