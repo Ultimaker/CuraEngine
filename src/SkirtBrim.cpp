@@ -39,15 +39,13 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     
     struct Offset
     {
-        Offset(const Polygons& reference_polygons, const coord_t offset_value, coord_t line_width, coord_t gap, const coord_t line_idx, const int extruder_nr)
-        : reference_polygons(&reference_polygons)
-        , offset_value(offset_value)
+        Offset(const coord_t offset_value, coord_t line_width, coord_t gap, const coord_t line_idx, const int extruder_nr)
+        : offset_value(offset_value)
         , line_width(line_width)
         , gap(gap)
         , line_idx(line_idx)
         , extruder_nr(extruder_nr)
         {}
-        const Polygons* reference_polygons;
         coord_t offset_value;
         coord_t line_width;
         coord_t gap;
@@ -99,7 +97,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         for (int line_idx = 0; line_idx < line_count; line_idx++)
         {
             coord_t offset = gap + line_width / 2 + line_width * line_idx;
-            all_brim_offsets.emplace_back(starting_outlines[extruder_nr], offset, line_width, gap, line_idx, extruder_nr);
+            all_brim_offsets.emplace_back(offset, line_width, gap, line_idx, extruder_nr);
         }
     }
 
@@ -141,7 +139,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         { // prevent unioning of external polys enclosed by other parts, e.g. a small part inside a hollow cylinder.
             if (offset.line_idx == 0)
             {
-                for (ConstPolygonRef poly : *offset.reference_polygons)
+                for (ConstPolygonRef poly : starting_outlines[offset.extruder_nr])
                 {
                     brim.add(poly.offset(offset.offset_value, ClipperLib::jtRound));
                     if (brim_lines_can_be_cut)
@@ -165,8 +163,8 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         }
         else
         {
-            brim = offset.reference_polygons->offset(offset.offset_value, ClipperLib::jtRound);
-            if (brim_lines_can_be_cut) newly_covered = offset.reference_polygons->offset(offset.offset_value + offset.line_width / 2, ClipperLib::jtRound);
+            brim = starting_outlines[offset.extruder_nr].offset(offset.offset_value, ClipperLib::jtRound);
+            if (brim_lines_can_be_cut) newly_covered = starting_outlines[offset.extruder_nr].offset(offset.offset_value + offset.line_width / 2, ClipperLib::jtRound);
         }
 
         if (brim_lines_can_be_cut)
