@@ -580,10 +580,23 @@ Polygons SliceDataStorage::getMachineBorder(bool adhesion_offset) const
     }
 
     Polygons disallowed_areas = mesh_group_settings.get<Polygons>("machine_disallowed_areas");
-    disallowed_areas.translate(machine_size.flatten().getMiddle()); // apparently the frontend offsets the disallowed areas from the middle?
     disallowed_areas = disallowed_areas.unionPolygons(); // union overlapping disallowed areas
+    for (PolygonRef poly : disallowed_areas)
+        for (Point& p : poly)
+            p = Point(machine_size.max.x / 2 + p.X, machine_size.max.y / 2 - p.Y); // apparently the frontend stores the disallowed areas in a different coordinate system
     
-    border = border.difference(disallowed_areas);
+    Polygons safe_disallowed_areas;
+    std::vector<bool> extruder_is_used = getExtrudersUsed();
+    for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
+    {
+        Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+        Polygons extruder_disallowed_areas = disallowed_areas;
+        extruder_disallowed_areas.translate(Point(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y")));
+        safe_disallowed_areas.add(extruder_disallowed_areas);
+    }
+    safe_disallowed_areas.processEvenOdd(ClipperLib::pftNonZero); // prevent overlapping disallowed areas from XORing
+    safe_disallowed_areas = safe_disallowed_areas.offset(3000u).offset(-3000u); // make sure the area between the clip of the UM3 and the offsetted clip isnt filled
+    border = border.difference(safe_disallowed_areas);
     
     if (!adhesion_offset) {
         return border;
