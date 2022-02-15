@@ -363,7 +363,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                 total.add(support_layer.support_roof);
             }
         }
-        constexpr int prime_tower_outer_extruder_nr = 0; // TODO ?
+        int prime_tower_outer_extruder_nr = primeTower.extruder_order[0];
         if (include_prime_tower && (extruder_nr == -1 || extruder_nr == prime_tower_outer_extruder_nr))
         {
             if (primeTower.enabled)

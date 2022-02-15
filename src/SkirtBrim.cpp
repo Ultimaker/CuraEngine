@@ -33,7 +33,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
-    const int prime_tower_brim_extruder = 0; // The prime tower brim always start with extruder 0 and so does its brim
+    const int prime_tower_brim_extruder = storage.primeTower.extruder_order[0]; // The extruder with which the outer ring of the prime tower is printed
 
     const bool is_brim = adhesion_type == EPlatformAdhesion::BRIM;
     
