@@ -550,7 +550,7 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) con
     return train.settings.get<bool>("prime_blob_enable");
 }
 
-Polygons SliceDataStorage::getMachineBorder(bool adhesion_offset) const
+Polygons SliceDataStorage::getMachineBorder() const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
@@ -639,42 +639,7 @@ Polygons SliceDataStorage::getMachineBorder(bool adhesion_offset) const
     border = border_all_extruders.difference(disallowed_all_extruders);
     border = border.offset(-3000u).offset(3000u); // make sure the area between the clip of the UM3 and the offsetted clip isnt filled
     
-    if (!adhesion_offset) {
-        return border;
-    }
-
-    coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
-    const ExtruderTrain& adhesion_extruder = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
-    coord_t extra_skirt_line_width = 0;
-    const std::vector<bool> is_extruder_used = getExtrudersUsed();
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
-    {
-        if (extruder_nr == adhesion_extruder.extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
-        {
-            continue;
-        }
-        const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-        extra_skirt_line_width += other_extruder.settings.get<coord_t>("skirt_brim_line_width") * other_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-    }
-    switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
-    {
-        case EPlatformAdhesion::BRIM:
-            adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
-            break;
-        case EPlatformAdhesion::RAFT:
-            adhesion_size = adhesion_extruder.settings.get<coord_t>("raft_margin");
-            break;
-        case EPlatformAdhesion::SKIRT:
-            adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_gap") + adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;
-            break;
-        case EPlatformAdhesion::NONE:
-            adhesion_size = 0;
-            break;
-        default: //Also use 0.
-            log("Unknown platform adhesion type! Please implement the width of the platform adhesion here.");
-            break;
-    }
-    return border.offset(-adhesion_size);
+    return border;
 }
 
 

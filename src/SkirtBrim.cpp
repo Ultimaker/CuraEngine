@@ -118,7 +118,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
     
-    Polygons machine_area = storage.getMachineBorder(/*adhesion_offset*/ false);
+    Polygons machine_area = storage.getMachineBorder();
     Polygons allowed_areas = machine_area.difference(covered_area);
     // TODO: make allowed areas a bit smaller so that internal external-only brims don't overlap with model by half the line width
 

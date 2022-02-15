@@ -388,11 +388,9 @@ public:
     /*!
      * Gets the border of the usable print area for this machine.
      *
-     * \param adhesion_offset whether to offset the border by the adhesion width to account for brims, skirts and
-     * rafts, if present.
      * \return the Polygons representing the usable area of the print bed.
      */
-    Polygons getMachineBorder(bool adhesion_offset = false) const;
+    Polygons getMachineBorder() const;
 
 private:
     /*!
