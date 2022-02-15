@@ -65,13 +65,15 @@ void SkirtBrim::generate(SliceDataStorage& storage)
 
     const int skirt_brim_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<int>("skirt_brim_extruder_nr");
     
+    
+    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     std::vector<Polygons> starting_outlines(extruder_count);
     constexpr LayerIndex layer_nr = 0;
     const bool include_support = false; // TODO: extruder_nr == mesh_group_settings.get<int>("support_infill_extruder_nr");
     const bool include_prime_tower = mesh_group_settings.get<bool>("prime_tower_brim_enable");
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-
+        if ( ! extruder_is_used[extruder_nr]) continue;
         if (skirt_brim_extruder_nr >= 0 && extruder_nr != skirt_brim_extruder_nr)
         {
             continue; // only include offsets for brim extruder
