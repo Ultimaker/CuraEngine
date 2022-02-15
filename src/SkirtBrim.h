@@ -39,13 +39,10 @@ public:
      * in order to meet criteria for putting brim around the model as well as
      * around the support.
      *
-     * \param storage Storage containing the parts at the first layer.
-     * \param primary_line_count Number of offsets / brim lines of the primary
-     * extruder.
-     * \param is_skirt Whether a skirt is being generated vs a brim
-     * \param[out] first_layer_outline The resulting reference polygons
+     * \param extruder_nr The extruder for which to get the outlines. -1 to include outliens for all extruders
+     * \return The resulting reference polygons
      */
-//     static void getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline);
+    static Polygons getFirstLayerOutline(SliceDataStorage& storage, const int extruder_nr);
 
     static void generateSupportBrim(SliceDataStorage& storage, const bool merge_with_model_skirtbrim);
 
