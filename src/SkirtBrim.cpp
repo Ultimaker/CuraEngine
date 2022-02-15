@@ -79,6 +79,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         }
     }
 
+    bool first = true;
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         if ( ! extruder_is_used[extruder_nr]) continue;
@@ -86,8 +87,11 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         {
             continue; // only include offsets for brim extruder
         }
-
-
+        if ( ! is_brim && ! first)
+        { // Only generate primary skirt for first extruder, rest is handled via minimum length enforcement
+            break;
+        }
+        first = false;
         
         const ExtruderTrain& extruder = extruders[extruder_nr];
         coord_t line_width = extruder.settings.get<coord_t>("skirt_brim_line_width") * extruder.settings.get<Ratio>("initial_layer_line_width_factor");
