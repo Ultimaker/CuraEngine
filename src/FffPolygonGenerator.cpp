@@ -404,6 +404,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     computePrintHeightStatistics(storage);
 
     // handle helpers
+    storage.primeTower.checkUsed(storage);
     storage.primeTower.generateGroundpoly();
     storage.primeTower.generatePaths(storage);
     storage.primeTower.subtractFromSupport(storage);

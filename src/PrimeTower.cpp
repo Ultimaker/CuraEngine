@@ -61,6 +61,20 @@ PrimeTower::PrimeTower()
     });
 }
 
+void PrimeTower::checkUsed(const SliceDataStorage& storage)
+{
+    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+    size_t used_extruder_count = 0;
+    for (bool is_used : extruder_is_used)
+    {
+        used_extruder_count += is_used;
+    }
+    if (used_extruder_count <= 1)
+    {
+        enabled = false;
+    }
+}
+
 void PrimeTower::generateGroundpoly()
 {
     if (!enabled)

@@ -65,6 +65,11 @@ public:
     PrimeTower();
 
     /*!
+     * Check whether we actually use the prime tower.
+     */
+    void checkUsed(const SliceDataStorage& storage);
+
+    /*!
      * Generate the prime tower area to be used on each layer
      * 
      * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
