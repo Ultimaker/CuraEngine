@@ -388,9 +388,10 @@ public:
     /*!
      * Gets the border of the usable print area for this machine.
      *
+     * \param extruder_nr The extruder for which to return the allowed areas. -1 if the areas allowed for all extruders should be returned.
      * \return the Polygons representing the usable area of the print bed.
      */
-    Polygons getMachineBorder() const;
+    Polygons getMachineBorder(int extruder_nr = -1) const;
 
 private:
     /*!

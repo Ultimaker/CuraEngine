@@ -550,7 +550,7 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) con
     return train.settings.get<bool>("prime_blob_enable");
 }
 
-Polygons SliceDataStorage::getMachineBorder() const
+Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
@@ -580,7 +580,7 @@ Polygons SliceDataStorage::getMachineBorder() const
     }
 
     bool nozzle_offsetting_for_disallowed_areas = 
-        mesh_group_settings.has("nozzle_offsetting_for_disallowed_areas")?
+        mesh_group_settings.has("nozzle_offsetting_for_disallowed_areas")? // TODO: is that metadata provided to CuraEngien as a setting?!
         mesh_group_settings.get<bool>("nozzle_offsetting_for_disallowed_areas")
         : true;
     
@@ -598,6 +598,7 @@ Polygons SliceDataStorage::getMachineBorder() const
     bool first = true;
     for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {
+        if (checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) continue;
         if ( ! extruder_is_used[extruder_nr]) continue;
         Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
         Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
@@ -620,6 +621,7 @@ Polygons SliceDataStorage::getMachineBorder() const
     {
         for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
         {
+            if (checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) continue;
             if ( ! extruder_is_used[extruder_nr]) continue;
             Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
             Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));

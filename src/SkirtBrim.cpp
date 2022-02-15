@@ -118,8 +118,13 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
     
-    Polygons machine_area = storage.getMachineBorder();
-    Polygons allowed_areas = machine_area.difference(covered_area);
+    std::vector<Polygons> allowed_areas_per_extruder(extruder_count);
+    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        if ( ! extruder_is_used[extruder_nr]) continue;
+        Polygons machine_area = storage.getMachineBorder(extruder_nr);
+        allowed_areas_per_extruder[extruder_nr] = machine_area.difference(covered_area);
+    }
     // TODO: make allowed areas a bit smaller so that internal external-only brims don't overlap with model by half the line width
 
     bool brim_lines_can_be_cut = skirt_brim_extruder_nr < 0; // brims can interfere with each other.
@@ -168,7 +173,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         {
             brim.simplify();
             brim.toPolylines();
-            Polygons brim_lines = allowed_areas.intersectionPolyLines(brim, false);
+            Polygons brim_lines = allowed_areas_per_extruder[offset.extruder_nr].intersectionPolyLines(brim, false);
             const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
             PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, storage.skirt_brim[offset.extruder_nr][offset.line_idx].open_polylines, storage.skirt_brim[offset.extruder_nr][offset.line_idx].closed_polygons, max_stitch_distance);
         }
@@ -176,10 +181,14 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         {
             storage.skirt_brim[offset.extruder_nr][offset.line_idx].closed_polygons = brim;
         }
-
+        
         if (brim_lines_can_be_cut)
         {
-            allowed_areas = allowed_areas.difference(newly_covered.unionPolygons());
+            for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+            {
+                if ( ! extruder_is_used[extruder_nr]) continue;
+                allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(newly_covered.unionPolygons());
+            }
         }
     }
     
