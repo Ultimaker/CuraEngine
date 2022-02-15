@@ -164,6 +164,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
 
         if (brim_lines_can_be_cut)
         {
+            brim.simplify();
             brim.toPolylines();
             Polygons brim_lines = allowed_areas.intersectionPolyLines(brim, false);
             const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
