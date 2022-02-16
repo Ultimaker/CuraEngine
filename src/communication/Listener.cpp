@@ -11,7 +11,7 @@
 namespace cura
 {
 
-void Listener::stateChanged(Arcus::SocketState::SocketState)
+void Listener::stateChanged(Arcus::SocketState)
 {
     //Do nothing.
 }
