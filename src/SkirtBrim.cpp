@@ -203,6 +203,10 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         }
     }
     
+    // TODO list:
+    
+    // remove small open lines
+    
     // ooze/draft shield brim
     
 //     ensureMinimalLength();
