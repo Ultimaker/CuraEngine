@@ -142,7 +142,7 @@ void SkirtBrim::generate()
     {
         const Offset& offset = all_brim_offsets[offset_idx];
         generateOffset(offset, starting_outlines, brim_lines_can_be_cut, covered_area_needs_update,
-                       covered_area, allowed_areas_per_extruder, total_length);
+                       covered_area, allowed_areas_per_extruder, total_length, storage.skirt_brim[offset.extruder_nr][offset.line_idx]);
         
         if (offset.is_last
             // v This was the last offset of this extruder, but the brim lines don't meet minimal length yet
@@ -183,7 +183,7 @@ void SkirtBrim::generate()
     
 }
 
-void SkirtBrim::generateOffset(const Offset& offset, const std::vector<Polygons>& starting_outlines, const bool brim_lines_can_be_cut, const bool covered_area_needs_update, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length)
+void SkirtBrim::generateOffset(const Offset& offset, const std::vector<Polygons>& starting_outlines, const bool brim_lines_can_be_cut, const bool covered_area_needs_update, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length, SkirtBrimLine& result)
 {
     constexpr bool indent_to_prevent_git_changes = true;
     if (indent_to_prevent_git_changes)
@@ -230,11 +230,11 @@ void SkirtBrim::generateOffset(const Offset& offset, const std::vector<Polygons>
             total_length[offset.extruder_nr] += brim_lines.polyLineLength();
 
             const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
-            PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, storage.skirt_brim[offset.extruder_nr][offset.line_idx].open_polylines, storage.skirt_brim[offset.extruder_nr][offset.line_idx].closed_polygons, max_stitch_distance);
+            PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, result.open_polylines, result.closed_polygons, max_stitch_distance);
         }
         else
         {
-            storage.skirt_brim[offset.extruder_nr][offset.line_idx].closed_polygons = brim;
+            result.closed_polygons = brim;
             total_length[offset.extruder_nr] += brim.polygonLength();
         }
         
