@@ -5,6 +5,7 @@
 #define SKIRT_BRIM_H
 
 #include "utils/Coord_t.h"
+#include "ExtruderTrain.h"
 
 namespace cura 
 {
@@ -14,7 +15,48 @@ class SliceDataStorage;
 
 class SkirtBrim
 {
+private:
+    struct Offset
+    {
+        Offset(const coord_t offset_value, coord_t line_width, coord_t gap, const coord_t line_idx, const int extruder_nr, bool is_last)
+        : offset_value(offset_value)
+        , line_width(line_width)
+        , gap(gap)
+        , line_idx(line_idx)
+        , extruder_nr(extruder_nr)
+        , is_last(is_last)
+        {}
+        coord_t offset_value;
+        coord_t line_width;
+        coord_t gap;
+        coord_t line_idx;
+        int extruder_nr;
+        mutable bool is_last; //!< Whether this is the last planned offset for this extruder.
+    };
+    
+    struct OffsetSorter
+    {
+        bool operator()(const Offset& a, const Offset& b)
+        {
+            return a.offset_value + a.extruder_nr
+            < b.offset_value + b.extruder_nr; // add extruder_nr so that it's more stable when both extruders have the same offset settings
+        }
+    };
+    
+    SliceDataStorage& storage;
+    const bool is_brim;
+    const bool is_skirt;
+    const std::vector<ExtruderTrain>& extruders;
+    const int extruder_count;
+    const std::vector<bool> extruder_is_used;
+    std::vector<bool> external_polys_only;
+    std::vector<coord_t> line_widths;
+    std::vector<coord_t> skirt_brim_minimal_length;
+    std::vector<int> line_count;
+    std::vector<coord_t> gap;
 public:
+    SkirtBrim(SliceDataStorage& storage);
+
     /*!
      * Generate skirt or brim (depending on parameters).
      * 
@@ -28,7 +70,7 @@ public:
      * \param primary_line_count Number of offsets / brim lines of the primary extruder.
      * \param set to false to force not doing brim generation for helper-structures (support and ooze/draft shields)
      */
-    static void generate(SliceDataStorage& storage);
+    void generate();
 
     /*!
      * Generate the brim inside the ooze shield and draft shield
@@ -38,7 +80,7 @@ public:
      * \param storage Storage containing the parts at the first layer.
      * \param[in,out] brim_covered_area The area that was covered with brim before (in) and after (out) adding the shield brims
      */
-    static void generateShieldBrim(SliceDataStorage& storage, Polygons& brim_covered_area);
+    void generateShieldBrim(Polygons& brim_covered_area);
 
     /*!
      * \brief Get the reference outline of the first layer around which to
@@ -51,9 +93,24 @@ public:
      * \param extruder_nr The extruder for which to get the outlines. -1 to include outliens for all extruders
      * \return The resulting reference polygons
      */
-    static Polygons getFirstLayerOutline(SliceDataStorage& storage, const int extruder_nr);
+    Polygons getFirstLayerOutline(const int extruder_nr);
 
-    static void generateSupportBrim(SliceDataStorage& storage, const bool merge_with_model_skirtbrim);
+    /*!
+     * Generate a brim line with offset parameters given by \p offset from the \p starting_outlines and store it in the \ref storage.
+     * 
+     * \warning Has side effects on \p covered_area, \p allowed_areas_per_extruder and \p total_length
+     * 
+     * \param offset The parameters with which to perform the offset
+     * \param starting_outlines The first layer outlines from which to start offsetting for each extruder.
+     * \param brim_lines_can_be_cut Whether to consider cutting of brim lines to maintain within the \p allowed_areas_per_extruder
+     * \param covered_area_needs_update Whether it is needed to update \p covered_area
+     * \param[in,out] covered_area The total area covered by the brims (and models) on the first layer.
+     * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
+     * \param[in,out] total_length The total length of the brim lines for each extruder.
+     */
+    void generateOffset(const Offset& offset, const std::vector<Polygons>& starting_outlines, const bool brim_lines_can_be_cut, const bool covered_area_needs_update, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length);
+public:
+    void generateSupportBrim(const bool merge_with_model_skirtbrim);
 
 private:
     /*!
