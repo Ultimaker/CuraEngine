@@ -625,9 +625,10 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                     const Polygons& own_infill_area = other_part.getOwnInfillArea();
                     Polygons cut_lines = own_infill_area.intersectionPolyLines(layer.openPolyLines);
                     new_polylines.add(cut_lines);
-                    if ( ! other_part.getOwnInfillArea().empty())
+                    // NOTE: closed polygons will be represented as polylines, which will be closed automatically in the PathOrderOptimizer
+                    if ( ! own_infill_area.empty())
                     {
-                        other_part.infill_area_own = other_part.getOwnInfillArea().difference(layer.openPolyLines.offsetPolyLine(surface_line_width / 2));
+                        other_part.infill_area_own = own_infill_area.difference(layer.openPolyLines.offsetPolyLine(surface_line_width / 2));
                     }
                 }
             }
@@ -640,7 +641,6 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             layer.parts.back().outline = part;
             layer.parts.back().boundaryBox.calculate(part);
         }
-        // TODO: reclose surface mode polygons which weren't cut up into broken polylines; and make LayerParts for them
 
         if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
         {
