@@ -40,24 +40,27 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     
     struct Offset
     {
-        Offset(const coord_t offset_value, coord_t line_width, coord_t gap, const coord_t line_idx, const int extruder_nr)
+        Offset(const coord_t offset_value, coord_t line_width, coord_t gap, const coord_t line_idx, const int extruder_nr, bool is_last)
         : offset_value(offset_value)
         , line_width(line_width)
         , gap(gap)
         , line_idx(line_idx)
         , extruder_nr(extruder_nr)
+        , is_last(is_last)
         {}
         coord_t offset_value;
         coord_t line_width;
         coord_t gap;
         coord_t line_idx;
         int extruder_nr;
+        mutable bool is_last; //!< Whether this is the last planned offset for this extruder.
     };
     
     const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
     const int extruder_count = extruders.size();
     
     std::vector<coord_t> line_widths(extruder_count);
+    std::vector<coord_t> skirt_brim_minimal_length(extruder_count);
     std::vector<bool> external_polys_only(extruder_count);
     
     std::vector<Offset> all_brim_offsets;
@@ -101,6 +104,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         
 
         line_widths[extruder_nr] = line_width;
+        skirt_brim_minimal_length[extruder_nr] = extruder.settings.get<coord_t>("skirt_brim_minimal_length");
 
         storage.skirt_brim[extruder_nr].resize(line_count + 20); // 20 should be enough for the extra lines required for minimum length
 
@@ -108,22 +112,29 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         for (int line_idx = 0; line_idx < line_count; line_idx++)
         {
             coord_t offset = gap + line_width / 2 + line_width * line_idx;
-            all_brim_offsets.emplace_back(offset, line_width, gap, line_idx, extruder_nr);
+            const bool is_last = line_idx == line_count - 1;
+            all_brim_offsets.emplace_back(offset, line_width, gap, line_idx, extruder_nr, is_last);
         }
     }
 
-    std::sort(all_brim_offsets.begin(), all_brim_offsets.end(),
-              [](const Offset& a, const Offset& b)
-              {
-                  return a.offset_value + a.extruder_nr
-                    < b.offset_value + b.extruder_nr; // add extruder_nr so that it's more stable when both extruders have the same offset settings
-            } );
+    struct OffsetSorter
+    {
+        bool operator()(const Offset& a, const Offset& b)
+        {
+            return a.offset_value + a.extruder_nr
+            < b.offset_value + b.extruder_nr; // add extruder_nr so that it's more stable when both extruders have the same offset settings
+        }
+    };
+    
+    std::sort(all_brim_offsets.begin(), all_brim_offsets.end(), OffsetSorter{});
     
     coord_t max_offset = 0;
     for (const Offset& offset : all_brim_offsets)
     {
         max_offset = std::max(max_offset, offset.offset_value);
     }
+    
+    std::vector<coord_t> total_length(extruder_count, 0u);
     
     const bool include_support = true;
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
@@ -145,8 +156,9 @@ void SkirtBrim::generate(SliceDataStorage& storage)
 
     bool covered_area_needs_update = brim_lines_can_be_cut || has_ooze_shield || has_draft_shield;
     
-    for (const Offset& offset : all_brim_offsets)
+    for (size_t offset_idx = 0; offset_idx < all_brim_offsets.size(); offset_idx++)
     {
+        const Offset& offset = all_brim_offsets[offset_idx];
         Polygons brim;
         Polygons newly_covered;
         if (external_polys_only[offset.extruder_nr])
@@ -186,12 +198,15 @@ void SkirtBrim::generate(SliceDataStorage& storage)
             brim.simplify();
             brim.toPolylines();
             Polygons brim_lines = allowed_areas_per_extruder[offset.extruder_nr].intersectionPolyLines(brim, false);
+            total_length[offset.extruder_nr] += brim_lines.polyLineLength();
+
             const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
             PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, storage.skirt_brim[offset.extruder_nr][offset.line_idx].open_polylines, storage.skirt_brim[offset.extruder_nr][offset.line_idx].closed_polygons, max_stitch_distance);
         }
         else
         {
             storage.skirt_brim[offset.extruder_nr][offset.line_idx].closed_polygons = brim;
+            total_length[offset.extruder_nr] += brim.polygonLength();
         }
         
         if (covered_area_needs_update)
@@ -203,6 +218,18 @@ void SkirtBrim::generate(SliceDataStorage& storage)
                 allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
             }
         }
+
+        if (offset.is_last
+            // v This was the last offset of this extruder, but the brim lines don't meet minimal length yet
+            && total_length[offset.extruder_nr] < skirt_brim_minimal_length[offset.extruder_nr]
+            && total_length[offset.extruder_nr] > 0u // No lines got added; we have no extrusion lines to build on
+        )
+        {
+            offset.is_last = false;
+            constexpr bool is_last = true;
+            all_brim_offsets.emplace_back(offset.offset_value + offset.line_width, offset.line_width, offset.gap, offset.line_idx + 1, offset.extruder_nr, is_last);
+            std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter{}); // reorder remaining offsets
+        }
     }
     
     // TODO list:
@@ -212,10 +239,21 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     // ooze/draft shield brim
     generateShieldBrim(storage, covered_area);
     
-//     ensureMinimalLength();
 //     generate extra skirt for non-primary extruders
     // make extra skirt around outer brim of other material if this material has no room for more brim!
-
+    
+    // make skirt with minimal length algorithm instead of the core brim algorithms
+    
+    // robustness against when things are empty (brim lines, layer outlines, etc)
+    
+    // const correctness
+    
+    // documentation
+    
+    // frontend stuff
+    
+    // remove prime blobs from brim
+    
     // simplify
     
 }
