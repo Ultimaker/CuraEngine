@@ -105,7 +105,9 @@ public:
                             { // it was already moved to output
                                 return true; // keep looking for a connection
                             }
-                            if (!canReverse(nearby) && ((nearby.point_idx == 0) == go_in_reverse_direction))
+                            bool nearby_would_be_reversed = nearby.point_idx != 0;
+                            nearby_would_be_reversed = nearby_would_be_reversed != go_in_reverse_direction; // flip nearby_would_be_reversed when searching in the reverse direction
+                            if (!canReverse(nearby) && nearby_would_be_reversed)
                             { // connecting the segment would reverse the polygon direction
                                 return true; // keep looking for a connection
                             }
