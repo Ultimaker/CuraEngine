@@ -625,7 +625,10 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                     const Polygons& own_infill_area = other_part.getOwnInfillArea();
                     Polygons cut_lines = own_infill_area.intersectionPolyLines(layer.openPolyLines);
                     new_polylines.add(cut_lines);
-                    other_part.infill_area_own = other_part.getOwnInfillArea().difference(layer.openPolyLines.offsetPolyLine(surface_line_width / 2));
+                    if ( ! other_part.getOwnInfillArea().empty())
+                    {
+                        other_part.infill_area_own = other_part.getOwnInfillArea().difference(layer.openPolyLines.offsetPolyLine(surface_line_width / 2));
+                    }
                 }
             }
         }
