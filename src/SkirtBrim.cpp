@@ -101,9 +101,18 @@ void SkirtBrim::generate()
 
         for (int line_idx = 0; line_idx < line_count[extruder_nr]; line_idx++)
         {
-            coord_t offset = gap[extruder_nr] + line_widths[extruder_nr] / 2 + line_widths[extruder_nr] * line_idx;
             const bool is_last = line_idx == line_count[extruder_nr] - 1;
-            all_brim_offsets.emplace_back(offset, line_idx, extruder_nr, is_last);
+            coord_t offset = gap[extruder_nr] + line_widths[extruder_nr] / 2 + line_widths[extruder_nr] * line_idx;
+            if (line_idx == 0)
+            {
+                constexpr int reference_idx = -1;
+                all_brim_offsets.emplace_back(&starting_outlines[extruder_nr], reference_idx, external_polys_only[extruder_nr], offset, offset, line_idx, extruder_nr, is_last);
+            }
+            else
+            {
+                constexpr Polygons* reference_outline = nullptr;
+                all_brim_offsets.emplace_back(reference_outline, line_idx - 1, external_polys_only[extruder_nr], line_widths[extruder_nr], offset, line_idx, extruder_nr, is_last);
+            }
         }
     }
 
@@ -129,20 +138,11 @@ void SkirtBrim::generate()
         allowed_areas_per_extruder[extruder_nr] = machine_area.difference(covered_area);
     }
     // TODO: make allowed areas a bit smaller so that internal external-only brims don't overlap with model by half the line width
-
-    bool brim_lines_can_be_cut = skirt_brim_extruder_nr < 0; // brims can interfere with each other.
-    for (bool external_only : external_polys_only)
-    {
-        brim_lines_can_be_cut |= external_only;
-    }
-
-    bool covered_area_needs_update = brim_lines_can_be_cut || has_ooze_shield || has_draft_shield;
     
     for (size_t offset_idx = 0; offset_idx < all_brim_offsets.size(); offset_idx++)
     {
         const Offset& offset = all_brim_offsets[offset_idx];
-        generateOffset(offset, starting_outlines, brim_lines_can_be_cut, covered_area_needs_update,
-                       covered_area, allowed_areas_per_extruder, total_length, storage.skirt_brim[offset.extruder_nr][offset.line_idx]);
+        generateOffset(offset, covered_area, allowed_areas_per_extruder, total_length, storage.skirt_brim[offset.extruder_nr][offset.inset_idx]);
         
         if (offset.is_last
             // v This was the last offset of this extruder, but the brim lines don't meet minimal length yet
@@ -152,7 +152,8 @@ void SkirtBrim::generate()
         {
             offset.is_last = false;
             constexpr bool is_last = true;
-            all_brim_offsets.emplace_back(offset.offset_value + line_widths[offset.extruder_nr], offset.line_idx + 1, offset.extruder_nr, is_last);
+            constexpr Polygons* reference_outline = nullptr;
+            all_brim_offsets.emplace_back(reference_outline, offset.inset_idx, external_polys_only[offset.extruder_nr], line_widths[offset.extruder_nr], offset.total_offset + line_widths[offset.extruder_nr], offset.inset_idx + 1, offset.extruder_nr, is_last);
             std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter{}); // reorder remaining offsets
         }
     }
@@ -183,47 +184,47 @@ void SkirtBrim::generate()
     
 }
 
-void SkirtBrim::generateOffset(const Offset& offset, const std::vector<Polygons>& starting_outlines, const bool brim_lines_can_be_cut, const bool covered_area_needs_update, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length, SkirtBrimLine& result)
+void SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length, SkirtBrimLine& result)
 {
     constexpr bool indent_to_prevent_git_changes = true;
     if (indent_to_prevent_git_changes)
     {
         Polygons brim;
         Polygons newly_covered;
-        if (external_polys_only[offset.extruder_nr])
-        { // prevent unioning of external polys enclosed by other parts, e.g. a small part inside a hollow cylinder.
-            if (offset.line_idx == 0)
+        {
+            if (offset.reference_outline)
             {
-                for (ConstPolygonRef poly : starting_outlines[offset.extruder_nr])
-                {
-                    brim.add(poly.offset(offset.offset_value, ClipperLib::jtRound));
-                    if (covered_area_needs_update)
+                if (offset.external_only)
+                { // prevent unioning of external polys enclosed by other parts, e.g. a small part inside a hollow cylinder.
+                    for (ConstPolygonRef poly : *offset.reference_outline)
                     {
-                        newly_covered.add(poly.offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound));
-                        Polygon reference = poly;
-                        reference.reverse();
-                        newly_covered.add(reference); // don't remove area inside external polygon
+                        brim.add(poly.offset(offset.offset_value, ClipperLib::jtRound));
+                        {
+                            newly_covered.add(poly.offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound));
+                            Polygon reference = poly;
+                            reference.reverse();
+                            newly_covered.add(reference); // don't remove area inside external polygon
+                        }
                     }
+                }
+                else
+                {
+                    brim = offset.reference_outline->offset(offset.offset_value, ClipperLib::jtRound);
+                    newly_covered = offset.reference_outline->offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound);
                 }
             }
             else
             {
                 
-                Polygons polylines = storage.skirt_brim[offset.extruder_nr][offset.line_idx - 1].closed_polygons;
+                Polygons polylines = storage.skirt_brim[offset.extruder_nr][offset.reference_idx].closed_polygons;
                 polylines.toPolylines();
-                polylines.add(storage.skirt_brim[offset.extruder_nr][offset.line_idx - 1].open_polylines);
+                polylines.add(storage.skirt_brim[offset.extruder_nr][offset.reference_idx].open_polylines);
                 brim.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr], ClipperLib::jtRound));
-                if (covered_area_needs_update) newly_covered.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr] * 3 / 2, ClipperLib::jtRound));
+                newly_covered.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr] * 3 / 2, ClipperLib::jtRound));
             }
         }
-        else
-        {
-            brim = starting_outlines[offset.extruder_nr].offset(offset.offset_value, ClipperLib::jtRound);
-            if (covered_area_needs_update) newly_covered = starting_outlines[offset.extruder_nr].offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound);
-        }
 
-        if (brim_lines_can_be_cut)
-        {
+        { // limit brim lines to allowed areas, stitch them and store them in the result
             brim.simplify();
             brim.toPolylines();
             Polygons brim_lines = allowed_areas_per_extruder[offset.extruder_nr].intersectionPolyLines(brim, false);
@@ -232,14 +233,8 @@ void SkirtBrim::generateOffset(const Offset& offset, const std::vector<Polygons>
             const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
             PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, result.open_polylines, result.closed_polygons, max_stitch_distance);
         }
-        else
-        {
-            result.closed_polygons = brim;
-            total_length[offset.extruder_nr] += brim.polygonLength();
-        }
         
-        if (covered_area_needs_update)
-        {
+        { // update allowed_areas_per_extruder
             for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
             {
                 if ( ! extruder_is_used[extruder_nr]) continue;

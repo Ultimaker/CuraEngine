@@ -19,15 +19,23 @@ class SkirtBrim
 private:
     struct Offset
     {
-        Offset(const coord_t offset_value, const coord_t line_idx, const int extruder_nr, bool is_last)
-        : offset_value(offset_value)
-        , line_idx(line_idx)
+        Offset(const Polygons* reference_outline, const size_t reference_idx, bool external_only, const coord_t offset_value, const coord_t total_offset, size_t inset_idx, const int extruder_nr, bool is_last)
+        : reference_outline(reference_outline)
+        , reference_idx(reference_idx)
+        , external_only(external_only)
+        , offset_value(offset_value)
+        , total_offset(total_offset)
+        , inset_idx(inset_idx)
         , extruder_nr(extruder_nr)
         , is_last(is_last)
         {}
-        coord_t offset_value;
-        coord_t line_idx;
-        int extruder_nr;
+        const Polygons* reference_outline; //!< Optional reference polygons from which to offset
+        int reference_idx; //!< Optional reference index into storage.skirt_brim from which to offset
+        bool external_only; //!< Wether to only offset outward from the reference polygons
+        coord_t offset_value; //!< Distance by which to offset from the reference
+        coord_t total_offset; //!< Total distance from the model
+        size_t inset_idx; //!< The outset index of this brimline
+        int extruder_nr; //!< The extruder by which to print this brim line
         mutable bool is_last; //!< Whether this is the last planned offset for this extruder.
     };
     
@@ -35,8 +43,8 @@ private:
     {
         bool operator()(const Offset& a, const Offset& b)
         {
-            return a.offset_value + a.extruder_nr
-            < b.offset_value + b.extruder_nr; // add extruder_nr so that it's more stable when both extruders have the same offset settings
+            return a.total_offset + a.extruder_nr
+            < b.total_offset + b.extruder_nr; // add extruder_nr so that it's more stable when both extruders have the same offset settings
         }
     };
     
@@ -98,15 +106,12 @@ public:
      * \warning Has side effects on \p covered_area, \p allowed_areas_per_extruder and \p total_length
      * 
      * \param offset The parameters with which to perform the offset
-     * \param starting_outlines The first layer outlines from which to start offsetting for each extruder.
-     * \param brim_lines_can_be_cut Whether to consider cutting of brim lines to maintain within the \p allowed_areas_per_extruder
-     * \param covered_area_needs_update Whether it is needed to update \p covered_area
      * \param[in,out] covered_area The total area covered by the brims (and models) on the first layer.
      * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
      * \param[in,out] total_length The total length of the brim lines for each extruder.
      * \param[out] result Where to store the resulting brim line
      */
-    void generateOffset(const Offset& offset, const std::vector<Polygons>& starting_outlines, const bool brim_lines_can_be_cut, const bool covered_area_needs_update, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length, SkirtBrimLine& result);
+    void generateOffset(const Offset& offset, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length, SkirtBrimLine& result);
 public:
     void generateSupportBrim(const bool merge_with_model_skirtbrim);
 
