@@ -135,6 +135,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         //Find highest layer count according to each mesh's settings.
         for(const Mesh& mesh : meshgroup->meshes)
         {
+            if ( ! mesh.isPrinted()) continue;
             const coord_t mesh_height = mesh.max().z;
             switch(mesh.settings.get<SlicingTolerance>("slicing_tolerance"))
             {
