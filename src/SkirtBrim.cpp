@@ -28,58 +28,57 @@ namespace cura
 
 */
 
-void SkirtBrim::generate(SliceDataStorage& storage)
+SkirtBrim::SkirtBrim(SliceDataStorage& storage)
+: storage(storage)
+, is_brim(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type")== EPlatformAdhesion::BRIM)
+, is_skirt( ! is_brim)
+, extruders(Application::getInstance().current_slice->scene.extruders)
+, extruder_count(extruders.size())
+, extruder_is_used(storage.getExtrudersUsed())
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
+    line_widths.resize(extruder_count);
+    skirt_brim_minimal_length.resize(extruder_count);
+    external_polys_only.resize(extruder_count);
+    line_count.resize(extruder_count);
+    gap.resize(extruder_count);
+    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        if ( ! extruder_is_used[extruder_nr]) continue;
+    
+        const ExtruderTrain& extruder = extruders[extruder_nr];
+
+        line_widths[extruder_nr] = extruder.settings.get<coord_t>("skirt_brim_line_width") * extruder.settings.get<Ratio>("initial_layer_line_width_factor");
+        skirt_brim_minimal_length[extruder_nr] = extruder.settings.get<coord_t>("skirt_brim_minimal_length");
+        external_polys_only[extruder_nr] = extruder.settings.get<bool>("brim_outside_only");
+        line_count[extruder_nr] = extruder.settings.get<int>(is_brim? "brim_line_count" : "skirt_line_count");
+        gap[extruder_nr] = extruder.settings.get<coord_t>(is_brim? "brim_gap" : "skirt_gap");
+    }
+}
+
+void SkirtBrim::generate()
+{
     
     const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
     const bool has_draft_shield = storage.draft_protection_shield.size() > 0;
 
-    const bool is_brim = adhesion_type == EPlatformAdhesion::BRIM;
     
-    struct Offset
-    {
-        Offset(const coord_t offset_value, coord_t line_width, coord_t gap, const coord_t line_idx, const int extruder_nr, bool is_last)
-        : offset_value(offset_value)
-        , line_width(line_width)
-        , gap(gap)
-        , line_idx(line_idx)
-        , extruder_nr(extruder_nr)
-        , is_last(is_last)
-        {}
-        coord_t offset_value;
-        coord_t line_width;
-        coord_t gap;
-        coord_t line_idx;
-        int extruder_nr;
-        mutable bool is_last; //!< Whether this is the last planned offset for this extruder.
-    };
-    
-    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
-    const int extruder_count = extruders.size();
-    
-    std::vector<coord_t> line_widths(extruder_count);
-    std::vector<coord_t> skirt_brim_minimal_length(extruder_count);
-    std::vector<bool> external_polys_only(extruder_count);
     
     std::vector<Offset> all_brim_offsets;
 
     const int skirt_brim_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<int>("skirt_brim_extruder_nr");
     
     constexpr LayerIndex layer_nr = 0;
-    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     std::vector<Polygons> starting_outlines(extruder_count);
     if (skirt_brim_extruder_nr >= 0)
     {
-        starting_outlines[skirt_brim_extruder_nr] = getFirstLayerOutline(storage, -1);
+        starting_outlines[skirt_brim_extruder_nr] = getFirstLayerOutline(-1);
     }
     else
     {
         for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
             if ( ! extruder_is_used[extruder_nr]) continue;
-            starting_outlines[extruder_nr] = getFirstLayerOutline(storage, extruder_nr);
+            starting_outlines[extruder_nr] = getFirstLayerOutline(extruder_nr);
         }
     }
 
@@ -96,35 +95,18 @@ void SkirtBrim::generate(SliceDataStorage& storage)
             break;
         }
         first = false;
-        
-        const ExtruderTrain& extruder = extruders[extruder_nr];
-        coord_t line_width = extruder.settings.get<coord_t>("skirt_brim_line_width") * extruder.settings.get<Ratio>("initial_layer_line_width_factor");
-        int line_count = extruder.settings.get<int>(is_brim? "brim_line_count" : "skirt_line_count");
-        coord_t gap = extruder.settings.get<coord_t>(is_brim? "brim_gap" : "skirt_gap");
-        
 
-        line_widths[extruder_nr] = line_width;
-        skirt_brim_minimal_length[extruder_nr] = extruder.settings.get<coord_t>("skirt_brim_minimal_length");
-
-        storage.skirt_brim[extruder_nr].resize(line_count + 20); // 20 should be enough for the extra lines required for minimum length
+        storage.skirt_brim[extruder_nr].resize(line_count[extruder_nr] + 20); // 20 should be enough for the extra lines required for minimum length
 
 
-        for (int line_idx = 0; line_idx < line_count; line_idx++)
+        for (int line_idx = 0; line_idx < line_count[extruder_nr]; line_idx++)
         {
-            coord_t offset = gap + line_width / 2 + line_width * line_idx;
-            const bool is_last = line_idx == line_count - 1;
-            all_brim_offsets.emplace_back(offset, line_width, gap, line_idx, extruder_nr, is_last);
+            coord_t offset = gap[extruder_nr] + line_widths[extruder_nr] / 2 + line_widths[extruder_nr] * line_idx;
+            const bool is_last = line_idx == line_count[extruder_nr] - 1;
+            all_brim_offsets.emplace_back(offset, line_widths[extruder_nr], gap[extruder_nr], line_idx, extruder_nr, is_last);
         }
     }
 
-    struct OffsetSorter
-    {
-        bool operator()(const Offset& a, const Offset& b)
-        {
-            return a.offset_value + a.extruder_nr
-            < b.offset_value + b.extruder_nr; // add extruder_nr so that it's more stable when both extruders have the same offset settings
-        }
-    };
     
     std::sort(all_brim_offsets.begin(), all_brim_offsets.end(), OffsetSorter{});
     
@@ -159,6 +141,53 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     for (size_t offset_idx = 0; offset_idx < all_brim_offsets.size(); offset_idx++)
     {
         const Offset& offset = all_brim_offsets[offset_idx];
+        generateOffset(offset, starting_outlines, brim_lines_can_be_cut, covered_area_needs_update,
+                       covered_area, allowed_areas_per_extruder, total_length);
+        
+        if (offset.is_last
+            // v This was the last offset of this extruder, but the brim lines don't meet minimal length yet
+            && total_length[offset.extruder_nr] < skirt_brim_minimal_length[offset.extruder_nr]
+            && total_length[offset.extruder_nr] > 0u // No lines got added; we have no extrusion lines to build on
+        )
+        {
+            offset.is_last = false;
+            constexpr bool is_last = true;
+            all_brim_offsets.emplace_back(offset.offset_value + offset.line_width, offset.line_width, offset.gap, offset.line_idx + 1, offset.extruder_nr, is_last);
+            std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter{}); // reorder remaining offsets
+        }
+    }
+    
+    // TODO list:
+    
+    // remove small open lines
+    
+    // ooze/draft shield brim
+    generateShieldBrim(covered_area);
+    
+//     generate extra skirt for non-primary extruders
+    // make extra skirt around outer brim of other material if this material has no room for more brim!
+    
+    // make skirt with minimal length algorithm instead of the core brim algorithms
+    
+    // robustness against when things are empty (brim lines, layer outlines, etc)
+    
+    // const correctness
+    
+    // documentation
+    
+    // frontend stuff
+    
+    // remove prime blobs from brim
+    
+    // simplify
+    
+}
+
+void SkirtBrim::generateOffset(const Offset& offset, const std::vector<Polygons>& starting_outlines, const bool brim_lines_can_be_cut, const bool covered_area_needs_update, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length)
+{
+    constexpr bool indent_to_prevent_git_changes = true;
+    if (indent_to_prevent_git_changes)
+    {
         Polygons brim;
         Polygons newly_covered;
         if (external_polys_only[offset.extruder_nr])
@@ -218,57 +247,21 @@ void SkirtBrim::generate(SliceDataStorage& storage)
                 allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
             }
         }
-
-        if (offset.is_last
-            // v This was the last offset of this extruder, but the brim lines don't meet minimal length yet
-            && total_length[offset.extruder_nr] < skirt_brim_minimal_length[offset.extruder_nr]
-            && total_length[offset.extruder_nr] > 0u // No lines got added; we have no extrusion lines to build on
-        )
-        {
-            offset.is_last = false;
-            constexpr bool is_last = true;
-            all_brim_offsets.emplace_back(offset.offset_value + offset.line_width, offset.line_width, offset.gap, offset.line_idx + 1, offset.extruder_nr, is_last);
-            std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter{}); // reorder remaining offsets
-        }
     }
-    
-    // TODO list:
-    
-    // remove small open lines
-    
-    // ooze/draft shield brim
-    generateShieldBrim(storage, covered_area);
-    
-//     generate extra skirt for non-primary extruders
-    // make extra skirt around outer brim of other material if this material has no room for more brim!
-    
-    // make skirt with minimal length algorithm instead of the core brim algorithms
-    
-    // robustness against when things are empty (brim lines, layer outlines, etc)
-    
-    // const correctness
-    
-    // documentation
-    
-    // frontend stuff
-    
-    // remove prime blobs from brim
-    
-    // simplify
-    
 }
 
-Polygons SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const int extruder_nr)
+Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr)
 {
     Polygons first_layer_outline;
     Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    const int skirt_brim_extruder_nr = global_settings.get<int>("skirt_brim_extruder_nr");
+    int skirt_brim_extruder_nr = global_settings.get<int>("skirt_brim_extruder_nr");
     assert( ! (skirt_brim_extruder_nr == -1 && extruder_nr == -1) && "We should only request the outlines of all layers when the brim is being generated for only one material");
-    const ExtruderTrain& train =
-        Application::getInstance().current_slice->scene.extruders[(extruder_nr == -1)? skirt_brim_extruder_nr : extruder_nr];
-    const bool is_skirt = train.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::SKIRT;
-    const int primary_line_count = train.settings.get<int>(is_skirt? "skirt_line_count" : "brim_line_count");
-    const bool external_only = is_skirt || train.settings.get<bool>("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
+    if (skirt_brim_extruder_nr == -1)
+    {
+        skirt_brim_extruder_nr = extruder_nr;
+    }
+    const int primary_line_count = line_count[skirt_brim_extruder_nr];
+    const bool external_only = is_skirt || external_polys_only[skirt_brim_extruder_nr]; //Whether to include holes or not. Skirt doesn't have any holes.
     const LayerIndex layer_nr = 0;
     if (is_skirt)
     {
@@ -305,7 +298,7 @@ Polygons SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const int ex
                 //  || ||     ||[]|| > expand to fit an extra brim line
                 //  |+-+|     |+--+|
                 //  +---+     +----+
-                const coord_t primary_extruder_skirt_brim_line_width = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
+                const coord_t primary_extruder_skirt_brim_line_width = line_widths[skirt_brim_extruder_nr];
                 Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2), ClipperLib::jtRound); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
                 if (external_only)
                 { // don't remove support within empty holes where no brim is generated.
@@ -325,7 +318,7 @@ Polygons SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const int ex
             first_layer_outline.add(support_layer.support_roof);
         }
         if (storage.primeTower.enabled
-            && train.settings.get<bool>("prime_tower_brim_enable")
+            && global_settings.get<bool>("prime_tower_brim_enable")
             && (extruder_nr == -1 || int(storage.primeTower.extruder_order[0]) == extruder_nr))
         {
             first_layer_outline.add(storage.primeTower.outer_poly); // don't remove parts of the prime tower, but make a brim for it
@@ -375,7 +368,7 @@ coord_t SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, s
     return offset_distance;
 }
 
-void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline, const coord_t start_distance, size_t primary_line_count, const bool allow_helpers)
+void SkirtBrim::generate(Polygons first_layer_outline, const coord_t start_distance, size_t primary_line_count, const bool allow_helpers)
 {
     const bool is_skirt = start_distance > 0;
     Scene& scene = Application::getInstance().current_slice->scene;
@@ -416,14 +409,13 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
     if (allow_helpers && support_infill_extruder.settings.get<bool>("support_brim_enable"))
     {
         const bool merge_with_model_skirtbrim = !is_skirt;
-        generateSupportBrim(storage, merge_with_model_skirtbrim);
+        generateSupportBrim(merge_with_model_skirtbrim);
     }
 */
 
 
-void SkirtBrim::generateShieldBrim(SliceDataStorage& storage, Polygons& brim_covered_area)
+void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area)
 {
-    const bool is_skirt = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::SKIRT;
     const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
     const bool has_draft_shield = storage.draft_protection_shield.size() > 0;
 
@@ -513,7 +505,7 @@ void SkirtBrim::generateShieldBrim(SliceDataStorage& storage, Polygons& brim_cov
 }
 */
 
-void SkirtBrim::generateSupportBrim(SliceDataStorage& storage, const bool merge_with_model_skirtbrim)
+void SkirtBrim::generateSupportBrim(const bool merge_with_model_skirtbrim)
 {
     constexpr coord_t brim_area_minimum_hole_size_multiplier = 100;
 
