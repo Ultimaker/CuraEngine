@@ -145,56 +145,8 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
                 line.polylineLength() > 3 * stitch_distance && line.size() > 3)
             {
                 logError("Some even contour lines could not be closed into polygons!\n");
-                AABB aabb;
-                for (auto line2 : wall_lines)
-                    for (auto j : line2)
-                        aabb.include(j.p);
-                {
-                    SVG svg("/tmp/contours_before.svg", aabb);
-                    SVG::Color col = SVG::Color::GRAY;
-                    for (auto& inset : toolpaths)
-                        for (auto& line2 : inset)
-                        {
-//                             svg.writePolyline(line2.toPolygon(), col);
-                            
-                            Polygon poly = line2.toPolygon();
-                            Point last = poly.front();
-                            for (size_t idx = 1 ; idx < poly.size(); idx++)
-                            {
-                                Point here = poly[idx];
-                                svg.writeLine(last, here, col);
-                                svg.writeText((last + here) / 2, std::to_string(line2.junctions[idx].region_id), SVG::Color::BLACK, 2.0);
-                                last = here;
-                            }
-                            svg.writePoint(poly[0], false, 2.0, col);
-                            svg.nextLayer();
-//                             svg.writePoints(poly, true, 0.1);
-//                             svg.nextLayer();
-                            col = SVG::Color((int(col) + 1) % int(SVG::Color::NONE));
-                        }
-                }
-                {
-                    SVG svg("/tmp/contours.svg", aabb);
-                    for (auto& inset : toolpaths)
-                        for (auto& line2 : inset)
-                            svg.writePolyline(line2.toPolygon(), SVG::Color::GRAY);
-                    for (auto& line2 : stitched_polylines)
-                    {
-                        SVG::Color col = line2.is_odd ? SVG::Color::GRAY : SVG::Color::RED;
-                        if ( ! line2.is_odd) std::cerr << "Non-closed even wall of size: " << line2.size()  << " at " << line2.front().p << "\n";
-                        if ( ! line2.is_odd) svg.writePoint(line2.front().p, true, 1.0);
-                        Polygon poly = line2.toPolygon();
-                        Point last = poly.front();
-                        for (size_t idx = 1 ; idx < poly.size(); idx++)
-                        {
-                            Point here = poly[idx];
-                            svg.writeLine(last, here, col);
-                            last = here;
-                        }
-                    }
-                    for (auto line2 : closed_polygons)
-                        svg.writePolygon(line2.toPolygon());
-                }
+                assert(false && "Some even contour lines could not be closed into polygons!");
+                // NOTE: if this assertion fails then revert the debugging code removed in this commit (git blame on this line)
             }
         }
 #endif // DEBUG
