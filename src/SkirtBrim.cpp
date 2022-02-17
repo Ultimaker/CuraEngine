@@ -32,8 +32,9 @@ void SkirtBrim::generate(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
-
-    const int prime_tower_brim_extruder = storage.primeTower.extruder_order[0]; // The extruder with which the outer ring of the prime tower is printed
+    
+    const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
+    const bool has_draft_shield = storage.draft_protection_shield.size() > 0;
 
     const bool is_brim = adhesion_type == EPlatformAdhesion::BRIM;
     
@@ -142,6 +143,8 @@ void SkirtBrim::generate(SliceDataStorage& storage)
         brim_lines_can_be_cut |= external_only;
     }
 
+    bool covered_area_needs_update = brim_lines_can_be_cut || has_ooze_shield || has_draft_shield;
+    
     for (const Offset& offset : all_brim_offsets)
     {
         Polygons brim;
@@ -153,7 +156,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
                 for (ConstPolygonRef poly : starting_outlines[offset.extruder_nr])
                 {
                     brim.add(poly.offset(offset.offset_value, ClipperLib::jtRound));
-                    if (brim_lines_can_be_cut)
+                    if (covered_area_needs_update)
                     {
                         newly_covered.add(poly.offset(offset.offset_value + offset.line_width / 2, ClipperLib::jtRound));
                         Polygon reference = poly;
@@ -169,13 +172,13 @@ void SkirtBrim::generate(SliceDataStorage& storage)
                 polylines.toPolylines();
                 polylines.add(storage.skirt_brim[offset.extruder_nr][offset.line_idx - 1].open_polylines);
                 brim.add(polylines.offsetPolyLine(offset.line_width, ClipperLib::jtRound));
-                if (brim_lines_can_be_cut) newly_covered.add(polylines.offsetPolyLine(offset.line_width * 3 / 2, ClipperLib::jtRound));
+                if (covered_area_needs_update) newly_covered.add(polylines.offsetPolyLine(offset.line_width * 3 / 2, ClipperLib::jtRound));
             }
         }
         else
         {
             brim = starting_outlines[offset.extruder_nr].offset(offset.offset_value, ClipperLib::jtRound);
-            if (brim_lines_can_be_cut) newly_covered = starting_outlines[offset.extruder_nr].offset(offset.offset_value + offset.line_width / 2, ClipperLib::jtRound);
+            if (covered_area_needs_update) newly_covered = starting_outlines[offset.extruder_nr].offset(offset.offset_value + offset.line_width / 2, ClipperLib::jtRound);
         }
 
         if (brim_lines_can_be_cut)
@@ -191,12 +194,13 @@ void SkirtBrim::generate(SliceDataStorage& storage)
             storage.skirt_brim[offset.extruder_nr][offset.line_idx].closed_polygons = brim;
         }
         
-        if (brim_lines_can_be_cut)
+        if (covered_area_needs_update)
         {
             for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
             {
                 if ( ! extruder_is_used[extruder_nr]) continue;
-                allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(newly_covered.unionPolygons());
+                covered_area = covered_area.unionPolygons(newly_covered.unionPolygons());
+                allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
             }
         }
     }
@@ -206,9 +210,9 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     // remove small open lines
     
     // ooze/draft shield brim
+    generateShieldBrim(storage, covered_area);
     
 //     ensureMinimalLength();
-
 //     generate extra skirt for non-primary extruders
     // make extra skirt around outer brim of other material if this material has no room for more brim!
 
@@ -376,10 +380,29 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
         const bool merge_with_model_skirtbrim = !is_skirt;
         generateSupportBrim(storage, merge_with_model_skirtbrim);
     }
+*/
+
+
+void SkirtBrim::generateShieldBrim(SliceDataStorage& storage, Polygons& brim_covered_area)
+{
+    const bool is_skirt = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::SKIRT;
+    const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
+    const bool has_draft_shield = storage.draft_protection_shield.size() > 0;
 
     // generate brim for ooze shield and draft shield
     if (!is_skirt && (has_ooze_shield || has_draft_shield))
     {
+        int extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<int>("skirt_brim_extruder_nr");
+        if (extruder_nr < 0)
+        { // the shields are always printed with all extruders, so it doesn't really matter with which extruder we print the brim on the first layer
+            extruder_nr = storage.getExtrudersUsed()[0];
+        }
+        const Settings& adhesion_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+
+        const coord_t primary_extruder_skirt_brim_line_width = adhesion_settings.get<coord_t>("skirt_brim_line_width") * adhesion_settings.get<Ratio>("initial_layer_line_width_factor");
+
+        int primary_line_count = adhesion_settings.get<int>("brim_line_count");
+
         // generate areas where to make extra brim for the shields
         // avoid gap in the middle
         //    V
@@ -399,17 +422,20 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
         {
             shield_brim = shield_brim.unionPolygons(storage.draft_protection_shield.difference(storage.draft_protection_shield.offset(-primary_skirt_brim_width - primary_extruder_skirt_brim_line_width)));
         }
-        const Polygons outer_primary_brim = first_layer_outline.offset(offset_distance, ClipperLib::jtRound);
-        shield_brim = shield_brim.difference(outer_primary_brim.offset(primary_extruder_skirt_brim_line_width));
+        shield_brim = shield_brim.difference(brim_covered_area.offset(primary_extruder_skirt_brim_line_width / 2));
 
         // generate brim within shield_brim
-        skirt_brim_primary_extruder.add(shield_brim);
+        storage.skirt_brim[extruder_nr].emplace_back();
+        storage.skirt_brim[extruder_nr].back().closed_polygons.add(shield_brim);
         while (shield_brim.size() > 0)
         {
             shield_brim = shield_brim.offset(-primary_extruder_skirt_brim_line_width);
-            skirt_brim_primary_extruder.add(shield_brim);
+            storage.skirt_brim[extruder_nr].back().closed_polygons.add(shield_brim); // throw all polygons for the shileds onto one heap; because the brim lines are generated from both sides the order will not be important
         }
+    }
+}
 
+/*
         // update parameters to generate secondary skirt around
         first_layer_outline = outer_primary_brim;
         if (has_draft_shield)

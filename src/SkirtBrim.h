@@ -28,9 +28,18 @@ public:
      * \param primary_line_count Number of offsets / brim lines of the primary extruder.
      * \param set to false to force not doing brim generation for helper-structures (support and ooze/draft shields)
      */
-//     static void generate(SliceDataStorage& storage, Polygons first_layer_outline, const coord_t distance, size_t primary_line_count, const bool allow_helpers = true);
     static void generate(SliceDataStorage& storage);
-    
+
+    /*!
+     * Generate the brim inside the ooze shield and draft shield
+     * 
+     * \warning Adjusts brim_covered_area
+     * 
+     * \param storage Storage containing the parts at the first layer.
+     * \param[in,out] brim_covered_area The area that was covered with brim before (in) and after (out) adding the shield brims
+     */
+    static void generateShieldBrim(SliceDataStorage& storage, Polygons& brim_covered_area);
+
     /*!
      * \brief Get the reference outline of the first layer around which to
      * generate the first brim/skirt line.
