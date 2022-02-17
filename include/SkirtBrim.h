@@ -6,6 +6,7 @@
 
 #include "utils/Coord_t.h"
 #include "ExtruderTrain.h"
+#include "sliceDataStorage.h"
 
 namespace cura 
 {
@@ -107,8 +108,9 @@ public:
      * \param[in,out] covered_area The total area covered by the brims (and models) on the first layer.
      * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
      * \param[in,out] total_length The total length of the brim lines for each extruder.
+     * \param[out] result Where to store the resulting brim line
      */
-    void generateOffset(const Offset& offset, const std::vector<Polygons>& starting_outlines, const bool brim_lines_can_be_cut, const bool covered_area_needs_update, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length);
+    void generateOffset(const Offset& offset, const std::vector<Polygons>& starting_outlines, const bool brim_lines_can_be_cut, const bool covered_area_needs_update, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length, SkirtBrimLine& result);
 public:
     void generateSupportBrim(const bool merge_with_model_skirtbrim);
 
