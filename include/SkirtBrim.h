@@ -112,6 +112,19 @@ public:
      * \param[out] result Where to store the resulting brim line
      */
     void generateOffset(const Offset& offset, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length, SkirtBrimLine& result);
+
+    /*!
+     * Generate a skirt of extruders which don't yet comply with the minimum length requirement.
+     * 
+     * This skirt goes directly adjacent to all primary brims.
+     * 
+     * The skirt is stored in storage.skirt_brim.
+     * 
+     * \param[in,out] covered_area The total area covered by the brims (and models) on the first layer.
+     * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
+     * \param[in,out] total_length The total length of the brim lines for each extruder.
+     */
+    void generateSecondarySkirtBrim(Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length);
 public:
     void generateSupportBrim(const bool merge_with_model_skirtbrim);
 
