@@ -1612,7 +1612,9 @@ std::vector<std::vector<size_t>> Polygons::getNesting() const
         SVG svg("/tmp/nesting.svg", AABB(*this));
         svg.writePolygons(*this);
         for (auto& path : paths)
+        {
             svg.writePoint(path[0], true, 1.0);
+        }
         for (size_t idx = 0; idx < ret.size(); idx++)
         {
             for (size_t child_idx : ret[idx])
@@ -1662,7 +1664,9 @@ std::unordered_map<const ClipperLib::PolyNode*, size_t> Polygons::getPolyTreeToP
         const ClipperLib::PolyNode* node = queue.front();
         queue.pop();
         for (auto child : node->Childs)
+        {
             queue.emplace(child);
+        }
         if (node->Contour.empty()) continue;
 
         std::unordered_map<Point, size_t>::iterator it;
@@ -1687,19 +1691,24 @@ std::unordered_map<const ClipperLib::PolyNode*, size_t> Polygons::getPolyTreeToP
     }
 
     logWarning("Couldn't find result of nesting in original polygons");
+#ifdef DEBUG
     for (auto node : unprocessed)
     {
         std::cerr << "Couldn't find match for node with locations:\n";
         for (auto p : node->Contour)
+        {
             std::cerr << Point(p) << ", ";
+        }
         std::cerr << '\n';
     }
     std::cerr << "Among registered locations: \n";
     for (auto [p, i] : loc_to_index)
+    {
         std::cerr << p << " to index " << i << '\n';
+    }
     std::cerr <<'\n';
- 
     assert(false && "The first Point in each polygon should be contained in the clipper output!");
+#endif
     return result;
 }
 
