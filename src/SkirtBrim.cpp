@@ -96,8 +96,6 @@ void SkirtBrim::generate()
         }
         first = false;
 
-        storage.skirt_brim[extruder_nr].resize(line_count[extruder_nr] + 20); // 20 should be enough for the extra lines required for minimum length
-
 
         for (int line_idx = 0; line_idx < line_count[extruder_nr]; line_idx++)
         {
@@ -105,12 +103,12 @@ void SkirtBrim::generate()
             coord_t offset = gap[extruder_nr] + line_widths[extruder_nr] / 2 + line_widths[extruder_nr] * line_idx;
             if (line_idx == 0)
             {
-                constexpr int reference_idx = -1;
+                constexpr int reference_idx = -1; // not used, we use the outliens as reference instead
                 all_brim_offsets.emplace_back(&starting_outlines[extruder_nr], reference_idx, external_polys_only[extruder_nr], offset, offset, line_idx, extruder_nr, is_last);
             }
             else
             {
-                constexpr Polygons* reference_outline = nullptr;
+                constexpr Polygons* reference_outline = nullptr; // not used, we use previous brimlines as reference instead
                 all_brim_offsets.emplace_back(reference_outline, line_idx - 1, external_polys_only[extruder_nr], line_widths[extruder_nr], offset, line_idx, extruder_nr, is_last);
             }
         }
@@ -142,7 +140,12 @@ void SkirtBrim::generate()
     for (size_t offset_idx = 0; offset_idx < all_brim_offsets.size(); offset_idx++)
     {
         const Offset& offset = all_brim_offsets[offset_idx];
-        generateOffset(offset, covered_area, allowed_areas_per_extruder, total_length, storage.skirt_brim[offset.extruder_nr][offset.inset_idx]);
+        if (storage.skirt_brim[offset.extruder_nr].size() <= offset.inset_idx)
+        {
+            storage.skirt_brim[offset.extruder_nr].resize(offset.inset_idx + 1);
+        }
+        SkirtBrimLine& output_location = storage.skirt_brim[offset.extruder_nr][offset.inset_idx];
+        generateOffset(offset, covered_area, allowed_areas_per_extruder, total_length, output_location);
         
         if (offset.is_last
             // v This was the last offset of this extruder, but the brim lines don't meet minimal length yet
@@ -152,7 +155,7 @@ void SkirtBrim::generate()
         {
             offset.is_last = false;
             constexpr bool is_last = true;
-            constexpr Polygons* reference_outline = nullptr;
+            constexpr Polygons* reference_outline = nullptr; // not used
             all_brim_offsets.emplace_back(reference_outline, offset.inset_idx, external_polys_only[offset.extruder_nr], line_widths[offset.extruder_nr], offset.total_offset + line_widths[offset.extruder_nr], offset.inset_idx + 1, offset.extruder_nr, is_last);
             std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter{}); // reorder remaining offsets
         }
@@ -165,10 +168,12 @@ void SkirtBrim::generate()
     // ooze/draft shield brim
     generateShieldBrim(covered_area);
     
-//     generate extra skirt for non-primary extruders
-    // make extra skirt around outer brim of other material if this material has no room for more brim!
+    // Secondary brim of all other materials which don;t meet minimum length constriant yet
+    generateSecondarySkirtBrim(covered_area, allowed_areas_per_extruder, total_length);
     
     // make skirt with minimal length algorithm instead of the core brim algorithms
+    
+    // fix external only offsetting. E.g. with brim distance the separately offsetted brim lines may intersect with each other.
     
     // robustness against when things are empty (brim lines, layer outlines, etc)
     
@@ -474,7 +479,45 @@ void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area)
 
         offset_distance = 0;
     }
+*/
+void SkirtBrim::generateSecondarySkirtBrim(Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length)
+{
 
+    constexpr coord_t bogus_total_offset = 0u; // Doesn't matter. The offsets won't be sorted here.
+    constexpr bool is_last = false; // Doesn't matter. Isn't used in the algorithm below.
+    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        bool first = true;
+        Polygons reference_outline = covered_area;
+        while (total_length[extruder_nr] < skirt_brim_minimal_length[extruder_nr])
+        {
+            int reference_index = -1;
+            Polygons* reference_polygons = nullptr;
+            coord_t offset_from_reference;
+            if (first)
+            {
+                reference_polygons = &reference_outline;
+                offset_from_reference = line_widths[extruder_nr] / 2;
+            }
+            else
+            {
+                reference_index = storage.skirt_brim[extruder_nr].size() - 1;
+                offset_from_reference = line_widths[extruder_nr];
+            }
+            constexpr bool external_only = false; // TODO is this correct?
+            Offset extra_offset(reference_polygons, reference_index, external_only, offset_from_reference, bogus_total_offset, storage.skirt_brim[extruder_nr].size(), extruder_nr, is_last);
+            
+            storage.skirt_brim[extruder_nr].emplace_back();
+            SkirtBrimLine& output_location = storage.skirt_brim[extruder_nr].back();
+            generateOffset(extra_offset, covered_area, allowed_areas_per_extruder, total_length, output_location);
+
+            first = false;
+        }
+    }
+}
+
+    
+/*
     if (first_layer_outline.polygonLength() > 0)
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int last_width = primary_extruder_skirt_brim_line_width;
