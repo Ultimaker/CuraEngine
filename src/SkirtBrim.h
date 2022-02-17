@@ -19,17 +19,13 @@ class SkirtBrim
 private:
     struct Offset
     {
-        Offset(const coord_t offset_value, coord_t line_width, coord_t gap, const coord_t line_idx, const int extruder_nr, bool is_last)
+        Offset(const coord_t offset_value, const coord_t line_idx, const int extruder_nr, bool is_last)
         : offset_value(offset_value)
-        , line_width(line_width)
-        , gap(gap)
         , line_idx(line_idx)
         , extruder_nr(extruder_nr)
         , is_last(is_last)
         {}
         coord_t offset_value;
-        coord_t line_width;
-        coord_t gap;
         coord_t line_idx;
         int extruder_nr;
         mutable bool is_last; //!< Whether this is the last planned offset for this extruder.

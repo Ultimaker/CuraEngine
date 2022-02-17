@@ -103,7 +103,7 @@ void SkirtBrim::generate()
         {
             coord_t offset = gap[extruder_nr] + line_widths[extruder_nr] / 2 + line_widths[extruder_nr] * line_idx;
             const bool is_last = line_idx == line_count[extruder_nr] - 1;
-            all_brim_offsets.emplace_back(offset, line_widths[extruder_nr], gap[extruder_nr], line_idx, extruder_nr, is_last);
+            all_brim_offsets.emplace_back(offset, line_idx, extruder_nr, is_last);
         }
     }
 
@@ -152,7 +152,7 @@ void SkirtBrim::generate()
         {
             offset.is_last = false;
             constexpr bool is_last = true;
-            all_brim_offsets.emplace_back(offset.offset_value + offset.line_width, offset.line_width, offset.gap, offset.line_idx + 1, offset.extruder_nr, is_last);
+            all_brim_offsets.emplace_back(offset.offset_value + line_widths[offset.extruder_nr], offset.line_idx + 1, offset.extruder_nr, is_last);
             std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter{}); // reorder remaining offsets
         }
     }
@@ -199,7 +199,7 @@ void SkirtBrim::generateOffset(const Offset& offset, const std::vector<Polygons>
                     brim.add(poly.offset(offset.offset_value, ClipperLib::jtRound));
                     if (covered_area_needs_update)
                     {
-                        newly_covered.add(poly.offset(offset.offset_value + offset.line_width / 2, ClipperLib::jtRound));
+                        newly_covered.add(poly.offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound));
                         Polygon reference = poly;
                         reference.reverse();
                         newly_covered.add(reference); // don't remove area inside external polygon
@@ -212,14 +212,14 @@ void SkirtBrim::generateOffset(const Offset& offset, const std::vector<Polygons>
                 Polygons polylines = storage.skirt_brim[offset.extruder_nr][offset.line_idx - 1].closed_polygons;
                 polylines.toPolylines();
                 polylines.add(storage.skirt_brim[offset.extruder_nr][offset.line_idx - 1].open_polylines);
-                brim.add(polylines.offsetPolyLine(offset.line_width, ClipperLib::jtRound));
-                if (covered_area_needs_update) newly_covered.add(polylines.offsetPolyLine(offset.line_width * 3 / 2, ClipperLib::jtRound));
+                brim.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr], ClipperLib::jtRound));
+                if (covered_area_needs_update) newly_covered.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr] * 3 / 2, ClipperLib::jtRound));
             }
         }
         else
         {
             brim = starting_outlines[offset.extruder_nr].offset(offset.offset_value, ClipperLib::jtRound);
-            if (covered_area_needs_update) newly_covered = starting_outlines[offset.extruder_nr].offset(offset.offset_value + offset.line_width / 2, ClipperLib::jtRound);
+            if (covered_area_needs_update) newly_covered = starting_outlines[offset.extruder_nr].offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound);
         }
 
         if (brim_lines_can_be_cut)
