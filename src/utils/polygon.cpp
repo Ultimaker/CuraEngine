@@ -684,7 +684,7 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
         for(auto it = paths.begin(); it < new_end; it++)
         {
             // All polygons smaller than target are removed by replacing them with a polygon from the back of the vector
-            if(fabs(INT2MM2(ClipperLib::Area(*it))) < min_area_size)
+            if(std::abs(INT2MM2(ClipperLib::Area(*it))) < min_area_size)
             {
                 new_end--;
                 *it = std::move(*new_end);
@@ -698,7 +698,7 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
         std::vector<PolygonRef> small_holes;
         for(auto it = paths.begin(); it < new_end; it++) {
             double area = INT2MM2(ClipperLib::Area(*it));
-            if (fabs(area) < min_area_size)
+            if (std::abs(area) < min_area_size)
             {
                 if(area >= 0)
                 {

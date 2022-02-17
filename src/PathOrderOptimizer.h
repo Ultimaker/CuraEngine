@@ -480,14 +480,14 @@ protected:
                 }
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-                score = score_distance - fabs(corner_angle) * corner_shift; //Still give sharper corners more advantage.
+                score = score_distance - std::abs(corner_angle) * corner_shift; //Still give sharper corners more advantage.
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
                 score = score_distance; //No advantage for sharper corners.
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED: //Give sharper corners some advantage, but sharper concave corners even more.
                 {
-                    float score_corner = fabs(corner_angle) * corner_shift;
+                    float score_corner = std::abs(corner_angle) * corner_shift;
                     if(corner_angle > 0) //Concave corner.
                     {
                         score_corner *= 2;
