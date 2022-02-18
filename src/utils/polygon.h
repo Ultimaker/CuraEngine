@@ -738,6 +738,11 @@ public:
         return paths.size();
     }
 
+    void reserve(size_t new_cap)
+    {
+        paths.reserve(new_cap);
+    }
+
     void set(const ClipperLib::Paths& new_paths)
     {
         paths = new_paths;
