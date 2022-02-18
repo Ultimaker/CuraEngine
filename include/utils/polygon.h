@@ -754,6 +754,11 @@ public:
         return paths.size();
     }
 
+    void reserve(size_t new_cap)
+    {
+        paths.reserve(new_cap);
+    }
+
     /*!
      * Convenience function to check if the polygon has no points.
      *

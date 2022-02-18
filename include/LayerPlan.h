@@ -619,7 +619,7 @@ public:
      * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
      * \param fan_speed optional fan speed override for this path
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const bool enable_travel_optimization = false, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0, const std::optional<Point> near_start_location = std::optional<Point>(), const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT, const bool reverse_print_direction = false);
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const bool enable_travel_optimization = false, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0, const std::optional<Point> near_start_location = std::optional<Point>(), const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT, const bool reverse_print_direction = false, const std::unordered_set<std::pair<ConstPolygonPointer, ConstPolygonPointer>>& order_requirements = PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements);
 
     /*!
      * Add polygons to the g-code with monotonic order.

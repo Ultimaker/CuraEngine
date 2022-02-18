@@ -5,6 +5,7 @@
 #include <limits> // numeric_limits
 #include <list>
 #include <optional>
+#include <unordered_set>
 
 #include <boost/uuid/random_generator.hpp> //For generating a UUID.
 #include <boost/uuid/uuid_io.hpp> //For generating a UUID.
@@ -1165,18 +1166,14 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         return;
     }
-    for (const SkirtBrimLine& line : storage.skirt_brim[extruder_nr])
-    {
-        gcode_layer.addPolygonsByOptimizer(line.closed_polygons, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
-        gcode_layer.addLinesByOptimizer(line.open_polylines, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], SpaceFillType::PolyLines);
-    }
-    /*
-    const Polygons& original_skirt_brim = storage.skirt_brim[extruder_nr];
     gcode_layer.setSkirtBrimIsPlanned(extruder_nr);
+    
+    const std::vector<SkirtBrimLine>& original_skirt_brim = storage.skirt_brim[extruder_nr];
     if (original_skirt_brim.size() == 0)
     {
         return;
     }
+
     // Start brim close to the prime location
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
     Point start_close_to;
@@ -1191,6 +1188,88 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
+    // figure out order requirements
+    struct BrimLineReference
+    {
+        const size_t inset_idx;
+        ConstPolygonPointer poly;
+    };
+    
+    size_t total_line_count = 0;
+    for (const SkirtBrimLine& line : storage.skirt_brim[extruder_nr])
+    {
+        total_line_count += line.closed_polygons.size();
+        total_line_count += line.open_polylines.size();
+    }
+    Polygons all_brim_lines;
+    all_brim_lines.reserve(total_line_count);
+
+    const coord_t line_w = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
+    const coord_t searching_radius = line_w * 2;
+    using GridT = SparsePointGridInclusive<BrimLineReference>;
+    GridT grid(searching_radius);
+
+    for (size_t inset_idx = 0; inset_idx < storage.skirt_brim[extruder_nr].size(); inset_idx++)
+    {
+        const SkirtBrimLine& offset = storage.skirt_brim[extruder_nr][inset_idx];
+        for (bool closed : { false, true })
+        {
+            for (ConstPolygonRef line : closed? offset.closed_polygons : offset.open_polylines)
+            {
+                if (line.size() <= 1) continue;
+                all_brim_lines.emplace_back(line);
+                if (closed)
+                { // add closing segment
+                    all_brim_lines.back().add(line.front());
+                }
+                ConstPolygonPointer pp(all_brim_lines.back());
+                for (Point p : line)
+                {
+                    grid.insert(p, BrimLineReference{inset_idx, pp});
+                }
+            }
+        }
+    }
+    std::unordered_set<std::pair<ConstPolygonPointer, ConstPolygonPointer>> order_requirements;
+    for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
+    {
+        const BrimLineReference& here = p.second.val;
+        Point loc_here = p.second.point;
+        std::vector<BrimLineReference> nearby_verts = grid.getNearbyVals(loc_here, searching_radius);
+        for (const BrimLineReference& nearby : nearby_verts)
+        {
+            if (nearby.poly == here.poly) continue;
+            if (nearby.inset_idx == here.inset_idx) continue;
+            if (nearby.inset_idx > here.inset_idx + 1) continue; // not directly adjacent
+            if (here.inset_idx > nearby.inset_idx + 1) continue; // not directly adjacent
+            if (nearby.inset_idx < here.inset_idx)
+            {
+                order_requirements.emplace(std::make_pair(nearby.poly, here.poly));
+            }
+            else
+            {
+                order_requirements.emplace(std::make_pair(here.poly, nearby.poly));
+            }
+        }
+    }
+    assert(all_brim_lines.size() == total_line_count); // Otherwise pointers would have gotten invalidated
+    
+    const bool enable_travel_optimization = true; // TODO is this right?
+    const coord_t wipe_dist = 0u;
+    const Ratio flow_ratio = 1.0;
+    const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    const bool reverse_print_direction = false;
+    gcode_layer.addLinesByOptimizer(all_brim_lines, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], SpaceFillType::PolyLines,
+        enable_travel_optimization,
+        wipe_dist,
+        flow_ratio,
+        start_close_to,
+        fan_speed,
+        reverse_print_direction
+        , order_requirements
+    );
+
+/*
     Polygons first_skirt_brim;
     Polygons skirt_brim;
     // Plan parts that need to be printed first: for example, skirt needs to be printed before support-brim.

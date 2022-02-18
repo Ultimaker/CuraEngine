@@ -365,8 +365,10 @@ protected:
      */
     bool reverse_direction;
 
+public:
     static const std::unordered_set<std::pair<PathType, PathType>> no_order_requirements;
 
+protected:
     /*!
      * Order requirements on the paths.
      * For each pair the first needs to be printe before the second.
