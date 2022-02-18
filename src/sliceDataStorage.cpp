@@ -590,11 +590,29 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         for (Point& p : poly)
             p = Point(machine_size.max.x / 2 + p.X, machine_size.max.y / 2 - p.Y); // apparently the frontend stores the disallowed areas in a different coordinate system
     
+    std::vector<bool> extruder_is_used = getExtrudersUsed();
+
+    constexpr coord_t prime_clearance = MM2INT(6.5);
+    for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
+    {
+        if (checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) continue;
+        if ( ! extruder_is_used[extruder_nr]) continue;
+        Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+        if ( ! extruder_settings.get<bool>("prime_blob_enable")) continue;
+        if ( ! mesh_group_settings.get<bool>("extruder_prime_pos_abs")) continue;
+        Point prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"));
+        if (prime_pos == Point(0, 0)) continue; // Ignore extruder prime position if it is not set.
+        Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+        prime_pos -= translation;
+        Polygons prime_polygons;
+        prime_polygons.emplace_back(PolygonUtils::makeCircle(prime_pos, prime_clearance, M_PI / 32));
+        disallowed_areas = disallowed_areas.unionPolygons(prime_polygons);
+    }
+
 //     border = border.difference(disallowed_areas);
 //     border = border.processEvenOdd(ClipperLib::pftNonZero);
 
     Polygons disallowed_all_extruders;
-    std::vector<bool> extruder_is_used = getExtrudersUsed();
     bool first = true;
     for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {

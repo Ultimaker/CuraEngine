@@ -189,8 +189,6 @@ void SkirtBrim::generate()
 
     // TODO: make allowed areas a bit smaller so that internal external-only brims don't overlap with model by half the line width
     
-    // remove prime blobs from brim
-    
     // remove prime tower from shields OR fix disallowed areas in frontend!
 
     // robustness against when things are empty (brim lines, layer outlines, etc)
