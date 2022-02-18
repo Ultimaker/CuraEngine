@@ -84,11 +84,11 @@ public:
             GCodePathConfig::SpeedDerivatives(120, 5000, 30)
         )
     {
-        const std::string mesh_id = "test_mesh";
+        const SliceMeshStorage* mesh = nullptr;
         constexpr Ratio flow_1 = 1.0_r;
         constexpr bool no_spiralize = false;
         constexpr Ratio speed_1 = 1.0_r;
-        square.assign({GCodePath(extrusion_config, mesh_id, SpaceFillType::PolyLines, flow_1, no_spiralize, speed_1)});
+        square.assign({GCodePath(extrusion_config, mesh, SpaceFillType::PolyLines, flow_1, no_spiralize, speed_1)});
         square.back().points = {
             Point(0, 0),
             Point(1000, 0),
@@ -98,11 +98,11 @@ public:
         };
 
         lines.assign({
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1)
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
+            GCodePath(travel_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
+            GCodePath(travel_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_1)
         });
         lines[0].points = {Point(0, 0), Point(1000, 0)};
         lines[1].points = {Point(1000, 0), Point(1000, 400)};
@@ -114,11 +114,11 @@ public:
         constexpr Ratio flow_08 = 0.8_r;
         constexpr Ratio flow_04 = 0.4_r;
         decreasing_flow.assign({
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_12, no_spiralize, speed_1),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_08, no_spiralize, speed_1),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_04, no_spiralize, speed_1)
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, flow_12, no_spiralize, speed_1),
+            GCodePath(travel_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, flow_08, no_spiralize, speed_1),
+            GCodePath(travel_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, flow_04, no_spiralize, speed_1)
         });
         decreasing_flow[0].points = {Point(0, 0), Point(1000, 0)};
         decreasing_flow[1].points = {Point(1000, 0), Point(1000, 400)};
@@ -130,11 +130,11 @@ public:
         constexpr Ratio speed_08 = 0.8_r;
         constexpr Ratio speed_04 = 0.4_r;
         decreasing_speed.assign({
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_12),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_08),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_04)
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_12),
+            GCodePath(travel_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_08),
+            GCodePath(travel_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_04)
         });
         decreasing_speed[0].points = {Point(0, 0), Point(1000, 0)};
         decreasing_speed[1].points = {Point(1000, 0), Point(1000, 400)};
@@ -143,12 +143,12 @@ public:
         decreasing_speed[4].points = {Point(0, 800), Point(1000, 800)};
 
         variable_width.assign({
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.8_r, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.6_r, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.4_r, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.2_r, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.0_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, 0.8_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, 0.6_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, 0.4_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, 0.2_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh, SpaceFillType::Lines, 0.0_r, no_spiralize, speed_1),
         });
         variable_width[0].points = {Point(0, 0), Point(1000, 0)};
         variable_width[1].points = {Point(1000, 0), Point(2000, 0)};

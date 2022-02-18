@@ -150,18 +150,11 @@ private:
     void setConfigCoasting(SliceDataStorage& storage);
 
     /*!
-     * Set the retraction config globally, per extruder and per mesh.
+     * Set the retraction and wipe config globally, per extruder and per mesh.
      * 
      * \param[out] storage The data storage to which to save the configurations
      */
-    void setConfigRetraction(SliceDataStorage& storage);
-
-    /*!
-     * Set the wipe config globally, per extruder.
-     *
-     * \param[out] storage The data storage to which to save the configurations
-     */
-    void setConfigWipe(SliceDataStorage& storage);
+    void setConfigRetractionAndWipe(SliceDataStorage& storage);
 
     /*!
      * Get the extruder with which to start the print.
