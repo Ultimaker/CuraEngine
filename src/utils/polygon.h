@@ -1174,6 +1174,13 @@ public:
     std::vector<PolygonsPart> splitIntoParts(bool unionAll = false) const;
 
     /*!
+     * Sort the polygons into bins where each bin has polygons which are contained within one of the polygons in the previous bin.
+     * 
+     * \warning When polygons are crossing each other the result is undefined.
+     */
+    std::vector<Polygons> sortByNesting() const;
+
+    /*!
      * Utility method for creating the tube (or 'donut') of a shape.
      * \param inner_offset Offset relative to the original shape-outline towards the inside of the shape. Sort-of like a negative normal offset, except it's the offset part that's kept, not the shape.
      * \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset.
@@ -1190,6 +1197,7 @@ private:
      */
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
+    void sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, const size_t nesting_idx, std::vector<Polygons>& ret) const;
 
 public:
     /*!

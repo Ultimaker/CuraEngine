@@ -189,8 +189,6 @@ void SkirtBrim::generate()
     
     // TODO: only put secondary brim on the external outside of the primary brim?
     
-    // fix external only offsetting. E.g. with brim distance the separately offsetted brim lines may intersect with each other.
-    
     // remove prime blobs from brim
     
     // remove prime tower from shields OR fix disallowed areas in frontend!
@@ -227,15 +225,22 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
             {
                 if (offset.external_only)
                 { // prevent unioning of external polys enclosed by other parts, e.g. a small part inside a hollow cylinder.
-                    for (ConstPolygonRef poly : *offset.reference_outline)
-                    {
-                        brim.add(poly.offset(offset.offset_value, ClipperLib::jtRound));
+                    for (Polygons& polys : offset.reference_outline->sortByNesting())
+                    { // offset external polygons of islands contained within another part in each batch
+                        for (PolygonRef poly : polys)
                         {
-                            newly_covered.add(poly.offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound));
-                            Polygon reference = poly;
-                            reference.reverse();
-                            newly_covered.add(reference); // don't remove area inside external polygon
+                            if (poly.area() < 0)
+                            {
+                                poly.reverse();
+                            }
                         }
+                        brim.add(polys.offset(offset.offset_value, ClipperLib::jtRound));
+                        newly_covered.add(polys.offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound));
+                        for (PolygonRef poly : polys)
+                        {
+                            poly.reverse();
+                        }
+                        newly_covered.add(polys); // don't remove area inside external polygon
                     }
                 }
                 else
