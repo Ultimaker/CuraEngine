@@ -168,15 +168,17 @@ void SkirtBrim::generate()
         }
     }
     
-    if (is_skirt)
-    { // prevent areas inside the convex hull from being covered with skirt
-
-        covered_area = covered_area.unionPolygons(getFirstLayerOutline(first_used_extruder_nr));
-    }
-    
     // ooze/draft shield brim
     generateShieldBrim(covered_area);
-    
+
+    { // only allow secondary skirt/brim to appear on the very outside
+        covered_area = covered_area.getOutsidePolygons();
+        for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+        {
+            allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
+        }
+    }
+
     // Secondary brim of all other materials which don;t meet minimum length constriant yet
     generateSecondarySkirtBrim(covered_area, allowed_areas_per_extruder, total_length);
     
@@ -186,8 +188,6 @@ void SkirtBrim::generate()
     // remove small open lines
 
     // TODO: make allowed areas a bit smaller so that internal external-only brims don't overlap with model by half the line width
-    
-    // TODO: only put secondary brim on the external outside of the primary brim?
     
     // remove prime blobs from brim
     
