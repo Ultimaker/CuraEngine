@@ -51,9 +51,13 @@ private:
     SliceDataStorage& storage;
     const bool is_brim;
     const bool is_skirt;
+    const bool has_ooze_shield;
+    const bool has_draft_shield;
     const std::vector<ExtruderTrain>& extruders;
     const int extruder_count;
     const std::vector<bool> extruder_is_used;
+    int first_used_extruder_nr;
+    int skirt_brim_extruder_nr;
     std::vector<bool> external_polys_only;
     std::vector<coord_t> line_widths;
     std::vector<coord_t> skirt_brim_minimal_length;
@@ -108,10 +112,10 @@ public:
      * \param offset The parameters with which to perform the offset
      * \param[in,out] covered_area The total area covered by the brims (and models) on the first layer.
      * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
-     * \param[in,out] total_length The total length of the brim lines for each extruder.
      * \param[out] result Where to store the resulting brim line
+     * \return The length of the added lines
      */
-    void generateOffset(const Offset& offset, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length, SkirtBrimLine& result);
+    coord_t generateOffset(const Offset& offset, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, SkirtBrimLine& result);
 
     /*!
      * Generate a skirt of extruders which don't yet comply with the minimum length requirement.
