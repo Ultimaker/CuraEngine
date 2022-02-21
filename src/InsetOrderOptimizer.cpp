@@ -212,8 +212,22 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     }
     if (max_line_w == 0u) return order_requirements;
     
-    const coord_t searching_radius = max_line_w * 2;
-    using GridT = SparsePointGridInclusive<const ExtrusionLine*>;
+    struct LineLoc
+    {
+        ExtrusionJunction j;
+        const ExtrusionLine* line;
+    };
+    struct Locator
+    {
+        Point operator()(const LineLoc& elem)
+        {
+            return elem.j.p;
+        }
+    };
+    
+    constexpr float diagonal_extension = 1.7; // how much farther two verts may be apart due to corners
+    const coord_t searching_radius = max_line_w * diagonal_extension;
+    using GridT = SparsePointGrid<LineLoc, Locator>;
     GridT grid(searching_radius);
 
     
@@ -221,20 +235,23 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     {
         for (const ExtrusionJunction& junction : *line)
         {
-            grid.insert(junction.p, line);
+            grid.insert(LineLoc{junction, line});
         }
     }
-    for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<const ExtrusionLine*>>& p : grid)
+    for (const std::pair<SquareGrid::GridPoint, LineLoc>& pair : grid)
     {
-        const ExtrusionLine* here = p.second.val;
-        Point loc_here = p.second.point;
-        std::vector<const ExtrusionLine*> nearby_verts = grid.getNearbyVals(loc_here, searching_radius);
-        for (const ExtrusionLine* nearby : nearby_verts)
+        const LineLoc& lineloc_here = pair.second;
+        const ExtrusionLine* here = lineloc_here.line;
+        Point loc_here = pair.second.j.p;
+        std::vector<LineLoc> nearby_verts = grid.getNearby(loc_here, searching_radius);
+        for (const LineLoc& lineloc_nearby : nearby_verts)
         {
+            const ExtrusionLine* nearby = lineloc_nearby.line;
             if (nearby == here) continue;
             if (nearby->inset_idx == here->inset_idx) continue;
             if (nearby->inset_idx > here->inset_idx + 1) continue; // not directly adjacent
             if (here->inset_idx > nearby->inset_idx + 1) continue; // not directly adjacent
+            if ( ! shorterThan(loc_here - lineloc_nearby.j.p, (lineloc_here.j.w + lineloc_nearby.j.w) / 2 * diagonal_extension)) continue; // points are too far away from each other
             if (here->is_odd || nearby->is_odd)
             {
                 if (here->is_odd && ! nearby->is_odd && nearby->inset_idx < here->inset_idx)
