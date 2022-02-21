@@ -1242,22 +1242,6 @@ public:
 private:
     void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const;
 public:
-
-    /*!
-     * Compute nesting information.
-     * For each polygon in the input we return a vector of indices to polygons which lie directly inside of it.
-     * 
-     * \warning The polygons should not be overlapping each other
-     */
-    std::vector<std::vector<size_t>> getNesting() const;
-private:
-    /*!
-     * Get a mapping from the nodes in a PolyTree to their corresponding Polygon indices
-     * 
-     * \warning The polygons should not be overlapping each other
-     */
-    std::unordered_map<const ClipperLib::PolyNode*, size_t> getPolyTreeToPolygonsMapping(const ClipperLib::PolyNode& root) const;
-public:
     
     
     /*!
