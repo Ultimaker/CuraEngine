@@ -198,162 +198,66 @@ bool InsetOrderOptimizer::addToLayer()
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
 {
-    size_t max_inset_idx = 0;
-    Polygons all_polygons;
-    std::unordered_map<size_t, const ExtrusionLine*> poly_idx_to_extrusionline;
-    for (const ExtrusionLine* line_p : input)
-    {
-        const ExtrusionLine& line = *line_p;
-        if (line.empty()) continue;
-        max_inset_idx = std::max(max_inset_idx, line.inset_idx);
-        if ( ! line.is_closed)
-        {
-            // Make a small triangle representative of the polyline
-            // otherwise the polyline would get erased by the clipping operation
-            all_polygons.emplace_back();
-            assert(line.junctions.size() >= 2);
-            Point middle = ( line.junctions[line.junctions.size() / 2 - 1].p + line.junctions[line.junctions.size() / 2].p ) / 2;
-            PolygonRef poly = all_polygons.back();
-            poly.emplace_back(middle);
-            poly.emplace_back(middle + Point(5, 0));
-            poly.emplace_back(middle + Point(0, 5));
-        }
-        else
-        {
-            all_polygons.emplace_back(line.toPolygon());
-        }
-        poly_idx_to_extrusionline.emplace(all_polygons.size() - 1, &line);
-    }
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order_requirements;
 
-    std::vector<std::vector<size_t>> nesting = all_polygons.getNesting();
-
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> result;
-
-    for (auto [idx, line] : poly_idx_to_extrusionline)
-    { // there might be multiple roots
-        if (line->inset_idx == 0)
+    coord_t max_line_w = 0u;
+    { // compute max_line_w
+        for (const ExtrusionLine* line : input)
         {
-            getRegionOrder(idx, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
+            for (const ExtrusionJunction& junction : *line)
+            {
+                max_line_w = std::max(max_line_w, junction.w);
+            }
         }
     }
-
-    return result;
-}
-
-void InsetOrderOptimizer::getRegionOrder(size_t node_idx, const std::unordered_map<size_t, const ExtrusionLine*>& poly_idx_to_extrusionline, const std::vector<std::vector<size_t>>& nesting, size_t max_inset_idx, const bool outer_to_inner, std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>& result)
-{
-    auto parent_it = poly_idx_to_extrusionline.find(node_idx);
-    assert(parent_it != poly_idx_to_extrusionline.end());
-    const ExtrusionLine* parent = parent_it->second;
+    if (max_line_w == 0u) return order_requirements;
     
-    assert(node_idx < nesting.size());
-    for (size_t child_idx : nesting[node_idx])
+    const coord_t searching_radius = max_line_w * 2;
+    using GridT = SparsePointGridInclusive<const ExtrusionLine*>;
+    GridT grid(searching_radius);
+
+    
+    for (const ExtrusionLine* line : input)
     {
-        auto child_it = poly_idx_to_extrusionline.find(child_idx);
-        assert(child_it != poly_idx_to_extrusionline.end());
-        const ExtrusionLine* child = child_it->second;
-
-        if ( ! child->is_odd && child->inset_idx == parent->inset_idx && child->inset_idx == max_inset_idx)
+        for (const ExtrusionJunction& junction : *line)
         {
-            // There is no order requirement between the innermost wall of a hole and the innermost wall of the outline.
+            grid.insert(junction.p, line);
         }
-        else if ( ! child->is_odd && child->inset_idx == parent->inset_idx && child->inset_idx <= max_inset_idx)
-        { // unusual case
-            // There are insets with one higher inset index which are adjacent to both this child and the parent.
-            // And potentially also insets which are adjacent to this child and other children.
-            // Moreover there are probably gap filler lines in between the child and the parent.
-            // The nesting information doesn't tell which ones are adjacent,
-            // so just to be safe we add order requirements between the child and all gap fillers and wall lines.
-            for (size_t other_child_idx : nesting[node_idx])
-            {
-                auto other_child_it = poly_idx_to_extrusionline.find(other_child_idx);
-                assert(other_child_it != poly_idx_to_extrusionline.end());
-                const ExtrusionLine* other_child = other_child_it->second;
-
-                if (other_child == child) continue;
-                
-                
-                // See if there's an overlap in region_id.
-                // If not then they are not adjacent, so we don't include order requirement
-                bool overlap = false;
-                {
-                    std::unordered_set<size_t> other_child_region_ids;
-                    for (const ExtrusionJunction& j : other_child->junctions)
-                    {
-                        other_child_region_ids.emplace(j.region_id);
-                    }
-                    for (const ExtrusionJunction& j : child->junctions)
-                    {
-                        if (other_child_region_ids.count(j.region_id))
-                        {
-                            overlap = true;
-                            break;
-                        }
-                    }
-                    if (other_child->is_odd)
-                    { // Odd gap fillers should have two region_ids, but they don't, so let's be more conservative on them
-                        for (const ExtrusionJunction& j : parent->junctions)
-                        {
-                            if (other_child_region_ids.count(j.region_id))
-                            { // if an odd gap filler has the region_id set to the outline then it could also be adjacent to child, but not registered as such.
-                                overlap = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if ( ! overlap) continue;
-                if (other_child->is_odd)
-                {
-                    if (other_child->inset_idx == child->inset_idx + 1)
-                    { // normal gap filler
-                        result.emplace(child, other_child);
-                    }
-                    else
-                    { // all 3 lines considered are on the same level
-                        assert(other_child->inset_idx == child->inset_idx);
-                        // no order requirement needed
-                    }
-                }
-                else
-                { // other child is an even wall as well
-                    if (other_child->inset_idx == child->inset_idx)
-                    { // There is no order relation between two children of the same inset index
-                        continue;
-                    }
-
-                    const ExtrusionLine* before = child;
-                    const ExtrusionLine* after = other_child;
-                    if ( ! outer_to_inner)
-                    {
-                        std::swap(before, after);
-                    }
-                    result.emplace(before, after);
-                }
-            }
-        }
-        else
-        { // normal case
-            if ( ! parent->is_closed)
-            {
-                logWarning("Stitching polyline into a polygon failed.\n");
-            }
-
-            const ExtrusionLine* before = parent;
-            const ExtrusionLine* after = child;
-            if ( (child->inset_idx < parent->inset_idx) == outer_to_inner
-                // ^ Order should be reversed for hole polyons
-                // and it should be reversed again when the global order is the other way around
-                && ! child->is_odd) // Odd polylines should always go after their enclosing wall polygon
-            {
-                std::swap(before, after);
-            }
-            result.emplace(before, after);
-        }
-
-        // Recurvise call
-        getRegionOrder(child_idx, poly_idx_to_extrusionline, nesting, max_inset_idx, outer_to_inner, result);
     }
+    for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<const ExtrusionLine*>>& p : grid)
+    {
+        const ExtrusionLine* here = p.second.val;
+        Point loc_here = p.second.point;
+        std::vector<const ExtrusionLine*> nearby_verts = grid.getNearbyVals(loc_here, searching_radius);
+        for (const ExtrusionLine* nearby : nearby_verts)
+        {
+            if (nearby == here) continue;
+            if (nearby->inset_idx == here->inset_idx) continue;
+            if (nearby->inset_idx > here->inset_idx + 1) continue; // not directly adjacent
+            if (here->inset_idx > nearby->inset_idx + 1) continue; // not directly adjacent
+            if (here->is_odd || nearby->is_odd)
+            {
+                if (here->is_odd && ! nearby->is_odd && nearby->inset_idx < here->inset_idx)
+                {
+                    order_requirements.emplace(std::make_pair(nearby, here));
+                }
+                if (nearby->is_odd && ! here->is_odd && here->inset_idx < nearby->inset_idx)
+                {
+                    order_requirements.emplace(std::make_pair(here, nearby));
+                }
+            }
+            else if (nearby->inset_idx < here->inset_idx == outer_to_inner)
+            {
+                order_requirements.emplace(std::make_pair(nearby, here));
+            }
+            else
+            {
+                assert(nearby->inset_idx > here->inset_idx == outer_to_inner);
+                order_requirements.emplace(std::make_pair(here, nearby));
+            }
+        }
+    }
+    return order_requirements;
 }
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)

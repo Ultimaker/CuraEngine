@@ -89,13 +89,6 @@ public:
     template<typename PathType>
     static std::unordered_set<std::pair<PathType, PathType>> makeOrderIncludeTransitive(const std::unordered_set<std::pair<PathType, PathType>>& order_requirements);
 private:
-
-    /*!
-     * Recursive part of \ref WallToolpPaths::getWeakOrder.
-     * For each node at \p node_idx we recurse on all its children at nesting[node_idx]
-     */
-    static void getRegionOrder(size_t node_idx, const std::unordered_map<size_t, const ExtrusionLine*>& poly_idx_to_extrusionline, const std::vector<std::vector<size_t>>& nesting, size_t max_inset_idx, const bool outer_to_inner, std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>& result);
-
     const FffGcodeWriter& gcode_writer;
     const SliceDataStorage& storage;
     LayerPlan& gcode_layer;
