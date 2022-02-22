@@ -1858,14 +1858,16 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
     {
         generated_toolpaths.resize(inset_idx + 1);
     }
+    const bool is_normal_segment = ! is_odd && ! from_is_3way && ! to_is_3way;
+    bool has_inconsistent_region_id =
+            generated_toolpaths[inset_idx].back().junctions.back().region_id != to.region_id
+            || from.region_id != to.region_id; // This should never be the case for normal segments
     assert((generated_toolpaths[inset_idx].empty() || !generated_toolpaths[inset_idx].back().junctions.empty()) && "empty extrusion lines should never have been generated");
+    assert( ! is_normal_segment || from.region_id == to.region_id && "Non gap fillers should always have consistent region_id!");
     if (generated_toolpaths[inset_idx].empty()
         || generated_toolpaths[inset_idx].back().is_odd != is_odd
         || generated_toolpaths[inset_idx].back().junctions.back().perimeter_index != inset_idx // inset_idx should always be consistent
-        || ( ! is_odd && ! from_is_3way && ! to_is_3way && ( // if this is a normal even line ...
-            from.region_id != to.region_id // It should always have a consistent region_id
-            || generated_toolpaths[inset_idx].back().junctions.back().region_id != to.region_id
-            ))
+        || (is_normal_segment && has_inconsistent_region_id)
         )
     {
         force_new_path = true;
