@@ -250,7 +250,13 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
         }
     };
     
-    constexpr float diagonal_extension = 1.7; // how much farther two verts may be apart due to corners
+    // How much farther two verts may be apart due to corners.
+    // This distance must be smaller than 2, because otherwise
+    // we could create an order requirement between e.g.
+    // wall 2 of one region and wall 3 of another region,
+    // while another wall 3 of the first region would lie in between those two walls.
+    // However, higher values are better against the limitations of using a PointGrid rather than a LineGrid.
+    constexpr float diagonal_extension = 1.9;
     const coord_t searching_radius = max_line_w * diagonal_extension;
     using GridT = SparsePointGrid<LineLoc, Locator>;
     GridT grid(searching_radius);
