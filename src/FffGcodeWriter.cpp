@@ -813,7 +813,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, interface_layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_interface, comb_offset, interface_line_width, interface_avoid_distance);
         gcode_layer.setIsInside(true);
 
-        gcode_layer.setExtruder(interface_extruder_nr);
+        setExtruder_addPrime(storage, gcode_layer, interface_extruder_nr);
         current_extruder_nr = interface_extruder_nr;
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, interface_layer_height);
@@ -870,11 +870,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         }
 
         const coord_t comb_offset = surface_line_spacing;
-        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, surface_layer_height, surface_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, comb_offset, surface_line_width, surface_avoid_distance);
+        LayerPlan& gcode_layer = *new LayerPlan(storage, layer_nr, z, surface_layer_height, current_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_surface, comb_offset, surface_line_width, surface_avoid_distance);
         gcode_layer.setIsInside(true);
 
         // make sure that we are using the correct extruder to print raft
-        gcode_layer.setExtruder(surface_extruder_nr);
+        setExtruder_addPrime(storage, gcode_layer, surface_extruder_nr);
         current_extruder_nr = surface_extruder_nr;
 
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, surface_layer_height);
