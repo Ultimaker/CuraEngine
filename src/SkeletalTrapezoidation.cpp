@@ -505,8 +505,6 @@ void SkeletalTrapezoidation::generateToolpaths(VariableWidthPaths& generated_too
 
     generateExtraRibs();
 
-    markRegions();
-
     generateSegments();
 }
 
@@ -1365,52 +1363,6 @@ void SkeletalTrapezoidation::generateExtraRibs()
 //
 // ^^^^^^^^^^^^^^^^^^^^^
 //    TRANSTISIONING
-// =====================
-
-void SkeletalTrapezoidation::markRegions()
-{
-    // Painters algorithm, loop over all edges and skip those that have already been 'painted' with a region.
-    size_t region = 0; // <- Region zero is 'None', it will be incremented before the first edge.
-    for (edge_t& edge : graph.edges)
-    {
-        if (edge.data.regionIsSet())
-        {
-            continue;
-        }
-
-        // An edge that didn't have a region painted is encountered, so make a new region and start a worklist:
-        ++region;
-        std::queue<STHalfEdge*> worklist;
-        worklist.push(&edge);
-
-        // Loop over all edges that are connected to this one, except don't cross any medial axis edges:
-        while (!worklist.empty())
-        {
-            edge_t* p_side = worklist.front();
-            worklist.pop();
-
-            edge_t* p_next = p_side;
-            do
-            {
-                if (!p_next->data.regionIsSet())
-                {
-                    p_next->data.setRegion(region);
-                    if(p_next->twin != nullptr && (p_next->next == nullptr || p_next->prev == nullptr))
-                    {
-                        worklist.push(p_next->twin);
-                    }
-                }
-                else
-                {
-                    assert(region == p_next->data.getRegion());
-                }
-
-                p_next = p_next->next;
-            } while (p_next != nullptr && p_next != p_side);
-        }
-    }
-}
-
 // =====================
 //  TOOLPATH GENERATION
 // vvvvvvvvvvvvvvvvvvvvv
