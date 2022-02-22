@@ -178,6 +178,12 @@ public:
             }
             else
             {
+                PathsPointIndex<Paths> ppi_here(&lines, line_idx, 0);
+                if ( ! canReverse(ppi_here))
+                { // Since closest_is_closing_polygon is false we went through the second iterations of the for-loop, where go_in_reverse_direction is true
+                    // the polyline isn't allowed to be reversed, so we re-reverse it.
+                    chain.reverse();
+                }
                 result_lines.emplace_back(chain);
             }
         }
