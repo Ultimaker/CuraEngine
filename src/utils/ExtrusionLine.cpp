@@ -157,7 +157,7 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
                 else
                 {
                     // New point seems like a valid one.
-                    const ExtrusionJunction new_to_add = ExtrusionJunction(intersection_point, current.w, current.perimeter_index, current.region_id);
+                    const ExtrusionJunction new_to_add = ExtrusionJunction(intersection_point, current.w, current.perimeter_index);
                     // If there was a previous point added, remove it.
                     if(!new_junctions.empty())
                     {

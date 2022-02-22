@@ -37,14 +37,7 @@ struct ExtrusionJunction
      */
     size_t perimeter_index;
 
-    /*!
-     * Which region this junction is part of. A solid polygon without holes has only one region.
-     * A polygon with holes has 2. Disconnected parts of the polygon are also separate regions.
-     * Will be 0 if no region was given.
-     */
-    size_t region_id;
-
-    ExtrusionJunction(const Point p, const coord_t w, const coord_t perimeter_index, const size_t region_id = 0);
+    ExtrusionJunction(const Point p, const coord_t w, const coord_t perimeter_index);
 
     bool operator==(const ExtrusionJunction& other) const;
 };

@@ -1759,7 +1759,7 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
             { // Snap to start node if it is really close, in order to be able to see 3-way intersection later on more robustly
                 junction = a;
             }
-            ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx, edge_.data.getRegion());
+            ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx);
         }
     }
 }
@@ -1858,19 +1858,10 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
     {
         generated_toolpaths.resize(inset_idx + 1);
     }
-    const bool is_normal_segment = ! is_odd && ! from_is_3way && ! to_is_3way;
-    bool has_inconsistent_region_id =
-            ( ! generated_toolpaths[inset_idx].empty() && generated_toolpaths[inset_idx].back().junctions.back().region_id != to.region_id)
-            || from.region_id != to.region_id; // Either junction is probably the middle between different regions
-            // Different regions should ideally get annotated with 2 region ids, but they only have one region_id field,
-            // so we have no way of knowing whether the lines should be cut before or after this segment.
-            // We cut it here to be more safe. And stitch afterwards with the PolylineStitcher.
-            // Still this doesn't guarantee we cut in the right place.
     assert((generated_toolpaths[inset_idx].empty() || !generated_toolpaths[inset_idx].back().junctions.empty()) && "empty extrusion lines should never have been generated");
     if (generated_toolpaths[inset_idx].empty()
         || generated_toolpaths[inset_idx].back().is_odd != is_odd
         || generated_toolpaths[inset_idx].back().junctions.back().perimeter_index != inset_idx // inset_idx should always be consistent
-        || (is_normal_segment && has_inconsistent_region_id)
         )
     {
         force_new_path = true;
@@ -2040,7 +2031,6 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true) && !node.isCentral())
         {
             const size_t inset_index = beading.bead_widths.size() / 2;
-            const size_t& region_id = node.incident_edge->data.getRegion();
             constexpr bool is_odd = true;
             if (inset_index >= generated_toolpaths.size())
             {
@@ -2058,7 +2048,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             for (coord_t segment = 0; segment < n_segments; segment++)
             {
                 float a = 2.0 * M_PI / n_segments * segment;
-                line.junctions.emplace_back(node.p + Point(r * cos(a), r * sin(a)), width, inset_index, region_id);
+                line.junctions.emplace_back(node.p + Point(r * cos(a), r * sin(a)), width, inset_index);
             }
         }
     }
