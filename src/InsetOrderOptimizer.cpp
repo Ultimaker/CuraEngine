@@ -294,13 +294,13 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
                     order_requirements.emplace(std::make_pair(here, nearby));
                 }
             }
-            else if (nearby->inset_idx < here->inset_idx == outer_to_inner)
+            else if ((nearby->inset_idx < here->inset_idx) == outer_to_inner)
             {
                 order_requirements.emplace(std::make_pair(nearby, here));
             }
             else
             {
-                assert(nearby->inset_idx > here->inset_idx == outer_to_inner);
+                assert((nearby->inset_idx > here->inset_idx) == outer_to_inner);
                 order_requirements.emplace(std::make_pair(here, nearby));
             }
         }
