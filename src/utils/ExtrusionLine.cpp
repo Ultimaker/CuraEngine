@@ -9,10 +9,10 @@
 namespace cura
 {
 
-ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd, const size_t region_id)
+ExtrusionLine::ExtrusionLine(const size_t inset_idx, const bool is_odd)
 : inset_idx(inset_idx)
 , is_odd(is_odd)
-, region_id(region_id)
+, is_closed(false)
 {}
 
 coord_t ExtrusionLine::getLength() const
@@ -28,6 +28,10 @@ coord_t ExtrusionLine::getLength() const
         len += vSize(next.p - prev.p);
         prev = next;
     }
+    if (is_closed)
+    {
+        len += vSize(front().p - back().p);
+    }
     return len;
 }
 
@@ -40,18 +44,15 @@ coord_t ExtrusionLine::getMinimalWidth() const
                             })->w;
 }
 
-void ExtrusionLine::appendJunctionsTo(LineJunctions& result) const
-{
-    result.insert(result.end(), junctions.begin(), junctions.end());
-}
-
-
 void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, const coord_t maximum_extrusion_area_deviation)
 {
-    if (junctions.size() <= 3)
+    const size_t min_path_size = is_closed ? 3 : 2;
+    if (junctions.size() <= min_path_size)
     {
         return;
     }
+
+    // TODO: allow for the first point to be removed in case of simplifying closed Extrusionlines.
 
     /* ExtrusionLines are treated as (open) polylines, so in case an ExtrusionLine is actually a closed polygon, its
      * starting and ending points will be equal (or almost equal). Therefore, the simplification of the ExtrusionLine
@@ -156,7 +157,7 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
                 else
                 {
                     // New point seems like a valid one.
-                    const ExtrusionJunction new_to_add = ExtrusionJunction(intersection_point, current.w, current.perimeter_index, current.region_id);
+                    const ExtrusionJunction new_to_add = ExtrusionJunction(intersection_point, current.w, current.perimeter_index);
                     // If there was a previous point added, remove it.
                     if(!new_junctions.empty())
                     {

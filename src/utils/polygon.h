@@ -12,6 +12,7 @@
 #include "clipper.hpp"
 
 #include <algorithm>    // std::reverse, fill_n array
+#include <unordered_map>
 #include <cmath> // fabs
 #include <limits> // int64_t.min
 #include <list>
@@ -81,13 +82,15 @@ public:
     : path(const_cast<ClipperLib::Path*>(&polygon))
     {}
 
+    ConstPolygonRef() = delete; // you cannot have a reference without an object!
+
     virtual ~ConstPolygonRef()
     {
     }
 
-    bool operator==(ConstPolygonRef& other) const =delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
+    bool operator==(ConstPolygonRef& other) const = delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
 
-    ConstPolygonRef& operator=(const ConstPolygonRef& other) =delete; // Cannot assign to a const object
+    ConstPolygonRef& operator=(const ConstPolygonRef& other) = delete; // Cannot assign to a const object
 
     /*!
      * Gets the number of vertices in this polygon.
@@ -410,6 +413,8 @@ public:
     : ConstPolygonRef(*other.path)
     {}
 
+    PolygonRef() = delete; // you cannot have a reference without an object!
+
     virtual ~PolygonRef()
     {
     }
@@ -425,9 +430,9 @@ public:
         return path->insert(pos, first, last);
     }
 
-    PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+    PolygonRef& operator=(const ConstPolygonRef& other) = delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
 
-    PolygonRef& operator=(ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+    PolygonRef& operator=(ConstPolygonRef& other) = delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
 //     { path = other.path; return *this; }
 
     PolygonRef& operator=(PolygonRef&& other)
@@ -610,28 +615,39 @@ public:
     }
 };
 
-class PolygonPointer
+class PolygonPointer : public ConstPolygonPointer
 {
-protected:
-    ClipperLib::Path* path;
 public:
     PolygonPointer()
-    : path(nullptr)
+    : ConstPolygonPointer(nullptr)
     {}
     PolygonPointer(PolygonRef* ref)
-    : path(ref->path)
+    : ConstPolygonPointer(ref)
     {}
 
     PolygonPointer(PolygonRef& ref)
-    : path(ref.path)
+    : ConstPolygonPointer(ref)
     {}
 
     PolygonRef operator*()
     {
         assert(path);
-        return PolygonRef(*path);
+        return PolygonRef(*const_cast<ClipperLib::Path*>(path));
     }
+
+    ConstPolygonRef operator*() const
+    {
+        assert(path);
+        return ConstPolygonRef(*path);
+    }
+
     ClipperLib::Path* operator->()
+    {
+        assert(path);
+        return const_cast<ClipperLib::Path*>(path);
+    }
+
+    const ClipperLib::Path* operator->() const
     {
         assert(path);
         return path;
@@ -642,6 +658,40 @@ public:
         return path;
     }
 };
+
+} // namespace cura
+
+
+namespace std
+{
+template<>
+struct hash<cura::ConstPolygonRef>
+{
+    size_t operator()(const cura::ConstPolygonRef& poly) const
+    {
+        return std::hash<const ClipperLib::Path*>()(&*poly);
+    }
+};
+template<>
+struct hash<cura::ConstPolygonPointer>
+{
+    size_t operator()(const cura::ConstPolygonPointer& poly) const
+    {
+        return std::hash<const ClipperLib::Path*>()(&**poly);
+    }
+};
+template<>
+struct hash<cura::PolygonPointer>
+{
+    size_t operator()(const cura::PolygonPointer& poly) const
+    {
+        const cura::ConstPolygonRef ref = *static_cast<cura::PolygonPointer>(poly);
+        return std::hash<const ClipperLib::Path*>()(&*ref);
+    }
+};
+}//namespace std
+
+namespace cura {
 
 class Polygon : public PolygonRef
 {
@@ -702,11 +752,6 @@ public:
     unsigned int size() const
     {
         return paths.size();
-    }
-
-    void set(const ClipperLib::Paths& new_paths)
-    {
-        paths = new_paths;
     }
 
     /*!
@@ -849,7 +894,7 @@ public:
     Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
     Polygons& operator=(Polygons&& other) { paths = std::move(other.paths); return *this; }
 
-    bool operator==(const Polygons& other) const =delete;
+    bool operator==(const Polygons& other) const = delete;
 
     /*!
      * Convert ClipperLib::PolyTree to a Polygons object,
@@ -1197,6 +1242,8 @@ public:
 private:
     void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const;
 public:
+    
+    
     /*!
      * Removes polygons with area smaller than \p min_area_size (note that min_area_size is in mm^2, not in micron^2).
      * Unless \p remove_holes is true, holes are not removed even if their area is below \p min_area_size.

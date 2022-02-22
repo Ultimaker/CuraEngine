@@ -571,7 +571,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         return;
     }
-    PathOrderOptimizer<ConstPolygonRef> orderOptimizer(start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    PathOrderOptimizer<ConstPolygonPointer> orderOptimizer(start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for(size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(polygons[poly_idx]);
@@ -580,7 +580,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 
     if(!reverse_order)
     {
-        for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
+        for(const PathOrderOptimizer<ConstPolygonPointer>::Path& path : orderOptimizer.paths)
         {
             addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
@@ -589,8 +589,8 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         for(int index = orderOptimizer.paths.size() - 1; index >= 0; --index)
         {
-            const PathOrderOptimizer<ConstPolygonRef>::Path& path = orderOptimizer.paths[index];
-            addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+            const PathOrderOptimizer<ConstPolygonPointer>::Path& path = orderOptimizer.paths[index];
+            addPolygon(**path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
 }
@@ -790,7 +790,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const Settings& set
     constexpr size_t dummy_perimeter_id = 0;  // <-- Here, don't care about which perimeter any more.
     const coord_t nominal_line_width = non_bridge_config.getLineWidth();  // <-- The line width which it's 'supposed to' be will be used to adjust the flow ratio each time, this'll give a flow-ratio-multiplier of 1.
 
-    LineJunctions ewall;
+    ExtrusionLine ewall;
     std::for_each(wall.begin(), wall.end(), [&dummy_perimeter_id, &nominal_line_width, &ewall](const Point& p)
     {
         ewall.emplace_back(p, nominal_line_width, dummy_perimeter_id);
@@ -802,7 +802,7 @@ void LayerPlan::addWall(ConstPolygonRef wall, int start_idx, const Settings& set
     addWall(ewall, start_idx, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
 }
 
-void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed, const bool is_linked_path)
+void LayerPlan::addWall(const ExtrusionLine& wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed, const bool is_linked_path)
 {
     if (wall.empty())
     {
@@ -1022,7 +1022,7 @@ void LayerPlan::addWall(const LineJunctions& wall, int start_idx, const Settings
     }
 }
 
-void LayerPlan::addInfillWall(const LineJunctions& wall, const GCodePathConfig& path_config,
+void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& path_config,
                         bool force_retract)
 {
     assert(("All empty walls should have been filtered at this stage", !wall.empty()));
@@ -1051,52 +1051,18 @@ void LayerPlan::addWalls
 )
 {
     //TODO: Deprecated in favor of ExtrusionJunction version below.
-    PathOrderOptimizer<ConstPolygonRef> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    PathOrderOptimizer<ConstPolygonPointer> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for(size_t poly_idx = 0; poly_idx < walls.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
     orderOptimizer.optimize();
-    for(const PathOrderOptimizer<ConstPolygonRef>::Path& path : orderOptimizer.paths)
+    for(const PathOrderOptimizer<ConstPolygonPointer>::Path& path : orderOptimizer.paths)
     {
-        addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(**path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
-void LayerPlan::addWalls
-(
-    const PathJunctions& walls,
-    const Settings& settings,
-    const GCodePathConfig& non_bridge_config,
-    const GCodePathConfig& bridge_config,
-    const ZSeamConfig& z_seam_config,
-    coord_t wall_0_wipe_dist,
-    float flow_ratio,
-    bool always_retract,
-    bool alternate_inset_direction_modifier
-)
-{
-    constexpr bool detect_loops = true;
-    constexpr Polygons* combing_boundary = nullptr;
-    //When we alternate walls, also alternate the direction at which the first wall starts in.
-    //On even layers we start with normal direction, on odd layers with inverted direction.
-    const bool alternate_walls = settings.get<bool>("material_alternate_walls") && (layer_nr % 2 == (alternate_inset_direction_modifier ? 1 : 0));
-    PathOrderOptimizer<const LineJunctions*> order_optimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, alternate_walls);
-    for(const LineJunctions& wall : walls)
-    {
-        order_optimizer.addPolyline(&wall);
-    }
-
-    cura::Point p_end {0, 0};
-    order_optimizer.optimize();
-    for(const PathOrderOptimizer<const LineJunctions*>::Path& path : order_optimizer.paths)
-    {
-        p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;
-        const cura::Point p_start = path.backwards ? path.vertices->front().p : path.vertices->back().p;
-        const bool linked_path = p_start != p_end;
-        addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, path.is_closed, path.backwards, linked_path);
-    }
-}
 
 void LayerPlan::addLinesByOptimizer
 (
@@ -1134,7 +1100,7 @@ void LayerPlan::addLinesByOptimizer
         boundary.simplify(MM2INT(0.1), MM2INT(0.1));
     }
     constexpr bool detect_loops = true;
-    PathOrderOptimizer<ConstPolygonRef> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction);
+    PathOrderOptimizer<ConstPolygonPointer> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction);
     for(size_t line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
         order_optimizer.addPolyline(polygons[line_idx]);
@@ -1145,7 +1111,7 @@ void LayerPlan::addLinesByOptimizer
     coord_t line_width_2 = half_line_width * half_line_width;
     for(size_t order_idx = 0; order_idx < order_optimizer.paths.size(); order_idx++)
     {
-        const PathOrderOptimizer<ConstPolygonRef>::Path& path = order_optimizer.paths[order_idx];
+        const PathOrderOptimizer<ConstPolygonPointer>::Path& path = order_optimizer.paths[order_idx];
         ConstPolygonRef polyline = *path.vertices;
         const size_t start_idx = path.start_vertex;
         const Point start = polyline[start_idx];
@@ -1194,7 +1160,7 @@ void LayerPlan::addLinesByOptimizer
             // Don't wipe if next starting point is very near
             if(wipe && (order_idx < order_optimizer.paths.size() - 1))
             {
-                const PathOrderOptimizer<ConstPolygonRef>::Path& next_path = order_optimizer.paths[order_idx + 1];
+                const PathOrderOptimizer<ConstPolygonPointer>::Path& next_path = order_optimizer.paths[order_idx + 1];
                 ConstPolygonRef next_polygon = *next_path.vertices;
                 const size_t next_start = next_path.start_vertex;
                 const Point& next_p0 = next_polygon[next_start];
@@ -1231,7 +1197,7 @@ void LayerPlan::addLinesMonotonic
     const Point last_position = getLastPlannedPositionOrStartingPosition();
 
     // First lay all adjacent lines next to each other, to have a sensible input to the monotonic part of the algorithm.
-    PathOrderOptimizer<ConstPolygonRef> line_order(last_position);
+    PathOrderOptimizer<ConstPolygonPointer> line_order(last_position);
     for(const ConstPolygonRef polyline : polygons)
     {
         line_order.addPolyline(polyline);
@@ -1250,9 +1216,9 @@ void LayerPlan::addLinesMonotonic
     bool last_would_have_been_excluded = false;
     for(size_t line_idx = 0; line_idx < line_order.paths.size(); ++line_idx)
     {
-        const ConstPolygonRef polyline = line_order.paths[line_idx].vertices;
+        const ConstPolygonRef polyline = *line_order.paths[line_idx].vertices;
         const bool inside_exclusion = is_inside_exclusion(polyline);
-        const bool next_would_have_been_included = inside_exclusion && (line_idx < line_order.paths.size() - 1 && is_inside_exclusion(line_order.paths[line_idx + 1].vertices));
+        const bool next_would_have_been_included = inside_exclusion && (line_idx < line_order.paths.size() - 1 && is_inside_exclusion(*line_order.paths[line_idx + 1].vertices));
         if (inside_exclusion && last_would_have_been_excluded && next_would_have_been_included)
         {
             left_over.add(polyline);

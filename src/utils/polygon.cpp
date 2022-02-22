@@ -1575,7 +1575,6 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
     }
 }
 
-
 void Polygons::ensureManifold()
 {
     const Polygons& polys = *this;

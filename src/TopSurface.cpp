@@ -5,6 +5,7 @@
 #include "LayerPlan.h"
 #include "sliceDataStorage.h"
 #include "TopSurface.h"
+#include "ExtruderTrain.h"
 
 namespace cura
 {
@@ -38,13 +39,14 @@ void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t l
     }
 }
 
-bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer) const
+bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer, const FffGcodeWriter& gcode_writer) const
 {
     if (areas.empty())
     {
         return false; //Nothing to do.
     }
     //Generate the lines to cover the surface.
+    const bool extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
     const EFillMethod pattern = mesh.settings.get<EFillMethod>("ironing_pattern");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     constexpr bool connect_polygons = false; // midway connections can make the surface less smooth
@@ -135,11 +137,13 @@ bool TopSurface::ironing(const SliceMeshStorage& mesh, const GCodePathConfig& li
     }
     if(!ironing_paths.empty())
     {
-        const BinJunctions binned_paths = InsetOrderOptimizer::variableWidthPathToBinJunctions(ironing_paths);
-        for(const PathJunctions& wall_junctions : binned_paths)
-        {
-            layer.addWalls(wall_junctions, mesh.settings, line_config, line_config);
-        }
+        constexpr bool retract_before_outer_wall = false;
+        constexpr coord_t wipe_dist = 0u;
+        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+        InsetOrderOptimizer wall_orderer(gcode_writer, storage, layer, mesh.settings, extruder_nr,
+                                            line_config, line_config, line_config, line_config,
+                                            retract_before_outer_wall, wipe_dist, wipe_dist, extruder_nr, extruder_nr, z_seam_config, ironing_paths);
+        wall_orderer.addToLayer();
         added = true;
     }
 

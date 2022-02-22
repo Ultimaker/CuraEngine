@@ -30,6 +30,8 @@ public:
      * Only stitch polylines into closed polygons if they are larger than 3 * \p max_stitch_distance,
      * in order to prevent small segments to accidentally get closed into a polygon.
      * 
+     * \warning Tiny polylines (smaller than 3 * max_stitch_distance) will not be closed into polygons. 
+     * 
      * \note Resulting polylines and polygons are added onto the existing containers, so you can directly output onto a polygons container with existing polygons in it.
      * However, you shouldn't call this function with the same parameter in \p lines as \p result_lines, because that would duplicate (some of) the polylines.
      */
@@ -63,8 +65,8 @@ public:
             
             Path chain = line;
             bool closest_is_closing_polygon = false;
-            for (bool go_in_reverse_direction : { false, true })
-            {
+            for (bool go_in_reverse_direction : { false, true }) // first go in the unreversed direction, to try to prevent the chain.reverse() operation.
+            { // NOTE: Implementation only works for this order; we currently only re-reverse the chain when it's closed.
                 if (go_in_reverse_direction)
                 { // try extending chain in the other direction
                     chain.reverse();
@@ -78,7 +80,8 @@ public:
                     coord_t closest_distance = std::numeric_limits<coord_t>::max();
                     grid.processNearby(from, max_stitch_distance, 
                         std::function<bool (const PathsPointIndex<Paths>&)> (
-                            [from, &chain, &closest, &closest_is_closing_polygon, &closest_distance, &processed, max_stitch_distance, snap_distance](const PathsPointIndex<Paths>& nearby)->bool
+                            [from, &chain, &closest, &closest_is_closing_polygon, &closest_distance, &processed, go_in_reverse_direction, max_stitch_distance, snap_distance]
+                            (const PathsPointIndex<Paths>& nearby)->bool
                         {
                             bool is_closing_segment = false;
                             coord_t dist = vSize(nearby.p() - from);
@@ -100,6 +103,16 @@ public:
                             }
                             else if (processed[nearby.poly_idx])
                             { // it was already moved to output
+                                return true; // keep looking for a connection
+                            }
+                            bool nearby_would_be_reversed = nearby.point_idx != 0;
+                            nearby_would_be_reversed = nearby_would_be_reversed != go_in_reverse_direction; // flip nearby_would_be_reversed when searching in the reverse direction
+                            if ( ! canReverse(nearby) && nearby_would_be_reversed)
+                            { // connecting the segment would reverse the polygon direction
+                                return true; // keep looking for a connection
+                            }
+                            if ( ! canConnect(chain, (*nearby.polygons)[nearby.poly_idx]))
+                            {
                                 return true; // keep looking for a connection
                             }
                             if (dist < closest_distance)
@@ -147,8 +160,15 @@ public:
                     assert( ! processed[closest.poly_idx]);
                     processed[closest.poly_idx] = true;
                 }
+
                 if (closest_is_closing_polygon)
                 {
+                    if (go_in_reverse_direction)
+                    { // re-reverse chain to retain original direction
+                        // NOTE: not sure if this code could ever be reached, since if a polygon can be closed that should be already possible in the forward direction
+                        chain.reverse();
+                    }
+
                     break; // don't consider reverse direction
                 }
             }
@@ -158,10 +178,27 @@ public:
             }
             else
             {
+                PathsPointIndex<Paths> ppi_here(&lines, line_idx, 0);
+                if ( ! canReverse(ppi_here))
+                { // Since closest_is_closing_polygon is false we went through the second iterations of the for-loop, where go_in_reverse_direction is true
+                    // the polyline isn't allowed to be reversed, so we re-reverse it.
+                    chain.reverse();
+                }
                 result_lines.emplace_back(chain);
             }
         }
     }
+    
+    /*!
+     * Whether a polyline is allowed to be reversed. (Not true for wall polylines which are not odd)
+     */
+    static bool canReverse(const PathsPointIndex<Paths>& polyline);
+
+    /*!
+     * Whether two paths are allowed to be connected.
+     * (Not true for an odd and an even wall.)
+     */
+    static bool canConnect(const Path& a, const Path& b);
 };
 
 }//namespace cura

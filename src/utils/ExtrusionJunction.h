@@ -37,14 +37,7 @@ struct ExtrusionJunction
      */
     size_t perimeter_index;
 
-    /*!
-     * Which region this junction is part of. A solid polygon without holes has only one region.
-     * A polygon with holes has 2. Disconnected parts of the polygon are also separate regions.
-     * Will be 0 if no region was given.
-     */
-    size_t region_id;
-
-    ExtrusionJunction(const Point p, const coord_t w, const coord_t perimeter_index, const size_t region_id = 0);
+    ExtrusionJunction(const Point p, const coord_t w, const coord_t perimeter_index);
 
     bool operator==(const ExtrusionJunction& other) const;
 };
@@ -60,9 +53,7 @@ inline const Point& make_point(const ExtrusionJunction& ej)
     return ej.p;
 }
 
-using LineJunctions = std::vector<ExtrusionJunction>; //<! Vector of Lines
-using PathJunctions = std::vector<LineJunctions>; //<! Vector of paths
-using BinJunctions = std::vector<PathJunctions>; //<! Vector of insets (bins)
+using LineJunctions = std::vector<ExtrusionJunction>; //<! The junctions along a line without further information. See \ref ExtrusionLine for a more extensive class.
 
 }
 #endif // UTILS_EXTRUSION_JUNCTION_H

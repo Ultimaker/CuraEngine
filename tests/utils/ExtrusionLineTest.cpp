@@ -394,6 +394,7 @@ namespace cura
         d.emplace_back(Point(0, 0), 500, 0);
         d.emplace_back(Point(10, 55), 500, 0);
         d.emplace_back(Point(0, 110), 500, 0);
+        d_polylines.is_closed = true;
 
         d_polylines.simplify(100 * 100, 15 * 15, 2000);
 

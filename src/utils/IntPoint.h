@@ -95,6 +95,11 @@ INLINE bool shorterThen(const Point& p0, const coord_t len)
     return vSize2(p0) <= len * len;
 }
 
+INLINE bool shorterThan(const Point& p0, const coord_t len)
+{
+    return shorterThen(p0, len);
+}
+
 INLINE coord_t vSize(const Point& p0)
 {
     return sqrt(vSize2(p0));

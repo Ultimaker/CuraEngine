@@ -11,15 +11,15 @@ namespace cura
 {
 
     template<>
-    ConstPolygonRef PathOrderOptimizer<ConstPolygonRef>::getVertexData(ConstPolygonRef path)
+    ConstPolygonRef PathOrderOptimizer<ConstPolygonPointer>::getVertexData(ConstPolygonPointer path)
     {
-        return path;
+        return *path;
     }
 
     template<>
-    ConstPolygonRef PathOrderOptimizer<PolygonRef>::getVertexData(PolygonRef path)
+    ConstPolygonRef PathOrderOptimizer<PolygonPointer>::getVertexData(PolygonPointer path)
     {
-        return path;
+        return *path;
     }
 
     template<>
@@ -39,16 +39,12 @@ namespace cura
     {
         return path->outline.outerPolygon();
     }
-
     template<>
-    ConstPolygonRef PathOrderOptimizer<const LineJunctions*>::getVertexData(const LineJunctions* path)
+    ConstPolygonRef PathOrderOptimizer<const ExtrusionLine*>::getVertexData(const ExtrusionLine* path)
     {
         cached_vertices.emplace_back();
         Polygon& poly = cached_vertices.back();
-        for (const ExtrusionJunction junction : *path)
-        {
-            poly.add(junction.p);
-        }
+        poly = path->toPolygon();
         return ConstPolygonRef(poly);
     }
 

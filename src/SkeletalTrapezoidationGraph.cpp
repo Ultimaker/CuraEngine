@@ -126,6 +126,10 @@ bool STHalfEdgeNode::isMultiIntersection()
     edge_t* outgoing = this->incident_edge;
     do
     {
+        if ( ! outgoing)
+        { // This is a node on the outside
+            return false;
+        }
         if (outgoing->data.isCentral())
         {
             odd_path_count++;

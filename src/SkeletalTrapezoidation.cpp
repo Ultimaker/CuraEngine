@@ -505,11 +505,7 @@ void SkeletalTrapezoidation::generateToolpaths(VariableWidthPaths& generated_too
 
     generateExtraRibs();
 
-    markRegions();
-
     generateSegments();
-
-    liftRegionInfoToLines();
 }
 
 void SkeletalTrapezoidation::updateIsCentral()
@@ -1368,52 +1364,6 @@ void SkeletalTrapezoidation::generateExtraRibs()
 // ^^^^^^^^^^^^^^^^^^^^^
 //    TRANSTISIONING
 // =====================
-
-void SkeletalTrapezoidation::markRegions()
-{
-    // Painters algorithm, loop over all edges and skip those that have already been 'painted' with a region.
-    size_t region = 0; // <- Region zero is 'None', it will be incremented before the first edge.
-    for (edge_t& edge : graph.edges)
-    {
-        if (edge.data.regionIsSet())
-        {
-            continue;
-        }
-
-        // An edge that didn't have a region painted is encountered, so make a new region and start a worklist:
-        ++region;
-        std::queue<STHalfEdge*> worklist;
-        worklist.push(&edge);
-
-        // Loop over all edges that are connected to this one, except don't cross any medial axis edges:
-        while (!worklist.empty())
-        {
-            edge_t* p_side = worklist.front();
-            worklist.pop();
-
-            edge_t* p_next = p_side;
-            do
-            {
-                if (!p_next->data.regionIsSet())
-                {
-                    p_next->data.setRegion(region);
-                    if(p_next->twin != nullptr && (p_next->next == nullptr || p_next->prev == nullptr))
-                    {
-                        worklist.push(p_next->twin);
-                    }
-                }
-                else
-                {
-                    assert(region == p_next->data.getRegion());
-                }
-
-                p_next = p_next->next;
-            } while (p_next != nullptr && p_next != p_side);
-        }
-    }
-}
-
-// =====================
 //  TOOLPATH GENERATION
 // vvvvvvvvvvvvvvvvvvvvv
 //
@@ -1761,7 +1711,7 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
             { // Snap to start node if it is really close, in order to be able to see 3-way intersection later on more robustly
                 junction = a;
             }
-            ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx, edge_.data.getRegion());
+            ret.emplace_back(junction, beading->bead_widths[junction_idx], junction_idx);
         }
     }
 }
@@ -1849,7 +1799,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
     return nullptr;
 }
 
-void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path)
+void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path, bool from_is_3way, bool to_is_3way)
 {
     if (from == to) return;
 
@@ -1861,23 +1811,32 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
         generated_toolpaths.resize(inset_idx + 1);
     }
     assert((generated_toolpaths[inset_idx].empty() || !generated_toolpaths[inset_idx].back().junctions.empty()) && "empty extrusion lines should never have been generated");
-    if (!force_new_path
-        && !generated_toolpaths[inset_idx].empty()
-        && generated_toolpaths[inset_idx].back().is_odd == is_odd
-        && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - to.p, 10)
-        && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - to.w) < 10
+    if (generated_toolpaths[inset_idx].empty()
+        || generated_toolpaths[inset_idx].back().is_odd != is_odd
+        || generated_toolpaths[inset_idx].back().junctions.back().perimeter_index != inset_idx // inset_idx should always be consistent
         )
     {
-        generated_toolpaths[inset_idx].back().junctions.push_back(from);
+        force_new_path = true;
     }
-    else if (!force_new_path
-        && !generated_toolpaths[inset_idx].empty()
-        && generated_toolpaths[inset_idx].back().is_odd == is_odd
+    if (!force_new_path
         && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - from.p, 10)
         && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - from.w) < 10
+        && ! from_is_3way // force new path at 3way intersection
         )
     {
         generated_toolpaths[inset_idx].back().junctions.push_back(to);
+    }
+    else if (!force_new_path
+        && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - to.p, 10)
+        && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - to.w) < 10
+        && ! to_is_3way // force new path at 3way intersection
+        )
+    {
+        if ( ! is_odd)
+        {
+            logError("Reversing even wall line causes it to be printed CCW instead of CW!\n");
+        }
+        generated_toolpaths[inset_idx].back().junctions.push_back(from);
     }
     else
     {
@@ -1904,6 +1863,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
     {
         edge_t* poly_domain_start = *unprocessed_quad_starts.begin();
         edge_t* quad_start = poly_domain_start;
+        bool new_domain_start = true;
         do
         {
             edge_t* quad_end = quad_start;
@@ -1923,12 +1883,14 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 edge_junctions.emplace_back(std::make_shared<LineJunctions>());
                 edge_to_peak->data.setExtrusionJunctions(edge_junctions.back());
             }
+            // The junctions on the edge(s) from the start of the quad to the node with highest R
             LineJunctions from_junctions = *edge_to_peak->data.getExtrusionJunctions();
             if (! edge_from_peak->twin->data.hasExtrusionJunctions())
             {
                 edge_junctions.emplace_back(std::make_shared<LineJunctions>());
                 edge_from_peak->twin->data.setExtrusionJunctions(edge_junctions.back());
             }
+            // The junctions on the edge(s) from the end of the quad to the node with highest R
             LineJunctions to_junctions = *edge_from_peak->twin->data.getExtrusionJunctions();
             if (edge_to_peak->prev)
             {
@@ -1976,21 +1938,32 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 {
                     logWarning("Connecting two perimeters with different indices! Perimeter %i and %i", from.perimeter_index, to.perimeter_index);
                 }
-                const bool is_odd_segment = edge_to_peak->to->data.bead_count > 0 && edge_to_peak->to->data.bead_count % 2 == 1 // quad contains single bead segment
-                    && edge_to_peak->to->data.transition_ratio == 0 && edge_to_peak->from->data.transition_ratio == 0 && edge_from_peak->to->data.transition_ratio == 0 // We're not in a transition
+                const bool from_is_odd = 
+                    quad_start->to->data.bead_count > 0 && quad_start->to->data.bead_count % 2 == 1 // quad contains single bead segment
+                    && quad_start->to->data.transition_ratio == 0 // We're not in a transition
                     && junction_rev_idx == segment_count - 1 // Is single bead segment
-                    && shorterThen(from.p - quad_start->to->p, 5) && shorterThen(to.p - quad_end->from->p, 5);
+                    && shorterThen(from.p - quad_start->to->p, 5);
+                const bool to_is_odd = 
+                    quad_end->from->data.bead_count > 0 && quad_end->from->data.bead_count % 2 == 1 // quad contains single bead segment
+                    && quad_end->from->data.transition_ratio == 0 // We're not in a transition
+                    && junction_rev_idx == segment_count - 1 // Is single bead segment
+                    && shorterThen(to.p - quad_end->from->p, 5);
+                const bool is_odd_segment = from_is_odd && to_is_odd;
                 
                 if (is_odd_segment
                     && passed_odd_edges.count(quad_start->next->twin) > 0) // Only generate toolpath for odd segments once
                 {
                     continue; // Prevent duplication of single bead segments
                 }
-                
+
+                bool from_is_3way = from_is_odd && quad_start->to->isMultiIntersection();
+                bool to_is_3way = to_is_odd && quad_end->from->isMultiIntersection();
+
                 passed_odd_edges.emplace(quad_start->next);
-                const bool force_new_path = is_odd_segment && quad_start->to->isMultiIntersection();
-                addToolpathSegment(from, to, is_odd_segment, force_new_path);
+
+                addToolpathSegment(from, to, is_odd_segment, new_domain_start, from_is_3way, to_is_3way);
             }
+            new_domain_start = false;
         }
         while(quad_start = quad_start->getNextUnconnected(), quad_start != poly_domain_start);
     }
@@ -2010,7 +1983,6 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true) && !node.isCentral())
         {
             const size_t inset_index = beading.bead_widths.size() / 2;
-            const size_t& region_id = node.incident_edge->data.getRegion();
             constexpr bool is_odd = true;
             if (inset_index >= generated_toolpaths.size())
             {
@@ -2018,22 +1990,20 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             }
             generated_toolpaths[inset_index].emplace_back(inset_index, is_odd);
             ExtrusionLine& line = generated_toolpaths[inset_index].back();
-            line.junctions.emplace_back(node.p, beading.bead_widths[inset_index], inset_index, region_id);
-            line.junctions.emplace_back(node.p + Point(50, 0), beading.bead_widths[inset_index], inset_index, region_id);
-            // TODO: ^^^ magic value ... + Point(50, 0) ^^^
+            const coord_t width = beading.bead_widths[inset_index];
+            // total area to be extruded is pi*(w/2)^2 = pi*w*w/4
+            // Width a constant extrusion width w, that would be a length of pi*w/4
+            // If we make a small circle to fill up the hole, then that circle would have a circumference of 2*pi*r
+            // So our circle needs to be such that r=w/8
+            const coord_t r = width / 8;
+            constexpr coord_t n_segments = 6;
+            for (coord_t segment = 0; segment < n_segments; segment++)
+            {
+                float a = 2.0 * M_PI / n_segments * segment;
+                line.junctions.emplace_back(node.p + Point(r * cos(a), r * sin(a)), width, inset_index);
+            }
         }
     }
-}
-
-void SkeletalTrapezoidation::liftRegionInfoToLines()
-{
-    std::for_each(p_generated_toolpaths->begin(), p_generated_toolpaths->end(), [](VariableWidthLines& lines)
-    {
-        std::for_each(lines.begin(), lines.end(), [](ExtrusionLine& line)
-        {
-            line.region_id = line.junctions.front().region_id;
-        });
-    });
 }
 
 //
