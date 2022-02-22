@@ -446,8 +446,9 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 
 std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) const
 {
+    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice->scene.extruders;
     std::vector<bool> ret;
-    ret.resize(Application::getInstance().current_slice->scene.extruders.size(), false);
+    ret.resize(extruders.size(), false);
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
@@ -472,7 +473,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
     {
         if(layer_nr == 0 && (adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM))
         {
-            for(size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); ++extruder_nr)
+            for(size_t extruder_nr = 0; extruder_nr < extruders.size(); ++extruder_nr)
             {
                 if(!skirt_brim[extruder_nr].empty())
                 {
@@ -486,6 +487,14 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
             if(layer_nr == -raft_layers) //Base layer.
             {
                 ret[mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr] = true;
+                //When using a raft, all prime blobs need to be on the lowest layer (the build plate).
+                for(size_t extruder_nr = 0; extruder_nr < extruders.size(); ++extruder_nr)
+                {
+                    if(extruders[extruder_nr].settings.get<bool>("prime_blob_enable"))
+                    {
+                        ret[extruder_nr] = true;
+                    }
+                }
             }
             else if(layer_nr == -raft_layers + 1) //Interface layer.
             {
