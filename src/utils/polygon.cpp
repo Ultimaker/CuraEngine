@@ -11,8 +11,6 @@
 #include "ListPolyIt.h"
 
 #include "PolylineStitcher.h"
-#include "logoutput.h"
-#include "SVG.h"
 
 namespace cura
 {

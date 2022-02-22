@@ -46,7 +46,8 @@ coord_t ExtrusionLine::getMinimalWidth() const
 
 void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, const coord_t maximum_extrusion_area_deviation)
 {
-    if (junctions.size() <= 2 + is_closed)
+    const size_t min_path_size = is_closed ? 3 : 2;
+    if (junctions.size() <= min_path_size)
     {
         return;
     }

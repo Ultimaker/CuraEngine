@@ -234,7 +234,10 @@ void WallToolPaths::separateOutInnerContour()
     inner_contour.clear();
     for (const VariableWidthLines& inset : toolpaths)
     {
-        if (inset.empty()) continue;
+        if (inset.empty())
+        {
+            continue;
+        }
         bool is_contour = false;
         for (const ExtrusionLine& line : inset)
         {
@@ -257,8 +260,12 @@ void WallToolPaths::separateOutInnerContour()
         {
 #ifdef DEBUG
             for (const ExtrusionLine& line : inset)
+            {
                 for (const ExtrusionJunction& j : line)
+                {
                     assert(j.w == 0);
+                }
+            }
 #endif // DEBUG
             for (const ExtrusionLine& line : inset)
             {

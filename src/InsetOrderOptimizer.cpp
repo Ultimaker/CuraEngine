@@ -110,7 +110,7 @@ bool InsetOrderOptimizer::addToLayer()
     
     std::vector<const ExtrusionLine*> walls_to_be_added;
     //Add all of the insets one by one.
-    for(size_t inset_idx = start_inset; inset_idx != end_inset; inset_idx += direction)
+    for (size_t inset_idx = start_inset; inset_idx != end_inset; inset_idx += direction)
     {
         if (paths[inset_idx].empty())
         {
@@ -132,10 +132,18 @@ bool InsetOrderOptimizer::addToLayer()
     if (center_last)
     {
         for (const ExtrusionLine* line : walls_to_be_added)
+        {
             if (line->is_odd)
+            {
                 for (const ExtrusionLine* other_line : walls_to_be_added)
+                {
                     if ( ! other_line->is_odd)
+                    {
                         order.emplace(std::make_pair(other_line, line));
+                    }
+                }
+            }
+        }
     }
     
     constexpr Ratio flow = 1.0_r;
@@ -200,14 +208,32 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
 {
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order_requirements;
 
+    // We build a grid where we map toolpath vertex locations to toolpaths,
+    // so that we can easily find which two toolpaths are next to each other,
+    // which is the requirement for there to be an order constraint.
+    // 
+    // We use a PointGrid rather than a LineGrid to save on computation time.
+    // In very rare cases two insets might lie next to each other without having neighboring vertices, e.g.
+    //  \            .
+    //   |  /        .
+    //   | /         .
+    //   ||          .
+    //   | \         .
+    //   |  \        .
+    //  /            .
+    // However, because of how Arachne works this will likely never be the case for two consecutive insets.
+    // On the other hand one could imagine that two consecutive insets of a very large circle
+    // could be simplify()ed such that the remaining vertices of the two insets don't align.
+    // In those cases the order requirement is not captured,
+    // which means that the PathOrderOptimizer *might* result in a violation of the user set path order.
+    // This problem is expected to be not so severe and happen very sparsely.
+
     coord_t max_line_w = 0u;
+    for (const ExtrusionLine* line : input)
     { // compute max_line_w
-        for (const ExtrusionLine* line : input)
+        for (const ExtrusionJunction& junction : *line)
         {
-            for (const ExtrusionJunction& junction : *line)
-            {
-                max_line_w = std::max(max_line_w, junction.w);
-            }
+            max_line_w = std::max(max_line_w, junction.w);
         }
     }
     if (max_line_w == 0u) return order_requirements;

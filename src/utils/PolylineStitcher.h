@@ -65,8 +65,8 @@ public:
             
             Path chain = line;
             bool closest_is_closing_polygon = false;
-            for (bool go_in_reverse_direction : { false, true })
-            {
+            for (bool go_in_reverse_direction : { false, true }) // first go in the unreversed direction, to try to prevent the chain.reverse() operation.
+            { // NOTE: Implementation only works for this order; we currently only re-reverse the chain when it's closed.
                 if (go_in_reverse_direction)
                 { // try extending chain in the other direction
                     chain.reverse();
@@ -107,11 +107,11 @@ public:
                             }
                             bool nearby_would_be_reversed = nearby.point_idx != 0;
                             nearby_would_be_reversed = nearby_would_be_reversed != go_in_reverse_direction; // flip nearby_would_be_reversed when searching in the reverse direction
-                            if (!canReverse(nearby) && nearby_would_be_reversed)
+                            if ( ! canReverse(nearby) && nearby_would_be_reversed)
                             { // connecting the segment would reverse the polygon direction
                                 return true; // keep looking for a connection
                             }
-                            if (!canConnect(chain, (*nearby.polygons)[nearby.poly_idx]))
+                            if ( ! canConnect(chain, (*nearby.polygons)[nearby.poly_idx]))
                             {
                                 return true; // keep looking for a connection
                             }

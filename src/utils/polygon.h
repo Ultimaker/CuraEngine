@@ -82,15 +82,15 @@ public:
     : path(const_cast<ClipperLib::Path*>(&polygon))
     {}
 
-    ConstPolygonRef() =delete; // you cannot have a reference without an object!
+    ConstPolygonRef() = delete; // you cannot have a reference without an object!
 
     virtual ~ConstPolygonRef()
     {
     }
 
-    bool operator==(ConstPolygonRef& other) const =delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
+    bool operator==(ConstPolygonRef& other) const = delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
 
-    ConstPolygonRef& operator=(const ConstPolygonRef& other) =delete; // Cannot assign to a const object
+    ConstPolygonRef& operator=(const ConstPolygonRef& other) = delete; // Cannot assign to a const object
 
     /*!
      * Gets the number of vertices in this polygon.
@@ -413,7 +413,7 @@ public:
     : ConstPolygonRef(*other.path)
     {}
 
-    PolygonRef() =delete; // you cannot have a reference without an object!
+    PolygonRef() = delete; // you cannot have a reference without an object!
 
     virtual ~PolygonRef()
     {
@@ -430,9 +430,9 @@ public:
         return path->insert(pos, first, last);
     }
 
-    PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+    PolygonRef& operator=(const ConstPolygonRef& other) = delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
 
-    PolygonRef& operator=(ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+    PolygonRef& operator=(ConstPolygonRef& other) = delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
 //     { path = other.path; return *this; }
 
     PolygonRef& operator=(PolygonRef&& other)
@@ -894,7 +894,7 @@ public:
     Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
     Polygons& operator=(Polygons&& other) { paths = std::move(other.paths); return *this; }
 
-    bool operator==(const Polygons& other) const =delete;
+    bool operator==(const Polygons& other) const = delete;
 
     /*!
      * Convert ClipperLib::PolyTree to a Polygons object,

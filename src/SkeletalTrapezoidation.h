@@ -575,7 +575,14 @@ protected:
     void generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<LineJunctions>& edge_junctions);
 
     /*!
-     * add a new toolpath segment, defined between two extrusion-juntions
+     * Add a new toolpath segment, defined between two extrusion-juntions.
+     * 
+     * \param from The junction from which to add a segment.
+     * \param to The junction to which to add a segment.
+     * \param is_odd Whether this segment is an odd gap filler along the middle of the skeleton.
+     * \param force_new_path Whether to prevent adding this path to an existing path which ends in \p from
+     * \param from_is_3way Whether the \p from junction is a splitting junction where two normal wall lines and a gap filler line come together.
+     * \param to_is_3way Whether the \p to junction is a splitting junction where two normal wall lines and a gap filler line come together.
      */
     void addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path, bool from_is_3way, bool to_is_3way);
 

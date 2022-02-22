@@ -1413,7 +1413,8 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
     }
 
-    if (extruder_nr == mesh.settings.get<ExtruderTrain&>((mesh.settings.get<size_t>("roofing_layer_count") > 0)? "roofing_extruder_nr" : "top_bottom_extruder_nr").extruder_nr)
+    const std::string extruder_identifier = (mesh.settings.get<size_t>("roofing_layer_count") > 0)? "roofing_extruder_nr" : "top_bottom_extruder_nr";
+    if (extruder_nr == mesh.settings.get<ExtruderTrain&>(extruder_identifier).extruder_nr)
     {
         processIroning(storage, mesh, layer, mesh_config.ironing_config, gcode_layer);
     }
@@ -2860,13 +2861,13 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     {
         gcode_layer.addPolygonsByOptimizer(wall, gcode_layer.configs_storage.support_roof_config);
     }
-    if (!roof_polygons.empty())
+    if ( ! roof_polygons.empty())
     {
         constexpr bool force_comb_retract = false;
         gcode_layer.addTravel(roof_polygons[0][0], force_comb_retract);
         gcode_layer.addPolygonsByOptimizer(roof_polygons, gcode_layer.configs_storage.support_roof_config);
     }
-    if (! roof_paths.empty())
+    if ( ! roof_paths.empty())
     {
         const GCodePathConfig& config = gcode_layer.configs_storage.support_roof_config;
         constexpr bool retract_before_outer_wall = false;
