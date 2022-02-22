@@ -183,9 +183,10 @@ bool InsetOrderOptimizer::addToLayer()
         const GCodePathConfig& bridge_config = is_outer_wall? inset_0_bridge_config : inset_X_bridge_config;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist : wall_x_wipe_dist;
         const bool retract_before = is_outer_wall ? retract_before_outer_wall : false;
-        
-        const bool alternate_direction_modifier = alternate_walls && (path.vertices->inset_idx % 2 == layer_nr % 2);
-        const bool backwards = path.backwards != alternate_direction_modifier;
+
+        const bool revert_inset = alternate_walls && (path.vertices->inset_idx % 2);
+        const bool revert_layer = alternate_walls && (layer_nr % 2);
+        const bool backwards = path.backwards != (revert_inset != revert_layer);
         
         p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;
         const cura::Point p_start = path.backwards ? path.vertices->front().p : path.vertices->back().p;
