@@ -104,6 +104,11 @@ void Mesh::transform(const FMatrix4x3& transformation)
 }
 
 
+bool Mesh::isPrinted() const
+{
+    return !settings.get<bool>("infill_mesh") && !settings.get<bool>("cutting_mesh") && !settings.get<bool>("anti_overhang_mesh");
+}
+    
 int Mesh::findIndexOfVertex(const Point3& v)
 {
     uint32_t hash = pointHash(v);

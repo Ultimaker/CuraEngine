@@ -1114,6 +1114,7 @@ void LayerPlan::addLinesByOptimizer
         const PathOrderOptimizer<ConstPolygonPointer>::Path& path = order_optimizer.paths[order_idx];
         ConstPolygonRef polyline = *path.vertices;
         const size_t start_idx = path.start_vertex;
+        assert(start_idx == 0 || start_idx == polyline.size() - 1 || path.is_closed);
         const Point start = polyline[start_idx];
 
         if(vSize2(getLastPlannedPositionOrStartingPosition() - start) < line_width_2)
@@ -1130,7 +1131,20 @@ void LayerPlan::addLinesByOptimizer
         Point p0 = start;
         for (size_t idx = 0; idx < polyline.size(); idx++)
         {
-            size_t point_idx = (start_idx == 0) ? idx : polyline.size() - 1 - idx;
+            size_t point_idx;
+            if (path.is_closed)
+            {
+                point_idx = (start_idx + idx) % polyline.size();
+            }
+            else if (start_idx == 0)
+            {
+                point_idx = idx;
+            }
+            else
+            {
+                assert(start_idx == polyline.size() - 1);
+                point_idx = start_idx - idx;
+            }
             Point p1 = polyline[point_idx];
 
             // ignore line segments that are less than 5uM long
