@@ -609,7 +609,7 @@ public:
         return path;
     }
 
-    bool operator==(const ConstPolygonPointer& rhs)
+    bool operator==(const ConstPolygonPointer& rhs) const
     {
         return path == rhs.path;
     }
