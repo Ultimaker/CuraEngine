@@ -1134,7 +1134,7 @@ void LayerPlan::addLinesByOptimizer
             size_t point_idx;
             if (path.is_closed)
             {
-                point_idx = (start_idx + idx) % polyline.size();
+                point_idx = (start_idx + idx + 1) % polyline.size();
             }
             else if (start_idx == 0)
             {
