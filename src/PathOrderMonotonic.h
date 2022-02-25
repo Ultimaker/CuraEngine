@@ -72,7 +72,7 @@ public:
         this->detectLoops(); //Always filter out loops. We don't specifically want to print those in monotonic order.
         for(Path& path : this->paths)
         {
-            if(path.is_closed || path.vertices.size() <= 1)
+            if(path.is_closed || path.vertices->size() <= 1)
             {
                 reordered.push_back(path);
             }

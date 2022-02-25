@@ -1225,7 +1225,7 @@ void LayerPlan::addLinesMonotonic
         };
 
     // Order monotonically, except for line-segments which stay in the excluded areas (read: close to the walls) consecutively.
-    PathOrderMonotonic<ConstPolygonRef> order(monotonic_direction, max_adjacent_distance, last_position);
+    PathOrderMonotonic<ConstPolygonPointer> order(monotonic_direction, max_adjacent_distance, last_position);
     Polygons left_over;
     bool last_would_have_been_excluded = false;
     for(size_t line_idx = 0; line_idx < line_order.paths.size(); ++line_idx)
@@ -1251,10 +1251,10 @@ void LayerPlan::addLinesMonotonic
     coord_t line_width_2 = half_line_width * half_line_width;
     for (unsigned int order_idx = 0; order_idx < order.paths.size(); order_idx++)
     {
-        const PathOrder<ConstPolygonRef>::Path& path = order.paths[order_idx];
+        const PathOrder<ConstPolygonPointer>::Path& path = order.paths[order_idx];
         ConstPolygonRef polygon = *path.vertices;
         const size_t start = path.start_vertex;
-        const size_t end = path.vertices.size() - 1 - start;
+        const size_t end = path.vertices->size() - 1 - start;
         const Point& p0 = polygon[start];
         const Point& p1 = polygon[end];
         // ignore line segments that are less than 5uM long
@@ -1290,7 +1290,7 @@ void LayerPlan::addLinesMonotonic
             // Don't wipe if next starting point is very near
             if (wipe && (order_idx < order.paths.size() - 1))
             {
-                const PathOrder<ConstPolygonRef>::Path& next_path = order.paths[order_idx + 1];
+                const PathOrder<ConstPolygonPointer>::Path& next_path = order.paths[order_idx + 1];
                 ConstPolygonRef next_polygon = *next_path.vertices;
                 const size_t next_start = next_path.start_vertex;
                 const Point& next_p0 = next_polygon[next_start];
