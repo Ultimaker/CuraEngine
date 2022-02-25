@@ -1,5 +1,5 @@
 //Copyright (c) 2017 Tim Kuipers
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <sstream>
@@ -8,6 +8,7 @@
 #include "logoutput.h"
 #include "polygon.h"
 #include "SVG.h"
+#include "ExtrusionLine.h"
 
 namespace cura {
 
@@ -328,6 +329,49 @@ void SVG::writePolyline(ConstPolygonRef poly, const ColorObject color, const flo
         }
         p0 = p1;
         i++;
+    }
+}
+
+void SVG::writePaths(const VariableWidthPaths& paths, const ColorObject color, const float width_factor) const
+{
+    for(const VariableWidthLines& lines : paths)
+    {
+        writeLines(lines, color, width_factor);
+    }
+}
+
+void SVG::writeLines(const VariableWidthLines& lines, const ColorObject color, const float width_factor) const
+{
+    for(const ExtrusionLine& line : lines)
+    {
+        writeLine(line, color, width_factor);
+    }
+}
+
+void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const float width_factor) const
+{
+    constexpr float minimum_line_width = 10; //Always have some width, otherwise some lines become completely invisible.
+    if(line.junctions.empty()) //Only draw lines that have at least 2 junctions, otherwise they are degenerate.
+    {
+        return;
+    }
+    ExtrusionJunction start_vertex = line.junctions[0];
+    for(size_t index = 1; index < line.junctions.size(); ++index)
+    {
+        ExtrusionJunction end_vertex = line.junctions[index];
+
+        //Compute the corners of the trapezoid for this variable-width line segment.
+        const Point direction_vector = end_vertex.p - start_vertex.p;
+        const Point direction_left = turn90CCW(direction_vector);
+        const Point direction_right = -direction_left; //Opposite of left.
+        const FPoint3 start_left = transformF(start_vertex.p + normal(direction_left, std::max(minimum_line_width, start_vertex.w * width_factor)));
+        const FPoint3 start_right = transformF(start_vertex.p + normal(direction_right, std::max(minimum_line_width, start_vertex.w * width_factor)));
+        const FPoint3 end_left = transformF(end_vertex.p + normal(direction_left, std::max(minimum_line_width, end_vertex.w * width_factor)));
+        const FPoint3 end_right = transformF(end_vertex.p + normal(direction_right, std::max(minimum_line_width, end_vertex.w * width_factor)));
+
+        fprintf(out, "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f\" />\n", toString(color).c_str(), start_left.x, start_left.y, start_right.x, start_right.y, end_right.x, end_right.y, end_left.x, end_left.y);
+
+        start_vertex = end_vertex; //For the next line segment.
     }
 }
 
