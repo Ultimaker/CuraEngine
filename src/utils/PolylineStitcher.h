@@ -89,7 +89,7 @@ public:
                             {
                                 return true; // keep looking
                             }
-                            if (nearby.p() == make_point(chain.front()))
+                            if(vSize2(nearby.p() - make_point(chain.front())) < snap_distance * snap_distance)
                             {
                                 if (chain.polylineLength() + dist < 3 * max_stitch_distance // prevent closing of small poly, cause it might be able to continue making a larger polyline
                                     || chain.size() <= 2) // don't make 2 vert polygons
