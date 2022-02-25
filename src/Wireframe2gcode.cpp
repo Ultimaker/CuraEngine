@@ -645,7 +645,7 @@ void Wireframe2gcode::processSkirt()
     order.optimize();
 
     const Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
-    for(const PathOrderOptimizer<PolygonPointer>::Path& path : order.paths)
+    for(const PathOrderPath<PolygonPointer>& path : order.paths)
     {
         gcode.writeTravel((*path.vertices)[path.start_vertex], scene_settings.get<Velocity>("speed_travel"));
         for(size_t vertex_index = 0; vertex_index < path.vertices->size(); ++vertex_index)

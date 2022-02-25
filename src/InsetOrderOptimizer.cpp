@@ -173,7 +173,7 @@ bool InsetOrderOptimizer::addToLayer()
     order_optimizer.optimize();
     
     cura::Point p_end {0, 0};
-    for(const PathOrderOptimizer<const ExtrusionLine*>::Path& path : order_optimizer.paths)
+    for(const PathOrderPath<const ExtrusionLine*>& path : order_optimizer.paths)
     {
         if (path.vertices->empty()) continue;
         
