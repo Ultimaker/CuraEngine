@@ -678,63 +678,61 @@ void Polygons::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& 
 
 void Polygons::removeSmallAreas(const double min_area_size, const bool remove_holes)
 {
-    auto new_end = paths.end();
-    if(remove_holes)
-    {
-        for(auto it = paths.begin(); it < new_end; it++)
-        {
-            // All polygons smaller than target are removed by replacing them with a polygon from the back of the vector
-            if(fabs(INT2MM2(ClipperLib::Area(*it))) < min_area_size)
-            {
-                new_end--;
-                *it = std::move(*new_end);
-                it--; // wind back the iterator such that the polygon just swaped in is checked next
-            }
-        }
-    }
-    else
-    {
-        // For each polygon, computes the signed area, move small outlines at the end of the vector and keep references on small holes
-        std::vector<PolygonRef> small_holes;
-        for(auto it = paths.begin(); it < new_end; it++) {
-            double area = INT2MM2(ClipperLib::Area(*it));
-            if (fabs(area) < min_area_size)
-            {
-                if(area >= 0)
-                {
-                    new_end--;
-                    if(it < new_end) {
-                        std::swap(*new_end, *it);
-                        it--;
-                    }
-                    else
-                    { // Don't self-swap the last Path
-                        break;
-                    }
-                }
-                else
-                {
-                    small_holes.push_back(*it);
-                }
-            }
-        }
+	if (remove_holes)
+	{
+		paths.erase(
+			std::remove_if(paths.begin(), paths.end(),
+			               [min_area_size](auto& p)
+			               {
+				               return fabs(INT2MM2(ClipperLib::Area(p))) < min_area_size;
+			               })
+			, paths.end()
+		);
+	}
+	else
+	{
+		auto hole_index = std::vector<size_t>{};
+		auto rem_area_index = std::vector<size_t>{};
 
-        // Removes small holes that have their first point inside one of the removed outlines
-        // Iterating in reverse ensures that unprocessed small holes won't be moved
-        const auto removed_outlines_start = new_end;
-        for(auto hole_it = small_holes.rbegin(); hole_it < small_holes.rend(); hole_it++)
-        {
-            for(auto outline_it = removed_outlines_start; outline_it < paths.end() ; outline_it++)
-            {
-                if(PolygonRef(*outline_it).inside(*hole_it->begin())) {
-                    new_end--;
-                    **hole_it = std::move(*new_end);
-                    break;
-                }
-            }
-        }
-    }
-    paths.resize(new_end-paths.begin());
+		for (auto i = size_t{0}; i < paths.size(); ++i)
+		{
+			if (const auto area = INT2MM2(Area(paths[i])); area < 0)
+			{
+				hole_index.push_back(i);
+			}
+			else if (area < min_area_size)
+			{
+				rem_area_index.push_back(i);
+			}
+		}
+
+		// find holes to remove
+		auto rem_hole_index = std::vector<size_t>{};
+		for (const auto h_i : hole_index)
+		{
+			for (const auto s_i : rem_area_index)
+			{
+				auto& small_area = paths[s_i];
+				auto& hole = paths[h_i];
+				if (PolygonRef(small_area).inside(*hole.begin()))
+				{
+					rem_hole_index.push_back(h_i);
+					break;
+				}
+			}
+		}
+
+		// remove all index that are in rem_hole_index and small_area_index
+		rem_area_index.reserve(rem_area_index.size() + rem_hole_index.size());
+		rem_area_index.insert(rem_area_index.end(), rem_hole_index.begin(), rem_hole_index.end());
+		std::sort(rem_area_index.begin(), rem_area_index.end());
+		std::reverse(rem_area_index.begin(), rem_area_index.end());
+
+		for (const auto remove_ind : rem_area_index)
+		{
+			paths.erase(paths.begin() + remove_ind);
+		}
+	}
 }
 
 void Polygons::removeDegenerateVerts()
