@@ -23,6 +23,7 @@ public:
     Polygon clockwise_small;
     Polygons clockwise_donut;
     Polygon line;
+    Polygon small_area;
 
     void SetUp() override
     {
@@ -70,6 +71,30 @@ public:
 
         line.emplace_back(0, 0);
         line.emplace_back(100, 0);
+
+        small_area.emplace_back(0, 0);
+        small_area.emplace_back(10, 0);
+        small_area.emplace_back(10, 10);
+        small_area.emplace_back(0, 10);
+    }
+    void twoPolygonsAreEqual(Polygons& polygon1, Polygons& polygon2) const
+    {
+        // check there are the same number of polygons
+        ASSERT_EQ(polygon1.size(), polygon2.size()) << "The Polygons (vector) does not contain the same number of Polygon";
+
+        // check each polygon is matching
+        for (auto pi = size_t{ 0 }; pi < polygon1.size(); ++pi)
+        {
+            // check poly is the same length
+            ASSERT_EQ(polygon1[pi].size(), polygon2[pi].size()) << "At pi = " << pi << ", the Polygon do not match";
+
+            const auto& p1 = polygon1[pi];
+            const auto& p2 = polygon2[pi];
+            for (auto li = size_t{ 0 }; li < p1.size(); ++li)
+            {
+                EXPECT_EQ(p1[li], p2[li]) << "In the polygon at index = " << pi << ", the Polygon coordinates do not match at index = " << li;
+            }
+        }
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
@@ -325,7 +350,6 @@ TEST_F(PolygonTest, convexTestCubeColinear)
     EXPECT_EQ(d[3], Point(0, 10));
 }
 
-
 /*
  * The convex hull should remove duplicate points
  */
@@ -349,6 +373,193 @@ TEST_F(PolygonTest, convexHullRemoveDuplicatePoints)
     EXPECT_EQ(d[1], Point(10, 0));
     EXPECT_EQ(d[2], Point(10, 10));
     EXPECT_EQ(d[3], Point(0, 10));
+}
+
+/*
+ * Check that a simple set of polygons do not change when run through
+ * removeSmallAreas.
+ */
+TEST_F(PolygonTest, removeSmallAreas_simple)
+{
+    // basic set of polygons
+    auto square_2 = test_square;
+    square_2.translate(Point(0, 500));
+    auto d_polygons = Polygons{};
+    d_polygons.add(test_square);
+    d_polygons.add(square_2);
+    d_polygons.add(triangle);
+
+    // for the simple case there should be no change.
+    auto act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-5, false);
+    twoPolygonsAreEqual(act_polygons, d_polygons);
+
+    // changing remove_holes should have no effect.
+    act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-5, true);
+    twoPolygonsAreEqual(act_polygons, d_polygons);
+}
+
+/*
+ * Check that the two small areas are removed but the two large areas are not
+ * affected.
+ */
+TEST_F(PolygonTest, removeSmallAreas_small_area)
+{
+    // make some areas.
+    auto sa1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    sa1.translate(Point(350, 450));
+    auto sa2 = small_area;
+    sa2.translate(Point(450, 350));
+    auto tri = triangle; // area = 10000 micron^2 = 1e-2 mm^2
+    tri.translate(Point(50, 0));
+
+    // add areas to polygons
+    auto d_polygons = Polygons{};
+    d_polygons.add(sa1);
+    d_polygons.add(sa2);
+    d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
+    d_polygons.add(tri);
+
+    // make an expected Polygons
+    auto exp_polygons = Polygons{};
+    exp_polygons.add(test_square);
+    exp_polygons.add(tri);
+
+    // for remove_holes == false, 2 poly removed
+    auto act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-3, false);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+
+    // for remove_holes == true, 2 poly removed
+    act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-3, true);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+}
+
+/*
+ * Check that that a small hole in a large area is only removed if the setting
+ * is true.
+ */
+TEST_F(PolygonTest, removeSmallAreas_hole)
+{
+    // make some areas.
+    auto sh1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    sh1.reverse();
+    sh1.translate(Point(10, 10));
+
+    // add areas to polygons
+    auto d_polygons = Polygons{};
+    d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
+    d_polygons.add(sh1);
+
+
+    // for remove_holes == false there should be no change.
+    auto act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-3, false);
+    twoPolygonsAreEqual(act_polygons, d_polygons);
+
+    // for remove_holes == true there should be one less poly.
+    // make an expected Polygons
+    auto exp_polygons = Polygons{};
+    exp_polygons.add(test_square);
+    act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-3, true);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+}
+
+/*
+ * Test that a hole inside a removed area is always removed.
+ */
+TEST_F(PolygonTest, removeSmallAreas_hole_2)
+{
+    // make some areas.
+    auto sh1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    sh1.reverse();
+    auto sh2 = sh1;
+    sh1.translate(Point(10, 10));
+    sh2.translate(Point(160, 160));
+    auto small_square = Polygon{}; // area = 2500 micron^2 = 2.5e-3 mm^2
+    small_square.add(Point(0, 0));
+    small_square.add(Point(50, 0));
+    small_square.add(Point(50, 50));
+    small_square.add(Point(0, 50));
+    small_square.translate(Point(150, 150));
+
+    // add areas to polygons
+    auto d_polygons = Polygons{};
+    d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
+    d_polygons.add(sh1);
+    d_polygons.add(small_square);
+    d_polygons.add(sh2);
+
+    // for remove_holes == false, two polygons removed.
+    auto act_polygons = d_polygons;
+    // make an expected Polygons
+    auto exp_polygons = Polygons{};
+    exp_polygons.add(test_square);
+    exp_polygons.add(sh1);
+    act_polygons.removeSmallAreas(3e-3, false);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+
+    // for remove_holes == true, three polygons removed.
+    act_polygons = d_polygons;
+    // make an expected Polygons
+    exp_polygons = Polygons{};
+    exp_polygons.add(test_square);
+    act_polygons.removeSmallAreas(3e-3, true);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+}
+
+/*
+ * Test the following:
+ *   1. Two large areas (triangle and square) are not removed.
+ *   2. Two small holes in the square are removed if remove_holes==true.
+ *   3. Three small areas are always removed.
+ */
+TEST_F(PolygonTest, removeSmallAreas_complex)
+{
+    // make some areas.
+    auto sa1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    sa1.translate(Point(350, 450));
+    auto sa2 = small_area;
+    sa2.translate(Point(450, 350));
+    auto sh1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    sh1.reverse();
+    auto sh2 = sh1;
+    sh1.translate(Point(3, 3));
+    sh2.translate(Point(22, 50));
+    auto tri = triangle; // area = 10000 micron^2 = 1e-2 mm^2
+    tri.translate(Point(600, 0));
+
+    // add areas to polygons
+    auto d_polygons = Polygons{};
+    d_polygons.add(sa1);
+    d_polygons.add(sa2);
+    d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
+    d_polygons.add(sh1);
+    d_polygons.add(sh2);
+    d_polygons.add(tri);
+
+    // for remove_holes == false there should be 2 small areas removed.
+    auto act_polygons = d_polygons;
+    // make an expected Polygons
+    auto exp_polygons = Polygons{};
+    exp_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
+    exp_polygons.add(sh1);
+    exp_polygons.add(sh2);
+    exp_polygons.add(tri);
+    act_polygons.removeSmallAreas(1e-3, false);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+
+    // for remove_holes == true there should be 2 small areas and 2 small holes removed.
+    act_polygons = d_polygons;
+    // make an expected Polygons
+    exp_polygons = Polygons{};
+    exp_polygons.add(test_square);
+    exp_polygons.add(tri); // area = 10000 micron^2 = 1e-2 mm^2
+    act_polygons.removeSmallAreas(1e-3, true);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
 }
 } // namespace cura
 // NOLINTEND(*-magic-numbers)
