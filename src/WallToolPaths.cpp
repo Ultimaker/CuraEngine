@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Ultimaker B.V.
+// Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::partition_copy and std::min_element.
@@ -129,7 +129,7 @@ const VariableWidthPaths& WallToolPaths::generate()
 
 void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Settings& settings)
 {
-    const coord_t stitch_distance = settings.get<coord_t>("wall_line_width_x") / 4;
+    const coord_t stitch_distance = settings.get<coord_t>("wall_line_width_x") / 3 + 1; //In 0-width contours, junctions can cause up to 1-line-width gaps. Don't stitch more than 1 line width.
 
     for (unsigned int wall_idx = 0; wall_idx < toolpaths.size(); wall_idx++)
     {
