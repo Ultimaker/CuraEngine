@@ -1168,8 +1168,8 @@ void LayerPlan::addLinesInGivenOrder(
             }
         }
 
-        p0 = polyline[(start_idx == 0) ? polyline.size() - 1 : 0];
-        Point p1 = (polyline.size() <= 1) ? p0
+        Point p1 = polyline[(start_idx == 0) ? polyline.size() - 1 : 0];
+        p0 = (polyline.size() <= 1) ? p1
             : polyline[(start_idx == 0) ? polyline.size() - 2 : 1];
 
         // Wipe
