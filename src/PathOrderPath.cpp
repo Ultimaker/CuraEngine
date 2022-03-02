@@ -5,8 +5,6 @@
 #include "sliceDataStorage.h" //For SliceLayerPart.
 #include "WallToolPaths.h"
 
-//Since the PathOrderOptimizer is a template class, we will only implement the template specializations in this file.
-
 namespace cura
 {
 
