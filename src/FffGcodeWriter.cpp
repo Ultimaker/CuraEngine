@@ -1726,6 +1726,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            infill_line_distance_here, overlap, infill_multiplier, infill_angle, gcode_layer.z,
                            infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin,
                            connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
+        // TODO: prevent the infill_comp from generating gap filler lines to fill the area which is too narrow to fit the zigzag connectors
         infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
 
         // Fixme: CURA-7848 for libArachne.
