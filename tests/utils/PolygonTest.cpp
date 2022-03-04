@@ -382,11 +382,11 @@ TEST_F(PolygonTest, convexHullRemoveDuplicatePoints)
 TEST_F(PolygonTest, removeSmallAreas_simple)
 {
     // basic set of polygons
-    auto square_2 = test_square;
-    square_2.translate(Point(0, 500));
+    auto test_square_2 = test_square;
+    test_square_2.translate(Point(0, 500));
     auto d_polygons = Polygons{};
     d_polygons.add(test_square);
-    d_polygons.add(square_2);
+    d_polygons.add(test_square_2);
     d_polygons.add(triangle);
 
     // for the simple case there should be no change.
@@ -407,24 +407,24 @@ TEST_F(PolygonTest, removeSmallAreas_simple)
 TEST_F(PolygonTest, removeSmallAreas_small_area)
 {
     // make some areas.
-    auto sa1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
-    sa1.translate(Point(350, 450));
-    auto sa2 = small_area;
-    sa2.translate(Point(450, 350));
-    auto tri = triangle; // area = 10000 micron^2 = 1e-2 mm^2
-    tri.translate(Point(50, 0));
+    auto small_area_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    small_area_1.translate(Point(350, 450));
+    auto small_area_2 = small_area;
+    small_area_2.translate(Point(450, 350));
+    auto triangle_1 = triangle; // area = 10000 micron^2 = 1e-2 mm^2
+    triangle_1.translate(Point(50, 0));
 
     // add areas to polygons
     auto d_polygons = Polygons{};
-    d_polygons.add(sa1);
-    d_polygons.add(sa2);
+    d_polygons.add(small_area_1);
+    d_polygons.add(small_area_2);
     d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
-    d_polygons.add(tri);
+    d_polygons.add(triangle_1);
 
     // make an expected Polygons
     auto exp_polygons = Polygons{};
     exp_polygons.add(test_square);
-    exp_polygons.add(tri);
+    exp_polygons.add(triangle_1);
 
     // for remove_holes == false, 2 poly removed
     auto act_polygons = d_polygons;
@@ -444,14 +444,14 @@ TEST_F(PolygonTest, removeSmallAreas_small_area)
 TEST_F(PolygonTest, removeSmallAreas_hole)
 {
     // make some areas.
-    auto sh1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
-    sh1.reverse();
-    sh1.translate(Point(10, 10));
+    auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    small_hole_1.reverse();
+    small_hole_1.translate(Point(10, 10));
 
     // add areas to polygons
     auto d_polygons = Polygons{};
     d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
-    d_polygons.add(sh1);
+    d_polygons.add(small_hole_1);
 
 
     // for remove_holes == false there should be no change.
@@ -474,31 +474,31 @@ TEST_F(PolygonTest, removeSmallAreas_hole)
 TEST_F(PolygonTest, removeSmallAreas_hole_2)
 {
     // make some areas.
-    auto sh1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
-    sh1.reverse();
-    auto sh2 = sh1;
-    sh1.translate(Point(10, 10));
-    sh2.translate(Point(160, 160));
-    auto small_square = Polygon{}; // area = 2500 micron^2 = 2.5e-3 mm^2
-    small_square.add(Point(0, 0));
-    small_square.add(Point(50, 0));
-    small_square.add(Point(50, 50));
-    small_square.add(Point(0, 50));
-    small_square.translate(Point(150, 150));
+    auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    small_hole_1.reverse();
+    auto small_hole_2 = small_hole_1;
+    small_hole_1.translate(Point(10, 10));
+    small_hole_2.translate(Point(160, 160));
+    auto med_square_1 = Polygon{}; // area = 2500 micron^2 = 2.5e-3 mm^2
+    med_square_1.add(Point(0, 0));
+    med_square_1.add(Point(50, 0));
+    med_square_1.add(Point(50, 50));
+    med_square_1.add(Point(0, 50));
+    med_square_1.translate(Point(150, 150));
 
     // add areas to polygons
     auto d_polygons = Polygons{};
     d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
-    d_polygons.add(sh1);
-    d_polygons.add(small_square);
-    d_polygons.add(sh2);
+    d_polygons.add(small_hole_1);
+    d_polygons.add(med_square_1);
+    d_polygons.add(small_hole_2);
 
     // for remove_holes == false, two polygons removed.
     auto act_polygons = d_polygons;
     // make an expected Polygons
     auto exp_polygons = Polygons{};
     exp_polygons.add(test_square);
-    exp_polygons.add(sh1);
+    exp_polygons.add(small_hole_1);
     act_polygons.removeSmallAreas(3e-3, false);
     twoPolygonsAreEqual(act_polygons, exp_polygons);
 
@@ -520,35 +520,35 @@ TEST_F(PolygonTest, removeSmallAreas_hole_2)
 TEST_F(PolygonTest, removeSmallAreas_complex)
 {
     // make some areas.
-    auto sa1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
-    sa1.translate(Point(350, 450));
-    auto sa2 = small_area;
-    sa2.translate(Point(450, 350));
-    auto sh1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
-    sh1.reverse();
-    auto sh2 = sh1;
-    sh1.translate(Point(3, 3));
-    sh2.translate(Point(22, 50));
-    auto tri = triangle; // area = 10000 micron^2 = 1e-2 mm^2
-    tri.translate(Point(600, 0));
+    auto small_area_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    small_area_1.translate(Point(350, 450));
+    auto small_area_2 = small_area;
+    small_area_2.translate(Point(450, 350));
+    auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    small_hole_1.reverse();
+    auto small_hole_2 = small_hole_1;
+    small_hole_1.translate(Point(3, 3));
+    small_hole_2.translate(Point(22, 50));
+    auto triangle_1 = triangle; // area = 10000 micron^2 = 1e-2 mm^2
+    triangle_1.translate(Point(600, 0));
 
     // add areas to polygons
     auto d_polygons = Polygons{};
-    d_polygons.add(sa1);
-    d_polygons.add(sa2);
+    d_polygons.add(small_area_1);
+    d_polygons.add(small_area_2);
     d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
-    d_polygons.add(sh1);
-    d_polygons.add(sh2);
-    d_polygons.add(tri);
+    d_polygons.add(small_hole_1);
+    d_polygons.add(small_hole_2);
+    d_polygons.add(triangle_1);
 
     // for remove_holes == false there should be 2 small areas removed.
     auto act_polygons = d_polygons;
     // make an expected Polygons
     auto exp_polygons = Polygons{};
     exp_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
-    exp_polygons.add(sh1);
-    exp_polygons.add(sh2);
-    exp_polygons.add(tri);
+    exp_polygons.add(small_hole_1);
+    exp_polygons.add(small_hole_2);
+    exp_polygons.add(triangle_1);
     act_polygons.removeSmallAreas(1e-3, false);
     twoPolygonsAreEqual(act_polygons, exp_polygons);
 
@@ -557,7 +557,7 @@ TEST_F(PolygonTest, removeSmallAreas_complex)
     // make an expected Polygons
     exp_polygons = Polygons{};
     exp_polygons.add(test_square);
-    exp_polygons.add(tri); // area = 10000 micron^2 = 1e-2 mm^2
+    exp_polygons.add(triangle_1); // area = 10000 micron^2 = 1e-2 mm^2
     act_polygons.removeSmallAreas(1e-3, true);
     twoPolygonsAreEqual(act_polygons, exp_polygons);
 }
