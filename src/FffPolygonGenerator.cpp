@@ -1089,8 +1089,8 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         }
 
                         // 'a' is the (next) new point between p0 and p1
-                        Point p0p1 = p1.p - p0->p;
-                        int64_t p0p1_size = vSize(p0p1);
+                        const Point p0p1 = p1.p - p0->p;
+                        const int64_t p0p1_size = vSize(p0p1);
                         int64_t p0pa_dist = dist_left_over;
                         if (p0pa_dist >= p0p1_size)
                         {
@@ -1100,10 +1100,10 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         }
                         for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                         {
-                            int r = rand() % (fuzziness * 2) - fuzziness;
-                            Point perp_to_p0p1 = turn90CCW(p0p1);
-                            Point fuzz = normal(perp_to_p0p1, r);
-                            Point pa = p0->p + normal(p0p1, p0pa_dist);
+                            const int r = rand() % (fuzziness * 2) - fuzziness;
+                            const Point perp_to_p0p1 = turn90CCW(p0p1);
+                            const Point fuzz = normal(perp_to_p0p1, r);
+                            const Point pa = p0->p + normal(p0p1, p0pa_dist);
                             const double width = (p1.w * vSize(p1.p - pa) + p0->w * vSize(p0->p - pa)) / p0p1_size;
                             result.emplace_back(pa + fuzz, width, p1.perimeter_index);
                         }
