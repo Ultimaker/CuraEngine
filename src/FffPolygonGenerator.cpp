@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <map> // multimap (ordered map allowing duplicate keys)
+#include <numeric>
 #include <fstream> // ifstream.good()
 
 #ifdef _OPENMP
@@ -1045,11 +1046,18 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     {
         return;
     }
+
+    const coord_t line_width = mesh.settings.get<coord_t>("line_width");
+    const bool apply_outside_only = mesh.settings.get<bool>("magic_fuzzy_skin_outside_only");
     const coord_t fuzziness = mesh.settings.get<coord_t>("magic_fuzzy_skin_thickness");
     const coord_t avg_dist_between_points = mesh.settings.get<coord_t>("magic_fuzzy_skin_point_dist");
     const coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     const coord_t range_random_point_dist = avg_dist_between_points / 2;
     unsigned int start_layer_nr = (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)? 1 : 0; // don't make fuzzy skin on first layer if there's a brim    
+
+    auto hole_area = Polygons();
+    std::function<bool(const bool&, const ExtrusionJunction&)> accumulate_is_in_hole = [](const bool& prev_result, const ExtrusionJunction& junction) { return false; };
+
     for (unsigned int layer_nr = start_layer_nr; layer_nr < mesh.layers.size(); layer_nr++)
     {
         SliceLayer& layer = mesh.layers[layer_nr];
@@ -1058,11 +1066,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
             VariableWidthPaths result_paths;
             for (auto& toolpath : part.wall_toolpaths)
             {
-                if
-                (
-                    toolpath.front().inset_idx != 0 ||
-                    (mesh.settings.get<bool>("magic_fuzzy_skin_outside_only") && false) // TODO: Put proper hole condition instead of false!
-                )
+                if (toolpath.front().inset_idx != 0)
                 {
                     result_paths.push_back(toolpath);
                     continue;
@@ -1071,8 +1075,20 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                 result_paths.emplace_back();
                 auto& result_lines = result_paths.back();
 
+                if (apply_outside_only)
+                {
+                    hole_area = part.print_outline.getOutsidePolygons().offset(-line_width);
+                    accumulate_is_in_hole =
+                        [&hole_area](const bool& prev_result, const ExtrusionJunction& junction) { return prev_result || hole_area.inside(junction.p); };
+                }
                 for (auto& line : toolpath)
                 {
+                    if (apply_outside_only && std::accumulate(line.begin(), line.end(), false, accumulate_is_in_hole))
+                    {
+                        result_lines.push_back(line);
+                        continue;
+                    }
+
                     result_lines.emplace_back();
                     auto& result = result_lines.back();
                     result.inset_idx = line.inset_idx;
