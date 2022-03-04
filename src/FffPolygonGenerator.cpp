@@ -1058,9 +1058,13 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
             VariableWidthPaths result_paths;
             for (auto& toolpath : part.wall_toolpaths)
             {
-                if (mesh.settings.get<bool>("magic_fuzzy_skin_outside_only") && false) // TODO: Un-false and alter!
+                if
+                (
+                    toolpath.front().inset_idx != 0 ||
+                    (mesh.settings.get<bool>("magic_fuzzy_skin_outside_only") && false) // TODO: Put proper hole condition instead of false!
+                )
                 {
-                    //results.add(poly);
+                    result_paths.push_back(toolpath);
                     continue;
                 }
 
