@@ -710,7 +710,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     SkinInfillAreaComputation::combineInfillLayers(mesh);
 
     // fuzzy skin
-    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled") && false) //TODO make fuzzy skin work with libArachne (CURA-7887) and then re-enable it
+    if (mesh.settings.get<bool>("magic_fuzzy_skin_enabled"))
     {
         processFuzzyWalls(mesh);
     }
