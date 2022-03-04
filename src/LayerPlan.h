@@ -640,6 +640,26 @@ public:
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT
     );
 
+protected:
+    /*!
+     * Add order optimized lines to the gcode.
+     * \param paths The paths in order
+     * \param config The config of the lines
+     * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
+     * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param fan_speed optional fan speed override for this path
+     */
+    void addLinesInGivenOrder(
+        const std::vector<PathOrderPath<ConstPolygonPointer>>& paths, 
+        const GCodePathConfig& config,
+        const SpaceFillType space_fill_type,
+        const coord_t wipe_dist,
+        const Ratio flow_ratio,
+        const double fan_speed
+    );
+
+public:
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
      *

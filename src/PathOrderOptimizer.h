@@ -8,6 +8,7 @@
 #include <unordered_set>
 
 #include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
+#include "PathOrderPath.h"
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "settings/EnumSettings.h" //To get the seam settings.
@@ -51,71 +52,6 @@ class PathOrderOptimizer
 {
 public:
     /*!
-     * Represents a path which has been optimized, the output of the
-     * optimization.
-     *
-     * This small data structure contains the vertex data of a path,  where to
-     * start along the path and in which direction to print it, as well as
-     * whether the path should be closed (in case of a polygon) or open (in case
-     * of a polyline.
-     *
-     * After optimization is completed, the \ref paths vector will be filled
-     * with optimized paths.
-     */
-    struct Path
-    {
-        /*!
-         * Construct a new path.
-         *
-         * The \ref converted field is not initialized yet. This can only be
-         * done after all of the input paths have been added, to prevent
-         * invalidating the pointer.
-         */
-        Path(const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
-        : vertices(vertices)
-        , start_vertex(start_vertex)
-        , is_closed(is_closed)
-        , backwards(backwards)
-        {
-        }
-
-        /*!
-         * The vertex data of the path.
-         */
-        PathType vertices;
-
-        /*!
-         * Vertex data, converted into a Polygon so that the optimizer knows
-         * how to deal with this data.
-         */
-        ConstPolygonPointer converted;
-
-        /*!
-         * Which vertex along the path to start printing with.
-         *
-         * If this path represents a polyline, this will always be one of the
-         * endpoints of the path; either 0 or ``vertices->size() - 1``.
-         */
-        size_t start_vertex;
-
-        /*!
-         * Whether the path should be closed at the ends or not.
-         *
-         * If this path should be closed, it represents a polygon. If it should
-         * not be closed, it represents a polyline.
-         */
-        bool is_closed;
-
-        /*!
-         * Whether the path should be traversed in backwards direction.
-         *
-         * For a polyline it may be more efficient to print the path in
-         * backwards direction, if the last vertex is closer than the first.
-         */
-        bool backwards;
-    };
-
-    /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
      *
@@ -123,7 +59,7 @@ public:
      * pointer to the vertex data, whether or not to close the loop, the
      * direction in which to print the path and where to start the path.
      */
-    std::vector<Path> paths;
+    std::vector<PathOrderPath<PathType>> paths;
 
     /*!
      * The location where the nozzle is assumed to start from before printing
@@ -194,16 +130,15 @@ public:
         }
 
         //Get the vertex data and store it in the paths.
-        cached_vertices.reserve(paths.size()); //Prevent pointer invalidation.
-        for(Path& path : paths)
+        for(PathOrderPath<PathType>& path : paths)
         {
-            path.converted = getVertexData(path.vertices);
+            path.converted = path.getVertexData();
         }
 
         //If necessary, check polylines to see if they are actually polygons.
         if(detect_loops)
         {
-            for(Path& path : paths)
+            for(PathOrderPath<PathType>& path : paths)
             {
                 if(!path.is_closed)
                 {
@@ -218,7 +153,7 @@ public:
         SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
         for(size_t i = 0; i < paths.size(); ++i)
         {
-            const Path& path = paths[i];
+            const PathOrderPath<PathType>& path = paths[i];
             if (path.converted->empty())
             {
                 continue;
@@ -242,7 +177,7 @@ public:
         const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
         if(precompute_start)
         {
-            for(Path& path : paths)
+            for(PathOrderPath<PathType>& path : paths)
             {
                 if(!path.is_closed)
                 {
@@ -277,7 +212,7 @@ public:
 
         std::vector<bool> picked(paths.size(), false); //Fixed size boolean flag for whether each path is already in the optimized vector.
         Point current_position = start_point;
-        std::vector<Path> optimized_order; //To store our result in. At the end we'll std::swap.
+        std::vector<PathOrderPath<PathType>> optimized_order; //To store our result in. At the end we'll std::swap.
         optimized_order.reserve(paths.size());
         while(optimized_order.size() < paths.size())
         {
@@ -310,7 +245,7 @@ public:
 
             for(const size_t candidate_path_index : available_candidates)
             {
-                Path& path = paths[candidate_path_index];
+                PathOrderPath<PathType>& path = paths[candidate_path_index];
                 if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
                 {
                     if(best_distance2 == std::numeric_limits<coord_t>::max())
@@ -341,7 +276,7 @@ public:
                 }
             }
 
-            Path& best_path = paths[best_candidate];
+            PathOrderPath<PathType>& best_path = paths[best_candidate];
             optimized_order.push_back(best_path);
             picked[best_candidate] = true;
             for (size_t unlocked_idx : is_blocking[best_candidate])
@@ -367,7 +302,7 @@ public:
         if(reverse_direction)
         {
             //Reverse-insert the optimized order, to invert the ordering.
-            std::vector<Path> reversed;
+            std::vector<PathOrderPath<PathType>> reversed;
             //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for PathType.
             reversed.reserve(optimized_order.size());
             for(auto it = optimized_order.rbegin(); it != optimized_order.rend(); it++)
@@ -395,16 +330,6 @@ protected:
      * that polyline into a polygon.
      */
     constexpr static coord_t coincident_point_distance = 10;
-
-    /*!
-     * Some input data structures need to be converted to polygons before use.
-     * For those, we need to store the vertex data somewhere during the lifetime
-     * of the object. Store them here.
-     *
-     * For example, if the ``PathType`` is a list of ``ExtrusionJunction``s,
-     * this will store the coordinates of those junctions.
-     */
-    std::vector<Polygon> cached_vertices;
 
     /*!
      * Bucket grid to store the locations of the combing boundary.
@@ -463,7 +388,7 @@ protected:
      * endpoints rather than 
      * \return An index to a vertex in that path where printing must start.
      */
-    size_t findStartLocation(const Path& path, const Point& target_pos)
+    size_t findStartLocation(const PathOrderPath<PathType>& path, const Point& target_pos)
     {
         if(!path.is_closed)
         {
@@ -674,7 +599,7 @@ protected:
         return rand() % polygon.size();
     }
 
-    bool isLoopingPolyline(const Path& path)
+    bool isLoopingPolyline(const PathOrderPath<PathType>& path)
     {
         if(path.converted->empty())
         {
@@ -682,20 +607,6 @@ protected:
         }
         return vSize2(path.converted->back() - path.converted->front()) < coincident_point_distance * coincident_point_distance;
     }
-
-    /*!
-     * Get vertex data from the custom path type.
-     *
-     * This is a function that allows the optimization algorithm to work with
-     * any type of input data structure. It provides a translation from the
-     * input data structure that the user would like to have ordered to a data
-     * structure that the optimization algorithm can work with. It's unknown how
-     * the ``PathType`` object is structured or how to get the vertex data from
-     * it. This function tells the optimizer how, but it needs to be specialized
-     * for each different type that this optimizer is used. See the .cpp file
-     * for examples and where to add a new specialization.
-     */
-    ConstPolygonRef getVertexData(const PathType path);
 };
 
 template<typename PathType>
