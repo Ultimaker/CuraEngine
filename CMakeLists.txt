@@ -1,7 +1,9 @@
-#Copyright (c) 2021 Ultimaker B.V.
+#Copyright (c) 2022 Ultimaker B.V.
 #CuraEngine is released under the terms of the AGPLv3 or higher.
 
-cmake_minimum_required(VERSION 3.8.0)
+cmake_minimum_required(VERSION 3.18)
+include(cmake/StandardProjectSettings.cmake)
+AssureOutOfSourceBuilds()
 
 project(CuraEngine)
 
@@ -57,15 +59,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-endif()
-
-OPTION(SET_RPATH ON)
-
-if(SET_RPATH)
-    if(NOT DEFINED LIB_SUFFIX)
-        set(LIB_SUFFIX "")
-    endif()
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
 endif()
 
 set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
@@ -309,6 +302,13 @@ endif ()
 
 # Compiling CuraEngine itself.
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
+set_rpath(TARGETS
+            _CuraEngine
+           PATHS
+            "$<$<PLATFORM_ID:Linux>:usr/bin>"
+            "$<$<PLATFORM_ID:Linux>:usr/bin/lib>"
+            "$<$<PLATFORM_ID:Darwin>:../lib>"
+           RELATIVE)
 
 if (CuraEngine_Download_Stb)
     add_dependencies(_CuraEngine stb)
