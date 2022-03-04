@@ -1040,7 +1040,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
 
 void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
-{//TODO make fuzzy skin work with libArachne (CURA-7887)
+{
     if (mesh.settings.get<size_t>("wall_line_count") == 0)
     {
         return;
@@ -1055,61 +1055,69 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)
         {
-            Polygons results;
-//            Polygons& skin = (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0]; insets no longer used in libArachne
-            Polygons& skin = part.outline;
-            for (PolygonRef poly : skin)
+            VariableWidthPaths result_paths;
+            for (auto& toolpath : part.wall_toolpaths)
             {
-                if (mesh.settings.get<bool>("magic_fuzzy_skin_outside_only") && poly.area() < 0)
+                if (mesh.settings.get<bool>("magic_fuzzy_skin_outside_only") && false) // TODO: Un-false and alter!
                 {
-                    results.add(poly);
+                    //results.add(poly);
                     continue;
                 }
-                // generate points in between p0 and p1
-                PolygonRef result = results.newPoly();
 
-                int64_t dist_left_over = rand() % (min_dist_between_points / 2); // the distance to be traversed on the line before making the first new point
-                Point* p0 = &poly.back();
-                for (Point& p1 : poly)
-                { // 'a' is the (next) new point between p0 and p1
-                    Point p0p1 = p1 - *p0;
-                    int64_t p0p1_size = vSize(p0p1);
-                    int64_t p0pa_dist = dist_left_over;
-                    if (p0pa_dist >= p0p1_size)
-                    {
-                        result.add(p1 - (p0p1 / 2));
-                    }
-                    for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
-                    {
-                        int r = rand() % (fuzziness * 2) - fuzziness;
-                        Point perp_to_p0p1 = turn90CCW(p0p1);
-                        Point fuzz = normal(perp_to_p0p1, r);
-                        Point pa = *p0 + normal(p0p1, p0pa_dist) + fuzz;
-                        result.add(pa);
-                    }
-                    // p0pa_dist > p0p1_size now because we broke out of the for-loop
-                    dist_left_over = p0pa_dist - p0p1_size;
+                result_paths.emplace_back();
+                auto& result_lines = result_paths.back();
 
-                    p0 = &p1;
-                }
-                while (result.size() < 3)
+                for (auto& line : toolpath)
                 {
-                    size_t point_idx = poly.size() - 2;
-                    result.add(poly[point_idx]);
-                    if (point_idx == 0)
-                    {
-                        break;
+                    result_lines.emplace_back();
+                    auto& result = result_lines.back();
+
+                    // generate points in between p0 and p1
+                    int64_t dist_left_over = rand() % (min_dist_between_points / 2); // the distance to be traversed on the line before making the first new point
+                    auto* p0 = &line.back();
+                    for (auto& p1 : line)
+                    { // 'a' is the (next) new point between p0 and p1
+                        Point p0p1 = p1.p - p0->p;
+                        int64_t p0p1_size = vSize(p0p1);
+                        int64_t p0pa_dist = dist_left_over;
+                        if (p0pa_dist >= p0p1_size)
+                        {
+                            result.emplace_back(p1.p - (p0p1 / 2), p1.w, p1.perimeter_index);
+                        }
+                        for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
+                        {
+                            int r = rand() % (fuzziness * 2) - fuzziness;
+                            Point perp_to_p0p1 = turn90CCW(p0p1);
+                            Point fuzz = normal(perp_to_p0p1, r);
+                            Point pa = p0->p + normal(p0p1, p0pa_dist) + fuzz;
+                            result.emplace_back(pa, p1.w, p1.perimeter_index);
+                        }
+                        // p0pa_dist > p0p1_size now because we broke out of the for-loop
+                        dist_left_over = p0pa_dist - p0p1_size;
+
+                        p0 = &p1;
                     }
-                    point_idx--;
-                }
-                if (result.size() < 3)
-                {
-                    result.clear();
-                    for (Point& p : poly)
-                        result.add(p);
+                    while (result.size() < 3)
+                    {
+                        size_t point_idx = line.size() - 2;
+                        result.emplace_back(line[point_idx].p, line[point_idx].w, line[point_idx].perimeter_index);
+                        if (point_idx == 0)
+                        {
+                            break;
+                        }
+                        point_idx--;
+                    }
+                    if (result.size() < 3)
+                    {
+                        result.clear();
+                        for (auto& p : line)
+                        {
+                            result.emplace_back(p.p, p.w, p.perimeter_index);
+                        }
+                    }
                 }
             }
-            skin = results;
+            part.wall_toolpaths = result_paths;
         }
     }
 }
