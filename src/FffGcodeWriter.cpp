@@ -2203,10 +2203,7 @@ bool FffGcodeWriter::processSkinPart(const SliceDataStorage& storage, LayerPlan&
 
     gcode_layer.mode_skip_agressive_merge = true;
 
-    // add roofing
     processRoofing(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
-
-    // add normal skinfill
     processTopBottom(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
 
     gcode_layer.mode_skip_agressive_merge = false;
@@ -2222,7 +2219,6 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage, LayerPlan& 
     }
 
     const EFillMethod pattern = mesh.settings.get<EFillMethod>("roofing_pattern");
-
     AngleDegrees roofing_angle = 45;
     if (mesh.roofing_angles.size() > 0)
     {

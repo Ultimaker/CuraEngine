@@ -309,9 +309,9 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
     for(SkinPart& skin_part : part.skin_parts)
     {
         Polygons no_air_above = generateNoAirAbove(part, roofing_layer_count);
-        skin_part.roofing_fill = skin_part.skin_fill.difference(no_air_above);
-        skin_part.skin_fill = skin_part.skin_fill.intersection(no_air_above);
 
+        skin_part.roofing_fill = skin_part.outline.difference(no_air_above);
+        skin_part.skin_fill = skin_part.outline.intersection(no_air_above);
         // Insets are NOT generated for any layer if the top/bottom pattern is concentric.
         // In this case, we still want to generate insets for the roofing layers based on the extra skin wall count,
         // if the roofing pattern is not concentric.
@@ -349,10 +349,6 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
                 skin_part.inset_paths.clear();
                 regenerateRoofingFillAndInnerInfill(part, skin_part);
             }
-        }
-        else
-        {
-            skin_part.skin_fill = skin_part.outline;
         }
     }
 }
