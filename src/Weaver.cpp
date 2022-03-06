@@ -30,7 +30,7 @@ void Weaver::weave(MeshGroup* meshgroup)
     const size_t layer_count = (maxz - initial_layer_thickness) / connection_height + 1;
     std::vector<AdaptiveLayer> layer_thicknesses;
 
-    log("Layer count: %i\n", layer_count);
+    log("Layer count: %lu\n", layer_count);
 
     std::vector<cura::Slicer*> slicerList;
 
@@ -54,7 +54,7 @@ void Weaver::weave(MeshGroup* meshgroup)
         }
         if (starting_layer_idx > 0)
         {
-            logWarning("First %i layers are empty!\n", starting_layer_idx);
+            logWarning("First %i layers are empty!\n", (int) starting_layer_idx);
         }
     }
 

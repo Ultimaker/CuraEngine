@@ -44,11 +44,11 @@ static inline void writeInt2mm(const int32_t coord, std::ostream& ss)
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {
-        logError("Cannot write %ld to buffer of size %i", coord, buffer_size);
+        logError("Cannot write %d to buffer of size %lu", coord, buffer_size);
     }
     if (char_count < 0)
     {
-        logError("Encoding error while writing %ld", coord);
+        logError("Encoding error while writing %d", coord);
     }
 #endif // DEBUG
     int end_pos = char_count; // the first character not to write any more
@@ -131,7 +131,7 @@ static inline void writeDoubleToStream(const unsigned int precision, const doubl
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {
-        logError("Cannot write %f to buffer of size %i", coord, buffer_size);
+        logError("Cannot write %f to buffer of size %lu", coord, buffer_size);
     }
     if (char_count < 0)
     {

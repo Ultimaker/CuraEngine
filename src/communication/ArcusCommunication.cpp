@@ -396,11 +396,11 @@ void ArcusCommunication::sendOptimizedLayerData()
     {
         return;
     }
-    log("Sending %d layers.", data.current_layer_count);
+    log("Sending %lu layers.", data.current_layer_count);
 
     for (std::pair<const int, std::shared_ptr<proto::LayerOptimized>> entry : data.slice_data) //Note: This is in no particular order!
     {
-        logDebug("Sending layer data for layer %i of %i.\n", entry.first, data.slice_data.size());
+        logDebug("Sending layer data for layer %i of %lu.\n", entry.first, data.slice_data.size());
         private_data->socket->sendMessage(entry.second); //Send the actual layers.
     }
     data.sliced_objects = 0;
