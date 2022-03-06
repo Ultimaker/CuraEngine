@@ -462,7 +462,7 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
     assert(!connect_lines && "connectLines() should add the infill lines, not addLineInfill");
 
     unsigned int scanline_idx = 0;
-    for(coord_t x = scanline_min_idx * line_distance + shift; x < boundary.max.X; x += line_distance)
+    for(coord_t x = (long) scanline_min_idx * line_distance + shift; x < boundary.max.X; x += line_distance)
     {
         if (scanline_idx >= cut_list.size())
         {
@@ -624,8 +624,8 @@ void Infill::generateLinearBasedInfill(Polygons& result, const int line_distance
 
             for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1 + direction; scanline_idx += direction)
             {
-                int x = scanline_idx * line_distance + shift;
-                int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
+                long x = (long) scanline_idx * line_distance + shift;
+                long y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
                 assert(scanline_idx - scanline_min_idx >= 0 && scanline_idx - scanline_min_idx < int(cut_list.size()) && "reading infill cutlist index out of bounds!");
                 cut_list[scanline_idx - scanline_min_idx].push_back(y);
                 Point scanline_linesegment_intersection(x, y);

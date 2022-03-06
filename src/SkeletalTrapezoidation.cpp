@@ -1635,9 +1635,9 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
         }
         else
         {
-            ret.bead_widths[inset_idx] = ratio_left_to_whole * left.bead_widths[inset_idx] + ratio_right_to_whole * right.bead_widths[inset_idx];
+            ret.bead_widths[inset_idx] = ratio_left_to_whole * left.bead_widths[inset_idx] + (double) ratio_right_to_whole * right.bead_widths[inset_idx];
         }
-        ret.toolpath_locations[inset_idx] = ratio_left_to_whole * left.toolpath_locations[inset_idx] + ratio_right_to_whole * right.toolpath_locations[inset_idx];
+        ret.toolpath_locations[inset_idx] = ratio_left_to_whole * left.toolpath_locations[inset_idx] + (double) ratio_right_to_whole * right.toolpath_locations[inset_idx];
     }
     return ret;
 }

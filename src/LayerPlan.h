@@ -520,7 +520,7 @@ public:
      * \param distance_to_bridge_start The distance along the wall from p0 to the first bridge segment
      */
 
-    void addWallLine(const Point& p0, const Point& p1, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start);
+    void addWallLine(const Point& p0, const Point& p1, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, double& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start);
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx

@@ -271,7 +271,7 @@ ClosestPolygonPoint PolygonUtils::_moveInside2(const ClosestPolygonPoint& closes
     const Point v_boundary_result = result - closest_polygon_point.location;
     if (dot(v_boundary_result, v_boundary_from) > 0)
     { // point was already on the correct side of the polygon
-        if (vSize2(v_boundary_from) > distance * distance)
+        if (vSize2(v_boundary_from) > (long) distance * distance)
         { // [from] was already on the correct side of the boudary by enough distance
             // don't change [from]
             return closest_polygon_point;
@@ -394,7 +394,7 @@ unsigned int PolygonUtils::moveInside(const Polygons& polygons, Point& from, int
     }
     if (is_already_on_correct_side_of_boundary) // when the best point is already inside and we're moving inside, or when the best point is already outside and we're moving outside
     {
-        if (bestDist2 < distance * distance)
+        if (bestDist2 < (long) distance * distance)
         {
             from = ret;
         }
@@ -519,7 +519,7 @@ unsigned int PolygonUtils::moveInside(const ConstPolygonRef polygon, Point& from
 
     if (is_already_on_correct_side_of_boundary) // when the best point is already inside and we're moving inside, or when the best point is already outside and we're moving outside
     {
-        if (bestDist2 < distance * distance)
+        if (bestDist2 < (long) distance * distance)
         {
             from = ret;
         }
@@ -1092,7 +1092,7 @@ std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::f
         int dist_to_p1 = vSize(p0p1);
         for (unsigned int middle_point_nr = 1; dist_to_p1 > grid_size * 2; ++middle_point_nr)
         {
-            Point x = p0 + normal(p0p1, middle_point_nr * grid_size);
+            Point x = p0 + normal(p0p1, (long) middle_point_nr * grid_size);
             dist_to_p1 -= grid_size;
 
             std::optional<ClosestPolygonPoint> best_here = findClose(x, destination, destination_loc_to_line, penalty_function);
