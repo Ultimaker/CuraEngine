@@ -45,7 +45,8 @@ else()
         # Stb's commits in early February seems to cause the engine to fail compilation on Mac.
         ExternalProject_Add(stb
             GIT_REPOSITORY "https://github.com/nothings/stb.git"
-            GIT_TAG d5d052c806eee2ca1f858cb58b2f062d9fa25b90
+            GIT_TAG af1a5bc352164740c1cc1354942b1c6b72eacb8a
+            PATCH_COMMAND git apply ${CMAKE_SOURCE_DIR}/cmake/stb_image.h.patch # This patch fixes several integer overflows in stb_image.h. This can be removed once https://github.com/nothings/stb/pull/1306 is merged.
             UPDATE_DISCONNECTED TRUE
             CONFIGURE_COMMAND "" #We don't want to actually go and build/test/generate it. Just need to download the headers.
             BUILD_COMMAND ""
