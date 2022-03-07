@@ -103,7 +103,7 @@ protected:
     coord_t line_width; //!< The distance between the line segments which connect two polygons.
     coord_t max_dist; //!< The maximal distance crossed by the connecting segments. Should be more than the \ref line_width in order to accomodate curved polygons.
     std::vector<ConstPolygonPointer> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add
-    std::vector<VariableWidthLines const*> input_paths; //!< The paths assembled by calls to \ref PolygonConnector::add.
+    std::vector<ExtrusionLine const*> input_paths; //!< The paths assembled by calls to \ref PolygonConnector::add.
 
     /*!
      * Line segment to connect two polygons
@@ -129,6 +129,7 @@ protected:
          */
         coord_t getDistance2() const;
     };
+
     /*!
      * Bridge to connect two polygons twice in order to make it into one polygon.
      * A bridge consists of two connections.
