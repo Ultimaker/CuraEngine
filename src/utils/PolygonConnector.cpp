@@ -33,7 +33,10 @@ void PolygonConnector::add(const VariableWidthPaths& input)
 {
     for(const VariableWidthLines& lines : input)
     {
-        input_paths.push_back(&lines);
+        for(const ExtrusionLine& line : lines)
+        {
+            input_paths.push_back(&line);
+        }
     }
 }
 
