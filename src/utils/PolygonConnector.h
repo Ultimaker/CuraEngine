@@ -102,7 +102,7 @@ public:
 protected:
     coord_t line_width; //!< The distance between the line segments which connect two polygons.
     coord_t max_dist; //!< The maximal distance crossed by the connecting segments. Should be more than the \ref line_width in order to accomodate curved polygons.
-    std::vector<ConstPolygonPointer> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add
+    std::vector<Polygon> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add
     std::vector<ExtrusionLine const*> input_paths; //!< The paths assembled by calls to \ref PolygonConnector::add.
 
     /*!
@@ -150,7 +150,49 @@ protected:
         {}
     };
 
-    std::vector<PolygonBridge> all_bridges; //!< All bridges generated during any call to \ref PolygonConnector::connect(). This is just for keeping scores for debugging etc.
+    /*!
+     * Connect a group of polygonal objects - either polygons or lines.
+     *
+     * This function is generic and will work the same way with either data
+     * type. However it will call specialized functions, for instance to get the
+     * position of a vertex in the data. This reduces code duplication.
+     * \tparam The type of polygonal data to connect.
+     * \param to_connect The input polygonals that need to be connected.
+     * \return The connected polygonals.
+     */
+    template<typename Polygonal>
+    std::vector<Polygonal> connectGroup(std::vector<Polygonal>& to_connect)
+    {
+        std::vector<Polygonal> result;
+        if(to_connect.empty())
+        {
+            return result;
+        }
+
+        while(!to_connect.empty())
+        {
+            if(to_connect.size() == 1) //Nothing to connect it to any more.
+            {
+                result.push_back(Polygon(*to_connect[0]));
+                break;
+            }
+            Polygonal current = std::move(to_connect.back());
+            to_connect.pop_back();
+
+            std::optional<PolygonBridge> bridge = getBridge(current, to_connect);
+            if(bridge)
+            {
+                PolygonRef other_poly(*const_cast<ClipperLib::Path*>(bridge->a.to.poly.operator->())); // const casting a ConstPolygonPointer is difficult!
+                other_poly = connectPolygonsAlongBridge(*bridge); //Connect the bridged parts and overwrite the other polygon with it.
+                //Don't store the current polygon. It has just been merged into the other one.
+            }
+            else
+            {
+                result.push_back(current);
+            }
+        }
+        return result;
+    }
 
     /*!
      * Get the position of a vertex, if the vertex is a point.
