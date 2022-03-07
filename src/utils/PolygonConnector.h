@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_CONNECTOR_H
@@ -38,28 +38,21 @@ class PolygonConnector
     FRIEND_TEST(PolygonConnectorTest, connectionLengthTest);
 #endif
 public:
-    PolygonConnector(coord_t line_width, coord_t max_dist)
-    : line_width(line_width - 5) // a bit less so that consecutive lines which have become connected can still connect to other lines
-    //                |                     |                      |
-    // ----------o    |      ----------o    |       ----------o,,,,o
-    //           |    |  ==>           |    |  ==>
-    // -----o    |    |      -----o----o    |       -----o----o----o
-    //      |    |    |                     |                      |
-    //      |    |    |           o''''o    |            o''''o    |
-    //      |    |    |           |    |    |            |    |    |
-    , max_dist(max_dist)
-    {}
+    /*!
+     * Create a connector object that can connect polygons.
+     *
+     * This specifies a few settings for the connector.
+     * \param line_width The width at which the polygons will be printed.
+     * \param max_dist The maximum length of connections. If polygons can only
+     * be connected by creating bridges longer than this distance, they will be
+     * left unconnected.
+     */
+    PolygonConnector(const coord_t line_width, const coord_t max_dist);
 
     /*!
      * Add polygons to be connected by a future call to \ref PolygonConnector::connect()
      */
-    void add(const Polygons& input)
-    {
-        for (ConstPolygonRef poly : input)
-        {
-            input_polygons.push_back(poly);
-        }
-    }
+    void add(const Polygons& input);
 
     /*!
      * Connect as many polygons together as possible and return the resulting polygons.
@@ -85,15 +78,20 @@ protected:
         ClosestPolygonPoint from; //!< from location in the source polygon
         ClosestPolygonPoint to; //!< to location in the destination polygon
 
-        PolygonConnection(ClosestPolygonPoint from, ClosestPolygonPoint to)
-        : from(from)
-        , to(to)
-        {}
+        /*!
+         * Create a new connection.
+         * \param from One of the endpoints of the connection.
+         * \param to The other endpoint of the connection.
+         */
+        PolygonConnection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to);
 
-        coord_t getDistance2()
-        {
-            return vSize2(to.p() - from.p());
-        }
+        /*!
+         * Get the squared length of the connection.
+         *
+         * The squared length is faster to compute than the real length. Compare
+         * it only with the squared maximum distance.
+         */
+        coord_t getDistance2() const;
     };
     /*!
      * Bridge to connect two polygons twice in order to make it into one polygon.
