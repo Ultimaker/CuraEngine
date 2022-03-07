@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PolygonConnector.h"
@@ -8,6 +8,26 @@
 
 namespace cura 
 {
+
+PolygonConnector::PolygonConnector(const coord_t line_width, const coord_t max_dist)
+: line_width(line_width - 5) // a bit less so that consecutive lines which have become connected can still connect to other lines
+//                |                     |                      |
+// ----------o    |      ----------o    |       ----------o,,,,o
+//           |    |  ==>           |    |  ==>
+// -----o    |    |      -----o----o    |       -----o----o----o
+//      |    |    |                     |                      |
+//      |    |    |           o''''o    |            o''''o    |
+//      |    |    |           |    |    |            |    |    |
+, max_dist(max_dist)
+{}
+
+void PolygonConnector::add(const Polygons& input)
+{
+    for (ConstPolygonRef poly : input)
+    {
+        input_polygons.push_back(poly);
+    }
+}
 
 Polygons PolygonConnector::connect()
 {
@@ -261,6 +281,17 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
     {
         return *best;
     }
+}
+
+PolygonConnector::PolygonConnection::PolygonConnection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to)
+: from(from)
+, to(to)
+{
+}
+
+coord_t PolygonConnector::PolygonConnection::getDistance2() const
+{
+    return vSize2(to.p() - from.p());
 }
 
 
