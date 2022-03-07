@@ -82,6 +82,15 @@ void PolygonConnector::connect(Polygons& output_polygons, VariableWidthPaths& ou
     }
 }
 
+Point getPosition(const Point& vertex)
+{
+    return vertex;
+}
+
+Point getPosition(const ExtrusionJunction& junction)
+{
+    return junction.p;
+}
 
 Polygon PolygonConnector::connectPolygonsAlongBridge(const PolygonConnector::PolygonBridge& bridge)
 {
