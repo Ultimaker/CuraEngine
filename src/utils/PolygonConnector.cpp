@@ -29,13 +29,19 @@ void PolygonConnector::add(const Polygons& input)
     }
 }
 
-Polygons PolygonConnector::connect()
+void PolygonConnector::add(const VariableWidthPaths& input)
 {
-    Polygons ret;
+    for(const VariableWidthLines& lines : input)
+    {
+        input_paths.push_back(&lines);
+    }
+}
 
+void PolygonConnector::connect(Polygons& output_polygons, VariableWidthPaths& output_paths)
+{
     if (input_polygons.empty())
     {
-        return ret;
+        return;
     }
 
     std::vector<Polygon> to_connect;
@@ -49,7 +55,7 @@ Polygons PolygonConnector::connect()
     {
         if (to_connect.size() == 1)
         {
-            ret.add(std::move(to_connect.back()));
+            output_polygons.add(std::move(to_connect.back()));
             break;
         }
         Polygon current = std::move(to_connect.back());
@@ -68,11 +74,9 @@ Polygons PolygonConnector::connect()
         }
         else
         {
-            ret.add(std::move(current));
+            output_polygons.add(std::move(current));
         }
     }
-
-    return ret;
 }
 
 
