@@ -153,6 +153,26 @@ protected:
     std::vector<PolygonBridge> all_bridges; //!< All bridges generated during any call to \ref PolygonConnector::connect(). This is just for keeping scores for debugging etc.
 
     /*!
+     * Get the position of a vertex, if the vertex is a point.
+     *
+     * This overload is simply the identity function. It will return the given
+     * vertex. This is a helper function to get the position of generic
+     * vertices.
+     * \param vertex The vertex to get the position of.
+     * \return The position of that vertex.
+     */
+    Point getPosition(const Point& vertex) const;
+
+    /*!
+     * Get the position of a vertex, if the vertex is a junction.
+     *
+     * This is a helper function to get the position of generic vertices.
+     * \param vertex The vertex to get the position of.
+     * \return The position of that vertex.
+     */
+    Point getPosition(const ExtrusionJunction& vertex) const;
+
+    /*!
      * Connect the two polygons between which the bridge is computed.
      */
     Polygon connectPolygonsAlongBridge(const PolygonBridge& bridge);
