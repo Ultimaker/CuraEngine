@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <gtest/gtest.h>
@@ -21,7 +21,8 @@ public:
     Polygons test_shapes; //All above polygons! As well as an inset of 100 microns of them.
 
     PolygonConnector* pc;
-    Polygons connecteds;
+    Polygons connected_polygons;
+    VariableWidthPaths connected_paths;
 
     virtual void SetUp()
     {
@@ -70,9 +71,9 @@ public:
         constexpr coord_t max_dist = 170;
         pc = new PolygonConnector(line_width, max_dist);
         pc->add(test_shapes);
-        connecteds = pc->connect();
+        pc->connect(connected_polygons, connected_paths);
 
-        ASSERT_GT(connecteds.size(), 0) << "PolygonConnector gave no output polygons!";
+        ASSERT_GT(connected_polygons.size(), 0) << "PolygonConnector gave no output polygons!";
     }
 
     void TearDown()

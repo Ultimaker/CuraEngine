@@ -26,10 +26,32 @@ namespace cura
  *     o-----+ . +-----o                                   .
  *    /                 \                                  .
  *   /                   \                                 .
- * 
+ *
  *  This way two polygons become one.
- * 
- * By repeating such a procedure many polygons can be connected into a single continuous line.
+ *
+ * By repeating such a procedure many polygons can be connected into a single
+ * continuous line.
+ *
+ * This connector can handle ordinary Polygons (which is assumed to print with a
+ * fixed, given line width) as well as variable-width paths. However with the
+ * paths it will only connect paths that form closed loops. Paths that don't
+ * form closed loops will be left unconnected.
+ *
+ * While this connector can connect Polygons and VariableWidthPaths at the same
+ * time, it will never connect them together. This is done to keep the result
+ * and the algorithm simpler. Otherwise it would have to convert polygons to
+ * paths to make them partially variable width. This is not a use case we need
+ * right now, since infill patterns cannot generate a mix of these types.
+ *
+ * Basic usage of this class is as follows:
+ * ``
+ * PolygonConnector connector(line_width, max_dist); //Construct first.
+ * connector.add(polygons); //Add the polygons and paths you want to connect up.
+ * connector.add(paths);
+ * Polygons output_polygons; //Prepare some output variables to store results in.
+ * VariableWidthPaths output_paths;
+ * connector.connect(output_polygons, output_paths);
+ * ``
  */
 class PolygonConnector
 {
@@ -55,19 +77,33 @@ public:
     void add(const Polygons& input);
 
     /*!
+     * Add variable-width paths to be connected by a future call to
+     * \ref PolygonConnector::connect().
+     *
+     * Only the paths that form closed loops will be connected to each other.
+     * \param input The paths to connect.
+     */
+    void add(const VariableWidthPaths& input);
+
+    /*!
      * Connect as many polygons together as possible and return the resulting polygons.
-     * 
+     *
      * Algorithm outline:
      * try to connect a polygon to any of the other polygons
      * - if succeeded, add to pool of polygons to connect
      * - if failed, remove from pool and add to the result
+     * \param output_polygons Polygons that were connected as much as possible.
+     * These are expected to be empty to start with.
+     * \param output_paths Paths that were connected as much as possible. These
+     * are expected to be empty to start with.
      */
-    Polygons connect();
+    void connect(Polygons& output_polygons, VariableWidthPaths& output_paths);
 
 protected:
     coord_t line_width; //!< The distance between the line segments which connect two polygons.
     coord_t max_dist; //!< The maximal distance crossed by the connecting segments. Should be more than the \ref line_width in order to accomodate curved polygons.
-    std::vector<ConstPolygonPointer> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add()
+    std::vector<ConstPolygonPointer> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add
+    std::vector<VariableWidthLines const*> input_paths; //!< The paths assembled by calls to \ref PolygonConnector::add.
 
     /*!
      * Line segment to connect two polygons
