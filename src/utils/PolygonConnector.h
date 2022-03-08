@@ -12,6 +12,7 @@
 #include "IntPoint.h"
 #include "polygon.h"
 #include "polygonUtils.h"
+#include "linearAlg2D.h"
 
 namespace cura 
 {
@@ -102,7 +103,7 @@ public:
 protected:
     coord_t line_width; //!< The distance between the line segments which connect two polygons.
     coord_t max_dist; //!< The maximal distance crossed by the connecting segments. Should be more than the \ref line_width in order to accomodate curved polygons.
-    std::vector<Polygon> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add
+    std::vector<Polygon> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add.
     std::vector<ExtrusionLine> input_paths; //!< The paths assembled by calls to \ref PolygonConnector::add.
 
     /*!
@@ -163,7 +164,7 @@ protected:
          * \param to_point The precise location at the destination of the
          * connection.
          */
-        PolygonConnection(Polygonal const* from_poly, const size_t from_segment, const Point from_point, Polygonal const* to_poly, const size_t to_segment, const Point to_point)
+        PolygonConnection(Polygonal* from_poly, const size_t from_segment, const Point from_point, Polygonal* to_poly, const size_t to_segment, const Point to_point)
         : from_poly(from_poly)
         , from_segment(from_segment)
         , from_point(from_point)
@@ -235,7 +236,7 @@ protected:
             Polygonal current = std::move(to_connect.back());
             to_connect.pop_back();
 
-            std::optional<PolygonBridge> bridge = getBridge(current, to_connect);
+            std::optional<PolygonBridge<Polygonal>> bridge = getBridge(current, to_connect);
             if(bridge)
             {
                 PolygonRef other_poly(*const_cast<ClipperLib::Path*>(bridge->a.to.poly.operator->())); // const casting a ConstPolygonPointer is difficult!
@@ -300,7 +301,7 @@ protected:
     coord_t interpolateWidth(const Point position, Vertex a, Vertex b) const
     {
         const coord_t total_length = vSize(getPosition(a) - getPosition(b));
-        const coord_t position_along_length = vSize(p - getPosition(a));
+        const coord_t position_along_length = vSize(position - getPosition(a));
         return getWidth(b) * position_along_length / total_length + getWidth(a) * (total_length - position_along_length) / total_length;
     }
 
@@ -338,6 +339,89 @@ protected:
      * For large distances between \p from and \p to the output direction might be 'incorrect'.
      */
     int16_t getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to);
+
+    /*!
+     * Find the smallest connection between a polygon and a set of other
+     * candidate polygons to connect to.
+     */
+    template<typename Polygonal>
+    std::optional<PolygonConnection<Polygonal>> findConnection(Polygonal from_poly, std::vector<Polygonal>& to_polygons)
+    {
+        //Optimise for finding the best connection. Track all statistics for the best connection.
+        coord_t best_distance = line_width * 0.5; //Allow distance between polygons of up to 1/2 line width, as fudge factor for sharp corners.
+        size_t best_poly_index = 0;
+        size_t best_from_index = 0;
+        size_t best_to_index = 0;
+        Point best_from_point;
+        Point best_to_point;
+
+        //The smallest connection will be from one of the vertices. So go through all of the vertices to find the closest place where they approach.
+        for(size_t poly_index = 0; poly_index < to_polygons.size(); ++poly_index)
+        {
+            for(size_t to_index = 0; to_index < to_polygons[poly_index].size(); ++to_index)
+            {
+                const Point to_pos1 =  getPosition(to_polygons[poly_index][to_index]);
+                const coord_t to_width1 = getWidth(to_polygons[poly_index][to_index]);
+                const Point to_pos2 =  getPosition(to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
+                const coord_t to_width2 = getWidth(to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
+                const coord_t smallest_to_width = std::min(to_width1, to_width2);
+
+                for(size_t from_index = 0; from_index < from_poly.size(); ++from_index)
+                {
+                    const Point from_pos1 = getPosition(from_poly[from_index]);
+                    const coord_t from_width1 = getWidth(from_poly[from_index]);
+                    const Point from_pos2 = getPosition(from_poly[(from_index + 1) % from_poly.size()]);
+                    const coord_t from_width2 = getWidth(from_poly[(from_index + 1) % from_poly.size()]);
+                    const coord_t smallest_from_width = std::min(from_width1, from_width2);
+
+                    //Try a naive distance first. Faster to compute, but it may estimate the distance too small.
+                    coord_t naive_dist = LinearAlg2D::getDistFromLine(from_pos1, to_pos1, to_pos2);
+                    if(naive_dist - from_width1 - smallest_to_width < line_width * 0.5)
+                    {
+                        const Point closest_point = LinearAlg2D::getClosestOnLineSegment(from_pos1, to_pos1, to_pos2);
+                        const coord_t width_at_closest = interpolateWidth(closest_point, to_polygons[poly_index][to_index], to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
+                        const coord_t distance = vSize(closest_point - from_pos1) - from_width1 - width_at_closest; //Actual, accurate distance to the other polygon.
+                        if(distance < best_distance)
+                        {
+                            best_distance = distance;
+                            best_poly_index = poly_index;
+                            best_from_index = from_index;
+                            best_to_index = to_index;
+                            best_from_point = from_pos1;
+                            best_to_point = closest_point;
+                        }
+                    }
+
+                    //Also try the other way around: From the line segment of the from_poly to a vertex in the to_polygons.
+                    naive_dist = LinearAlg2D::getDistFromLine(to_pos1, from_pos1, from_pos2);
+                    if(naive_dist - smallest_from_width - to_width1 < line_width * 0.5)
+                    {
+                        const Point closest_point = LinearAlg2D::getClosestOnLineSegment(to_pos1, from_pos1, from_pos2);
+                        const coord_t width_at_closest = interpolateWidth(closest_point, from_poly[from_index], from_poly[(from_index + 1) % from_poly.size()]);
+                        const coord_t distance = vSize(closest_point - to_pos1) - width_at_closest - to_width1; //Actual, accurate distance.
+                        if(distance < best_distance)
+                        {
+                            best_distance = distance;
+                            best_poly_index = poly_index;
+                            best_from_index = from_index;
+                            best_to_index = to_index;
+                            best_from_point = closest_point;
+                            best_to_point = to_pos1;
+                        }
+                    }
+                }
+            }
+        }
+
+        if(best_distance < line_width * 0.5) //The value has been adjusted, so at least one connection was found.
+        {
+            return PolygonConnection<Polygonal>(&from_poly, best_from_index, best_from_point, &to_polygons[best_poly_index], best_to_index, best_to_point);
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
 
     /*!
      * Get the bridge to cross between two polygons.
