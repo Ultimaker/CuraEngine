@@ -103,23 +103,75 @@ protected:
     coord_t line_width; //!< The distance between the line segments which connect two polygons.
     coord_t max_dist; //!< The maximal distance crossed by the connecting segments. Should be more than the \ref line_width in order to accomodate curved polygons.
     std::vector<Polygon> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add
-    std::vector<ExtrusionLine const*> input_paths; //!< The paths assembled by calls to \ref PolygonConnector::add.
+    std::vector<ExtrusionLine> input_paths; //!< The paths assembled by calls to \ref PolygonConnector::add.
 
     /*!
-     * Line segment to connect two polygons
+     * Line segment to connect two polygons, with all the necessary information
+     * to connect them.
+     *
      * A bridge consists of two such connections.
+     * \tparam Polygonal The type of polygon data to refer to, either Polygon or
+     * ExtrusionLine.
      */
+    template<typename Polygonal>
     struct PolygonConnection
     {
-        ClosestPolygonPoint from; //!< from location in the source polygon
-        ClosestPolygonPoint to; //!< to location in the destination polygon
+        /*!
+         * The polygon at the source of the connection.
+         */
+        Polygonal* from_poly;
+
+        /*!
+         * The index of the line segment at the source of the connection.
+         *
+         * This line segment is the one after the vertex with the same index.
+         */
+        size_t from_segment;
+
+        /*!
+         * The precise location of the source of the connection.
+         */
+        Point from_point;
+
+        /*!
+         * The polygon at the destination of the connection.
+         */
+        Polygonal* to_poly;
+
+        /*!
+         * The index of the line segment at the destination of the connection.
+         *
+         * This line segment is the one after the vertex with the same index.
+         */
+        size_t to_segment;
+
+        /*!
+         * The precise location of the destination of the connection.
+         */
+        Point to_point;
 
         /*!
          * Create a new connection.
-         * \param from One of the endpoints of the connection.
-         * \param to The other endpoint of the connection.
+         * \param from_poly The polygon at the source of the connection.
+         * \param from_segment The index of the line segment at the source of
+         * the connection.
+         * \param from_point The precise location at the source of the
+         * connection.
+         * \param to_poly The polygon at the destination of the connection.
+         * \param to_segment The index of the line segment at the destination of
+         * the connection.
+         * \param to_point The precise location at the destination of the
+         * connection.
          */
-        PolygonConnection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to);
+        PolygonConnection(Polygonal const* from_poly, const size_t from_segment, const Point from_point, Polygonal const* to_poly, const size_t to_segment, const Point to_point)
+        : from_poly(from_poly)
+        , from_segment(from_segment)
+        , from_point(from_point)
+        , to_poly(to_poly)
+        , to_segment(to_segment)
+        , to_point(to_point)
+        {
+        }
 
         /*!
          * Get the squared length of the connection.
@@ -127,7 +179,10 @@ protected:
          * The squared length is faster to compute than the real length. Compare
          * it only with the squared maximum distance.
          */
-        coord_t getDistance2() const;
+        coord_t getDistance2() const
+        {
+            return vSize2(from_point - to_point);
+        }
     };
 
     /*!
@@ -141,11 +196,12 @@ protected:
      * 
      * The resulting polygon will travel along the edges in a direction different from each other.
      */
+    template<typename Polygonal>
     struct PolygonBridge
     {
-        PolygonConnection a; //!< first connection
-        PolygonConnection b; //!< second connection
-        PolygonBridge(PolygonConnection a, PolygonConnection b)
+        PolygonConnection<Polygonal> a; //!< first connection
+        PolygonConnection<Polygonal> b; //!< second connection
+        PolygonBridge(const PolygonConnection<Polygonal>& a, const PolygonConnection<Polygonal>& b)
         : a(a), b(b)
         {}
     };
@@ -173,7 +229,7 @@ protected:
         {
             if(to_connect.size() == 1) //Nothing to connect it to any more.
             {
-                result.push_back(Polygon(*to_connect[0]));
+                result.push_back(to_connect[0]);
                 break;
             }
             Polygonal current = std::move(to_connect.back());

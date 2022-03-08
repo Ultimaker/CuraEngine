@@ -35,7 +35,7 @@ void PolygonConnector::add(const VariableWidthPaths& input)
     {
         for(const ExtrusionLine& line : lines)
         {
-            input_paths.push_back(&line);
+            input_paths.push_back(line);
         }
     }
 }
@@ -265,18 +265,6 @@ std::optional<PolygonConnector::PolygonConnection> PolygonConnector::getSecondCo
         return *best;
     }
 }
-
-PolygonConnector::PolygonConnection::PolygonConnection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to)
-: from(from)
-, to(to)
-{
-}
-
-coord_t PolygonConnector::PolygonConnection::getDistance2() const
-{
-    return vSize2(to.p() - from.p());
-}
-
 
 }//namespace cura
 
