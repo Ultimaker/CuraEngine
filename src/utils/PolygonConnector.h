@@ -271,6 +271,22 @@ protected:
     Point getPosition(const ExtrusionJunction& vertex) const;
 
     /*!
+     * Get the width at a certain vertex.
+     *
+     * This is the overload that works for fixed-width polygons. They get their
+     * width from the width that was given at the constructor.
+     */
+    coord_t getWidth(const Point& vertex) const;
+
+    /*!
+     * Get the width at a certain junction.
+     *
+     * This is the overload that works for variable-width polygons. The width is
+     * stored in the junction then.
+     */
+    coord_t getWidth(const ExtrusionJunction& vertex) const;
+
+    /*!
      * Connect the two polygons between which the bridge is computed.
      */
     Polygon connectPolygonsAlongBridge(const PolygonBridge& bridge);
