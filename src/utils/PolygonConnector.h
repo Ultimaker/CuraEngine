@@ -287,6 +287,24 @@ protected:
     coord_t getWidth(const ExtrusionJunction& vertex) const;
 
     /*!
+     * Get the local width at a certain position along a line segment.
+     *
+     * If the line segment has a variable width, the local line width will be
+     * interpolated between the two endpoints.
+     * \param position The position at which to get the line width. This should
+     * be (approximately) in between the position of the two vertices.
+     * \param a One of the vertices between which to interpolate.
+     * \param b The other vertex between which to interpolate.
+     */
+    template<typename Vertex>
+    coord_t interpolateWidth(const Point position, Vertex a, Vertex b) const
+    {
+        const coord_t total_length = vSize(getPosition(a) - getPosition(b));
+        const coord_t position_along_length = vSize(p - getPosition(a));
+        return getWidth(b) * position_along_length / total_length + getWidth(a) * (total_length - position_along_length) / total_length;
+    }
+
+    /*!
      * Connect the two polygons between which the bridge is computed.
      */
     Polygon connectPolygonsAlongBridge(const PolygonBridge& bridge);
