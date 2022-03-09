@@ -59,7 +59,7 @@ Point PolygonConnector::getPosition(const ExtrusionJunction& junction) const
     return junction.p;
 }
 
-coord_t PolygonConnector::getWidth(const Point& vertex) const
+coord_t PolygonConnector::getWidth(const Point&) const
 {
     return line_width;
 }

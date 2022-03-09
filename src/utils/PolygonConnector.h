@@ -208,7 +208,7 @@ protected:
     };
 
     /*!
-     * Connect a group of polygonal objects - either polygons or lines.
+     * Connect a group of polygonal objects - either polygons or paths.
      *
      * This function is generic and will work the same way with either data
      * type. However it will call specialized functions, for instance to get the
@@ -239,7 +239,7 @@ protected:
             std::optional<PolygonBridge<Polygonal>> bridge = getBridge(current, to_connect);
             if(bridge)
             {
-                PolygonRef other_poly(*const_cast<ClipperLib::Path*>(bridge->a.to.poly.operator->())); // const casting a ConstPolygonPointer is difficult!
+                PolygonRef other_poly(*const_cast<ClipperLib::Path*>(bridge->a.to_poly.operator->())); // const casting a ConstPolygonPointer is difficult!
                 other_poly = connectPolygonsAlongBridge(*bridge); //Connect the bridged parts and overwrite the other polygon with it.
                 //Don't store the current polygon. It has just been merged into the other one.
             }
@@ -286,6 +286,21 @@ protected:
      * stored in the junction then.
      */
     coord_t getWidth(const ExtrusionJunction& vertex) const;
+
+    /*!
+     * Get the amount of space in between the polygons at the given connection.
+     *
+     * The space is the length of the connection, minus the width of the
+     * lines at the two endpoints.
+     * \param connection The connection to calculate the space of.
+     */
+    template<typename Polygonal>
+    coord_t getSpace(const PolygonConnection<Polygonal>& connection) const
+    {
+        const coord_t from_width = interpolateWidth(connection.from_point, (*connection.from_poly)[connection.from_segment], (*connection.from_poly)[(connection.from_segment + 1) % connection.from_poly->size()]);
+        const coord_t to_width = interpolateWidth(connection.to_point, (*connection.to_poly)[connection.to_segment], (*connection.to_poly)[(connection.to_segment + 1) % connection.to_poly->size()]);
+        return vSize(connection.to_point - connection.from_point) - from_width - to_width;
+    }
 
     /*!
      * Get the local width at a certain position along a line segment.
@@ -345,15 +360,12 @@ protected:
      * candidate polygons to connect to.
      */
     template<typename Polygonal>
-    std::optional<PolygonConnection<Polygonal>> findConnection(Polygonal from_poly, std::vector<Polygonal>& to_polygons)
+    std::optional<std::pair<PolygonConnection<Polygonal>, PolygonConnection<Polygonal>>> findConnection(Polygonal from_poly, std::vector<Polygonal>& to_polygons)
     {
         //Optimise for finding the best connection. Track all statistics for the best connection.
         coord_t best_distance = line_width * 0.5; //Allow distance between polygons of up to 1/2 line width, as fudge factor for sharp corners.
-        size_t best_poly_index = 0;
-        size_t best_from_index = 0;
-        size_t best_to_index = 0;
-        Point best_from_point;
-        Point best_to_point;
+        std::optional<PolygonConnection<Polygonal>> best_connection;
+        std::optional<PolygonConnection<Polygonal>> best_second_connection;
 
         //The smallest connection will be from one of the vertices. So go through all of the vertices to find the closest place where they approach.
         for(size_t poly_index = 0; poly_index < to_polygons.size(); ++poly_index)
@@ -383,12 +395,14 @@ protected:
                         const coord_t distance = vSize(closest_point - from_pos1) - from_width1 - width_at_closest; //Actual, accurate distance to the other polygon.
                         if(distance < best_distance)
                         {
-                            best_distance = distance;
-                            best_poly_index = poly_index;
-                            best_from_index = from_index;
-                            best_to_index = to_index;
-                            best_from_point = from_pos1;
-                            best_to_point = closest_point;
+                            PolygonConnection<Polygonal> first_connection = PolygonConnection<Polygonal>(&from_poly, from_index, from_pos1, &to_polygons[poly_index], to_index, closest_point);
+                            std::optional<PolygonConnection<Polygonal>> second_connection = getSecondConnection(first_connection, (width_at_closest + from_width1) / 2);
+                            if(second_connection) //Second connection is also valid.
+                            {
+                                best_distance = distance;
+                                best_connection = first_connection;
+                                best_second_connection = second_connection;
+                            }
                         }
                     }
 
@@ -401,21 +415,23 @@ protected:
                         const coord_t distance = vSize(closest_point - to_pos1) - width_at_closest - to_width1; //Actual, accurate distance.
                         if(distance < best_distance)
                         {
-                            best_distance = distance;
-                            best_poly_index = poly_index;
-                            best_from_index = from_index;
-                            best_to_index = to_index;
-                            best_from_point = closest_point;
-                            best_to_point = to_pos1;
+                            PolygonConnection<Polygonal> first_connection = PolygonConnection<Polygonal>(&from_poly, from_index, closest_point, &to_polygons[poly_index], to_index, to_pos1);
+                            std::optional<PolygonConnection<Polygonal>> second_connection = getSecondConnection(first_connection, (to_width1 + width_at_closest) / 2);
+                            if(second_connection) //Second connection is also valid.
+                            {
+                                best_distance = distance;
+                                best_connection = first_connection;
+                                best_second_connection = second_connection;
+                            }
                         }
                     }
                 }
             }
         }
 
-        if(best_distance < line_width * 0.5) //The value has been adjusted, so at least one connection was found.
+        if(best_connection)
         {
-            return PolygonConnection<Polygonal>(&from_poly, best_from_index, best_from_point, &to_polygons[best_poly_index], best_to_index, best_to_point);
+            return std::make_pair(*best_connection, *best_second_connection);
         }
         else
         {
@@ -440,6 +456,51 @@ protected:
     std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<Polygon>& polygons);
 
     /*!
+     * Walk along a polygon to find the first point that is exactly ``distance``
+     * away from a given line.
+     *
+     * The resulting point does not have to be exactly on a vertex. Most likely
+     * it will be on a line segment.
+     * \param poly The polygonal shape along which to walk.
+     * \param start_index The vertex at which to start looking. This vertex
+     * should be on the wrong side of the line.
+     * \param distance The distance from the line at which the resulting point
+     * should be. This distance is signed; a negative number will indicate a
+     * connection on the other side of the line.
+     * \param line_a The line passes through this point.
+     * \param line_b The line also passes through this point.
+     * \param direction Use +1 to iterate in the forward direction through the
+     * polygon, or -1 to iterate backwards.
+     * \return If there is a point that is the correct distance from the line,
+     * the first such point is returned, and the segment index that it's on. If
+     * the polygon is entirely on the wrong side of the line, returns
+     * ``std::nullopt``.
+     */
+    template<typename Polygonal>
+    std::optional<std::pair<Point, size_t>> walkUntilDistanceFromLine(const Polygonal& poly, const size_t start_index, const coord_t distance, const Point& line_a, const Point& line_b, const short direction)
+    {
+        const size_t poly_size = poly.size();
+        const coord_t line_magnitude = vSize(line_b - line_a); //Pre-compute, used for line distance calculation.
+
+        for(size_t index = (start_index + direction + poly_size) % poly_size; index != start_index; index = (index + direction + poly_size) % poly_size)
+        {
+            const Point vertex_pos = getPosition(poly[index]);
+            const coord_t vertex_distance = cross(line_a - line_b, line_a - vertex_pos) / line_magnitude; //Calculate a signed distance (negative if on the wrong side).
+            if((distance > 0 && vertex_distance >= distance) || (distance < 0 && vertex_distance <= distance)) //Further away from the line than the threshold.
+            {
+                //Interpolate over that last line segment to find the point at exactly the right distance.
+                const size_t previous_index = (index - direction + poly_size) % poly_size;
+                const Point previous_pos = getPosition(poly[previous_index]);
+                const coord_t previous_distance = cross(line_a - line_b, line_a - previous_pos) / line_magnitude;
+                assert((distance > 0 && previous_distance < distance) || (distance < 0 && previous_distance > distance)); //The previous vertex was not yet far enough away from the line. Also means that it can't be parallel.
+                const double interpolation = double(distance - previous_distance) / (vertex_distance - previous_distance);
+                return std::make_pair(previous_pos + (vertex_pos - previous_pos) * interpolation, previous_index);
+            }
+        }
+        return std::nullopt; //None of the vertices were far enough away from the line (and on the correct side).
+    }
+
+    /*!
      * Get a connection parallel to a given \p first connection at an orthogonal distance line_width from the \p first connection.
      * 
      * From a given \p first connection,
@@ -450,7 +511,61 @@ protected:
      * - check whether they are both on the same side of the \p first connection
      * - choose the connection which woukd form the smalles bridge
      */
-    std::optional<PolygonConnection> getSecondConnection(PolygonConnection& first);
+    template<typename Polygonal>
+    std::optional<PolygonConnection<Polygonal>> getSecondConnection(PolygonConnection<Polygonal>& first, const coord_t adjacent_distance)
+    {
+        std::optional<PolygonConnection<Polygonal>> result = std::nullopt;
+        coord_t best_connection_length = std::numeric_limits<coord_t>::max();
+
+        //Find the winding direction of the from_poly and to_poly by the cross product.
+        const Point from_vertex = getPosition((*first.from_poly)[first.from_segment]);
+        const coord_t from_vertex_direction = sign(cross(first.from_point - first.to_point, first.from_point - from_vertex));
+        const coord_t from_forward_distance = -from_vertex_direction * adjacent_distance;
+        const coord_t from_backward_distance = from_vertex_direction * adjacent_distance;
+        const Point to_vertex = getPosition((*first.to_poly)[first.to_segment]);
+        const coord_t to_vertex_direction = sign(cross(first.from_point - first.to_point, first.from_point - to_vertex));
+        const coord_t to_forward_distance = -to_vertex_direction * adjacent_distance;
+        const coord_t to_backward_distance = to_vertex_direction * adjacent_distance;
+        const bool is_crossed = (from_forward_distance != to_forward_distance); //True if the winding direction of the "from" polygon is opposite to that of the "to" polygon.
+
+        //Find the four intersections, on both sides of the initial connection, and on both polygons.
+        std::optional<std::pair<Point, size_t>> from_forward_intersection = walkUntilDistanceFromLine(*first.from_poly, first.from_segment, from_forward_distance, first.from_point, first.to_point, +1);
+        std::optional<std::pair<Point, size_t>> from_backward_intersection = walkUntilDistanceFromLine(*first.from_poly, (first.from_segment + 1) % first.from_poly->size(), from_backward_distance, first.from_point, first.to_point, -1);
+        if((from_forward_intersection && !is_crossed) || (from_backward_intersection && is_crossed))
+        {
+            //There was an intersection in the to_forward_direction, so find it on the other side too.
+            std::optional<std::pair<Point, size_t>> to_forward_intersection = walkUntilDistanceFromLine(*first.to_poly, first.to_segment, to_forward_distance, first.from_point, first.to_point, +1);
+            if(to_forward_intersection) //Intersection on both polygons! Let's store it.
+            {
+                PolygonConnection<Polygonal> first_option = is_crossed ?
+                    PolygonConnection<Polygonal>(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first) :
+                    PolygonConnection<Polygonal>(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first);
+                const coord_t connection_length = getSpace(first_option);
+                if(connection_length < 0.5 * line_width) //Connection is allowed.
+                {
+                    result = first_option;
+                    best_connection_length = connection_length;
+                }
+            }
+        }
+        if((from_backward_intersection && !is_crossed) || (from_forward_intersection && is_crossed))
+        {
+            //There was an intersection in the to_backward_direction, so find it on the other side too.
+            std::optional<std::pair<Point, size_t>> to_backward_intersection = walkUntilDistanceFromLine(*first.to_poly, (first.to_segment + 1) % first.to_poly->size(), to_backward_distance, first.from_point, first.to_point, -1);
+            if(to_backward_intersection) //Intersection on both polygons! Let's store it, if this is shorter than the previous one.
+            {
+                PolygonConnection<Polygonal> second_option = is_crossed ?
+                    PolygonConnection<Polygonal>(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_backward_intersection->second, to_backward_intersection->first) :
+                    PolygonConnection<Polygonal>(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_backward_intersection->second, to_backward_intersection->first);
+                const coord_t connection_length = getSpace(second_option);
+                if(connection_length < 0.5 * line_width && connection_length < best_connection_length) //Better than the previous option.
+                {
+                    result = second_option;
+                }
+            }
+        }
+        return result;
+    }
 };
 
 

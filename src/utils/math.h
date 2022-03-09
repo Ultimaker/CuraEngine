@@ -41,6 +41,11 @@ inline uint64_t round_up_divide(const uint64_t dividend, const uint64_t divisor)
     return (dividend + divisor - 1) / divisor;
 }
 
+int sign(int x)
+{
+    return (x > 0) - (x < 0);
+}
+
 template<typename T>
 constexpr T pi_div(const T div)
 {
