@@ -453,7 +453,25 @@ protected:
      * - the first connection at a whole line distance away
      * So as to try and find a bridge which is centered around the initiall found first connection
      */
-    std::optional<PolygonBridge> getBridge(ConstPolygonRef poly, std::vector<Polygon>& polygons);
+    template<typename Polygonal>
+    std::optional<PolygonBridge<Polygonal>> getBridge(Polygonal from_poly, std::vector<Polygonal>& to_polygons)
+    {
+        std::optional<std::pair<PolygonConnection<Polygonal>, PolygonConnection<Polygonal>>> connection = findConnection(from_poly, to_polygons);
+        if(!connection) //We didn't find a connection. No bridge.
+        {
+            return std::nullopt;
+        }
+
+        PolygonBridge<Polygonal> result(connection->first, connection->second);
+        //Ensure that B is always the right connection and A the left.
+        const Point a_vec = result.a.to_point - result.a.from_point;
+        const Point shift = turn90CCW(a_vec);
+        if(dot(shift, result.b.from_point - result.a.from_point) > 0)
+        {
+            std::swap(result.a, result.b);
+        }
+        return result;
+    }
 
     /*!
      * Walk along a polygon to find the first point that is exactly ``distance``
