@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_MATH_H
@@ -42,7 +42,7 @@ inline uint64_t round_up_divide(const uint64_t dividend, const uint64_t divisor)
     return (dividend + divisor - 1) / divisor;
 }
 
-int sign(int x)
+inline int sign(int x)
 {
     return (x > 0) - (x < 0);
 }

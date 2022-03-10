@@ -83,7 +83,7 @@ public:
 
 };
 
-TEST_F(PolygonConnectorTest, getBridgeTest)
+/*TEST_F(PolygonConnectorTest, getBridgeTest)
 {
     PolygonConnector::PolygonBridge predicted(
         PolygonConnector::PolygonConnection{
@@ -140,8 +140,8 @@ TEST_F(PolygonConnectorTest, connectionLengthTest)
         }
     }*/
 
-    ASSERT_EQ(too_long_connection_count, 0) << "PolygonConnector::connect() obtained " << too_long_connection_count << " too long bridge connections! Longest is " << INT2MM(longest_connection_dist) << "\n";
-}
+    /*ASSERT_EQ(too_long_connection_count, 0) << "PolygonConnector::connect() obtained " << too_long_connection_count << " too long bridge connections! Longest is " << INT2MM(longest_connection_dist) << "\n";
+}*/
 
 
 }
