@@ -357,6 +357,10 @@ protected:
     coord_t interpolateWidth(const Point position, Vertex a, Vertex b) const
     {
         const coord_t total_length = vSize(getPosition(a) - getPosition(b));
+        if(total_length == 0) //Prevent division by 0 when the vertices are on top of each other.
+        {
+            return getWidth(a); //Just return one of them. They are on top of each other anyway.
+        }
         const coord_t position_along_length = vSize(position - getPosition(a));
         return getWidth(b) * position_along_length / total_length + getWidth(a) * (total_length - position_along_length) / total_length;
     }
@@ -505,6 +509,10 @@ protected:
     {
         const size_t poly_size = poly.size();
         const coord_t line_magnitude = vSize(line_b - line_a); //Pre-compute, used for line distance calculation.
+        if(line_magnitude == 0)
+        {
+            return std::nullopt; //Line doesn't have a direction, so we can't be on any one side of it.
+        }
 
         for(size_t index = (start_index + direction + poly_size) % poly_size; index != start_index; index = (index + direction + poly_size) % poly_size)
         {
