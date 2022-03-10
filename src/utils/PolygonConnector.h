@@ -239,11 +239,10 @@ protected:
             std::optional<PolygonBridge<Polygonal>> bridge = getBridge(current, to_connect);
             if(bridge)
             {
-                PolygonRef other_poly(*const_cast<ClipperLib::Path*>(bridge->a.to_poly.operator->())); // const casting a ConstPolygonPointer is difficult!
-                other_poly = connectPolygonsAlongBridge(*bridge); //Connect the bridged parts and overwrite the other polygon with it.
+                connectPolygonsAlongBridge(*bridge, *bridge->a.to_poly); //Connect the polygons, and store the result in the to_poly.
                 //Don't store the current polygon. It has just been merged into the other one.
             }
-            else
+            else //Can't connect this to anything. Leave it as-is.
             {
                 result.push_back(current);
             }
@@ -276,6 +275,8 @@ protected:
      *
      * This is the overload that works for fixed-width polygons. They get their
      * width from the width that was given at the constructor.
+     * \param vertex The vertex to get the width of.
+     * \return The line width of the polygon.
      */
     coord_t getWidth(const Point& vertex) const;
 
@@ -284,8 +285,48 @@ protected:
      *
      * This is the overload that works for variable-width polygons. The width is
      * stored in the junction then.
+     * \param vertex The vertex to get the width of.
+     * \return The line width at that vertex.
      */
     coord_t getWidth(const ExtrusionJunction& vertex) const;
+
+    /*!
+     * Add a vertex at the end of the polygonal object.
+     *
+     * This is the overload for fixed-width polygons. The width will be ignored.
+     * \param polygonal The polygon to add a vertex to.
+     * \param position The position of the vertex to add.
+     * \param width The width of the vertex to add, ignored in this overload.
+     */
+    void addVertex(Polygon& polygonal, const Point& position, const coord_t width) const;
+
+    /*!
+     * Add a vertex at the end of the polygonal object.
+     *
+     * This is the overload for fixed-width polygons.
+     * \param polygonal The polygon to add a vertex to.
+     * \param vertex The vertex to add.
+     */
+    void addVertex(Polygon& polygonal, const Point& vertex) const;
+
+    /*!
+     * Add a vertex at the end of the polygonal object.
+     *
+     * This is the overload for variable-width paths.
+     * \param polygonal The variable-width path to add a vertex to.
+     * \param position The position of the vertex to add.
+     * \param width The width of the vertex to add.
+     */
+    void addVertex(ExtrusionLine& polygonal, const Point& position, const coord_t width) const;
+
+    /*!
+     * Add a vertex at the end of the polygonal object.
+     *
+     * This is the overload for variable-width paths.
+     * \param polygonal The variable-width path to add a vertex to.
+     * \param vertex The vertex to add.
+     */
+    void addVertex(ExtrusionLine& polygonal, const ExtrusionJunction& vertex) const;
 
     /*!
      * Get the amount of space in between the polygons at the given connection.
@@ -319,41 +360,6 @@ protected:
         const coord_t position_along_length = vSize(position - getPosition(a));
         return getWidth(b) * position_along_length / total_length + getWidth(a) * (total_length - position_along_length) / total_length;
     }
-
-    /*!
-     * Connect the two polygons between which the bridge is computed.
-     */
-    Polygon connectPolygonsAlongBridge(const PolygonBridge& bridge);
-
-    /*!
-     * Add the segment from a polygon which is not removed by the bridge.
-     * 
-     * This function gets called twice in order to connect two polygons together.
-     * 
-     * Algorithm outline:
-     * Add the one vertex from the \p start,
-     * then add all vertices from the polygon in between
-     * and then add the polygon location from the \p end.
-     * 
-     * \param[out] result Where to apend the new vertices to
-     */
-    void addPolygonSegment(const ClosestPolygonPoint& start, const ClosestPolygonPoint& end, PolygonRef result);
-
-    /*!
-     * Get the direction between the polygon locations \p from and \p to.
-     * This is intended to be the direction of the polygon segment of the short way around the polygon, not the long way around.
-     * 
-     * The direction is positive for going in the same direction as the vertices are stored.
-     * E.g. if \p from is vertex 7 and \p to is vertex 8 then the direction is positive.
-     * Otherwise it is negative.
-     * 
-     * \note \p from and \p to can also be points on the same segment, so their vertex index isn't everything to the algorithm.
-     * 
-     * \note This function relies on some assumptions about the geometry of polygons you can encounter.
-     * It cannot be used as a general purpose function for any two ClosestPolygonPoint
-     * For large distances between \p from and \p to the output direction might be 'incorrect'.
-     */
-    int16_t getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to);
 
     /*!
      * Find the smallest connection between a polygon and a set of other
@@ -583,6 +589,53 @@ protected:
             }
         }
         return result;
+    }
+
+    template<typename Polygonal>
+    void connectPolygonsAlongBridge(const PolygonBridge<Polygonal>& bridge, Polygonal& result)
+    {
+        // enforce the following orientations:
+        //
+        // <<<<<<X......X<<<<<<< poly2
+        //       ^      v
+        //       ^      v
+        //       ^ a  b v bridge
+        //       ^      v
+        // >>>>>>X......X>>>>>>> poly1
+        //
+        // this should work independent from whether it is a hole polygon or a outline polygon
+        Polygonal ret; //Create a temporary that we'll move into the result.
+
+        //Add the from-endpoint of B.
+        const size_t from_size = bridge.b.from_poly->size();
+        const coord_t b_from_width = interpolateWidth(bridge.b.from_point, (*bridge.b.from_poly)[bridge.b.from_segment], (*bridge.b.from_poly)[(bridge.b.from_segment + 1) % from_size]);
+        addVertex(ret, bridge.b.from_point, b_from_width);
+
+        //Add the from-polygonal from B to A.
+        //Which direction to iterate in? Choose the direction with the most vertices.
+        int forwards = ((bridge.b.from_segment + from_size - bridge.a.from_segment) % from_size) < ((bridge.a.from_segment + from_size - bridge.b.from_segment) % from_size);
+        for(size_t i = (bridge.b.from_segment + forwards) % from_size; i != bridge.a.from_segment + !forwards; i = (i + 2 * forwards - 1 + from_size) % from_size)
+        {
+            addVertex(ret, (*bridge.b.from_poly)[i]);
+        }
+
+        //Add the from-endpoint of A.
+        const coord_t a_from_width = interpolateWidth(bridge.a.from_point, (*bridge.b.from_poly)[bridge.a.from_segment], (*bridge.b.from_poly)[(bridge.a.from_segment + 1) % from_size]);
+        addVertex(ret, bridge.a.from_point, a_from_width);
+
+        //Add the to-endpoint of A.
+        const size_t to_size = bridge.b.to_poly->size();
+        const coord_t a_to_width = interpolateWidth(bridge.a.to_point, (*bridge.b.to_poly)[bridge.a.to_segment], (*bridge.b.to_poly)[(bridge.a.to_segment + 1) % to_size]);
+        addVertex(ret, bridge.a.to_point, a_to_width);
+
+        //Add the to_polygonal from B to A.
+        forwards = ((bridge.a.to_segment + to_size - bridge.b.to_segment) % to_size) < ((bridge.b.to_segment + to_size - bridge.a.to_segment) % to_size);
+        for(size_t i = (bridge.a.to_segment + forwards) % to_size; i != bridge.b.to_segment + !forwards; i = (i + 2 * forwards - 1 + from_size) % from_size)
+        {
+            addVertex(ret, (*bridge.b.to_poly)[i]);
+        }
+
+        result = std::move(ret); //Override the result with the new combined shape.
     }
 };
 

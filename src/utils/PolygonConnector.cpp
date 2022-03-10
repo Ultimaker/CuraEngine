@@ -47,6 +47,9 @@ void PolygonConnector::connect(Polygons& output_polygons, VariableWidthPaths& ou
     {
         output_polygons.add(polygon);
     }
+
+    std::vector<ExtrusionLine> result_paths = connectGroup(input_paths);
+    output_paths.push_back(result_paths);
 }
 
 Point PolygonConnector::getPosition(const Point& vertex) const
@@ -69,75 +72,24 @@ coord_t PolygonConnector::getWidth(const ExtrusionJunction& junction) const
     return junction.w;
 }
 
-Polygon PolygonConnector::connectPolygonsAlongBridge(const PolygonConnector::PolygonBridge& bridge)
+void PolygonConnector::addVertex(Polygon& polygonal, const Point& position, const coord_t) const
 {
-    // enforce the following orientations:
-    //
-    // <<<<<<X......X<<<<<<< poly2
-    //       ^      v
-    //       ^      v
-    //       ^ a  b v bridge
-    //       ^      v
-    // >>>>>>X......X>>>>>>> poly1
-    //
-    // this should work independent from whether it is a hole polygon or a outline polygon
-    Polygon ret;
-    addPolygonSegment(bridge.b.from, bridge.a.from, ret);
-    addPolygonSegment(bridge.a.to, bridge.b.to, ret);
-    return ret;
+    polygonal.add(position);
 }
 
-void PolygonConnector::addPolygonSegment(const ClosestPolygonPoint& start, const ClosestPolygonPoint& end, PolygonRef result)
+void PolygonConnector::addVertex(Polygon& polygonal, const Point& vertex) const
 {
-    // <<<<<<<.start     end.<<<<<<<<
-    //        ^             v
-    //        ^             v
-    // >>>>>>>.end.....start.>>>>>>>
-    assert(start.poly == end.poly && "We can only bridge from one polygon from the other if both connections depart from the one polygon!");
-    ConstPolygonRef poly = *end.poly;
-    int16_t dir = getPolygonDirection(end, start); // we get the direction of the polygon in between the bridge connections, while we add the segment of the polygon not in between the segments
-
-    result.add(start.p());
-    bool first_iter = true;
-    for (size_t vert_nr = 0; vert_nr < poly.size(); vert_nr++)
-    {
-        size_t vert_idx =
-            (dir > 0)?
-            (start.point_idx + 1 + vert_nr) % poly.size()
-            : (static_cast<size_t>(start.point_idx) - vert_nr + poly.size()) % poly.size(); // cast in order to accomodate subtracting
-        if (!first_iter // don't return without adding points when the starting point and ending point are on the same polygon segment
-            && vert_idx == (end.point_idx + ((dir > 0)? 1 : 0)) % poly.size())
-        { // we've added all verts of the original polygon segment between start and end
-            break;
-        }
-        first_iter = false;
-        result.add(poly[vert_idx]);
-    }
-    result.add(end.p());
+    polygonal.add(vertex);
 }
 
-int16_t PolygonConnector::getPolygonDirection(const ClosestPolygonPoint& from, const ClosestPolygonPoint& to)
+void PolygonConnector::addVertex(ExtrusionLine& polygonal, const Point& position, const coord_t width) const
 {
-    assert(from.poly == to.poly && "We can only bridge from one polygon from the other if both connections depart from the one polygon!");
-    ConstPolygonRef poly = *from.poly;
-    if (from.point_idx == to.point_idx)
-    {
-        const Point prev_vert = poly[from.point_idx];
-        const coord_t from_dist2 = vSize2(from.p() - prev_vert);
-        const coord_t to_dist2 = vSize2(to.p() - prev_vert);
-        return (to_dist2 > from_dist2)? 1 : -1;
-    }
-    // TODO: replace naive implementation by robust implementation
-    // naive idea: there are less vertices in between the connection points than around
-    const size_t a_to_b_vertex_count = (static_cast<size_t>(to.point_idx) - from.point_idx + poly.size()) % poly.size(); // cast in order to accomodate subtracting
-    if (a_to_b_vertex_count > poly.size() / 2)
-    {
-        return -1; // from a to b is in the reverse direction as the vertices are saved in the polygon
-    }
-    else
-    {
-        return 1; // from a to b is in the same direction as the vertices are saved in the polygon
-    }
+    polygonal.emplace_back(position, width, 0); //Perimeter indices don't make sense any more once perimeters are merged. Use 0 as placeholder.
+}
+
+void PolygonConnector::addVertex(ExtrusionLine& polygonal, const ExtrusionJunction& vertex) const
+{
+    polygonal.emplace_back(vertex);
 }
 
 }//namespace cura
