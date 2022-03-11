@@ -372,7 +372,7 @@ protected:
     template<typename Polygonal>
     std::optional<std::pair<PolygonConnection<Polygonal>, PolygonConnection<Polygonal>>> findConnection(Polygonal from_poly, std::vector<Polygonal>& to_polygons)
     {
-        //Optimise for finding the best connection. Track all statistics for the best connection.
+        //Optimise for finding the best connection.
         coord_t best_distance = line_width * 0.5; //Allow distance between polygons of up to 1/2 line width, as fudge factor for sharp corners.
         std::optional<PolygonConnection<Polygonal>> best_connection;
         std::optional<PolygonConnection<Polygonal>> best_second_connection;
@@ -493,15 +493,14 @@ protected:
      * \param start_index The vertex at which to start looking. This vertex
      * should be on the wrong side of the line.
      * \param distance The distance from the line at which the resulting point
-     * should be. This distance is signed; a negative number will indicate a
-     * connection on the other side of the line.
+     * should be.
      * \param line_a The line passes through this point.
      * \param line_b The line also passes through this point.
      * \param direction Use +1 to iterate in the forward direction through the
      * polygon, or -1 to iterate backwards.
      * \return If there is a point that is the correct distance from the line,
      * the first such point is returned, and the segment index that it's on. If
-     * the polygon is entirely on the wrong side of the line, returns
+     * the polygon is entirely close to the line, returns
      * ``std::nullopt``.
      */
     template<typename Polygonal>
@@ -517,14 +516,14 @@ protected:
         for(size_t index = (start_index + direction + poly_size) % poly_size; index != start_index; index = (index + direction + poly_size) % poly_size)
         {
             const Point vertex_pos = getPosition(poly[index]);
-            const coord_t vertex_distance = cross(line_a - line_b, line_a - vertex_pos) / line_magnitude; //Calculate a signed distance (negative if on the wrong side).
-            if((distance > 0 && vertex_distance >= distance) || (distance < 0 && vertex_distance <= distance)) //Further away from the line than the threshold.
+            const coord_t vertex_distance = std::abs(cross(line_a - line_b, line_a - vertex_pos) / line_magnitude); //Calculate a signed distance (negative if on the wrong side).
+            if(vertex_distance >= distance) //Further away from the line than the threshold.
             {
                 //Interpolate over that last line segment to find the point at exactly the right distance.
                 const size_t previous_index = (index - direction + poly_size) % poly_size;
                 const Point previous_pos = getPosition(poly[previous_index]);
-                const coord_t previous_distance = cross(line_a - line_b, line_a - previous_pos) / line_magnitude;
-                assert((distance > 0 && previous_distance < distance) || (distance < 0 && previous_distance > distance)); //The previous vertex was not yet far enough away from the line. Also means that it can't be parallel.
+                const coord_t previous_distance = std::abs(cross(line_a - line_b, line_a - previous_pos) / line_magnitude);
+                assert(previous_distance < distance); //The previous vertex was not yet far enough away from the line. Also means that it can't be parallel. If fails, the function wasn't called right.
                 const double interpolation = double(distance - previous_distance) / (vertex_distance - previous_distance);
                 return std::make_pair(previous_pos + (vertex_pos - previous_pos) * interpolation, previous_index);
             }
@@ -561,19 +560,19 @@ protected:
         const bool is_crossed = (from_forward_distance != to_forward_distance); //True if the winding direction of the "from" polygon is opposite to that of the "to" polygon.
 
         //Find the four intersections, on both sides of the initial connection, and on both polygons.
-        std::optional<std::pair<Point, size_t>> from_forward_intersection = walkUntilDistanceFromLine(*first.from_poly, first.from_segment, from_forward_distance, first.from_point, first.to_point, +1);
-        std::optional<std::pair<Point, size_t>> from_backward_intersection = walkUntilDistanceFromLine(*first.from_poly, (first.from_segment + 1) % first.from_poly->size(), from_backward_distance, first.from_point, first.to_point, -1);
+        std::optional<std::pair<Point, size_t>> from_forward_intersection = walkUntilDistanceFromLine(*first.from_poly, first.from_segment, adjacent_distance, first.from_point, first.to_point, +1);
+        std::optional<std::pair<Point, size_t>> from_backward_intersection = walkUntilDistanceFromLine(*first.from_poly, (first.from_segment + 1) % first.from_poly->size(), adjacent_distance, first.from_point, first.to_point, -1);
         if((from_forward_intersection && !is_crossed) || (from_backward_intersection && is_crossed))
         {
             //There was an intersection in the to_forward_direction, so find it on the other side too.
-            std::optional<std::pair<Point, size_t>> to_forward_intersection = walkUntilDistanceFromLine(*first.to_poly, first.to_segment, to_forward_distance, first.from_point, first.to_point, +1);
+            std::optional<std::pair<Point, size_t>> to_forward_intersection = walkUntilDistanceFromLine(*first.to_poly, first.to_segment, adjacent_distance, first.from_point, first.to_point, +1);
             if(to_forward_intersection) //Intersection on both polygons! Let's store it.
             {
                 PolygonConnection<Polygonal> first_option = is_crossed ?
                     PolygonConnection<Polygonal>(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first) :
                     PolygonConnection<Polygonal>(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first);
                 const coord_t connection_length = getSpace(first_option);
-                if(connection_length < 0.5 * line_width) //Connection is allowed.
+                if(connection_length < 1.5 * line_width) //Connection is allowed.
                 {
                     result = first_option;
                     best_connection_length = connection_length;
@@ -583,7 +582,7 @@ protected:
         if((from_backward_intersection && !is_crossed) || (from_forward_intersection && is_crossed))
         {
             //There was an intersection in the to_backward_direction, so find it on the other side too.
-            std::optional<std::pair<Point, size_t>> to_backward_intersection = walkUntilDistanceFromLine(*first.to_poly, (first.to_segment + 1) % first.to_poly->size(), to_backward_distance, first.from_point, first.to_point, -1);
+            std::optional<std::pair<Point, size_t>> to_backward_intersection = walkUntilDistanceFromLine(*first.to_poly, (first.to_segment + 1) % first.to_poly->size(), adjacent_distance, first.from_point, first.to_point, -1);
             if(to_backward_intersection) //Intersection on both polygons! Let's store it, if this is shorter than the previous one.
             {
                 PolygonConnection<Polygonal> second_option = is_crossed ?
@@ -614,33 +613,39 @@ protected:
         // this should work independent from whether it is a hole polygon or a outline polygon
         Polygonal ret; //Create a temporary that we'll move into the result.
 
-        //Add the from-endpoint of B.
         const size_t from_size = bridge.b.from_poly->size();
-        const coord_t b_from_width = interpolateWidth(bridge.b.from_point, (*bridge.b.from_poly)[bridge.b.from_segment], (*bridge.b.from_poly)[(bridge.b.from_segment + 1) % from_size]);
-        addVertex(ret, bridge.b.from_point, b_from_width);
-
-        //Add the from-polygonal from B to A.
-        //Which direction to iterate in? Choose the direction with the most vertices.
-        int forwards = ((bridge.b.from_segment + from_size - bridge.a.from_segment) % from_size) < ((bridge.a.from_segment + from_size - bridge.b.from_segment) % from_size);
-        for(size_t i = (bridge.b.from_segment + forwards) % from_size; i != bridge.a.from_segment + !forwards; i = (i + 2 * forwards - 1 + from_size) % from_size)
+        if(from_size > 0)
         {
-            addVertex(ret, (*bridge.b.from_poly)[i]);
+            //Add the from-endpoint of B.
+            const coord_t b_from_width = interpolateWidth(bridge.b.from_point, (*bridge.b.from_poly)[bridge.b.from_segment], (*bridge.b.from_poly)[(bridge.b.from_segment + 1) % from_size]);
+            addVertex(ret, bridge.b.from_point, b_from_width);
+
+            //Add the from-polygonal from B to A.
+            //Which direction to iterate in? Choose the direction with the most vertices.
+            const short forwards = ((bridge.b.from_segment + from_size - bridge.a.from_segment) % from_size) < ((bridge.a.from_segment + from_size - bridge.b.from_segment) % from_size);
+            for(size_t i = (bridge.b.from_segment + forwards) % from_size; i != bridge.a.from_segment + !forwards; i = (i + 2 * forwards - 1 + from_size) % from_size)
+            {
+                addVertex(ret, (*bridge.b.from_poly)[i]);
+            }
+
+            //Add the from-endpoint of A.
+            const coord_t a_from_width = interpolateWidth(bridge.a.from_point, (*bridge.b.from_poly)[bridge.a.from_segment], (*bridge.b.from_poly)[(bridge.a.from_segment + 1) % from_size]);
+            addVertex(ret, bridge.a.from_point, a_from_width);
         }
 
-        //Add the from-endpoint of A.
-        const coord_t a_from_width = interpolateWidth(bridge.a.from_point, (*bridge.b.from_poly)[bridge.a.from_segment], (*bridge.b.from_poly)[(bridge.a.from_segment + 1) % from_size]);
-        addVertex(ret, bridge.a.from_point, a_from_width);
-
-        //Add the to-endpoint of A.
         const size_t to_size = bridge.b.to_poly->size();
-        const coord_t a_to_width = interpolateWidth(bridge.a.to_point, (*bridge.b.to_poly)[bridge.a.to_segment], (*bridge.b.to_poly)[(bridge.a.to_segment + 1) % to_size]);
-        addVertex(ret, bridge.a.to_point, a_to_width);
-
-        //Add the to_polygonal from B to A.
-        forwards = ((bridge.a.to_segment + to_size - bridge.b.to_segment) % to_size) < ((bridge.b.to_segment + to_size - bridge.a.to_segment) % to_size);
-        for(size_t i = (bridge.a.to_segment + forwards) % to_size; i != bridge.b.to_segment + !forwards; i = (i + 2 * forwards - 1 + from_size) % from_size)
+        if(to_size > 0)
         {
-            addVertex(ret, (*bridge.b.to_poly)[i]);
+            //Add the to-endpoint of A.
+            const coord_t a_to_width = interpolateWidth(bridge.a.to_point, (*bridge.b.to_poly)[bridge.a.to_segment], (*bridge.b.to_poly)[(bridge.a.to_segment + 1) % to_size]);
+            addVertex(ret, bridge.a.to_point, a_to_width);
+
+            //Add the to_polygonal from B to A.
+            const short forwards = ((bridge.a.to_segment + to_size - bridge.b.to_segment) % to_size) < ((bridge.b.to_segment + to_size - bridge.a.to_segment) % to_size);
+            for(size_t i = (bridge.a.to_segment + forwards) % to_size; i != bridge.b.to_segment + !forwards; i = (i + 2 * forwards - 1 + to_size) % to_size)
+            {
+                addVertex(ret, (*bridge.b.to_poly)[i]);
+            }
         }
 
         result = std::move(ret); //Override the result with the new combined shape.
