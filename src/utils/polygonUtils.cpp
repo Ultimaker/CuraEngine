@@ -1510,14 +1510,14 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
         return;
     }
 
-    const coord_t half_epsilon = (epsilon + 1) / 2;
+    const coord_t half_epsilon = std::max(10LL, (epsilon + 1) / 2);
 
     // Points too close to line segments should be moved a little away from those line segments, but less than epsilon,
     //   so at least half-epsilon distance between points can still be guaranteed.
     constexpr coord_t grid_size = 2000;
     auto query_grid = PolygonUtils::createLocToLineGrid(thiss, grid_size);
 
-    const coord_t move_dist = std::max(2LL, half_epsilon - 2);
+    const coord_t move_dist = half_epsilon - 2;
     const coord_t half_epsilon_sqrd = half_epsilon * half_epsilon;
 
     const size_t n = thiss.size();
@@ -1527,7 +1527,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
         for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
         {
             Point& pt = thiss[poly_idx][point_idx];
-            for (const auto& line : query_grid->getNearby(pt, epsilon))
+            for (const auto& line : query_grid->getNearby(pt, epsilon * 2))
             {
                 const size_t line_next_idx = (line.point_idx + 1) % thiss[line.poly_idx].size();
                 if (poly_idx == line.poly_idx && (point_idx == line.point_idx || point_idx == line_next_idx))
