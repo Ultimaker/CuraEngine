@@ -433,8 +433,6 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     }
 
     separatePointyQuadEndNodes();
-
-    graph.fixNodeDuplication();
     
     graph.collapseSmallEdges();
 
