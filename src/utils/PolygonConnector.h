@@ -516,16 +516,34 @@ protected:
         for(size_t index = (start_index + direction + poly_size) % poly_size; index != start_index; index = (index + direction + poly_size) % poly_size)
         {
             const Point vertex_pos = getPosition(poly[index]);
-            const coord_t vertex_distance = std::abs(cross(line_a - line_b, line_a - vertex_pos) / line_magnitude); //Calculate a signed distance (negative if on the wrong side).
-            if(vertex_distance >= distance) //Further away from the line than the threshold.
+            const coord_t vertex_distance = cross(line_a - line_b, line_a - vertex_pos) / line_magnitude; //Signed distance!
+            if(std::abs(vertex_distance) >= distance) //Further away from the line than the threshold.
             {
                 //Interpolate over that last line segment to find the point at exactly the right distance.
                 const size_t previous_index = (index - direction + poly_size) % poly_size;
                 const Point previous_pos = getPosition(poly[previous_index]);
-                const coord_t previous_distance = std::abs(cross(line_a - line_b, line_a - previous_pos) / line_magnitude);
-                assert(previous_distance < distance); //The previous vertex was not yet far enough away from the line. Also means that it can't be parallel. If fails, the function wasn't called right.
-                const double interpolation = double(distance - previous_distance) / (vertex_distance - previous_distance);
-                return std::make_pair(previous_pos + (vertex_pos - previous_pos) * interpolation, previous_index);
+                const coord_t previous_distance = cross(line_a - line_b, line_a - previous_pos) / line_magnitude;
+                if(previous_distance == vertex_distance) //0-length line segment, or parallel to line.
+                {
+                    continue;
+                }
+                const double interpolation_pos = double(distance - previous_distance) / (vertex_distance - previous_distance);
+                const double interpolation_neg = double(-distance - previous_distance) / (vertex_distance - previous_distance);
+                double interpolation;
+                if(interpolation_pos >= 0 && interpolation_pos <= 1)
+                {
+                    interpolation = interpolation_pos;
+                }
+                else if(interpolation_neg >= 0 && interpolation_neg <= 1)
+                {
+                    interpolation = interpolation_neg;
+                }
+                else
+                {
+                    continue;
+                }
+                const Point interpolated_point = previous_pos + (vertex_pos - previous_pos) * interpolation;
+                return std::make_pair(interpolated_point, previous_index);
             }
         }
         return std::nullopt; //None of the vertices were far enough away from the line (and on the correct side).
