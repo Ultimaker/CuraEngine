@@ -637,39 +637,71 @@ protected:
         Polygonal ret; //Create a temporary that we'll move into the result.
 
         const size_t from_size = bridge.b.from_poly->size();
-        if(from_size > 0)
+        //Add the from-endpoint of B.
+        const coord_t b_from_width = interpolateWidth(bridge.b.from_point, (*bridge.b.from_poly)[bridge.b.from_segment], (*bridge.b.from_poly)[(bridge.b.from_segment + 1) % from_size]);
+        addVertex(ret, bridge.b.from_point, b_from_width);
+
+        //Add the from-polygonal from B to A.
+        //Which direction to iterate in? Choose the direction with the most vertices, or the closest direction if they are on the same segment.
+        short forwards;
+        if(bridge.a.from_segment == bridge.b.from_segment)
         {
-            //Add the from-endpoint of B.
-            const coord_t b_from_width = interpolateWidth(bridge.b.from_point, (*bridge.b.from_poly)[bridge.b.from_segment], (*bridge.b.from_poly)[(bridge.b.from_segment + 1) % from_size]);
-            addVertex(ret, bridge.b.from_point, b_from_width);
-
-            //Add the from-polygonal from B to A.
-            //Which direction to iterate in? Choose the direction with the most vertices.
-            const short forwards = ((bridge.b.from_segment + from_size - bridge.a.from_segment) % from_size) < ((bridge.a.from_segment + from_size - bridge.b.from_segment) % from_size);
-            for(size_t i = (bridge.b.from_segment + forwards) % from_size; i != bridge.a.from_segment + !forwards; i = (i + 2 * forwards - 1 + from_size) % from_size)
-            {
-                addVertex(ret, (*bridge.b.from_poly)[i]);
-            }
-
-            //Add the from-endpoint of A.
-            const coord_t a_from_width = interpolateWidth(bridge.a.from_point, (*bridge.b.from_poly)[bridge.a.from_segment], (*bridge.b.from_poly)[(bridge.a.from_segment + 1) % from_size]);
-            addVertex(ret, bridge.a.from_point, a_from_width);
+            const Point vertex = getPosition((*bridge.b.from_poly)[bridge.b.from_segment]); //Same vertex for A and B.
+            const Point next_vertex = getPosition((*bridge.b.from_poly)[(bridge.b.from_segment + 1) % from_size]);
+            const Point direction = next_vertex - vertex;
+            const Point a_to_b = bridge.b.from_point - bridge.a.from_point;
+            forwards = vSize2(direction - a_to_b) < vSize2(-direction - a_to_b);
         }
+        else
+        {
+            forwards = ((bridge.b.from_segment + from_size - bridge.a.from_segment) % from_size) < ((bridge.a.from_segment + from_size - bridge.b.from_segment) % from_size);
+        }
+        size_t first_segment = forwards ? (bridge.b.from_segment + 1) % from_size : (bridge.b.from_segment + from_size) % from_size;
+        size_t last_segment = forwards ? bridge.a.from_segment : bridge.a.from_segment;
+        if(first_segment == last_segment) last_segment = (last_segment - 2 * forwards + 1) % from_size;
+        size_t i = first_segment;
+        do
+        {
+            addVertex(ret, (*bridge.b.from_poly)[i]);
+            i = (i + 2 * forwards - 1 + from_size) % from_size;
+        }
+        while(i != (last_segment + from_size + 2 * forwards - 1) % from_size);
+
+        //Add the from-endpoint of A.
+        const coord_t a_from_width = interpolateWidth(bridge.a.from_point, (*bridge.b.from_poly)[bridge.a.from_segment], (*bridge.b.from_poly)[(bridge.a.from_segment + 1) % from_size]);
+        addVertex(ret, bridge.a.from_point, a_from_width);
 
         const size_t to_size = bridge.b.to_poly->size();
-        if(to_size > 0)
-        {
-            //Add the to-endpoint of A.
-            const coord_t a_to_width = interpolateWidth(bridge.a.to_point, (*bridge.b.to_poly)[bridge.a.to_segment], (*bridge.b.to_poly)[(bridge.a.to_segment + 1) % to_size]);
-            addVertex(ret, bridge.a.to_point, a_to_width);
+        //Add the to-endpoint of A.
+        const coord_t a_to_width = interpolateWidth(bridge.a.to_point, (*bridge.a.to_poly)[bridge.a.to_segment], (*bridge.a.to_poly)[(bridge.a.to_segment + 1) % to_size]);
+        addVertex(ret, bridge.a.to_point, a_to_width);
 
-            //Add the to_polygonal from B to A.
-            const short forwards = ((bridge.a.to_segment + to_size - bridge.b.to_segment) % to_size) < ((bridge.b.to_segment + to_size - bridge.a.to_segment) % to_size);
-            for(size_t i = (bridge.a.to_segment + forwards) % to_size; i != bridge.b.to_segment + !forwards; i = (i + 2 * forwards - 1 + to_size) % to_size)
-            {
-                addVertex(ret, (*bridge.b.to_poly)[i]);
-            }
+        //Add the to_polygonal from A to B.
+        if(bridge.a.to_segment == bridge.b.to_segment)
+        {
+            const Point vertex = getPosition((*bridge.b.to_poly)[bridge.b.to_segment]); //Same vertex for A and B.
+            const Point next_vertex = getPosition((*bridge.b.to_poly)[(bridge.b.to_segment + 1) % from_size]);
+            const Point direction = next_vertex - vertex;
+            const Point a_to_b = bridge.b.to_point - bridge.a.to_point;
+            forwards = vSize2(direction - a_to_b) > vSize2(-direction - a_to_b);
         }
+        else
+        {
+            forwards = ((bridge.a.to_segment + to_size - bridge.b.to_segment) % to_size) < ((bridge.b.to_segment + to_size - bridge.a.to_segment) % to_size);
+        }
+        first_segment = forwards ? (bridge.a.to_segment + 1) % to_size : bridge.a.to_segment;
+        last_segment = forwards ? (bridge.b.to_segment + 1) % to_size : bridge.b.to_segment;
+        i = first_segment;
+        do
+        {
+            addVertex(ret, (*bridge.b.to_poly)[i]);
+            i = (i + 2 * forwards - 1 + to_size) % to_size;
+        }
+        while(i != last_segment);
+
+        //Add the to-endpoint of B.
+        const coord_t b_to_width = interpolateWidth(bridge.b.to_point, (*bridge.b.to_poly)[bridge.b.to_segment], (*bridge.b.to_poly)[(bridge.b.to_segment + 1) % to_size]);
+        addVertex(ret, bridge.b.to_point, b_to_width);
 
         result = std::move(ret); //Override the result with the new combined shape.
     }
