@@ -9,7 +9,7 @@
 namespace cura 
 {
 
-PolygonConnector::PolygonConnector(const coord_t line_width, const coord_t max_dist)
+PolygonConnector::PolygonConnector(const coord_t line_width)
 : line_width(line_width - 5) // a bit less so that consecutive lines which have become connected can still connect to other lines
 //                |                     |                      |
 // ----------o    |      ----------o    |       ----------o,,,,o
@@ -18,7 +18,6 @@ PolygonConnector::PolygonConnector(const coord_t line_width, const coord_t max_d
 //      |    |    |                     |                      |
 //      |    |    |           o''''o    |            o''''o    |
 //      |    |    |           |    |    |            |    |    |
-, max_dist(max_dist)
 {}
 
 void PolygonConnector::add(const Polygons& input)

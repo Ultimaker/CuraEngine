@@ -169,7 +169,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
                                  });
         result_polygons.erase(it, result_polygons.end());
 
-        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
+        PolygonConnector connector(infill_line_width);
         connector.add(result_polygons);
         connector.add(toolpaths);
         Polygons connected_polygons;
