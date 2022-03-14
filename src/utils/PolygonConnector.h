@@ -394,7 +394,7 @@ protected:
      * candidate polygons to connect to.
      */
     template<typename Polygonal>
-    std::optional<std::pair<PolygonConnection<Polygonal>, PolygonConnection<Polygonal>>> findConnection(Polygonal& from_poly, std::vector<Polygonal>& to_polygons)
+    std::optional<PolygonBridge<Polygonal>> findConnection(Polygonal& from_poly, std::vector<Polygonal>& to_polygons)
     {
         //Optimise for finding the best connection.
         coord_t best_distance = line_width * 0.5; //Allow distance between polygons of up to 1/2 line width, as fudge factor for sharp corners.
@@ -469,7 +469,7 @@ protected:
 
         if(best_connection)
         {
-            return std::make_pair(*best_connection, *best_second_connection);
+            return PolygonBridge<Polygonal>(*best_connection, *best_second_connection);
         }
         else
         {
@@ -494,19 +494,18 @@ protected:
     template<typename Polygonal>
     std::optional<PolygonBridge<Polygonal>> getBridge(Polygonal& from_poly, std::vector<Polygonal>& to_polygons)
     {
-        std::optional<std::pair<PolygonConnection<Polygonal>, PolygonConnection<Polygonal>>> connection = findConnection(from_poly, to_polygons);
+        std::optional<PolygonBridge<Polygonal>> connection = findConnection(from_poly, to_polygons);
         if(!connection) //We didn't find a connection. No bridge.
         {
             return std::nullopt;
         }
 
-        PolygonBridge<Polygonal> result(connection->first, connection->second);
         //Ensure that B is always the right connection and A the left.
-        if(LinearAlg2D::pointIsLeftOfLine(result.b.from_point, result.a.from_point, result.a.to_point) > 0)
+        if(LinearAlg2D::pointIsLeftOfLine(connection->b.from_point, connection->a.from_point, connection->a.to_point) > 0)
         {
-            std::swap(result.a, result.b);
+            std::swap(connection->a, connection->b);
         }
-        return result;
+        return connection;
     }
 
     /*!
