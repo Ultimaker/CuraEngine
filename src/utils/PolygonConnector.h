@@ -564,50 +564,57 @@ protected:
         std::optional<PolygonConnection<Polygonal>> result = std::nullopt;
         coord_t best_connection_length = std::numeric_limits<coord_t>::max();
 
-        //Find the winding direction of the from_poly and to_poly by the cross product.
-        const Point from_vertex = getPosition((*first.from_poly)[first.from_segment]);
-        const coord_t from_vertex_direction = sign(cross(first.from_point - first.to_point, first.from_point - from_vertex));
-        const coord_t from_forward_distance = -from_vertex_direction * adjacent_distance;
-        const coord_t from_backward_distance = from_vertex_direction * adjacent_distance;
-        const Point to_vertex = getPosition((*first.to_poly)[first.to_segment]);
-        const coord_t to_vertex_direction = sign(cross(first.from_point - first.to_point, first.from_point - to_vertex));
-        const coord_t to_forward_distance = -to_vertex_direction * adjacent_distance;
-        const coord_t to_backward_distance = to_vertex_direction * adjacent_distance;
-        const bool is_crossed = (from_forward_distance != to_forward_distance); //True if the winding direction of the "from" polygon is opposite to that of the "to" polygon.
-
         //Find the four intersections, on both sides of the initial connection, and on both polygons.
         std::optional<std::pair<Point, size_t>> from_forward_intersection = walkUntilDistanceFromLine(*first.from_poly, first.from_segment, adjacent_distance, first.from_point, first.to_point, +1);
-        std::optional<std::pair<Point, size_t>> from_backward_intersection = walkUntilDistanceFromLine(*first.from_poly, (first.from_segment + 1) % first.from_poly->size(), adjacent_distance, first.from_point, first.to_point, -1);
-        if((from_forward_intersection && !is_crossed) || (from_backward_intersection && is_crossed))
+        std::optional<std::pair<Point, size_t>> from_backward_intersection = walkUntilDistanceFromLine(*first.from_poly, first.from_segment, adjacent_distance, first.from_point, first.to_point, -1);
+        std::optional<std::pair<Point, size_t>> to_forward_intersection = walkUntilDistanceFromLine(*first.to_poly, first.to_segment, adjacent_distance, first.from_point, first.to_point, +1);
+        std::optional<std::pair<Point, size_t>> to_backward_intersection = walkUntilDistanceFromLine(*first.to_poly, first.to_segment, adjacent_distance, first.from_point, first.to_point, -1);
+
+        if(from_forward_intersection)
         {
-            //There was an intersection in the to_forward_direction, so find it on the other side too.
-            std::optional<std::pair<Point, size_t>> to_forward_intersection = walkUntilDistanceFromLine(*first.to_poly, first.to_segment, adjacent_distance, first.from_point, first.to_point, +1);
-            if(to_forward_intersection) //Intersection on both polygons! Let's store it.
+            //Find the shortest of the connections in the to_poly.
+            if(to_forward_intersection)
             {
-                PolygonConnection<Polygonal> first_option = is_crossed ?
-                    PolygonConnection<Polygonal>(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first) :
-                    PolygonConnection<Polygonal>(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first);
-                const coord_t connection_length = getSpace(first_option);
-                if(connection_length < 1.5 * line_width) //Connection is allowed.
+                PolygonConnection<Polygonal> connection(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first);
+                const coord_t connection_length = getSpace(connection);
+                if(connection_length < 0.5 * line_width) //Connection is allowed.
                 {
-                    result = first_option;
+                    result = connection;
+                    best_connection_length = connection_length;
+                }
+            }
+            if(to_backward_intersection)
+            {
+                PolygonConnection<Polygonal> connection(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_backward_intersection->second, to_backward_intersection->first);
+                const coord_t connection_length = getSpace(connection);
+                if(connection_length < 0.5 * line_width && connection_length < best_connection_length) //Better than the previous best.
+                {
+                    result = connection;
                     best_connection_length = connection_length;
                 }
             }
         }
-        if((from_backward_intersection && !is_crossed) || (from_forward_intersection && is_crossed))
+        if(from_backward_intersection)
         {
-            //There was an intersection in the to_backward_direction, so find it on the other side too.
-            std::optional<std::pair<Point, size_t>> to_backward_intersection = walkUntilDistanceFromLine(*first.to_poly, (first.to_segment + 1) % first.to_poly->size(), adjacent_distance, first.from_point, first.to_point, -1);
-            if(to_backward_intersection) //Intersection on both polygons! Let's store it, if this is shorter than the previous one.
+            //Find the shortest of the connections in the to_poly.
+            if(to_forward_intersection)
             {
-                PolygonConnection<Polygonal> second_option = is_crossed ?
-                    PolygonConnection<Polygonal>(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_backward_intersection->second, to_backward_intersection->first) :
-                    PolygonConnection<Polygonal>(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_backward_intersection->second, to_backward_intersection->first);
-                const coord_t connection_length = getSpace(second_option);
-                if(connection_length < 0.5 * line_width && connection_length < best_connection_length) //Better than the previous option.
+                PolygonConnection<Polygonal> connection(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first);
+                const coord_t connection_length = getSpace(connection);
+                if(connection_length < 0.5 * line_width) //Connection is allowed.
                 {
-                    result = second_option;
+                    result = connection;
+                    best_connection_length = connection_length;
+                }
+            }
+            if(to_backward_intersection)
+            {
+                PolygonConnection<Polygonal> connection(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_backward_intersection->second, to_backward_intersection->first);
+                const coord_t connection_length = getSpace(connection);
+                if(connection_length < 0.5 * line_width && connection_length < best_connection_length) //Better than the previous best.
+                {
+                    result = connection;
+                    best_connection_length = connection_length;
                 }
             }
         }
