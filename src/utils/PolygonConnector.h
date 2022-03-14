@@ -340,7 +340,7 @@ protected:
     {
         const coord_t from_width = interpolateWidth(connection.from_point, (*connection.from_poly)[connection.from_segment], (*connection.from_poly)[(connection.from_segment + 1) % connection.from_poly->size()]);
         const coord_t to_width = interpolateWidth(connection.to_point, (*connection.to_poly)[connection.to_segment], (*connection.to_poly)[(connection.to_segment + 1) % connection.to_poly->size()]);
-        return vSize(connection.to_point - connection.from_point) - from_width - to_width;
+        return vSize(connection.to_point - connection.from_point) - from_width / 2 - to_width / 2;
     }
 
     /*!
