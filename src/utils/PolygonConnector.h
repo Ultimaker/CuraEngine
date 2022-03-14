@@ -649,17 +649,18 @@ protected:
     template<typename Polygonal>
     void connectPolygonsAlongBridge(const PolygonBridge<Polygonal>& bridge, Polygonal& result)
     {
-        // enforce the following orientations:
+        //We'll traverse the following path:
         //
-        // <<<<<<X......X<<<<<<< poly2
+        // <<<<<<X......X<<<<<<< to_poly
         //       ^      v
         //       ^      v
         //       ^ a  b v bridge
         //       ^      v
-        // >>>>>>X......X>>>>>>> poly1
+        // >>>>>>X......X>>>>>>> from_poly
         //
-        // this should work independent from whether it is a hole polygon or a outline polygon
-        Polygonal ret; //Create a temporary that we'll move into the result.
+        //To do this, from_poly and to_poly might need to be traversed in reverse order. This function figures all of that out.
+
+        Polygonal ret; //Create a temporary result that we'll move into the result.
 
         const size_t from_size = bridge.b.from_poly->size();
         //Add the from-endpoint of B.
@@ -667,25 +668,25 @@ protected:
         addVertex(ret, bridge.b.from_point, b_from_width);
 
         //Add the from-polygonal from B to A.
-        //Which direction to iterate in? Choose the direction with the most vertices, or the closest direction if they are on the same segment.
         short forwards;
-        if(bridge.a.from_segment == bridge.b.from_segment)
+        if(bridge.a.from_segment == bridge.b.from_segment) //If we start and end on the same segment, iterate in the direction from A to B.
         {
             const Point vertex = getPosition((*bridge.b.from_poly)[bridge.b.from_segment]); //Same vertex for A and B.
             const Point next_vertex = getPosition((*bridge.b.from_poly)[(bridge.b.from_segment + 1) % from_size]);
-            const Point direction = next_vertex - vertex;
+            const Point direction = next_vertex - vertex; //Direction we'd go into when forward iterating.
             const Point a_to_b = bridge.b.from_point - bridge.a.from_point;
             forwards = vSize2(direction - a_to_b) < vSize2(-direction - a_to_b);
         }
         else
         {
+            //If not the same segment, traverse in whichever direction is the long way around.
             forwards = ((bridge.b.from_segment + from_size - bridge.a.from_segment) % from_size) < ((bridge.a.from_segment + from_size - bridge.b.from_segment) % from_size);
         }
         size_t first_segment = forwards ? (bridge.b.from_segment + 1) % from_size : (bridge.b.from_segment + from_size) % from_size;
         size_t last_segment = forwards ? bridge.a.from_segment : bridge.a.from_segment;
         if(first_segment == last_segment) last_segment = (last_segment - 2 * forwards + 1) % from_size;
         size_t i = first_segment;
-        do
+        do //Since we might start and end on the same segment, do a do_while loop to iterate at least once.
         {
             addVertex(ret, (*bridge.b.from_poly)[i]);
             i = (i + 2 * forwards - 1 + from_size) % from_size;
