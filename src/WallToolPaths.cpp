@@ -129,7 +129,7 @@ const VariableWidthPaths& WallToolPaths::generate()
 
 void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Settings& settings)
 {
-    const coord_t stitch_distance = settings.get<coord_t>("wall_line_width_x") / 3 + 1; //In 0-width contours, junctions can cause up to 1-line-width gaps. Don't stitch more than 1 line width.
+    const coord_t stitch_distance = settings.get<coord_t>("wall_line_width_x") - 1; //In 0-width contours, junctions can cause up to 1-line-width gaps. Don't stitch more than 1 line width.
 
     for (unsigned int wall_idx = 0; wall_idx < toolpaths.size(); wall_idx++)
     {

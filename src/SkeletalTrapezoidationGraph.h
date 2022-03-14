@@ -70,7 +70,6 @@ class SkeletalTrapezoidationGraph: public HalfEdgeGraph<SkeletalTrapezoidationJo
     using edge_t = STHalfEdge;
     using node_t = STHalfEdgeNode;
 public:
-    void fixNodeDuplication();
 
     /*!
      * If an edge is too small, collapse it and its twin and fix the surrounding edges to ensure a consistent graph.
