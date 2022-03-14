@@ -92,5 +92,15 @@ void PolygonConnector::addVertex(ExtrusionLine& polygonal, const ExtrusionJuncti
     polygonal.emplace_back(vertex);
 }
 
+bool PolygonConnector::isClosed(Polygon&) const
+{
+    return true;
+}
+
+bool PolygonConnector::isClosed(ExtrusionLine& polygonal) const
+{
+    return vSize2(polygonal.front() - polygonal.back()) < 10;
+}
+
 }//namespace cura
 
