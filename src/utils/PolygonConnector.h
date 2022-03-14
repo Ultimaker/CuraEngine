@@ -102,6 +102,8 @@ protected:
     std::vector<Polygon> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add.
     std::vector<ExtrusionLine> input_paths; //!< The paths assembled by calls to \ref PolygonConnector::add.
 
+    constexpr static Ratio max_gap = 0.5; //!< The maximum allowed gap between lines that get connected, in multiples of the local line width. Allows connections inside corners where the endpoints are slightly apart.
+
     /*!
      * Line segment to connect two polygons, with all the necessary information
      * to connect them.
@@ -393,7 +395,7 @@ protected:
     std::optional<PolygonBridge<Polygonal>> findConnection(Polygonal& from_poly, std::vector<Polygonal>& to_polygons)
     {
         //Optimise for finding the best connection.
-        coord_t best_distance = line_width * 0.5; //Allow distance between polygons of up to 1/2 line width, as fudge factor for sharp corners.
+        coord_t best_distance = line_width * max_gap; //Allow up to the max_gap.
         std::optional<PolygonConnection<Polygonal>> best_connection;
         std::optional<PolygonConnection<Polygonal>> best_second_connection;
 
@@ -422,7 +424,7 @@ protected:
 
                     //Try a naive distance first. Faster to compute, but it may estimate the distance too small.
                     coord_t naive_dist = LinearAlg2D::getDistFromLine(from_pos1, to_pos1, to_pos2);
-                    if(naive_dist - from_width1 - smallest_to_width < line_width * 0.5)
+                    if(naive_dist - from_width1 - smallest_to_width < line_width * max_gap)
                     {
                         const Point closest_point = LinearAlg2D::getClosestOnLineSegment(from_pos1, to_pos1, to_pos2);
                         const coord_t width_at_closest = interpolateWidth(closest_point, to_polygons[poly_index][to_index], to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
@@ -442,7 +444,7 @@ protected:
 
                     //Also try the other way around: From the line segment of the from_poly to a vertex in the to_polygons.
                     naive_dist = LinearAlg2D::getDistFromLine(to_pos1, from_pos1, from_pos2);
-                    if(naive_dist - smallest_from_width - to_width1 < line_width * 0.5)
+                    if(naive_dist - smallest_from_width - to_width1 < line_width * max_gap)
                     {
                         const Point closest_point = LinearAlg2D::getClosestOnLineSegment(to_pos1, from_pos1, from_pos2);
                         const coord_t width_at_closest = interpolateWidth(closest_point, from_poly[from_index], from_poly[(from_index + 1) % from_poly.size()]);
@@ -600,7 +602,7 @@ protected:
             {
                 PolygonConnection<Polygonal> connection(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first);
                 const coord_t connection_length = getSpace(connection);
-                if(connection_length < 0.5 * line_width) //Connection is allowed.
+                if(connection_length < max_gap * line_width) //Connection is allowed.
                 {
                     result = connection;
                     best_connection_length = connection_length;
@@ -610,7 +612,7 @@ protected:
             {
                 PolygonConnection<Polygonal> connection(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_backward_intersection->second, to_backward_intersection->first);
                 const coord_t connection_length = getSpace(connection);
-                if(connection_length < 0.5 * line_width && connection_length < best_connection_length) //Better than the previous best.
+                if(connection_length < max_gap * line_width && connection_length < best_connection_length) //Better than the previous best.
                 {
                     result = connection;
                     best_connection_length = connection_length;
@@ -624,7 +626,7 @@ protected:
             {
                 PolygonConnection<Polygonal> connection(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first);
                 const coord_t connection_length = getSpace(connection);
-                if(connection_length < 0.5 * line_width) //Connection is allowed.
+                if(connection_length < max_gap * line_width) //Connection is allowed.
                 {
                     result = connection;
                     best_connection_length = connection_length;
@@ -634,7 +636,7 @@ protected:
             {
                 PolygonConnection<Polygonal> connection(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_backward_intersection->second, to_backward_intersection->first);
                 const coord_t connection_length = getSpace(connection);
-                if(connection_length < 0.5 * line_width && connection_length < best_connection_length) //Better than the previous best.
+                if(connection_length < max_gap * line_width && connection_length < best_connection_length) //Better than the previous best.
                 {
                     result = connection;
                     best_connection_length = connection_length;
