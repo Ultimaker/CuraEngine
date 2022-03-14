@@ -541,7 +541,7 @@ protected:
                     continue;
                 }
                 const Point interpolated_point = previous_pos + (vertex_pos - previous_pos) * interpolation;
-                return std::make_pair(interpolated_point, previous_index);
+                return std::make_pair(interpolated_point, std::min(index, index - direction));
             }
         }
         return std::nullopt; //None of the vertices were far enough away from the line (and on the correct side).
