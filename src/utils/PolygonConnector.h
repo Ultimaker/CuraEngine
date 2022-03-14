@@ -236,6 +236,11 @@ protected:
             Polygonal current = std::move(to_connect.back());
             to_connect.pop_back();
 
+            if(!isClosed(current)) //Only bridge closed contours.
+            {
+                result.push_back(current);
+                continue;
+            }
             std::optional<PolygonBridge<Polygonal>> bridge = getBridge(current, to_connect);
             if(bridge)
             {
@@ -329,6 +334,25 @@ protected:
     void addVertex(ExtrusionLine& polygonal, const ExtrusionJunction& vertex) const;
 
     /*!
+     * Tests whether this is a closed polygonal object, rather than a polyline.
+     *
+     * Polygons are always closed, so this overload will always return true.
+     * \param polygonal The polygonal object to check.
+     * \return ``true``, indicating that this polygon is closed.
+     */
+    bool isClosed(Polygon& polygonal) const;
+
+    /*!
+     * Tests whether this is a closed polygonal object, rather than a polyline.
+     *
+     * If the endpoints of the extrusion line meet, it is a closed shape. If
+     * not, it is open.
+     * \param polygonal The polygonal object to check.
+     * \return ``true`` if that shape is closed, or ``false`` otherwise.
+     */
+    bool isClosed(ExtrusionLine& polygonal) const;
+
+    /*!
      * Get the amount of space in between the polygons at the given connection.
      *
      * The space is the length of the connection, minus the width of the
@@ -380,6 +404,10 @@ protected:
         //The smallest connection will be from one of the vertices. So go through all of the vertices to find the closest place where they approach.
         for(size_t poly_index = 0; poly_index < to_polygons.size(); ++poly_index)
         {
+            if(!isClosed(to_polygons[poly_index]))
+            {
+                continue;
+            }
             for(size_t to_index = 0; to_index < to_polygons[poly_index].size(); ++to_index)
             {
                 const Point to_pos1 =  getPosition(to_polygons[poly_index][to_index]);
