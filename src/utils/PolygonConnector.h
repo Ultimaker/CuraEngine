@@ -370,7 +370,7 @@ protected:
      * candidate polygons to connect to.
      */
     template<typename Polygonal>
-    std::optional<std::pair<PolygonConnection<Polygonal>, PolygonConnection<Polygonal>>> findConnection(Polygonal from_poly, std::vector<Polygonal>& to_polygons)
+    std::optional<std::pair<PolygonConnection<Polygonal>, PolygonConnection<Polygonal>>> findConnection(Polygonal& from_poly, std::vector<Polygonal>& to_polygons)
     {
         //Optimise for finding the best connection.
         coord_t best_distance = line_width * 0.5; //Allow distance between polygons of up to 1/2 line width, as fudge factor for sharp corners.
@@ -464,7 +464,7 @@ protected:
      * So as to try and find a bridge which is centered around the initiall found first connection
      */
     template<typename Polygonal>
-    std::optional<PolygonBridge<Polygonal>> getBridge(Polygonal from_poly, std::vector<Polygonal>& to_polygons)
+    std::optional<PolygonBridge<Polygonal>> getBridge(Polygonal& from_poly, std::vector<Polygonal>& to_polygons)
     {
         std::optional<std::pair<PolygonConnection<Polygonal>, PolygonConnection<Polygonal>>> connection = findConnection(from_poly, to_polygons);
         if(!connection) //We didn't find a connection. No bridge.
