@@ -66,11 +66,8 @@ public:
      *
      * This specifies a few settings for the connector.
      * \param line_width The width at which the polygons will be printed.
-     * \param max_dist The maximum length of connections. If polygons can only
-     * be connected by creating bridges longer than this distance, they will be
-     * left unconnected.
      */
-    PolygonConnector(const coord_t line_width, const coord_t max_dist);
+    PolygonConnector(const coord_t line_width);
 
     /*!
      * Add polygons to be connected by a future call to \ref PolygonConnector::connect()
@@ -102,7 +99,6 @@ public:
 
 protected:
     coord_t line_width; //!< The distance between the line segments which connect two polygons.
-    coord_t max_dist; //!< The maximal distance crossed by the connecting segments. Should be more than the \ref line_width in order to accomodate curved polygons.
     std::vector<Polygon> input_polygons; //!< The polygons assembled by calls to \ref PolygonConnector::add.
     std::vector<ExtrusionLine> input_paths; //!< The paths assembled by calls to \ref PolygonConnector::add.
 
