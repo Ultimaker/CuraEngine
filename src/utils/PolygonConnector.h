@@ -474,9 +474,7 @@ protected:
 
         PolygonBridge<Polygonal> result(connection->first, connection->second);
         //Ensure that B is always the right connection and A the left.
-        const Point a_vec = result.a.to_point - result.a.from_point;
-        const Point shift = turn90CCW(a_vec);
-        if(dot(shift, result.b.from_point - result.a.from_point) > 0)
+        if(LinearAlg2D::pointIsLeftOfLine(result.b.from_point, result.a.from_point, result.a.to_point) > 0)
         {
             std::swap(result.a, result.b);
         }
