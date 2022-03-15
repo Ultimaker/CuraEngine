@@ -169,4 +169,25 @@ TEST_F(PolygonConnectorTest, getBridgeTooFar)
     EXPECT_EQ(bridge, std::nullopt) << "The two polygons are 200 units apart where they are closest, which is more than 1.5 times the line width (100), so they can't be connected.";
 }
 
+/*!
+ * Test attempting to create a bridge when the connecting part is too narrow.
+ *
+ * Since the bridging lines need to be spaced 1 line width apart, they can't be
+ * too close together. If the bridge can't be constructed keeping proper spacing
+ * the bridge should fail to be created.
+ */
+TEST_F(PolygonConnectorTest, getBridgeTooNarrow)
+{
+    Polygon too_narrow;
+    too_narrow.emplace_back(1100, 400);
+    too_narrow.emplace_back(2100, 400);
+    too_narrow.emplace_back(2100, 480); //Less than 100 units wide.
+    too_narrow.emplace_back(1100, 480);
+    std::vector<Polygon> to_connect({too_narrow});
+
+    std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
+
+    EXPECT_EQ(bridge, std::nullopt) << "Where the two polygons are adjacent is only 80 units wide. This is not enough to create a bridge with the connecting lines spaced 1 line width (100 units) apart.";
+}
+
 }
