@@ -354,6 +354,19 @@ protected:
     bool isClosed(ExtrusionLine& polygonal) const;
 
     /*!
+     * Construct an empty polygonal object, without any vertices.
+     *
+     * This is to be template-specialized for every type. The default
+     * constructor for some types creates some invalid data.
+     * \return An empty polygonal object.
+     */
+    template<typename Polygonal>
+    Polygonal createEmpty() const
+    {
+        return Polygonal();
+    }
+
+    /*!
      * Get the amount of space in between the polygons at the given connection.
      *
      * The space is the length of the connection, minus the width of the
@@ -663,7 +676,7 @@ protected:
         //
         //To do this, from_poly and to_poly might need to be traversed in reverse order. This function figures all of that out.
 
-        Polygonal ret; //Create a temporary result that we'll move into the result.
+        Polygonal ret = createEmpty<Polygonal>(); //Create a temporary result that we'll move into the result.
 
         const size_t from_size = bridge.b.from_poly->size();
         //Add the from-endpoint of B.
