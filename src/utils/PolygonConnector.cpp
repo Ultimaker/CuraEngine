@@ -76,7 +76,7 @@ void PolygonConnector::addVertex(Polygon& polygonal, const Point& vertex) const
 
 void PolygonConnector::addVertex(ExtrusionLine& polygonal, const Point& position, const coord_t width) const
 {
-    polygonal.emplace_back(position, width, 0); //Perimeter indices don't make sense any more once perimeters are merged. Use 0 as placeholder.
+    polygonal.emplace_back(position, width, 1); //Perimeter indices don't make sense any more once perimeters are merged. Use 1 as placeholder, being the first "normal" wall.
 }
 
 void PolygonConnector::addVertex(ExtrusionLine& polygonal, const ExtrusionJunction& vertex) const
