@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ExtruderTrain.h"
@@ -354,7 +354,6 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     {
         for (const ExtrusionLine* line : fillers_by_inset[inset_idx])
         {
-            assert(inset_idx - 1 < walls_by_inset.size());
             if (inset_idx - 1 >= walls_by_inset.size()) continue;
             for (const ExtrusionLine* enclosing_wall : walls_by_inset[inset_idx - 1])
             {
