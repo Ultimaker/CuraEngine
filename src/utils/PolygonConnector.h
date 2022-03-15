@@ -384,7 +384,7 @@ protected:
             return getWidth(a); //Just return one of them. They are on top of each other anyway.
         }
         const coord_t position_along_length = vSize(position - getPosition(a));
-        return getWidth(b) * position_along_length / total_length + getWidth(a) * (total_length - position_along_length) / total_length;
+        return round_divide(getWidth(b) * position_along_length, total_length) + round_divide(getWidth(a) * (total_length - position_along_length), total_length);
     }
 
     /*!
