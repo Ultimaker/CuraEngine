@@ -60,6 +60,7 @@ class PolygonConnector
     FRIEND_TEST(PolygonConnectorTest, getBridgeNestedSquares);
     FRIEND_TEST(PolygonConnectorTest, getBridgeAdjacentSquares);
     FRIEND_TEST(PolygonConnectorTest, getBridgeClosest);
+    FRIEND_TEST(PolygonConnectorTest, getBridgeTooFar);
 #endif
 public:
     /*!

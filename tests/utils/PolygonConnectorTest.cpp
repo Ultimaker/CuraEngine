@@ -152,4 +152,21 @@ TEST_F(PolygonConnectorTest, getBridgeClosest)
     EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a.to_point, bridge->b.from_point, bridge->b.to_point), 0) << "Connection A should be to the left of connection B.";
 }
 
+/*!
+ * Test attempting to create a bridge when the polygons are too far apart.
+ */
+TEST_F(PolygonConnectorTest, getBridgeTooFar)
+{
+    Polygon too_far; //More than 1.5 line width away.
+    too_far.emplace_back(1200, 0);
+    too_far.emplace_back(2200, 0);
+    too_far.emplace_back(2200, 1000);
+    too_far.emplace_back(1200, 1000);
+    std::vector<Polygon> to_connect({too_far});
+
+    std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
+
+    EXPECT_EQ(bridge, std::nullopt) << "The two polygons are 200 units apart where they are closest, which is more than 1.5 times the line width (100), so they can't be connected.";
+}
+
 }
