@@ -61,6 +61,7 @@ class PolygonConnector
     FRIEND_TEST(PolygonConnectorTest, getBridgeAdjacentSquares);
     FRIEND_TEST(PolygonConnectorTest, getBridgeClosest);
     FRIEND_TEST(PolygonConnectorTest, getBridgeTooFar);
+    FRIEND_TEST(PolygonConnectorTest, getBridgeTooNarrow);
 #endif
 public:
     /*!
