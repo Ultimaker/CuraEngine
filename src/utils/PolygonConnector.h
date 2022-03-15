@@ -696,14 +696,14 @@ protected:
             forwards = ((bridge.a.to_segment + to_size - bridge.b.to_segment) % to_size) < ((bridge.b.to_segment + to_size - bridge.a.to_segment) % to_size);
         }
         first_segment = forwards ? (bridge.a.to_segment + 1) % to_size : bridge.a.to_segment;
-        last_segment = forwards ? (bridge.b.to_segment + 1) % to_size : bridge.b.to_segment;
+        size_t end_segment = forwards ? (bridge.b.to_segment + 1) % to_size : bridge.b.to_segment;
         i = first_segment;
         do
         {
             addVertex(ret, (*bridge.b.to_poly)[i]);
             i = (i + 2 * forwards - 1 + to_size) % to_size;
         }
-        while(i != last_segment);
+        while(i != end_segment);
 
         //Add the to-endpoint of B.
         const coord_t b_to_width = interpolateWidth(bridge.b.to_point, (*bridge.b.to_poly)[bridge.b.to_segment], (*bridge.b.to_poly)[(bridge.b.to_segment + 1) % to_size]);
