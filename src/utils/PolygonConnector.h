@@ -606,51 +606,20 @@ protected:
         std::optional<std::pair<Point, size_t>> to_forward_intersection = walkUntilDistanceFromLine(*first.to_poly, first.to_segment, adjacent_distance, first.from_point, first.to_point, +1);
         std::optional<std::pair<Point, size_t>> to_backward_intersection = walkUntilDistanceFromLine(*first.to_poly, first.to_segment, adjacent_distance, first.from_point, first.to_point, -1);
 
-        if(from_forward_intersection)
+        for(std::optional<std::pair<Point, size_t>> from_intersection : {from_forward_intersection, from_backward_intersection})
         {
             //Find the shortest of the connections in the to_poly.
-            if(to_forward_intersection)
+            for(std::optional<std::pair<Point, size_t>> to_intersection : {to_forward_intersection, to_backward_intersection})
             {
-                PolygonConnection<Polygonal> connection(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first);
-                const coord_t connection_length = getSpace(connection);
-                if(connection_length < max_gap * line_width) //Connection is allowed.
+                if(to_intersection)
                 {
-                    result = connection;
-                    best_connection_length = connection_length;
-                }
-            }
-            if(to_backward_intersection)
-            {
-                PolygonConnection<Polygonal> connection(first.from_poly, from_forward_intersection->second, from_forward_intersection->first, first.to_poly, to_backward_intersection->second, to_backward_intersection->first);
-                const coord_t connection_length = getSpace(connection);
-                if(connection_length < max_gap * line_width && connection_length < best_connection_length) //Better than the previous best.
-                {
-                    result = connection;
-                    best_connection_length = connection_length;
-                }
-            }
-        }
-        if(from_backward_intersection)
-        {
-            //Find the shortest of the connections in the to_poly.
-            if(to_forward_intersection)
-            {
-                PolygonConnection<Polygonal> connection(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_forward_intersection->second, to_forward_intersection->first);
-                const coord_t connection_length = getSpace(connection);
-                if(connection_length < max_gap * line_width) //Connection is allowed.
-                {
-                    result = connection;
-                    best_connection_length = connection_length;
-                }
-            }
-            if(to_backward_intersection)
-            {
-                PolygonConnection<Polygonal> connection(first.from_poly, from_backward_intersection->second, from_backward_intersection->first, first.to_poly, to_backward_intersection->second, to_backward_intersection->first);
-                const coord_t connection_length = getSpace(connection);
-                if(connection_length < max_gap * line_width && connection_length < best_connection_length) //Better than the previous best.
-                {
-                    result = connection;
-                    best_connection_length = connection_length;
+                    PolygonConnection<Polygonal> connection(first.from_poly, from_intersection->second, from_intersection->first, first.to_poly, to_intersection->second, to_intersection->first);
+                    const coord_t connection_length = getSpace(connection);
+                    if(connection_length < max_gap * line_width && connection_length < best_connection_length) //Connection is allowed.
+                    {
+                        result = connection;
+                        best_connection_length = connection_length;
+                    }
                 }
             }
         }
