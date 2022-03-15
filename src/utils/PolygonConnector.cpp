@@ -10,14 +10,7 @@ namespace cura
 {
 
 PolygonConnector::PolygonConnector(const coord_t line_width)
-: line_width(line_width - 5) // a bit less so that consecutive lines which have become connected can still connect to other lines
-//                |                     |                      |
-// ----------o    |      ----------o    |       ----------o,,,,o
-//           |    |  ==>           |    |  ==>
-// -----o    |    |      -----o----o    |       -----o----o----o
-//      |    |    |                     |                      |
-//      |    |    |           o''''o    |            o''''o    |
-//      |    |    |           |    |    |            |    |    |
+: line_width(line_width)
 {}
 
 void PolygonConnector::add(const Polygons& input)
