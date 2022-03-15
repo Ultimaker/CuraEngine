@@ -58,7 +58,7 @@ class PolygonConnector
 {
 #ifdef BUILD_TESTS
     FRIEND_TEST(PolygonConnectorTest, getBridgeNestedSquares);
-    FRIEND_TEST(PolygonConnectorTest, connectionLengthTest);
+    FRIEND_TEST(PolygonConnectorTest, getBridgeAdjacentSquares);
 #endif
 public:
     /*!
