@@ -613,9 +613,15 @@ protected:
                 continue;
             }
             //Find the shortest of the connections in the to_poly.
+            const bool original_side = LinearAlg2D::pointIsLeftOfLine(first.to_point, first.from_point, from_intersection->first) > 0;
             for(const std::optional<std::pair<Point, size_t>>& to_intersection : {to_forward_intersection, to_backward_intersection})
             {
                 if(!to_intersection)
+                {
+                    continue;
+                }
+                const bool current_side = LinearAlg2D::pointIsLeftOfLine(to_intersection->first, first.from_point, from_intersection->first) > 0;
+                if (original_side != current_side)
                 {
                     continue;
                 }
