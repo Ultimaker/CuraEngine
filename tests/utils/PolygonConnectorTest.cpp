@@ -129,4 +129,27 @@ TEST_F(PolygonConnectorTest, getBridgeAdjacentSquares)
     EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.to_point, bridge->a.from_point, bridge->a.to_point), 0) << "Connection B should be to the right of connection A.";
 }
 
+/*!
+ * Test that the bridge is created in the location where the polygons are
+ * closest together.
+ */
+TEST_F(PolygonConnectorTest, getBridgeClosest)
+{
+    Polygon adjacent_slanted; //A polygon that's adjacent to the first square, but tilted such that the vertex at [1100,200] is definitely the closest.
+    adjacent_slanted.emplace_back(1100, 200);
+    adjacent_slanted.emplace_back(2100, 200);
+    adjacent_slanted.emplace_back(2140, 1200);
+    adjacent_slanted.emplace_back(1140, 1200);
+    std::vector<Polygon> to_connect({adjacent_slanted});
+
+    std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
+
+    ASSERT_NE(bridge, std::nullopt) << "The two polygons are adjacent and spaced closely enough to bridge along their entire side, even with the slant.";
+
+    EXPECT_EQ(bridge->b.from_point, Point(1000, 200)) << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
+    EXPECT_EQ(bridge->b.to_point, Point(1100, 200)) << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
+    EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a.from_point, bridge->b.from_point, bridge->b.to_point), 0) << "Connection A should be to the left of connection B.";
+    EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a.to_point, bridge->b.from_point, bridge->b.to_point), 0) << "Connection A should be to the left of connection B.";
+}
+
 }
