@@ -14,7 +14,7 @@ class PolygonConnectorTest : public testing::Test
 {
 public:
     Polygon test_square;
-    Polygon test_square2; //Larger and more to the right.
+    Polygon test_square2; //Larger, around the first square.
     Polygon test_triangle;
     Polygon test_circle;
     Polygon test_convex_shape;
@@ -32,10 +32,10 @@ public:
         test_square.emplace_back(0, 1000);
         test_shapes.add(test_square);
     
-        test_square2.emplace_back(1100, 1500);
-        test_square2.emplace_back(2000, 1500);
-        test_square2.emplace_back(2000, -500);
-        test_square2.emplace_back(1100, -500);
+        test_square2.emplace_back(1100, 1100);
+        test_square2.emplace_back(-100, 1100);
+        test_square2.emplace_back(-100, -100);
+        test_square2.emplace_back(1100, -100);
         test_shapes.add(test_square2);
 
         test_triangle.emplace_back(0, 2100);
@@ -68,8 +68,7 @@ public:
         }
 
         constexpr coord_t line_width = 100;
-        constexpr coord_t max_dist = 170;
-        pc = new PolygonConnector(line_width, max_dist);
+        pc = new PolygonConnector(line_width);
         pc->add(test_shapes);
         pc->connect(connected_polygons, connected_paths);
 
@@ -83,65 +82,24 @@ public:
 
 };
 
-/*TEST_F(PolygonConnectorTest, getBridgeTest)
+/*!
+ * Test creating a bridge between two squares that are nested next to each other
+ * at precisely the line width apart.
+ *
+ * This is a common occurrence with skin.
+ */
+TEST_F(PolygonConnectorTest, getBridgeNestedSquares)
 {
-    PolygonConnector::PolygonBridge predicted(
-        PolygonConnector::PolygonConnection{
-            ClosestPolygonPoint(Point(0, 500), 2, test_square),
-            ClosestPolygonPoint(Point(-100, 500), 0, test_convex_shape)},
-        PolygonConnector::PolygonConnection{
-            ClosestPolygonPoint(Point(0, 600), 2, test_square),
-            ClosestPolygonPoint(Point(-100, 600), 0, test_convex_shape)});
-    std::vector<Polygon> polys;
-    polys.push_back(test_convex_shape);
+    std::vector<Polygon> to_connect({test_square2});
+    std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
-    std::optional<PolygonConnector::PolygonBridge> computed = pc->getBridge(test_square, polys);
+    ASSERT_NE(bridge, std::nullopt) << "The two polygons are nested simply, so they are definitely positioned closely enough to bridge. They are also wide enough.";
 
-    ASSERT_TRUE(bool(computed)) << "An answer is expected.";
-    if (computed)
-    {
-        const coord_t a_from_error = vSize(predicted.a.from.p() - computed->a.from.p());
-        const coord_t a_to_error = vSize(predicted.a.to.p() - computed->a.to.p());
-        const coord_t b_from_error = vSize(predicted.b.from.p() - computed->b.from.p());
-        const coord_t b_to_error = vSize(predicted.b.to.p() - computed->b.to.p());
-
-        constexpr coord_t maximum_error = 10;
-        EXPECT_LT(a_from_error, maximum_error) << "a.from was computed to something different from what was predicted!";
-        EXPECT_LT(a_to_error, maximum_error) << "a.to was computed to something different from what was predicted!";
-        EXPECT_LT(b_from_error, maximum_error) << "b.from was computed to something different from what was predicted!";
-        EXPECT_LT(b_to_error, maximum_error) << "b.to was computed to something different from what was predicted!";
-    }
+    EXPECT_EQ(vSize(bridge->a.from_point - bridge->a.to_point), 100) << "The polygons are 100 units spaced out concentrically, so this is the shortest possible bridge.";
+    EXPECT_EQ(vSize(bridge->b.from_point - bridge->b.to_point), 100) << "The second bridge should also be equally short in this case.";
+    EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a.from_point, bridge->a.to_point, bridge->b.from_point, bridge->b.to_point), 100 * 100) << "The bridges should be spaced 1 line width (100 units) apart.";
+    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.from_point, bridge->a.from_point, bridge->a.to_point), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.to_point, bridge->a.from_point, bridge->a.to_point), 0) << "Connection B should be to the right of connection A.";
 }
-
-TEST_F(PolygonConnectorTest, connectionLengthTest)
-{
-    constexpr coord_t maximum_distance = 170;
-    std::unordered_set<Point> input_verts;
-    for (ConstPolygonRef poly : test_shapes)
-    {
-        for (Point p : poly)
-        {
-            input_verts.emplace(p);
-        }
-    }
-
-    coord_t longest_connection_dist = 0;
-    size_t too_long_connection_count = 0;
-    /*for (PolygonConnector::PolygonBridge bridge : pc->all_bridges)
-    {
-        for (auto connection : {bridge.a, bridge.b})
-        {
-            const coord_t connection_dist = vSize(connection.to.p() - connection.from.p());
-            if (connection_dist > maximum_distance)
-            {
-                too_long_connection_count++;
-                longest_connection_dist = std::max(longest_connection_dist, connection_dist);
-            }
-        }
-    }*/
-
-    /*ASSERT_EQ(too_long_connection_count, 0) << "PolygonConnector::connect() obtained " << too_long_connection_count << " too long bridge connections! Longest is " << INT2MM(longest_connection_dist) << "\n";
-}*/
-
 
 }

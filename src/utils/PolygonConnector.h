@@ -57,7 +57,7 @@ namespace cura
 class PolygonConnector
 {
 #ifdef BUILD_TESTS
-    FRIEND_TEST(PolygonConnectorTest, getBridgeTest);
+    FRIEND_TEST(PolygonConnectorTest, getBridgeNestedSquares);
     FRIEND_TEST(PolygonConnectorTest, connectionLengthTest);
 #endif
 public:
