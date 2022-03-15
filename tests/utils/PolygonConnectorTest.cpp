@@ -31,55 +31,19 @@ public:
         test_square.emplace_back(1000, 0);
         test_square.emplace_back(1000, 1000);
         test_square.emplace_back(0, 1000);
-        test_shapes.add(test_square);
     
         test_square_around.emplace_back(1100, 1100);
         test_square_around.emplace_back(-100, 1100);
         test_square_around.emplace_back(-100, -100);
         test_square_around.emplace_back(1100, -100);
-        test_shapes.add(test_square_around);
 
         test_square_adjacent.emplace_back(1100, 200);
         test_square_adjacent.emplace_back(2100, 200);
         test_square_adjacent.emplace_back(2100, 1200);
         test_square_adjacent.emplace_back(1100, 1200);
-        test_shapes.add(test_square_adjacent);
-
-        test_triangle.emplace_back(0, 2100);
-        test_triangle.emplace_back(500, 1100);
-        test_triangle.emplace_back(1500, 2100);
-        test_shapes.add(test_triangle);
-
-        for (double a = 0; a < 1.0; a += 0.05)
-        {
-            test_circle.add(Point(2050, 2050) + Point(std::cos(a * 2 * M_PI)*500, std::sin(a * 2 * M_PI)*500));
-        }
-        test_shapes.add(test_circle);
-
-        test_convex_shape.emplace_back(-300, 0);
-        test_convex_shape.emplace_back(-100, 500);
-        test_convex_shape.emplace_back(-100, 600);
-        test_convex_shape.emplace_back(-200, 1000);
-        test_convex_shape.emplace_back(-500, 1500);
-        test_convex_shape.emplace_back(-1500, 1500);
-        test_convex_shape.emplace_back(-1500, 1500);
-        test_convex_shape.emplace_back(-1600, 1100);
-        test_convex_shape.emplace_back(-700, 200);
-        test_shapes.add(test_convex_shape);
-
-        Polygons inset = test_shapes;
-        while (!inset.empty())
-        {
-            inset = inset.offset(-100);
-            test_shapes.add(inset);
-        }
 
         constexpr coord_t line_width = 100;
         pc = new PolygonConnector(line_width);
-        pc->add(test_shapes);
-        pc->connect(connected_polygons, connected_paths);
-
-        ASSERT_GT(connected_polygons.size(), 0) << "PolygonConnector gave no output polygons!";
     }
 
     void TearDown()
@@ -188,6 +152,27 @@ TEST_F(PolygonConnectorTest, getBridgeTooNarrow)
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
     EXPECT_EQ(bridge, std::nullopt) << "Where the two polygons are adjacent is only 80 units wide. This is not enough to create a bridge with the connecting lines spaced 1 line width (100 units) apart.";
+}
+
+/*!
+ * Try connecting four nested polygons.
+ *
+ * Let's play a game of connect four!
+ */
+TEST_F(PolygonConnectorTest, connectFourNested)
+{
+    Polygons connecting;
+    connecting.add(test_square_around); //1200-wide square.
+    connecting.add(test_square); //1000-wide square.
+    connecting.add(test_square.offset(-100)); //800-wide square.
+    connecting.add(test_square.offset(-200)); //600-wide square.
+
+    pc->add(connecting);
+    Polygons output_polygons;
+    VariableWidthPaths output_paths;
+    pc->connect(output_polygons, output_paths);
+
+    EXPECT_EQ(output_polygons.size(), 1) << "All four polygons should've gotten connected into 1 single polygon.";
 }
 
 }
