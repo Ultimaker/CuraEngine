@@ -94,5 +94,15 @@ bool PolygonConnector::isClosed(ExtrusionLine& polygonal) const
     return vSize2(polygonal.front() - polygonal.back()) < 10;
 }
 
+template<>
+ExtrusionLine PolygonConnector::createEmpty<ExtrusionLine>() const
+{
+    constexpr size_t inset_index = 1; //Specialising to set inset_index to 1 instead of maximum int. Connected polys are not specific to any inset.
+    constexpr bool is_odd = false;
+    ExtrusionLine result(inset_index, is_odd);
+    result.is_closed = true;
+    return result; //No copy, via RVO.
+}
+
 }//namespace cura
 
