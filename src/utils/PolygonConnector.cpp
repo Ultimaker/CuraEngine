@@ -91,7 +91,7 @@ bool PolygonConnector::isClosed(Polygon&) const
 
 bool PolygonConnector::isClosed(ExtrusionLine& polygonal) const
 {
-    return vSize2(polygonal.front() - polygonal.back()) < 10;
+    return vSize2(polygonal.front() - polygonal.back()) < 25;
 }
 
 template<>
