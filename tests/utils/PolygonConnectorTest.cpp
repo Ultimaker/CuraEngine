@@ -14,7 +14,8 @@ class PolygonConnectorTest : public testing::Test
 {
 public:
     Polygon test_square;
-    Polygon test_square2; //Larger, around the first square.
+    Polygon test_square_around; //Larger, around the first square.
+    Polygon test_square_adjacent; //Next to the first square.
     Polygon test_triangle;
     Polygon test_circle;
     Polygon test_convex_shape;
@@ -32,11 +33,17 @@ public:
         test_square.emplace_back(0, 1000);
         test_shapes.add(test_square);
     
-        test_square2.emplace_back(1100, 1100);
-        test_square2.emplace_back(-100, 1100);
-        test_square2.emplace_back(-100, -100);
-        test_square2.emplace_back(1100, -100);
-        test_shapes.add(test_square2);
+        test_square_around.emplace_back(1100, 1100);
+        test_square_around.emplace_back(-100, 1100);
+        test_square_around.emplace_back(-100, -100);
+        test_square_around.emplace_back(1100, -100);
+        test_shapes.add(test_square_around);
+
+        test_square_adjacent.emplace_back(1100, 200);
+        test_square_adjacent.emplace_back(2100, 200);
+        test_square_adjacent.emplace_back(2100, 1200);
+        test_square_adjacent.emplace_back(1100, 1200);
+        test_shapes.add(test_square_adjacent);
 
         test_triangle.emplace_back(0, 2100);
         test_triangle.emplace_back(500, 1100);
@@ -83,19 +90,39 @@ public:
 };
 
 /*!
- * Test creating a bridge between two squares that are nested next to each other
- * at precisely the line width apart.
+ * Test creating a bridge between two squares that are nested in each other at
+ * precisely the line width apart.
  *
  * This is a common occurrence with skin.
  */
 TEST_F(PolygonConnectorTest, getBridgeNestedSquares)
 {
-    std::vector<Polygon> to_connect({test_square2});
+    std::vector<Polygon> to_connect({test_square_around});
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
     ASSERT_NE(bridge, std::nullopt) << "The two polygons are nested simply, so they are definitely positioned closely enough to bridge. They are also wide enough.";
 
     EXPECT_EQ(vSize(bridge->a.from_point - bridge->a.to_point), 100) << "The polygons are 100 units spaced out concentrically, so this is the shortest possible bridge.";
+    EXPECT_EQ(vSize(bridge->b.from_point - bridge->b.to_point), 100) << "The second bridge should also be equally short in this case.";
+    EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a.from_point, bridge->a.to_point, bridge->b.from_point, bridge->b.to_point), 100 * 100) << "The bridges should be spaced 1 line width (100 units) apart.";
+    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.from_point, bridge->a.from_point, bridge->a.to_point), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.to_point, bridge->a.from_point, bridge->a.to_point), 0) << "Connection B should be to the right of connection A.";
+}
+
+/*!
+ * Test creating a bridge between two adjacent squares that are spaced 1 line
+ * width apart.
+ *
+ * This is a common occurrence with multiplied infill.
+ */
+TEST_F(PolygonConnectorTest, getBridgeAdjacentSquares)
+{
+    std::vector<Polygon> to_connect({test_square_adjacent});
+    std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
+
+    ASSERT_NE(bridge, std::nullopt) << "The two polygons are adjacent, spaced closely enough to bridge and with enough room.";
+
+    EXPECT_EQ(vSize(bridge->a.from_point - bridge->a.to_point), 100) << "The polygons are 100 units spaced apart, so this is the shortest possible bridge.";
     EXPECT_EQ(vSize(bridge->b.from_point - bridge->b.to_point), 100) << "The second bridge should also be equally short in this case.";
     EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a.from_point, bridge->a.to_point, bridge->b.from_point, bridge->b.to_point), 100 * 100) << "The bridges should be spaced 1 line width (100 units) apart.";
     EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.from_point, bridge->a.from_point, bridge->a.to_point), 0) << "Connection B should be to the right of connection A.";
