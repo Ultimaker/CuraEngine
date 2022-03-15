@@ -222,11 +222,6 @@ protected:
     std::vector<Polygonal> connectGroup(std::vector<Polygonal>& to_connect)
     {
         std::vector<Polygonal> result;
-        if(to_connect.empty())
-        {
-            return result;
-        }
-
         while(!to_connect.empty())
         {
             if(to_connect.size() == 1) //Nothing to connect it to any more.
