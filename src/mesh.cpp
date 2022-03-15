@@ -19,6 +19,11 @@ static inline uint64_t intersperse3bits(uint64_t x)
     return x;
 }
 
+static inline uint64_t hash_point3(const Point3& v)
+{
+    return intersperse3bits(static_cast<uint64_t>(v.x)) | (intersperse3bits(static_cast<uint64_t>(v.y)) << 1) | (intersperse3bits(static_cast<uint64_t>(v.z)) << 2);
+}
+
 HashMap3D::HashMap3D(size_t nvertices)
 {
     // 2/3 load factor
@@ -53,16 +58,17 @@ HashMap3D::Item HashMap3D::insert(const Point3& v, const std::vector<MeshVertex>
 {
     // Lookup
     const auto predicate = [&vertices, &v](Item item) { return vertices[item - 1].p == v; };
-    const hash_t hash = intersperse3bits(v.x) | (intersperse3bits(v.y) << 1) | (intersperse3bits(v.z) << 2);
+    const hash_t hash = hash_point3(v);
     const Item& slot = probe(hash, predicate);
 
     if (slot)
     {
-        // Found a vertex within vertex_meld_distance of `v`
+        // Found a vertex equal to v
         return slot - 1;
     }
     else
     {
+        constexpr auto const_false = [](Item) { return false; }; // Predicate for probing during insertion
         // Check if a rehash is needed
         if (! free_vertices)
         {
@@ -72,27 +78,17 @@ HashMap3D::Item HashMap3D::insert(const Point3& v, const std::vector<MeshVertex>
             const auto end = static_cast<ptrdiff_t>(vertices.size());
             for (ptrdiff_t i = 0; i < end; i++)
             {
-                insert8(vertices[i].p, i + 1);
+                probe(hash_point3(vertices[i].p), const_false) = i + 1;
             }
         }
 
         // Insertion
         free_vertices--;
         Item item = vertices.size(); // New index
-        insert8(v, item + 1);
+        probe(hash, const_false) = item + 1;
 
         return item;
     }
-}
-
-inline void HashMap3D::insert8(const Point3& v, Item value)
-{
-    hash_t hash0_x = intersperse3bits(v.x);
-    hash_t hash0_y = intersperse3bits(v.y) << 1;
-    hash_t hash0_z = intersperse3bits(v.z) << 2;
-
-    constexpr auto constfalse = [](Item) { return false; };
-    probe(hash0_x | hash0_y | hash0_z, constfalse) = value;
 }
 
 template<typename P>

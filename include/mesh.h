@@ -77,7 +77,7 @@ public:
 
     /*!
      * Insert a new 3D point into the map and returns its identifier.
-     * If a previously inserted point is found in a sphere of vertex_meld_distance radius, returns its identifier instead.
+     * If a previously inserted point is found, returns its identifier instead.
      * \param vertices Vector mapping identifiers to already inserted points. New identifier are generated from it's size. Read when rehashing.
      */
     Item insert(const Point3& p, const std::vector<MeshVertex>& vertices);
@@ -90,13 +90,6 @@ private:
     uint8_t bits = min_bits; //!< log2 size of map
 
     void init(); //!< Allocate the map. bits must be set beforehand.
-
-    /*!
-     * Inserts a point and its associated value in each of the 8 cubes overlapping
-     * the sphere of radius=vertex_meld_distance centered on the point.
-     * \param value Vertex identifier plus one (0 is the marker for empty slot)
-     */
-    void insert8(const Point3& p, Item value);
 
     /*!
      * Probing primitive.
