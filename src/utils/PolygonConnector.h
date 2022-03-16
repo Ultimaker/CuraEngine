@@ -480,7 +480,19 @@ protected:
                             }
                         }
                     }
+                    if(best_distance <= 5) //When we found a connection with distance 5um, this is good enough and we can stop the search. It won't get much better.
+                    {
+                        break;
+                    }
                 }
+                if(best_distance <= 5)
+                {
+                    break;
+                }
+            }
+            if(best_distance <= 5)
+            {
+                break;
             }
         }
 
