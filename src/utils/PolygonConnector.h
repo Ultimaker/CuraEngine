@@ -438,6 +438,10 @@ protected:
                     if(naive_dist - from_width1 - smallest_to_width < line_width * max_gap)
                     {
                         const Point closest_point = LinearAlg2D::getClosestOnLineSegment(from_pos1, to_pos1, to_pos2);
+                        if(closest_point == to_pos2) //The last endpoint of a vertex is considered to be part of the next segment. Let that one handle it.
+                        {
+                            continue;
+                        }
                         const coord_t width_at_closest = interpolateWidth(closest_point, to_polygons[poly_index][to_index], to_polygons[poly_index][(to_index + 1) % to_polygons[poly_index].size()]);
                         const coord_t distance = vSize(closest_point - from_pos1) - from_width1 - width_at_closest; //Actual, accurate distance to the other polygon.
                         if(distance < best_distance)
@@ -458,6 +462,10 @@ protected:
                     if(naive_dist - smallest_from_width - to_width1 < line_width * max_gap)
                     {
                         const Point closest_point = LinearAlg2D::getClosestOnLineSegment(to_pos1, from_pos1, from_pos2);
+                        if(closest_point == from_pos2) //The last endpoint of a vertex is considered to be part of the next segment. Let that one handle it.
+                        {
+                            continue;
+                        }
                         const coord_t width_at_closest = interpolateWidth(closest_point, from_poly[from_index], from_poly[(from_index + 1) % from_poly.size()]);
                         const coord_t distance = vSize(closest_point - to_pos1) - width_at_closest - to_width1; //Actual, accurate distance.
                         if(distance < best_distance)
