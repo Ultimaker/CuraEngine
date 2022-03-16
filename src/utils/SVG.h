@@ -26,6 +26,7 @@ public:
         RED,
         BLUE,
         GREEN,
+        LIME,
         ORANGE,
         MAGENTA,
         YELLOW,

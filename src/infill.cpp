@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::sort.
@@ -100,7 +100,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         VariableWidthPaths gap_fill_paths = wall_toolpaths.getToolPaths();
 
         // Add the gap filling to the toolpaths and make the new inner contour 'aware' of the gap infill:
-        // (Can't use getContours here, becasue only _some_ of the lines Arachne has generated are needed.)
+        // (Can't use getContours here, because only _some_ of the lines Arachne has generated are needed.)
         Polygons gap_filled_areas;
         for (const auto& var_width_line : gap_fill_paths)
         {
@@ -169,9 +169,14 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
                                  });
         result_polygons.erase(it, result_polygons.end());
 
-        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
+        PolygonConnector connector(infill_line_width);
         connector.add(result_polygons);
-        result_polygons = connector.connect();
+        connector.add(toolpaths);
+        Polygons connected_polygons;
+        VariableWidthPaths connected_paths;
+        connector.connect(connected_polygons, connected_paths);
+        result_polygons = connected_polygons;
+        toolpaths = connected_paths;
     }
 }
 
