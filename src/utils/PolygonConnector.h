@@ -705,7 +705,7 @@ protected:
         if(bridge.a.to_segment == bridge.b.to_segment)
         {
             const Point vertex = getPosition((*bridge.b.to_poly)[bridge.b.to_segment]); //Same vertex for A and B.
-            const Point next_vertex = getPosition((*bridge.b.to_poly)[(bridge.b.to_segment + 1) % from_size]);
+            const Point next_vertex = getPosition((*bridge.b.to_poly)[(bridge.b.to_segment + 1) % to_size]);
             const Point direction = next_vertex - vertex;
             const Point a_to_b = bridge.b.to_point - bridge.a.to_point;
             forwards = vSize2(direction - a_to_b) > vSize2(-direction - a_to_b);
