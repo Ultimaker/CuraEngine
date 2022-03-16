@@ -675,7 +675,7 @@ protected:
         }
         size_t first_segment = forwards ? (bridge.b.from_segment + 1) % from_size : (bridge.b.from_segment + from_size) % from_size;
         size_t last_segment = forwards ? bridge.a.from_segment : bridge.a.from_segment;
-        if(first_segment == last_segment) last_segment = (last_segment - 2 * forwards + 1) % from_size;
+        if(first_segment == last_segment) last_segment = (last_segment + from_size - 2 * forwards + 1) % from_size;
         size_t i = first_segment;
         do //Since we might start and end on the same segment, do a do_while loop to iterate at least once.
         {
