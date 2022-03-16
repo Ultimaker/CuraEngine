@@ -197,7 +197,6 @@ void SkirtBrim::generate()
     // const correctness
     
     // fix printing order
-    // See also TODO at the bottom of this file
     
     // documentation
     
@@ -567,8 +566,6 @@ void SkirtBrim::generateSupportBrim(const bool merge_with_model_skirtbrim)
     const Polygons brim_area = support_outline.difference(support_outline.offset(-brim_width));
     support_layer.excludeAreasFromSupportInfillAreas(brim_area, AABB(brim_area));
 
-    Polygons support_brim;
-
     coord_t offset_distance = brim_line_width / 2;
     for (size_t skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)
     {
@@ -586,9 +583,9 @@ void SkirtBrim::generateSupportBrim(const bool merge_with_model_skirtbrim)
             }
         }
 
-        support_brim.add(brim_line);
+        storage.support_brim.add(brim_line);
 
-        const coord_t length = skirt_brim_length + support_brim.polygonLength();
+        const coord_t length = skirt_brim_length + storage.support_brim.polygonLength();
         if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) // Make brim or skirt have more lines when total length is too small.
         {
             line_count++;
@@ -598,25 +595,6 @@ void SkirtBrim::generateSupportBrim(const bool merge_with_model_skirtbrim)
             break;
         }
     }
-
-    /* TODO
-    if (support_brim.size())
-    {
-        if (merge_with_model_skirtbrim)
-        {
-            // to ensure that the skirt brim is printed from outside to inside, the support brim lines must
-            // come before the skirt brim lines in the Polygon object so that the outermost skirt brim line
-            // is at the back of the list
-            support_brim.add(skirt_brim);
-            skirt_brim = support_brim;
-        }
-        else
-        {
-            // OTOH, if we use a skirt instead of a brim for the polygon, the skirt line(s) should _always_ come first.
-            skirt_brim.add(support_brim);
-        }
-    }
-    */
 }
 
 

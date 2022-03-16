@@ -1202,6 +1202,18 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         total_line_count += line.open_polylines.size();
     }
     Polygons all_brim_lines;
+    
+    // Add the support brim before the below algorithm which takes order requirements into account
+    // For support brim we don't care about the order, because support doesn't need to be accurate.
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    if (extruder_nr == mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr)
+    {
+        total_line_count += storage.support_brim.size();
+        Polygons support_brim_lines = storage.support_brim;
+        support_brim_lines.toPolylines();
+        all_brim_lines = support_brim_lines;
+    }
+    
     all_brim_lines.reserve(total_line_count);
 
     const coord_t line_w = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");

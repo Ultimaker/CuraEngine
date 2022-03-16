@@ -323,7 +323,7 @@ public:
     SupportStorage support;
     
     std::vector<SkirtBrimLine> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
-    std::vector<SkirtBrimLine> tower_brim; //!< brim lines for the tower
+    Polygons support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
     Polygons primeRaftOutline;          // ... the raft underneath the prime-tower will have to be printed first, if there is one. (When the raft has top layers with a different extruder for example.)
 
