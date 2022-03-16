@@ -132,13 +132,18 @@ void SkirtBrim::generate()
     
     const bool include_support = true;
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
-    
+
     std::vector<Polygons> allowed_areas_per_extruder(extruder_count);
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         if ( ! extruder_is_used[extruder_nr]) continue;
         Polygons machine_area = storage.getMachineBorder(extruder_nr);
         allowed_areas_per_extruder[extruder_nr] = machine_area.difference(covered_area);
+        if (external_polys_only[extruder_nr])
+        { // Expand covered area on inside of holes when external_only is enabled for any extruder,
+            // so that the brim lines don't overlap with the holes by half the line width
+            allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(getInternalHoleExclusionArea(covered_area, extruder_nr));
+        }
     }
     
     for (size_t offset_idx = 0; offset_idx < all_brim_offsets.size(); offset_idx++)
@@ -188,8 +193,6 @@ void SkirtBrim::generate()
     // TODO list:
     
     // remove small open lines
-
-    // TODO: make allowed areas a bit smaller so that internal external-only brims don't overlap with model by half the line width
     
     // remove prime tower from shields OR fix disallowed areas in frontend!
 
@@ -221,6 +224,24 @@ void SkirtBrim::generate()
             line.closed_polygons = Simplify(maximum_resolution, maximum_deviation, max_area_dev).polygon(line.closed_polygons);
         }
     }
+}
+
+Polygons SkirtBrim::getInternalHoleExclusionArea(const Polygons& outline, const int extruder_nr)
+{
+    Polygons ret;
+    std::vector<PolygonsPart> parts = outline.splitIntoParts();
+    for (const PolygonsPart& part : parts)
+    {
+        for (size_t hole_idx = 1; hole_idx < part.size(); hole_idx++)
+        {
+            Polygon hole_poly = part[hole_idx];
+            hole_poly.reverse();
+            Polygons disallowed_region = hole_poly.offset(10u).difference(hole_poly.offset( - line_widths[extruder_nr] / 2 - hole_brim_distance));
+            ret.add(disallowed_region);
+        }
+    }
+    ret.unionPolygons();
+    return ret;
 }
 
 coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, SkirtBrimLine& result)

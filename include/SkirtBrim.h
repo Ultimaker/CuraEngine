@@ -104,6 +104,20 @@ public:
      */
     Polygons getFirstLayerOutline(const int extruder_nr);
 
+    static const coord_t hole_brim_distance = 100u; //!< If brim is external_only, the distance between the external brim of a part inside a hole and the inside hole of the outer part.
+
+    /*!
+     * The disallowed area around the internal holes of parts with other parts inside which would get an external brim.
+     * 
+     * In order to prevent the external_only brim of a part inside another part to overlap with the internal holes of the outer part,
+     * we generate a disallowed area around those internal hole polygons.
+     * 
+     * \param outline The full layer outlines
+     * \param extruder_nr The extruder for which to compute disallowed areas
+     * \return The disallowed areas
+     */
+    Polygons getInternalHoleExclusionArea(const Polygons& outline, const int extruder_nr);
+
     /*!
      * Generate a brim line with offset parameters given by \p offset from the \p starting_outlines and store it in the \ref storage.
      * 
