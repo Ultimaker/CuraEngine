@@ -2410,6 +2410,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
     coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const Point infill_origin;
+    const bool skip_line_stitching = monotonic;
     constexpr bool connected_zigzags = false;
     constexpr bool use_endpieces = true;
     constexpr bool skip_some_zags = false;
@@ -2420,6 +2421,7 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         pattern, zig_zaggify_infill, connect_polygons, area, config.getLineWidth(), config.getLineWidth() / skin_density, skin_overlap, infill_multiplier, skin_angle, gcode_layer.z, extra_infill_shift
         , max_resolution, max_deviation
         , wall_line_count, infill_origin,
+        skip_line_stitching,
         connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
         );
     infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings);

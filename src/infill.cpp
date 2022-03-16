@@ -248,8 +248,8 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
 
     result_polygons.simplify(max_resolution, max_deviation);
 
-    if (zig_zaggify ||
-        pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID || pattern == EFillMethod::ZIG_ZAG)
+    if ( ! skip_line_stitching && (zig_zaggify ||
+        pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID || pattern == EFillMethod::ZIG_ZAG))
     { // don't stich for non-zig-zagged line infill types
         Polygons stiched_lines;
         PolylineStitcher<Polygons, Polygon, Point>::stitch(result_lines, stiched_lines, result_polygons, infill_line_width);
