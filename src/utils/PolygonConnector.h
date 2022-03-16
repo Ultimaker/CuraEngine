@@ -728,6 +728,11 @@ protected:
         const coord_t b_to_width = interpolateWidth(bridge.b.to_point, (*bridge.b.to_poly)[bridge.b.to_segment], (*bridge.b.to_poly)[(bridge.b.to_segment + 1) % to_size]);
         addVertex(ret, bridge.b.to_point, b_to_width);
 
+        if(getPosition(ret.back()) != getPosition(ret.front()))
+        {
+            addVertex(ret, getPosition(ret.front()), getWidth(ret.front()));
+        }
+
         result = std::move(ret); //Override the result with the new combined shape.
     }
 };
