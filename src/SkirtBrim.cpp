@@ -192,8 +192,6 @@ void SkirtBrim::generate()
     
     // TODO list:
     
-    // remove small open lines
-    
     // remove prime tower from shields OR fix disallowed areas in frontend!
 
     // robustness against when things are empty (brim lines, layer outlines, etc)
@@ -208,6 +206,8 @@ void SkirtBrim::generate()
     // frontend stuff
     
     // make sure one-at-a-time mode will still consider the brims
+    
+    // make user setting for hole_brim_distance
     
     
     
@@ -300,6 +300,20 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
 
             const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
             PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, result.open_polylines, result.closed_polygons, max_stitch_distance);
+            
+            // clean up too small lines
+            for (size_t line_idx = 0; line_idx < result.open_polylines.size(); )
+            {
+                PolygonRef line = result.open_polylines[line_idx];
+                if (line.shorterThan(min_brim_line_length))
+                {
+                    result.open_polylines.remove(line_idx);
+                }
+                else
+                {
+                    line_idx++;
+                }
+            }
         }
         
         { // update allowed_areas_per_extruder

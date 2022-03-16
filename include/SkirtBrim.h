@@ -131,6 +131,8 @@ public:
      */
     coord_t generateOffset(const Offset& offset, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, SkirtBrimLine& result);
 
+    static const coord_t min_brim_line_length = 3000u; //!< open polyline brim lines smaller than this will be removed
+
     /*!
      * Generate a skirt of extruders which don't yet comply with the minimum length requirement.
      * 
