@@ -572,11 +572,11 @@ protected:
                 const double interpolation_pos = double(distance - previous_distance) / (vertex_distance - previous_distance);
                 const double interpolation_neg = double(-distance - previous_distance) / (vertex_distance - previous_distance);
                 double interpolation;
-                if(interpolation_pos >= 0 && interpolation_pos <= 1)
+                if(interpolation_pos >= 0 && interpolation_pos < 1)
                 {
                     interpolation = interpolation_pos;
                 }
-                else if(interpolation_neg >= 0 && interpolation_neg <= 1)
+                else if(interpolation_neg >= 0 && interpolation_neg < 1)
                 {
                     interpolation = interpolation_neg;
                 }
@@ -585,10 +585,10 @@ protected:
                     continue;
                 }
                 const Point interpolated_point = previous_pos + (vertex_pos - previous_pos) * interpolation;
-                return std::make_pair(interpolated_point, std::min(index, index - direction));
+                return std::make_pair(interpolated_point, (direction == +1) ? previous_index : index); //Choose the "earlier" index of the two, regardless of direction.
             }
         }
-        return std::nullopt; //None of the vertices were far enough away from the line (and on the correct side).
+        return std::nullopt; //None of the vertices were far enough away from the line.
     }
 
     /*!
