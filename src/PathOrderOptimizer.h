@@ -431,10 +431,6 @@ protected:
         // Paths, other than polygons, can be either clockwise or counterclockwise. Make sure this is detected.
         const bool clockwise = simple_poly.orientation();
 
-        //Find most extreme point in one direction. For the "actual loop" (see below), start from this point,
-        //so it can act as a "tie breaker" if all differences in dist-score for a polygon fall within epsilon.
-        //Direction/point should be the user-specified point if available, or an arbitrary point away from polygon otherwise.
-        constexpr coord_t EPSILON = 25;
         const Point focus_fixed_point = (seam_config.type == EZSeamType::USER_SPECIFIED)
             ? seam_config.pos
             : Point(0, std::sqrt(std::numeric_limits<coord_t>::max())); //Use sqrt, so the squared size can be used when comparing distances.
@@ -505,8 +501,7 @@ protected:
                     score += 1000; //1 meter penalty.
                 }
             }
-
-            if(score - EPSILON < best_score)
+            if(score < best_score)
             {
                 best_point = here;
                 best_score = score;
