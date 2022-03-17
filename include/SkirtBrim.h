@@ -94,6 +94,29 @@ public:
      */
     void generate();
 
+private:
+    /*!
+     * Plan the offsets which we will be going to perform and put them in the right order.
+     * 
+     * In order for brims of different materials to grow toward the middle,
+     * we need to perform the offsets alternatingly.
+     * We therefore first create all planned Offset objects,
+     * and then order them according to distance from the boundary.
+     * \param[out] starting_outlines The first layer outlines from which to compute the offsets. Returned as output parameter because pointers need to stay valid.
+     * \return An ordered list of offsets to perform in the order in which they are to be performed.
+     */
+    std::vector<Offset> generateBrimOffsetPlan(std::vector<Polygons>& starting_outlines);
+
+    /*!
+     * Generate the primary skirt/brim of the one skirt_brim_extruder or of all extruders simultaneously.
+     * 
+     * \param[in,out] all_brim_offsets The offsets to perform. Adjusted when the minimal length constraint isn't met yet.
+     * \param[in,out] covered_area The area of the first layer covered by model or generated brim lines.
+     * \param[in,out] allowed_areas_per_extruder The difference between the machine bed area (offsetted by the nozzle offset) and the covered_area.
+     * \return The total length of the brim lines added by this method per extruder.
+     */
+    std::vector<coord_t> generatePrimaryBrim(std::vector<Offset>& all_brim_offsets, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder);
+
     /*!
      * Generate the brim inside the ooze shield and draft shield
      * 

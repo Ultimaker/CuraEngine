@@ -63,12 +63,11 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage)
     }
 }
 
-void SkirtBrim::generate()
+
+std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Polygons>& starting_outlines)
 {
     std::vector<Offset> all_brim_offsets;
 
-    constexpr LayerIndex layer_nr = 0;
-    std::vector<Polygons> starting_outlines(extruder_count);
     if (skirt_brim_extruder_nr >= 0)
     {
         starting_outlines[skirt_brim_extruder_nr] = getFirstLayerOutline(-1);
@@ -107,8 +106,15 @@ void SkirtBrim::generate()
         }
     }
 
-    
     std::sort(all_brim_offsets.begin(), all_brim_offsets.end(), OffsetSorter{});
+
+    return all_brim_offsets;
+}
+
+void SkirtBrim::generate()
+{
+    std::vector<Polygons> starting_outlines(extruder_count);
+    std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines);
     
     coord_t max_offset = 0;
     for (const Offset& offset : all_brim_offsets)
@@ -116,8 +122,7 @@ void SkirtBrim::generate()
         max_offset = std::max(max_offset, offset.offset_value);
     }
     
-    std::vector<coord_t> total_length(extruder_count, 0u);
-    
+    constexpr LayerIndex layer_nr = 0;
     const bool include_support = true;
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
 
@@ -133,7 +138,43 @@ void SkirtBrim::generate()
             allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(getInternalHoleExclusionArea(covered_area, extruder_nr));
         }
     }
+
+    std::vector<coord_t> total_length =
+        generatePrimaryBrim(all_brim_offsets, covered_area, allowed_areas_per_extruder);
     
+    // ooze/draft shield brim
+    generateShieldBrim(covered_area, allowed_areas_per_extruder);
+
+    { // only allow secondary skirt/brim to appear on the very outside
+        covered_area = covered_area.getOutsidePolygons();
+        for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+        {
+            allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
+        }
+    }
+
+    // Secondary brim of all other materials which don;t meet minimum length constriant yet
+    generateSecondarySkirtBrim(covered_area, allowed_areas_per_extruder, total_length);
+    
+    // simplify paths to prevent buffer unnerruns in firmware
+    const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const coord_t maximum_resolution = global_settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t maximum_deviation = global_settings.get<coord_t>("meshfix_maximum_deviation");
+    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        for (SkirtBrimLine& line : storage.skirt_brim[extruder_nr])
+        {
+            constexpr coord_t max_area_dev = 0u; // No area deviation applied
+            line.open_polylines = Simplify(maximum_resolution, maximum_deviation, max_area_dev).polyline(line.open_polylines);
+            line.closed_polygons = Simplify(maximum_resolution, maximum_deviation, max_area_dev).polygon(line.closed_polygons);
+        }
+    }
+}
+
+std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_brim_offsets, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder)
+{
+    std::vector<coord_t> total_length(extruder_count, 0u);
+
     for (size_t offset_idx = 0; offset_idx < all_brim_offsets.size(); offset_idx++)
     {
         const Offset& offset = all_brim_offsets[offset_idx];
@@ -162,36 +203,7 @@ void SkirtBrim::generate()
             std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter{}); // reorder remaining offsets
         }
     }
-    
-    // ooze/draft shield brim
-    generateShieldBrim(covered_area, allowed_areas_per_extruder);
-
-    { // only allow secondary skirt/brim to appear on the very outside
-        covered_area = covered_area.getOutsidePolygons();
-        for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-        {
-            allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
-        }
-    }
-
-    // Secondary brim of all other materials which don;t meet minimum length constriant yet
-    generateSecondarySkirtBrim(covered_area, allowed_areas_per_extruder, total_length);
-    
-    // TODO: Split this function into multiple parts
-    
-    // simplify paths to prevent buffer unnerruns in firmware
-    const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    const coord_t maximum_resolution = global_settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t maximum_deviation = global_settings.get<coord_t>("meshfix_maximum_deviation");
-    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-    {
-        for (SkirtBrimLine& line : storage.skirt_brim[extruder_nr])
-        {
-            constexpr coord_t max_area_dev = 0u; // No area deviation applied
-            line.open_polylines = Simplify(maximum_resolution, maximum_deviation, max_area_dev).polyline(line.open_polylines);
-            line.closed_polygons = Simplify(maximum_resolution, maximum_deviation, max_area_dev).polygon(line.closed_polygons);
-        }
-    }
+    return total_length;
 }
 
 Polygons SkirtBrim::getInternalHoleExclusionArea(const Polygons& outline, const int extruder_nr)
