@@ -106,6 +106,23 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
         }
     }
 
+    const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const bool prime_tower_brim_enable = global_settings.get<bool>("prime_tower_brim_enable");
+    if (is_skirt && prime_tower_brim_enable && storage.primeTower.enabled)
+    {
+        const int extruder_nr = storage.primeTower.extruder_order[0];
+        const ExtruderTrain& extruder = extruders[extruder_nr];
+        int line_count = extruder.settings.get<int>("brim_line_count");
+        coord_t gap = extruder.settings.get<coord_t>("brim_gap");
+        for (int line_idx = 0; line_idx < line_count; line_idx++)
+        {
+            const bool is_last = line_idx == line_count - 1;
+            coord_t offset = gap + line_widths[extruder_nr] / 2 + line_widths[extruder_nr] * line_idx;
+            constexpr int reference_idx = -1; // not used, we use the outliens as reference instead
+            all_brim_offsets.emplace_back(&storage.primeTower.outer_poly, reference_idx, external_polys_only[extruder_nr], offset, offset, line_idx, extruder_nr, is_last);
+        }
+    }
+
     std::sort(all_brim_offsets.begin(), all_brim_offsets.end(), OffsetSorter{});
 
     return all_brim_offsets;
@@ -325,8 +342,19 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr)
     if (is_skirt)
     {
         constexpr bool include_support = true;
-        constexpr bool include_prime_tower = true;
+        const bool skirt_around_prime_tower_brim = storage.primeTower.enabled && global_settings.get<bool>("prime_tower_brim_enable");
+        const bool include_prime_tower = ! skirt_around_prime_tower_brim; // include manually otherwise
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_only, extruder_nr);
+        if (skirt_around_prime_tower_brim)
+        {
+            const int prime_tower_brim_extruder_nr = storage.primeTower.extruder_order[0];
+            const ExtruderTrain& prime_tower_brim_extruder = extruders[prime_tower_brim_extruder_nr];
+            int line_count = prime_tower_brim_extruder.settings.get<int>("brim_line_count");
+            coord_t tower_gap = prime_tower_brim_extruder.settings.get<coord_t>("brim_gap");
+            coord_t brim_width = tower_gap + line_count * line_widths[prime_tower_brim_extruder_nr];
+            first_layer_outline = first_layer_outline.unionPolygons(storage.primeTower.outer_poly.offset(brim_width));
+        }
+
         Polygons shields;
         if (has_ooze_shield)
         {
