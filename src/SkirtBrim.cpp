@@ -243,86 +243,82 @@ Polygons SkirtBrim::getInternalHoleExclusionArea(const Polygons& outline, const 
 
 coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, SkirtBrimLine& result)
 {
-    constexpr bool indent_to_prevent_git_changes = true; // TODO
-    if (indent_to_prevent_git_changes)
+    coord_t length_added;
+    Polygons brim;
+    Polygons newly_covered;
     {
-        coord_t length_added;
-        Polygons brim;
-        Polygons newly_covered;
+        if (offset.reference_outline)
         {
-            if (offset.reference_outline)
-            {
-                if (offset.external_only)
-                { // prevent unioning of external polys enclosed by other parts, e.g. a small part inside a hollow cylinder.
-                    for (Polygons& polys : offset.reference_outline->sortByNesting())
-                    { // offset external polygons of islands contained within another part in each batch
-                        for (PolygonRef poly : polys)
-                        {
-                            if (poly.area() < 0)
-                            {
-                                poly.reverse();
-                            }
-                        }
-                        brim.add(polys.offset(offset.offset_value, ClipperLib::jtRound));
-                        newly_covered.add(polys.offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound));
-                        for (PolygonRef poly : polys)
+            if (offset.external_only)
+            { // prevent unioning of external polys enclosed by other parts, e.g. a small part inside a hollow cylinder.
+                for (Polygons& polys : offset.reference_outline->sortByNesting())
+                { // offset external polygons of islands contained within another part in each batch
+                    for (PolygonRef poly : polys)
+                    {
+                        if (poly.area() < 0)
                         {
                             poly.reverse();
                         }
-                        newly_covered.add(polys); // don't remove area inside external polygon
                     }
-                }
-                else
-                {
-                    brim = offset.reference_outline->offset(offset.offset_value, ClipperLib::jtRound);
-                    newly_covered = offset.reference_outline->offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound);
+                    brim.add(polys.offset(offset.offset_value, ClipperLib::jtRound));
+                    newly_covered.add(polys.offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound));
+                    for (PolygonRef poly : polys)
+                    {
+                        poly.reverse();
+                    }
+                    newly_covered.add(polys); // don't remove area inside external polygon
                 }
             }
             else
             {
-                
-                Polygons polylines = storage.skirt_brim[offset.extruder_nr][offset.reference_idx].closed_polygons;
-                polylines.toPolylines();
-                polylines.add(storage.skirt_brim[offset.extruder_nr][offset.reference_idx].open_polylines);
-                brim.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr], ClipperLib::jtRound));
-                newly_covered.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr] * 3 / 2, ClipperLib::jtRound));
+                brim = offset.reference_outline->offset(offset.offset_value, ClipperLib::jtRound);
+                newly_covered = offset.reference_outline->offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound);
             }
         }
-
-        { // limit brim lines to allowed areas, stitch them and store them in the result
-            brim = Simplify(100, 10, 0).polygon(brim); // TODO: use coorect simplifying settings
-            brim.toPolylines();
-            Polygons brim_lines = allowed_areas_per_extruder[offset.extruder_nr].intersectionPolyLines(brim, false);
-            length_added = brim_lines.polyLineLength();
-
-            const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
-            PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, result.open_polylines, result.closed_polygons, max_stitch_distance);
+        else
+        {
             
-            // clean up too small lines
-            for (size_t line_idx = 0; line_idx < result.open_polylines.size(); )
-            {
-                PolygonRef line = result.open_polylines[line_idx];
-                if (line.shorterThan(min_brim_line_length))
-                {
-                    result.open_polylines.remove(line_idx);
-                }
-                else
-                {
-                    line_idx++;
-                }
-            }
+            Polygons polylines = storage.skirt_brim[offset.extruder_nr][offset.reference_idx].closed_polygons;
+            polylines.toPolylines();
+            polylines.add(storage.skirt_brim[offset.extruder_nr][offset.reference_idx].open_polylines);
+            brim.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr], ClipperLib::jtRound));
+            newly_covered.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr] * 3 / 2, ClipperLib::jtRound));
         }
-        
-        { // update allowed_areas_per_extruder
-            for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-            {
-                if ( ! extruder_is_used[extruder_nr]) continue;
-                covered_area = covered_area.unionPolygons(newly_covered.unionPolygons());
-                allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
-            }
-        }
-        return length_added;
     }
+
+    { // limit brim lines to allowed areas, stitch them and store them in the result
+        brim = Simplify(100, 10, 0).polygon(brim); // TODO: use coorect simplifying settings
+        brim.toPolylines();
+        Polygons brim_lines = allowed_areas_per_extruder[offset.extruder_nr].intersectionPolyLines(brim, false);
+        length_added = brim_lines.polyLineLength();
+
+        const coord_t max_stitch_distance = line_widths[offset.extruder_nr];
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(brim_lines, result.open_polylines, result.closed_polygons, max_stitch_distance);
+        
+        // clean up too small lines
+        for (size_t line_idx = 0; line_idx < result.open_polylines.size(); )
+        {
+            PolygonRef line = result.open_polylines[line_idx];
+            if (line.shorterThan(min_brim_line_length))
+            {
+                result.open_polylines.remove(line_idx);
+            }
+            else
+            {
+                line_idx++;
+            }
+        }
+    }
+    
+    { // update allowed_areas_per_extruder
+        for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+        {
+            if ( ! extruder_is_used[extruder_nr]) continue;
+            covered_area = covered_area.unionPolygons(newly_covered.unionPolygons());
+            allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
+        }
+    }
+    return length_added;
 }
 
 Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr)
