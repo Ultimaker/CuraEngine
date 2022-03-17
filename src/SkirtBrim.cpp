@@ -204,8 +204,6 @@ void SkirtBrim::generate()
     
     // make sure one-at-a-time mode will still consider the brims
     
-    // make user setting for hole_brim_distance
-    
     
     
     // simplify paths to prevent buffer unnerruns in firmware
@@ -225,6 +223,11 @@ void SkirtBrim::generate()
 
 Polygons SkirtBrim::getInternalHoleExclusionArea(const Polygons& outline, const int extruder_nr)
 {
+    assert(extruder_nr >= 0);
+    const Settings& settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+    // If brim is external_only, the distance between the external brim of a part inside a hole and the inside hole of the outer part.
+    const coord_t hole_brim_distance = settings.get<coord_t>("brim_inside_margin");
+
     Polygons ret;
     std::vector<PolygonsPart> parts = outline.splitIntoParts();
     for (const PolygonsPart& part : parts)

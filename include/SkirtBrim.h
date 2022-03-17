@@ -105,8 +105,6 @@ public:
      */
     Polygons getFirstLayerOutline(const int extruder_nr);
 
-    static const coord_t hole_brim_distance = 100u; //!< If brim is external_only, the distance between the external brim of a part inside a hole and the inside hole of the outer part.
-
     /*!
      * The disallowed area around the internal holes of parts with other parts inside which would get an external brim.
      * 
