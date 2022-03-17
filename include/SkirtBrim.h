@@ -17,6 +17,9 @@ class SliceDataStorage;
 class SkirtBrim
 {
 private:
+    /*!
+     * A helper class to store an offset yet to be performed on either an outline polygon, or based on an earlier generated brim line.
+     */
     struct Offset
     {
         Offset(const Polygons* reference_outline, const size_t reference_idx, bool external_only, const coord_t offset_value, const coord_t total_offset, size_t inset_idx, const int extruder_nr, bool is_last)
@@ -38,7 +41,10 @@ private:
         int extruder_nr; //!< The extruder by which to print this brim line
         mutable bool is_last; //!< Whether this is the last planned offset for this extruder.
     };
-    
+
+    /*!
+     * Defines an order on offsets (potentially from different extruders) based on how far the offset is from the original outline.
+     */
     struct OffsetSorter
     {
         bool operator()(const Offset& a, const Offset& b)
@@ -47,23 +53,30 @@ private:
             < b.total_offset + b.extruder_nr; // add extruder_nr so that it's more stable when both extruders have the same offset settings
         }
     };
+
+    static const coord_t min_brim_line_length = 3000u; //!< open polyline brim lines smaller than this will be removed
     
-    SliceDataStorage& storage;
-    const bool is_brim;
-    const bool is_skirt;
-    const bool has_ooze_shield;
-    const bool has_draft_shield;
-    const std::vector<ExtruderTrain>& extruders;
-    const int extruder_count;
-    const std::vector<bool> extruder_is_used;
-    int first_used_extruder_nr;
-    int skirt_brim_extruder_nr;
-    std::vector<bool> external_polys_only;
-    std::vector<coord_t> line_widths;
-    std::vector<coord_t> skirt_brim_minimal_length;
-    std::vector<int> line_count;
-    std::vector<coord_t> gap;
+    SliceDataStorage& storage; //!< Where to retrieve settings and store brim lines.
+    const bool is_brim; //!< Whether we are generating brim
+    const bool is_skirt; //!< Whether we are generating skirt. Opposite of \ref is_brim
+    const bool has_ooze_shield; //!< Whether the meshgroup has an ooze shield
+    const bool has_draft_shield; //!< Whether the meshgroup has a draft shield
+    const std::vector<ExtruderTrain>& extruders; //!< The extruders of the current slice
+    const int extruder_count; //!< The total number of extruders
+    const std::vector<bool> extruder_is_used; //!< For each extruder whether it is actually used in this print
+    int first_used_extruder_nr; //!< The first extruder which is used
+    int skirt_brim_extruder_nr; //!< The extruder with which the skirt/brim is printed or -1 if printed with both
+    std::vector<bool> external_polys_only; //!< For each extruder whether to only generate brim on the outside
+    std::vector<coord_t> line_widths; //!< For each extruder the skirt/brim line width
+    std::vector<coord_t> skirt_brim_minimal_length; //!< For each extruder the minimal brim length
+    std::vector<int> line_count; //!< For each extruder the (minimal) number of brim lines to generate
+    std::vector<coord_t> gap; //!< For each extruder the gap between the part and the first brim/skirt line
 public:
+    /*!
+     * Precomputes some values used in several functions when calling \ref generate
+     * 
+     * \param storage Storage containing the parts at the first layer.
+     */
     SkirtBrim(SliceDataStorage& storage);
 
     /*!
@@ -130,8 +143,6 @@ public:
      */
     coord_t generateOffset(const Offset& offset, Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, SkirtBrimLine& result);
 
-    static const coord_t min_brim_line_length = 3000u; //!< open polyline brim lines smaller than this will be removed
-
     /*!
      * Generate a skirt of extruders which don't yet comply with the minimum length requirement.
      * 
@@ -144,8 +155,12 @@ public:
      * \param[in,out] total_length The total length of the brim lines for each extruder.
      */
     void generateSecondarySkirtBrim(Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length);
+
 public:
-    void generateSupportBrim(const bool merge_with_model_skirtbrim);
+    /*!
+     * Generate the brim which is printed from the outlines of the support inward.
+     */
+    void generateSupportBrim();
 
 private:
     /*!

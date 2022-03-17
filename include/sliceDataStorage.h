@@ -300,6 +300,9 @@ public:
     Point getZSeamHint() const;
 };
 
+/*!
+ * Class to store all open polylines or closed polygons related to one outset index of brim/skirt.
+ */
 struct SkirtBrimLine
 {
     Polygons open_polylines;

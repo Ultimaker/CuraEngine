@@ -195,13 +195,12 @@ void SkirtBrim::generate()
     // robustness against when things are empty (brim lines, layer outlines, etc)
     
     // const correctness
-    
-    // documentation
-    
+
     // frontend stuff
     
     // make sure one-at-a-time mode will still consider the brims
     
+    // check all TODOs
     
     
     // simplify paths to prevent buffer unnerruns in firmware
@@ -543,7 +542,7 @@ void SkirtBrim::generateSecondarySkirtBrim(Polygons& covered_area, std::vector<P
     }
 }
 
-void SkirtBrim::generateSupportBrim(const bool merge_with_model_skirtbrim)
+void SkirtBrim::generateSupportBrim()
 {
     constexpr coord_t brim_area_minimum_hole_size_multiplier = 100;
 

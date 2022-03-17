@@ -419,6 +419,10 @@ public:
     {
     }
 
+    /*!
+     * Reserve a number of polygons to prevent reallocation and breakage of pointers.
+     * \param min_size The minimum size the new underlying array should have.
+     */
     void reserve(size_t min_size)
     {
         path->reserve(min_size);
