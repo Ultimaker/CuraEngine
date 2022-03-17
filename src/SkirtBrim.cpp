@@ -467,6 +467,8 @@ void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area, std::vector<Poly
             shield_brim = shield_brim.unionPolygons(storage.draft_protection_shield.difference(storage.draft_protection_shield.offset(-primary_skirt_brim_width - primary_extruder_skirt_brim_line_width)));
         }
         shield_brim = shield_brim.intersection(allowed_areas_per_extruder[extruder_nr].offset(primary_extruder_skirt_brim_line_width / 2));
+        const Polygons layer_outlines = storage.getLayerOutlines(/*layer_nr*/ 0, /*include_support*/ false, /*include_prime_tower*/ true, /*external_polys_only*/ false);
+        shield_brim = shield_brim.difference(layer_outlines.getOutsidePolygons()); // don't generate any shield brim inside holes
 
         const Polygons covered_area = shield_brim.offset(primary_extruder_skirt_brim_line_width / 2);
         brim_covered_area = brim_covered_area.unionPolygons(covered_area);
