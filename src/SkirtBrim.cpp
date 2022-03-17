@@ -18,18 +18,6 @@
 namespace cura
 {
 
-
-// TODO
-/*
-- fix min volume constraint
-- fix connection between normal brim and prime tower brim?
-- fix draft shield etc
-- fix print order?!
-
-
-
-*/
-
 SkirtBrim::SkirtBrim(SliceDataStorage& storage)
 : storage(storage)
 , is_brim(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type")== EPlatformAdhesion::BRIM)
@@ -189,19 +177,7 @@ void SkirtBrim::generate()
     // Secondary brim of all other materials which don;t meet minimum length constriant yet
     generateSecondarySkirtBrim(covered_area, allowed_areas_per_extruder, total_length);
     
-    
-    // TODO list:
-
-    // robustness against when things are empty (brim lines, layer outlines, etc)
-    
-    // const correctness
-
-    // frontend stuff
-    
-    // make sure one-at-a-time mode will still consider the brims
-    
-    // check all TODOs
-    
+    // TODO: Split this function into multiple parts
     
     // simplify paths to prevent buffer unnerruns in firmware
     const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
@@ -518,7 +494,7 @@ void SkirtBrim::generateSecondarySkirtBrim(Polygons& covered_area, std::vector<P
                 reference_index = storage.skirt_brim[extruder_nr].size() - 1;
                 offset_from_reference = line_widths[extruder_nr];
             }
-            constexpr bool external_only = false; // TODO is this correct?
+            constexpr bool external_only = false; // The reference outline may contain both outlines and hole polygons.
             Offset extra_offset(reference_polygons, reference_index, external_only, offset_from_reference, bogus_total_offset, storage.skirt_brim[extruder_nr].size(), extruder_nr, is_last);
             
             storage.skirt_brim[extruder_nr].emplace_back();

@@ -1270,7 +1270,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
     assert(all_brim_lines.size() == total_line_count); // Otherwise pointers would have gotten invalidated
     
-    const bool enable_travel_optimization = true; // TODO is this right?
+    const bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
     const coord_t wipe_dist = 0u;
     const Ratio flow_ratio = 1.0;
     const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
