@@ -239,10 +239,9 @@ Polygons SkirtBrim::getInternalHoleExclusionArea(const Polygons& outline, const 
             Polygon hole_poly = part[hole_idx];
             hole_poly.reverse();
             Polygons disallowed_region = hole_poly.offset(10u).difference(hole_poly.offset( - line_widths[extruder_nr] / 2 - hole_brim_distance));
-            ret.add(disallowed_region);
+            ret = ret.unionPolygons(disallowed_region);
         }
     }
-    ret.unionPolygons();
     return ret;
 }
 
