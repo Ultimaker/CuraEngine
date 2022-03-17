@@ -88,8 +88,9 @@ public:
      * 
      * \param storage Storage containing the parts at the first layer.
      * \param[in,out] brim_covered_area The area that was covered with brim before (in) and after (out) adding the shield brims
+     * \param[in,out] allowed_areas_per_extruder The difference between the machine areas and the \p covered_area
      */
-    void generateShieldBrim(Polygons& brim_covered_area);
+    void generateShieldBrim(Polygons& brim_covered_area, std::vector<Polygons>& allowed_areas_per_extruder);
 
     /*!
      * \brief Get the reference outline of the first layer around which to

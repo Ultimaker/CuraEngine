@@ -176,7 +176,7 @@ void SkirtBrim::generate()
     }
     
     // ooze/draft shield brim
-    generateShieldBrim(covered_area);
+    generateShieldBrim(covered_area, allowed_areas_per_extruder);
 
     { // only allow secondary skirt/brim to appear on the very outside
         covered_area = covered_area.getOutsidePolygons();
@@ -428,7 +428,7 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr)
     return first_layer_outline;
 }
 
-void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area)
+void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area, std::vector<Polygons>& allowed_areas_per_extruder)
 {
     int extruder_nr = skirt_brim_extruder_nr;
     if (extruder_nr < 0)
@@ -463,9 +463,11 @@ void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area)
         {
             shield_brim = shield_brim.unionPolygons(storage.draft_protection_shield.difference(storage.draft_protection_shield.offset(-primary_skirt_brim_width - primary_extruder_skirt_brim_line_width)));
         }
-        shield_brim = shield_brim.difference(brim_covered_area.offset(primary_extruder_skirt_brim_line_width / 2));
+        shield_brim = shield_brim.intersection(allowed_areas_per_extruder[extruder_nr].offset(primary_extruder_skirt_brim_line_width / 2));
 
-        brim_covered_area = brim_covered_area.unionPolygons(shield_brim.offset(primary_extruder_skirt_brim_line_width / 2));
+        const Polygons covered_area = shield_brim.offset(primary_extruder_skirt_brim_line_width / 2);
+        brim_covered_area = brim_covered_area.unionPolygons(covered_area);
+        allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
 
         // generate brim within shield_brim
         storage.skirt_brim[extruder_nr].emplace_back();
@@ -481,11 +483,15 @@ void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area)
     {
         if (has_ooze_shield)
         {
-            brim_covered_area = brim_covered_area.unionPolygons(storage.oozeShield[0].offset(line_widths[extruder_nr] / 2));
+            const Polygons covered_area = storage.oozeShield[0].offset(line_widths[extruder_nr] / 2);
+            brim_covered_area = brim_covered_area.unionPolygons(covered_area);
+            allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
         }
         if (has_draft_shield)
         {
-            brim_covered_area = brim_covered_area.unionPolygons(storage.draft_protection_shield.offset(line_widths[extruder_nr] / 2));
+            const Polygons covered_area = storage.draft_protection_shield.offset(line_widths[extruder_nr] / 2);
+            brim_covered_area = brim_covered_area.unionPolygons(covered_area);
+            allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
         }
     }
 }
