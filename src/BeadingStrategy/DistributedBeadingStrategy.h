@@ -18,24 +18,21 @@ namespace cura
 class DistributedBeadingStrategy : public BeadingStrategy
 {
 protected:
-     // For uneven numbers of lines: Minimum factor of the optimal width for which the middle line will be split into two lines.
-    Ratio wall_split_middle_threshold;
-    
-    // For even numbers of lines: Minimum factor of the optimal width for which a new middle line will be added between the two innermost lines.
-    Ratio wall_add_middle_threshold;
-
     float one_over_distribution_radius_squared; // (1 / distribution_radius)^2
 
 public:
     /*!
     * \param distribution_radius the radius (in number of beads) over which to distribute the discrepancy between the feature size and the optimal thickness
     */
-    DistributedBeadingStrategy( const coord_t optimal_width,
-                                const coord_t default_transition_length,
-                                const AngleRadians transitioning_angle,
-                                const Ratio wall_split_middle_threshold,
-                                const Ratio wall_add_middle_threshold,
-                                const int distribution_radius);
+    DistributedBeadingStrategy
+    (
+        const coord_t optimal_width,
+        const coord_t default_transition_length,
+        const AngleRadians transitioning_angle,
+        const Ratio wall_split_middle_threshold,
+        const Ratio wall_add_middle_threshold,
+        const int distribution_radius
+    );
 
     virtual ~DistributedBeadingStrategy() override {}
 

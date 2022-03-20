@@ -12,10 +12,10 @@ namespace cura
 RedistributeBeadingStrategy::RedistributeBeadingStrategy
 (
     const coord_t optimal_width_outer,
-    const double minimum_variable_line_width,
+    const Ratio minimum_variable_line_width,
     BeadingStrategyPtr parent
 ) :
-    BeadingStrategy(parent->getOptimalWidth(), parent->getDefaultTransitionLength(), parent->getTransitioningAngle()),
+    BeadingStrategy(*parent),
     parent(std::move(parent)),
     optimal_width_outer(optimal_width_outer),
     minimum_variable_line_width(minimum_variable_line_width)
