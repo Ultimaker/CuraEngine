@@ -71,6 +71,16 @@ coord_t BeadingStrategy::getOptimalWidth() const
     return optimal_width;
 }
 
+Ratio BeadingStrategy::getSplitMiddleThreshold() const
+{
+    return wall_split_middle_threshold;
+}
+
+Ratio BeadingStrategy::getAddMiddleThreshold() const
+{
+    return wall_add_middle_threshold;
+}
+
 AngleRadians BeadingStrategy::getTransitioningAngle() const
 {
     return transitioning_angle;

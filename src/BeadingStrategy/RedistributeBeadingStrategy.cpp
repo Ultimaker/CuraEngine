@@ -32,14 +32,23 @@ coord_t RedistributeBeadingStrategy::getOptimalThickness(coord_t bead_count) con
 
 coord_t RedistributeBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
-    return parent->getTransitionThickness(lower_bead_count);
+    switch (lower_bead_count)
+    {
+        case 0: return minimum_variable_line_width * optimal_width_outer;
+        case 1: return (1.0 + parent->getSplitMiddleThreshold()) * optimal_width_outer;
+        default: return parent->getTransitionThickness(lower_bead_count);
+    }
 }
 
 coord_t RedistributeBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
+    if (thickness < minimum_variable_line_width * optimal_width_outer)
+    {
+        return 0;
+    }
     if (thickness <= 2 * optimal_width_outer)
     {
-        return thickness / 2 >= minimum_variable_line_width * optimal_width_outer ? 2 : 1;
+        return thickness > (1.0 + parent->getSplitMiddleThreshold()) * optimal_width_outer ? 2 : 1;
     }
     return parent->getOptimalBeadCount(thickness - 2 * optimal_width_outer) + 2;
 }
