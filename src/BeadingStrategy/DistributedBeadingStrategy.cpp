@@ -105,6 +105,10 @@ coord_t DistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_co
 
 coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
+    if (thickness < wall_add_middle_threshold * optimal_width)
+    {
+        return 0;
+    }
     return (thickness + optimal_width / 2) / optimal_width;
 }
 
