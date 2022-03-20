@@ -99,6 +99,8 @@ public:
     virtual std::string toString() const;
 
     coord_t getOptimalWidth() const;
+    Ratio getSplitMiddleThreshold() const;
+    Ratio getAddMiddleThreshold() const;
     coord_t getDefaultTransitionLength() const;
     AngleRadians getTransitioningAngle() const;
 
