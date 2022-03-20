@@ -37,7 +37,7 @@ namespace cura
         RedistributeBeadingStrategy
         (
             const coord_t optimal_width_outer,
-            const double minimum_variable_line_width,
+            const Ratio minimum_variable_line_width,
             BeadingStrategyPtr parent
         );
 
@@ -91,7 +91,6 @@ namespace cura
 
         BeadingStrategyPtr parent;
         coord_t optimal_width_outer;
-        coord_t optimal_width_inner;
         double minimum_variable_line_width;
     };
 

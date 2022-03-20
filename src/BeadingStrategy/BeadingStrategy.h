@@ -9,6 +9,7 @@
 #include "../utils/IntPoint.h"
 #include "../utils/logoutput.h"
 #include "../settings/types/Angle.h"
+#include "../settings/types/Ratio.h" //For the wall transition threshold.
 
 namespace cura
 {
@@ -36,7 +37,16 @@ public:
         coord_t left_over; //! The distance not covered by any bead; gap area.
     };
 
-    BeadingStrategy(coord_t optimal_width, coord_t default_transition_length, float transitioning_angle = pi_div(3));
+    BeadingStrategy
+    (
+        coord_t optimal_width,
+        Ratio wall_split_middle_threshold,
+        Ratio wall_add_middle_threshold,
+        coord_t default_transition_length,
+        float transitioning_angle = pi_div(3)
+    );
+
+    BeadingStrategy(const BeadingStrategy& other);
 
     virtual ~BeadingStrategy() {}
 
@@ -96,6 +106,10 @@ protected:
     std::string name;
 
     coord_t optimal_width; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
+
+    Ratio wall_split_middle_threshold; //! Threshold when a middle wall should be split into two, as a ratio of the optimal wall width.
+
+    Ratio wall_add_middle_threshold; //! Threshold when a new middle wall should be added between an even number of walls, as a ratio of the optimal wall width.
 
     coord_t default_transition_length; //! The length of the region to smoothly transfer between bead counts
 
