@@ -15,13 +15,13 @@ namespace cura
 TEST(CenterDeviationBeadingStrategy, Construction)
 {
     CenterDeviationBeadingStrategy strategy(400, 0.6, 0.5, 0.5); //Pretty standard settings.
-    EXPECT_EQ(strategy.minimum_line_width_split, 200) << "Since the transition threshold was 50%, the minimum line width should be 0.5 times the preferred width.";
+    EXPECT_EQ(strategy.getSplitMiddleThreshold(), 200) << "Since the transition threshold was 50%, the minimum line width should be 0.5 times the preferred width.";
     strategy = CenterDeviationBeadingStrategy(400, 0.6, 0, 0);
-    EXPECT_EQ(strategy.minimum_line_width_split, 0) << "Since the transition threshold was 0%, the minimum line width should be 0.";
+    EXPECT_EQ(strategy.getSplitMiddleThreshold(), 0) << "Since the transition threshold was 0%, the minimum line width should be 0.";
     strategy = CenterDeviationBeadingStrategy(0, 0.6, 0.5, 0.5);
-    EXPECT_EQ(strategy.minimum_line_width_split, 0) << "Since the line width was 0%, the minimum line width should also be 0.";
+    EXPECT_EQ(strategy.getSplitMiddleThreshold(), 0) << "Since the line width was 0%, the minimum line width should also be 0.";
     strategy = CenterDeviationBeadingStrategy(400, 0.6, 1, 1);
-    EXPECT_EQ(strategy.minimum_line_width_split, 400) << "Since the transition threshold was 100%, the minimum line width equals the preferred width.";
+    EXPECT_EQ(strategy.getSplitMiddleThreshold(), 400) << "Since the transition threshold was 100%, the minimum line width equals the preferred width.";
 }
 
 /*!
