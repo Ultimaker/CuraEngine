@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PATHORDEROPTIMIZER_H
@@ -453,7 +453,7 @@ protected:
             const coord_t distance = (combing_boundary == nullptr)
                 ? getDirectDistance(here, target_pos)
                 : getCombingDistance(here, target_pos);
-            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : distance / 1000000;
+            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : static_cast<float>(distance) / 1000000;
             const float corner_angle = (clockwise ? LinearAlg2D::getAngleLeft(previous, here, next) : LinearAlg2D::getAngleLeft(next, here, previous)) / M_PI - 1; //Between -1 and 1.
 
             float score;
