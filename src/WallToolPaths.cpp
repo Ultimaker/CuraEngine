@@ -138,18 +138,6 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
         VariableWidthLines stitched_polylines;
         VariableWidthLines closed_polygons;
         PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
-#ifdef DEBUG
-        for (const ExtrusionLine& line : stitched_polylines)
-        {
-            if ( ! line.is_odd &&
-                line.polylineLength() > 3 * stitch_distance && line.size() > 3)
-            {
-                logError("Some even contour lines could not be closed into polygons!\n");
-                assert(false && "Some even contour lines could not be closed into polygons!");
-                // NOTE: if this assertion fails then revert the debugging code removed in this commit (git blame on this line)
-            }
-        }
-#endif // DEBUG
         wall_lines = stitched_polylines; // replace input toolpaths with stitched polylines
 
         for (ExtrusionLine& wall_polygon : closed_polygons)
