@@ -42,6 +42,15 @@ public:
      * existing polygons in it. However, you shouldn't call this function with
      * the same parameter in \p lines as \p result_lines, because that would
      * duplicate (some of) the polylines.
+     * \param lines The lines to stitch together.
+     * \param result_lines[out] The stitched parts that are not closed polygons
+     * will be stored in here.
+     * \param result_polygons[out] The stitched parts that were closed as
+     * polygons will be stored in here.
+     * \param max_stitch_distance The maximum distance that will be bridged to
+     * connect two lines.
+     * \param snap_distance Points closer than this distance are considered to
+     * be the same point.
      */
     static void stitch(const Paths& lines, Paths& result_lines, Paths& result_polygons, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10)
     {
@@ -70,6 +79,7 @@ public:
             }
             processed[line_idx] = true;
             const auto line = lines[line_idx];
+            bool should_close = isOdd(line);
             
             Path chain = line;
             bool closest_is_closing_polygon = false;
@@ -89,7 +99,7 @@ public:
                     coord_t closest_distance = std::numeric_limits<coord_t>::max();
                     grid.processNearby(from, max_stitch_distance, 
                         std::function<bool (const PathsPointIndex<Paths>&)> (
-                            [from, &chain, &closest, &closest_is_closing_polygon, &closest_distance, &processed, &chain_length, go_in_reverse_direction, max_stitch_distance, snap_distance]
+                            [from, &chain, &closest, &closest_is_closing_polygon, &closest_distance, &processed, &chain_length, go_in_reverse_direction, max_stitch_distance, snap_distance, should_close]
                             (const PathsPointIndex<Paths>& nearby)->bool
                         {
                             bool is_closing_segment = false;
@@ -106,9 +116,17 @@ public:
                                     return true; // look for a better next line
                                 }
                                 is_closing_segment = true;
-                                dist += 10; // prefer continuing polyline over closing a polygon; avoids closed zigzags from being printed separately
-                                // continue to see if closing segment is also the closest 
-                                // there might be a segment smaller than [max_stitch_distance] which closes the polygon better
+                                if(!should_close)
+                                {
+                                    dist += 10; // prefer continuing polyline over closing a polygon; avoids closed zigzags from being printed separately
+                                    // continue to see if closing segment is also the closest
+                                    // there might be a segment smaller than [max_stitch_distance] which closes the polygon better
+                                }
+                                else
+                                {
+                                    dist -= 10; //Prefer closing the polygon if it's 100% even lines. Used to create closed contours.
+                                    //Continue to see if closing segment is also the closest.
+                                }
                             }
                             else if (processed[nearby.poly_idx])
                             { // it was already moved to output
@@ -171,6 +189,7 @@ public:
                     {
                         chain_length += vSize(chain[i] - chain[i - 1]);
                     }
+                    should_close = should_close & !isOdd((*closest.polygons)[closest.poly_idx]); //If we connect an even to an odd line, we should no longer try to close it.
                     assert( ! processed[closest.poly_idx]);
                     processed[closest.poly_idx] = true;
                 }
@@ -213,6 +232,8 @@ public:
      * (Not true for an odd and an even wall.)
      */
     static bool canConnect(const Path& a, const Path& b);
+
+    static bool isOdd(const Path& line);
 };
 
 }//namespace cura
