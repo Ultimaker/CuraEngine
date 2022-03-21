@@ -23,17 +23,25 @@ class PolylineStitcher
 {
 public:
     /*!
-     * Stitch together the separate \p lines into \p result_lines and if they can be closed into \p result_polygons.
-     * Only introduce new segments shorter than \p max_stitch_distance, and larger then \p snap_distance
-     * but always try to take the shortest connection possible.
+     * Stitch together the separate \p lines into \p result_lines and if they
+     * can be closed into \p result_polygons.
+     *
+     * Only introduce new segments shorter than \p max_stitch_distance, and
+     * larger than \p snap_distance but always try to take the shortest
+     * connection possible.
      * 
-     * Only stitch polylines into closed polygons if they are larger than 3 * \p max_stitch_distance,
-     * in order to prevent small segments to accidentally get closed into a polygon.
+     * Only stitch polylines into closed polygons if they are larger than 3 *
+     * \p max_stitch_distance, in order to prevent small segments to
+     * accidentally get closed into a polygon.
      * 
-     * \warning Tiny polylines (smaller than 3 * max_stitch_distance) will not be closed into polygons. 
+     * \warning Tiny polylines (smaller than 3 * max_stitch_distance) will not
+     * be closed into polygons.
      * 
-     * \note Resulting polylines and polygons are added onto the existing containers, so you can directly output onto a polygons container with existing polygons in it.
-     * However, you shouldn't call this function with the same parameter in \p lines as \p result_lines, because that would duplicate (some of) the polylines.
+     * \note Resulting polylines and polygons are added onto the existing
+     * containers, so you can directly output onto a polygons container with
+     * existing polygons in it. However, you shouldn't call this function with
+     * the same parameter in \p lines as \p result_lines, because that would
+     * duplicate (some of) the polylines.
      */
     static void stitch(const Paths& lines, Paths& result_lines, Paths& result_polygons, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10)
     {
@@ -71,7 +79,8 @@ public:
                 { // try extending chain in the other direction
                     chain.reverse();
                 }
-                
+                coord_t chain_length = chain.polylineLength();
+
                 while (true)
                 {
                     Point from = make_point(chain.back());
@@ -80,7 +89,7 @@ public:
                     coord_t closest_distance = std::numeric_limits<coord_t>::max();
                     grid.processNearby(from, max_stitch_distance, 
                         std::function<bool (const PathsPointIndex<Paths>&)> (
-                            [from, &chain, &closest, &closest_is_closing_polygon, &closest_distance, &processed, go_in_reverse_direction, max_stitch_distance, snap_distance]
+                            [from, &chain, &closest, &closest_is_closing_polygon, &closest_distance, &processed, &chain_length, go_in_reverse_direction, max_stitch_distance, snap_distance]
                             (const PathsPointIndex<Paths>& nearby)->bool
                         {
                             bool is_closing_segment = false;
@@ -91,7 +100,7 @@ public:
                             }
                             if(vSize2(nearby.p() - make_point(chain.front())) < snap_distance * snap_distance)
                             {
-                                if (chain.polylineLength() + dist < 3 * max_stitch_distance // prevent closing of small poly, cause it might be able to continue making a larger polyline
+                                if (chain_length + dist < 3 * max_stitch_distance // prevent closing of small poly, cause it might be able to continue making a larger polyline
                                     || chain.size() <= 2) // don't make 2 vert polygons
                                 {
                                     return true; // look for a better next line
@@ -139,6 +148,7 @@ public:
 
                     coord_t segment_dist = vSize(make_point(chain.back()) - closest.p());
                     assert(segment_dist <= max_stitch_distance + 10);
+                    const size_t old_size = chain.size();
                     if (closest.point_idx == 0)
                     {
                         auto start_pos = (*closest.polygons)[closest.poly_idx].begin();
@@ -156,6 +166,10 @@ public:
                             ++start_pos;
                         }
                         chain.insert(chain.end(), (*closest.polygons)[closest.poly_idx].rbegin(), (*closest.polygons)[closest.poly_idx].rend());
+                    }
+                    for(size_t i = old_size; i < chain.size(); ++i) //Update chain length.
+                    {
+                        chain_length += vSize(chain[i] - chain[i - 1]);
                     }
                     assert( ! processed[closest.poly_idx]);
                     processed[closest.poly_idx] = true;
