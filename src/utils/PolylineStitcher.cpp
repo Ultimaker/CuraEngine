@@ -40,5 +40,17 @@ bool PolylineStitcher<Polygons, Polygon, Point>::canConnect(const Polygon&, cons
     return true;
 }
 
+template<>
+bool PolylineStitcher<VariableWidthLines, ExtrusionLine, ExtrusionJunction>::isOdd(const ExtrusionLine& line)
+{
+    return line.is_odd;
+}
+
+template<>
+bool PolylineStitcher<Polygons, Polygon, Point>::isOdd(const Polygon&)
+{
+    return false;
+}
+
 }//namespace cura
 
