@@ -55,10 +55,14 @@ if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
 
-if(NOT DEFINED LIB_SUFFIX)
-    set(LIB_SUFFIX "")
+OPTION(SET_RPATH ON)
+
+if(SET_RPATH)
+    if(NOT DEFINED LIB_SUFFIX)
+        set(LIB_SUFFIX "")
+    endif()
+    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
 endif()
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}")
 
 set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
 
@@ -165,6 +169,7 @@ set(engine_SRCS # Except main.cpp.
     src/support.cpp
     src/timeEstimate.cpp
     src/TopSurface.cpp
+    src/TreeModelVolumes.cpp
     src/TreeSupport.cpp
     src/WallsComputation.cpp
     src/wallOverlap.cpp

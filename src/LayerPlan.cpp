@@ -1064,7 +1064,17 @@ unsigned LayerPlan::locateFirstSupportedVertex(ConstPolygonRef wall, const unsig
     }
 }
 
-void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, SpaceFillType space_fill_type, bool enable_travel_optimization, int wipe_dist, float flow_ratio, std::optional<Point> near_start_location, double fan_speed)
+void LayerPlan::addLinesByOptimizer
+(
+    const Polygons& polygons,
+    const GCodePathConfig& config,
+    const SpaceFillType space_fill_type,
+    const bool enable_travel_optimization,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const std::optional<Point> near_start_location,
+    const double fan_speed
+)
 {
     Polygons boundary;
     if (enable_travel_optimization && comb_boundary_inside2.size() > 0)
@@ -1094,7 +1104,8 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         orderOptimizer.addPolygon(polygons[line_idx]);
     }
     orderOptimizer.optimize();
-
+    coord_t half_line_width = config.getLineWidth() / 2;
+    coord_t line_width_2 = half_line_width * half_line_width;
     for (unsigned int order_idx = 0; order_idx < orderOptimizer.polyOrder.size(); order_idx++)
     {
         const unsigned int poly_idx = orderOptimizer.polyOrder[order_idx];
@@ -1108,7 +1119,18 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathCon
         {
             continue;
         }
-        addTravel(p0);
+
+        if(vSize2(getLastPlannedPositionOrStartingPosition() - p0) < line_width_2)
+        {
+            // Instead of doing a small travel that is shorter than the line width (which is generally done at pretty high jerk & move) do a
+            // "fake" extrusion move
+            addExtrusionMove(p0, config, space_fill_type, 0, false, 1.0, fan_speed);
+        }
+        else
+        {
+            addTravel(p0);
+        }
+
         addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
 
         // Wipe
@@ -1199,6 +1221,8 @@ void LayerPlan::addLinesMonotonic
 
     // Read out and process the monotonically ordered lines.
     Point current_last_position = last_position;
+    coord_t half_line_width = config.getLineWidth() / 2;
+    coord_t line_width_2 = half_line_width * half_line_width;
     for (unsigned int order_idx = 0; order_idx < order.paths.size(); order_idx++)
     {
         const PathOrder<ConstPolygonRef>::Path& path = order.paths[order_idx];
@@ -1212,7 +1236,16 @@ void LayerPlan::addLinesMonotonic
         {
             continue;
         }
-        addTravel(p0);
+        if(vSize2(current_last_position - p0) < line_width_2)
+        {
+            // Instead of doing a small travel that is shorter than the line width (which is generally done at pretty high jerk & move) do a
+            // "fake" extrusion move
+            addExtrusionMove(p0, config, space_fill_type, 0, false, 1.0, fan_speed);
+        }
+        else
+        {
+            addTravel(p0);
+        }
         addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
         current_last_position = p1;
 
