@@ -1453,7 +1453,7 @@ void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const S
         {
             innermost_wall_line_width *= mesh.settings.get<Ratio>("initial_layer_line_width_factor");
         }
-        gcode_layer.moveInsideCombBoundary(innermost_wall_line_width);
+        gcode_layer.moveInsideCombBoundary(innermost_wall_line_width, part);
     }
 
     gcode_layer.setIsInside(false);
