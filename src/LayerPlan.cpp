@@ -301,16 +301,17 @@ void LayerPlan::setMesh(const std::string mesh_id)
     current_mesh = mesh_id;
 }
 
-void LayerPlan::moveInsideCombBoundary(const coord_t distance)
+void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part)
 {
     constexpr coord_t max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
-    // this function is to be used to move from the boudary of a part to inside the part
+    // this function is to be used to move from the boundary of a part to inside the part
     Point p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
     if (PolygonUtils::moveInside(comb_boundary_preferred, p, distance, max_dist2) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners
         PolygonUtils::moveInside(comb_boundary_preferred, p, distance, max_dist2);
-        if (comb_boundary_preferred.inside(p))
+        if (comb_boundary_preferred.inside(p) &&
+            (part == std::nullopt || part->outline.inside(p)))
         {
             addTravel_simple(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
