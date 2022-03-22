@@ -1,6 +1,5 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
-
 
 #ifndef CENTER_DEVIATION_BEADING_STRATEGY_H
 #define CENTER_DEVIATION_BEADING_STRATEGY_H
