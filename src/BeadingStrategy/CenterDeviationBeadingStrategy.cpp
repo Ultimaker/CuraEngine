@@ -66,16 +66,6 @@ CenterDeviationBeadingStrategy::Beading CenterDeviationBeadingStrategy::compute(
     return ret;
 }
 
-coord_t CenterDeviationBeadingStrategy::getOptimalThickness(coord_t bead_count) const
-{
-    return bead_count * optimal_width;
-}
-
-coord_t CenterDeviationBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
-{
-    return optimal_width * (lower_bead_count + (lower_bead_count % 2 == 1 ? wall_split_middle_threshold : wall_add_middle_threshold));
-}
-
 coord_t CenterDeviationBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
     const coord_t naive_count = thickness / optimal_width; // How many lines we can fit in for sure. (Note difference with Distributed.)

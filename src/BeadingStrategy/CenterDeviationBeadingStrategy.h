@@ -36,8 +36,6 @@ class CenterDeviationBeadingStrategy : public BeadingStrategy
 
     ~CenterDeviationBeadingStrategy() override{};
     Beading compute(coord_t thickness, coord_t bead_count) const override;
-    coord_t getOptimalThickness(coord_t bead_count) const override;
-    coord_t getTransitionThickness(coord_t lower_bead_count) const override;
     coord_t getOptimalBeadCount(coord_t thickness) const override;
 };
 

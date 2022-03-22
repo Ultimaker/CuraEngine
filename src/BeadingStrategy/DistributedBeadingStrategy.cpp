@@ -93,16 +93,6 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
     return ret;
 }
 
-coord_t DistributedBeadingStrategy::getOptimalThickness(coord_t bead_count) const
-{
-    return bead_count * optimal_width;
-}
-
-coord_t DistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
-{
-    return optimal_width * (lower_bead_count + (lower_bead_count % 2 == 1 ? wall_split_middle_threshold : wall_add_middle_threshold));
-}
-
 coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
     const coord_t naive_count = (thickness + optimal_width / 2) / optimal_width; // How many lines do we _want_ to fit in here. (Note difference with Central.)

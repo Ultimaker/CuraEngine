@@ -86,5 +86,17 @@ AngleRadians BeadingStrategy::getTransitioningAngle() const
     return transitioning_angle;
 }
 
+coord_t BeadingStrategy::getOptimalThickness(coord_t bead_count) const
+{
+    return optimal_width * bead_count;
+}
+
+coord_t BeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
+{
+    const coord_t lower_ideal_width = getOptimalThickness(lower_bead_count);
+    const coord_t higher_ideal_width = getOptimalThickness(lower_bead_count + 1);
+    const Ratio threshold = lower_bead_count % 2 == 1 ? wall_split_middle_threshold : wall_add_middle_threshold;
+    return lower_ideal_width + threshold * (higher_ideal_width - lower_ideal_width);
+}
 
 } // namespace cura
