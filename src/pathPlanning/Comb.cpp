@@ -33,7 +33,7 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
-, max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
+, max_moveInside_distance2(offset_from_outlines * offset_from_outlines)
 , offset_from_inside_to_outside(offset_from_outlines + travel_avoid_distance)
 , max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 2) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(2) =approx 1.5 to allow for slightly diagonal crossings and slightly inaccurate crossing computation
 , boundary_inside_minimum( comb_boundary_inside_minimum ) // copy the boundary, because the partsView_inside will reorder the polygons
@@ -80,7 +80,7 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
     unsigned int end_inside_poly = NO_INDEX;
     const bool end_inside = moveInside(boundary_inside_optimal, _end_inside, inside_loc_to_line_optimal.get(), end_point, end_inside_poly);
 
-    unsigned int start_part_boundary_poly_idx = NO_INDEX;		// Added initial value to stop MSVC throwing an exception in debug mode
+    unsigned int start_part_boundary_poly_idx = NO_INDEX; // Added initial value to stop MSVC throwing an exception in debug mode
     unsigned int end_part_boundary_poly_idx = NO_INDEX;
     unsigned int start_part_idx =   (start_inside_poly == NO_INDEX)?    NO_INDEX : partsView_inside_optimal.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
     unsigned int end_part_idx =     (end_inside_poly == NO_INDEX)?      NO_INDEX : partsView_inside_optimal.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
