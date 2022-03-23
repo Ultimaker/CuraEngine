@@ -13,8 +13,8 @@
 namespace cura {
 
 WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)
-: settings(settings)
-, layer_nr(layer_nr)
+  : settings(settings)
+    , layer_nr(layer_nr)
 {
 }
 
@@ -27,13 +27,16 @@ WallsComputation::WallsComputation(const Settings& settings, const LayerIndex la
 void WallsComputation::generateWalls(SliceLayerPart* part)
 {
     size_t wall_count = settings.get<size_t>("wall_line_count");
+    if (part->roofing_wall || layer_nr == 0)
+    {
+        wall_count  = 1;
+    }
     if (wall_count == 0) // Early out if no walls are to be generated
     {
         part->print_outline = part->outline;
         part->inner_area = part->outline;
         return;
     }
-
     const bool spiralize = settings.get<bool>("magic_spiralize");
     const size_t alternate = ((layer_nr % 2) + 2) % 2;
     if (spiralize && layer_nr < LayerIndex(settings.get<size_t>("initial_bottom_layers")) && alternate == 1) //Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
@@ -47,22 +50,22 @@ void WallsComputation::generateWalls(SliceLayerPart* part)
 
     const bool first_layer = layer_nr == 0;
     const Ratio line_width_0_factor = first_layer ? settings.get<ExtruderTrain&>("wall_0_extruder_nr").settings.get<Ratio>("initial_layer_line_width_factor") : 1.0_r;
-    const coord_t line_width_0 = settings.get<coord_t>("wall_line_width_0") * line_width_0_factor;
+    const coord_t line_width_0 =  first_layer ? settings.get<coord_t>("skin_line_width") * line_width_0_factor : settings.get<coord_t>("wall_line_width_0");
     const coord_t wall_0_inset = settings.get<coord_t>("wall_0_inset");
 
     const Ratio line_width_x_factor = first_layer ? settings.get<ExtruderTrain&>("wall_x_extruder_nr").settings.get<Ratio>("initial_layer_line_width_factor") : 1.0_r;
-    const coord_t line_width_x = settings.get<coord_t>("wall_line_width_x") * line_width_x_factor;
+    const coord_t line_width_x = first_layer ? settings.get<coord_t>("skin_line_width") * line_width_x_factor : settings.get<coord_t>("wall_line_width_x");
 
     // When spiralizing, generate the spiral insets using simple offsets instead of generating toolpaths
     if (spiralize)
     {
         const bool recompute_outline_based_on_outer_wall =
-                settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
+          settings.get<bool>("support_enable") && !settings.get<bool>("fill_outline_gaps");
 
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
         if (layer_nr <= static_cast<LayerIndex>(settings.get<size_t>("bottom_layers")))
         {
-            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, settings);
+            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings);
             part->wall_toolpaths = wall_tool_paths.getToolPaths();
             part->inner_area = wall_tool_paths.getInnerContour();
         }
