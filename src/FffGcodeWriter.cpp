@@ -1986,6 +1986,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             gcode_layer.addPolygonsByOptimizer(part.spiral_wall, mesh_config.inset0_config, ZSeamConfig(), wall_0_wipe_dist);
         }
     }
+    bool supported_wall = false;
     // for non-spiralized layers, determine the shape of the unsupported areas below this part
     if (!spiralize && gcode_layer.getLayerNr() > 0)
     {
@@ -2074,7 +2075,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             gcode_layer.setBridgeWallMask(Polygons());
         }
 
-        const AngleDegrees overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
+        AngleDegrees overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
         if (overhang_angle >= 90)
         {
             // clear to disable overhang detection
@@ -2090,6 +2091,11 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
             gcode_layer.setOverhangMask(overhang_region);
         }
+
+        overhang_angle =  50;
+        const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
+        Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
+        if (overhang_region.empty()) supported_wall = true;
     }
     else
     {
