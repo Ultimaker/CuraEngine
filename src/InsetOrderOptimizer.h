@@ -107,7 +107,7 @@ private:
     const ZSeamConfig& z_seam_config;
     const VariableWidthPaths& paths;
     const unsigned int layer_nr;
-    
+    const bool outer_to_inner;
     bool added_something;
     bool retraction_region_calculated; //Whether the retraction_region field has been calculated or not.
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
