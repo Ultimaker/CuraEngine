@@ -26,7 +26,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
                                          const size_t wall_0_extruder_nr,
                                          const size_t wall_x_extruder_nr,
                                          const ZSeamConfig& z_seam_config,
-                                         const VariableWidthPaths& paths) :
+                                         const VariableWidthPaths& paths,
+                                         const bool outer_to_inner) :
     gcode_writer(gcode_writer),
     storage(storage),
     gcode_layer(gcode_layer),
@@ -45,7 +46,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
     paths(paths),
     layer_nr(gcode_layer.getLayerNr()),
     added_something(false),
-    retraction_region_calculated(false)
+    retraction_region_calculated(false),
+    outer_to_inner(outer_to_inner)
 {
 }
 
