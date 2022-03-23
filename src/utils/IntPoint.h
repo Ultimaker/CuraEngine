@@ -160,12 +160,12 @@ INLINE const Point& make_point(const Point& p)
 namespace std {
 template <>
 struct hash<cura::Point> {
-    size_t operator()(const cura::Point & pp) const
+    signed long long operator()(const cura::Point & pp) const
     {
         static int prime = 31;
-        int result = 89;
-        result = result * prime + pp.X;
-        result = result * prime + pp.Y;
+        signed long long result = 89;
+        result = (long) result * prime + pp.X;
+        result = (long) result * prime + pp.Y;
         return result;
     }
 };

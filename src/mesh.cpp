@@ -183,7 +183,7 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
 
     if (candidateFaces.size() % 2 == 0)
     {
-        cura::logDebug("Warning! Edge with uneven number of faces connecting it!(%i)\n", candidateFaces.size()+1);
+        cura::logDebug("Warning! Edge with uneven number of faces connecting it!(%lu)\n", candidateFaces.size()+1);
         if (!has_disconnected_faces)
         {
             cura::logWarning("Mesh has disconnected faces!\n");

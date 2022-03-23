@@ -1633,9 +1633,9 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
         }
         else
         {
-            ret.bead_widths[inset_idx] = ratio_left_to_whole * left.bead_widths[inset_idx] + ratio_right_to_whole * right.bead_widths[inset_idx];
+            ret.bead_widths[inset_idx] = ratio_left_to_whole * left.bead_widths[inset_idx] + (double) ratio_right_to_whole * right.bead_widths[inset_idx];
         }
-        ret.toolpath_locations[inset_idx] = ratio_left_to_whole * left.toolpath_locations[inset_idx] + ratio_right_to_whole * right.toolpath_locations[inset_idx];
+        ret.toolpath_locations[inset_idx] = ratio_left_to_whole * left.toolpath_locations[inset_idx] + (double) ratio_right_to_whole * right.toolpath_locations[inset_idx];
     }
     return ret;
 }
@@ -1923,7 +1923,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
             assert(std::abs(int(from_junctions.size()) - int(to_junctions.size())) <= 1); // at transitions one end has more beads
             if(std::abs(int(from_junctions.size()) - int(to_junctions.size())) > 1)
             {
-                logWarning("Can't create a transition when connecting two perimeters where the number of beads differs too much! %i vs. %i", from_junctions.size(), to_junctions.size());
+                logWarning("Can't create a transition when connecting two perimeters where the number of beads differs too much! %lu vs. %lu", from_junctions.size(), to_junctions.size());
             }
 
             size_t segment_count = std::min(from_junctions.size(), to_junctions.size());
@@ -1934,7 +1934,7 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 assert(from.perimeter_index == to.perimeter_index);
                 if(from.perimeter_index != to.perimeter_index)
                 {
-                    logWarning("Connecting two perimeters with different indices! Perimeter %i and %i", from.perimeter_index, to.perimeter_index);
+                    logWarning("Connecting two perimeters with different indices! Perimeter %lu and %lu", from.perimeter_index, to.perimeter_index);
                 }
                 const bool from_is_odd = 
                     quad_start->to->data.bead_count > 0 && quad_start->to->data.bead_count % 2 == 1 // quad contains single bead segment

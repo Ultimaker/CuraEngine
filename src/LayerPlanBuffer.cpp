@@ -80,7 +80,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
 
     if (!new_layer_destination_state)
     {
-        logWarning("Layer %d is empty (or it has empty extruder plans). Temperature control and cross layer travel moves might suffer!\n", newest_layer->layer_nr);
+        logWarning("Layer %d is empty (or it has empty extruder plans). Temperature control and cross layer travel moves might suffer!\n", (int) newest_layer->layer_nr);
         return;
     }
 

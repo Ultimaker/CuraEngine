@@ -722,7 +722,7 @@ Polygon SierpinskiFill::generateCross() const
     float realized_length = INT2MM(ret.polygonLength());
     float requested_length = root.requested_length;
     float error = (realized_length - requested_length) / requested_length;
-    logDebug("realized_length: %f, requested_length: %f  :: %f% error\n", realized_length, requested_length, .01 * static_cast<int>(10000 * error));
+    logDebug("realized_length: %f, requested_length: %f  :: %f error\n", realized_length, requested_length, .01 * static_cast<int>(10000 * error));
     return ret;
 }
 

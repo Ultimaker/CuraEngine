@@ -103,7 +103,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     coord_t initial_layer_thickness = mesh_group_settings.get<coord_t>("layer_height_0");
     if (initial_layer_thickness <= 0)
     {
-        logError("Initial layer height %i is disallowed.\n", initial_layer_thickness);
+        logError("Initial layer height %lld is disallowed.\n", initial_layer_thickness);
         return false;
     }
 
@@ -111,7 +111,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     if(layer_thickness <= 0)
     {
-        logError("Layer height %i is disallowed.\n", layer_thickness);
+        logError("Layer height %lld is disallowed.\n", layer_thickness);
         return false;
     }
 
@@ -380,7 +380,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         removeEmptyFirstLayers(storage, storage.print_layer_count); // changes storage.print_layer_count!
     }
 
-    log("Layer count: %i\n", storage.print_layer_count);
+    log("Layer count: %lu\n", storage.print_layer_count);
 
     //layerparts2HTML(storage, "output/output.html");
 
@@ -466,7 +466,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
     for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
     {
-        logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
+        logDebug("Processing insets for layer %i of %lu\n", layer_number, mesh_layer_count);
         processWalls(mesh, layer_number);
 #ifdef _OPENMP
         if (omp_get_thread_num() == 0)
@@ -525,7 +525,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
         // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
         for (int layer_number = 0; layer_number < static_cast<int>(mesh.layers.size()); layer_number++)
         {
-            logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
+            logDebug("Processing skins and infill layer %i of %lu\n", layer_number, mesh_layer_count);
             if (!mesh_group_settings.get<bool>("magic_spiralize") || layer_number < static_cast<int>(mesh_max_initial_bottom_layer_count))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
                 processSkinsAndInfill(mesh, layer_number, process_infill);
@@ -778,7 +778,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
 
     if (n_empty_first_layers > 0)
     {
-        log("Removing %d layers because they are empty\n", n_empty_first_layers);
+        log("Removing %lu layers because they are empty\n", n_empty_first_layers);
         const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
         for (SliceMeshStorage& mesh : storage.meshes)
         {
