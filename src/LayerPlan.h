@@ -758,12 +758,17 @@ public:
     void processFanSpeedAndMinimalLayerTime(Point starting_position);
     
     /*!
-     * Add a travel move to the layer plan to move inside the current layer part by a given distance away from the outline.
-     * This is supposed to be called when the nozzle is around the boundary of a layer part, not when the nozzle is in the middle of support, or in the middle of the air.
-     * 
-     * \param distance The distance to the comb boundary after we moved inside it.
+     * Add a travel move to the layer plan to move inside the current layer part
+     * by a given distance away from the outline.
+     *
+     * This is supposed to be called when the nozzle is around the boundary of a
+     * layer part, not when the nozzle is in the middle of support, or in the
+     * middle of the air.
+     * \param distance The distance to the comb boundary after we moved inside
+     * it.
+     * \param part If given, stay within the boundary of this part.
      */
-    void moveInsideCombBoundary(const coord_t distance);
+    void moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part = std::nullopt);
 
     /*!
      * Apply back-pressure compensation to this layer-plan.
