@@ -2150,14 +2150,14 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                                              mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.bridge_inset0_config, mesh_config.bridge_inset0_config,
                                              mesh.settings.get<bool>("travel_retract_before_outer_wall"), mesh.settings.get<coord_t>("wall_0_wipe_dist"), wall_x_wipe_dist,
                                              mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr, mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr,
-                                             z_seam_config, part.wall_toolpaths);
+                                             z_seam_config, part.wall_toolpaths, supported_wall));
             added_something |= wall_orderer.addToLayer();
         } else {
             InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
                                              mesh_config.inset0_config, mesh_config.insetX_config, mesh_config.bridge_inset0_config, mesh_config.bridge_insetX_config,
                                              mesh.settings.get<bool>("travel_retract_before_outer_wall"), mesh.settings.get<coord_t>("wall_0_wipe_dist"), wall_x_wipe_dist,
                                              mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr, mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr,
-                                             z_seam_config, part.wall_toolpaths);
+                                             z_seam_config, part.wall_toolpaths, supported_wall));
             added_something |= wall_orderer.addToLayer();
         }
 
