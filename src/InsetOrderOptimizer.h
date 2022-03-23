@@ -51,7 +51,8 @@ public:
                         const size_t wall_0_extruder_nr,
                         const size_t wall_x_extruder_nr,
                         const ZSeamConfig& z_seam_config,
-                        const VariableWidthPaths& paths);
+                        const VariableWidthPaths& paths,
+                        const bool outer_to_inner = false);
 
     /*!
      * Adds the insets to the given layer plan.
