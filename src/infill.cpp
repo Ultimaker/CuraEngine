@@ -356,8 +356,8 @@ void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const Setti
     const coord_t min_area = infill_line_width * infill_line_width;
     coord_t line_width_to_use = infill_line_width;
 
-    // Special case for ironing. The line distance will often be much smaller than the line width.
-    // In that case we should add the lines based on that spacing (and not the line width). See CURA-8090
+    // Special case that currently only triggers when using ironing. The line distance will often be much smaller than
+    // the line width. In that case we should add the lines based on that spacing (and not the line width). See CURA-8090
     // for more information
     if(infill_line_width > line_distance)
     {
