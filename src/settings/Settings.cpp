@@ -569,7 +569,11 @@ template<> SlicingTolerance Settings::get<SlicingTolerance>(const std::string& k
 template<> InsetDirection Settings::get<InsetDirection>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    if(value == "outside_in")
+    if(value == "center_last")
+    {
+        return InsetDirection::CENTER_LAST;
+    }
+    else if(value == "outside_in")
     {
         return InsetDirection::OUTSIDE_IN;
     }
