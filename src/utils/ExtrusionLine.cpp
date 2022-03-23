@@ -220,18 +220,18 @@ coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A,
      * */
     const coord_t ab_length = vSize(B - A);
     const coord_t bc_length = vSize(C - B);
-    const coord_t width_diff = llabs(B.w - C.w);
+    const coord_t width_diff = llabs(B.w - A.w);
     if (width_diff > 1)
     {
         // Adjust the width only if there is a difference, or else the rounding errors may produce the wrong
         // weighted average value.
-        weighted_average_width = (ab_length * B.w + bc_length * C.w) / vSize(C - A);
-        return llabs(B.w - weighted_average_width) * ab_length + llabs(C.w - weighted_average_width) * bc_length;
+        weighted_average_width = (ab_length * A.w + bc_length * B.w) / vSize(C - A);
+        return llabs(A.w - weighted_average_width) * ab_length + llabs(B.w - weighted_average_width) * bc_length;
     }
     else
     {
         // If the width difference is very small, then select the width of the segment that is longer
-        weighted_average_width = ab_length > bc_length ? B.w : C.w;
+        weighted_average_width = ab_length > bc_length ? A.w : B.w;
         return ab_length > bc_length ? width_diff * bc_length : width_diff * ab_length;
     }
 }
