@@ -65,6 +65,7 @@ public:
                             //!< Too small parts will be omitted compared to the outline.
     Polygons spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
     Polygons inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
+    bool roofing_wall;
     std::vector<SkinPart> skin_parts;  //!< The skin parts which are filled for 100% with lines and/or insets.
     VariableWidthPaths wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets
     VariableWidthPaths infill_wall_toolpaths; //!< toolpaths for the infill area's
