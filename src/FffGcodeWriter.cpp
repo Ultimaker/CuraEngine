@@ -1773,13 +1773,27 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         {
             for(const VariableWidthPaths& tool_paths: wall_tool_paths)
             {
-                constexpr bool retract_before_outer_wall = false;
-                constexpr coord_t wipe_dist = 0;
-                const ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh_config.infill_config[0].getLineWidth() * 2);
-                InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
-                                                 mesh_config.infill_config[0], mesh_config.infill_config[0], mesh_config.infill_config[0], mesh_config.infill_config[0],
-                                                 retract_before_outer_wall, wipe_dist, wipe_dist, extruder_nr, extruder_nr, z_seam_config, tool_paths);
-                added_something |= wall_orderer.addToLayer();
+                if (part.roofing_wall)
+                {
+                    constexpr bool retract_before_outer_wall = false;
+                    constexpr coord_t wipe_dist = 0;
+                    const ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh_config.infill_config[0].getLineWidth() * 2);
+                    InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
+                                                     mesh_config.roofing_config, mesh_config.roofing_config, mesh_config.roofing_config, mesh_config.roofing_config,
+                                                     retract_before_outer_wall, wipe_dist, wipe_dist, extruder_nr, extruder_nr, z_seam_config, tool_paths);
+                    added_something |= wall_orderer.addToLayer();
+                }
+                else
+                {
+                    constexpr bool retract_before_outer_wall = false;
+                    constexpr coord_t wipe_dist = 0;
+                    const ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh_config.infill_config[0].getLineWidth() * 2);
+                    InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
+                                                     mesh_config.infill_config[0], mesh_config.infill_config[0], mesh_config.infill_config[0], mesh_config.infill_config[0],
+                                                     retract_before_outer_wall, wipe_dist, wipe_dist, extruder_nr, extruder_nr, z_seam_config, tool_paths);
+                    added_something |= wall_orderer.addToLayer();
+                }
+
             }
         }
         if (!infill_polygons.empty())
@@ -1955,6 +1969,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         return added_something;
     }
 
+
     bool spiralize = false;
     if(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
@@ -2129,12 +2144,23 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
         //Main case: Optimize the insets with the InsetOrderOptimizer.
         const coord_t wall_x_wipe_dist = 0;
         const ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh.settings.get<coord_t>("wall_line_width_0") * 2);
-        InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
-                                         mesh_config.inset0_config, mesh_config.insetX_config, mesh_config.bridge_inset0_config, mesh_config.bridge_insetX_config,
-                                         mesh.settings.get<bool>("travel_retract_before_outer_wall"), mesh.settings.get<coord_t>("wall_0_wipe_dist"), wall_x_wipe_dist,
-                                         mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr, mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr,
-                                         z_seam_config, part.wall_toolpaths);
-        added_something |= wall_orderer.addToLayer();
+        if (part.roofing_wall)
+        {
+            InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
+                                             mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.bridge_inset0_config, mesh_config.bridge_inset0_config,
+                                             mesh.settings.get<bool>("travel_retract_before_outer_wall"), mesh.settings.get<coord_t>("wall_0_wipe_dist"), wall_x_wipe_dist,
+                                             mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr, mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr,
+                                             z_seam_config, part.wall_toolpaths);
+            added_something |= wall_orderer.addToLayer();
+        } else {
+            InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
+                                             mesh_config.inset0_config, mesh_config.insetX_config, mesh_config.bridge_inset0_config, mesh_config.bridge_insetX_config,
+                                             mesh.settings.get<bool>("travel_retract_before_outer_wall"), mesh.settings.get<coord_t>("wall_0_wipe_dist"), wall_x_wipe_dist,
+                                             mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr, mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr,
+                                             z_seam_config, part.wall_toolpaths);
+            added_something |= wall_orderer.addToLayer();
+        }
+
     }
     return added_something;
 }
@@ -2232,9 +2258,9 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage, LayerPlan& 
     }
 
     const Ratio skin_density = 1.0;
-    const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
+    coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
     const bool monotonic = mesh.settings.get<bool>("roofing_monotonic");
-    processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, skin_density, monotonic, added_something);
+    processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, skin_density, monotonic, added_something,GCodePathConfig::FAN_SPEED_DEFAULT,true);
 }
 
 void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SkinPart& skin_part, bool& added_something) const
@@ -2402,15 +2428,15 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage, LayerPlan
     processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, monotonic, added_something, fan_speed);
 }
 
-void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, const bool monotonic, bool& added_something, double fan_speed) const
+void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const PathConfigStorage::MeshPathConfigs& mesh_config, const size_t extruder_nr, const Polygons& area, const GCodePathConfig& config, EFillMethod pattern, const AngleDegrees skin_angle, const coord_t skin_overlap, const Ratio skin_density, const bool monotonic, bool& added_something, double fan_speed, bool is_roofing) const
 {
     Polygons skin_polygons;
     Polygons skin_lines;
     VariableWidthPaths skin_paths;
-
+    auto roofing = is_roofing || gcode_layer.getLayerNr() == 0;
     constexpr int infill_multiplier = 1;
     constexpr int extra_infill_shift = 0;
-    const size_t wall_line_count = mesh.settings.get<size_t>("skin_outline_count");
+    const size_t wall_line_count = roofing ? 0 : mesh.settings.get<size_t>("skin_outline_count");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = mesh.settings.get<bool>("connect_skin_polygons");
     coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
@@ -2442,7 +2468,19 @@ void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage, La
         {
             // Add skin-walls a.k.a. skin-perimeters, skin-insets.
             const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
-            if (extruder_nr == skin_extruder_nr)
+            const size_t roofing_extruder_nr = mesh.settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr;
+            if  (roofing)
+            {
+                constexpr bool retract_before_outer_wall = false;
+                constexpr coord_t wipe_dist = 0;
+                const ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), config.getLineWidth() * 2);
+                InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, mesh.settings, extruder_nr,
+                                                 mesh_config.roofing_config, mesh_config.roofing_config, mesh_config.roofing_config, mesh_config.roofing_config,
+                                                 retract_before_outer_wall, wipe_dist, wipe_dist, roofing_extruder_nr, roofing_extruder_nr, z_seam_config, skin_paths);
+                added_something |= wall_orderer.addToLayer();
+            }
+            // Add skin-walls a.k.a. skin-perimeters, skin-insets.
+            else if (extruder_nr == skin_extruder_nr)
             {
                 constexpr bool retract_before_outer_wall = false;
                 constexpr coord_t wipe_dist = 0;
