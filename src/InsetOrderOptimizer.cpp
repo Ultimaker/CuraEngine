@@ -59,7 +59,7 @@ bool InsetOrderOptimizer::addToLayer()
     const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
     const bool alternate_walls = settings.get<bool>("material_alternate_walls");
 
-    const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
+    //const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
     
     size_t start_inset;
     size_t end_inset;
