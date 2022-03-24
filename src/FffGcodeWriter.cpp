@@ -2719,7 +2719,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                    wall_count, infill_origin, support_connect_zigzags,
                                    use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
                 infill_comp.generate(wall_toolpaths_here, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
-                assert(wall_toolpaths_here.empty());
             }
 
             setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch
@@ -2777,6 +2776,21 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 );
 
                 added_something = true;
+            }
+
+            //If we're printing with a support wall, that support wall generates gap filling as well.
+            //If not, the pattern may still generate gap filling (if it's connected infill or zigzag). We still want to print those.
+            if(wall_line_count == 0 && !wall_toolpaths_here.empty())
+            {
+                const GCodePathConfig& config = gcode_layer.configs_storage.support_infill_config[0];
+                constexpr bool retract_before_outer_wall = false;
+                constexpr coord_t wipe_dist = 0;
+                constexpr coord_t simplify_curvature = 0;
+                const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, simplify_curvature);
+                InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, infill_extruder.settings, extruder_nr,
+                                                config, config, config, config,
+                                                retract_before_outer_wall, wipe_dist, wipe_dist, extruder_nr, extruder_nr, z_seam_config, wall_toolpaths);
+                added_something |= wall_orderer.addToLayer();
             }
         }
     }
