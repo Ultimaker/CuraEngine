@@ -8,6 +8,7 @@
 #include <../src/utils/linearAlg2D.h>
 
 #include <limits>
+#include <numeric>
 
 namespace cura
 {
@@ -406,7 +407,7 @@ namespace cura
     {
         //Generate a line with several vertices halfway.
         constexpr coord_t spacing = 100;
-        ExtrusionLine colinear_polylines(0, false);;
+        ExtrusionLine colinear_polylines(0, false);
         auto& colinear = colinear_polylines.junctions;
         colinear.emplace_back(Point(0, 0), 200, 0);
         colinear.emplace_back(Point(spacing / 4, 0), 200, 0);
@@ -417,14 +418,13 @@ namespace cura
         colinear_polylines.simplify(25 * 25, 25 * 25, std::numeric_limits<coord_t>::max());
 
         ASSERT_EQ(colinear_polylines.junctions.size(), 2) << "The degenerate vertices should have been removed.";
-        ASSERT_EQ(colinear[1].w, 500) << "The width of the end-junction should be the average of all removed."; // Since the distances where equal, and they should all have been merged with that one.
     }
 
     TEST(ExtrusionLineTest, simplifyNoLineWidthVariance)
     {
         //Generate a line with several vertices halfway.
         constexpr coord_t spacing = 100;
-        ExtrusionLine colinear_polylines(0, false);;
+        ExtrusionLine colinear_polylines(0, false);
         auto& colinear = colinear_polylines.junctions;
         colinear.emplace_back(Point(0, 0), 200, 0);
         colinear.emplace_back(Point(spacing / 4, 0), 200, 0);
@@ -432,9 +432,16 @@ namespace cura
         colinear.emplace_back(Point(spacing / 2 + spacing / 4, 0), 600, 0);
         colinear.emplace_back(Point(spacing, 0), 800, 0);
 
-        colinear_polylines.simplify(25 * 25, 25 * 25, 1);
+        // Get 'before' average width:
+        coord_t averge_width_before = 0;
+        for (size_t i_junction = 0; i_junction < (colinear.size() - 1); ++i_junction)
+        {
+            averge_width_before += ((colinear[i_junction].w + colinear[i_junction + 1].w) / 2) * vSize(colinear[i_junction].p - colinear[i_junction + 1].p);
+        }
+
+        colinear_polylines.simplify(5 * 5, 5 * 5, 5 * 5);
 
         ASSERT_EQ(colinear_polylines.junctions.size(), 5) << "No junctions should have been removed."; // ... even though they are co-linear!
-        ASSERT_EQ(colinear.back().w, 800) << "The width of the end-junction should not have been changed.";
+        ASSERT_EQ(colinear[0].w + colinear[1].w / 2, averge_width_before) << "The average width of the line should be the same before and after.";
     }
 }
