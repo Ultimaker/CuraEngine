@@ -37,7 +37,7 @@ public:
         const coord_t max_bead_count = 0,
         const coord_t outer_wall_offset = 0,
         const int inward_distributed_center_wall_count = 2,
-        const double minimum_variable_line_width = 0.5
+        const Ratio minimum_variable_line_ratio = 0.5
     );
 };
 
