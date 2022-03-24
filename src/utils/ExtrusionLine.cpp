@@ -210,8 +210,8 @@ coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A,
      * |             |--------------------------|              |            |***************************|
      * |             |                                         ------------------------------------------
      * ---------------             ^                           **************
-     *       ^                    C.w                                             ^
-     *      B.w                                                     new_width = weighted_average_width
+     *       ^                B.w + C.w / 2                                       ^
+     *  A.w + B.w / 2                                               new_width = weighted_average_width
      *
      *
      * ******** denote the total extrusion area deviation error in the consecutive segments as a result of using the
@@ -225,7 +225,7 @@ coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A,
     {
         // Adjust the width only if there is a difference, or else the rounding errors may produce the wrong
         // weighted average value.
-        weighted_average_width = (ab_length * A.w + bc_length * B.w) / vSize(C - A);
+        weighted_average_width = (ab_length * (A.w + B.w) / 2 + bc_length * (B.w + C.w) / 2) / vSize(C - A);
         return std::abs(A.w - weighted_average_width) * ab_length + std::abs(B.w - weighted_average_width) * bc_length;
     }
     else
