@@ -352,38 +352,25 @@ void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& resu
 void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const Settings& settings)
 {
     constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-    const bool iterative = line_distance > infill_line_width; // Do it all at once if there is not need for a gap, otherwise, iterate.
     const coord_t min_area = infill_line_width * infill_line_width;
-    coord_t line_width_to_use = infill_line_width;
-
-    // Special case that currently only triggers when using ironing. The line distance will often be much smaller than
-    // the line width. In that case we should add the lines based on that spacing (and not the line width). See CURA-8090
-    // for more information
-    if(infill_line_width > line_distance)
-    {
-        line_width_to_use = line_distance;
-    }
 
     Polygons current_inset = inner_contour.offset(infill_line_width / 2);
-    do
+    while(true)
     {
-        if (iterative)
-        {
-            current_inset = current_inset.offset(-infill_line_width * 2).offset(infill_line_width * 2);
-        }
+        current_inset = current_inset.offset(-infill_line_width * 2).offset(infill_line_width * 2);
         current_inset.simplify();
         if (current_inset.area() <= min_area)
         {
             break;
         }
 
-        const coord_t inset_wall_count = iterative ? 1 : std::numeric_limits<coord_t>::max();
-        WallToolPaths wall_toolpaths(current_inset, line_width_to_use, inset_wall_count, wall_0_inset, settings);
+        constexpr size_t inset_wall_count = 1;
+        WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings);
         const VariableWidthPaths inset_paths = wall_toolpaths.getToolPaths();
-
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
+
         current_inset = wall_toolpaths.getInnerContour().offset((infill_line_width / 2) - line_distance);
-    } while (iterative);
+    }
 }
 
 void Infill::generateGridInfill(Polygons& result)
