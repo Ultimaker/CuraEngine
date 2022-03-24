@@ -36,7 +36,7 @@ coord_t RedistributeBeadingStrategy::getTransitionThickness(coord_t lower_bead_c
     {
         case 0: return minimum_variable_line_width * optimal_width_outer;
         case 1: return (1.0 + parent->getSplitMiddleThreshold()) * optimal_width_outer;
-        default: return parent->getTransitionThickness(lower_bead_count - 2) + (optimal_width_outer * 2);
+        default: return parent->getTransitionThickness(lower_bead_count - 2) + 2 * optimal_width_outer;
     }
 }
 
