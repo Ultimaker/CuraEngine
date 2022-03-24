@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 #include <numeric>
 #include "DistributedBeadingStrategy.h"
@@ -6,15 +6,16 @@
 namespace cura
 {
 
-DistributedBeadingStrategy::DistributedBeadingStrategy(const coord_t optimal_width,
-                                const coord_t default_transition_length,
-                                const AngleRadians transitioning_angle,
-                                const Ratio wall_split_middle_threshold,
-                                const Ratio wall_add_middle_threshold,
-                                const int distribution_radius)
-    : BeadingStrategy(optimal_width, default_transition_length, transitioning_angle)
-    , wall_split_middle_threshold(wall_split_middle_threshold)
-    , wall_add_middle_threshold(wall_add_middle_threshold)
+DistributedBeadingStrategy::DistributedBeadingStrategy
+(
+    const coord_t optimal_width,
+    const coord_t default_transition_length,
+    const AngleRadians transitioning_angle,
+    const Ratio wall_split_middle_threshold,
+    const Ratio wall_add_middle_threshold,
+    const int distribution_radius
+) :
+    BeadingStrategy(optimal_width, wall_split_middle_threshold, wall_add_middle_threshold, default_transition_length, transitioning_angle)
 {
     if(distribution_radius >= 2)
     {
@@ -92,19 +93,12 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t 
     return ret;
 }
 
-coord_t DistributedBeadingStrategy::getOptimalThickness(coord_t bead_count) const
-{
-    return bead_count * optimal_width;
-}
-
-coord_t DistributedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
-{
-    return lower_bead_count * optimal_width + optimal_width * (lower_bead_count % 2 == 1 ? wall_split_middle_threshold : wall_add_middle_threshold);
-}
-
 coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    return (thickness + optimal_width / 2) / optimal_width;
+    const coord_t naive_count = thickness / optimal_width; // How many lines we can fit in for sure.
+    const coord_t remainder = thickness - naive_count * optimal_width; // Space left after fitting that many lines.
+    const coord_t minimum_line_width = optimal_width * (naive_count % 2 == 1 ? wall_split_middle_threshold : wall_add_middle_threshold);
+    return naive_count + (remainder >= minimum_line_width); // If there's enough space, fit an extra one.
 }
 
 } // namespace cura
