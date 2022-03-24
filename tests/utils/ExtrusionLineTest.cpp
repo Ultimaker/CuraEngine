@@ -406,31 +406,13 @@ namespace cura
     TEST(ExtrusionLineTest, simplifyLineWidthVariance)
     {
         //Generate a line with several vertices halfway.
-        constexpr coord_t spacing = 100;
         ExtrusionLine colinear_polylines(0, false);
         auto& colinear = colinear_polylines.junctions;
         colinear.emplace_back(Point(0, 0), 200, 0);
-        colinear.emplace_back(Point(spacing / 4, 0), 200, 0);
-        colinear.emplace_back(Point(spacing / 2, 0), 400, 0);
-        colinear.emplace_back(Point(spacing / 2 + spacing / 4, 0), 600, 0);
-        colinear.emplace_back(Point(spacing, 0), 800, 0);
-
-        colinear_polylines.simplify(25 * 25, 25 * 25, std::numeric_limits<coord_t>::max());
-
-        ASSERT_EQ(colinear_polylines.junctions.size(), 2) << "The degenerate vertices should have been removed.";
-    }
-
-    TEST(ExtrusionLineTest, simplifyNoLineWidthVariance)
-    {
-        //Generate a line with several vertices halfway.
-        constexpr coord_t spacing = 100;
-        ExtrusionLine colinear_polylines(0, false);
-        auto& colinear = colinear_polylines.junctions;
-        colinear.emplace_back(Point(0, 0), 200, 0);
-        colinear.emplace_back(Point(spacing / 4, 0), 200, 0);
-        colinear.emplace_back(Point(spacing / 2, 0), 400, 0);
-        colinear.emplace_back(Point(spacing / 2 + spacing / 4, 0), 600, 0);
-        colinear.emplace_back(Point(spacing, 0), 800, 0);
+        colinear.emplace_back(Point(500, 0), 200, 0);
+        colinear.emplace_back(Point(1000, 0), 400, 0);
+        colinear.emplace_back(Point(1500, 0), 600, 0);
+        colinear.emplace_back(Point(2000, 0), 800, 0);
 
         // Get 'before' average width:
         coord_t averge_width_before = 0;
@@ -439,9 +421,25 @@ namespace cura
             averge_width_before += ((colinear[i_junction].w + colinear[i_junction + 1].w) / 2) * vSize(colinear[i_junction].p - colinear[i_junction + 1].p);
         }
 
-        colinear_polylines.simplify(5 * 5, 5 * 5, 5 * 5);
+        colinear_polylines.simplify(20 * 20, 5 * 5, std::numeric_limits<coord_t>::max()); //Regardless of parameters, it should always remove those middle vertices.
+
+        ASSERT_EQ(colinear_polylines.junctions.size(), 2) << "The degenerate vertices should have been removed.";
+        ASSERT_EQ(colinear[0].w + colinear[1].w / 2, averge_width_before) << "The average width of the line should be the same before and after.";
+    }
+
+    TEST(ExtrusionLineTest, simplifyNoLineWidthVariance)
+    {
+        //Generate a line with several vertices halfway.
+        ExtrusionLine colinear_polylines(0, false);
+        auto& colinear = colinear_polylines.junctions;
+        colinear.emplace_back(Point(0, 0), 200, 0);
+        colinear.emplace_back(Point(500, 0), 200, 0);
+        colinear.emplace_back(Point(1000, 0), 400, 0);
+        colinear.emplace_back(Point(1500, 0), 600, 0);
+        colinear.emplace_back(Point(2000, 0), 800, 0);
+
+        colinear_polylines.simplify(20 * 20, 5 * 5, 1);  // Now it should _not_ remove the vertices, since the total width altered will be more than the max area ...
 
         ASSERT_EQ(colinear_polylines.junctions.size(), 5) << "No junctions should have been removed."; // ... even though they are co-linear!
-        ASSERT_EQ(colinear[0].w + colinear[1].w / 2, averge_width_before) << "The average width of the line should be the same before and after.";
     }
 }
