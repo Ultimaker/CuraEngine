@@ -976,12 +976,13 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
     coord_t max_inner_wall_width = 0;
     for (const SliceMeshStorage& mesh : storage.meshes)
     {
-        max_inner_wall_width = std::max(max_inner_wall_width, mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0"));
-        if (layer_nr == 0)
+        coord_t mesh_inner_wall_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
+        if(layer_nr == 0)
         {
             const ExtruderTrain& train = mesh.settings.get<ExtruderTrain&>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
-            max_inner_wall_width *= train.settings.get<Ratio>("initial_layer_line_width_factor");
+            mesh_inner_wall_width *= train.settings.get<Ratio>("initial_layer_line_width_factor");
         }
+        max_inner_wall_width = std::max(max_inner_wall_width, mesh_inner_wall_width);
     }
     const coord_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
