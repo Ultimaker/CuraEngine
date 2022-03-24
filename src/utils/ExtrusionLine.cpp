@@ -225,8 +225,10 @@ coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A,
     {
         // Adjust the width only if there is a difference, or else the rounding errors may produce the wrong
         // weighted average value.
-        weighted_average_width = (ab_length * (A.w + B.w) / 2 + bc_length * (B.w + C.w) / 2) / vSize(C - A);
-        return std::abs(A.w - weighted_average_width) * ab_length + std::abs(B.w - weighted_average_width) * bc_length;
+        const coord_t ab_weight = (A.w + B.w) / 2;
+        const coord_t bc_weight = (B.w + C.w) / 2;
+        weighted_average_width = (ab_length * ab_weight + bc_length * bc_weight) / vSize(C - A);
+        return std::abs(ab_weight - weighted_average_width) * ab_length + std::abs(bc_weight - weighted_average_width) * bc_length;
     }
     else
     {
