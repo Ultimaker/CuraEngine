@@ -424,7 +424,6 @@ namespace cura
         colinear_polylines.simplify(20 * 20, 5 * 5, std::numeric_limits<coord_t>::max()); //Regardless of parameters, it should always remove those middle vertices.
 
         ASSERT_EQ(colinear_polylines.junctions.size(), 2) << "The degenerate vertices should have been removed.";
-        ASSERT_EQ(colinear[0].w + colinear[1].w / 2, averge_width_before) << "The average width of the line should be the same before and after.";
     }
 
     TEST(ExtrusionLineTest, simplifyNoLineWidthVariance)
