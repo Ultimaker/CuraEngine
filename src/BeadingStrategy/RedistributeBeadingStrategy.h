@@ -32,12 +32,12 @@ namespace cura
          * /param optimal_width_outer         Outer wall width, guaranteed to be the actual (save rounding errors) at a
          *                                    bead count if the parent strategies' optimum bead width is a weighted
          *                                    average of the outer and inner walls at that bead count.
-         * /param minimum_variable_line_width Minimum factor that the variable line might deviate from the optimal width.
+         * /param minimum_variable_line_ratio Minimum factor that the variable line might deviate from the optimal width.
          */
         RedistributeBeadingStrategy
         (
             const coord_t optimal_width_outer,
-            const Ratio minimum_variable_line_width,
+            const Ratio minimum_variable_line_ratio,
             BeadingStrategyPtr parent
         );
 
@@ -91,7 +91,7 @@ namespace cura
 
         BeadingStrategyPtr parent;
         coord_t optimal_width_outer;
-        double minimum_variable_line_width;
+        Ratio minimum_variable_line_ratio;
     };
 
 } // namespace cura

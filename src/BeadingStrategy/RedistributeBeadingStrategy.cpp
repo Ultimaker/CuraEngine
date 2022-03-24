@@ -12,13 +12,13 @@ namespace cura
 RedistributeBeadingStrategy::RedistributeBeadingStrategy
 (
     const coord_t optimal_width_outer,
-    const Ratio minimum_variable_line_width,
+    const Ratio minimum_variable_line_ratio,
     BeadingStrategyPtr parent
 ) :
     BeadingStrategy(*parent),
     parent(std::move(parent)),
     optimal_width_outer(optimal_width_outer),
-    minimum_variable_line_width(minimum_variable_line_width)
+    minimum_variable_line_ratio(minimum_variable_line_ratio)
 {
     name = "RedistributeBeadingStrategy";
 }
@@ -34,7 +34,7 @@ coord_t RedistributeBeadingStrategy::getTransitionThickness(coord_t lower_bead_c
 {
     switch (lower_bead_count)
     {
-        case 0: return minimum_variable_line_width * optimal_width_outer;
+        case 0: return minimum_variable_line_ratio * optimal_width_outer;
         case 1: return (1.0 + parent->getSplitMiddleThreshold()) * optimal_width_outer;
         default: return parent->getTransitionThickness(lower_bead_count - 2) + 2 * optimal_width_outer;
     }
@@ -42,7 +42,7 @@ coord_t RedistributeBeadingStrategy::getTransitionThickness(coord_t lower_bead_c
 
 coord_t RedistributeBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    if (thickness < minimum_variable_line_width * optimal_width_outer)
+    if (thickness < minimum_variable_line_ratio * optimal_width_outer)
     {
         return 0;
     }
@@ -73,7 +73,7 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness,
     Beading ret;
 
     // Take care of all situations in which no lines are actually produced:
-    if (bead_count == 0 || thickness < minimum_variable_line_width * optimal_width_outer)
+    if (bead_count == 0 || thickness < minimum_variable_line_ratio * optimal_width_outer)
     {
         ret.left_over = thickness;
         ret.total_thickness = thickness;
