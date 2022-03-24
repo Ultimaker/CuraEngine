@@ -128,9 +128,7 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
             // We shouldn't remove middle junctions of colinear segments if the area changed for the C-P segment is exceeding the maximum allowed
              && extrusion_area_error <= maximum_extrusion_area_deviation)
         {
-            // Adjust the width of the entire P-N line as a weighted average of the widths of the P-C and C-N lines and
-            // then remove the current junction (vertex).
-            next.w = weighted_average_width;
+            // Remove the current junction (vertex).
             continue;
         }
 
@@ -220,7 +218,7 @@ coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A,
      * */
     const coord_t ab_length = vSize(B - A);
     const coord_t bc_length = vSize(C - B);
-    const coord_t width_diff = std::abs(B.w - A.w);
+    const coord_t width_diff = std::max(std::abs(B.w - A.w), std::abs(C.w - B.w));
     if (width_diff > 1)
     {
         // Adjust the width only if there is a difference, or else the rounding errors may produce the wrong
