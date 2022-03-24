@@ -220,13 +220,13 @@ coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A,
      * */
     const coord_t ab_length = vSize(B - A);
     const coord_t bc_length = vSize(C - B);
-    const coord_t width_diff = llabs(B.w - A.w);
+    const coord_t width_diff = std::abs(B.w - A.w);
     if (width_diff > 1)
     {
         // Adjust the width only if there is a difference, or else the rounding errors may produce the wrong
         // weighted average value.
         weighted_average_width = (ab_length * A.w + bc_length * B.w) / vSize(C - A);
-        return llabs(A.w - weighted_average_width) * ab_length + llabs(B.w - weighted_average_width) * bc_length;
+        return std::abs(A.w - weighted_average_width) * ab_length + std::abs(B.w - weighted_average_width) * bc_length;
     }
     else
     {
