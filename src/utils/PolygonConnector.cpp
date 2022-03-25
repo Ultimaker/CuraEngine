@@ -21,7 +21,7 @@ void PolygonConnector::add(const Polygons& input)
     }
 }
 
-void PolygonConnector::add(const VariableWidthPaths& input)
+void PolygonConnector::add(const std::vector<VariableWidthLines>& input)
 {
     for(const VariableWidthLines& lines : input)
     {
@@ -32,7 +32,7 @@ void PolygonConnector::add(const VariableWidthPaths& input)
     }
 }
 
-void PolygonConnector::connect(Polygons& output_polygons, VariableWidthPaths& output_paths)
+void PolygonConnector::connect(Polygons& output_polygons, std::vector<VariableWidthLines>& output_paths)
 {
     std::vector<Polygon> result_polygons = connectGroup(input_polygons);
     for(Polygon& polygon : result_polygons)

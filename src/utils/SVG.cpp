@@ -333,7 +333,7 @@ void SVG::writePolyline(ConstPolygonRef poly, const ColorObject color, const flo
     }
 }
 
-void SVG::writePaths(const VariableWidthPaths& paths, const ColorObject color, const float width_factor) const
+void SVG::writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color, const float width_factor) const
 {
     for(const VariableWidthLines& lines : paths)
     {

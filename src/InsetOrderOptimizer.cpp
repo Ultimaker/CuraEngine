@@ -26,7 +26,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
                                          const size_t wall_0_extruder_nr,
                                          const size_t wall_x_extruder_nr,
                                          const ZSeamConfig& z_seam_config,
-                                         const VariableWidthPaths& paths) :
+                                         const std::vector<VariableWidthLines>& paths) :
     gcode_writer(gcode_writer),
     storage(storage),
     gcode_layer(gcode_layer),

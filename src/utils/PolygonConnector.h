@@ -38,7 +38,7 @@ namespace cura
  * paths it will only connect paths that form closed loops. Paths that don't
  * form closed loops will be left unconnected.
  *
- * While this connector can connect Polygons and VariableWidthPaths at the same
+ * While this connector can connect Polygons and VariableWidthLines at the same
  * time, it will never connect them together. This is done to keep the result
  * and the algorithm simpler. Otherwise it would have to convert polygons to
  * paths to make them partially variable width. This is not a use case we need
@@ -50,7 +50,7 @@ namespace cura
  * connector.add(polygons); //Add the polygons and paths you want to connect up.
  * connector.add(paths);
  * Polygons output_polygons; //Prepare some output variables to store results in.
- * VariableWidthPaths output_paths;
+ * VariableWidthLines output_paths;
  * connector.connect(output_polygons, output_paths);
  * ``
  */
@@ -84,7 +84,7 @@ public:
      * Only the paths that form closed loops will be connected to each other.
      * \param input The paths to connect.
      */
-    void add(const VariableWidthPaths& input);
+    void add(const std::vector<VariableWidthLines>& input);
 
     /*!
      * Connect as many polygons together as possible and return the resulting polygons.
@@ -98,7 +98,7 @@ public:
      * \param output_paths Paths that were connected as much as possible. These
      * are expected to be empty to start with.
      */
-    void connect(Polygons& output_polygons, VariableWidthPaths& output_paths);
+    void connect(Polygons& output_polygons, std::vector<VariableWidthLines>& output_paths);
 
 protected:
     coord_t line_width; //!< The distance between the line segments which connect two polygons.
