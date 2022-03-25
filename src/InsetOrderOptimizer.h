@@ -51,7 +51,7 @@ public:
                         const size_t wall_0_extruder_nr,
                         const size_t wall_x_extruder_nr,
                         const ZSeamConfig& z_seam_config,
-                        const VariableWidthPaths& paths);
+                        const std::vector<VariableWidthLines>& paths);
 
     /*!
      * Adds the insets to the given layer plan.
@@ -104,7 +104,7 @@ private:
     const size_t wall_0_extruder_nr;
     const size_t wall_x_extruder_nr;
     const ZSeamConfig& z_seam_config;
-    const VariableWidthPaths& paths;
+    const std::vector<VariableWidthLines>& paths;
     const unsigned int layer_nr;
     
     bool added_something;

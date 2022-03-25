@@ -172,7 +172,7 @@ namespace cura
         ); // There are some optional parameters, but these will do for now (future improvement?).
 
         Settings infill_settings;
-        VariableWidthPaths result_paths;
+        std::vector<VariableWidthLines> result_paths;
         Polygons result_polygons;
         Polygons result_lines;
         infill.generate(result_paths, result_polygons, result_lines, infill_settings, nullptr, nullptr);

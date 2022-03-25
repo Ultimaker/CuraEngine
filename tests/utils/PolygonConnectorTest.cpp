@@ -23,7 +23,7 @@ public:
 
     PolygonConnector* pc;
     Polygons connected_polygons;
-    VariableWidthPaths connected_paths;
+    std::vector<VariableWidthLines> connected_paths;
 
     virtual void SetUp()
     {
@@ -169,7 +169,7 @@ TEST_F(PolygonConnectorTest, connectFourNested)
 
     pc->add(connecting);
     Polygons output_polygons;
-    VariableWidthPaths output_paths;
+    std::vector<VariableWidthLines> output_paths;
     pc->connect(output_polygons, output_paths);
 
     EXPECT_EQ(output_polygons.size(), 1) << "All four polygons should've gotten connected into 1 single polygon.";

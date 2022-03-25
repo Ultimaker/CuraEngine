@@ -120,7 +120,7 @@ public:
      * "central" but as if it's a obtuse corner. As a result, sharp corners will
      * no longer end in a single line but will just loop.
      */
-    void generateToolpaths(VariableWidthPaths& generated_toolpaths, bool filter_outermost_central_edges = false);
+    void generateToolpaths(std::vector<VariableWidthLines>& generated_toolpaths, bool filter_outermost_central_edges = false);
 
 protected:
     /*!
@@ -161,8 +161,10 @@ protected:
 
     /*!
      * (Eventual) returned 'polylines per index' result (from generateToolpaths):
+     * 
+     * Binned by inset_idx.
      */
-    VariableWidthPaths* p_generated_toolpaths;
+    std::vector<VariableWidthLines>* p_generated_toolpaths;
 
     /*!
      * Transfer an edge from the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)
