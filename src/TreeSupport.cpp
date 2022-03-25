@@ -319,7 +319,8 @@ Polygons TreeSupport::convertInternalToLines(std::vector<TreeSupport::LineInform
 std::function<bool(std::pair<Point, TreeSupport::LineStatus>)> TreeSupport::getEvaluatePointForNextLayerFunction(size_t current_layer)
 {
     const bool xy_overrides = config.support_overrides == SupportDistPriority::XY_OVERRIDES_Z;
-    std::function<bool(std::pair<Point, LineStatus>)> evaluatePoint = [=](std::pair<Point, LineStatus> p) {
+    std::function<bool(std::pair<Point, LineStatus>)> evaluatePoint = [=](std::pair<Point, LineStatus> p)
+    {
         if (!volumes_.getAvoidance(config.getRadius(0), current_layer - 1, p.second == LineStatus::TO_BP_SAFE ? AvoidanceType::FAST_SAFE : AvoidanceType::FAST, false, !xy_overrides).inside(p.first, true))
         {
             return true;
@@ -677,6 +678,7 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh, std::vector<
 
     const size_t z_distance_delta = mesh_config.z_distance_top_layers + 1; // To ensure z_distance_top_layers are left empty between the overhang (zeroth empty layer), the support has to be added z_distance_top_layers+1 layers below
 
+    const bool xy_overrides = mesh_config.support_overrides == SupportDistPriority::XY_OVERRIDES_Z;
     const coord_t support_roof_line_distance = mesh.settings.get<coord_t>("support_roof_line_distance");
     const double minimum_roof_area = mesh.settings.get<double>("minimum_roof_area");
     const double minimum_support_area = mesh.settings.get<double>("minimum_support_area");
@@ -686,20 +688,19 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh, std::vector<
     const EFillMethod support_pattern = mesh.settings.get<EFillMethod>("support_pattern");
     const coord_t connect_length = (mesh_config.support_line_width * 100 / mesh.settings.get<double>("support_tree_top_rate")) + std::max(2 * mesh_config.min_radius - 1.0 * mesh_config.support_line_width, 0.0);
     const coord_t support_tree_branch_distance = (support_pattern == EFillMethod::TRIANGLES ? 3 : (support_pattern == EFillMethod::GRID ? 2 : 1)) * connect_length;
+    const coord_t circle_length_to_half_linewidth_change = mesh_config.min_radius < mesh_config.support_line_width ? mesh_config.min_radius / 2 : sqrt(square(mesh_config.min_radius) - square(mesh_config.min_radius - mesh_config.support_line_width / 2)); // As r*r=x*x+y*y (circle equation): If a circle with center at (0,0) the top most point is at (0,r) as in y=r. This calculates how far one has to move on the x-axis so that y=r-support_line_width/2. In other words how far does one need to move on the x-axis to be support_line_width/2 away from the circle line. As a circle is round this length is identical for every axis as long as the 90° angle between both remains.
     const coord_t support_outset = mesh.settings.get<coord_t>("support_offset");
     const coord_t roof_outset = mesh.settings.get<coord_t>("support_roof_offset");
-    const bool force_tip_to_roof = (mesh_config.min_radius * mesh_config.min_radius * M_PI > minimum_roof_area) && roof_enabled;
+    const coord_t extra_outset = std::max(coord_t(0), mesh_config.min_radius - mesh_config.support_line_width) + (xy_overrides ? 0 : mesh_config.support_line_width); // extra support offset to compensate for larger tip radiis. Also outset a bit more when z overwrites xy, because supporting something with a part of a support line is better than not supporting it at all.
+    const bool force_tip_to_roof = (mesh_config.min_radius * mesh_config.min_radius * M_PI > minimum_roof_area*(1000*1000)) && roof_enabled;
     const double support_overhang_angle = mesh.settings.get<AngleRadians>("support_angle");
     const coord_t max_overhang_speed = (support_overhang_angle < TAU / 4) ? (coord_t)(tan(support_overhang_angle) * mesh_config.layer_height) : std::numeric_limits<coord_t>::max();
     const size_t max_overhang_insert_lag = std::max((size_t)round_up_divide(mesh_config.xy_distance, max_overhang_speed / 2), 2 * mesh_config.z_distance_top_layers); // cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point may cause extra material and time cost.  Could also be an user setting or differently calculated. Idea is that if an overhang does not turn valid in double the amount of layers a slope of support angle would take to travel xy_distance, nothing reasonable will come from it. The 2*z_distance_delta is only a catch for when the support angle is very high.
-    const bool xy_overrides = mesh_config.support_overrides == SupportDistPriority::XY_OVERRIDES_Z;
     SierpinskiFillProvider* cross_fill_provider = generateCrossFillProvider(mesh, support_tree_branch_distance, mesh_config.support_line_width);
-
     if (mesh.overhang_areas.size() <= z_distance_delta)
     {
         return;
     }
-    logDebug("Distance between points of lines of initial influence areas %lld for generated pattern and %lld in other cases.\n", support_tree_branch_distance, connect_length);
     std::vector<std::unordered_set<Point>> already_inserted(mesh.overhang_areas.size() - z_distance_delta);
 
     // counting down as it is more likely to encounter areas that need much support at the top then at the bottom. This could improve performance because of the schedule(dynamic)
@@ -713,12 +714,14 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh, std::vector<
 
         Polygons relevant_forbidden = (mesh_config.support_rests_on_model ? (only_gracious ? volumes_.getAvoidance(mesh_config.getRadius(0), layer_idx, AvoidanceType::FAST, true, !xy_overrides) : volumes_.getCollision(mesh_config.getRadius(0), layer_idx, !xy_overrides)) : volumes_.getAvoidance(mesh_config.getRadius(0), layer_idx, AvoidanceType::FAST, false, !xy_overrides)); // take the least restrictive avoidance possible
         relevant_forbidden = relevant_forbidden.offset(5); // prevent rounding errors down the line, points placed directly on the line of the forbidden area may not be added otherwise.
-        std::function<Polygons(const Polygons&, bool, size_t)> generateLines = [&](const Polygons& area, bool roof, LayerIndex layer_idx) {
+        std::function<Polygons(const Polygons&, bool, size_t)> generateLines = [&](const Polygons& area, bool roof, LayerIndex layer_idx)
+        {
             const coord_t support_infill_distance = roof ? support_roof_line_distance : support_tree_branch_distance;
             return generateSupportInfillLines(area, roof, layer_idx, support_infill_distance, cross_fill_provider);
         };
 
-        std::function<void(std::pair<Point, LineStatus>, size_t, coord_t, size_t, bool)> addPointAsInfluenceArea = [&](std::pair<Point, LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof) {
+        std::function<void(std::pair<Point, LineStatus>, size_t, coord_t, size_t, bool)> addPointAsInfluenceArea = [&](std::pair<Point, LineStatus> p, size_t dtt, LayerIndex insert_layer, size_t dont_move_until, bool roof)
+        {
             bool to_bp = p.second == LineStatus::TO_BP || p.second == LineStatus::TO_BP_SAFE;
             bool gracious = to_bp || p.second == LineStatus::TO_MODEL_GRACIOUS || p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE;
             bool safe_radius = p.second == LineStatus::TO_BP_SAFE || p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE;
@@ -747,12 +750,14 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh, std::vector<
         };
 
 
-        std::function<void(std::vector<TreeSupport::LineInformation>, size_t, LayerIndex)> addLinesAsInfluenceAreas = [&](std::vector<TreeSupport::LineInformation> lines, size_t roof_layers, LayerIndex layer_idx) {
+        std::function<void(std::vector<TreeSupport::LineInformation>, size_t, LayerIndex)> addLinesAsInfluenceAreas = [&](std::vector<TreeSupport::LineInformation> lines, size_t roof_layers, LayerIndex layer_idx)
+        {
             // Add tip area as roof (happens when minimum roof area > minimum tip area) if possible
             size_t dtt_roof;
             for (dtt_roof = 0; dtt_roof < roof_layers && layer_idx - dtt_roof >= 1; dtt_roof++)
             {
-                std::function<bool(std::pair<Point, LineStatus>)> evaluateRoofWillGenerate = [&](std::pair<Point, LineStatus> p) {
+                std::function<bool(std::pair<Point, LineStatus>)> evaluateRoofWillGenerate = [&](std::pair<Point, LineStatus> p)
+                {
                     Polygon roof_circle;
                     for (Point corner : base_circle)
                     {
@@ -812,12 +817,24 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh, std::vector<
                     addPointAsInfluenceArea(point_data, 0, layer_idx - dtt_roof, roof_layers - dtt_roof, dtt_roof != 0);
                 }
             }
-
         };
 
         std::vector<std::pair<Polygons, bool>> overhang_processing; // every overhang has saved if a roof should be generated for it. This can NOT be done in the for loop as an area may NOT have a roof even if it is larger than the minimum_roof_area when it is only larger because of the support horizontal expansion and it would not have a roof if the overhang is offset by support roof horizontal expansion instead. (At least this is the current behavior of the regular support)
-        Polygons overhang_regular = mesh.overhang_areas[layer_idx + z_distance_delta].offset(support_outset).difference(relevant_forbidden);
+        Polygons overhang_regular = safeOffsetInc(mesh.overhang_areas[layer_idx + z_distance_delta], support_outset, relevant_forbidden, mesh_config.min_radius * 2 + mesh_config.xy_min_distance, mesh_config.min_radius * 2 + mesh_config.xy_min_distance, 1);
         Polygons remaining_overhang = mesh.overhang_areas[layer_idx + z_distance_delta].offset(support_outset).difference(overhang_regular.offset(mesh_config.support_line_width * 0.5)).intersection(relevant_forbidden); // offset ensures that areas that could be supported by a part of a support line, are not considered unsupported overhang
+        coord_t extra_total_offset_acc = 0;
+
+        // Offset the area to compensate for large tip radiis. Offset happens in multiple steps to ensure the tip is as close to the original overhang as possible.
+        while (extra_total_offset_acc < extra_outset)
+        {
+            coord_t offset_current_step = extra_total_offset_acc + 2 * mesh_config.support_line_width > mesh_config.min_radius ? mesh_config.support_line_width / 8 : std::min(circle_length_to_half_linewidth_change, extra_outset - extra_total_offset_acc);
+            extra_total_offset_acc += offset_current_step;
+            Polygons overhang_offset = safeOffsetInc(overhang_regular, 1.5 * extra_total_offset_acc, volumes_.getCollision(0, layer_idx, true), mesh_config.xy_min_distance + mesh_config.support_line_width, mesh_config.xy_min_distance + mesh_config.support_line_width, 1);
+            remaining_overhang = remaining_overhang.difference(overhang_offset).unionPolygons();
+            Polygons next_overhang = safeOffsetInc(remaining_overhang, extra_total_offset_acc, volumes_.getCollision(0, layer_idx, true), mesh_config.xy_min_distance + mesh_config.support_line_width, mesh_config.xy_min_distance + mesh_config.support_line_width, 1);
+            overhang_regular = overhang_regular.unionPolygons(next_overhang.difference(relevant_forbidden));
+        }
+
 
         // If the xy distance overrides the z distance, some support needs to be inserted further down.
         //=> Analyze which support points do not fit on this layer and check if they will fit a few layers down (while adding them an infinite amount of layers down would technically be closer the the setting description, it would not produce reasonable results. )
@@ -855,20 +872,11 @@ void TreeSupport::generateInitalAreas(const SliceMeshStorage& mesh, std::vector<
                 addLinesAsInfluenceAreas(fresh_valid_points, (force_tip_to_roof && lag_ctr <= support_roof_layers) ? support_roof_layers : 0, layer_idx - lag_ctr);
             }
         }
-        else // Some overhang angle are impossible to support assuming the center of a support point is placed inside the overhang area. But supporting a line with a partial support point is better than nothing.
-        {
-            for (coord_t offset_outwards : { mesh_config.support_line_width / 10, mesh_config.support_line_width / 5, mesh_config.support_line_width / 4, mesh_config.support_line_width / 3, mesh_config.support_line_width / 2 })
-            {
-                remaining_overhang = remaining_overhang.difference(overhang_regular.offset(2 * offset_outwards, ClipperLib::jtRound).unionPolygons());
-                Polygons next_overhang = remaining_overhang.offset(offset_outwards, ClipperLib::jtRound);
-                overhang_regular = overhang_regular.unionPolygons(next_overhang.difference(relevant_forbidden));
-            }
-        }
 
         Polygons overhang_roofs;
         if (roof_enabled)
         {
-            overhang_roofs = mesh.overhang_areas[layer_idx + z_distance_delta].offset(roof_outset).difference(relevant_forbidden);
+            overhang_roofs = safeOffsetInc(mesh.overhang_areas[layer_idx + z_distance_delta], roof_outset, relevant_forbidden, mesh_config.min_radius * 2 + mesh_config.xy_min_distance, mesh_config.min_radius * 2 + mesh_config.xy_min_distance, 1);
             overhang_roofs.removeSmallAreas(minimum_roof_area);
             overhang_regular = overhang_regular.difference(overhang_roofs);
             for (Polygons roof_part : overhang_roofs.splitIntoParts(true))
@@ -997,7 +1005,7 @@ Polygons TreeSupport::safeOffsetInc(const Polygons& me, coord_t distance, const 
 
     coord_t step_size = safe_step_size;
     size_t steps = distance > last_safe_step_size ? (distance - last_safe_step_size) / step_size : 0;
-    if (steps + (distance < last_safe_step_size || distance % step_size != 0) < min_amount_offset) // yes one can add a bool as the standard specifies that a result from compare operators has to be 0 or 1
+    if (steps + (distance < last_safe_step_size || distance % step_size != 0) < min_amount_offset && min_amount_offset > 1) // yes one can add a bool as the standard specifies that a result from compare operators has to be 0 or 1
     {
         // we need to reduce the stepsize to ensure we offset the required amount (could be avoided if arcRadiance were exposed as we could just increase this when me has not enough vertices)
         step_size = distance / (min_amount_offset - 1);
@@ -1372,7 +1380,8 @@ std::optional<TreeSupport::SupportElement> TreeSupport::increaseSingleArea(AreaI
 
     if (settings.increase_radius && check_layer_data.area() > 1)
     {
-        std::function<bool(coord_t)> validWithRadius = [&](coord_t next_radius) {
+        std::function<bool(coord_t)> validWithRadius = [&](coord_t next_radius)
+        {
             if (volumes_.ceilRadius(next_radius, settings.use_min_distance) <= volumes_.ceilRadius(radius, settings.use_min_distance))
             {
                 return true;
@@ -1521,7 +1530,8 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement, Polygons>& to
 
         // Determine in which order configurations are checked if they result in a valid influence area. Check will stop if a valid area is found
         std::deque<AreaIncreaseSettings> order;
-        std::function<void(AreaIncreaseSettings, bool)> insertSetting = [&](AreaIncreaseSettings settings, bool back) {
+        std::function<void(AreaIncreaseSettings, bool)> insertSetting = [&](AreaIncreaseSettings settings, bool back)
+        {
             if (std::find(order.begin(), order.end(), settings) == order.end())
             {
                 if (back)
@@ -2004,7 +2014,8 @@ void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, SupportE
         }
 
         coord_t max_speed = 0;
-        std::function<Polygons(coord_t)> generateArea = [&](coord_t offset) {
+        std::function<Polygons(coord_t)> generateArea = [&](coord_t offset)
+        {
             Polygons poly;
 
             for (std::pair<Point, coord_t> movement : movement_directions)
@@ -2033,7 +2044,7 @@ void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, SupportE
                 }
                 poly.add(circle.offset(0));
             }
-            poly = poly.unionPolygons().offset(std::min(coord_t(50),config.support_line_width/2)).difference(volumes_.getCollision(0, linear_data[i].first, parent_uses_min || elem->use_min_xy_dist)); // There seem to be some rounding errors, causing a branch to be a tiny bit further away from the model that it has to be. This can cause the tip to be slightly further away front the overhang (x/y wise) than optimal. This fixes it, and for every other part, 0.05mm will not be noticed.
+            poly = poly.unionPolygons().offset(std::min(coord_t(50), config.support_line_width / 2)).difference(volumes_.getCollision(0, linear_data[i].first, parent_uses_min || elem->use_min_xy_dist)); // There seem to be some rounding errors, causing a branch to be a tiny bit further away from the model that it has to be. This can cause the tip to be slightly further away front the overhang (x/y wise) than optimal. This fixes it, and for every other part, 0.05mm will not be noticed.
             return poly;
         };
 
@@ -2237,7 +2248,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
 #pragma omp parallel for shared(support_layer_storage, support_roof_storage, storage) schedule(dynamic)
     for (LayerIndex layer_idx = 0; layer_idx < static_cast<coord_t>(support_layer_storage.size()); layer_idx++)
     {
-        support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons().smooth(50);// Most of the time in this function is this union call. Can take 300+ ms when a lot of areas are to be unioned.
+        support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons().smooth(50); // Most of the time in this function is this union call. Can take 300+ ms when a lot of areas are to be unioned.
         support_layer_storage[layer_idx].simplify(std::min(coord_t(30), config.maximum_resolution), std::min(coord_t(10), config.maximum_deviation)); // simplify a bit, to ensure the output does not contain outrageous amounts of vertices. Should not be necessary, just a precaution.
         // Subtract support lines of the branches from the roof
         storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(support_roof_storage[layer_idx]);
