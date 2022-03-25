@@ -558,7 +558,7 @@ public:
      * \param is_reversed Whether to print this wall in reverse direction.
      * \param is_linked_path Whether the path is a continuation off the previous path
      */
-    void addWall(const LineJunctions& wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed, const bool is_linked_path);
+    void addWall(const ExtrusionLine& wall, int start_idx, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, coord_t wall_0_wipe_dist, float flow_ratio, bool always_retract, const bool is_closed, const bool is_reversed, const bool is_linked_path);
 
     /*!
      * Add an infill wall to the g-code
@@ -566,7 +566,7 @@ public:
      * \param wall he wall as ExtrusionJunctions
      * \param path_config The config with which to print the wall lines
      */
-    void addInfillWall(const LineJunctions& wall, const GCodePathConfig& path_config, bool force_retract);
+    void addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& path_config, bool force_retract);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.
@@ -590,18 +590,6 @@ public:
         coord_t wall_0_wipe_dist = 0,
         float flow_ratio = 1.0,
         bool always_retract = false
-    );
-    void addWalls
-    (
-        const PathJunctions& walls,
-        const Settings& settings,
-        const GCodePathConfig& non_bridge_config,
-        const GCodePathConfig& bridge_config,
-        const ZSeamConfig& z_seam_config = ZSeamConfig(),
-        coord_t wall_0_wipe_dist = 0,
-        float flow_ratio = 1.0,
-        bool always_retract = false,
-        bool alternate_inset_direction_modifier = false
     );
 
     /*!
@@ -652,6 +640,26 @@ public:
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT
     );
 
+protected:
+    /*!
+     * Add order optimized lines to the gcode.
+     * \param paths The paths in order
+     * \param config The config of the lines
+     * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
+     * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param fan_speed optional fan speed override for this path
+     */
+    void addLinesInGivenOrder(
+        const std::vector<PathOrderPath<ConstPolygonPointer>>& paths, 
+        const GCodePathConfig& config,
+        const SpaceFillType space_fill_type,
+        const coord_t wipe_dist,
+        const Ratio flow_ratio,
+        const double fan_speed
+    );
+
+public:
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
      *
@@ -750,12 +758,17 @@ public:
     void processFanSpeedAndMinimalLayerTime(Point starting_position);
     
     /*!
-     * Add a travel move to the layer plan to move inside the current layer part by a given distance away from the outline.
-     * This is supposed to be called when the nozzle is around the boundary of a layer part, not when the nozzle is in the middle of support, or in the middle of the air.
-     * 
-     * \param distance The distance to the comb boundary after we moved inside it.
+     * Add a travel move to the layer plan to move inside the current layer part
+     * by a given distance away from the outline.
+     *
+     * This is supposed to be called when the nozzle is around the boundary of a
+     * layer part, not when the nozzle is in the middle of support, or in the
+     * middle of the air.
+     * \param distance The distance to the comb boundary after we moved inside
+     * it.
+     * \param part If given, stay within the boundary of this part.
      */
-    void moveInsideCombBoundary(const coord_t distance);
+    void moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part = std::nullopt);
 
     /*!
      * Apply back-pressure compensation to this layer-plan.

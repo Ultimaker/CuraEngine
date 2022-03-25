@@ -12,6 +12,7 @@
 #include "clipper.hpp"
 
 #include <algorithm>    // std::reverse, fill_n array
+#include <unordered_map>
 #include <cmath> // fabs
 #include <limits> // int64_t.min
 #include <list>
@@ -81,13 +82,15 @@ public:
     : path(const_cast<ClipperLib::Path*>(&polygon))
     {}
 
+    ConstPolygonRef() = delete; // you cannot have a reference without an object!
+
     virtual ~ConstPolygonRef()
     {
     }
 
-    bool operator==(ConstPolygonRef& other) const =delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
+    bool operator==(ConstPolygonRef& other) const = delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
 
-    ConstPolygonRef& operator=(const ConstPolygonRef& other) =delete; // Cannot assign to a const object
+    ConstPolygonRef& operator=(const ConstPolygonRef& other) = delete; // Cannot assign to a const object
 
     /*!
      * Gets the number of vertices in this polygon.
@@ -123,14 +126,24 @@ public:
         return path->end();
     }
 
-    ClipperLib::Path::const_reference back() const
+    ClipperLib::Path::const_reverse_iterator rbegin() const
     {
-        return path->back();
+        return path->rbegin();
+    }
+
+    ClipperLib::Path::const_reverse_iterator rend() const
+    {
+        return path->rend();
     }
 
     ClipperLib::Path::const_reference front() const
     {
         return path->front();
+    }
+
+    ClipperLib::Path::const_reference back() const
+    {
+        return path->back();
     }
 
     const void* data() const
@@ -151,11 +164,16 @@ public:
 
     Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
-    int64_t polygonLength() const
+    coord_t polygonLength() const
     {
-        int64_t length = 0;
-        Point p0 = (*path)[path->size()-1];
-        for(unsigned int n=0; n<path->size(); n++)
+        return polylineLength() + vSize(path->front() - path->back());
+    }
+
+    coord_t polylineLength() const
+    {
+        coord_t length = 0;
+        Point p0 = path->front();
+        for (unsigned int n = 1; n < path->size(); n++)
         {
             Point p1 = (*path)[n];
             length += vSize(p0 - p1);
@@ -163,6 +181,20 @@ public:
         }
         return length;
     }
+
+    /*!
+     * Split these poly line objects into several line segment objects consisting of only two verts
+     * and store them in the \p result
+     */
+    void splitPolylineIntoSegments(Polygons& result) const;
+    Polygons splitPolylineIntoSegments() const;
+
+    /*!
+     * Split these polygon objects into several line segment objects consisting of only two verts
+     * and store them in the \p result
+     */
+    void splitPolygonIntoSegments(Polygons& result) const;
+    Polygons splitPolygonIntoSegments() const;
 
     bool shorterThan(const coord_t check_length) const;
 
@@ -381,6 +413,8 @@ public:
     : ConstPolygonRef(*other.path)
     {}
 
+    PolygonRef() = delete; // you cannot have a reference without an object!
+
     virtual ~PolygonRef()
     {
     }
@@ -390,9 +424,15 @@ public:
         path->reserve(min_size);
     }
 
-    PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+    template <class iterator>
+    ClipperLib::Path::iterator insert(ClipperLib::Path::const_iterator pos, iterator first, iterator last)
+    {
+        return path->insert(pos, first, last);
+    }
 
-    PolygonRef& operator=(ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+    PolygonRef& operator=(const ConstPolygonRef& other) = delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+
+    PolygonRef& operator=(ConstPolygonRef& other) = delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
 //     { path = other.path; return *this; }
 
     PolygonRef& operator=(PolygonRef&& other)
@@ -421,6 +461,11 @@ public:
     ClipperLib::Path::iterator end()
     {
         return path->end();
+    }
+
+    ClipperLib::Path::reference front()
+    {
+        return path->front();
     }
 
     ClipperLib::Path::reference back()
@@ -564,34 +609,45 @@ public:
         return path;
     }
 
-    bool operator==(const ConstPolygonPointer& rhs)
+    bool operator==(const ConstPolygonPointer& rhs) const
     {
         return path == rhs.path;
     }
 };
 
-class PolygonPointer
+class PolygonPointer : public ConstPolygonPointer
 {
-protected:
-    ClipperLib::Path* path;
 public:
     PolygonPointer()
-    : path(nullptr)
+    : ConstPolygonPointer(nullptr)
     {}
     PolygonPointer(PolygonRef* ref)
-    : path(ref->path)
+    : ConstPolygonPointer(ref)
     {}
 
     PolygonPointer(PolygonRef& ref)
-    : path(ref.path)
+    : ConstPolygonPointer(ref)
     {}
 
     PolygonRef operator*()
     {
         assert(path);
-        return PolygonRef(*path);
+        return PolygonRef(*const_cast<ClipperLib::Path*>(path));
     }
+
+    ConstPolygonRef operator*() const
+    {
+        assert(path);
+        return ConstPolygonRef(*path);
+    }
+
     ClipperLib::Path* operator->()
+    {
+        assert(path);
+        return const_cast<ClipperLib::Path*>(path);
+    }
+
+    const ClipperLib::Path* operator->() const
     {
         assert(path);
         return path;
@@ -602,6 +658,40 @@ public:
         return path;
     }
 };
+
+} // namespace cura
+
+
+namespace std
+{
+template<>
+struct hash<cura::ConstPolygonRef>
+{
+    size_t operator()(const cura::ConstPolygonRef& poly) const
+    {
+        return std::hash<const ClipperLib::Path*>()(&*poly);
+    }
+};
+template<>
+struct hash<cura::ConstPolygonPointer>
+{
+    size_t operator()(const cura::ConstPolygonPointer& poly) const
+    {
+        return std::hash<const ClipperLib::Path*>()(&**poly);
+    }
+};
+template<>
+struct hash<cura::PolygonPointer>
+{
+    size_t operator()(const cura::PolygonPointer& poly) const
+    {
+        const cura::ConstPolygonRef ref = *static_cast<cura::PolygonPointer>(poly);
+        return std::hash<const ClipperLib::Path*>()(&*ref);
+    }
+};
+}//namespace std
+
+namespace cura {
 
 class Polygon : public PolygonRef
 {
@@ -754,6 +844,21 @@ public:
         paths.emplace_back(ClipperLib::Path{from, to});
     }
 
+    void emplace_back(const Polygon& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+
+    void emplace_back(const ConstPolygonRef& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+
+    void emplace_back(const PolygonRef& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+    
     template<typename... Args>
     void emplace_back(Args... args)
     {
@@ -764,6 +869,14 @@ public:
     {
         paths.emplace_back();
         return PolygonRef(paths.back());
+    }
+    PolygonRef front()
+    {
+        return PolygonRef(paths.front());
+    }
+    ConstPolygonRef front() const
+    {
+        return ConstPolygonRef(paths.front());
     }
     PolygonRef back()
     {
@@ -781,7 +894,7 @@ public:
     Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
     Polygons& operator=(Polygons&& other) { paths = std::move(other.paths); return *this; }
 
-    bool operator==(const Polygons& other) const =delete;
+    bool operator==(const Polygons& other) const = delete;
 
     /*!
      * Convert ClipperLib::PolyTree to a Polygons object,
@@ -826,27 +939,29 @@ public:
 
     /*!
      * Intersect polylines with this area Polygons object.
+     * 
+     * \note Due to a clipper bug with polylines with nearly collinear segments, the polylines are cut up into separate polylines, and restitched back together at the end.
+     * 
+     * \param polylines The (non-closed!) polylines to limit to the area of this Polygons object
+     * \param restitch Whether to stitch the resulting segments into longer polylines, or leave every segment as a single segment
+     * \param max_stitch_distance The maximum distance for two polylines to be stitched together with a segment
+     * \return The resulting polylines limited to the area of this Polygons object
      */
-    Polygons intersectionPolyLines(const Polygons& polylines) const;
+    Polygons intersectionPolyLines(const Polygons& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
     /*!
-     * Clips input line segments by this Polygons.
-     * \param other Input line segments to be cropped
-     * \param segment_tree the resulting interior line segments
+     * Split this poly line object into several line segment objects
+     * and store them in the \p result
      */
-    void lineSegmentIntersection(const Polygons& other, ClipperLib::PolyTree& segment_tree) const
-    {
-        ClipperLib::Clipper clipper(clipper_init);
-        clipper.AddPaths(paths, ClipperLib::ptClip, true);
-        clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
-        clipper.Execute(ClipperLib::ctIntersection, segment_tree);
-    }
+    void splitPolylinesIntoSegments(Polygons& result) const;
+    Polygons splitPolylinesIntoSegments() const;
 
     /*!
-     * Cut this polygon using an other polygon as a tool
-     * \param tool a closed polygon serving as boundary
+     * Split this polygon object into several line segment objects
+     * and store them in the \p result
      */
-    Polygons& cut(const Polygons& tool);
+    void splitPolygonsIntoSegments(Polygons& result) const;
+    Polygons splitPolygonsIntoSegments() const;
 
     Polygons xorPolygons(const Polygons& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const
     {
@@ -1030,12 +1145,12 @@ private:
     {
         const coord_t allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
         const coord_t smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
+        const size_t min_poly_length = processing_polylines ? 2 : 3;
         Polygons& thiss = *this;
         for (size_t p = 0; p < size(); p++)
         {
             thiss[p]._simplify(smallest_line_segment_squared, allowed_error_distance_squared, processing_polylines);
-            if (thiss[p].size() < 3 // remove polygons with 2 verts
-                - static_cast<size_t>(processing_polylines)) // remove polylines with 1 vert
+            if (thiss[p].size() < min_poly_length) // remove polys with not enough verts to be a polyline/polygon
             {
                 remove(p);
                 p--;
@@ -1116,11 +1231,6 @@ private:
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
 
-    /*!
-     * Convert a node from a ClipperLib::PolyTree and add it to a Polygons object,
-     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
-     */
-    void addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node);
 public:
     /*!
      * Split up the polygons into groups according to the even-odd rule.
@@ -1132,6 +1242,8 @@ public:
 private:
     void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const;
 public:
+    
+    
     /*!
      * Removes polygons with area smaller than \p min_area_size (note that min_area_size is in mm^2, not in micron^2).
      * Unless \p remove_holes is true, holes are not removed even if their area is below \p min_area_size.
@@ -1251,15 +1363,9 @@ public:
     coord_t polygonLength() const
     {
         coord_t length = 0;
-        for(unsigned int i=0; i<paths.size(); i++)
+        for (ConstPolygonRef poly : *this)
         {
-            Point p0 = paths[i][paths[i].size()-1];
-            for(unsigned int n=0; n<paths[i].size(); n++)
-            {
-                Point p1 = paths[i][n];
-                length += vSize(p0 - p1);
-                p0 = p1;
-            }
+            length += poly.polygonLength();
         }
         return length;
     }

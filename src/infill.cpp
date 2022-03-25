@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::sort.
@@ -17,6 +17,7 @@
 #include "infill/UniformDensityProvider.h"
 #include "sliceDataStorage.h"
 #include "utils/PolygonConnector.h"
+#include "utils/PolylineStitcher.h"
 #include "utils/UnionFind.h"
 #include "utils/logoutput.h"
 #include "utils/polygonUtils.h"
@@ -99,7 +100,7 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         VariableWidthPaths gap_fill_paths = wall_toolpaths.getToolPaths();
 
         // Add the gap filling to the toolpaths and make the new inner contour 'aware' of the gap infill:
-        // (Can't use getContours here, becasue only _some_ of the lines Arachne has generated are needed.)
+        // (Can't use getContours here, because only _some_ of the lines Arachne has generated are needed.)
         Polygons gap_filled_areas;
         for (const auto& var_width_line : gap_fill_paths)
         {
@@ -168,9 +169,14 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
                                  });
         result_polygons.erase(it, result_polygons.end());
 
-        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
+        PolygonConnector connector(infill_line_width);
         connector.add(result_polygons);
-        result_polygons = connector.connect();
+        connector.add(toolpaths);
+        Polygons connected_polygons;
+        VariableWidthPaths connected_paths;
+        connector.connect(connected_polygons, connected_paths);
+        result_polygons = connected_polygons;
+        toolpaths = connected_paths;
     }
 }
 
@@ -226,7 +232,7 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
         generateCrossInfill(*cross_fill_provider, result_polygons, result_lines);
         break;
     case EFillMethod::GYROID:
-        generateGyroidInfill(result_lines);
+        generateGyroidInfill(result_lines, result_polygons);
         break;
     case EFillMethod::LIGHTNING:
         assert(lightning_trees); // "Cannot generate Lightning infill without a generator!\n"
@@ -246,6 +252,15 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
     }
 
     result_polygons.simplify(max_resolution, max_deviation);
+
+    if ( ! skip_line_stitching && (zig_zaggify ||
+        pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID || pattern == EFillMethod::ZIG_ZAG))
+    { // don't stich for non-zig-zagged line infill types
+        Polygons stiched_lines;
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(result_lines, stiched_lines, result_polygons, infill_line_width);
+        result_lines = stiched_lines;
+    }
+    result_lines.simplifyPolylines(max_resolution, max_deviation);
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
@@ -312,28 +327,16 @@ void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
             poly.add(poly[0]);
         }
         Polygons polylines = inner_contour.intersectionPolyLines(result_polygons);
-        for (PolygonRef polyline : polylines)
-        {
-            Point last_point = no_point;
-            for (Point point : polyline)
-            {
-                Polygon line;
-                if (last_point != no_point)
-                {
-                    line.add(last_point);
-                    line.add(point);
-                    result_lines.add(line);
-                }
-                last_point = point;
-            }
-        }
-        result_polygons.clear(); // the output should only contain polylines
+        result_polygons.clear();
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(polylines, result_lines, result_polygons, infill_line_width);
     }
 }
 
-void Infill::generateGyroidInfill(Polygons& result_lines)
+void Infill::generateGyroidInfill(Polygons& result_lines, Polygons& result_polygons)
 {
-    GyroidInfill::generateTotalGyroidInfill(result_lines, zig_zaggify, line_distance, inner_contour, z);
+    Polygons line_segments;
+    GyroidInfill::generateTotalGyroidInfill(line_segments, zig_zaggify, line_distance, inner_contour, z);
+    PolylineStitcher<Polygons, Polygon, Point>::stitch(line_segments, result_lines, result_polygons, infill_line_width);
 }
 
 void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& result_lines)
@@ -428,7 +431,8 @@ void Infill::generateCubicSubDivInfill(Polygons& result, const SliceMeshStorage&
 {
     Polygons uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
-    result = uncropped.cut(outer_contour.offset(infill_overlap));
+    constexpr bool restitch = false; // cubic subdivision lines are always single line segments - not polylines consisting of multiple segments.
+    result = outer_contour.offset(infill_overlap).intersectionPolyLines(uncropped, restitch);
 }
 
 void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Polygons& result_polygons, Polygons& result_lines)
@@ -451,17 +455,10 @@ void Infill::generateCrossInfill(const SierpinskiFillProvider& cross_fill_provid
         // make the polyline closed in order to handle cross_pattern_polygon as a polyline, rather than a closed polygon
         cross_pattern_polygon.add(cross_pattern_polygon[0]);
 
-        Polygons cross_pattern_polygons;
-        cross_pattern_polygons.add(cross_pattern_polygon);
-        Polygons poly_lines = inner_contour.intersectionPolyLines(cross_pattern_polygons);
-
-        for (PolygonRef poly_line : poly_lines)
-        {
-            for (size_t point_idx = 1; point_idx < poly_line.size(); point_idx++)
-            {
-                result_lines.addLine(poly_line[point_idx - 1], poly_line[point_idx]);
-            }
-        }
+        Polygons cross_pattern_polylines;
+        cross_pattern_polylines.add(cross_pattern_polygon);
+        Polygons poly_lines = inner_contour.intersectionPolyLines(cross_pattern_polylines);
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(poly_lines, result_lines, result_polygons, infill_line_width);
     }
 }
 
@@ -866,14 +863,16 @@ void Infill::connectLines(Polygons& result_lines)
         const Point first_vertex = (!current_infill_line->previous) ? current_infill_line->start : current_infill_line->end;
         previous_vertex =          (!current_infill_line->previous) ? current_infill_line->end : current_infill_line->start;
         current_infill_line = (first_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
-        result_lines.addLine(first_vertex, previous_vertex);
+        PolygonRef result_line = result_lines.newPoly();
+        result_line.add(first_vertex);
+        result_line.add(previous_vertex);
         delete old_line;
         while (current_infill_line)
         {
             old_line = current_infill_line; //We'll delete this after we've traversed to the next line.
             const Point next_vertex = (previous_vertex == current_infill_line->start) ? current_infill_line->end : current_infill_line->start; //Opposite side of the line.
             current_infill_line =     (previous_vertex == current_infill_line->start) ? current_infill_line->next : current_infill_line->previous;
-            result_lines.addLine(previous_vertex, next_vertex);
+            result_line.add(next_vertex);
             previous_vertex = next_vertex;
             delete old_line;
         }

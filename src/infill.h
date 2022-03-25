@@ -40,6 +40,7 @@ class Infill
     coord_t max_deviation; //!< Max deviation fro the original poly when enforcing max_resolution
     size_t wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     const Point infill_origin; //!< origin of the infill pattern
+    bool skip_line_stitching; //!< Whether to bypass the line stitching normally performed for polyline type infills
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
@@ -64,6 +65,7 @@ public:
         , coord_t max_deviation
         , size_t wall_line_count = 0
         , const Point& infill_origin = Point()
+        , bool skip_line_stitching = false
         , bool connected_zigzags = false
         , bool use_endpieces = false
         , bool skip_some_zags = false
@@ -85,6 +87,7 @@ public:
     , max_deviation(max_deviation)
     , wall_line_count(wall_line_count)
     , infill_origin(infill_origin)
+    , skip_line_stitching(skip_line_stitching)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
     , skip_some_zags(skip_some_zags)
@@ -238,9 +241,10 @@ private:
 
     /*!
      * Generate gyroid infill
-     * \param result (output) The resulting polygons
+     * \param result_polylines (output) The resulting polylines
+     * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect gyroid lines in a circle.
      */
-    void generateGyroidInfill(Polygons& result);
+    void generateGyroidInfill(Polygons& result_polylines, Polygons& result_polygons);
     
     /*!
      * Generate lightning fill aka minfill aka 'Ribbed Support Vault Infill', see Tricard,Claux,Lefebvre/'Ribbed Support Vaults for 3D Printing of Hollowed Objects'

@@ -460,12 +460,6 @@ protected:
 
     // ^ transitioning ^
 
-    /*!
-     * It's useful to know when the paths get back to the consumer, to (what part of) a polygon the paths 'belong'.
-     * A single polygon without a hole is one region, a polygon with (a) hole(s) has 2 regions.
-     */
-    void markRegions();
-
     // v toolpath generation v
 
     /*!
@@ -475,7 +469,7 @@ protected:
 
     /*!
      * From a quad (a group of linked edges in one cell of the Voronoi), find
-     * the edge that is furthest away from the border of the polygon.
+     * the edge pointing to the node that is furthest away from the border of the polygon.
      * \param quad_start_edge The first edge of the quad.
      * \return The edge of the quad that is furthest away from the border.
      */
@@ -575,9 +569,16 @@ protected:
     void generateJunctions(ptr_vector_t<BeadingPropagation>& node_beadings, ptr_vector_t<LineJunctions>& edge_junctions);
 
     /*!
-     * add a new toolpath segment, defined between two extrusion-juntions
+     * Add a new toolpath segment, defined between two extrusion-juntions.
+     * 
+     * \param from The junction from which to add a segment.
+     * \param to The junction to which to add a segment.
+     * \param is_odd Whether this segment is an odd gap filler along the middle of the skeleton.
+     * \param force_new_path Whether to prevent adding this path to an existing path which ends in \p from
+     * \param from_is_3way Whether the \p from junction is a splitting junction where two normal wall lines and a gap filler line come together.
+     * \param to_is_3way Whether the \p to junction is a splitting junction where two normal wall lines and a gap filler line come together.
      */
-    void addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path);
+    void addToolpathSegment(const ExtrusionJunction& from, const ExtrusionJunction& to, bool is_odd, bool force_new_path, bool from_is_3way, bool to_is_3way);
 
     /*!
      * connect junctions in each quad
@@ -588,11 +589,6 @@ protected:
      * Genrate small segments for local maxima where the beading would only result in a single bead
      */
     void generateLocalMaximaSingleBeads();
-
-    /*!
-     * Extract region information from the junctions, for easier access to that info directly from the lines.
-     */
-    void liftRegionInfoToLines();
 };
 
 } // namespace cura

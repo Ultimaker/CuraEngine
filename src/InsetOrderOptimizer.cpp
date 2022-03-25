@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ExtruderTrain.h"
@@ -11,69 +11,77 @@
 namespace cura
 {
 
-InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const VariableWidthPaths& paths, unsigned int layer_nr) :
+InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
+                                         const SliceDataStorage& storage,
+                                         LayerPlan& gcode_layer,
+                                         const Settings& settings,
+                                         const int extruder_nr,
+                                         const GCodePathConfig& inset_0_non_bridge_config,
+                                         const GCodePathConfig& inset_X_non_bridge_config,
+                                         const GCodePathConfig& inset_0_bridge_config,
+                                         const GCodePathConfig& inset_X_bridge_config,
+                                         const bool retract_before_outer_wall,
+                                         const coord_t wall_0_wipe_dist,
+                                         const coord_t wall_x_wipe_dist,
+                                         const size_t wall_0_extruder_nr,
+                                         const size_t wall_x_extruder_nr,
+                                         const ZSeamConfig& z_seam_config,
+                                         const VariableWidthPaths& paths) :
     gcode_writer(gcode_writer),
     storage(storage),
     gcode_layer(gcode_layer),
-    mesh(mesh),
+    settings(settings),
     extruder_nr(extruder_nr),
-    mesh_config(mesh_config),
+    inset_0_non_bridge_config(inset_0_non_bridge_config),
+    inset_X_non_bridge_config(inset_X_non_bridge_config),
+    inset_0_bridge_config(inset_0_bridge_config),
+    inset_X_bridge_config(inset_X_bridge_config),
+    retract_before_outer_wall(retract_before_outer_wall),
+    wall_0_wipe_dist(wall_0_wipe_dist),
+    wall_x_wipe_dist(wall_x_wipe_dist),
+    wall_0_extruder_nr(wall_0_extruder_nr),
+    wall_x_extruder_nr(wall_x_extruder_nr),
+    z_seam_config(z_seam_config),
     paths(paths),
-    layer_nr(layer_nr),
-    z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh.settings.get<coord_t>("wall_line_width_0") * 2),
+    layer_nr(gcode_layer.getLayerNr()),
     added_something(false),
     retraction_region_calculated(false)
 {
 }
 
-bool InsetOrderOptimizer::optimize(const WallType& wall_type)
+bool InsetOrderOptimizer::addToLayer()
 {
     // Settings & configs:
-    const GCodePathConfig& skin_or_infill_config = wall_type == WallType::EXTRA_SKIN ? mesh_config.skin_config : mesh_config.infill_config[0];
-    const bool do_outer_wall = wall_type == WallType::OUTER_WALL;
-    const GCodePathConfig& inset_0_non_bridge_config = do_outer_wall ? mesh_config.inset0_config : skin_or_infill_config;
-    const GCodePathConfig& inset_X_non_bridge_config = do_outer_wall ? mesh_config.insetX_config : skin_or_infill_config;
-    const GCodePathConfig& inset_0_bridge_config = do_outer_wall ? mesh_config.bridge_inset0_config : skin_or_infill_config;
-    const GCodePathConfig& inset_X_bridge_config = do_outer_wall ? mesh_config.bridge_insetX_config : skin_or_infill_config;
-
-    const size_t wall_0_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr;
-    const size_t wall_x_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr;
-    const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr;
-    const size_t infill_extruder_nr = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr;
-
-    const bool pack_by_inset = !mesh.settings.get<bool>("optimize_wall_printing_order");
-    const InsetDirection inset_direction = mesh.settings.get<InsetDirection>("inset_direction");
+    const bool pack_by_inset = ! settings.get<bool>("optimize_wall_printing_order");
+    const InsetDirection inset_direction = settings.get<InsetDirection>("inset_direction");
     const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
+    const bool alternate_walls = settings.get<bool>("material_alternate_walls");
 
-    //Bin the insets in order to print the inset indices together, and to optimize the order of each bin to reduce travels.
-    std::set<size_t> bins_with_index_zero_insets;
-    BinJunctions insets = variableWidthPathToBinJunctions(paths, pack_by_inset, center_last, &bins_with_index_zero_insets);
-
+    const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
+    
     size_t start_inset;
     size_t end_inset;
     int direction;
     //If the entire wall is printed with the current extruder, print all of it.
-    if((wall_type == WallType::OUTER_WALL && wall_0_extruder_nr == wall_x_extruder_nr && wall_x_extruder_nr == extruder_nr) ||
-            (wall_type == WallType::EXTRA_SKIN && extruder_nr == top_bottom_extruder_nr) ||
-            (wall_type == WallType::EXTRA_INFILL && extruder_nr == infill_extruder_nr))
+    if (wall_0_extruder_nr == wall_x_extruder_nr && wall_x_extruder_nr == extruder_nr)
     {
         //If printing the outer inset first, start with the lowest inset.
         //Otherwise start with the highest inset and iterate backwards.
         if(inset_direction == InsetDirection::OUTSIDE_IN)
         {
             start_inset = 0;
-            end_inset = insets.size();
+            end_inset = paths.size();
             direction = 1;
         }
         else //INSIDE_OUT or CENTER_LAST.
         {
-            start_inset = insets.size() - 1;
+            start_inset = paths.size() - 1;
             end_inset = -1;
             direction = -1;
         }
     }
     //If the wall is partially printed with the current extruder, print the correct part.
-    else if(wall_type == WallType::OUTER_WALL && wall_0_extruder_nr != wall_x_extruder_nr)
+    else if (wall_0_extruder_nr != wall_x_extruder_nr)
     {
         //If the wall_0 and wall_x extruders are different, then only include the insets that should be printed by the
         //current extruder_nr.
@@ -85,7 +93,7 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
         }
         else if(extruder_nr == wall_x_extruder_nr)
         {
-            start_inset = insets.size() - 1;
+            start_inset = paths.size() - 1;
             end_inset = 0; // Ignore outer wall
             direction = -1;
         }
@@ -99,127 +107,264 @@ bool InsetOrderOptimizer::optimize(const WallType& wall_type)
         return added_something;
     }
 
-
+    
+    std::vector<const ExtrusionLine*> walls_to_be_added;
     //Add all of the insets one by one.
-    constexpr Ratio flow = 1.0_r;
-    const bool retract_before_outer_wall = mesh.settings.get<bool>("travel_retract_before_outer_wall");
-    const coord_t wall_0_wipe_dist = mesh.settings.get<coord_t>("wall_0_wipe_dist");
-    for(size_t inset = start_inset; inset != end_inset; inset += direction)
+    for (size_t inset_idx = start_inset; inset_idx != end_inset; inset_idx += direction)
     {
-        if(insets[inset].empty())
+        if (paths[inset_idx].empty())
         {
             continue; //Don't switch extruders either, etc.
         }
-        added_something = true;
-        gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
-        gcode_layer.setIsInside(true); //Going to print walls, which are always inside.
-        ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh.settings.get<coord_t>("wall_line_width_0") * 2);
-
-        const bool alternate_direction_modifier = inset % 2 == 0;
-        if(bins_with_index_zero_insets.count(inset) > 0) //Print using outer wall config.
+        const VariableWidthLines& inset = paths[inset_idx];
+        for (const ExtrusionLine& wall : inset)
         {
-            gcode_layer.addWalls(insets[inset], mesh.settings, inset_0_non_bridge_config, inset_0_bridge_config, z_seam_config, wall_0_wipe_dist, flow, retract_before_outer_wall, alternate_direction_modifier);
+            walls_to_be_added.emplace_back(&wall);
+        }
+    }
+    
+    
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = 
+        pack_by_inset?
+        getInsetOrder(walls_to_be_added, outer_to_inner)
+        : getRegionOrder(walls_to_be_added, outer_to_inner);
+    
+    if (center_last)
+    {
+        for (const ExtrusionLine* line : walls_to_be_added)
+        {
+            if (line->is_odd)
+            {
+                for (const ExtrusionLine* other_line : walls_to_be_added)
+                {
+                    if ( ! other_line->is_odd)
+                    {
+                        order.emplace(std::make_pair(other_line, line));
+                    }
+                }
+            }
+        }
+    }
+    
+    constexpr Ratio flow = 1.0_r;
+    
+    bool added_something = false;
+
+    constexpr bool detect_loops = false;
+    constexpr Polygons* combing_boundary = nullptr;
+    //When we alternate walls, also alternate the direction at which the first wall starts in.
+    //On even layers we start with normal direction, on odd layers with inverted direction.
+    constexpr bool reverse_all_paths = false;
+    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse_all_paths, order);
+    
+    for (const ExtrusionLine* line : walls_to_be_added)
+    {
+        if (line->is_closed)
+        {
+            order_optimizer.addPolygon(line);
         }
         else
         {
-            gcode_layer.addWalls(insets[inset], mesh.settings, inset_X_non_bridge_config, inset_X_bridge_config, z_seam_config, 0, flow, false, alternate_direction_modifier);
+            order_optimizer.addPolyline(line);
         }
+    }
+    
+    
+    order_optimizer.optimize();
+    
+    cura::Point p_end {0, 0};
+    for(const PathOrderPath<const ExtrusionLine*>& path : order_optimizer.paths)
+    {
+        if (path.vertices->empty()) continue;
+        
+        const bool is_outer_wall = path.vertices->inset_idx == 0; // or thin wall 'gap filler'
+        const bool is_gap_filler = path.vertices->is_odd;
+        const GCodePathConfig& non_bridge_config = is_outer_wall ? inset_0_non_bridge_config : inset_X_non_bridge_config;
+        const GCodePathConfig& bridge_config = is_outer_wall? inset_0_bridge_config : inset_X_bridge_config;
+        const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist : wall_x_wipe_dist;
+        const bool retract_before = is_outer_wall ? retract_before_outer_wall : false;
+
+        const bool revert_inset = alternate_walls && (path.vertices->inset_idx % 2);
+        const bool revert_layer = alternate_walls && (layer_nr % 2);
+        const bool backwards = path.backwards != (revert_inset != revert_layer);
+        
+        p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;
+        const cura::Point p_start = path.backwards ? path.vertices->front().p : path.vertices->back().p;
+        const bool linked_path = p_start != p_end;
+
+        gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+        gcode_layer.setIsInside(true); //Going to print walls, which are always inside.
+        gcode_layer.addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed, backwards, linked_path);
+        added_something = true;
     }
     return added_something;
 }
 
-size_t InsetOrderOptimizer::getOuterRegionId(const VariableWidthPaths& toolpaths, size_t& out_max_region_id)
+
+
+
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
 {
-    // Polygons show up here one by one, so there are always only a) the outer lines and b) the lines that are part of the holes.
-    // Therefore, the outer-regions' lines will always have the region-id that is larger then all of the other ones.
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order_requirements;
 
-    // First, build the bounding boxes:
-    std::map<size_t, AABB> region_ids_to_bboxes; //Use a sorted map, ordered by region_id, so that we can find the largest region_id quickly.
-    for (const VariableWidthLines& path : toolpaths)
-    {
-        for (const ExtrusionLine& line : path)
+    // We build a grid where we map toolpath vertex locations to toolpaths,
+    // so that we can easily find which two toolpaths are next to each other,
+    // which is the requirement for there to be an order constraint.
+    // 
+    // We use a PointGrid rather than a LineGrid to save on computation time.
+    // In very rare cases two insets might lie next to each other without having neighboring vertices, e.g.
+    //  \            .
+    //   |  /        .
+    //   | /         .
+    //   ||          .
+    //   | \         .
+    //   |  \        .
+    //  /            .
+    // However, because of how Arachne works this will likely never be the case for two consecutive insets.
+    // On the other hand one could imagine that two consecutive insets of a very large circle
+    // could be simplify()ed such that the remaining vertices of the two insets don't align.
+    // In those cases the order requirement is not captured,
+    // which means that the PathOrderOptimizer *might* result in a violation of the user set path order.
+    // This problem is expected to be not so severe and happen very sparsely.
+
+    coord_t max_line_w = 0u;
+    for (const ExtrusionLine* line : input)
+    { // compute max_line_w
+        for (const ExtrusionJunction& junction : *line)
         {
-            AABB& aabb = region_ids_to_bboxes[line.region_id]; // Empty AABBs are default initialized when region_ids are encountered for the first time.
-            for (const auto& junction : line.junctions)
+            max_line_w = std::max(max_line_w, junction.w);
+        }
+    }
+    if (max_line_w == 0u) return order_requirements;
+    
+    struct LineLoc
+    {
+        ExtrusionJunction j;
+        const ExtrusionLine* line;
+    };
+    struct Locator
+    {
+        Point operator()(const LineLoc& elem)
+        {
+            return elem.j.p;
+        }
+    };
+    
+    // How much farther two verts may be apart due to corners.
+    // This distance must be smaller than 2, because otherwise
+    // we could create an order requirement between e.g.
+    // wall 2 of one region and wall 3 of another region,
+    // while another wall 3 of the first region would lie in between those two walls.
+    // However, higher values are better against the limitations of using a PointGrid rather than a LineGrid.
+    constexpr float diagonal_extension = 1.9;
+    const coord_t searching_radius = max_line_w * diagonal_extension;
+    using GridT = SparsePointGrid<LineLoc, Locator>;
+    GridT grid(searching_radius);
+
+    
+    for (const ExtrusionLine* line : input)
+    {
+        for (const ExtrusionJunction& junction : *line)
+        {
+            grid.insert(LineLoc{junction, line});
+        }
+    }
+    for (const std::pair<SquareGrid::GridPoint, LineLoc>& pair : grid)
+    {
+        const LineLoc& lineloc_here = pair.second;
+        const ExtrusionLine* here = lineloc_here.line;
+        Point loc_here = pair.second.j.p;
+        std::vector<LineLoc> nearby_verts = grid.getNearby(loc_here, searching_radius);
+        for (const LineLoc& lineloc_nearby : nearby_verts)
+        {
+            const ExtrusionLine* nearby = lineloc_nearby.line;
+            if (nearby == here) continue;
+            if (nearby->inset_idx == here->inset_idx) continue;
+            if (nearby->inset_idx > here->inset_idx + 1) continue; // not directly adjacent
+            if (here->inset_idx > nearby->inset_idx + 1) continue; // not directly adjacent
+            if ( ! shorterThan(loc_here - lineloc_nearby.j.p, (lineloc_here.j.w + lineloc_nearby.j.w) / 2 * diagonal_extension)) continue; // points are too far away from each other
+            if (here->is_odd || nearby->is_odd)
             {
-                aabb.include(junction.p);
+                if (here->is_odd && ! nearby->is_odd && nearby->inset_idx < here->inset_idx)
+                {
+                    order_requirements.emplace(std::make_pair(nearby, here));
+                }
+                if (nearby->is_odd && ! here->is_odd && here->inset_idx < nearby->inset_idx)
+                {
+                    order_requirements.emplace(std::make_pair(here, nearby));
+                }
             }
-        }
-    }
-
-    // Then, the largest of these will be the one that's needed for the outer region, the others' all belong to hole regions:
-    AABB outer_bbox;
-    size_t outer_region_id = 0; // Region-ID 0 is reserved for 'None'.
-    for (const auto& region_id_bbox_pair : region_ids_to_bboxes)
-    {
-        if (region_id_bbox_pair.second.contains(outer_bbox))
-        {
-            outer_bbox = region_id_bbox_pair.second;
-            outer_region_id = region_id_bbox_pair.first;
-        }
-    }
-
-    // Maximum Region-ID (using the ordering of the map)
-    out_max_region_id = region_ids_to_bboxes.empty() ? 0 : region_ids_to_bboxes.rbegin()->first;
-    return outer_region_id;
-}
-
-BinJunctions InsetOrderOptimizer::variableWidthPathToBinJunctions(const VariableWidthPaths& toolpaths, const bool pack_regions_by_inset,
-                                                                  const bool center_last, std::set<size_t>* p_bins_with_index_zero_insets)
-{
-    // Find the largest inset-index:
-    size_t max_inset_index = 0;
-    for (const VariableWidthLines& path : toolpaths)
-    {
-        max_inset_index = std::max(path.front().inset_idx, max_inset_index);
-    }
-
-    // Find which regions are associated with the outer-outer walls (which region is the one the rest is holes inside of):
-    size_t max_region_id = 0;
-    const size_t outer_region_id = getOuterRegionId(toolpaths, max_region_id);
-
-    //Since we're (optionally!) splitting off in the outer and inner regions, it may need twice as many bins as inset-indices.
-    //Add two extra bins for the center-paths, if they need to be stored separately. One bin for inner and one for outer walls.
-    const size_t max_bin = (pack_regions_by_inset ? (max_region_id * 2) + 2 : (max_inset_index + 1) * 2) + center_last * 2;
-    BinJunctions insets(max_bin + 1);
-    for (const VariableWidthLines& path : toolpaths)
-    {
-        if (path.empty()) // Don't bother printing these.
-        {
-            continue;
-        }
-        const size_t inset_index = path.front().inset_idx;
-
-        // Convert list of extrusion lines to vectors of extrusion junctions, and add those to the binned insets.
-        for (const ExtrusionLine& line : path)
-        {
-            // Sort into the right bin, ...
-            size_t bin_index;
-            const bool in_hole_region = line.region_id != outer_region_id && line.region_id != 0;
-            if(center_last && line.is_odd)
+            else if ((nearby->inset_idx < here->inset_idx) == outer_to_inner)
             {
-                bin_index = inset_index > 0;
-            }
-            else if(pack_regions_by_inset)
-            {
-                bin_index = std::min(inset_index, static_cast<size_t>(1)) + 2 * (in_hole_region ? line.region_id : 0) + center_last * 2;
+                order_requirements.emplace(std::make_pair(nearby, here));
             }
             else
             {
-                bin_index = inset_index + (in_hole_region ? (max_inset_index + 1) : 0) + center_last * 2;
-            }
-
-            insets[bin_index].emplace_back(line.junctions.begin(), line.junctions.end());
-
-            // Collect all bins that have zero-inset indices in them, if needed:
-            if (inset_index == 0 && p_bins_with_index_zero_insets != nullptr)
-            {
-                p_bins_with_index_zero_insets->insert(bin_index);
+                assert((nearby->inset_idx > here->inset_idx) == outer_to_inner);
+                order_requirements.emplace(std::make_pair(here, nearby));
             }
         }
     }
-
-    return insets;
+    return order_requirements;
 }
+
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
+{
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
+    
+    std::vector<std::vector<const ExtrusionLine*>> walls_by_inset;
+    std::vector<std::vector<const ExtrusionLine*>> fillers_by_inset;
+
+    for (const ExtrusionLine* line : input)
+    {
+        if (line->is_odd)
+        {
+            if (line->inset_idx >= fillers_by_inset.size())
+            {
+                fillers_by_inset.resize(line->inset_idx + 1);
+            }
+            fillers_by_inset[line->inset_idx].emplace_back(line);
+        }
+        else
+        {
+            if (line->inset_idx >= walls_by_inset.size())
+            {
+                walls_by_inset.resize(line->inset_idx + 1);
+            }
+            walls_by_inset[line->inset_idx].emplace_back(line);
+        }
+    }
+    for (size_t inset_idx = 0; inset_idx + 1 < walls_by_inset.size(); inset_idx++)
+    {
+        for (const ExtrusionLine* line : walls_by_inset[inset_idx])
+        {
+            for (const ExtrusionLine* inner_line : walls_by_inset[inset_idx + 1])
+            {
+                const ExtrusionLine* before = inner_line;
+                const ExtrusionLine* after = line;
+                if (outer_to_inner)
+                {
+                    std::swap(before, after);
+                }
+                order.emplace(before, after);
+            }
+        }
+    }
+    for (size_t inset_idx = 1; inset_idx < fillers_by_inset.size(); inset_idx++)
+    {
+        for (const ExtrusionLine* line : fillers_by_inset[inset_idx])
+        {
+            if (inset_idx - 1 >= walls_by_inset.size()) continue;
+            for (const ExtrusionLine* enclosing_wall : walls_by_inset[inset_idx - 1])
+            {
+                order.emplace(enclosing_wall, line);
+            }
+        }
+        
+    }
+    
+    return order;
+}
+
 
 }//namespace cura

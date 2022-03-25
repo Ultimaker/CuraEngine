@@ -47,7 +47,7 @@ private:
      * \param result (output) The resulting lines
      * \param directional_line_groups Array of 3 times a polylines. Used to keep track of line segments that are all pointing the same direction for line segment combining
      */
-    void generateSubdivisionLines(const coord_t z, Polygons& result, Polygons (&directional_line_groups)[3]);
+    void generateSubdivisionLines(const coord_t z, Polygons (&directional_line_groups)[3]);
 
     struct CubeProperties
     {

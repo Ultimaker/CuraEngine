@@ -75,15 +75,15 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     const EFillMethod support_pattern = infill_extruder.settings.get<EFillMethod>("support_pattern");
     const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
 
-    // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
+    // The wall line count is used for calculating insets, and we generate support infill patterns within the insets
     const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
 
-    // generate separate support islands
+    // Generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
         unsigned int wall_line_count_this_layer = wall_line_count;
         if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
-        { // the first layer will be printed wit ha grid pattern
+        { // The first layer will be printed with a grid pattern
             wall_line_count_this_layer++;
         }
         assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
@@ -91,7 +91,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
         const Polygons& global_support_areas = global_support_areas_per_layer[layer_nr];
         if (global_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
         {
-            // initialize support_infill_parts empty
+            // Initialize support_infill_parts empty
             storage.support.supportLayers[layer_nr].support_infill_parts.clear();
             continue;
         }
@@ -104,7 +104,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
             {
                 support_line_width_here *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
             }
-            // we don't generate insets and infill area for the parts yet because later the skid/brim and prime
+            // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
             // tower will remove themselves from the support, so the outlines of the parts can be changed.
             SupportInfillPart support_infill_part(island_outline, support_line_width_here, wall_line_count_this_layer);
 
@@ -202,13 +202,13 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
         {
             SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
 
-            // NOTE: This both generates the walls _and_ returns the _actual_ infill area (the one _without_ walls) for use in the rest of the method.
             Polygons original_area = support_infill_part.getInfillArea();
-            const Polygons infill_area = Infill::generateWallToolPaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, overlap, infill_extruder.settings);
-            if (infill_area.empty())
+            if (original_area.empty())
             {
                 continue;
             }
+            // NOTE: This both generates the walls _and_ returns the _actual_ infill area (the one _without_ walls) for use in the rest of the method.
+            const Polygons infill_area = Infill::generateWallToolPaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, overlap, infill_extruder.settings);
             const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box;
 
             // calculate density areas for this island
@@ -226,7 +226,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                         break;
                     }
 
-                    // compute intersections with relevent upper parts
+                    // compute intersections with relevant upper parts
                     const std::vector<SupportInfillPart> upper_infill_parts = storage.support.supportLayers[upper_layer_idx].support_infill_parts;
                     Polygons relevant_upper_polygons;
                     for (unsigned int upper_part_idx = 0; upper_part_idx < upper_infill_parts.size(); ++upper_part_idx)
@@ -495,7 +495,12 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
         {
             case EPlatformAdhesion::BRIM:
-                adhesion_size = skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width") * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * skirt_brim_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
+                adhesion_size = 
+                    skirt_brim_extruder.settings.get<coord_t>("brim_width")
+                    + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width")
+                    * skirt_brim_extruder.settings.get<size_t>("brim_line_count")
+                    * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
+                    + extra_skirt_line_width;
                 break;
             case EPlatformAdhesion::RAFT:
             {

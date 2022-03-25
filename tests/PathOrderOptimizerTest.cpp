@@ -13,7 +13,7 @@ public:
     /*!
      * A blank optimizer with no polygons added yet. Fresh and virgin.
      */
-    PathOrderOptimizer<ConstPolygonRef> optimizer;
+    PathOrderOptimizer<ConstPolygonPointer> optimizer;
 
     /*!
      * A simple isosceles triangle. Base length and height 50.
@@ -24,7 +24,7 @@ public:
 
     void SetUp()
     {
-        optimizer = PathOrderOptimizer<ConstPolygonRef>(Point(0, 0));
+        optimizer = PathOrderOptimizer<ConstPolygonPointer>(Point(0, 0));
 
         triangle.clear();
         triangle.add(Point(0, 0));
@@ -62,9 +62,9 @@ TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
 
     optimizer.optimize();
 
-    EXPECT_EQ(optimizer.paths[0].vertices[0], Point(100, 100)) << "Nearest triangle first.";
-    EXPECT_EQ(optimizer.paths[1].vertices[0], Point(500, 500)) << "Middle triangle second.";
-    EXPECT_EQ(optimizer.paths[2].vertices[0], Point(1000, 1000)) << "Far triangle last.";
+    EXPECT_EQ(optimizer.paths[0].vertices->front(), Point(100, 100)) << "Nearest triangle first.";
+    EXPECT_EQ(optimizer.paths[1].vertices->front(), Point(500, 500)) << "Middle triangle second.";
+    EXPECT_EQ(optimizer.paths[2].vertices->front(), Point(1000, 1000)) << "Far triangle last.";
 }
 
 }

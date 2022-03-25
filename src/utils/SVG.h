@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SVG_H
@@ -7,6 +7,7 @@
 #include <stdio.h> // for file output
 
 #include "AABB.h"
+#include "ExtrusionLine.h" //To accept variable-width paths.
 #include "IntPoint.h"
 #include "NoCopy.h"
 
@@ -25,6 +26,7 @@ public:
         RED,
         BLUE,
         GREEN,
+        LIME,
         ORANGE,
         MAGENTA,
         YELLOW,
@@ -142,9 +144,38 @@ public:
 
     void writePolyline(ConstPolygonRef poly, const ColorObject color = Color::BLACK, const float stroke_width = 1) const;
 
-    void writePolylines(const Polygons& polys, const Color color = Color::BLACK, const float stroke_width = 1) const;
+    /*!
+     * Draw variable-width paths into the image.
+     *
+     * The paths are drawn with the correct line width, as given in the paths,
+     * but there is a multiplicative factor to adjust the width with.
+     * \param paths The paths to draw.
+     * \param color The color to draw the paths with.
+     * \param width_factor A multiplicative factor on the line widths.
+     */
+    void writePaths(const VariableWidthPaths& paths, const ColorObject color = Color::BLACK, const float width_factor = 1.0) const;
 
-    void writePolyline(ConstPolygonRef poly, const Color color = Color::BLACK, const float stroke_width = 1) const;
+    /*!
+     * Draw variable-width lines into the image.
+     *
+     * The lines are drawn with the correct line width, as given in the lines,
+     * but there is a multiplicative factor to adjust the width with.
+     * \param lines The lines to draw.
+     * \param color The color to draw the lines with.
+     * \param width_factor A multiplicative factor on the line widths.
+     */
+    void writeLines(const VariableWidthLines& lines, const ColorObject color = Color::BLACK, const float width_factor = 1.0) const;
+
+    /*!
+     * Draw a variable-width line into the image.
+     *
+     * The line is drawn with the correct line width, as given in the junctions,
+     * but there is a multiplicative factor to adjust the width with.
+     * \param line The line to draw.
+     * \param color The color to draw the line with.
+     * \param width_factor A multiplicative factor on the line width.
+     */
+    void writeLine(const ExtrusionLine& line, const ColorObject color = Color::BLACK, const float width_factor = 1.0) const;
 
     /*!
      * Draws a grid across the image and writes down coordinates.

@@ -10,6 +10,8 @@
 
 #include "ListPolyIt.h"
 
+#include "PolylineStitcher.h"
+
 namespace cura
 {
 
@@ -260,44 +262,73 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
-Polygons Polygons::intersectionPolyLines(const Polygons& polylines) const
+Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitch, const coord_t max_stitch_distance) const
 {
+    Polygons split_polylines = polylines.splitPolylinesIntoSegments();
+    
     ClipperLib::PolyTree result;
     ClipperLib::Clipper clipper(clipper_init);
-    clipper.AddPaths(polylines.paths, ClipperLib::ptSubject, false);
+    clipper.AddPaths(split_polylines.paths, ClipperLib::ptSubject, false);
     clipper.AddPaths(paths, ClipperLib::ptClip, true);
     clipper.Execute(ClipperLib::ctIntersection, result);
     Polygons ret;
-    ret.addPolyTreeNodeRecursive(result);
+    ClipperLib::OpenPathsFromPolyTree(result, ret.paths);
+    
+    if (restitch)
+    {
+        Polygons result_lines, result_polygons;
+        const coord_t snap_distance = 10_mu;
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(ret, result_lines, result_polygons, max_stitch_distance, snap_distance);
+        ret = result_lines;
+        // if polylines got stitched into polygons, split them back up into a polyline again, because the result only admits polylines
+        for (PolygonRef poly : result_polygons)
+        {
+            if (poly.empty()) continue;
+            if (poly.size() > 2)
+            {
+                poly.emplace_back(poly[0]);
+            }
+            ret.add(poly);
+        }
+    }
+
     return ret;
 }
 
-Polygons& Polygons::cut(const Polygons& tool)
+void Polygons::splitPolylinesIntoSegments(Polygons& result) const
 {
-    ClipperLib::PolyTree interior_segments_tree;
-    tool.lineSegmentIntersection(*this, interior_segments_tree);
-    ClipperLib::Paths interior_segments;
-    ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
-    this->clear();
-    for (const std::vector<ClipperLib::IntPoint>& interior_segment : interior_segments)
+    for (ConstPolygonRef poly : *this)
     {
-        this->addLine(interior_segment[0], interior_segment[1]);
+        poly.splitPolylineIntoSegments(result);
     }
-    return *this;
+}
+Polygons Polygons::splitPolylinesIntoSegments() const
+{
+    Polygons ret;
+    splitPolylinesIntoSegments(ret);
+    return ret;
+}
+
+void Polygons::splitPolygonsIntoSegments(Polygons& result) const
+{
+    for (ConstPolygonRef poly : *this)
+    {
+        poly.splitPolygonIntoSegments(result);
+    }
+}
+Polygons Polygons::splitPolygonsIntoSegments() const
+{
+    Polygons ret;
+    splitPolygonsIntoSegments(ret);
+    return ret;
 }
 
 coord_t Polygons::polyLineLength() const
 {
     coord_t length = 0;
-    for (unsigned int poly_idx = 0; poly_idx < paths.size(); poly_idx++)
+    for (ConstPolygonRef poly : *this)
     {
-        Point p0 = paths[poly_idx][0];
-        for (unsigned int point_idx = 1; point_idx < paths[poly_idx].size(); point_idx++)
-        {
-            Point p1 = paths[poly_idx][point_idx];
-            length += vSize(p0 - p1);
-            p0 = p1;
-        }
+        length += poly.polylineLength();
     }
     return length;
 }
@@ -418,12 +449,13 @@ void PolygonRef::simplifyPolyline(const coord_t smallest_line_segment_squared, c
 }
 void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, bool processing_polylines)
 {
-    if (size() < 3 - static_cast<size_t>(processing_polylines))
+    const size_t min_poly_length = processing_polylines ? 2 : 3;
+    if (size() < min_poly_length)
     {
         clear();
         return;
     }
-    if (size() == 3 - static_cast<size_t>(processing_polylines))
+    if (size() == min_poly_length)
     {
         return;
     }
@@ -468,7 +500,6 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
         {
             next = path->at((point_idx + 1) % size());
         }
-        bool bypass = processing_polylines && (point_idx == 0 || point_idx + 1 == size()); // bypass all checks for deleting a vertex when processing the start or end of a polyline
 
         const coord_t removed_area_next = current.X * next.Y - current.Y * next.X; // Twice the Shoelace formula for area of polygon per line segment.
         const coord_t negative_area_closing = next.X * previous.Y - next.Y * previous.X; // area between the origin and the short-cutting segment
@@ -478,8 +509,7 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
         if (!processing_polylines || (point_idx != 0 && point_idx + 1 != size()))
         { // bypass all checks for deleting a vertex when processing the start or end of a polyline
             const coord_t length2 = vSize2(current - previous);
-            if (length2 < 25
-                && !bypass) // never delete when bypassing 
+            if (length2 < 25)
             {
                 // We're allowed to always delete segments of less than 5 micron.
                 continue;
@@ -488,8 +518,7 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
             const coord_t area_removed_so_far = accumulated_area_removed + negative_area_closing; // close the shortcut area polygon
             const coord_t base_length_2 = vSize2(next - previous);
 
-            if (base_length_2 == 0 //Two line segments form a line back and forth with no area.
-                && !bypass) // never delete when bypassing 
+            if (base_length_2 == 0) //Two line segments form a line back and forth with no area.
             {
                 continue; //Remove the vertex.
             }
@@ -502,15 +531,13 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
             //h^2 = L^2 / b^2     [factor the divisor]
             const coord_t height_2 = area_removed_so_far * area_removed_so_far / base_length_2;
             if ((height_2 <= 5 * 5 //Almost exactly colinear (barring rounding errors).
-                && LinearAlg2D::getDistFromLine(current, previous, next) <= 5) // make sure that height_2 is not small because of cancellation of positive and negative areas
-                && !bypass) // never delete when bypassing 
+                && LinearAlg2D::getDistFromLine(current, previous, next) <= 5)) // make sure that height_2 is not small because of cancellation of positive and negative areas
             {
                 continue;
             }
 
             if (length2 < smallest_line_segment_squared
-                && height_2 <= allowed_error_distance_squared // removing the vertex doesn't introduce too much error.)
-                && !bypass) // never delete when bypassing 
+                && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.)
             {
                 const coord_t next_length2 = vSize2(current - next);
                 if (next_length2 > smallest_line_segment_squared)
@@ -554,15 +581,6 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
         previous_previous = previous;
         previous = current; //Note that "previous" is only updated if we don't remove the vertex.
         new_path.push_back(current);
-    }
-
-    if (processing_polylines)
-    { // make sure the last segment is not 5u short
-        size_t second_to_last_idx = new_path.size() - 2;
-        if (vSize2(new_path.back() - new_path[second_to_last_idx]) < 25)
-        {
-            new_path.erase(new_path.begin() + second_to_last_idx);
-        }
     }
 
     if (processing_polylines)
@@ -799,19 +817,8 @@ void Polygons::_removeDegenerateVerts(const bool for_polyline)
 Polygons Polygons::toPolygons(ClipperLib::PolyTree& poly_tree)
 {
     Polygons ret;
-    ret.addPolyTreeNodeRecursive(poly_tree);
+    ClipperLib::PolyTreeToPaths(poly_tree, ret.paths);
     return ret;
-}
-
-
-void Polygons::addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node)
-{
-    for (int outer_poly_idx = 0; outer_poly_idx < node.ChildCount(); outer_poly_idx++)
-    {
-        ClipperLib::PolyNode* child = node.Childs[outer_poly_idx];
-        paths.push_back(child->Contour);
-        addPolyTreeNodeRecursive(*child);
-    }
 }
 
 bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
@@ -1246,6 +1253,39 @@ Polygons Polygons::smooth_outward(const AngleDegrees max_angle, int shortcut_len
 }
 
 
+
+
+void ConstPolygonRef::splitPolylineIntoSegments(Polygons& result) const 
+{
+    Point last = front();
+    for (size_t idx = 1; idx < size(); idx++)
+    {
+        Point p = (*this)[idx];
+        result.addLine(last, p);
+        last = p;
+    }
+}
+
+Polygons ConstPolygonRef::splitPolylineIntoSegments() const 
+{
+    Polygons ret;
+    splitPolylineIntoSegments(ret);
+    return ret;
+}
+
+void ConstPolygonRef::splitPolygonIntoSegments(Polygons& result) const
+{
+    splitPolylineIntoSegments(result);
+    result.addLine(back(), front());
+}
+
+Polygons ConstPolygonRef::splitPolygonIntoSegments() const 
+{
+    Polygons ret;
+    splitPolygonIntoSegments(ret);
+    return ret;
+}
+
 void ConstPolygonRef::smooth(int remove_length, PolygonRef result) const
 {
 // a typical zigzag with the middle part to be removed by removing (1) :
@@ -1534,7 +1574,6 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
         }
     }
 }
-
 
 void Polygons::ensureManifold()
 {

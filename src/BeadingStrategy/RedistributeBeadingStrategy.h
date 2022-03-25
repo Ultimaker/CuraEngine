@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef REDISTRIBUTE_DISTRIBUTED_BEADING_STRATEGY_H
@@ -32,15 +32,14 @@ namespace cura
          * /param optimal_width_outer         Outer wall width, guaranteed to be the actual (save rounding errors) at a
          *                                    bead count if the parent strategies' optimum bead width is a weighted
          *                                    average of the outer and inner walls at that bead count.
-         * /param optimal_width_outer         Inner wall width, guaranteed to be the actual (save rounding errors) at a
-         *                                    bead count if the parent strategies' optimum bead width is a weighted
-         *                                    average of the outer and inner walls at that bead count.
-         * /param minimum_variable_line_width Minimum factor that the variable line might deviate from the optimal width.
+         * /param minimum_variable_line_ratio Minimum factor that the variable line might deviate from the optimal width.
          */
-        RedistributeBeadingStrategy(const coord_t optimal_width_outer,
-                                    const coord_t optimal_width_inner,
-                                    const double minimum_variable_line_width,
-                                    BeadingStrategyPtr parent);
+        RedistributeBeadingStrategy
+        (
+            const coord_t optimal_width_outer,
+            const Ratio minimum_variable_line_ratio,
+            BeadingStrategyPtr parent
+        );
 
         virtual ~RedistributeBeadingStrategy() override = default;
 
@@ -92,8 +91,7 @@ namespace cura
 
         BeadingStrategyPtr parent;
         coord_t optimal_width_outer;
-        coord_t optimal_width_inner;
-        double minimum_variable_line_width;
+        Ratio minimum_variable_line_ratio;
     };
 
 } // namespace cura

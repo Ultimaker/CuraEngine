@@ -560,6 +560,7 @@ private:
      * This produces additional low-extrusion moves that cover the top surface,
      * in order to smooth the surface more.
      *
+     * \param storage The slice data storage in the highly unlikely case that printing the ironing requires printing a brim just before it
      * \param mesh The settings storage to get the ironing settings and skin
      * angles from.
      * \param layer The layer to process the ironing for.
@@ -568,7 +569,7 @@ private:
      * \param[out] gcode_layer The output layer to put the resulting paths in.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processIroning(const SliceMeshStorage& mesh, const SliceLayer& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const;
+    bool processIroning(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const SliceLayer& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer for all support parts with the given \p extruder_nr.
