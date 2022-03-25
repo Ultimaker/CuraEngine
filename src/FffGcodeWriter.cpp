@@ -1575,7 +1575,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
 
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Polygons infill_polygons;
-    std::vector<std::vector<VariableWidthLines>> wall_tool_paths;
+    std::vector<std::vector<VariableWidthLines>> wall_tool_paths; // All wall toolpaths binned by inset_idx (inner) and by density_idx (outer)
     Polygons infill_lines;
 
     const auto pattern = mesh.settings.get<EFillMethod>("infill_pattern");
