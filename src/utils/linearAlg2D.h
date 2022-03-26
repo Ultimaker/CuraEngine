@@ -88,7 +88,7 @@ public:
         const double c2 = a2 * (c.X) + b2 * (c.Y);
 
         const Point result((b2 * c1 - b1 * c2) / determinant,
-                     (a1 * c1 - a2 * c1) / determinant);
+                     (a1 * c2 - a2 * c1) / determinant);
         if(std::abs(result.X) > std::numeric_limits<int32_t>::max() || std::abs(result.Y) > std::numeric_limits<int32_t>::max())
         {
             //Intersection is so far away that it could lead to integer overflows.
