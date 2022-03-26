@@ -30,7 +30,7 @@ BeadingStrategyPtr BeadingStrategyFactory::makeStrategy
     const coord_t max_bead_count,
     const coord_t outer_wall_offset,
     const int inward_distributed_center_wall_count,
-    const double minimum_variable_line_width
+    const Ratio minimum_variable_line_ratio
 )
 {
     using std::make_unique;
@@ -52,7 +52,7 @@ BeadingStrategyPtr BeadingStrategyFactory::makeStrategy
             return nullptr;
     }
     logDebug("Applying the Redistribute meta-strategy with outer-wall width = %d, inner-wall width = %d\n", preferred_bead_width_outer, preferred_bead_width_inner);
-    ret = make_unique<RedistributeBeadingStrategy>(preferred_bead_width_outer, minimum_variable_line_width, move(ret));
+    ret = make_unique<RedistributeBeadingStrategy>(preferred_bead_width_outer, minimum_variable_line_ratio, move(ret));
 
     if(print_thin_walls)
     {
