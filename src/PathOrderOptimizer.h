@@ -507,10 +507,13 @@ protected:
             {
                 // add breaker for two candidate starting location with similar score
                 // if we don't do this then we (can) get an un-even seam
-                Point tie_breaker_point = target_pos != Point(0, 0)
-                    ? Point(0, 0)       // break ties by picking the point that is closest to the origin
-                    : Point(0, 100000); // unless the target position is the origin, then pick some other location
-                best_point = vSize2(best_point - tie_breaker_point) < vSize2(here - tie_breaker_point) ? best_point : here;
+                // ties are broken by favouring points with lower x-coord
+                // if x-coord for both points are equal then break ties by
+                // favouring points with lower y-coord
+                if (here.X != best_point.X ? here.X < best_point.X : here.Y < best_point.Y)
+                {
+                    best_point = here;
+                }
                 best_score = std::min(best_score, score);
             }
             else if(score < best_score)
