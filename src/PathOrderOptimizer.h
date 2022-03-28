@@ -503,7 +503,7 @@ protected:
             }
 
             constexpr float EPSILON = 25.0;
-            if(best_score - EPSILON <= score && score <= best_score + EPSILON)
+            if (fabs(best_score - score) <= EPSILON)
             {
                 // add breaker for two candidate starting location with similar score
                 // if we don't do this then we (can) get an un-even seam
