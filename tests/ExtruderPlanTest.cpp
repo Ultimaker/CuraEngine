@@ -205,7 +205,7 @@ public:
 
     bool shouldCountPath(const GCodePath& path) const
     {
-        return path.flow > 0.0 && path.config->getFlowRatio() > 0.0 && path.config->getLineWidth() > 0.0 && ! path.config->isTravelPath() && ! path.config->isBridgePath();
+        return path.flow > 0.0 && path.width_factor > 0.0 && path.config->getFlowRatio() > 0.0 && path.config->getLineWidth() > 0.0 && ! path.config->isTravelPath() && ! path.config->isBridgePath();
     }
 };
 
@@ -250,11 +250,11 @@ public:
 TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated)
 {
     extruder_plan.paths = GetParam();
-    std::vector<Ratio> original_flows;
+    std::vector<Ratio> original_widths;
     std::vector<Ratio> original_speeds;
     for(const GCodePath& path : extruder_plan.paths)
     {
-        original_flows.push_back(path.flow);
+        original_widths.push_back(path.width_factor);
         original_speeds.push_back(path.speed_factor);
     }
 
@@ -263,7 +263,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
     ASSERT_EQ(extruder_plan.paths.size(), original_flows.size()) << "Number of paths may not have changed.";
     for(size_t i = 0; i < extruder_plan.paths.size(); ++i)
     {
-        EXPECT_NEAR(original_flows[i], extruder_plan.paths[i].flow, error_margin) << "The flow rate did not change. Back pressure compensation doesn't adjust flow.";
+        EXPECT_NEAR(original_flows[i], extruder_plan.paths[i].width_factor, error_margin) << "The flow rate did not change. Back pressure compensation doesn't adjust flow.";
         EXPECT_NEAR(original_speeds[i], extruder_plan.paths[i].speed_factor, error_margin) << "The speed factor did not change, since the compensation factor was 0.";
     }
 }
