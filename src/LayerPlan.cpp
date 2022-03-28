@@ -83,23 +83,23 @@ double ExtruderPlan::getFanSpeed()
 void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compensation)
 {
     constexpr double epsilon_speed_factor = 0.001; // Don't put on actual 'limit double minimum', because we don't want printers to stall.
-    for (auto& path : paths)
+    for (GCodePath& path : paths)
     {
         const Ratio nominal_flow_for_path = path.config->getFlowRatio();
         const double nominal_width_for_path = static_cast<double>(path.config->getLineWidth());
-        if (path.flow <= 0.0 || nominal_flow_for_path <= 0.0 || nominal_width_for_path <= 0.0 || path.config->isTravelPath() || path.config->isBridgePath())
+        if (path.width_factor <= 0.0 || nominal_flow_for_path <= 0.0 || nominal_width_for_path <= 0.0 || path.config->isTravelPath() || path.config->isBridgePath())
         {
             continue;
         }
-        const double line_width_for_path = path.flow * nominal_flow_for_path * nominal_width_for_path;
+        const double line_width_for_path = path.width_factor * nominal_flow_for_path * nominal_width_for_path;
         path.speed_back_pressure_factor = std::max(epsilon_speed_factor, 1.0 + (nominal_width_for_path / line_width_for_path - 1.0) * back_pressure_compensation);
     }
 }
 
-GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow, bool spiralize, const Ratio speed_factor)
+GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, bool spiralize, const Ratio speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == &config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor && paths.back().mesh_id == current_mesh) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && paths.back().config == &config && !paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor && paths.back().speed_factor == speed_factor && paths.back().mesh_id == current_mesh) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
