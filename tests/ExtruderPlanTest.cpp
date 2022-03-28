@@ -86,9 +86,10 @@ public:
     {
         const std::string mesh_id = "test_mesh";
         constexpr Ratio flow_1 = 1.0_r;
+        constexpr Ratio width_1 = 1.0_r;
         constexpr bool no_spiralize = false;
         constexpr Ratio speed_1 = 1.0_r;
-        square.assign({GCodePath(extrusion_config, mesh_id, SpaceFillType::PolyLines, flow_1, no_spiralize, speed_1)});
+        square.assign({GCodePath(extrusion_config, mesh_id, SpaceFillType::PolyLines, flow_1, width_1, no_spiralize, speed_1)});
         square.back().points = {
             Point(0, 0),
             Point(1000, 0),
@@ -98,11 +99,11 @@ public:
         };
 
         lines.assign({
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1)
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_1),
+            GCodePath(travel_config   , mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_1),
+            GCodePath(travel_config   , mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_1)
         });
         lines[0].points = {Point(0, 0), Point(1000, 0)};
         lines[1].points = {Point(1000, 0), Point(1000, 400)};
@@ -114,11 +115,11 @@ public:
         constexpr Ratio flow_08 = 0.8_r;
         constexpr Ratio flow_04 = 0.4_r;
         decreasing_flow.assign({
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_12, no_spiralize, speed_1),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_08, no_spiralize, speed_1),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_04, no_spiralize, speed_1)
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_12, width_1, no_spiralize, speed_1),
+            GCodePath(travel_config   , mesh_id, SpaceFillType::Lines, flow_1 , width_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_08, width_1, no_spiralize, speed_1),
+            GCodePath(travel_config   , mesh_id, SpaceFillType::Lines, flow_1 , width_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_04, width_1, no_spiralize, speed_1)
         });
         decreasing_flow[0].points = {Point(0, 0), Point(1000, 0)};
         decreasing_flow[1].points = {Point(1000, 0), Point(1000, 400)};
@@ -130,11 +131,11 @@ public:
         constexpr Ratio speed_08 = 0.8_r;
         constexpr Ratio speed_04 = 0.4_r;
         decreasing_speed.assign({
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_12),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_08),
-            GCodePath(travel_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_04)
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_12),
+            GCodePath(travel_config   , mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_08),
+            GCodePath(travel_config   , mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_04)
         });
         decreasing_speed[0].points = {Point(0, 0), Point(1000, 0)};
         decreasing_speed[1].points = {Point(1000, 0), Point(1000, 400)};
@@ -143,12 +144,12 @@ public:
         decreasing_speed[4].points = {Point(0, 800), Point(1000, 800)};
 
         variable_width.assign({
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.8_r, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.6_r, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.4_r, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.2_r, no_spiralize, speed_1),
-            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, 0.0_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.8_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.6_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.4_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.2_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.0_r, no_spiralize, speed_1),
         });
         variable_width[0].points = {Point(0, 0), Point(1000, 0)};
         variable_width[1].points = {Point(1000, 0), Point(2000, 0)};
@@ -194,13 +195,15 @@ public:
     {}
 
     /*!
-     * Helper method to calculate the flow rate of a path in mm3 per second, ignoring any user specified speed alteration other than the back pressure compensation.
+     * Helper method to calculate the flow rate of a path in mm3 per second,
+     * minus the influence of flow rate and ignoring any user specified speed
+     * alteration other than the back pressure compensation.
      * \param path The path to calculate the flow rate of.
-     * \return The flow rate, in cubic millimeters per second (ignoring any user specified speed alteration other than back-pressure compensation).
+     * \return The flow rate, in cubic millimeters per second.
      */
-    double calculatePathFlow(const GCodePath& path)
+    double calculatePathWidth(const GCodePath& path)
     {
-        return path.getExtrusionMM3perMM() * path.config->getSpeed() * path.speed_back_pressure_factor;
+        return path.getExtrusionMM3perMM() / path.config->getFlowRatio() / path.flow * path.config->getSpeed() * path.speed_back_pressure_factor;
     }
 
     bool shouldCountPath(const GCodePath& path) const
@@ -260,10 +263,10 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
 
     extruder_plan.applyBackPressureCompensation(0.0_r);
 
-    ASSERT_EQ(extruder_plan.paths.size(), original_flows.size()) << "Number of paths may not have changed.";
+    ASSERT_EQ(extruder_plan.paths.size(), original_widths.size()) << "Number of paths may not have changed.";
     for(size_t i = 0; i < extruder_plan.paths.size(); ++i)
     {
-        EXPECT_NEAR(original_flows[i], extruder_plan.paths[i].width_factor, error_margin) << "The flow rate did not change. Back pressure compensation doesn't adjust flow.";
+        EXPECT_NEAR(original_widths[i], extruder_plan.paths[i].width_factor, error_margin) << "The width did not change. Back pressure compensation doesn't adjust line width.";
         EXPECT_NEAR(original_speeds[i], extruder_plan.paths[i].speed_factor, error_margin) << "The speed factor did not change, since the compensation factor was 0.";
     }
 }
@@ -285,7 +288,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
         return;
     }
     //All flow rates must be equal to this one.
-    const double first_flow_mm3_per_sec = calculatePathFlow(*first_extrusion);
+    const double first_flow_mm3_per_sec = calculatePathWidth(*first_extrusion);
 
     for(GCodePath& path : extruder_plan.paths)
     {
@@ -293,7 +296,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
         {
             continue; //Ignore travel moves.
         }
-        const double flow_mm3_per_sec = calculatePathFlow(path);
+        const double flow_mm3_per_sec = calculatePathWidth(path);
         EXPECT_NEAR(flow_mm3_per_sec, first_flow_mm3_per_sec, error_margin) << "Every path must have a flow rate equal to the first, since the flow changes were completely compensated for.";
     }
 }
@@ -313,7 +316,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
         {
             continue; //Ignore travel moves.
         }
-        original_flows.push_back(calculatePathFlow(path));
+        original_flows.push_back(calculatePathWidth(path));
     }
     const double original_average = std::accumulate(original_flows.begin(), original_flows.end(), 0.0) / original_flows.size();
 
@@ -328,7 +331,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
         {
             continue; //Ignore travel moves.
         }
-        new_flows.push_back(calculatePathFlow(path));
+        new_flows.push_back(calculatePathWidth(path));
     }
     const double new_average = std::accumulate(new_flows.begin(), new_flows.end(), 0.0) / new_flows.size();
     //Note that the new average doesn't necessarily need to be the same average! It is most likely a higher average in real-world scenarios.
@@ -337,7 +340,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
     ASSERT_EQ(original_flows.size(), new_flows.size()) << "We need to have the same number of extrusion moves.";
     for(size_t i = 0; i < new_flows.size(); ++i)
     {
-        EXPECT_NEAR((original_flows[i] - original_average) / 2.0, new_flows[i] - new_average, error_margin);
+        EXPECT_NEAR((original_flows[i] - original_average) / 2.0, new_flows[i] - new_average, error_margin) << "The differences in flow rate needs to be approximately halved, within margin of rounding errors.";
     }
 }
 
