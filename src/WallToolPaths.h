@@ -112,7 +112,6 @@ private:
     coord_t bead_width_x; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor this is the same as bead_width_0
     size_t inset_count; //<! The maximum number of walls to generate
     coord_t wall_0_inset; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
-    StrategyType strategy_type; //<! The wall generating strategy
     bool print_thin_walls; //<! Whether to enable the widening beading meta-strategy for thin features
     coord_t min_feature_size; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
     coord_t min_bead_width;  //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
