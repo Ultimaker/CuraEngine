@@ -88,6 +88,7 @@ public:
         settings.add("wall_line_width_x", "0.4");
         settings.add("wall_transition_angle", "10");
         settings.add("wall_transition_filter_distance", "1");
+        settings.add("wall_transition_filter_deviation", ".2");
         settings.add("wall_transition_length", "1");
         settings.add("wall_split_middle_threshold", "50");
         settings.add("wall_add_middle_threshold", "50");
