@@ -796,7 +796,7 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
                 edge.data.setTransitions(edge_transitions.back());  // initialization
                 transitions = edge.data.getTransitions();
             }
-            transitions->emplace_back(mid_pos, transition_lower_bead_count);
+            transitions->emplace_back(mid_pos, transition_lower_bead_count, mid_R);
         }
         assert((edge.from->data.bead_count == edge.to->data.bead_count) || edge.data.hasTransitions());
     }
