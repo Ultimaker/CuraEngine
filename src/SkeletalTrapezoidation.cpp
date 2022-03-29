@@ -349,10 +349,12 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
 
 SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys, const BeadingStrategy& beading_strategy,
                                                AngleRadians transitioning_angle, coord_t discretization_step_size,
-                                               coord_t transition_filter_dist, coord_t beading_propagation_transition_dist
+                                               coord_t transition_filter_dist, coord_t allowed_filter_deviation,
+                                               coord_t beading_propagation_transition_dist
     ): transitioning_angle(transitioning_angle), 
     discretization_step_size(discretization_step_size),
     transition_filter_dist(transition_filter_dist),
+    allowed_filter_deviation(allowed_filter_deviation),
     beading_propagation_transition_dist(beading_propagation_transition_dist),
     beading_strategy(beading_strategy)
 {
@@ -893,8 +895,15 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         bool is_aligned = edge->isUpward();
         edge_t* aligned_edge = is_aligned? edge : edge->twin;
         bool seen_transition_on_this_edge = false;
-        
-        if (aligned_edge->data.hasTransitions())
+
+        const coord_t origin_radius = origin_transition.feature_radius;
+        const coord_t radius_here = edge->to->data.distance_to_boundary;
+        if (std::abs(origin_radius - radius_here) > allowed_filter_deviation / 2) // divide by two because the deviation happens at both sides of the significant edge
+        {
+            should_dissolve = false;
+        }
+
+        if (should_dissolve && aligned_edge->data.hasTransitions())
         {
             auto& transitions = *aligned_edge->data.getTransitions();
             for (auto transition_it = transitions.begin(); transition_it != transitions.end(); ++ transition_it)
@@ -914,7 +923,7 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
                 }
             }
         }
-        if (!seen_transition_on_this_edge)
+        if (should_dissolve && !seen_transition_on_this_edge)
         {
             std::list<SkeletalTrapezoidation::TransitionMidRef> to_be_dissolved_here = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up);
             if (to_be_dissolved_here.empty())

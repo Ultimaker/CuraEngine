@@ -97,6 +97,7 @@ const VariableWidthPaths& WallToolPaths::generate()
             wall_distribution_count
         );
     const coord_t transition_filter_dist = settings.get<coord_t>("wall_transition_filter_distance");
+    const coord_t allowed_filter_deviation = settings.get<coord_t>("wall_transition_filter_deviation");
     SkeletalTrapezoidation wall_maker
     (
         prepared_outline,
@@ -104,6 +105,7 @@ const VariableWidthPaths& WallToolPaths::generate()
         beading_strat->getTransitioningAngle(),
         discretization_step_size,
         transition_filter_dist,
+        allowed_filter_deviation,
         wall_transition_length
     );
     wall_maker.generateToolpaths(toolpaths);
