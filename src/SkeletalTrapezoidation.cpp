@@ -897,7 +897,7 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         bool seen_transition_on_this_edge = false;
 
         const coord_t origin_radius = origin_transition.feature_radius;
-        const coord_t radius_here = edge->to->data.distance_to_boundary;
+        const coord_t radius_here = edge->from->data.distance_to_boundary;
         if (std::abs(origin_radius - radius_here) > allowed_filter_deviation / 2) // divide by two because the deviation happens at both sides of the significant edge
         {
             should_dissolve = false;
