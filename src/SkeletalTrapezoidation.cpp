@@ -898,7 +898,10 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
 
         const coord_t origin_radius = origin_transition.feature_radius;
         const coord_t radius_here = edge->from->data.distance_to_boundary;
-        if (std::abs(origin_radius - radius_here) > allowed_filter_deviation / 2) // divide by two because the deviation happens at both sides of the significant edge
+        const bool dissolve_result_is_odd = bool(origin_transition.lower_bead_count % 2) == going_up;
+        const coord_t width_deviation = std::abs(origin_radius - radius_here) * 2; // times by two because the deviation happens at both sides of the significant edge
+        const coord_t line_width_deviation = dissolve_result_is_odd? width_deviation : width_deviation / 2; // assume the deviation will be split over either 1 or 2 lines, i.e. assume wall_distribution_count = 1
+        if (line_width_deviation > allowed_filter_deviation)
         {
             should_dissolve = false;
         }
