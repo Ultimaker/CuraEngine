@@ -51,7 +51,7 @@ public:
                         const size_t wall_0_extruder_nr,
                         const size_t wall_x_extruder_nr,
                         const ZSeamConfig& z_seam_config,
-                        const VariableWidthPaths& paths,
+                        const std::vector<VariableWidthLines>& paths),
                         const bool outer_to_inner = false);
 
     /*!
@@ -105,7 +105,7 @@ private:
     const size_t wall_0_extruder_nr;
     const size_t wall_x_extruder_nr;
     const ZSeamConfig& z_seam_config;
-    const VariableWidthPaths& paths;
+    const std::vector<VariableWidthLines>& paths;
     const unsigned int layer_nr;
     const bool outer_to_inner;
     bool added_something;

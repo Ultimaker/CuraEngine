@@ -114,7 +114,7 @@ namespace cura
                 max_deviation
             );
             Settings infill_settings;
-            VariableWidthPaths result_paths;
+            std::vector<VariableWidthLines> result_paths;
             Polygons dummy_polys;
             infill_comp.generate(result_paths, dummy_polys, output, infill_settings, nullptr, nullptr);
         }

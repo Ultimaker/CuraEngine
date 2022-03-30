@@ -22,7 +22,6 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
     , bead_width_x(nominal_bead_width)
     , inset_count(inset_count)
     , wall_0_inset(wall_0_inset)
-    , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
     , min_bead_width(settings.get<coord_t>("min_bead_width"))
@@ -39,7 +38,6 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
     , bead_width_x(bead_width_x)
     , inset_count(inset_count)
     , wall_0_inset(wall_0_inset)
-    , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
     , min_bead_width(settings.get<coord_t>("min_bead_width"))
@@ -49,7 +47,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
 {
 }
 
-const VariableWidthPaths& WallToolPaths::generate()
+const std::vector<VariableWidthLines>& WallToolPaths::generate()
 {
     const coord_t smallest_segment = settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t allowed_distance = settings.get<coord_t>("meshfix_maximum_deviation");
@@ -82,7 +80,6 @@ const VariableWidthPaths& WallToolPaths::generate()
     const size_t max_bead_count = (inset_count < std::numeric_limits<coord_t>::max() / 2) ? 2 * inset_count : std::numeric_limits<coord_t>::max();
     const auto beading_strat = BeadingStrategyFactory::makeStrategy
         (
-            strategy_type,
             bead_width_0,
             bead_width_x,
             wall_transition_length,
@@ -127,7 +124,7 @@ const VariableWidthPaths& WallToolPaths::generate()
 }
 
 
-void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Settings& settings)
+void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
 {
     const coord_t stitch_distance = settings.get<coord_t>("wall_line_width_x") - 1; //In 0-width contours, junctions can cause up to 1-line-width gaps. Don't stitch more than 1 line width.
 
@@ -158,7 +155,7 @@ void WallToolPaths::stitchToolPaths(VariableWidthPaths& toolpaths, const Setting
     }
 }
 
-void WallToolPaths::removeSmallLines(VariableWidthPaths& toolpaths)
+void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines>& toolpaths)
 {
     for (VariableWidthLines& inset : toolpaths)
     {
@@ -180,7 +177,7 @@ void WallToolPaths::removeSmallLines(VariableWidthPaths& toolpaths)
     }
 }
 
-void WallToolPaths::simplifyToolPaths(VariableWidthPaths& toolpaths, const Settings& settings)
+void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
 {
     for (size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
     {
@@ -194,7 +191,7 @@ void WallToolPaths::simplifyToolPaths(VariableWidthPaths& toolpaths, const Setti
     }
 }
 
-const VariableWidthPaths& WallToolPaths::getToolPaths()
+const std::vector<VariableWidthLines>& WallToolPaths::getToolPaths()
 {
     if (!toolpaths_generated)
     {
@@ -203,7 +200,7 @@ const VariableWidthPaths& WallToolPaths::getToolPaths()
     return toolpaths;
 }
 
-void WallToolPaths::pushToolPaths(VariableWidthPaths& paths)
+void WallToolPaths::pushToolPaths(std::vector<VariableWidthLines>& paths)
 {
     if (! toolpaths_generated)
     {
@@ -215,9 +212,9 @@ void WallToolPaths::pushToolPaths(VariableWidthPaths& paths)
 void WallToolPaths::separateOutInnerContour()
 {
     //We'll remove all 0-width paths from the original toolpaths and store them separately as polygons.
-    VariableWidthPaths actual_toolpaths;
+    std::vector<VariableWidthLines> actual_toolpaths;
     actual_toolpaths.reserve(toolpaths.size()); //A bit too much, but the correct order of magnitude.
-    VariableWidthPaths contour_paths;
+    std::vector<VariableWidthLines> contour_paths;
     contour_paths.reserve(toolpaths.size() / inset_count);
     inner_contour.clear();
     for (const VariableWidthLines& inset : toolpaths)
@@ -302,7 +299,7 @@ const Polygons& WallToolPaths::getInnerContour()
     return inner_contour;
 }
 
-bool WallToolPaths::removeEmptyToolPaths(VariableWidthPaths& toolpaths)
+bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines>& toolpaths)
 {
     toolpaths.erase(std::remove_if(toolpaths.begin(), toolpaths.end(), [](const VariableWidthLines& lines)
                                    {

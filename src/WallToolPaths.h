@@ -39,21 +39,21 @@ public:
 
     /*!
      * Generates the Toolpaths
-     * \return A reference to the newly create  ToolPaths
+     * \return A reference to the newly created ToolPaths. Binned by inset_idx.
      */
-    const VariableWidthPaths& generate();
+    const std::vector<VariableWidthLines>& generate();
 
     /*!
      * Gets the toolpaths, if this called before \p generate() it will first generate the Toolpaths
-     * \return a reference to the toolpaths
+     * \return a reference to the toolpaths. Binned by inset_idx.
      */
-    const VariableWidthPaths& getToolPaths();
+    const std::vector<VariableWidthLines>& getToolPaths();
 
     /*!
      * Alternate 'get', for when the vector that'll be inserted in already exists.
-     * \param The already existing (or empty) paths these new toolpaths are pushed into.
+     * \param paths The already existing (or empty) paths these new toolpaths are pushed into. Binned by inset_idx.
      */
-    void pushToolPaths(VariableWidthPaths& paths);
+    void pushToolPaths(std::vector<VariableWidthLines>& paths);
 
     /*!
      * Compute the inner contour of the walls. This contour indicates where the walled area ends and its infill begins.
@@ -78,10 +78,10 @@ public:
 
     /*!
      * Removes empty paths from the toolpaths
-     * \param toolpaths the VariableWidthPaths generated with \p generate()
+     * \param toolpaths the toolpaths binned by inset_idx generated with \p generate()
      * \return true if there are still paths left. If all toolpaths were removed it returns false
      */
-    static bool removeEmptyToolPaths(VariableWidthPaths& toolpaths);
+    static bool removeEmptyToolPaths(std::vector<VariableWidthLines>& toolpaths);
 
 protected:
     /*!
@@ -91,20 +91,19 @@ protected:
      * 
      * \param settings The settings as provided by the user
      */
-    static void stitchToolPaths(VariableWidthPaths& toolpaths, const Settings& settings);
+    static void stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
     /*!
      * Remove polylines shorter than half the smallest line width along that polyline.
      */
-    static void removeSmallLines(VariableWidthPaths& toolpaths);
+    static void removeSmallLines(std::vector<VariableWidthLines>& toolpaths);
 
     /*!
      * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
      * settings.
      * \param settings The settings as provided by the user
-     * \return
      */
-    static void simplifyToolPaths(VariableWidthPaths& toolpaths, const Settings& settings);
+    static void simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area
@@ -112,14 +111,13 @@ private:
     coord_t bead_width_x; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor this is the same as bead_width_0
     size_t inset_count; //<! The maximum number of walls to generate
     coord_t wall_0_inset; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
-    StrategyType strategy_type; //<! The wall generating strategy
     bool print_thin_walls; //<! Whether to enable the widening beading meta-strategy for thin features
     coord_t min_feature_size; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
     coord_t min_bead_width;  //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
     double small_area_length; //<! The length of the small features which are to be filtered out, this is squared into a surface
     coord_t transition_length; //<! The transitioning length when the amount of extrusion lines changes
     bool toolpaths_generated; //<! Are the toolpaths generated
-    VariableWidthPaths toolpaths; //<! The generated toolpaths
+    std::vector<VariableWidthLines> toolpaths; //<! The generated toolpaths binned by inset_idx.
     Polygons inner_contour;  //<! The inner contour of the generated toolpaths
     const Settings& settings;
 };
