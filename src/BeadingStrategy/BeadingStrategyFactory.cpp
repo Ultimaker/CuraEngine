@@ -4,7 +4,6 @@
 #include "BeadingStrategyFactory.h"
 
 #include "LimitedBeadingStrategy.h"
-#include "CenterDeviationBeadingStrategy.h"
 #include "WideningBeadingStrategy.h"
 #include "DistributedBeadingStrategy.h"
 #include "RedistributeBeadingStrategy.h"
@@ -17,7 +16,6 @@ namespace cura
 
 BeadingStrategyPtr BeadingStrategyFactory::makeStrategy
 (
-    const StrategyType type,
     const coord_t preferred_bead_width_outer,
     const coord_t preferred_bead_width_inner,
     const coord_t preferred_transition_length,
@@ -35,22 +33,7 @@ BeadingStrategyPtr BeadingStrategyFactory::makeStrategy
 {
     using std::make_unique;
     using std::move;
-    BeadingStrategyPtr ret;
-    switch (type)
-    {
-        case StrategyType::Center:
-            ret = make_unique<CenterDeviationBeadingStrategy>(preferred_bead_width_inner, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold);
-            break;
-        case StrategyType::Distributed:
-            ret = make_unique<DistributedBeadingStrategy>(preferred_bead_width_inner, preferred_transition_length, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold, std::numeric_limits<int>::max());
-            break;
-        case StrategyType::InwardDistributed:
-            ret = make_unique<DistributedBeadingStrategy>(preferred_bead_width_inner, preferred_transition_length, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold, inward_distributed_center_wall_count);
-            break;
-        default:
-            logError("Cannot make strategy!\n");
-            return nullptr;
-    }
+    BeadingStrategyPtr ret = make_unique<DistributedBeadingStrategy>(preferred_bead_width_inner, preferred_transition_length, transitioning_angle, wall_split_middle_threshold, wall_add_middle_threshold, inward_distributed_center_wall_count);
     logDebug("Applying the Redistribute meta-strategy with outer-wall width = %d, inner-wall width = %d\n", preferred_bead_width_outer, preferred_bead_width_inner);
     ret = make_unique<RedistributeBeadingStrategy>(preferred_bead_width_outer, minimum_variable_line_ratio, move(ret));
 

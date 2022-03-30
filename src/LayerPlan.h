@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef LAYER_PLAN_H
@@ -283,7 +283,7 @@ private:
      * \param speed_factor (optional) a factor which the speed will be multiplied by.
      * \return A path with the given config which is now the last path in LayerPlan::paths
      */
-    GCodePath* getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow = 1.0_r, bool spiralize = false, const Ratio speed_factor = 1.0_r);
+    GCodePath* getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow = 1.0_r, const Ratio width_factor = 1.0_r, bool spiralize = false, const Ratio speed_factor = 1.0_r);
 
 public:
     /*!
@@ -456,13 +456,20 @@ public:
      * 
      * \param p The point to extrude to
      * \param config The config with which to extrude
-     * \param space_fill_type Of what space filling type this extrusion move is a part
-     * \param flow A modifier of the extrusion width which would follow from the \p config
-     * \param speed_factor (optional) A factor the travel speed will be multipled by.
-     * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
-     * \param fan_speed fan speed override for this path
+     * \param space_fill_type Of what space filling type this extrusion move is
+     * a part.
+     * \param flow A modifier of the flow rate which would follow from the
+     * \p config.
+     * \param width_factor A modifier of the line width which would follow from
+     * the \p config.
+     * \param speed_factor (optional) A factor the travel speed will be
+     * multiplied by.
+     * \param spiralize Whether to gradually increase the z while printing.
+     * (Note that this path may be part of a sequence of spiralized paths,
+     * forming one polygon.)
+     * \param fan_speed Fan speed override for this path.
      */
-    void addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio& flow = 1.0_r, bool spiralize = false, Ratio speed_factor = 1.0_r, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+    void addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio& flow = 1.0_r, const Ratio width_factor = 1.0_r, bool spiralize = false, Ratio speed_factor = 1.0_r, double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -509,18 +516,25 @@ public:
 
     /*!
      * Add a single line that is part of a wall to the gcode.
-     * \param p0 The start vertex of the line
-     * \param p1 The end vertex of the line
-     * \param settings The settings which should apply to this line added to the layer plan.
-     * \param non_bridge_config The config with which to print the wall lines that are not spanning a bridge
-     * \param bridge_config The config with which to print the wall lines that are spanning a bridge
-     * \param flow The ratio with which to multiply the extrusion amount
-     * \param non_bridge_line_volume A pseudo-volume that is derived from the print speed and flow of the non-bridge lines that have preceeded this line
-     * \param speed_factor This modifies the print speed when accelerating after a bridge line
-     * \param distance_to_bridge_start The distance along the wall from p0 to the first bridge segment
+     * \param p0 The start vertex of the line.
+     * \param p1 The end vertex of the line.
+     * \param settings The settings which should apply to this line added to the
+     * layer plan.
+     * \param non_bridge_config The config with which to print the wall lines
+     * that are not spanning a bridge.
+     * \param bridge_config The config with which to print the wall lines that
+     * are spanning a bridge.
+     * \param flow The ratio with which to multiply the extrusion amount.
+     * \param width_ratio The ratio with which to multiply the line width.
+     * \param non_bridge_line_volume A pseudo-volume that is derived from the
+     * print speed and flow of the non-bridge lines that have preceded this
+     * line.
+     * \param speed_factor This modifies the print speed when accelerating after
+     * a bridge line.
+     * \param distance_to_bridge_start The distance along the wall from p0 to
+     * the first bridge segment.
      */
-
-    void addWallLine(const Point& p0, const Point& p1, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start);
+    void addWallLine(const Point& p0, const Point& p1, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, const Ratio width_factor, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start);
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx
@@ -758,12 +772,17 @@ public:
     void processFanSpeedAndMinimalLayerTime(Point starting_position);
     
     /*!
-     * Add a travel move to the layer plan to move inside the current layer part by a given distance away from the outline.
-     * This is supposed to be called when the nozzle is around the boundary of a layer part, not when the nozzle is in the middle of support, or in the middle of the air.
-     * 
-     * \param distance The distance to the comb boundary after we moved inside it.
+     * Add a travel move to the layer plan to move inside the current layer part
+     * by a given distance away from the outline.
+     *
+     * This is supposed to be called when the nozzle is around the boundary of a
+     * layer part, not when the nozzle is in the middle of support, or in the
+     * middle of the air.
+     * \param distance The distance to the comb boundary after we moved inside
+     * it.
+     * \param part If given, stay within the boundary of this part.
      */
-    void moveInsideCombBoundary(const coord_t distance);
+    void moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part = std::nullopt);
 
     /*!
      * Apply back-pressure compensation to this layer-plan.

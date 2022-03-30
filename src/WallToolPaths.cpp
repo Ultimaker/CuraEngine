@@ -22,7 +22,6 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
     , bead_width_x(nominal_bead_width)
     , inset_count(inset_count)
     , wall_0_inset(wall_0_inset)
-    , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
     , min_bead_width(settings.get<coord_t>("min_bead_width"))
@@ -39,7 +38,6 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
     , bead_width_x(bead_width_x)
     , inset_count(inset_count)
     , wall_0_inset(wall_0_inset)
-    , strategy_type(settings.get<StrategyType>("beading_strategy_type"))
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
     , min_bead_width(settings.get<coord_t>("min_bead_width"))
@@ -82,7 +80,6 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     const size_t max_bead_count = (inset_count < std::numeric_limits<coord_t>::max() / 2) ? 2 * inset_count : std::numeric_limits<coord_t>::max();
     const auto beading_strat = BeadingStrategyFactory::makeStrategy
         (
-            strategy_type,
             bead_width_0,
             bead_width_x,
             wall_transition_length,

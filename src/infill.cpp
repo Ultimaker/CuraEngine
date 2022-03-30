@@ -79,7 +79,6 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths, Polygons& resu
     //The lines along the edge must lie next to the border, not on it.
     //This makes those algorithms a lot simpler.
     if (pattern == EFillMethod::ZIG_ZAG //Zig-zag prints the zags along the walls.
-        || pattern == EFillMethod::CONCENTRIC //Concentric at high densities needs to print alongside the walls, not overlapping them.
         || (zig_zaggify && (pattern == EFillMethod::LINES //Zig-zaggified infill patterns print their zags along the walls.
             || pattern == EFillMethod::TRIANGLES
             || pattern == EFillMethod::GRID
@@ -351,29 +350,28 @@ void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& resu
 
 void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
 {
-    constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-    const bool iterative = line_distance > infill_line_width; // Do it all at once if there is not need for a gap, otherwise, iterate.
     const coord_t min_area = infill_line_width * infill_line_width;
-    Polygons current_inset = inner_contour.offset(infill_line_width / 2);
-    do
+
+    Polygons current_inset = inner_contour;
+    while(true)
     {
-        if (iterative)
-        {
-            current_inset = current_inset.offset(-infill_line_width * 2).offset(infill_line_width * 2);
-        }
-        current_inset.simplify();
-        if (current_inset.area() <= min_area)
+        //If line_distance is 0, start from the same contour as the previous line, except where the previous line closed up the shape.
+        //So we add the whole nominal line width first (to allow lines to be closer together than 1 line width if the line distance is smaller) and then subtract line_distance.
+        current_inset = current_inset.offset(infill_line_width - line_distance);
+        current_inset.simplify(); //Many insets lead to increasingly detailed shapes. Simplify to speed up processing.
+        if(current_inset.area() < min_area) //So small that it's inconsequential. Stop here.
         {
             break;
         }
 
-        const coord_t inset_wall_count = iterative ? 1 : std::numeric_limits<coord_t>::max();
+        constexpr size_t inset_wall_count = 1; //1 wall at a time.
+        constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
         WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings);
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
-
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
-        current_inset = wall_toolpaths.getInnerContour().offset((infill_line_width / 2) - line_distance);
-    } while (iterative);
+
+        current_inset = wall_toolpaths.getInnerContour();
+    }
 }
 
 void Infill::generateGridInfill(Polygons& result)

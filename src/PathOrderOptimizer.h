@@ -208,7 +208,7 @@ public:
             assert(before_it != path_to_index.end());
             is_blocking[before_it->second].emplace_back(after_it->second);
         }
-        
+
 
         std::vector<bool> picked(paths.size(), false); //Fixed size boolean flag for whether each path is already in the optimized vector.
         Point current_position = start_point;
@@ -414,7 +414,7 @@ protected:
             return vert;
         }
 
-        // Don't know the path-type here, or wether it has a simplify. Also, simplification occurs in-place, which is not wanted here: Copy the polygon.
+        // Don't know the path-type here, or whether it has a simplify. Also, simplification occurs in-place, which is not wanted here: Copy the polygon.
         // A course simplification is needed, since Arachne has a tendency to 'smear' corners out over multiple line segments.
         // Which in itself is a good thing, but will mess up the detection of sharp corners and such.
         Polygon simple_poly(*path.converted);
@@ -501,7 +501,22 @@ protected:
                     score += 1000; //1 meter penalty.
                 }
             }
-            if(score < best_score)
+
+            constexpr float EPSILON = 25.0;
+            if (fabs(best_score - score) <= EPSILON)
+            {
+                // add breaker for two candidate starting location with similar score
+                // if we don't do this then we (can) get an un-even seam
+                // ties are broken by favouring points with lower x-coord
+                // if x-coord for both points are equal then break ties by
+                // favouring points with lower y-coord
+                if (here.X != best_point.X ? here.X < best_point.X : here.Y < best_point.Y)
+                {
+                    best_point = here;
+                }
+                best_score = std::min(best_score, score);
+            }
+            else if(score < best_score)
             {
                 best_point = here;
                 best_score = score;
