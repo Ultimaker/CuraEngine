@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cctype>
@@ -345,27 +345,6 @@ template<> EFillMethod Settings::get<EFillMethod>(const std::string& key) const
     else //Default.
     {
         return EFillMethod::NONE;
-    }
-}
-
-template<>  StrategyType Settings::get<StrategyType>(const std::string& key) const
-{
-    const std::string& value = get<std::string>(key);
-    if (value == "center_deviation")
-    {
-        return StrategyType::Center;
-    }
-    else if (value == "distributed")
-    {
-        return StrategyType::Distributed;
-    }
-    else if (value == "inward_distributed")
-    {
-        return StrategyType::InwardDistributed;
-    }
-    else //Default.
-    {
-        return StrategyType::None;
     }
 }
 
