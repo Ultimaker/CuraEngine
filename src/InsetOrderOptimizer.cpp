@@ -26,8 +26,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
                                          const size_t wall_0_extruder_nr,
                                          const size_t wall_x_extruder_nr,
                                          const ZSeamConfig& z_seam_config,
-                                         const std::vector<VariableWidthLines>& paths),
-                                         const bool outer_to_inner:
+                                         const std::vector<VariableWidthLines>& paths,
+                                         const bool outer_to_inner):
     gcode_writer(gcode_writer),
     storage(storage),
     gcode_layer(gcode_layer),
@@ -66,7 +66,7 @@ bool InsetOrderOptimizer::addToLayer()
     {
         //If printing the outer inset first, start with the lowest inset.
         //Otherwise start with the highest inset and iterate backwards.
-        if(inset_direction == outer_to_inner)
+        if(outer_to_inner)
         {
             start_inset = 0;
             end_inset = paths.size();
