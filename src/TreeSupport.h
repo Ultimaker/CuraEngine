@@ -34,7 +34,7 @@ class ModelVolumes
     void precalculate(coord_t max_layer);
 
     /*!
-     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
+     * \brief Provides the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
      *
      * The result is a 2D area that would cause nodes of radius \p radius to
      * collide with the model.
@@ -44,12 +44,25 @@ class ModelVolumes
      * \param min_xy_dist Is the minimum xy distance used.
      * \return Polygons object
      */
+
     const Polygons& getCollision(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
+
+    /*!
+     * \brief Provides the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer. Holes are removed.
+     *
+     * The result is a 2D area that would cause nodes of given radius to
+     * collide with the model or be inside a hole.
+     * A Hole is defined as an area, in which a branch with increase_until_radius radius would collide with the wall.
+     * \param radius The radius of the node of interest
+     * \param layer_idx The layer of interest
+     * \param min_xy_dist Is the minimum xy distance used.
+     * \return Polygons object
+     */
     const Polygons& getCollisionHolefree(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
 
 
     /*!
-     * \brief Creates the areas that have to be avoided by the tree's branches
+     * \brief Provides the areas that have to be avoided by the tree's branches
      * in order to reach the build plate.
      *
      * The result is a 2D area that would cause nodes of radius \p radius to
@@ -67,15 +80,14 @@ class ModelVolumes
      */
     const Polygons& getAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model = false, bool min_xy_dist = false);
     /*!
-     * \brief The area represents all areas on the model where the branch does completely fit on the given layer.
+     * \brief Provides the area represents all areas on the model where the branch does completely fit on the given layer.
      * \param radius The radius of the node of interest
      * \param layer_idx The layer of interest
      * \return Polygons object
      */
     const Polygons& getPlaceableAreas(coord_t radius, LayerIndex layer_idx);
-
     /*!
-     * \brief The area represents the walls, as in the printed area, of the model. This is an abstract representation not equal with the outline. See calculateWallRestictions for better description.
+     * \brief Provides the area that represents the walls, as in the printed area, of the model. This is an abstract representation not equal with the outline. See calculateWallRestictions for better description.
      * \param radius The radius of the node of interest.
      * \param layer_idx The layer of interest.
      * \param min_xy_dist is the minimum xy distance used.
@@ -92,10 +104,8 @@ class ModelVolumes
      * \return The rounded radius
      */
     coord_t ceilRadius(coord_t radius, bool min_xy_dist) const;
-
     /*!
      * \brief Round \p radius upwards to the maximum that would still round up to the same value as the provided one.
-     *
      *
      * \param radius The radius of the node of interest
      * \param min_xy_dist is the minimum xy distance used.
@@ -396,6 +406,14 @@ class TreeSupport
 {
   public:
     using AvoidanceType = ModelVolumes::AvoidanceType;
+    enum class InterfacePreferrance
+    {
+        INTERFACE_AREA_OVERWRITES_SUPPORT,
+        SUPPORT_AREA_OVERWRITES_INTERFACE,
+        INTERFACE_LINES_OVERWRITE_SUPPORT,
+        SUPPORT_LINES_OVERWRITE_INTERFACE,
+        NOTHING
+    };
 
     /*!
      * \brief Creates an instance of the tree support generator.
@@ -445,7 +463,7 @@ class TreeSupport
 
     struct SupportElement
     {
-        SupportElement(coord_t distance_to_top, size_t target_height, Point target_position, bool to_buildplate, bool to_model_gracious, bool use_min_xy_dist, size_t dont_move_until, bool supports_roof, bool can_use_safe_radius)
+        SupportElement(coord_t distance_to_top, size_t target_height, Point target_position, bool to_buildplate, bool to_model_gracious, bool use_min_xy_dist, size_t dont_move_until, bool supports_roof, bool can_use_safe_radius, bool force_tips_to_roof)
             : // SupportElement(target_height,target_position,target_height,target_position,distance_to_top,distance_to_top,to_buildplate)
               target_height(target_height),
               target_position(target_position),
@@ -463,7 +481,8 @@ class TreeSupport
               supports_roof(supports_roof),
               dont_move_until(dont_move_until),
               can_use_safe_radius(can_use_safe_radius),
-              last_area_increase(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false))
+              last_area_increase(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false)),
+              missing_roof_layers(force_tips_to_roof ? dont_move_until : 0)
         {
         }
 
@@ -486,7 +505,8 @@ class TreeSupport
               supports_roof(elem.supports_roof),
               dont_move_until(elem.dont_move_until),
               can_use_safe_radius(elem.can_use_safe_radius),
-              last_area_increase(elem.last_area_increase)
+              last_area_increase(elem.last_area_increase),
+              missing_roof_layers(elem.missing_roof_layers)
 
         {
             parents.insert(parents.begin(), elem.parents.begin(), elem.parents.end());
@@ -513,13 +533,14 @@ class TreeSupport
               supports_roof(element_above->supports_roof),
               dont_move_until(element_above->dont_move_until),
               can_use_safe_radius(element_above->can_use_safe_radius),
-              last_area_increase(element_above->last_area_increase)
+              last_area_increase(element_above->last_area_increase),
+              missing_roof_layers(element_above->missing_roof_layers)
         {
             parents = { element_above };
         }
 
         // ONLY to be called in merge as it assumes a few assurances made by it.
-        SupportElement(const SupportElement& first, const SupportElement& second, size_t next_height, Point next_position, coord_t increased_to_model_radius, TreeSupportSettings config) : next_position(next_position), next_height(next_height), area(nullptr), increased_to_model_radius(increased_to_model_radius), use_min_xy_dist(first.use_min_xy_dist || second.use_min_xy_dist), supports_roof(first.supports_roof || second.supports_roof), dont_move_until(std::max(first.dont_move_until, second.dont_move_until)), can_use_safe_radius(first.can_use_safe_radius || second.can_use_safe_radius)
+        SupportElement(const SupportElement& first, const SupportElement& second, size_t next_height, Point next_position, coord_t increased_to_model_radius, TreeSupportSettings config) : next_position(next_position), next_height(next_height), area(nullptr), increased_to_model_radius(increased_to_model_radius), use_min_xy_dist(first.use_min_xy_dist || second.use_min_xy_dist), supports_roof(first.supports_roof || second.supports_roof), dont_move_until(std::max(first.dont_move_until, second.dont_move_until)), can_use_safe_radius(first.can_use_safe_radius || second.can_use_safe_radius), missing_roof_layers(std::min(first.missing_roof_layers, second.missing_roof_layers))
 
         {
             if (first.target_height > second.target_height)
@@ -646,6 +667,11 @@ class TreeSupport
          */
         AreaIncreaseSettings last_area_increase;
 
+        /*
+         * \brief Amount of roof layers that were not yet added, because the branch needed to move.
+         */
+        size_t missing_roof_layers;
+
         bool operator==(const SupportElement& other) const
         {
             return target_position == other.target_position && target_height == other.target_height;
@@ -690,7 +716,7 @@ class TreeSupport
               support_line_width(mesh_group_settings.get<coord_t>("support_line_width")),
               layer_height(mesh_group_settings.get<coord_t>("layer_height")),
               branch_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
-              min_radius(1.25 * support_line_width / 2), // The actual radius is 50 microns larger as the resulting branches will be increased by 50 microns to avoid rounding errors effectively increasing the xydistance
+              min_radius(mesh_group_settings.get<coord_t>("support_tree_tip_diameter") / 2), // The actual radius is 50 microns larger as the resulting branches will be increased by 50 microns to avoid rounding errors effectively increasing the xydistance
               maximum_move_distance((angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max()),
               maximum_move_distance_slow((angle_slow < TAU / 4) ? (coord_t)(tan(angle_slow) * layer_height) : std::numeric_limits<coord_t>::max()),
               support_bottom_layers(mesh_group_settings.get<bool>("support_bottom_enable") ? round_divide(mesh_group_settings.get<coord_t>("support_bottom_height"), layer_height) : 0),
@@ -717,8 +743,15 @@ class TreeSupport
               support_line_distance(mesh_group_settings.get<coord_t>("support_line_distance")),
               support_bottom_offset(mesh_group_settings.get<coord_t>("support_bottom_offset")),
               support_wall_count(mesh_group_settings.get<size_t>("support_wall_count")),
+              zig_zaggify_support(mesh_group_settings.get<bool>("zig_zaggify_support")),
               maximum_deviation(mesh_group_settings.get<coord_t>("meshfix_maximum_deviation")),
-              maximum_resolution(mesh_group_settings.get<coord_t>("meshfix_maximum_resolution"))
+              maximum_resolution(mesh_group_settings.get<coord_t>("meshfix_maximum_resolution")),
+              support_roof_line_distance(mesh_group_settings.get<coord_t>("support_roof_line_distance")), // in the end the actual infill has to be calculated to subtract interface from support areas according to interface_preferrance.
+              skip_some_zags(mesh_group_settings.get<bool>("support_skip_some_zags")),
+              zag_skip_count(mesh_group_settings.get<size_t>("support_zag_skip_count")),
+              connect_zigzags(mesh_group_settings.get<bool>("support_connect_zigzags"))
+
+
         {
             layer_start_bp_radius = (bp_radius - branch_radius) / (branch_radius * diameter_scale_bp_radius);
             // safeOffsetInc can only work in steps of the size xy_min_distance (in the worst case) => xy_min_distance has be larger than 0 and should be large enough for performance to not suffer extremely
@@ -765,11 +798,14 @@ class TreeSupport
 
             getInterfaceAngles(support_infill_angles, support_pattern);
             getInterfaceAngles(support_roof_angles, roof_pattern);
+            const std::unordered_map<std::string, InterfacePreferrance> interface_map = { { "support_area_overwrite_interface_area", InterfacePreferrance::SUPPORT_AREA_OVERWRITES_INTERFACE }, { "interface_area_overwrite_support_area", InterfacePreferrance::INTERFACE_AREA_OVERWRITES_SUPPORT }, { "support_lines_overwrite_interface_area", InterfacePreferrance::SUPPORT_LINES_OVERWRITE_INTERFACE }, { "interface_lines_overwrite_support_area", InterfacePreferrance::INTERFACE_LINES_OVERWRITE_SUPPORT }, { "nothing", InterfacePreferrance::NOTHING } };
+            interface_preferrance = interface_map.at(mesh_group_settings.get<std::string>("support_interface_priority"));
         }
 
       private:
         double angle;
         double angle_slow;
+        std::vector<coord_t> known_z;
 
       public:
         static bool some_model_contains_thick_roof; // static variable, because TreeSupportConfig which needs this, will be used in ModelVolumes as this reduces redundancy.
@@ -899,13 +935,37 @@ class TreeSupport
          */
         size_t support_wall_count;
         /*
-         * \brief maximum allowed deviation when simplifying.
+         * \brief Whether support infill lines will be connected. Only required to calculate infill patterns.
+         */
+        bool zig_zaggify_support;
+        /*
+         * \brief Maximum allowed deviation when simplifying.
          */
         coord_t maximum_deviation;
         /*
-         * \brief maximum allowed resolution (length of a line segment) when simplifying. The resolution is higher when this variable is smaller => Minimum size a line segment may have.
+         * \brief Maximum allowed resolution (length of a line segment) when simplifying. The resolution is higher when this variable is smaller => Minimum size a line segment may have.
          */
         coord_t maximum_resolution;
+        /*
+         * \brief Distance between the lines of the roof.
+         */
+        coord_t support_roof_line_distance;
+        /*
+         * \brief Only relevant for zigzag pattern. Only required to calculate infill patterns.
+         */
+        bool skip_some_zags;
+        /*
+         * \brief Only relevant for zigzag pattern. Only required to calculate infill patterns.
+         */
+        size_t zag_skip_count;
+        /*
+         * \brief Only relevant for zigzag pattern. Only required to calculate infill patterns.
+         */
+        bool connect_zigzags;
+        /*
+         * \brief How overlaps of an interface area with a support area should be handled.
+         */
+        InterfacePreferrance interface_preferrance;
 
       public:
         bool operator==(const TreeSupportSettings& other) const
@@ -916,7 +976,7 @@ class TreeSupport
                    support_line_distance == other.support_line_distance && support_roof_line_width == other.support_roof_line_width && // can not be set on a per mesh basis currently, so code to enable processing different roof line width in the same iteration seems useless.
                    support_bottom_offset == other.support_bottom_offset && support_wall_count == other.support_wall_count && support_pattern == other.support_pattern && roof_pattern == other.roof_pattern && // can not be set on a per mesh basis currently, so code to enable processing different roof patterns in the same iteration seems useless.
                    support_roof_angles == other.support_roof_angles && support_infill_angles == other.support_infill_angles && increase_radius_until_radius == other.increase_radius_until_radius && support_bottom_layers == other.support_bottom_layers && layer_height == other.layer_height && z_distance_top_layers == other.z_distance_top_layers && maximum_deviation == other.maximum_deviation && // Infill generation depends on deviation and resolution.
-                   maximum_resolution == other.maximum_resolution; // So they should be identical to ensure the tree will correctly support the roof.
+                   maximum_resolution == other.maximum_resolution && support_roof_line_distance == other.support_roof_line_distance && skip_some_zags == other.skip_some_zags && zag_skip_count == other.zag_skip_count && connect_zigzags == other.connect_zigzags && interface_preferrance == other.interface_preferrance; // So they should be identical to ensure the tree will correctly support the roof.
         }
 
 
@@ -974,6 +1034,26 @@ class TreeSupport
         {
             double scale = (layer_start_bp_radius - layer_idx) * diameter_scale_bp_radius;
             return scale > 0 ? branch_radius + branch_radius * scale : 0;
+        }
+
+        /*!
+         * \brief Return on which z in microns the layer will be printed. Used only for support infill line generation.
+         * \param layer_idx[in] The layer.
+         * \return The radius every element should aim to achieve.
+         */
+        inline coord_t getActualZ(LayerIndex layer_idx)
+        {
+            return layer_idx < coord_t(known_z.size()) ? known_z[layer_idx] : (layer_idx - known_z.size()) * layer_height + known_z.size() ? known_z.back() : 0;
+        }
+
+        /*!
+         * \brief Set the z every Layer is printed at. Required for getActualZ to work
+         * \param z[in] The z every LayerIndex is printed. Vector is used as a map<LayerIndex,coord_t> with the index of each element being the corresponding LayerIndex
+         * \return The radius every element should aim to achieve.
+         */
+        void setActualZ(std::vector<coord_t> z)
+        {
+            known_z = z;
         }
     };
 
@@ -1050,15 +1130,15 @@ class TreeSupport
      *
      * \return A Polygons object that represents the resulting infill lines.
      */
-    Polygons generateSupportInfillLines(const Polygons& area, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider = nullptr);
+    Polygons generateSupportInfillLines(const Polygons& area, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider = nullptr, bool include_walls = false);
 
     /*!
-      * \brief Unions two Polygons. Ensures that if the input is non empty that the output also will be non empty.
-      * \param first[in] The first Polygon.
-      * \param second[in] The second Polygon.
-      * \return The union of both Polygons
-      */
-    Polygons safeUnion(const Polygons first, const Polygons second=Polygons()) const;
+     * \brief Unions two Polygons. Ensures that if the input is non empty that the output also will be non empty.
+     * \param first[in] The first Polygon.
+     * \param second[in] The second Polygon.
+     * \return The union of both Polygons
+     */
+    Polygons safeUnion(const Polygons first, const Polygons second = Polygons()) const;
 
     /*!
      * \brief Creates a valid CrossInfillProvider
@@ -1230,9 +1310,10 @@ class TreeSupport
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage
      *
      * \param support_layer_storage[in] Areas where support should be generated.
+     * \param support_roof_storage[in] Areas where support was replaced with roof.
      * \param storage[in,out] The storage where the support should be stored.
      */
-    void finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage, SliceDataStorage& storage);
+    void finalizeInterfaceAndSupportAreas(std::vector<Polygons>& support_layer_storage, std::vector<Polygons>& support_roof_storage, SliceDataStorage& storage);
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.
@@ -1242,12 +1323,18 @@ class TreeSupport
      */
     void drawAreas(std::vector<std::set<SupportElement*>>& move_bounds, SliceDataStorage& storage);
 
-    std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
     /*!
-     * \brief Generator for model collision, avoidance and internal guide volumes
+     * \brief Settings with the indexes of meshes that use these settings.
+     *
+     */
+    std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> grouped_meshes;
+
+    /*!
+     * \brief Generator for model collision, avoidance and internal guide volumes.
      *
      */
     ModelVolumes volumes_;
+
     /*!
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
      */
@@ -1258,6 +1345,7 @@ class TreeSupport
      * Required for the progress bar the behave as expected when areas have to be calculated multiple times
      */
     double progress_multiplier = 1;
+
     /*!
      * \brief The progress offset added to all values communitcated to the progress bar.
      * Required for the progress bar the behave as expected when areas have to be calculated multiple times

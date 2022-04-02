@@ -166,10 +166,10 @@ void SVG::writeAreas(ConstPolygonRef polygon, ColorObject color, ColorObject out
     fprintf(out,"\" />\n"); //The end of the polygon tag.
 }
 
-void SVG::writePoint(const Point& p, bool write_coords, int size, ColorObject color)
+void SVG::writePoint(const Point& p, bool write_coords, float size, ColorObject color)
 {
     FPoint3 pf = transformF(p);
-    fprintf(out, "<circle cx=\"%f\" cy=\"%f\" r=\"%d\" stroke=\"%s\" stroke-width=\"1\" fill=\"%s\" />\n",pf.x, pf.y, size, toString(color).c_str(), toString(color).c_str());
+    fprintf(out, "<circle cx=\"%f\" cy=\"%f\" r=\"%f\" fill=\"%s\" />\n", pf.x, pf.y, size, toString(color).c_str());
     
     if (write_coords)
     {
@@ -177,7 +177,7 @@ void SVG::writePoint(const Point& p, bool write_coords, int size, ColorObject co
     }
 }
 
-void SVG::writePoints(ConstPolygonRef poly, bool write_coords, int size, ColorObject color)
+void SVG::writePoints(ConstPolygonRef poly, bool write_coords, float size, ColorObject color)
 {
     for (const Point& p : poly)
     {
@@ -185,7 +185,7 @@ void SVG::writePoints(ConstPolygonRef poly, bool write_coords, int size, ColorOb
     }
 }
 
-void SVG::writePoints(Polygons& polygons, bool write_coords, int size, ColorObject color)
+void SVG::writePoints(Polygons& polygons, bool write_coords, float size, ColorObject color)
 {
     for (PolygonRef poly : polygons)
     {

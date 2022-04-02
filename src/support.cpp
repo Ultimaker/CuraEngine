@@ -23,6 +23,7 @@
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/Angle.h" //To compute overhang distance from the angle.
 #include "settings/types/Ratio.h"
+#include "utils/algorithm.h"
 #include "utils/logoutput.h"
 #include "utils/math.h"
 
@@ -314,7 +315,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     // How many support infill layers to combine to obtain the requested sparse thickness.
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    const size_t combine_layers_amount = std::max(1U, round_divide(infill_extruder.settings.get<coord_t>("support_infill_sparse_thickness"), std::max(layer_height, coord_t(1))));
+    const size_t combine_layers_amount = std::max(uint64_t(1), round_divide(infill_extruder.settings.get<coord_t>("support_infill_sparse_thickness"), std::max(layer_height, coord_t(1))));
     if (combine_layers_amount <= 1)
     {
         return;
@@ -819,14 +820,12 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
     }
 
     //Generate the actual areas and store them in the mesh.
-    #pragma omp parallel for default(none) shared(storage, mesh) schedule(dynamic)
-    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
-    for (int layer_idx = 1; layer_idx < static_cast<int>(storage.print_layer_count); layer_idx++)
+    cura::parallel_for<size_t>(1, storage.print_layer_count, 1, [&](const size_t layer_idx)
     {
         std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx);
         mesh.overhang_areas[layer_idx] = basic_and_full_overhang.first; //Store the results.
         mesh.full_overhang_areas[layer_idx] = basic_and_full_overhang.second;
-    }
+    });
 }
 
 /*
@@ -885,20 +884,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
     const coord_t sloped_area_detection_width = 10 + static_cast<coord_t>(layer_thickness / std::tan(sloped_areas_angle)) / 2;
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
 
-    // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
-    // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
-#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
-    #pragma omp parallel for default(none) shared(xy_disallowed_per_layer, sloped_areas_per_layer, storage, mesh) schedule(dynamic)
-#else
-    #pragma omp parallel for default(none) \
-        shared(xy_disallowed_per_layer, sloped_areas_per_layer, storage, mesh, layer_count, is_support_mesh_place_holder,  \
-               use_xy_distance_overhang, z_distance_top, tan_angle, xy_distance, xy_distance_overhang, layer_thickness, support_line_width, sloped_area_detection_width) \
-        schedule(dynamic)
-#endif // defined(__GNUC__) && __GNUC__ <= 8
-
-    // for all other layers (of non support meshes) compute the overhang area and possibly use that when calculating the support disallowed area
-    // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
-    for (int layer_idx = 1; layer_idx < static_cast<int>(layer_count); layer_idx++)
+    cura::parallel_for<size_t>(1, layer_count, 1, [&](const size_t layer_idx)
     {
         const Polygons outlines = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
 
@@ -961,7 +947,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         {
             xy_disallowed_per_layer[layer_idx] = outlines.offset(xy_distance);
         }
-    }
+    });
 
     std::vector<Polygons> tower_roofs;
     Polygons stair_removal; // polygons to subtract from support because of stair-stepping
@@ -1009,15 +995,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
         // but only in chunks of `bottom_stair_step_layer_count` steps, since, within such a chunk,
         // the order of execution is important.
         // Unless thinking about optimization & threading, you can just think of this as a single for-loop.
-
-        // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
-        // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
-#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
-#pragma omp parallel for default(none) shared(sloped_areas_per_layer) schedule(dynamic)
-#else
-#pragma omp parallel for default(none) shared(sloped_areas_per_layer, layer_count, bottom_stair_step_layer_count) schedule(dynamic)
-#endif // defined(__GNUC__) && __GNUC__ <= 8
-        for (int base_layer_idx = 1; base_layer_idx < static_cast<int>(layer_count); base_layer_idx += bottom_stair_step_layer_count)
+        cura::parallel_for<size_t>(1, layer_count, bottom_stair_step_layer_count, [&](const size_t base_layer_idx)
         {
             // Add the sloped areas together for each stair of the stair stepping.
             const int max_layer_stair_step = std::min(base_layer_idx + bottom_stair_step_layer_count, layer_count);
@@ -1029,7 +1007,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                     sloped_areas_per_layer[layer_idx] = sloped_areas_per_layer[layer_idx].unionPolygons(sloped_areas_per_layer[layer_idx - 1]);
                 }
             }
-        }
+        });
     }
 
     for (size_t layer_idx = layer_count - 1 - layer_z_distance_top; layer_idx != static_cast<size_t>(-1); layer_idx--)
@@ -1171,21 +1149,12 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
                                                     std::min(static_cast<int>(storage.support.supportLayers.size()),
                                                              static_cast<int>(layer_count - (layer_z_distance_top - 1))));
 
-    // OpenMP compatibility fix for GCC <= 8 and GCC >= 9
-    // See https://www.gnu.org/software/gcc/gcc-9/porting_to.html, section "OpenMP data sharing"
-#if defined(__GNUC__) && __GNUC__ <= 8 && !defined(__clang__)
-    #pragma omp parallel for default(none) shared(support_areas, storage) schedule(dynamic)
-#else
-    #pragma omp parallel for default(none) shared(support_areas, storage, max_checking_layer_idx, layer_z_distance_top) schedule(dynamic)
-#endif // defined(__GNUC__) && __GNUC__ <= 8
-
-        // Use a signed type for the loop counter so MSVC compiles (because it uses OpenMP 2.0, an old version).
-        for (int layer_idx = 0; layer_idx < max_checking_layer_idx; layer_idx++)
+        cura::parallel_for<size_t>(0, max_checking_layer_idx, 1, [&](const size_t layer_idx)
         {
             constexpr bool no_support = false;
             constexpr bool no_prime_tower = false;
             support_areas[layer_idx] = support_areas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layer_z_distance_top - 1, no_support, no_prime_tower));
-        }
+        });
     }
 
     for (size_t layer_idx = support_areas.size() - 1; layer_idx != static_cast<size_t>(std::max(-1, storage.support.layer_nr_max_filled_layer)); layer_idx--)
@@ -1503,7 +1472,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
         return;
     }
     const coord_t z_distance_bottom = round_up_divide(mesh.settings.get<coord_t>("support_bottom_distance"), layer_height); //Number of layers between support bottom and model.
-    const size_t skip_layer_count = std::max(1u, round_divide(mesh.settings.get<coord_t>("support_interface_skip_height"), layer_height)); //Resolution of generating support bottoms above model.
+    const size_t skip_layer_count = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("support_interface_skip_height"), layer_height)); //Resolution of generating support bottoms above model.
     const coord_t bottom_line_width = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings.get<coord_t>("support_bottom_line_width");
     const coord_t bottom_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings.get<coord_t>("support_bottom_offset");
 
@@ -1536,7 +1505,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         return;
     }
     const coord_t z_distance_top = round_up_divide(mesh.settings.get<coord_t>("support_top_distance"), layer_height); //Number of layers between support roof and model.
-    const size_t skip_layer_count = std::max(1u, round_divide(mesh.settings.get<coord_t>("support_interface_skip_height"), layer_height)); //Resolution of generating support roof below model.
+    const size_t skip_layer_count = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("support_interface_skip_height"), layer_height)); //Resolution of generating support roof below model.
     const coord_t roof_line_width = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings.get<coord_t>("support_roof_line_width");
     const coord_t roof_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").settings.get<coord_t>("support_roof_offset");
 
