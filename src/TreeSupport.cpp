@@ -137,7 +137,7 @@ void TreeSupport::showError(std::string message, bool critical)
 
     if (show)
     {
-        MessageBox(nullptr, std::string("TreeSupport_2 MOD detected an error while generating the tree support.\nPlease report this back to me with profile and model.\nRevision 4\n" + message + bugtype).c_str(), "Bug detected!", MB_OK | MB_SYSTEMMODAL | MB_SETFOREGROUND | MB_ICONWARNING);
+        MessageBox(nullptr, std::string("TreeSupport_2 MOD detected an error while generating the tree support.\nPlease report this back to me with profile and model.\nRevision 4\n" + message + "\n" + bugtype).c_str(), "Bug detected!", MB_OK | MB_SYSTEMMODAL | MB_SETFOREGROUND | MB_ICONWARNING);
     }
 }
 
@@ -212,6 +212,10 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         auto dur_draw = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_place).count();
         auto dur_total = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_start).count();
         log("Total time used creating Tree support for the currently grouped meshes: %.3lf ms. Different subtasks:\nCalculating Avoidance: %.3lf ms Creating inital influence areas: %.3lf ms Influence area creation: %.3lf ms Placement of Points in InfluenceAreas: %.3lf ms Drawing result as support %.3lf ms\n", dur_total, dur_pre_gen, dur_gen, dur_path, dur_place, dur_draw);
+        if(config.branch_radius==2121)
+        {
+        	showError("Why ask questions when you already know the answer twice.\n (This is not a real bug, please dont report it.)",false);
+        }
 
         for (auto& layer : move_bounds)
         {
