@@ -192,6 +192,7 @@ set(engine_SRCS # Except main.cpp.
     src/communication/ArcusCommunicationPrivate.cpp
     src/communication/CommandLine.cpp
     src/communication/Listener.cpp
+    src/communication/VtkCommunication.cpp
 
     src/infill/ImageBasedDensityProvider.cpp
     src/infill/NoZigZagConnectorProcessor.cpp

@@ -127,7 +127,7 @@ public:
     void sendLineTo(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
     /*
-     * \brief Send the sliced layer data to the front-end after the optimisation
+     * \brief Send the sliced layer data to the front-end after the optimization
      * is done and the actual order in which to print has been set.
      *
      * This layer data will be shown in the layer view of the front end.
