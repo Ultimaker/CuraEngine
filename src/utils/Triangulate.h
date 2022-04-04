@@ -31,15 +31,35 @@ public:
 
 private:
     /*!
-     * Split a shape into Y-monotone pieces.
-     * \param polygons The shape to split into monotone pieces.
-     * \return A set of Y-monotone polygons that sum up to form the input shape.
+     * Vertices are categorized into different types, which helps to split the
+     * shape into monotone parts. These are the types that can be assigned to
+     * each of them.
      */
-    static std::vector<Polygon> splitYMonotone(const Polygons& polygons);
+    enum MonotoneVertexType
+    {
+        REGULAR, //The vertex has a neighbor that is left and a neighbor that is right.
+        START, //The vertex is left of both its neighbors. The inside of the shape is right.
+        END, //The vertex is right of both its neighbors. The inside of the shape is left.
+        SPLIT, //The vertex is left of both its neighbors. The inside of the shape is left.
+        MERGE, //The vertex is right of both its neighbors. The inside of the shape is right.
+    };
 
     /*!
-     * Triangulate a Y-monotone polygon and add the triangles to the result.
-     * \param monotone_polygon A Y-monotone polygon to be triangulated.
+     * Pre-process each vertex to categorize it. This determines where a shape
+     * can be split into monotone parts.
+     */
+    static std::vector<std::vector<MonotoneVertexType>> categorize(const Polygons& polygons);
+
+    /*!
+     * Split a shape into X-monotone pieces.
+     * \param polygons The shape to split into monotone pieces.
+     * \return A set of X-monotone polygons that sum up to form the input shape.
+     */
+    static std::vector<Polygon> splitXMonotone(const Polygons& polygons);
+
+    /*!
+     * Triangulate an X-monotone polygon and add the triangles to the result.
+     * \param monotone_polygon An X-monotone polygon to be triangulated.
      * \param result A triangle-list, where every 3 points forms one triangle,
      * where the resulting triangles must be added. They will be appended to the
      * end.
