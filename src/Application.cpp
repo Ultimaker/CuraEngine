@@ -9,6 +9,9 @@
 #include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
+#ifdef VTK_OUTPUT
+    #include "communication/VtkCommunication.h" //If defined, use VTK output.
+#endif
 #include "progress/Progress.h"
 #include "utils/logoutput.h"
 #include "utils/string.h" //For stringcasecompare.
@@ -20,6 +23,9 @@ Application::Application()
 : communications()
 , current_slice(0)
 {
+#ifdef VTK_OUTPUT
+    communications.push_back(new VtkCommunication());
+#endif
 }
 
 Application::~Application()
