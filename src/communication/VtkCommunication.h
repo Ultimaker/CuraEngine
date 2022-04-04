@@ -4,6 +4,8 @@
 #ifndef VTKCOMMUNICATION_H
 #define VTKCOMMUNICATION_H
 
+#ifdef VTK_OUTPUT
+
 #include "Communication.h" //We're implementing this interface.
 
 namespace cura
@@ -36,4 +38,5 @@ public:
 
 }
 
+#endif //VTK_OUTPUT
 #endif //VTKCOMMUNICATION_H

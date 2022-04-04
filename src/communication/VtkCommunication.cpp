@@ -1,6 +1,8 @@
 //Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#ifdef VTK_OUTPUT
+
 #include "VtkCommunication.h" //The class we're implementing.
 
 namespace cura
@@ -46,3 +48,5 @@ void sendPolygons(const PrintFeatureType& feature_type, const Polygons& polygons
 }
 
 }
+
+#endif //VTK_OUTPUT

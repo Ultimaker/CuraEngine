@@ -83,6 +83,13 @@ if(CMAKE_BUILD_TYPE_UPPER MATCHES "DEBUG" OR CMAKE_BUILD_TYPE_UPPER MATCHES "REL
     add_definitions(-DDEBUG)
 endif()
 
+# Add a compiler flag if we want to output intermediary results to VTK files.
+option(VTK_OUTPUT OFF "Output intermediary slice data to VTK files for debugging.")
+if(VTK_OUTPUT)
+    message(STATUS "Adding VTK communication class.")
+    add_definitions(-DVTK_OUTPUT)
+endif()
+
 if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- /Zc:twoPhase- /EHsc /W3")
     if (MSVC_STATIC_RUNTIME)
