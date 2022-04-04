@@ -312,7 +312,7 @@ if (ENABLE_ARCUS)
     target_link_libraries(_CuraEngine Arcus)
 endif ()
 
-target_link_libraries(_CuraEngine PRIVATE Boost::boost)
+target_link_libraries(_CuraEngine Boost::boost)
 set_target_properties(_CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")
 
 if(WIN32)
