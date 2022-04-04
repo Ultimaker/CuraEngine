@@ -19,7 +19,6 @@ public:
     void flushGCode() override;
     bool isSequential() const override;
     bool hasSlice() const override;
-    void sendCurrentPosition(const Point&) override;
     void sendFinishedSlicing() const override;
     void sendGCodePrefix(const std::string&) const override;
     void sendLayerComplete(const LayerIndex&, const coord_t&, const coord_t&) override;
@@ -31,6 +30,7 @@ public:
     //Communication output that may be visualized in the VTK output.
     void setExtruderForSend(const ExtruderTrain& extruder) override;
     void setLayerForSend(const LayerIndex& layer_nr) override;
+    void sendCurrentPosition(const Point&) override;
     void sendLineTo(const PrintFeatureType& feature_type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
     void sendPolygon(const PrintFeatureType& feature_type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
     void sendPolygons(const PrintFeatureType& feature_type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;

@@ -13,7 +13,6 @@ void VtkCommunication::beginGCode() { }
 void VtkCommunication::flushGCode() { }
 bool VtkCommunication::isSequential() const { return false; }
 bool VtkCommunication::hasSlice() const { return false; } //Never provides a slice.
-void VtkCommunication::sendCurrentPosition(const Point&) { }
 void VtkCommunication::sendFinishedSlicing() const { }
 void VtkCommunication::sendGCodePrefix(const std::string&) const { }
 void VtkCommunication::sendLayerComplete(const LayerIndex&, const coord_t&, const coord_t&) { }
@@ -30,6 +29,11 @@ void VtkCommunication::setExtruderForSend(const ExtruderTrain& extruder)
 void VtkCommunication::setLayerForSend(const LayerIndex& layer_nr)
 {
     //TODO: We might want to store which layer is being processed, if we want to use the layer index in sendLineTo, sendPolygon or sendPolygons.
+}
+
+void VtkCommunication::sendCurrentPosition(const Point& position)
+{
+    //TODO: Track a position in order to visualize sendLineTo correctly.
 }
 
 void sendLineTo(const PrintFeatureType& feature_type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
