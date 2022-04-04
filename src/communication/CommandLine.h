@@ -110,6 +110,14 @@ public:
      */
     void sendPolygons(const PrintFeatureType&, const Polygons&, const coord_t&, const coord_t&, const Velocity&) override;
 
+    /*!
+     * Send a preview of where the structures will be generated through this
+     * communication channel.
+     *
+     * The command line doesn't show any layer preview so this is ignored.
+     */
+    void sendStructurePolygon(const Polygons&, const PrintFeatureType&, const LayerIndex, const coord_t) override;
+
     /*
      * \brief Show an estimate of how long the print would take and how much
      * material it would use.

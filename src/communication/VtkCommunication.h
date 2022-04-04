@@ -34,6 +34,18 @@ public:
     void sendLineTo(const PrintFeatureType& feature_type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
     void sendPolygon(const PrintFeatureType& feature_type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
     void sendPolygons(const PrintFeatureType& feature_type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
+
+    /*!
+     * Send a preview of where the structures will be generated through this
+     * communication channel.
+     *
+     * This will get visualised in the VTK output.
+     * \param outline The outline of the shape of a structure.
+     * \param type The type of structure has that shape.
+     * \param layer_index The index of the layer this structure is on.
+     * \param z The Z coordinate of that layer.
+     */
+    void sendStructurePolygon(const Polygons& outline, const PrintFeatureType& type, const LayerIndex layer_index, const coord_t z) override;
 };
 
 }

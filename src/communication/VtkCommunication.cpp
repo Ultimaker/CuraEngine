@@ -4,6 +4,7 @@
 #ifdef VTK_OUTPUT
 
 #include "VtkCommunication.h" //The class we're implementing.
+#include "../settings/types/LayerIndex.h"
 
 namespace cura
 {
@@ -49,6 +50,11 @@ void VtkCommunication::sendPolygon(const PrintFeatureType& feature_type, const C
 void VtkCommunication::sendPolygons(const PrintFeatureType& feature_type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
     //TODO: Output printed polygons's to VTK file?
+}
+
+void VtkCommunication::sendStructurePolygon(const Polygons& outline, const PrintFeatureType& type, const LayerIndex layer_index, const coord_t z)
+{
+    //TODO: Output structure regions to VTK file.
 }
 
 }

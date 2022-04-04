@@ -242,6 +242,8 @@ public:
         }
     }
 
+    
+
 private:
     /*!
      * \brief Convert and add a point to the points buffer.
@@ -420,6 +422,11 @@ void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygo
     {
         path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
     }
+}
+
+void ArcusCommunication::sendStructurePolygon(const Polygons& outline, const PrintFeatureType& type, const LayerIndex layer_index, const coord_t z)
+{
+    //TODO: Implement.
 }
 
 void ArcusCommunication::sendPrintTimeMaterialEstimates() const

@@ -162,6 +162,17 @@ public:
      */
     void sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) override;
 
+    /*!
+     * Send a preview of where the structures will be generated through this
+     * communication channel. That way the consumer on the communication channel
+     * can show preliminary slice data before slicing is complete.
+     * \param outline The outline of the shape of a structure.
+     * \param type The type of structure has that shape.
+     * \param layer_index The index of the layer this structure is on.
+     * \param z The Z coordinate of that layer.
+     */
+    void sendStructurePolygon(const Polygons& outline, const PrintFeatureType& type, const LayerIndex layer_index, const coord_t z) override;
+
     /*
      * \brief Send an estimate of how long the print would take and how much
      * material it would use.

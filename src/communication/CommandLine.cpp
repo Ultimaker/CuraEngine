@@ -43,6 +43,7 @@ void CommandLine::sendPolygon(const PrintFeatureType&, const ConstPolygonRef&, c
 void CommandLine::sendPolygons(const PrintFeatureType&, const Polygons&, const coord_t&, const coord_t&, const Velocity&) { }
 void CommandLine::setExtruderForSend(const ExtruderTrain&) { }
 void CommandLine::setLayerForSend(const LayerIndex&) { }
+void CommandLine::sendStructurePolygon(const Polygons&, const PrintFeatureType&, const LayerIndex, const coord_t) { }
 
 bool CommandLine::hasSlice() const
 {
