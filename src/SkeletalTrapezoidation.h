@@ -99,10 +99,10 @@ public:
     SkeletalTrapezoidation(const Polygons& polys, 
                            const BeadingStrategy& beading_strategy,
                            AngleRadians transitioning_angle
-    , coord_t discretization_step_size = MM2INT(0.8)
-    , coord_t transition_filter_dist = MM2INT(1)
-    , coord_t allowed_filter_deviation = MM2INT(0.2)
-    , coord_t beading_propagation_transition_dist = MM2INT(0.4));
+    , coord_t discretization_step_size
+    , coord_t transition_filter_dist
+    , coord_t allowed_filter_deviation
+    , coord_t beading_propagation_transition_dist);
 
     /*!
      * A skeletal graph through the polygons that we need to fill with beads.
