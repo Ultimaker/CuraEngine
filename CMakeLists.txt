@@ -34,8 +34,12 @@ find_package(Stb REQUIRED)
 include_directories(${Stb_INCLUDE_DIRS})
 
 #arachne needs boost polygon/voronoi
-find_package(Boost REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
+find_package(boost QUIET)
+if(NOT TARGET boost::boost)
+    find_package(Boost REQUIRED)
+else()
+    add_library(Boost::boost ALIAS boost::boost)
+endif()
 
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 if(USE_SYSTEM_LIBS)
@@ -308,6 +312,7 @@ if (ENABLE_ARCUS)
     target_link_libraries(_CuraEngine Arcus)
 endif ()
 
+target_link_libraries(_CuraEngine PRIVATE Boost::boost)
 set_target_properties(_CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")
 
 if(WIN32)
