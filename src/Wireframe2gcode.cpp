@@ -28,7 +28,10 @@ void Wireframe2gcode::writeGCode()
     gcode.preSetup(start_extruder_nr);
     gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
 
-    Application::getInstance().communication->beginGCode();
+    for(Communication* communication : Application::getInstance().communications)
+    {
+        communication->beginGCode();
+    }
 
     processStartingCode();
     
@@ -569,8 +572,10 @@ void Wireframe2gcode::processStartingCode()
     const size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
     size_t start_extruder_nr = scene_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr;
 
-    if (Application::getInstance().communication->isSequential())
+    const std::vector<Communication*>& communications = Application::getInstance().communications;
+    if(std::any_of(communications.begin(), communications.end(), [](const Communication* communication) { return communication->isSequential(); }))
     {
+        //Some of the communication channels require sequential g-code output. So we must already output the start g-code here.
         std::vector<bool> extruder_is_used;
         extruder_is_used.resize(extruder_count, false);
         extruder_is_used[start_extruder_nr] = true;
@@ -620,7 +625,10 @@ void Wireframe2gcode::processStartingCode()
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
         gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
-        Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
+        for(Communication* communication : Application::getInstance().communications)
+        {
+            communication->sendCurrentPosition(gcode.getPositionXY());
+        }
         gcode.startExtruder(start_extruder_nr);
         constexpr bool wait = true;
         gcode.writeTemperatureCommand(start_extruder_nr, scene_settings.get<Temperature>("material_print_temperature"), wait);

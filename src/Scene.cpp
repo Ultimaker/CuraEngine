@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h"
@@ -111,8 +111,11 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     }
 
     Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
-    Application::getInstance().communication->flushGCode();
-    Application::getInstance().communication->sendOptimizedLayerData();
+    for(Communication* communication : Application::getInstance().communications)
+    {
+        communication->flushGCode();
+        communication->sendOptimizedLayerData();
+    }
     log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 }
 

@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
@@ -64,7 +64,10 @@ void Weaver::weave(MeshGroup* meshgroup)
         for (cura::Slicer* slicer : slicerList)
             wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygons);
 
-        Application::getInstance().communication->sendPolygons(PrintFeatureType::OuterWall, wireFrame.bottom_outline, 1, 1, 1);
+        for(Communication* communication : Application::getInstance().communications)
+        {
+            communication->sendPolygons(PrintFeatureType::OuterWall, wireFrame.bottom_outline, 1, 1, 1);
+        }
         
         if (slicerList.empty()) //Wait, there is nothing to slice.
         {
@@ -99,7 +102,10 @@ void Weaver::weave(MeshGroup* meshgroup)
 
             chainify_polygons(parts1, starting_point_in_layer, chainified);
 
-            Application::getInstance().communication->sendPolygons(PrintFeatureType::OuterWall, chainified, 1, 1, 1);
+            for(Communication* communication : Application::getInstance().communications)
+            {
+                communication->sendPolygons(PrintFeatureType::OuterWall, chainified, 1, 1, 1);
+            }
 
             if (chainified.size() > 0)
             {

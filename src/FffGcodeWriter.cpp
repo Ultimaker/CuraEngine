@@ -77,7 +77,10 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
     }
 
-    Application::getInstance().communication->beginGCode();
+    for(Communication* communication : Application::getInstance().communications)
+    {
+        communication->beginGCode();
+    }
 
     setConfigFanSpeedLayerTime();
 
@@ -602,8 +605,10 @@ void FffGcodeWriter::processInitialLayerTemperature(const SliceDataStorage& stor
 void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const size_t start_extruder_nr)
 {
     std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-    if (Application::getInstance().communication->isSequential()) //If we must output the g-code sequentially, we must already place the g-code header here even if we don't know the exact time/material usages yet.
+    const std::vector<Communication*>& communications = Application::getInstance().communications;
+    if(std::any_of(communications.begin(), communications.end(), [](Communication* communication) { return communication->isSequential(); }))
     {
+        //If we must output the g-code sequentially, we must already place the g-code header here even if we don't know the exact time/material usages yet.
         std::string prefix = gcode.getFileHeader(extruder_is_used);
         gcode.writeCode(prefix.c_str());
     }
@@ -640,7 +645,10 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         gcode.writeBuildVolumeTemperatureCommand(mesh_group_settings.get<Temperature>("build_volume_temperature"));
     }
 
-    Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
+    for(Communication* communication : Application::getInstance().communications)
+    {
+        communication->sendCurrentPosition(gcode.getPositionXY());
+    }
     gcode.startExtruder(start_extruder_nr);
 
     if (gcode.getFlavor() == EGCodeFlavor::BFB)
@@ -682,7 +690,10 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.writeFanCommand(0);
     gcode.setZ(max_object_height + MM2INT(5));
 
-    Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
+    for(Communication* communication : Application::getInstance().communications)
+    {
+        communication->sendCurrentPosition(gcode.getPositionXY());
+    }
     gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
     Point start_pos(storage.model_min.x, storage.model_min.y);
     gcode.writeTravel(start_pos, Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
@@ -736,7 +747,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         gcode_layer.setExtruder(base_extruder_nr);
 
-        Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_height);
+        for(Communication* communication : Application::getInstance().communications)
+        {
+            communication->sendLayerComplete(layer_nr, z, layer_height);
+        }
 
         Polygons raftLines;
         AngleDegrees fill_angle = (num_surface_layers + num_interface_layers) % 2 ? 45 : 135; //90 degrees rotated from the interface layer.
@@ -816,7 +830,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         setExtruder_addPrime(storage, gcode_layer, interface_extruder_nr);
         current_extruder_nr = interface_extruder_nr;
 
-        Application::getInstance().communication->sendLayerComplete(layer_nr, z, interface_layer_height);
+        for(Communication* communication : Application::getInstance().communications)
+        {
+            communication->sendLayerComplete(layer_nr, z, interface_layer_height);
+        }
 
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_interface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
         raft_outline_path.simplify(); //Remove those micron-movements.
@@ -877,7 +894,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         setExtruder_addPrime(storage, gcode_layer, surface_extruder_nr);
         current_extruder_nr = surface_extruder_nr;
 
-        Application::getInstance().communication->sendLayerComplete(layer_nr, z, surface_layer_height);
+        for(Communication* communication : Application::getInstance().communications)
+        {
+            communication->sendLayerComplete(layer_nr, z, surface_layer_height);
+        }
 
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
         raft_outline_path.simplify(); //Remove those micron-movements.
@@ -956,7 +976,10 @@ LayerPlan& FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIn
 
     const Scene& scene = Application::getInstance().current_slice->scene;
 #pragma omp critical
-    Application::getInstance().communication->sendLayerComplete(layer_nr, z, layer_thickness);
+    for(Communication* communication : Application::getInstance().communications)
+    {
+        communication->sendLayerComplete(layer_nr, z, layer_thickness);
+    }
 
     coord_t avoid_distance = 0; // minimal avoid distance is zero
     const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
@@ -3058,9 +3081,13 @@ void FffGcodeWriter::finalize()
         extruder_is_used.push_back(gcode.getExtruderIsUsed(extruder_nr));
     }
     std::string prefix = gcode.getFileHeader(extruder_is_used, &print_time, filament_used, material_ids);
-    if (!Application::getInstance().communication->isSequential())
+    const std::vector<Communication*>& communications = Application::getInstance().communications;
+    if(std::none_of(communications.begin(), communications.end(), [](const Communication* communication) { return communication->isSequential(); }))
     {
-        Application::getInstance().communication->sendGCodePrefix(prefix);
+        for(Communication* communication : Application::getInstance().communications)
+        {
+            communication->sendGCodePrefix(prefix);
+        }
     }
     else
     {

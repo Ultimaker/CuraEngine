@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cassert>
@@ -57,7 +57,10 @@ void Progress::init()
 void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int progress_in_stage_max)
 {
     float percentage = calcOverallProgress(stage, float(progress_in_stage) / float(progress_in_stage_max));
-    Application::getInstance().communication->sendProgress(percentage);
+    for(const Communication* communication : Application::getInstance().communications)
+    {
+        communication->sendProgress(percentage);
+    }
 
     logProgress(names[(int)stage].c_str(), progress_in_stage, progress_in_stage_max, percentage);
 }

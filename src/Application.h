@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef APPLICATION_H
@@ -6,6 +6,7 @@
 
 #include "utils/NoCopy.h"
 #include <cstddef> //For size_t.
+#include <vector> //To track all communication channels.
 
 namespace cura
 {
@@ -23,15 +24,14 @@ class Application : NoCopy
 {
 public:
     /*
-     * \brief The communication currently in use.
+     * \brief The communication channels currently in use.
      *
-     * This may be set to ``nullptr`` during the initialisation of the program,
-     * while the correct communication class has not yet been chosen because the
-     * command line arguments have not yet been parsed. In general though you
-     * can assume that it is safe to access this without checking whether it is
-     * initialised.
+     * This will be filled with communication channels during the initialization
+     * of the program. Anything that must be communicated must be communicated
+     * to all of these. Slices will be processed from these in round-robin
+     * style.
      */
-    Communication* communication;
+    std::vector<Communication*> communications;
 
     /*
      * \brief The slice that is currently ongoing.

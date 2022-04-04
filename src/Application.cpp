@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifdef _OPENMP
@@ -17,14 +17,17 @@ namespace cura
 {
 
 Application::Application()
-: communication(nullptr)
+: communications()
 , current_slice(0)
 {
 }
 
 Application::~Application()
 {
-    delete communication;
+    for(Communication* communication : communications)
+    {
+        delete communication;
+    }
 }
 
 Application& Application::getInstance()
@@ -85,7 +88,7 @@ void Application::connect()
 
     ArcusCommunication* arcus_communication = new ArcusCommunication();
     arcus_communication->connect(ip, port);
-    communication = arcus_communication;
+    communications.push_back(arcus_communication);
 }
 #endif //ARCUS
 
@@ -164,7 +167,7 @@ void Application::slice()
         arguments.emplace_back(argv[argument_index]);
     }
 
-    communication = new CommandLine(arguments);
+    communications.push_back(new CommandLine(arguments));
 }
 
 void Application::run(const size_t argc, char** argv)
@@ -216,7 +219,8 @@ void Application::run(const size_t argc, char** argv)
         exit(1);
     }
 
-    if (!communication)
+    if(communications.empty() ||
+            std::none_of(communications.begin(), communications.end(), [](Communication* communication) { return communication->hasSlice(); }))
     {
         //No communication channel is open any more, so either:
         //- communication failed to connect, or
@@ -224,9 +228,21 @@ void Application::run(const size_t argc, char** argv)
         //In either case, we don't want to slice.
         exit(0);
     }
-    while (communication->hasSlice())
+    while(true)
     {
-        communication->sliceNext();
+        bool sliced_anything = false;
+        for(Communication* communication : communications)
+        {
+            if(communication->hasSlice())
+            {
+                communication->sliceNext();
+                sliced_anything = true;
+            }
+        }
+        if(!sliced_anything) //Nothing left to process.
+        {
+            break;
+        }
     }
 }
 

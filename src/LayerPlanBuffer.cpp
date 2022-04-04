@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To flush g-code through the communication channel.
@@ -51,7 +51,10 @@ LayerPlan* LayerPlanBuffer::processBuffer()
     if (buffer.size() > buffer_size)
     {
         LayerPlan* ret = buffer.front();
-        Application::getInstance().communication->flushGCode();
+        for(Communication* communication : Application::getInstance().communications)
+        {
+            communication->flushGCode();
+        }
         buffer.pop_front();
         return ret;
     }
@@ -60,7 +63,10 @@ LayerPlan* LayerPlanBuffer::processBuffer()
 
 void LayerPlanBuffer::flush()
 {
-    Application::getInstance().communication->flushGCode(); //If there was still g-code in a layer, flush that as a separate layer. Don't want to group them together accidentally.
+    for(Communication* communication : Application::getInstance().communications)
+    {
+        communication->flushGCode(); //If there was still g-code in a layer, flush that as a separate layer. Don't want to group them together accidentally.
+    }
     if (buffer.size() > 0)
     {
         insertTempCommands(); // insert preheat commands of the very last layer
@@ -68,7 +74,10 @@ void LayerPlanBuffer::flush()
     while (!buffer.empty())
     {
         buffer.front()->writeGCode(gcode);
-        Application::getInstance().communication->flushGCode();
+        for(Communication* communication : Application::getInstance().communications)
+        {
+            communication->flushGCode();
+        }
         delete buffer.front();
         buffer.pop_front();
     }
