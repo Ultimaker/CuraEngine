@@ -36,17 +36,17 @@ void VtkCommunication::sendCurrentPosition(const Point& position)
     //TODO: Track a position in order to visualize sendLineTo correctly.
 }
 
-void sendLineTo(const PrintFeatureType& feature_type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void VtkCommunication::sendLineTo(const PrintFeatureType& feature_type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
     //TODO: Output printed lines to VTK file?
 }
 
-void sendPolygon(const PrintFeatureType& feature_type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void VtkCommunication::sendPolygon(const PrintFeatureType& feature_type, const ConstPolygonRef& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
     //TODO: Output printed polygons to VTK file?
 }
 
-void sendPolygons(const PrintFeatureType& feature_type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void VtkCommunication::sendPolygons(const PrintFeatureType& feature_type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
     //TODO: Output printed polygons's to VTK file?
 }
