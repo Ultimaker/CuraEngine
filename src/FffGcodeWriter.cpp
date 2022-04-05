@@ -736,6 +736,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         const size_t wall_line_count = base_settings.get<size_t>("raft_base_wall_count");
         const coord_t line_spacing = base_settings.get<coord_t>("raft_base_line_spacing");
         const Point& infill_origin = Point();
+        constexpr bool skip_stitching = false;
         constexpr bool connected_zigzags = false;
         constexpr bool use_endpieces = true;
         constexpr bool skip_some_zags = false;
@@ -748,7 +749,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             EFillMethod::LINES, zig_zaggify_infill, connect_polygons, storage.raftOutline, gcode_layer.configs_storage.raft_base_config.getLineWidth(), line_spacing,
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
             max_resolution, max_deviation,
-            wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
+            wall_line_count, infill_origin, skip_stitching, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         std::vector<VariableWidthLines> raft_paths;
         infill_comp.generate(raft_paths, raft_polygons, raftLines, base_settings);
@@ -816,6 +817,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         constexpr int wall_line_count = 0;
         const Point infill_origin = Point();
+        constexpr bool skip_stitching = false;
         constexpr bool connected_zigzags = false;
         constexpr bool use_endpieces = true;
         constexpr bool skip_some_zags = false;
@@ -826,7 +828,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, infill_outline_width, interface_line_spacing,
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
             interface_max_resolution, interface_max_deviation,
-            wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
+            wall_line_count, infill_origin, skip_stitching, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         std::vector<VariableWidthLines> raft_paths; //Should remain empty, since we have no walls.
         infill_comp.generate(raft_paths, raft_polygons, raftLines, interface_settings);
@@ -876,6 +878,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         constexpr size_t wall_line_count = 0;
         const Point& infill_origin = Point();
+        constexpr bool skip_stitching = false;
         constexpr bool connected_zigzags = false;
         constexpr bool connect_polygons = false; // midway connections between polygons can make the surface less smooth
         constexpr bool use_endpieces = true;
@@ -887,7 +890,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, infill_outline_width, surface_line_spacing,
             fill_overlap, infill_multiplier, fill_angle, z, extra_infill_shift,
             surface_max_resolution, surface_max_deviation,
-            wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
+            wall_line_count, infill_origin, skip_stitching, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
             );
         std::vector<VariableWidthLines> raft_paths; //Should remain empty, since we have no walls.
         infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings);
@@ -1503,6 +1506,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
 
             constexpr size_t wall_line_count = 0; // wall toolpaths are when gradual infill areas are determined
             constexpr coord_t infill_overlap = 0; // Overlap is handled when the wall toolpaths are generated
+            constexpr bool skip_stitching = false;
             constexpr bool connected_zigzags = false;
             constexpr bool use_endpieces = true;
             constexpr bool skip_some_zags = false;
@@ -1517,7 +1521,7 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
                                part.infill_area_per_combine_per_density[density_idx][combine_idx], infill_line_width,
                                infill_line_distance_here, infill_overlap, infill_multiplier, infill_angle,
                                gcode_layer.z, infill_shift, max_resolution, max_deviation, wall_line_count,
-                               infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count,
+                               infill_origin, skip_stitching, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count,
                                mesh.settings.get<coord_t>("cross_infill_pocket_size"));
             infill_comp.generate(infill_paths, infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
         }
@@ -1601,6 +1605,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const bool hasSkinEdgeSupport = partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
 
     const auto pocket_size = mesh.settings.get<coord_t>("cross_infill_pocket_size");
+    constexpr bool skip_stitching = false;
     constexpr bool connected_zigzags = false;
     constexpr bool use_endpieces = false;
     constexpr bool skip_some_zags = false;
@@ -1674,7 +1679,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, infill_below_skin, infill_line_width,
                                infill_line_distance_here, overlap, infill_multiplier, infill_angle, gcode_layer.z,
                                infill_shift, max_resolution, max_deviation, skin_below_wall_count, infill_origin,
-                               connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
+                               skip_stitching, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
             infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
 
             // Fixme: CURA-7848 for libArachne.
@@ -1712,7 +1717,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         Infill infill_comp(pattern, zig_zaggify_infill, connect_polygons, in_outline, infill_line_width,
                            infill_line_distance_here, overlap, infill_multiplier, infill_angle, gcode_layer.z,
                            infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin,
-                           connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
+                           skip_stitching, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
         infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
 
         // Fixme: CURA-7848 for libArachne.
@@ -2699,11 +2704,12 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                                         support_brim_line_count);
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
+                constexpr bool skip_stitching = false;
                 Infill infill_comp(support_pattern, zig_zaggify_infill, connect_polygons, area,
                                    support_line_width, support_line_distance_here, current_support_infill_overlap - (density_idx == max_density_idx ? 0 : wall_line_count * support_line_width),
                                    infill_multiplier, support_infill_angle, gcode_layer.z, support_shift,
                                    max_resolution, max_deviation,
-                                   wall_count, infill_origin, support_connect_zigzags,
+                                   wall_count, infill_origin, skip_stitching, support_connect_zigzags,
                                    use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
                 infill_comp.generate(wall_toolpaths_here, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
             }
@@ -2816,6 +2822,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr coord_t extra_infill_shift = 0;
     constexpr size_t wall_line_count = 0;
     const Point infill_origin;
+    constexpr bool skip_stitching = false;
     constexpr bool use_endpieces = true;
     constexpr bool connected_zigzags = false;
     constexpr bool skip_some_zags = false;
@@ -2844,7 +2851,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
         pattern, zig_zaggify_infill, connect_polygons, infill_outline, gcode_layer.configs_storage.support_roof_config.getLineWidth(),
         support_roof_line_distance, support_roof_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
         max_resolution, max_deviation,
-        wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
+        wall_line_count, infill_origin, skip_stitching, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
         );
     Polygons roof_polygons;
     std::vector<VariableWidthLines> roof_paths;
@@ -2912,6 +2919,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     constexpr coord_t extra_infill_shift = 0;
     constexpr size_t wall_line_count = 0;
     const Point infill_origin;
+    constexpr bool skip_stitching = false;
     constexpr bool use_endpieces = true;
     constexpr bool connected_zigzags = false;
     constexpr bool skip_some_zags = false;
@@ -2925,7 +2933,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         pattern, zig_zaggify_infill, connect_polygons, support_layer.support_bottom, gcode_layer.configs_storage.support_bottom_config.getLineWidth(),
         support_bottom_line_distance, support_bottom_overlap, infill_multiplier, fill_angle, gcode_layer.z, extra_infill_shift,
         max_resolution, max_deviation,
-        wall_line_count, infill_origin, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
+        wall_line_count, infill_origin, skip_stitching, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size
         );
     Polygons bottom_polygons;
     std::vector<VariableWidthLines> bottom_paths;
