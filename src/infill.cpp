@@ -252,12 +252,12 @@ void Infill::_generate(std::vector<VariableWidthLines>& toolpaths, Polygons& res
 
     result_polygons.simplify(max_resolution, max_deviation);
 
-    if ( ! skip_line_stitching && (zig_zaggify ||
+    if(!skip_line_stitching && (zig_zaggify ||
         pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID || pattern == EFillMethod::ZIG_ZAG))
     { // don't stich for non-zig-zagged line infill types
-        Polygons stiched_lines;
-        PolylineStitcher<Polygons, Polygon, Point>::stitch(result_lines, stiched_lines, result_polygons, infill_line_width);
-        result_lines = stiched_lines;
+        Polygons stitched_lines;
+        PolylineStitcher<Polygons, Polygon, Point>::stitch(result_lines, stitched_lines, result_polygons, infill_line_width);
+        result_lines = stitched_lines;
     }
     result_lines.simplifyPolylines(max_resolution, max_deviation);
 }
