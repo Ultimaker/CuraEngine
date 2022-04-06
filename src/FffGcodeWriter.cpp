@@ -1236,11 +1236,43 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     {
         last_extruder = gcode.getExtruderNr();
     }
+
+    size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
     for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
     {
         std::vector<std::vector<size_t>>& extruder_order_per_layer_here = (layer_nr < 0) ? extruder_order_per_layer_negative_layers : extruder_order_per_layer;
-        extruder_order_per_layer_here.push_back(getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr));
-        last_extruder = extruder_order_per_layer_here.back().back();
+        std::vector<size_t> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr);
+        extruder_order_per_layer_here.push_back(extruder_order);
+
+        if(layer_nr >= 0 && !extruder_order_per_layer_here.empty())
+        {
+            std::vector<bool> extruder_prime_required(extruder_count, false);
+
+            // First used extruder only needs to be primed if an other extruder has been used before
+            if(extruder_order.front() != last_extruder)
+            {
+                extruder_prime_required[last_extruder] = true;
+            }
+
+            // All other used extruders need to be primed
+            for(size_t index = 1 ; index < extruder_order.size() ; ++index)
+            {
+                extruder_prime_required[extruder_order[index]] = true;
+            }
+
+            extruder_prime_required_by_layer.push_back(extruder_prime_required);
+
+            #warning remove this
+            #if 0
+            log("##### Required primes for layer %d:\n", layer_nr);
+            for(const size_t &extruder_nr : extruder_prime_required)
+            {
+                log("##### %d\n", extruder_nr);
+            }
+            #endif
+        }
+
+        last_extruder = extruder_order.back();
     }
 }
 
@@ -1265,11 +1297,11 @@ std::vector<size_t> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtr
     size_t extruder_count = Application::getInstance().current_slice->scene.extruders.size();
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<size_t> ret;
-    ret.push_back(start_extruder);
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
+    PrimeTowerMethod method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
 
     //The outermost prime tower extruder is always used if there is a prime tower, apart on layers with negative index (e.g. for the raft)
-    if (mesh_group_settings.get<bool>("prime_tower_enable") && layer_nr >= 0 && layer_nr <= storage.max_print_height_second_to_last_extruder)
+    if (method == PrimeTowerMethod::DEFAULT && layer_nr >= 0 && layer_nr <= storage.max_print_height_second_to_last_extruder)
     {
         extruder_is_used_on_this_layer[storage.primeTower.extruder_order[0]] = true;
     }
@@ -1288,18 +1320,30 @@ std::vector<size_t> FffGcodeWriter::getUsedExtrudersOnLayerExcludingStartingExtr
         }
     }
 
+    if (method != PrimeTowerMethod::OPTIMIZED || extruder_is_used_on_this_layer[start_extruder])
+    {
+        ret.push_back(start_extruder);
+    }
+
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         if (extruder_nr == start_extruder)
         { // skip the current extruder, it's the one we started out planning
             continue;
         }
-        if (!extruder_is_used_on_this_layer[extruder_nr])
+        if (!extruder_is_used_on_this_layer[extruder_nr] && method != PrimeTowerMethod::OPTIMIZED_CONSISTENT)
         {
             continue;
         }
         ret.push_back(extruder_nr);
     }
+
+    log("===== Used extruders for layer %d method %d\n", layer_nr.value, static_cast<int>(method));
+    for(auto &ext : ret)
+    {
+        log("===== %d\n", ext);
+    }
+
     assert(ret.size() <= (size_t)extruder_count && "Not more extruders may be planned in a layer than there are extruders!");
     return ret;
 }
@@ -3025,12 +3069,12 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
 
 void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder) const
 {
-    if (!Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("prime_tower_enable"))
+    if (!storage.primeTower.enabled)
     {
         return;
     }
 
-    storage.primeTower.addToGcode(storage, gcode_layer, prev_extruder, gcode_layer.getExtruder());
+    storage.primeTower.addToGcode(storage, gcode_layer, extruder_prime_required_by_layer.at(gcode_layer.getLayerNr()), prev_extruder, gcode_layer.getExtruder());
 }
 
 void FffGcodeWriter::finalize()

@@ -70,6 +70,8 @@ private:
 
     std::vector<std::vector<size_t>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
 
+    std::vector<std::vector<bool>> extruder_prime_required_by_layer; //!< For each layer, indicates which extruders actually require to be primed
+
     /*!
      * For each extruder on which layer the prime will be planned,
      * or a large negative number if it's already planned outside of \ref FffGcodeWriter::processLayer

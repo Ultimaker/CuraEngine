@@ -583,6 +583,27 @@ template<> InsetDirection Settings::get<InsetDirection>(const std::string& key) 
     }
 }
 
+template<> PrimeTowerMethod Settings::get<PrimeTowerMethod>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if(value == "default")
+    {
+        return PrimeTowerMethod::DEFAULT;
+    }
+    else if(value == "optimized")
+    {
+        return PrimeTowerMethod::OPTIMIZED;
+    }
+    else if(value  == "optimized_consistent")
+    {
+        return PrimeTowerMethod::OPTIMIZED_CONSISTENT;
+    }
+    else //Default.
+    {
+        return PrimeTowerMethod::NONE;
+    }
+}
+
 template<> std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);

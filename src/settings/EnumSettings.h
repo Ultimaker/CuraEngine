@@ -225,6 +225,33 @@ enum class InsetDirection
     CENTER_LAST
 };
 
+/*!
+ * Method used for prime tower generation
+ */
+enum class PrimeTowerMethod
+{
+    /*!
+     * No prime tower is generated.
+     */
+    NONE,
+
+    /*!
+     * Basic full prime tower with only discs.
+     */
+    DEFAULT,
+
+    /*!
+     * Prime tower that minimizes time and used filament as much as possible.
+     */
+    OPTIMIZED,
+
+    /*!
+     * Prime tower that minimizes time and used filament, but doesn't allow
+     * for printing two different filaments over each other.
+     */
+    OPTIMIZED_CONSISTENT,
+};
+
 } //Cura namespace.
 
 #endif //ENUMSETTINGS_H

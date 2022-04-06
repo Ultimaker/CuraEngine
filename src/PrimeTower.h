@@ -5,6 +5,7 @@
 #define PRIME_TOWER_H
 
 #include <vector>
+#include <map>
 
 #include "utils/polygon.h" // Polygons
 #include "utils/polygonUtils.h"
@@ -41,6 +42,7 @@ private:
 
     std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
     std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
+    std::map<size_t, ExtrusionMoves> sparse_pattern_per_extruders; //!< For each extruders combination, the pattern to print on all layers where extruders are actually useless.
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
@@ -66,13 +68,6 @@ public:
     PrimeTower();
 
     /*!
-     * Generate the prime tower area to be used on each layer
-     * 
-     * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
-     */
-    void generateGroundpoly();
-
-    /*!
      * Generate the area where the prime tower should be.
      */
     void generatePaths(const SliceDataStorage& storage);
@@ -82,10 +77,11 @@ public:
      * 
      * \param storage where to get settings from; where to get the maximum height of the prime tower from
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
+     * \param required_extruder_prime the extruders which actually required to be primed at this layer
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
      * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
      */
-    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder, const size_t new_extruder) const;
+    void addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const std::vector<bool> &required_extruder_prime, const size_t prev_extruder, const size_t new_extruder) const;
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.
@@ -98,12 +94,37 @@ public:
 private:
 
     /*!
+     * Generate the prime tower area to be used on each layer
+     *
+     * Fills \ref PrimeTower::inner_poly and sets \ref PrimeTower::middle
+     */
+    void generateGroundpoly();
+
+    /*!
      * \see WipeTower::generatePaths
      * 
      * Generate the extrude paths for each extruder on even and odd layers
      * Fill the ground poly with dense infill.
+     * \param cumulative_insets [in, out] The insets added to each extruder to compute the radius of its ring
      */
-    void generatePaths_denseInfill();
+    void generatePaths_denseInfill(std::vector<coord_t> &cumulative_insets);
+
+    /*!
+     * \see WipeTower::generatePaths
+     *
+     * \brief Generate the sparse extrude paths for each extruders combination
+     * \param cumulative_insets The insets added to each extruder to compute the radius of its ring
+     */
+    void generatePaths_sparseInfill(const std::vector<coord_t> &cumulative_insets);
+
+    /*!
+     * \brief Generate the sparse extrude paths for an extruders combination
+     *
+     * \param first_extruder The index of the first extruder to be pseudo-primed
+     * \param last_extruder The index of the last extruder to be pseudo-primed
+     * \param rings_radii The external radii of each extruder ring, plus the internal radius of the internal ring
+     */
+    ExtrusionMoves generatePath_sparseInfill(const size_t first_extruder, const size_t last_extruder, const std::vector<coord_t> &rings_radii);
 
     /*!
      * Generate start locations on the prime tower. The locations are evenly spread around the prime tower's perimeter.
@@ -123,6 +144,9 @@ private:
      * tower paths should be drawn.
      */
     void addToGcode_denseInfill(LayerPlan& gcode_layer, const size_t extruder) const;
+
+    #warning TBD documentation
+    void addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::vector<bool>& required_extruder_prime, const size_t current_extruder, std::vector<size_t>& primed_extruders) const;
 
     /*!
      * For an extruder switch that happens not on the first layer, the extruder needs to be primed on the prime tower.

@@ -597,7 +597,20 @@ public:
      * \param a_step The angle between segments of the circle.
      * \return A new Polygon containing the circle.
      */
-    static Polygon makeCircle(const Point mid, const coord_t radius, const AngleRadians a_step = M_PI / 8);
+    static Polygon makeCircle(const Point &mid, const coord_t radius, const AngleRadians a_step = M_PI / 8);
+
+    /*!
+     * Create a "wheel" shape.
+     *
+     * This creates a polygon which represents the shape of a wheel.
+     * \param mid The center of the circle.
+     * \param inner_radius The radius of the wheel inner circle.
+     * \param outer_radius The radius of the wheel outer circle.
+     * \param semi_nb_spokes The semi number of spokes in the wheel. There will actually be N*2 spokes.
+     * \param arc_angle_resolution The number of segment on each arc.
+     * \return A new Polygon containing the circle.
+     */
+    static Polygon makeWheel(const Point &mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution);
 
     /*!
      * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
