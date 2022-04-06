@@ -2244,7 +2244,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<SupportElemen
 }
 
 
-void TreeSupport::dropNonGraciousAreas(std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons, const std::vector<std::pair<LayerIndex, SupportElement*>>& linear_data, std::vector<std::vector<std::pair<LayerIndex, Polygons>>> dropped_down_areas, const std::map<SupportElement*, SupportElement*>& inverese_tree_order)
+void TreeSupport::dropNonGraciousAreas(std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons, const std::vector<std::pair<LayerIndex, SupportElement*>>& linear_data, std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas, const std::map<SupportElement*, SupportElement*>& inverese_tree_order)
 {
 #pragma omp parallel for schedule(static, 1)
     for (coord_t idx = 0; idx < coord_t(linear_data.size()); idx++)

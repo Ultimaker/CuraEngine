@@ -1303,7 +1303,7 @@ class TreeSupport
      * \param dropped_down_areas[out] Areas that have to be added to support all non-gracefull areas.
      * \param inverese_tree_order[in] A mapping that returns the child of every influence area.
      */
-    void dropNonGraciousAreas(std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons, const std::vector<std::pair<LayerIndex, SupportElement*>>& linear_data, std::vector<std::vector<std::pair<LayerIndex, Polygons>>> dropped_down_areas, const std::map<SupportElement*, SupportElement*>& inverese_tree_order);
+    void dropNonGraciousAreas(std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons, const std::vector<std::pair<LayerIndex, SupportElement*>>& linear_data, std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas, const std::map<SupportElement*, SupportElement*>& inverese_tree_order);
 
 
     /*!
