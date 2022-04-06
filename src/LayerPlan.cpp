@@ -1776,6 +1776,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             double speed = path.config->getSpeed();
 
+            if (!path.config->isTravelPath())
+            {
+                double max_volumetric_speed = 55;
+                speed = std::min(speed, max_volumetric_speed / path.getExtrusionMM3perMM());
+            }
+
             // for some movements such as prime tower purge, the speed may get changed by this factor
             speed *= path.speed_factor;
 
