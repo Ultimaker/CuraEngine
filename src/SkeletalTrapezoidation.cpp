@@ -349,10 +349,12 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
 
 SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys, const BeadingStrategy& beading_strategy,
                                                AngleRadians transitioning_angle, coord_t discretization_step_size,
-                                               coord_t transition_filter_dist, coord_t beading_propagation_transition_dist
+                                               coord_t transition_filter_dist, coord_t allowed_filter_deviation,
+                                               coord_t beading_propagation_transition_dist
     ): transitioning_angle(transitioning_angle), 
     discretization_step_size(discretization_step_size),
     transition_filter_dist(transition_filter_dist),
+    allowed_filter_deviation(allowed_filter_deviation),
     beading_propagation_transition_dist(beading_propagation_transition_dist),
     beading_strategy(beading_strategy)
 {
@@ -796,7 +798,7 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
                 edge.data.setTransitions(edge_transitions.back());  // initialization
                 transitions = edge.data.getTransitions();
             }
-            transitions->emplace_back(mid_pos, transition_lower_bead_count);
+            transitions->emplace_back(mid_pos, transition_lower_bead_count, mid_R);
         }
         assert((edge.from->data.bead_count == edge.to->data.bead_count) || edge.data.hasTransitions());
     }
@@ -893,8 +895,18 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
         bool is_aligned = edge->isUpward();
         edge_t* aligned_edge = is_aligned? edge : edge->twin;
         bool seen_transition_on_this_edge = false;
-        
-        if (aligned_edge->data.hasTransitions())
+
+        const coord_t origin_radius = origin_transition.feature_radius;
+        const coord_t radius_here = edge->from->data.distance_to_boundary;
+        const bool dissolve_result_is_odd = bool(origin_transition.lower_bead_count % 2) == going_up;
+        const coord_t width_deviation = std::abs(origin_radius - radius_here) * 2; // times by two because the deviation happens at both sides of the significant edge
+        const coord_t line_width_deviation = dissolve_result_is_odd? width_deviation : width_deviation / 2; // assume the deviation will be split over either 1 or 2 lines, i.e. assume wall_distribution_count = 1
+        if (line_width_deviation > allowed_filter_deviation)
+        {
+            should_dissolve = false;
+        }
+
+        if (should_dissolve && aligned_edge->data.hasTransitions())
         {
             auto& transitions = *aligned_edge->data.getTransitions();
             for (auto transition_it = transitions.begin(); transition_it != transitions.end(); ++ transition_it)
@@ -914,7 +926,7 @@ std::list<SkeletalTrapezoidation::TransitionMidRef> SkeletalTrapezoidation::diss
                 }
             }
         }
-        if (!seen_transition_on_this_edge)
+        if (should_dissolve && !seen_transition_on_this_edge)
         {
             std::list<SkeletalTrapezoidation::TransitionMidRef> to_be_dissolved_here = dissolveNearbyTransitions(edge, origin_transition, traveled_dist + ab_size, max_dist, going_up);
             if (to_be_dissolved_here.empty())
