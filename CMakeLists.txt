@@ -7,11 +7,14 @@ project(CuraEngine)
 set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 option(BUILD_TESTS "Build with unit tests" OFF)
-option(ENABLE_OPENMP "Use OpenMP for parallel code" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(EXTENSIVE_WARNINGS "Compile with all warnings" OFF)
+
+if(NOT APPLE)
+    option(ENABLE_OPENMP "Use OpenMP for parallel code" ON)
+endif()
 
 include(cmake/StandardProjectSettings.cmake)
 
