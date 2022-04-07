@@ -61,6 +61,7 @@ class SkeletalTrapezoidation
     AngleRadians transitioning_angle; //!< How pointy a region should be before we apply the method. Equals 180* - limit_bisector_angle
     coord_t discretization_step_size; //!< approximate size of segments when parabolic VD edges get discretized (and vertex-vertex edges)
     coord_t transition_filter_dist; //!< Filter transition mids (i.e. anchors) closer together than this
+    coord_t allowed_filter_deviation; //!< The allowed line width deviation induced by filtering
     coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
     static constexpr coord_t central_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
     static constexpr coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
@@ -98,9 +99,10 @@ public:
     SkeletalTrapezoidation(const Polygons& polys, 
                            const BeadingStrategy& beading_strategy,
                            AngleRadians transitioning_angle
-    , coord_t discretization_step_size = MM2INT(0.8)
-    , coord_t transition_filter_dist = MM2INT(1)
-    , coord_t beading_propagation_transition_dist = MM2INT(0.4));
+    , coord_t discretization_step_size
+    , coord_t transition_filter_dist
+    , coord_t allowed_filter_deviation
+    , coord_t beading_propagation_transition_dist);
 
     /*!
      * A skeletal graph through the polygons that we need to fill with beads.
@@ -120,7 +122,7 @@ public:
      * "central" but as if it's a obtuse corner. As a result, sharp corners will
      * no longer end in a single line but will just loop.
      */
-    void generateToolpaths(VariableWidthPaths& generated_toolpaths, bool filter_outermost_central_edges = false);
+    void generateToolpaths(std::vector<VariableWidthLines>& generated_toolpaths, bool filter_outermost_central_edges = false);
 
 protected:
     /*!
@@ -161,8 +163,10 @@ protected:
 
     /*!
      * (Eventual) returned 'polylines per index' result (from generateToolpaths):
+     * 
+     * Binned by inset_idx.
      */
-    VariableWidthPaths* p_generated_toolpaths;
+    std::vector<VariableWidthLines>* p_generated_toolpaths;
 
     /*!
      * Transfer an edge from the VD to the HE and perform discretization of parabolic edges (and vertex-vertex edges)

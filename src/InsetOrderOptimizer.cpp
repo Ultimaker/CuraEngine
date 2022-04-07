@@ -26,7 +26,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
                                          const size_t wall_0_extruder_nr,
                                          const size_t wall_x_extruder_nr,
                                          const ZSeamConfig& z_seam_config,
-                                         const VariableWidthPaths& paths) :
+                                         const std::vector<VariableWidthLines>& paths) :
     gcode_writer(gcode_writer),
     storage(storage),
     gcode_layer(gcode_layer),
@@ -54,7 +54,6 @@ bool InsetOrderOptimizer::addToLayer()
     // Settings & configs:
     const bool pack_by_inset = ! settings.get<bool>("optimize_wall_printing_order");
     const InsetDirection inset_direction = settings.get<InsetDirection>("inset_direction");
-    const bool center_last = inset_direction == InsetDirection::CENTER_LAST;
     const bool alternate_walls = settings.get<bool>("material_alternate_walls");
 
     const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
@@ -128,23 +127,6 @@ bool InsetOrderOptimizer::addToLayer()
         pack_by_inset?
         getInsetOrder(walls_to_be_added, outer_to_inner)
         : getRegionOrder(walls_to_be_added, outer_to_inner);
-    
-    if (center_last)
-    {
-        for (const ExtrusionLine* line : walls_to_be_added)
-        {
-            if (line->is_odd)
-            {
-                for (const ExtrusionLine* other_line : walls_to_be_added)
-                {
-                    if ( ! other_line->is_odd)
-                    {
-                        order.emplace(std::make_pair(other_line, line));
-                    }
-                }
-            }
-        }
-    }
     
     constexpr Ratio flow = 1.0_r;
     

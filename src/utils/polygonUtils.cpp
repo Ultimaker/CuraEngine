@@ -87,7 +87,7 @@ void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, 
 
 std::vector<Point> PolygonUtils::spreadDotsArea(const Polygons& polygons, coord_t grid_size)
 {
-    VariableWidthPaths dummy_toolpaths;
+    std::vector<VariableWidthLines> dummy_toolpaths;
     Settings dummy_settings;
     Infill infill_gen(EFillMethod::LINES, false, false, polygons, 0, grid_size, 0, 1, 0, 0, 0, 0, 0);
     Polygons result_polygons;

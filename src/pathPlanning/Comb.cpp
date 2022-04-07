@@ -62,7 +62,27 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
         , this
         , offset_from_inside_to_outside
     )
-, move_inside_distance(move_inside_distance)
+, model_boundary(
+          [&storage, layer_nr]()
+          {
+              const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+              bool travel_avoid_supports = false;
+              for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+              {
+                  travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
+              }
+              return storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports);
+          }
+      )
+, model_boundary_loc_to_line(
+          [](Comb* comber, const int64_t offset_from_inside_to_outside)
+          {
+              return PolygonUtils::createLocToLineGrid(*comber->model_boundary, offset_from_inside_to_outside * 3 / 2);
+          }
+          , this
+          , offset_from_inside_to_outside
+      )
+    , move_inside_distance(move_inside_distance)
 {
 }
 
@@ -208,15 +228,38 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
         comb_paths.throughAir = true;
         if ( vSize(start_crossing.in_or_mid - end_crossing.in_or_mid) < vSize(start_crossing.in_or_mid - start_crossing.out) + vSize(end_crossing.in_or_mid - end_crossing.out) )
         { // via outside is moving more over the in-between zone
+            comb_paths.emplace_back();
+            // we are not sure if these paths travel through air or cross a boundary
+            // but, they might be so set it to be certain (error on the safe side).
+            comb_paths.throughAir = true;
+            comb_paths.back().cross_boundary = true;
             comb_paths.back().push_back(start_crossing.in_or_mid);
             comb_paths.back().push_back(end_crossing.in_or_mid);
         }
         else
         {
-            bool combing_succeeded = LinePolygonsCrossings::comb(*boundary_outside, getOutsideLocToLine(), start_crossing.out, end_crossing.out, comb_paths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
-            if (!combing_succeeded)
+            CombPath tmp_comb_path;
+            bool combing_succeeded = LinePolygonsCrossings::comb(*boundary_outside, getOutsideLocToLine(), start_crossing.out, end_crossing.out, tmp_comb_path, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, true);
+
+            if (combing_succeeded)
+            {
+                // add combing travel moves if the combing was successful
+                comb_paths.push_back(tmp_comb_path);
+            }
+            else if (fail_on_unavoidable_obstacles)
             {
                 return false;
+            }
+            else
+            {
+                // if combing is not possible then move directly to the target destination
+                // this happens for instance when trying to avoid skin-regions and combing from
+                // an origin that is on a hole-boundary to a destination that is on the outline-border
+                comb_paths.emplace_back();
+                comb_paths.throughAir = true;
+                comb_paths.back().cross_boundary = true;
+                comb_paths.back().push_back(start_crossing.in_or_mid);
+                comb_paths.back().push_back(end_crossing.in_or_mid);
             }
         }
     }
@@ -238,7 +281,7 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
             }
             else
             { // both start and end are outside
-                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getOutsideLocToLine());
+                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, **model_boundary_loc_to_line);
             }
         }
         else

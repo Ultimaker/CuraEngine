@@ -26,8 +26,10 @@ public:
     {
         coord_t pos; // Position along edge as measure from edge.from.p
         int lower_bead_count;
-        TransitionMiddle(coord_t pos, int lower_bead_count)
+        coord_t feature_radius; // The feature radius at which this transition is placed
+        TransitionMiddle(coord_t pos, int lower_bead_count, coord_t feature_radius)
             : pos(pos), lower_bead_count(lower_bead_count)
+            , feature_radius(feature_radius)
         {}
     };
 
