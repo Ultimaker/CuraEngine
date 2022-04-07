@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include "clipper.hpp"
+#include <polyclipping/clipper.hpp>
 #include <math.h>
 
 // #define TEST_INFILL_SVG_OUTPUT
