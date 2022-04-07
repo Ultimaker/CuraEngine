@@ -61,6 +61,7 @@ PrimeTower::PrimeTower()
         const Ratio adhesion_b = scene_pointer->extruders[extruder_nr_b].settings.get<Ratio>("material_adhesion_tendency");
         return adhesion_a < adhesion_b;
     });
+    #warning TBD take care of actual extruder order for optimized tower !
 }
 
 void PrimeTower::generateGroundpoly()
@@ -165,6 +166,13 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t> &cumulati
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const PrimeTowerMethod method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
 
+    std::set<coord_t> lines_widths;
+    for(size_t extruder_nr : extruder_order)
+    {
+        const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
+        lines_widths.insert(line_width);
+    }
+
     if(method == PrimeTowerMethod::OPTIMIZED || method == PrimeTowerMethod::OPTIMIZED_CONSISTENT)
     {
         const size_t nb_extruders = scene.extruders.size();
@@ -195,13 +203,20 @@ void PrimeTower::generatePaths_sparseInfill(const std::vector<coord_t> &cumulati
                     extruders_combination |= (1 << extruder_nr);
                 }
 
-                sparse_pattern_per_extruders[extruders_combination] = generatePath_sparseInfill(first_extruder, last_extruder, rings_radii);
+                std::map<coord_t, ExtrusionMoves> infills_for_combination;
+                for(coord_t line_width : lines_widths)
+                {
+                    ExtrusionMoves infill = generatePath_sparseInfill(first_extruder, last_extruder, rings_radii, line_width);
+                    infills_for_combination[line_width] = infill;
+                }
+
+                sparse_pattern_per_extruders[extruders_combination] = infills_for_combination;
             }
         }
     }
 }
 
-PrimeTower::ExtrusionMoves PrimeTower::generatePath_sparseInfill(const size_t first_extruder, const size_t last_extruder, const std::vector<coord_t> &rings_radii)
+PrimeTower::ExtrusionMoves PrimeTower::generatePath_sparseInfill(const size_t first_extruder, const size_t last_extruder, const std::vector<coord_t> &rings_radii, const coord_t line_width)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
@@ -209,6 +224,7 @@ PrimeTower::ExtrusionMoves PrimeTower::generatePath_sparseInfill(const size_t fi
     const coord_t outer_radius = rings_radii[first_extruder];
     const coord_t inner_radius = rings_radii[last_extruder + 1];
     const coord_t radius_delta = outer_radius - inner_radius;
+    const coord_t semi_line_width = line_width / 2;
 
     // Split ring according to max bridging distance
     const size_t nb_rings = std::ceil(static_cast<float>(radius_delta) / max_bridging_distance);
@@ -217,8 +233,8 @@ PrimeTower::ExtrusionMoves PrimeTower::generatePath_sparseInfill(const size_t fi
     ExtrusionMoves pattern;
     for(size_t i = 0 ; i < nb_rings ; ++i)
     {
-        const coord_t ring_inner_radius = inner_radius + i * actual_radius_step;
-        const coord_t ring_outer_radius = inner_radius + (i + 1) * actual_radius_step;
+        const coord_t ring_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
+        const coord_t ring_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
 
         const size_t semi_nb_spokes = std::ceil((M_PI * ring_outer_radius) / max_bridging_distance);
 
@@ -388,7 +404,9 @@ void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::v
     #warning What should we do in case of extruders with different lines widths ?
     // And finally, append patterns for each group
     const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[current_extruder];
-    log("line width %d %d\n", config.getLineWidth(), current_extruder);
+    const Scene& scene = Application::getInstance().current_slice->scene;
+    const coord_t line_width = scene.extruders[current_extruder].settings.get<coord_t>("prime_tower_line_width");
+
     for(const std::vector<size_t> &group : extruders_to_prime_grouped)
     {
         size_t mask = 0;
@@ -397,11 +415,20 @@ void PrimeTower::addToGcode_optimizedInfill(LayerPlan& gcode_layer, const std::v
             mask |= (1 << extruder);
         }
 
-        auto iterator = sparse_pattern_per_extruders.find(mask);
-        if(iterator != sparse_pattern_per_extruders.end())
+        auto iterator_combination = sparse_pattern_per_extruders.find(mask);
+        if(iterator_combination != sparse_pattern_per_extruders.end())
         {
+            const std::map<coord_t, ExtrusionMoves> &infill_for_combination = iterator_combination->second;
 
-            gcode_layer.addPolygonsByOptimizer(iterator->second.polygons, config);
+            auto iterator_line_width = infill_for_combination.find(line_width);
+            if(iterator_line_width != infill_for_combination.end())
+            {
+                gcode_layer.addPolygonsByOptimizer(iterator_line_width->second.polygons, config);
+            }
+            else
+            {
+                logWarning("Sparse pattern not found for line width %d, skipping\n", line_width);
+            }
         }
         else
         {
