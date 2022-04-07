@@ -27,22 +27,22 @@ namespace cura
     class PathOrderMonotonicTest : public testing::TestWithParam<std::tuple<std::string, AngleRadians>>
     {};
 
-    inline Point startVertex(const PathOrderMonotonic<ConstPolygonRef>::Path& path)
+    inline Point startVertex(const PathOrderPath<ConstPolygonPointer>& path)
     {
-        return path.vertices[path.start_vertex];
+        return (*path.vertices)[path.start_vertex];
     }
 
-    inline Point endVertex(const PathOrderMonotonic<ConstPolygonRef>::Path& path)
+    inline Point endVertex(const PathOrderPath<ConstPolygonPointer>& path)
     {
-        return path.vertices[path.vertices.size() - (1 + path.start_vertex)];
+        return (*path.vertices)[path.vertices->size() - (1 + path.start_vertex)];
     }
 
-    coord_t projectPathAlongAxis(const PathOrderMonotonic<ConstPolygonRef>::Path& path, const Point& vector)
+    coord_t projectPathAlongAxis(const PathOrderPath<ConstPolygonPointer>& path, const Point& vector)
     {
         return dot(startVertex(path), vector);
     }
 
-    coord_t projectEndAlongAxis(const PathOrderMonotonic<ConstPolygonRef>::Path& path, const Point& vector)
+    coord_t projectEndAlongAxis(const PathOrderPath<ConstPolygonPointer>& path, const Point& vector)
     {
         return dot(endVertex(path), vector);
     }
@@ -58,8 +58,8 @@ namespace cura
 
     coord_t shortestDistance
     (
-        const PathOrderMonotonic<ConstPolygonRef>::Path& path_a,
-        const PathOrderMonotonic<ConstPolygonRef>::Path& path_b
+        const PathOrderPath<ConstPolygonPointer>& path_a,
+        const PathOrderPath<ConstPolygonPointer>& path_b
     )
     {
         // NOTE: Assume these are more or less lines.
@@ -68,7 +68,7 @@ namespace cura
         return vSize(point_pair.second - point_pair.first);
     }
 
-    coord_t pathLength(const PathOrderMonotonic<ConstPolygonRef>::Path& path)
+    coord_t pathLength(const PathOrderPath<ConstPolygonPointer>& path)
     {
         // NOTE: Assume these are more or less lines.
         return vSize(endVertex(path) - startVertex(path));
@@ -114,7 +114,7 @@ namespace cura
                 max_deviation
             );
             Settings infill_settings;
-            VariableWidthPaths result_paths;
+            std::vector<VariableWidthLines> result_paths;
             Polygons dummy_polys;
             infill_comp.generate(result_paths, dummy_polys, output, infill_settings, nullptr, nullptr);
         }
@@ -127,7 +127,7 @@ namespace cura
         const std::string& original_filename,
         const AngleRadians& angle,
         const Point& monotonic_vec,
-        const std::vector<std::vector<PathOrderMonotonic<ConstPolygonRef>::Path>>& sections
+        const std::vector<std::vector<PathOrderPath<ConstPolygonPointer>>>& sections
     )
     {
         constexpr int buff_size = 1024;
@@ -181,15 +181,15 @@ namespace cura
         const Point perpendicular_axis{ turn90CCW(monotonic_axis) };
 
         constexpr coord_t max_adjacent_distance = line_distance + 1;
-        PathOrderMonotonic<ConstPolygonRef> object_under_test(angle_from_first_line, max_adjacent_distance, monotonic_axis * -1000);
+        PathOrderMonotonic<ConstPolygonPointer> object_under_test(angle_from_first_line, max_adjacent_distance, monotonic_axis * -1000);
         for (const auto& polyline : polylines)
         {
-            object_under_test.addPolyline(polyline);
+            object_under_test.addPolyline(ConstPolygonPointer(polyline));
         }
         object_under_test.optimize();
 
         // Collect sections:
-        std::vector<std::vector<PathOrderMonotonic<ConstPolygonRef>::Path>> sections;
+        std::vector<std::vector<PathOrderPath<ConstPolygonPointer>>> sections;
         sections.emplace_back();
         coord_t last_path_mono_projection = projectPathAlongAxis(object_under_test.paths.front(), monotonic_axis);
         for (const auto& path : object_under_test.paths)

@@ -24,6 +24,7 @@ std::string SVG::toString(Color color) const
         case SVG::Color::RED: return "red";
         case SVG::Color::BLUE: return "blue";
         case SVG::Color::GREEN: return "green";
+        case SVG::Color::LIME: return "lime";
         case SVG::Color::ORANGE: return "orange";
         case SVG::Color::MAGENTA: return "magenta";
         case SVG::Color::YELLOW: return "yellow";
@@ -332,7 +333,7 @@ void SVG::writePolyline(ConstPolygonRef poly, const ColorObject color, const flo
     }
 }
 
-void SVG::writePaths(const VariableWidthPaths& paths, const ColorObject color, const float width_factor) const
+void SVG::writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color, const float width_factor) const
 {
     for(const VariableWidthLines& lines : paths)
     {

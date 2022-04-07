@@ -40,6 +40,7 @@ class Infill
     coord_t max_deviation; //!< Max deviation fro the original poly when enforcing max_resolution
     size_t wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     const Point infill_origin; //!< origin of the infill pattern
+    bool skip_line_stitching; //!< Whether to bypass the line stitching normally performed for polyline type infills
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
@@ -64,6 +65,7 @@ public:
         , coord_t max_deviation
         , size_t wall_line_count = 0
         , const Point& infill_origin = Point()
+        , bool skip_line_stitching = false
         , bool connected_zigzags = false
         , bool use_endpieces = false
         , bool skip_some_zags = false
@@ -85,6 +87,7 @@ public:
     , max_deviation(max_deviation)
     , wall_line_count(wall_line_count)
     , infill_origin(infill_origin)
+    , skip_line_stitching(skip_line_stitching)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
     , skip_some_zags(skip_some_zags)
@@ -101,7 +104,7 @@ public:
     /*!
      * Generate the infill.
      * 
-     * \param toolpaths (output) The resulting variable-width paths (from the extra walls around the pattern).
+     * \param toolpaths (output) The resulting variable-width paths (from the extra walls around the pattern). Binned by inset_idx.
      * \param result_polygons (output) The resulting polygons (from concentric infill)
      * \param result_lines (output) The resulting line segments (from linear infill types)
      * \param settings A settings storage to use for generating variable-width walls.
@@ -109,13 +112,13 @@ public:
      * \param mesh A mesh for which to generate infill (should only be used for non-helper-mesh objects).
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      */
-    void generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider = nullptr, const LightningLayer * lightning_layer = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void generate(std::vector<VariableWidthLines>& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider = nullptr, const LightningLayer * lightning_layer = nullptr, const SliceMeshStorage* mesh = nullptr);
 
     /*!
      * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
      * This function is called within the generate() function but can also be called stand-alone
      *
-     * \param toolpaths [out] The generated toolpaths
+     * \param toolpaths [out] The generated toolpaths. Binned by inset_idx.
      * \param outer_contour [in,out] the outer contour, this is offsetted with the infill overlap
      * \param wall_line_count [in] The number of walls that needs to be generated
      * \param line_width [in] The optimum wall line width of the walls
@@ -123,12 +126,12 @@ public:
      * \param settings [in] A settings storage to use for generating variable-width walls.
      * \return The inner contour of the wall toolpaths
      */
-    static Polygons generateWallToolPaths(VariableWidthPaths& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings);
+    static Polygons generateWallToolPaths(std::vector<VariableWidthLines>& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings);
 private:
     /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
-    void _generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const LightningLayer * lightning_layer = nullptr, const SliceMeshStorage* mesh = nullptr);
+    void _generate(std::vector<VariableWidthLines>& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_pattern = nullptr, const LightningLayer * lightning_layer = nullptr, const SliceMeshStorage* mesh = nullptr);
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
@@ -253,10 +256,10 @@ private:
     /*!
      * Generate sparse concentric infill
      * 
-     * \param toolpaths (output) The resulting toolpaths
+     * \param toolpaths (output) The resulting toolpaths. Binned by inset_idx.
      * \param inset_value The offset between each consecutive two polygons
      */
-    void generateConcentricInfill(VariableWidthPaths& toolpaths, const Settings& settings);
+    void generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
     /*!
      * Generate a rectangular grid of infill lines

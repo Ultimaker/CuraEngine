@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <gtest/gtest.h>
@@ -72,7 +72,6 @@ public:
         
         //Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");
-        settings.add("beading_strategy_type", "inward_distributed");
         settings.add("fill_outline_gaps", "false");
         settings.add("initial_layer_line_width_factor", "100");
         settings.add("magic_spiralize", "false");

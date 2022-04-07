@@ -175,39 +175,6 @@ bool STHalfEdgeNode::isLocalMaximum(bool strict) const
     } while (edge = edge->twin->next, edge != incident_edge);
     return true;
 }
-
-void SkeletalTrapezoidationGraph::fixNodeDuplication()
-{
-    for (auto node_it = nodes.begin(); node_it != nodes.end();)
-    {
-        node_t* replacing_node = nullptr;
-        for (edge_t* outgoing = node_it->incident_edge; outgoing != node_it->incident_edge; outgoing = outgoing->twin->next)
-        {
-            assert(outgoing);
-            if (outgoing->from != &*node_it)
-            {
-                replacing_node = outgoing->from;
-            }
-            if (outgoing->twin->to != &*node_it)
-            {
-                replacing_node = outgoing->twin->to;
-            }
-        }
-        if (replacing_node)
-        {
-            for (edge_t* outgoing = node_it->incident_edge; outgoing != node_it->incident_edge; outgoing = outgoing->twin->next)
-            {
-                outgoing->twin->to = replacing_node;
-                outgoing->from = replacing_node;
-            }
-            node_it = nodes.erase(node_it);
-        }
-        else
-        {
-            ++node_it;
-        }
-    }
-}
     
 void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 {

@@ -87,7 +87,7 @@ void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, 
 
 std::vector<Point> PolygonUtils::spreadDotsArea(const Polygons& polygons, coord_t grid_size)
 {
-    VariableWidthPaths dummy_toolpaths;
+    std::vector<VariableWidthLines> dummy_toolpaths;
     Settings dummy_settings;
     Infill infill_gen(EFillMethod::LINES, false, false, polygons, 0, grid_size, 0, 1, 0, 0, 0, 0, 0);
     Polygons result_polygons;
@@ -685,94 +685,6 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
         } // otherwise we just return the closest polygon point without modifying the from location
         return closest_polygon_point; // don't return a ClosestPolygonPoint with a reference to the above local polygons variable
     }
-}
-
-
-
-std::pair<ClosestPolygonPoint, ClosestPolygonPoint> PolygonUtils::findConnection(ConstPolygonRef poly1, Polygons& polys2, coord_t min_connection_length, coord_t max_connection_length, std::function<bool (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>)> precondition)
-{
-    ClosestPolygonPoint invalid;
-    std::pair<ClosestPolygonPoint, ClosestPolygonPoint> ret = std::make_pair(invalid, invalid);
-    if (poly1.empty() || polys2.empty())
-    {
-        return ret;
-    }
-
-    const coord_t min_connection_dist2 = min_connection_length * min_connection_length;
-    const coord_t max_connection_dist2 = max_connection_length * max_connection_length;
-
-    auto grid = PolygonUtils::createLocToLineGrid(polys2, max_connection_length);
-
-
-    std::unordered_set<std::pair<size_t, PolygonsPointIndex>> checked_segment_pairs; // pairs of index into segment start on poly1 and PolygonsPointIndex to segment start on polys2
-
-    for (size_t point_idx = 0; point_idx < poly1.size(); point_idx++)
-    {
-        std::function<bool (const PolygonsPointIndex&)> process_elem_func =
-            [&, point_idx](const PolygonsPointIndex& line_from)
-            {
-                std::pair<size_t, PolygonsPointIndex> segment_pair = std::make_pair(point_idx, line_from);
-                if (checked_segment_pairs.count(segment_pair) > 0)
-                { // these two line segments were already checked
-                    return true; // continue looking for connections
-                }
-
-                Point a1 = poly1[point_idx];
-                Point a2 = poly1[(point_idx + 1) % poly1.size()];
-                Point b1 = line_from.p();
-                Point b2 = line_from.next().p();
-                std::pair<Point, Point> connection = LinearAlg2D::getClosestConnection(a1, a2, b1, b2);
-                coord_t dist2 = vSize2(connection.first - connection.second);
-                ret = std::make_pair(
-                    ClosestPolygonPoint(connection.first, point_idx, poly1),
-                    ClosestPolygonPoint(connection.second, line_from.point_idx, polys2[line_from.poly_idx], line_from.poly_idx));
-                if (min_connection_dist2 < dist2 && dist2 < max_connection_dist2
-                    && precondition(ret))
-                {
-                    return false; // stop the search; break the for-loop
-                }
-
-                checked_segment_pairs.emplace(point_idx, line_from);
-                return true; // continue looking for connections
-            };
-
-        std::pair<Point, Point> line = std::make_pair(poly1[point_idx], poly1[(point_idx + 1) % poly1.size()]);
-        Point normal_vector = normal(turn90CCW(line.second - line.first), max_connection_length);
-        std::pair<Point, Point> line2 = std::make_pair(line.first + normal_vector, line.second + normal_vector); // for neighborhood around the line
-        std::pair<Point, Point> line3 = std::make_pair(line.first - normal_vector, line.second - normal_vector); // for neighborhood around the line
-
-        bool continue_;
-        continue_ = grid->processLine(line, process_elem_func);
-        if (!continue_) break;
-        continue_ = grid->processLine(line2, process_elem_func);
-        if (!continue_) break;
-        continue_ = grid->processLine(line3, process_elem_func);
-        if (!continue_) break;
-    }
-    ret.first.poly_idx = 0;
-    return ret;
-}
-
-void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
-{
-    if (!poly1_result.poly || !poly2_result.poly)
-    {
-        return;
-    }
-    ConstPolygonRef poly1 = *poly1_result.poly;
-    ConstPolygonRef poly2 = *poly2_result.poly;
-    if (poly1.size() == 0 || poly2.size() == 0)
-    {
-        return;
-    }
-
-    Point center1 = poly1[0];
-    ClosestPolygonPoint intermediate_poly2_result = findClosest(center1, poly2);
-    ClosestPolygonPoint intermediate_poly1_result = findClosest(intermediate_poly2_result.p(), poly1);
-
-    poly2_result = findClosest(intermediate_poly1_result.p(), poly2);
-    poly1_result = findClosest(poly2_result.p(), poly1);
-    walkToNearestSmallestConnection(poly1_result, poly2_result);
 }
 
 void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
@@ -1510,14 +1422,14 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
         return;
     }
 
-    const coord_t half_epsilon = (epsilon + 1) / 2;
+    const coord_t half_epsilon = std::max(10LL, (epsilon + 1) / 2);
 
     // Points too close to line segments should be moved a little away from those line segments, but less than epsilon,
     //   so at least half-epsilon distance between points can still be guaranteed.
     constexpr coord_t grid_size = 2000;
     auto query_grid = PolygonUtils::createLocToLineGrid(thiss, grid_size);
 
-    const coord_t move_dist = std::max(2LL, half_epsilon - 2);
+    const coord_t move_dist = half_epsilon - 2;
     const coord_t half_epsilon_sqrd = half_epsilon * half_epsilon;
 
     const size_t n = thiss.size();
@@ -1527,7 +1439,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
         for (size_t point_idx = 0; point_idx < pathlen; ++point_idx)
         {
             Point& pt = thiss[poly_idx][point_idx];
-            for (const auto& line : query_grid->getNearby(pt, epsilon))
+            for (const auto& line : query_grid->getNearby(pt, epsilon * 2))
             {
                 const size_t line_next_idx = (line.point_idx + 1) % thiss[line.poly_idx].size();
                 if (poly_idx == line.poly_idx && (point_idx == line.point_idx || point_idx == line_next_idx))
