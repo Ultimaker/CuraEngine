@@ -4,7 +4,7 @@
 #include <string>
 
 #include <gtest/gtest.h>
-#include <clipper.hpp>
+#include <polyclipping/clipper.hpp>
 
 #include "../src/infill.h"
 #include "../src/utils/linearAlg2D.h"

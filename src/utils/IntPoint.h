@@ -11,7 +11,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #define INLINE static inline
 
 //Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
-#include "clipper.hpp"
+#include <polyclipping/clipper.hpp>
 #include <cmath>
 #include <functional> // for hash function object
 #include <iostream> // auto-serialization / auto-toString()
