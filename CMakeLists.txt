@@ -33,12 +33,9 @@ endif()
 find_package(Stb REQUIRED)
 include_directories(${Stb_INCLUDE_DIRS})
 
-#arachne needs boost polygon/voronoi
-find_package(boost QUIET)
-if(NOT TARGET boost::boost)
-    find_package(Boost REQUIRED)
-else()
-    add_library(Boost::boost ALIAS boost::boost)
+find_package(Boost REQUIRED 1.75.0)
+if(NOT TARGET Boost::boost)  # Workaround for different namespace in non Conan find_packages
+    add_library(boost::boost ALIAS Boost::boost)
 endif()
 
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
@@ -326,7 +323,7 @@ if (ENABLE_ARCUS)
     target_link_libraries(_CuraEngine Arcus)
 endif ()
 
-target_link_libraries(_CuraEngine Boost::boost)
+target_link_libraries(_CuraEngine boost::boost)
 set_target_properties(_CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")
 
 if(WIN32)
