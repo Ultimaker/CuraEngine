@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring>
@@ -85,25 +85,24 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
     constexpr double epsilon_speed_factor = 0.001; // Don't put on actual 'limit double minimum', because we don't want printers to stall.
     for (auto& path : paths)
     {
-        const Ratio nominal_flow_for_path = path.config->getFlowRatio();
         const double nominal_width_for_path = static_cast<double>(path.config->getLineWidth());
-        if (path.flow <= 0.0 || nominal_flow_for_path <= 0.0 || nominal_width_for_path <= 0.0 || path.config->isTravelPath() || path.config->isBridgePath())
+        if(path.width_factor <= 0.0 || nominal_width_for_path <= 0.0 || path.config->isTravelPath() || path.config->isBridgePath())
         {
             continue;
         }
-        const double line_width_for_path = path.flow * nominal_flow_for_path * nominal_width_for_path;
+        const double line_width_for_path = path.width_factor * nominal_width_for_path;
         path.speed_back_pressure_factor = std::max(epsilon_speed_factor, 1.0 + (nominal_width_for_path / line_width_for_path - 1.0) * back_pressure_compensation);
     }
 }
 
-GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow, bool spiralize, const Ratio speed_factor)
+GCodePath* LayerPlan::getLatestPathWithConfig(const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, bool spiralize, const Ratio speed_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == &config && !paths.back().done && paths.back().flow == flow && paths.back().speed_factor == speed_factor && paths.back().mesh_id == current_mesh) // spiralize can only change when a travel path is in between
+    if(paths.size() > 0 && paths.back().config == &config && !paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor && paths.back().speed_factor == speed_factor && paths.back().mesh_id == current_mesh) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
-    paths.emplace_back(config, current_mesh, space_fill_type, flow, spiralize, speed_factor);
+    paths.emplace_back(config, current_mesh, space_fill_type, flow, width_factor, spiralize, speed_factor);
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge;
     return ret;
@@ -301,16 +300,17 @@ void LayerPlan::setMesh(const std::string mesh_id)
     current_mesh = mesh_id;
 }
 
-void LayerPlan::moveInsideCombBoundary(const coord_t distance)
+void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part)
 {
     constexpr coord_t max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
-    // this function is to be used to move from the boudary of a part to inside the part
+    // this function is to be used to move from the boundary of a part to inside the part
     Point p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
     if (PolygonUtils::moveInside(comb_boundary_preferred, p, distance, max_dist2) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners
         PolygonUtils::moveInside(comb_boundary_preferred, p, distance, max_dist2);
-        if (comb_boundary_preferred.inside(p))
+        if (comb_boundary_preferred.inside(p) &&
+            (part == std::nullopt || part->outline.inside(p)))
         {
             addTravel_simple(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
@@ -510,9 +510,9 @@ void LayerPlan::planPrime(const float& prime_blob_wipe_length)
     forceNewPathStart();
 }
 
-void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio& flow, bool spiralize, Ratio speed_factor, double fan_speed)
+void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFillType space_fill_type, const Ratio& flow, const Ratio width_factor, bool spiralize, Ratio speed_factor, double fan_speed)
 {
-    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, flow, spiralize, speed_factor);
+    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, flow, width_factor, spiralize, speed_factor);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
     last_planned_position = p;
@@ -520,19 +520,20 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFi
 
 void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const bool backwards, const GCodePathConfig& config, coord_t wall_0_wipe_dist, bool spiralize, const Ratio& flow_ratio, bool always_retract)
 {
+    constexpr Ratio width_ratio = 1.0_r; //Not printed with variable line width.
     Point p0 = polygon[start_idx];
     addTravel(p0, always_retract);
     const int direction = backwards ? -1 : 1;
     for(size_t point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
         Point p1 = polygon[(start_idx + point_idx * direction + polygon.size()) % polygon.size()];
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow_ratio, spiralize);
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow_ratio, width_ratio, spiralize);
         p0 = p1;
     }
     if(polygon.size() > 2)
     {
         const Point& p1 = polygon[start_idx];
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow_ratio, spiralize);
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow_ratio, width_ratio, spiralize);
 
         if(wall_0_wipe_dist > 0)
         { // apply outer wall wipe
@@ -580,7 +581,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 
     if(!reverse_order)
     {
-        for(const PathOrderOptimizer<ConstPolygonPointer>::Path& path : orderOptimizer.paths)
+        for(const PathOrderPath<ConstPolygonPointer>& path : orderOptimizer.paths)
         {
             addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
@@ -589,7 +590,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     {
         for(int index = orderOptimizer.paths.size() - 1; index >= 0; --index)
         {
-            const PathOrderOptimizer<ConstPolygonPointer>::Path& path = orderOptimizer.paths[index];
+            const PathOrderPath<ConstPolygonPointer>& path = orderOptimizer.paths[index];
             addPolygon(**path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
@@ -597,7 +598,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
 
 static constexpr float max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
-void LayerPlan::addWallLine(const Point& p0, const Point& p1, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start)
+void LayerPlan::addWallLine(const Point& p0, const Point& p1, const Settings& settings, const GCodePathConfig& non_bridge_config, const GCodePathConfig& bridge_config, float flow, const Ratio width_factor, float& non_bridge_line_volume, Ratio speed_factor, double distance_to_bridge_start)
 {
     const coord_t min_line_len = 5; // we ignore lines less than 5um long
     const double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
@@ -652,15 +653,16 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const Settings& se
                     if ((len - coast_dist) > min_line_len)
                     {
                         // segment is longer than coast distance so extrude using non-bridge config to start of coast
-                        addExtrusionMove(segment_end + coast_dist * (cur_point - segment_end) / len, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize, speed_factor);
+                        addExtrusionMove(segment_end + coast_dist * (cur_point - segment_end) / len, non_bridge_config, SpaceFillType::Polygons, segment_flow, width_factor, spiralize, speed_factor);
                     }
                     // then coast to start of bridge segment
-                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, 0, spiralize, speed_factor);
+                    constexpr Ratio flow = 0.0_r; //Coasting has no flow rate.
+                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, flow, width_factor, spiralize, speed_factor);
                 }
                 else
                 {
                     // no coasting required, just normal segment using non-bridge config
-                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize,
+                    addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, width_factor, spiralize,
                         (overhang_mask.empty() || (!overhang_mask.inside(p0, true) && !overhang_mask.inside(p1, true))) ? speed_factor : overhang_speed_factor);
                 }
 
@@ -669,10 +671,10 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const Settings& se
             else
             {
                 // no coasting required, just normal segment using non-bridge config
-                addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, spiralize,
+                addExtrusionMove(segment_end, non_bridge_config, SpaceFillType::Polygons, segment_flow, width_factor, spiralize,
                     (overhang_mask.empty() || (!overhang_mask.inside(p0, true) && !overhang_mask.inside(p1, true))) ? speed_factor : overhang_speed_factor);
             }
-            non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * speed_factor * non_bridge_config.getSpeed();
+            non_bridge_line_volume += vSize(cur_point - segment_end) * segment_flow * width_factor * speed_factor * non_bridge_config.getSpeed();
             cur_point = segment_end;
             speed_factor = 1 - (1 - speed_factor) * acceleration_factor;
             if (speed_factor >= 0.9)
@@ -686,7 +688,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const Settings& se
     if (bridge_wall_mask.empty())
     {
         // no bridges required
-        addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, spiralize,
+        addExtrusionMove(p1, non_bridge_config, SpaceFillType::Polygons, flow, width_factor, spiralize,
             (overhang_mask.empty() || (!overhang_mask.inside(p0, true) && !overhang_mask.inside(p1, true))) ? 1.0_r : overhang_speed_factor);
     }
     else
@@ -744,7 +746,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const Settings& se
 
                     if (bridge_line_len > min_line_len)
                     {
-                        addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow);
+                        addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
                         non_bridge_line_volume = 0;
                         cur_point = b1;
                         // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
@@ -768,7 +770,7 @@ void LayerPlan::addWallLine(const Point& p0, const Point& p1, const Settings& se
         else if (bridge_wall_mask.inside(p0, true) && vSize(p0 - p1) >= min_bridge_line_len)
         {
             // both p0 and p1 must be above air (the result will be ugly!)
-            addExtrusionMove(p1, bridge_config, SpaceFillType::Polygons, flow);
+            addExtrusionMove(p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
             non_bridge_line_volume = 0;
         }
         else
@@ -968,12 +970,12 @@ void LayerPlan::addWall(const ExtrusionLine& wall, int start_idx, const Settings
             if(is_small_feature)
             {
                 constexpr bool spiralize = false;
-                addExtrusionMove(destination, non_bridge_config, SpaceFillType::Polygons, flow_ratio * (line_width * nominal_line_width_multiplier), spiralize, small_feature_speed_factor);
+                addExtrusionMove(destination, non_bridge_config, SpaceFillType::Polygons, flow_ratio, line_width * nominal_line_width_multiplier, spiralize, small_feature_speed_factor);
             }
             else
             {
                 const Point origin = p0.p + normal(line_vector, piece_length * piece);
-                addWallLine(origin, destination, settings, non_bridge_config, bridge_config, flow_ratio * (line_width * nominal_line_width_multiplier), non_bridge_line_volume, speed_factor, distance_to_bridge_start);
+                addWallLine(origin, destination, settings, non_bridge_config, bridge_config, flow_ratio, line_width * nominal_line_width_multiplier, non_bridge_line_volume, speed_factor, distance_to_bridge_start);
             }
         }
 
@@ -1031,9 +1033,10 @@ void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& 
 
     for (const auto &junction_n : wall)
     {
-        const double flow = junction_n.w / Ratio(path_config.getLineWidth());
+        const Ratio width_factor = junction_n.w / Ratio(path_config.getLineWidth());
         constexpr SpaceFillType space_fill_type = SpaceFillType::Polygons;
-        addExtrusionMove(junction_n.p, path_config, space_fill_type, flow);
+        constexpr Ratio flow = 1.0_r;
+        addExtrusionMove(junction_n.p, path_config, space_fill_type, flow, width_factor);
         junction = junction_n;
     }
 }
@@ -1057,7 +1060,7 @@ void LayerPlan::addWalls
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
     orderOptimizer.optimize();
-    for(const PathOrderOptimizer<ConstPolygonPointer>::Path& path : orderOptimizer.paths)
+    for(const PathOrderPath<ConstPolygonPointer>& path : orderOptimizer.paths)
     {
         addWall(**path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
@@ -1106,12 +1109,25 @@ void LayerPlan::addLinesByOptimizer
         order_optimizer.addPolyline(polygons[line_idx]);
     }
     order_optimizer.optimize();
+    
+    addLinesInGivenOrder(order_optimizer.paths, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
+}
 
+
+void LayerPlan::addLinesInGivenOrder(
+    const std::vector<PathOrderPath<ConstPolygonPointer>>& paths, 
+    const GCodePathConfig& config,
+    const SpaceFillType space_fill_type,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const double fan_speed
+)
+{
     coord_t half_line_width = config.getLineWidth() / 2;
     coord_t line_width_2 = half_line_width * half_line_width;
-    for(size_t order_idx = 0; order_idx < order_optimizer.paths.size(); order_idx++)
+    for(size_t order_idx = 0; order_idx < paths.size(); order_idx++)
     {
-        const PathOrderOptimizer<ConstPolygonPointer>::Path& path = order_optimizer.paths[order_idx];
+        const PathOrderPath<ConstPolygonPointer>& path = paths[order_idx];
         ConstPolygonRef polyline = *path.vertices;
         const size_t start_idx = path.start_vertex;
         assert(start_idx == 0 || start_idx == polyline.size() - 1 || path.is_closed);
@@ -1121,7 +1137,11 @@ void LayerPlan::addLinesByOptimizer
         {
             // Instead of doing a small travel that is shorter than the line width (which is generally done at pretty high jerk & move) do a
             // "fake" extrusion move
-            addExtrusionMove(start, config, space_fill_type, 0, false, 1.0, fan_speed);
+            constexpr Ratio flow = 0.0_r;
+            constexpr Ratio width_factor = 1.0_r;
+            constexpr bool spiralize = false;
+            constexpr Ratio speed_factor = 1.0_r;
+            addExtrusionMove(start, config, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed);
         }
         else
         {
@@ -1150,13 +1170,16 @@ void LayerPlan::addLinesByOptimizer
             // ignore line segments that are less than 5uM long
             if (vSize2(p1 - p0) >= MINIMUM_SQUARED_LINE_LENGTH)
             {
-                addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
+                constexpr Ratio width_factor = 1.0_r;
+                constexpr bool spiralize = false;
+                constexpr Ratio speed_factor = 1.0_r;
+                addExtrusionMove(p1, config, space_fill_type, flow_ratio, width_factor, spiralize, speed_factor, fan_speed);
                 p0 = p1;
             }
         }
 
-        p0 = polyline[(start_idx == 0) ? polyline.size() - 1 : 0];
-        Point p1 = (polyline.size() <= 1) ? p0
+        Point p1 = polyline[(start_idx == 0) ? polyline.size() - 1 : 0];
+        p0 = (polyline.size() <= 1) ? p1
             : polyline[(start_idx == 0) ? polyline.size() - 2 : 1];
 
         // Wipe
@@ -1172,9 +1195,9 @@ void LayerPlan::addLinesByOptimizer
             }
 
             // Don't wipe if next starting point is very near
-            if(wipe && (order_idx < order_optimizer.paths.size() - 1))
+            if(wipe && (order_idx < paths.size() - 1))
             {
-                const PathOrderOptimizer<ConstPolygonPointer>::Path& next_path = order_optimizer.paths[order_idx + 1];
+                const PathOrderPath<ConstPolygonPointer>& next_path = paths[order_idx + 1];
                 ConstPolygonRef next_polygon = *next_path.vertices;
                 const size_t next_start = next_path.start_vertex;
                 const Point& next_p0 = next_polygon[next_start];
@@ -1186,7 +1209,11 @@ void LayerPlan::addLinesByOptimizer
 
             if (wipe)
             {
-                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
+                constexpr Ratio flow = 0.0_r;
+                constexpr Ratio width_factor = 1.0_r;
+                constexpr bool spiralize = false;
+                constexpr Ratio speed_factor = 1.0_r;
+                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed);
             }
         }
     }
@@ -1225,7 +1252,7 @@ void LayerPlan::addLinesMonotonic
         };
 
     // Order monotonically, except for line-segments which stay in the excluded areas (read: close to the walls) consecutively.
-    PathOrderMonotonic<ConstPolygonRef> order(monotonic_direction, max_adjacent_distance, last_position);
+    PathOrderMonotonic<ConstPolygonPointer> order(monotonic_direction, max_adjacent_distance, last_position);
     Polygons left_over;
     bool last_would_have_been_excluded = false;
     for(size_t line_idx = 0; line_idx < line_order.paths.size(); ++line_idx)
@@ -1246,74 +1273,17 @@ void LayerPlan::addLinesMonotonic
     order.optimize();
 
     // Read out and process the monotonically ordered lines.
-    Point current_last_position = last_position;
-    coord_t half_line_width = config.getLineWidth() / 2;
-    coord_t line_width_2 = half_line_width * half_line_width;
-    for (unsigned int order_idx = 0; order_idx < order.paths.size(); order_idx++)
-    {
-        const PathOrder<ConstPolygonRef>::Path& path = order.paths[order_idx];
-        ConstPolygonRef polygon = *path.vertices;
-        const size_t start = path.start_vertex;
-        const size_t end = path.vertices.size() - 1 - start;
-        const Point& p0 = polygon[start];
-        const Point& p1 = polygon[end];
-        // ignore line segments that are less than 5uM long
-        if (vSize2(p1 - p0) < MINIMUM_SQUARED_LINE_LENGTH)
-        {
-            continue;
-        }
-        if(vSize2(current_last_position - p0) < line_width_2)
-        {
-            // Instead of doing a small travel that is shorter than the line width (which is generally done at pretty high jerk & move) do a
-            // "fake" extrusion move
-            addExtrusionMove(p0, config, space_fill_type, 0, false, 1.0, fan_speed);
-        }
-        else
-        {
-            addTravel(p0);
-        }
-        addExtrusionMove(p1, config, space_fill_type, flow_ratio, false, 1.0, fan_speed);
-        current_last_position = p1;
-
-        // Wipe
-        if (wipe_dist != 0)
-        {
-            bool wipe = true;
-            int line_width = config.getLineWidth();
-
-            // Don't wipe is current extrusion is too small
-            if (vSize2(p1 - p0) <= line_width * line_width * 4)
-            {
-                wipe = false;
-            }
-
-            // Don't wipe if next starting point is very near
-            if (wipe && (order_idx < order.paths.size() - 1))
-            {
-                const PathOrder<ConstPolygonRef>::Path& next_path = order.paths[order_idx + 1];
-                ConstPolygonRef next_polygon = *next_path.vertices;
-                const size_t next_start = next_path.start_vertex;
-                const Point& next_p0 = next_polygon[next_start];
-                if (vSize2(next_p0 - p1) <= line_width * line_width * 4)
-                {
-                    wipe = false;
-                }
-            }
-
-            if(wipe)
-            {
-                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, 0.0, false, 1.0, fan_speed);
-            }
-        }
-    }
+    addLinesInGivenOrder(order.paths, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
 
     // Add all lines in the excluded areas the 'normal' way.
-    addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, current_last_position, fan_speed);
+    addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, getLastPlannedPositionOrStartingPosition(), fan_speed);
 }
 
 void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRef wall, ConstPolygonRef last_wall, const int seam_vertex_idx, const int last_seam_vertex_idx, const bool is_top_layer, const bool is_bottom_layer)
 {
     const bool smooth_contours = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
+    constexpr bool spiralize = true; //In addExtrusionMove calls, enable spiralize and use nominal line width.
+    constexpr Ratio width_factor = 1.0_r;
 
     // once we are into the spiral we always start at the end point of the last layer (if any)
     const Point origin = (last_seam_vertex_idx >= 0 && !is_bottom_layer) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
@@ -1326,7 +1296,8 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
         Point join_first_wall_at = LinearAlg2D::getClosestOnLineSegment(origin, wall[seam_vertex_idx], wall[(seam_vertex_idx + 1) % wall.size()]);
         if (vSize(join_first_wall_at - origin) > 10)
         {
-            addExtrusionMove(join_first_wall_at, config, SpaceFillType::Polygons, 1.0, true);
+            constexpr Ratio flow = 1.0_r;
+            addExtrusionMove(join_first_wall_at, config, SpaceFillType::Polygons, flow, width_factor, spiralize);
         }
     }
 
@@ -1409,18 +1380,18 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
             if (cpp.isValid() && vSize2(cpp.location - p) <= max_dist2)
             {
                 // interpolate between cpp.location and p depending on how far we have progressed along wall
-                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, flow, true, speed_factor);
+                addExtrusionMove(cpp.location + (p - cpp.location) * (wall_length / total_length), config, SpaceFillType::Polygons, flow, width_factor, spiralize, speed_factor);
             }
             else
             {
                 // no point in the last wall was found close enough to the current wall point so don't interpolate
-                addExtrusionMove(p, config, SpaceFillType::Polygons, flow, true, speed_factor);
+                addExtrusionMove(p, config, SpaceFillType::Polygons, flow, width_factor, spiralize, speed_factor);
             }
         }
         else
         {
             // no smoothing, use point verbatim
-            addExtrusionMove(p, config, SpaceFillType::Polygons, flow, true, speed_factor);
+            addExtrusionMove(p, config, SpaceFillType::Polygons, flow, width_factor, spiralize, speed_factor);
         }
     }
 
@@ -1444,7 +1415,8 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
                 distance_coasted += seg_length;
             }
             // reduce number of paths created when polygon has many points by limiting precision of flow
-            addExtrusionMove(p, config, SpaceFillType::Polygons, ((int)(flow * 20)) / 20.0, false, speed_factor);
+            constexpr bool no_spiralize = false;
+            addExtrusionMove(p, config, SpaceFillType::Polygons, ((int)(flow * 20)) / 20.0, width_factor, no_spiralize, speed_factor);
         }
     }
 }
@@ -1691,11 +1663,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
 
-            { // require printing temperature to be met
-                constexpr bool wait = true;
-                gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature, wait);
-            }
-
             if (extruder_plan.prev_extruder_standby_temp)
             { // turn off previous extruder
                 constexpr bool wait = false;
@@ -1706,6 +1673,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
                 }
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
+            }
+
+            { // require printing temperature to be met
+                constexpr bool wait = true;
+                gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature, wait);
             }
 
             const double extra_prime_amount = extruder.settings.get<bool>("retraction_enable") ? extruder.settings.get<double>("switch_extruder_extra_prime_amount") : 0;

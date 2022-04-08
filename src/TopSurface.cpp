@@ -62,6 +62,10 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     const coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const Ratio ironing_flow = mesh.settings.get<Ratio>("ironing_flow");
+    const bool enforce_monotonic_order = mesh.settings.get<bool>("ironing_monotonic");
+    constexpr size_t wall_line_count = 0;
+    const Point infill_origin = Point();
+    const bool skip_line_stitching = enforce_monotonic_order;
 
     coord_t ironing_inset = -mesh.settings.get<coord_t>("ironing_inset");
     if (pattern == EFillMethod::ZIG_ZAG)
@@ -81,8 +85,8 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     }
     Polygons ironed_areas = areas.offset(ironing_inset);
 
-    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, ironed_areas, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation);
-    VariableWidthPaths ironing_paths;
+    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, ironed_areas, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation, wall_line_count, infill_origin, skip_line_stitching);
+    std::vector<VariableWidthLines> ironing_paths;
     Polygons ironing_polygons;
     Polygons ironing_lines;
     infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings);
@@ -124,7 +128,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
             }
         }
 
-        if(!mesh.settings.get<bool>("ironing_monotonic"))
+        if( ! enforce_monotonic_order)
         {
             layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
         }

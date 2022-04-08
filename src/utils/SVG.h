@@ -26,6 +26,7 @@ public:
         RED,
         BLUE,
         GREEN,
+        LIME,
         ORANGE,
         MAGENTA,
         YELLOW,
@@ -152,7 +153,7 @@ public:
      * \param color The color to draw the paths with.
      * \param width_factor A multiplicative factor on the line widths.
      */
-    void writePaths(const VariableWidthPaths& paths, const ColorObject color = Color::BLACK, const float width_factor = 1.0) const;
+    void writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color = Color::BLACK, const float width_factor = 1.0) const;
 
     /*!
      * Draw variable-width lines into the image.

@@ -40,7 +40,7 @@ class SkinPart
 {
 public:
     PolygonsPart outline;           //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both roofing and non-roofing.
-    VariableWidthPaths inset_paths;       //!< The insets represented as variable line-width paths. The insets are also known as perimeters or the walls.
+    std::vector<VariableWidthLines> inset_paths;       //!< The insets represented as variable line-width paths. The insets are also known as perimeters or the walls. Binned by inset_idx.
     Polygons skin_fill; //!< The part of the skin which is not roofing.
     Polygons roofing_fill; //!< The inner infill which has air directly above
     Polygons top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
@@ -66,8 +66,8 @@ public:
     Polygons spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
     Polygons inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
     std::vector<SkinPart> skin_parts;  //!< The skin parts which are filled for 100% with lines and/or insets.
-    VariableWidthPaths wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets
-    VariableWidthPaths infill_wall_toolpaths; //!< toolpaths for the infill area's
+    std::vector<VariableWidthLines> wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets. Binned by inset_idx.
+    std::vector<VariableWidthLines> infill_wall_toolpaths; //!< toolpaths for the walls of the infill areas. Binned by inset_idx.
 
     /*!
      * The areas inside of the mesh.

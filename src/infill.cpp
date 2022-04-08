@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm> //For std::sort.
@@ -46,7 +46,7 @@ static inline int computeScanSegmentIdx(int x, int line_width)
 namespace cura
 {
 
-Polygons Infill::generateWallToolPaths(VariableWidthPaths& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings)
+Polygons Infill::generateWallToolPaths(std::vector<VariableWidthLines>& toolpaths, Polygons& outer_contour, const size_t wall_line_count, const coord_t line_width, const coord_t infill_overlap, const Settings& settings)
 {
     outer_contour = outer_contour.offset(infill_overlap);
 
@@ -65,7 +65,7 @@ Polygons Infill::generateWallToolPaths(VariableWidthPaths& toolpaths, Polygons& 
     return inner_contour;
 }
 
-void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer* lightning_trees, const SliceMeshStorage* mesh)
+void Infill::generate(std::vector<VariableWidthLines>& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer* lightning_trees, const SliceMeshStorage* mesh)
 {
     if (outer_contour.empty())
     {
@@ -79,7 +79,6 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
     //The lines along the edge must lie next to the border, not on it.
     //This makes those algorithms a lot simpler.
     if (pattern == EFillMethod::ZIG_ZAG //Zig-zag prints the zags along the walls.
-        || pattern == EFillMethod::CONCENTRIC //Concentric at high densities needs to print alongside the walls, not overlapping them.
         || (zig_zaggify && (pattern == EFillMethod::LINES //Zig-zaggified infill patterns print their zags along the walls.
             || pattern == EFillMethod::TRIANGLES
             || pattern == EFillMethod::GRID
@@ -97,10 +96,10 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
         constexpr coord_t gap_wall_count = 1; // Only need one wall here, less even, in a sense.
         constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
         WallToolPaths wall_toolpaths(inner_contour, infill_line_width, gap_wall_count, wall_0_inset, settings);
-        VariableWidthPaths gap_fill_paths = wall_toolpaths.getToolPaths();
+        std::vector<VariableWidthLines> gap_fill_paths = wall_toolpaths.getToolPaths();
 
         // Add the gap filling to the toolpaths and make the new inner contour 'aware' of the gap infill:
-        // (Can't use getContours here, becasue only _some_ of the lines Arachne has generated are needed.)
+        // (Can't use getContours here, because only _some_ of the lines Arachne has generated are needed.)
         Polygons gap_filled_areas;
         for (const auto& var_width_line : gap_fill_paths)
         {
@@ -169,13 +168,18 @@ void Infill::generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, 
                                  });
         result_polygons.erase(it, result_polygons.end());
 
-        PolygonConnector connector(infill_line_width, infill_line_width * 3 / 2);
+        PolygonConnector connector(infill_line_width);
         connector.add(result_polygons);
-        result_polygons = connector.connect();
+        connector.add(toolpaths);
+        Polygons connected_polygons;
+        std::vector<VariableWidthLines> connected_paths;
+        connector.connect(connected_polygons, connected_paths);
+        result_polygons = connected_polygons;
+        toolpaths = connected_paths;
     }
 }
 
-void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer * lightning_trees, const SliceMeshStorage* mesh)
+void Infill::_generate(std::vector<VariableWidthLines>& toolpaths, Polygons& result_polygons, Polygons& result_lines, const Settings& settings, const SierpinskiFillProvider* cross_fill_provider, const LightningLayer * lightning_trees, const SliceMeshStorage* mesh)
 {
     if (inner_contour.empty()) return;
     if (line_distance == 0) return;
@@ -248,8 +252,8 @@ void Infill::_generate(VariableWidthPaths& toolpaths, Polygons& result_polygons,
 
     result_polygons.simplify(max_resolution, max_deviation);
 
-    if (zig_zaggify ||
-        pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID || pattern == EFillMethod::ZIG_ZAG)
+    if ( ! skip_line_stitching && (zig_zaggify ||
+        pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID || pattern == EFillMethod::ZIG_ZAG))
     { // don't stich for non-zig-zagged line infill types
         Polygons stiched_lines;
         PolylineStitcher<Polygons, Polygon, Point>::stitch(result_lines, stiched_lines, result_polygons, infill_line_width);
@@ -344,31 +348,30 @@ void Infill::generateLightningInfill(const LightningLayer* trees, Polygons& resu
     result_lines.add(trees->convertToLines(inner_contour, infill_line_width));
 }
 
-void Infill::generateConcentricInfill(VariableWidthPaths& toolpaths, const Settings& settings)
+void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
 {
-    constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-    const bool iterative = line_distance > infill_line_width; // Do it all at once if there is not need for a gap, otherwise, iterate.
     const coord_t min_area = infill_line_width * infill_line_width;
-    Polygons current_inset = inner_contour.offset(infill_line_width / 2);
-    do
+
+    Polygons current_inset = inner_contour;
+    while(true)
     {
-        if (iterative)
-        {
-            current_inset = current_inset.offset(-infill_line_width * 2).offset(infill_line_width * 2);
-        }
-        current_inset.simplify();
-        if (current_inset.area() <= min_area)
+        //If line_distance is 0, start from the same contour as the previous line, except where the previous line closed up the shape.
+        //So we add the whole nominal line width first (to allow lines to be closer together than 1 line width if the line distance is smaller) and then subtract line_distance.
+        current_inset = current_inset.offset(infill_line_width - line_distance);
+        current_inset.simplify(); //Many insets lead to increasingly detailed shapes. Simplify to speed up processing.
+        if(current_inset.area() < min_area) //So small that it's inconsequential. Stop here.
         {
             break;
         }
 
-        const coord_t inset_wall_count = iterative ? 1 : std::numeric_limits<coord_t>::max();
+        constexpr size_t inset_wall_count = 1; //1 wall at a time.
+        constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
         WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings);
-        const VariableWidthPaths inset_paths = wall_toolpaths.getToolPaths();
-
+        const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
-        current_inset = wall_toolpaths.getInnerContour().offset((infill_line_width / 2) - line_distance);
-    } while (iterative);
+
+        current_inset = wall_toolpaths.getInnerContour();
+    }
 }
 
 void Infill::generateGridInfill(Polygons& result)

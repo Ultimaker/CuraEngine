@@ -128,9 +128,7 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
             // We shouldn't remove middle junctions of colinear segments if the area changed for the C-P segment is exceeding the maximum allowed
              && extrusion_area_error <= maximum_extrusion_area_deviation)
         {
-            // Adjust the width of the entire P-N line as a weighted average of the widths of the P-C and C-N lines and
-            // then remove the current junction (vertex).
-            next.w = weighted_average_width;
+            // Remove the current junction (vertex).
             continue;
         }
 
@@ -210,8 +208,8 @@ coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A,
      * |             |--------------------------|              |            |***************************|
      * |             |                                         ------------------------------------------
      * ---------------             ^                           **************
-     *       ^                    C.w                                             ^
-     *      B.w                                                     new_width = weighted_average_width
+     *       ^                B.w + C.w / 2                                       ^
+     *  A.w + B.w / 2                                               new_width = weighted_average_width
      *
      *
      * ******** denote the total extrusion area deviation error in the consecutive segments as a result of using the
@@ -220,18 +218,20 @@ coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A,
      * */
     const coord_t ab_length = vSize(B - A);
     const coord_t bc_length = vSize(C - B);
-    const coord_t width_diff = llabs(B.w - C.w);
+    const coord_t width_diff = std::max(std::abs(B.w - A.w), std::abs(C.w - B.w));
     if (width_diff > 1)
     {
         // Adjust the width only if there is a difference, or else the rounding errors may produce the wrong
         // weighted average value.
-        weighted_average_width = (ab_length * B.w + bc_length * C.w) / vSize(C - A);
-        return llabs(B.w - weighted_average_width) * ab_length + llabs(C.w - weighted_average_width) * bc_length;
+        const coord_t ab_weight = (A.w + B.w) / 2;
+        const coord_t bc_weight = (B.w + C.w) / 2;
+        weighted_average_width = (ab_length * ab_weight + bc_length * bc_weight) / vSize(C - A);
+        return std::abs(ab_weight - weighted_average_width) * ab_length + std::abs(bc_weight - weighted_average_width) * bc_length;
     }
     else
     {
         // If the width difference is very small, then select the width of the segment that is longer
-        weighted_average_width = ab_length > bc_length ? B.w : C.w;
+        weighted_average_width = ab_length > bc_length ? A.w : B.w;
         return ab_length > bc_length ? width_diff * bc_length : width_diff * ab_length;
     }
 }
