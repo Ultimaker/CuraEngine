@@ -81,6 +81,27 @@ std::vector<std::vector<Triangulate::MonotoneVertexType>> Triangulate::categoriz
 
 std::vector<Polygon> Triangulate::splitXMonotone(const Polygons& polygons)
 {
+    //Put all vertices in a priority queue, sorted from left to right for the scanning.
+    auto compare_by_index = [&polygons](const VertexRef a, const VertexRef b)
+    {
+        const Point a_pos = polygons[a.first][a.second];
+        const Point b_pos = polygons[b.first][b.second];
+        return a_pos.X < b_pos.X || (a_pos.X == b_pos.X && a_pos.Y < b_pos.Y);
+    };
+    std::priority_queue<VertexRef, std::vector<VertexRef>, decltype(compare_by_index)> queue(compare_by_index);
+    for(size_t poly_index = 0; poly_index < polygons.size(); ++poly_index)
+    {
+        for(size_t vertex_index = 0; vertex_index < polygons[poly_index].size(); ++vertex_index)
+        {
+            queue.push(std::pair<size_t, size_t>(poly_index, vertex_index));
+        }
+    }
+
+    //Create a scanline data structure.
+    //To achieve an O(n log(n)) algorithm this would have to be a binary search tree.
+    //But practically the scan line is so small that we'll just use a vector and search linearly.
+    std::vector<EdgeRef> scanline;
+
     //TODO: Implement
     return std::vector<Polygon>();
 }

@@ -29,7 +29,7 @@ public:
      */
     static std::vector<Point> triangulate(const Polygons& polygons);
 
-private:
+protected:
     /*!
      * Vertices are categorized into different types, which helps to split the
      * shape into monotone parts. These are the types that can be assigned to
@@ -43,6 +43,9 @@ private:
         SPLIT, //The vertex is left of both its neighbors. The inside of the shape is left.
         MERGE, //The vertex is right of both its neighbors. The inside of the shape is right.
     };
+
+    using VertexRef = std::pair<size_t, size_t>; //Referring to a vertex inside a Polygons object.
+    using EdgeRef = std::pair<VertexRef, VertexRef>; //Referring to an edge. The left-most vertex is always the first one.
 
     /*!
      * Pre-process each vertex to categorize it. This determines where a shape
