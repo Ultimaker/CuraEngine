@@ -47,6 +47,14 @@ protected:
     using VertexRef = std::pair<size_t, size_t>; //Referring to a vertex inside a Polygons object.
     using EdgeRef = std::pair<VertexRef, VertexRef>; //Referring to an edge. The left-most vertex is always the first one.
 
+    struct VertexRefHash
+    {
+        std::size_t operator() (const VertexRef& vertex) const
+        {
+            return vertex.first ^ vertex.second;
+        }
+    };
+
     /*!
      * Pre-process each vertex to categorize it. This determines where a shape
      * can be split into monotone parts.

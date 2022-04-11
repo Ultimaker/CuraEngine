@@ -81,6 +81,8 @@ std::vector<std::vector<Triangulate::MonotoneVertexType>> Triangulate::categoriz
 
 std::vector<Polygon> Triangulate::splitXMonotone(const Polygons& polygons)
 {
+    std::vector<std::vector<MonotoneVertexType>> vertex_categories = categorize(polygons);
+
     //Put all vertices in a priority queue, sorted from left to right for the scanning.
     auto compare_by_index = [&polygons](const VertexRef a, const VertexRef b)
     {
@@ -101,6 +103,29 @@ std::vector<Polygon> Triangulate::splitXMonotone(const Polygons& polygons)
     //To achieve an O(n log(n)) algorithm this would have to be a binary search tree.
     //But practically the scan line is so small that we'll just use a vector and search linearly.
     std::vector<EdgeRef> scanline;
+
+    //Store connections that we found here. We'll use this later to reconstruct the monotone polygons.
+    std::unordered_map<VertexRef, size_t, VertexRefHash> connected_to;
+
+    //Handle all vertices in order from left to right, adding connections as we go.
+    while(!queue.empty())
+    {
+        const VertexRef vertex = queue.top();
+        queue.pop();
+        const size_t poly_index = vertex.first;
+        const size_t poly_size = polygons[poly_index].size();
+        const MonotoneVertexType category = vertex_categories[poly_index][vertex.second];
+        switch(category)
+        {
+            case MonotoneVertexType::START:
+                //Left of both of its neighbours. Add the edge that is higher to the scanline.
+                scanline.push_back(EdgeRef{{poly_index, vertex.second}, {poly_index, (vertex.second + poly_size - 1) % poly_size}});
+                break;
+            case MonotoneVertexType::END:
+                //Find the edge in the scanline that ends here and remove it.
+                break;
+        }
+    }
 
     //TODO: Implement
     return std::vector<Polygon>();
