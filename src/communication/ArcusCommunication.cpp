@@ -20,6 +20,7 @@
 #include "../settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "../utils/logoutput.h"
 #include "../utils/polygon.h"
+#include "../utils/Triangulate.h"
 
 namespace cura
 {
@@ -426,7 +427,25 @@ void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygo
 
 void ArcusCommunication::sendStructurePolygon(const Polygons& outline, const PrintFeatureType& type, const LayerIndex layer_index, const coord_t z)
 {
-    //TODO: Implement.
+    const std::vector<Point> triangulated = Triangulate::triangulate(outline);
+    //Convert to float. The resulting data structure will be 2x as long (X and Y).
+    std::vector<float> vertex_data;
+    vertex_data.reserve(triangulated.size() * 2);
+    for(const Point& vertex : triangulated)
+    {
+        vertex_data.push_back(INT2MM(vertex.X));
+        vertex_data.push_back(INT2MM(vertex.Y));
+    }
+
+    std::shared_ptr<proto::StructurePolygon> message = std::make_shared<proto::StructurePolygon>();
+
+    std::string polygon_data;
+    polygon_data.append(reinterpret_cast<const char*>(vertex_data.data()), vertex_data.size() * sizeof(float));
+    message->set_points(polygon_data);
+
+    message->set_type(static_cast<cura::proto::StructurePolygon_Type>(type));
+    message->set_layer_index(layer_index);
+    message->set_height(INT2MM(z));
 }
 
 void ArcusCommunication::sendPrintTimeMaterialEstimates() const
