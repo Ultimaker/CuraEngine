@@ -1,4 +1,4 @@
-#Copyright (c) 2021 Ultimaker B.V.
+#Copyright (c) 2022 Ultimaker B.V.
 #CuraEngine is released under the terms of the AGPLv3 or higher.
 
 cmake_minimum_required(VERSION 3.8.0)
@@ -253,6 +253,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/socket.cpp
     src/utils/SquareGrid.cpp
     src/utils/ToolpathVisualizer.cpp
+    src/utils/Triangulate.cpp
     src/utils/VoronoiUtils.cpp
 )
 

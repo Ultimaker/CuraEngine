@@ -78,6 +78,8 @@ class ConstPolygonRef
 protected:
     ClipperLib::Path* path;
 public:
+    typedef Point value_type;
+
     ConstPolygonRef(const ClipperLib::Path& polygon)
     : path(const_cast<ClipperLib::Path*>(&polygon))
     {}
