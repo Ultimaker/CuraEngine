@@ -57,7 +57,8 @@ enum class ESupportType
 enum class ESupportStructure
 {
     NORMAL,
-    TREE
+    TREE,
+    LIGHTNING
 };
 
 enum class EZSeamType

@@ -153,6 +153,7 @@ set(engine_SRCS # Except main.cpp.
     src/layerPart.cpp
     src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
+    src/LightningSupport.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
     src/Mold.cpp

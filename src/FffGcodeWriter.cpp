@@ -2685,7 +2685,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             added_something |= wall_orderer.addToLayer();
         }
 
-        if((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density.empty())
+        if((default_support_line_distance <= 0 && support_structure == ESupportStructure::NORMAL) || part.infill_area_per_combine_per_density.empty())
         {
             continue;
         }

@@ -397,8 +397,13 @@ template<> ESupportStructure Settings::get<ESupportStructure>(const std::string&
     {
         return ESupportStructure::TREE;
     }
+    else if (value == "lightning")
+    {
+        return ESupportStructure::LIGHTNING;
+    }
     else //Default.
     {
+        logWarning("Can't parse support structure type: %s.", value.c_str());
         return ESupportStructure::NORMAL;
     }
 }
