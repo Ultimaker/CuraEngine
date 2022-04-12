@@ -446,6 +446,7 @@ void ArcusCommunication::sendStructurePolygon(const Polygons& outline, const Pri
     message->set_type(static_cast<cura::proto::StructurePolygon_Type>(type));
     message->set_layer_index(layer_index);
     message->set_height(INT2MM(z));
+    private_data->socket->sendMessage(message);
 }
 
 void ArcusCommunication::sendPrintTimeMaterialEstimates() const
