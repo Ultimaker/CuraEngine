@@ -428,12 +428,13 @@ void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygo
 void ArcusCommunication::sendStructurePolygon(const Polygons& outline, const PrintFeatureType& type, const LayerIndex layer_index, const coord_t z)
 {
     const std::vector<Point> triangulated = Triangulate::triangulate(outline);
-    //Convert to float. The resulting data structure will be 2x as long (X and Y).
+    //Convert to float. The resulting data structure will be 3x as long (X, Y and Z).
     std::vector<float> vertex_data;
-    vertex_data.reserve(triangulated.size() * 2);
+    vertex_data.reserve(triangulated.size() * 3);
     for(const Point& vertex : triangulated)
     {
         vertex_data.push_back(INT2MM(vertex.X));
+        vertex_data.push_back(INT2MM(z)); //Output for OpenGL coordinate system.
         vertex_data.push_back(INT2MM(vertex.Y));
     }
 
@@ -445,7 +446,6 @@ void ArcusCommunication::sendStructurePolygon(const Polygons& outline, const Pri
 
     message->set_type(static_cast<cura::proto::StructurePolygon_Type>(type));
     message->set_layer_index(layer_index);
-    message->set_height(INT2MM(z));
     private_data->socket->sendMessage(message);
 }
 
