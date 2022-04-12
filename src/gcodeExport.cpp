@@ -1333,7 +1333,7 @@ void GCodeExport::writePrintAcceleration(const Acceleration& acceleration)
         case EGCodeFlavor::REPRAP:
             if (current_print_acceleration != acceleration)
             {
-                *output_stream << "M204 P" << PrecisionedDouble{0, acceleration} << new_line;
+                *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line;
             }
             break;
         default:
@@ -1360,8 +1360,8 @@ void GCodeExport::writeTravelAcceleration(const Acceleration& acceleration)
             break;
         case EGCodeFlavor::REPRAP:
             if (current_travel_acceleration != acceleration)
-            {
-                *output_stream << "M204 T" << PrecisionedDouble{0, acceleration} << new_line;
+            {   
+                *output_stream << "M204 S" << PrecisionedDouble{0, acceleration} << new_line;
             }
             break;
         default:
