@@ -15,6 +15,8 @@
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
 #include "WallToolPaths.h"
+#include "communication/Communication.h"
+#include "PrintFeature.h"
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 
@@ -146,6 +148,14 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     Polygons skin = top_skin.unionPolygons(bottom_skin);
 
     skin.removeSmallAreas(MIN_AREA_SIZE);
+
+    if(!skin.empty())
+    {
+        for(Communication* channel : Application::getInstance().communications)
+        {
+            channel->sendStructurePolygon(skin, PrintFeatureType::Skin, layer_nr, layer_nr * 100); //TODO: Figure out Z coordinate correctly.
+        }
+    }
 
     if (process_infill)
     { // process infill when infill density > 0
