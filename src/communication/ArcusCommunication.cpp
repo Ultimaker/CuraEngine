@@ -431,11 +431,16 @@ void ArcusCommunication::sendStructurePolygon(const Polygons& outline, const Pri
     //Convert to float. The resulting data structure will be 3x as long (X, Y and Z).
     std::vector<float> vertex_data;
     vertex_data.reserve(triangulated.size() * 3);
+
+    const coord_t machine_x = Application::getInstance().current_slice->scene.settings.get<coord_t>("machine_width");
+    const coord_t machine_y = Application::getInstance().current_slice->scene.settings.get<coord_t>("machine_depth");
+
     for(const Point& vertex : triangulated)
     {
-        vertex_data.push_back(INT2MM(vertex.X));
-        vertex_data.push_back(INT2MM(z)); //Output for OpenGL coordinate system.
-        vertex_data.push_back(INT2MM(vertex.Y));
+        //Transform to OpenGL coordinate system used in the front-end.
+        vertex_data.push_back(INT2MM(vertex.X - machine_x / 2));
+        vertex_data.push_back(INT2MM(z));
+        vertex_data.push_back(INT2MM(machine_y / 2 - vertex.Y));
     }
 
     std::shared_ptr<proto::StructurePolygon> message = std::make_shared<proto::StructurePolygon>();
