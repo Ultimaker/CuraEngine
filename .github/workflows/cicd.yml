@@ -27,4 +27,4 @@ jobs:
         ..
         make -j $(nproc)
         
-        conan upload "*" -r ultimaker --all --check
+        conan upload "*" -r ultimaker --all -c
