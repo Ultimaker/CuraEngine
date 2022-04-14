@@ -1236,7 +1236,6 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sta
     }
     else
     {
-        to_be_removed = stair_removal.unionPolygons(bottom_outline);
         if (layer_idx % bottom_stair_step_layer_count == 0)
         { // update stairs for next step
             const Polygons supporting_bottom = storage.getLayerOutlines(bottom_layer_nr - 1, no_support, no_prime_tower);
@@ -1253,6 +1252,7 @@ void AreaSupport::moveUpFromModel(const SliceDataStorage& storage, Polygons& sta
                 stair_removal = allowed_step_width;
             }
         }
+        to_be_removed = stair_removal.unionPolygons(bottom_outline);
     }
     support_areas = support_areas.difference(to_be_removed);
 }
