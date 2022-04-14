@@ -25,6 +25,6 @@ jobs:
         -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
         -DBUILD_TESTS=OFF \
         ..
-        make -j $(nproc)`
+        make -j $(nproc)
         
         conan upload "*" -r ultimaker --all --check
