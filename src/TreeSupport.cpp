@@ -1,7 +1,8 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
+#include "communication/Communication.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
@@ -139,15 +140,26 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                 support_layer.add(circle);
             }
         }
+
+        //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
+        const double diameter_angle_scale_factor_this_layer = static_cast<double>(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
+        support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), resolution); //Don't deviate more than the collision resolution so that the lines still stack properly.
+
+        //Send to front-end for visualization.
+        if(!support_layer.empty())
+        {
+            for(Communication* channel : Application::getInstance().communications)
+            {
+                channel->sendStructurePolygon(support_layer, StructureType::Support, layer_nr, storage.support.supportLayers[layer_nr].z);
+            }
+        }
+
         support_layer = support_layer.unionPolygons();
         roof_layer = roof_layer.unionPolygons();
         const size_t z_collision_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(z_distance_bottom_layers) + 1)); //Layer to test against to create a Z-distance.
         support_layer = support_layer.difference(volumes_.getCollision(0, z_collision_layer)); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
         roof_layer = roof_layer.difference(volumes_.getCollision(0, z_collision_layer));
         support_layer = support_layer.difference(roof_layer);
-        //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
-        const double diameter_angle_scale_factor_this_layer = static_cast<double>(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
-        support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), resolution); //Don't deviate more than the collision resolution so that the lines still stack properly.
 
         //Subtract support floors.
         if (mesh_group_settings.get<bool>("support_bottom_enable"))

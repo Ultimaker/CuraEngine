@@ -11,6 +11,7 @@
 #endif // _OPENMP
 
 #include "Application.h" //To get settings.
+#include "communication/Communication.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "slicer.h"
@@ -666,6 +667,15 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     {
         Polygons& support_areas = global_support_areas_per_layer[layer_idx];
         support_areas = support_areas.unionPolygons();
+
+        //Send to front-end for visualization.
+        if(!support_areas.empty())
+        {
+            for(Communication* channel : Application::getInstance().communications)
+            {
+                channel->sendStructurePolygon(support_areas, StructureType::Support, layer_idx, storage.support.supportLayers[layer_idx].z);
+            }
+        }
     }
 
     // handle support interface

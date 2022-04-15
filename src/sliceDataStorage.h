@@ -209,6 +209,7 @@ public:
     Polygons support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Polygons support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Polygons anti_overhang; //!< Areas where no overhang should be detected.
+    coord_t z; //!< Z coordinate at which this layer gets printed.
 
     /*!
      * Exclude the given polygons from the support infill areas and update the SupportInfillParts.

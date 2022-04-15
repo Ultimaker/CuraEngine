@@ -244,16 +244,25 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     generateMultipleVolumesOverlap(slicerList);
 
     storage.print_layer_count = 0;
+    size_t tallest_mesh_idx = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
         if (!mesh.settings.get<bool>("anti_overhang_mesh") && !mesh.settings.get<bool>("infill_mesh") && !mesh.settings.get<bool>("cutting_mesh"))
         {
-            storage.print_layer_count = std::max(storage.print_layer_count, slicer->layers.size());
+            if(slicer->layers.size() > storage.print_layer_count)
+            {
+                storage.print_layer_count = slicer->layers.size();
+                tallest_mesh_idx = meshIdx;
+            }
         }
     }
     storage.support.supportLayers.resize(storage.print_layer_count);
+    for(size_t layer_idx = 0; layer_idx < storage.print_layer_count; ++layer_idx)
+    {
+        storage.support.supportLayers[layer_idx].z = slicerList[tallest_mesh_idx]->layers[layer_idx].z;
+    }
 
     storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
