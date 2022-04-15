@@ -304,6 +304,14 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
 {
     part.infill_area = part.inner_area.difference(skin); //Generate infill everywhere where there wasn't any skin.
     part.infill_area.removeSmallAreas(MIN_AREA_SIZE);
+
+    if(!part.infill_area.empty())
+    {
+        for(Communication* channel : Application::getInstance().communications)
+        {
+            channel->sendStructurePolygon(part.infill_area, PrintFeatureType::Infill, layer_nr, mesh.layers[layer_nr].printZ);
+        }
+    }
 }
 
 /*
