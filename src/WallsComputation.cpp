@@ -1,6 +1,7 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "communication/Communication.h"
 #include "ExtruderTrain.h"
 #include "sliceDataStorage.h"
 #include "WallsComputation.h"
@@ -87,6 +88,16 @@ void WallsComputation::generateWalls(SliceLayer* layer)
     for(SliceLayerPart& part : layer->parts)
     {
         generateWalls(&part);
+
+        //Send to front-end for visualization.
+        Polygons wall_area = part.print_outline.difference(part.inner_area);
+        if(!wall_area.empty())
+        {
+            for(Communication* channel : Application::getInstance().communications)
+            {
+                channel->sendStructurePolygon(wall_area, StructureType::Wall, layer_nr, layer->printZ);
+            }
+        }
     }
 
     //Remove the parts which did not generate a wall. As these parts are too small to print,
@@ -95,9 +106,9 @@ void WallsComputation::generateWalls(SliceLayer* layer)
     {
         for(size_t part_idx = 0; part_idx < layer->parts.size(); part_idx++)
         {
-            if (layer->parts[part_idx].wall_toolpaths.empty() && layer->parts[part_idx].spiral_wall.empty())
+            if(layer->parts[part_idx].wall_toolpaths.empty() && layer->parts[part_idx].spiral_wall.empty())
             {
-                if (part_idx != layer->parts.size() - 1)
+                if(part_idx != layer->parts.size() - 1)
                 { // move existing part into part to be deleted
                     layer->parts[part_idx] = std::move(layer->parts.back());
                 }
