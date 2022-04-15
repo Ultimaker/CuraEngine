@@ -1,10 +1,11 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
 #include "../utils/IntPoint.h" //For coord_t and Point.
+#include "StructureType.h"
 
 namespace cura
 {
@@ -146,7 +147,7 @@ public:
      * \param layer_index The index of the layer this structure is on.
      * \param z The Z coordinate of that layer.
      */
-    virtual void sendStructurePolygon(const Polygons& outline, const PrintFeatureType& type, const LayerIndex layer_index, const coord_t z) = 0;
+    virtual void sendStructurePolygon(const Polygons& outline, const StructureType& type, const LayerIndex layer_index, const coord_t z) = 0;
 
     /*
      * \brief Send an estimate of how long the print would take and how much

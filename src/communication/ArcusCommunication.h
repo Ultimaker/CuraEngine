@@ -171,7 +171,7 @@ public:
      * \param layer_index The index of the layer this structure is on.
      * \param z The Z coordinate of that layer.
      */
-    void sendStructurePolygon(const Polygons& outline, const PrintFeatureType& type, const LayerIndex layer_index, const coord_t z) override;
+    void sendStructurePolygon(const Polygons& outline, const StructureType& type, const LayerIndex layer_index, const coord_t z) override;
 
     /*
      * \brief Send an estimate of how long the print would take and how much

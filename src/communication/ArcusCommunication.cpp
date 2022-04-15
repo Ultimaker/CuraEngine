@@ -425,7 +425,7 @@ void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygo
     }
 }
 
-void ArcusCommunication::sendStructurePolygon(const Polygons& outline, const PrintFeatureType& type, const LayerIndex layer_index, const coord_t z)
+void ArcusCommunication::sendStructurePolygon(const Polygons& outline, const StructureType& type, const LayerIndex layer_index, const coord_t z)
 {
     const std::vector<Point> triangulated = Triangulate::triangulate(outline);
     //Convert to float. The resulting data structure will be 3x as long (X, Y and Z).

@@ -116,7 +116,7 @@ public:
      *
      * The command line doesn't show any layer preview so this is ignored.
      */
-    void sendStructurePolygon(const Polygons&, const PrintFeatureType&, const LayerIndex, const coord_t) override;
+    void sendStructurePolygon(const Polygons&, const StructureType&, const LayerIndex, const coord_t) override;
 
     /*
      * \brief Show an estimate of how long the print would take and how much

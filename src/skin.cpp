@@ -153,7 +153,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     {
         for(Communication* channel : Application::getInstance().communications)
         {
-            channel->sendStructurePolygon(skin, PrintFeatureType::Skin, layer_nr, mesh.layers[layer_nr].printZ);
+            channel->sendStructurePolygon(skin, StructureType::Skin, layer_nr, mesh.layers[layer_nr].printZ);
         }
     }
 
@@ -309,7 +309,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
     {
         for(Communication* channel : Application::getInstance().communications)
         {
-            channel->sendStructurePolygon(part.infill_area, PrintFeatureType::Infill, layer_nr, mesh.layers[layer_nr].printZ);
+            channel->sendStructurePolygon(part.infill_area, StructureType::Infill, layer_nr, mesh.layers[layer_nr].printZ);
         }
     }
 }
