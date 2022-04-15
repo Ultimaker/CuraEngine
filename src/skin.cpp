@@ -153,7 +153,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     {
         for(Communication* channel : Application::getInstance().communications)
         {
-            channel->sendStructurePolygon(skin, PrintFeatureType::Skin, layer_nr, layer_nr * 100); //TODO: Figure out Z coordinate correctly.
+            channel->sendStructurePolygon(skin, PrintFeatureType::Skin, layer_nr, mesh.layers[layer_nr].printZ);
         }
     }
 
