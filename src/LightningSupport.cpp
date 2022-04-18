@@ -68,12 +68,10 @@ void LightningSupport::generateSupportForMesh(SliceMeshStorage& mesh)
         return;
     }
 
-    // TODO: Look more closely at these: replace some with existing support settings and others have to be either new settings, derived, or constexpr'd.
-
-    const auto infill_extruder = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr");
+    const auto infill_extruder = mesh.settings.get<ExtruderTrain&>("support_extruder_nr"); // TODO: This actually gets set a bit higher up in the chain for support.
     const auto layer_thickness = infill_extruder.settings.get<coord_t>("layer_height");  // Note: There's not going to be a layer below the first one, so the 'initial layer height' doesn't have to be taken into account.
 
-    supporting_radius = std::max(infill_extruder.settings.get<coord_t>("infill_line_distance"), infill_extruder.settings.get<coord_t>("infill_line_width")) / 2;
+    supporting_radius = std::max(infill_extruder.settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width")) / 2;
     wall_supporting_radius = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_overhang_angle"));
     prune_length = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_prune_angle"));
     straightening_max_distance = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_straightening_angle"));
@@ -102,19 +100,22 @@ const Polygons& LightningSupport::getOutlinesForLayer(const size_t& layer_id) co
 void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
 {
     lightning_layers.resize(mesh.full_overhang_areas.size());
-    const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
+    const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("support_wall_count"));
     const auto support_offset = mesh.settings.get<coord_t>("support_xy_distance");
-    const auto infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
+    const auto infill_line_width = mesh.settings.get<coord_t>("support_line_width");
     const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
 
     infill_outlines = mesh.full_overhang_areas;
+    no_root_areas.resize(infill_outlines.size());
 
     // For-each layer from top to bottom:
     for (int layer_id = mesh.full_overhang_areas.size() - 2; layer_id >= 0; layer_id--)
     {
         Polygons mesh_outlines;
         mesh.layers[layer_id].getOutlines(mesh_outlines);
-        infill_outlines[layer_id] = infill_outlines[layer_id + 1].unionPolygons(mesh.full_overhang_areas[layer_id + 1]).difference(mesh_outlines.offset(support_offset + wall_supporting_radius));
+        mesh_outlines = mesh_outlines.offset(std::max(support_offset, wall_supporting_radius));
+        infill_outlines[layer_id] = infill_outlines[layer_id + 1].unionPolygons(mesh.full_overhang_areas[layer_id + 1]).difference(mesh_outlines);
+        no_root_areas[layer_id] = mesh_outlines.offset(infill_line_width);
     }
 
     // For various operations its beneficial to quickly locate nearby features on the polygon:
@@ -147,8 +148,8 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
         std::vector<LightningTreeNodeSPtr>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
         for (auto& tree : current_lightning_layer.tree_roots)
         {
-            constexpr bool remove_roots = false;
-            tree->propagateToNextLayer(lower_trees, below_outlines, below_outlines_locator, prune_length, straightening_max_distance, locator_cell_size / 2, remove_roots);
+            const coord_t start_prune_from = support_offset;  // TODO: senisble value
+            tree->propagateToNextLayer(lower_trees, below_outlines, below_outlines_locator, prune_length, straightening_max_distance, locator_cell_size / 2, start_prune_from);
             //tree->visitBranches([&svg](const Point& a, const Point& b) { svg.writeLine(a, b); });
         }
     }

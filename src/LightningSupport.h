@@ -82,6 +82,9 @@ namespace cura
         // TODO: document
         std::vector<Polygons> infill_outlines;
 
+        // TODO: document
+        std::vector<Polygons> no_root_areas;
+
         /*!
          * For each layer, the generated lightning paths.
          *

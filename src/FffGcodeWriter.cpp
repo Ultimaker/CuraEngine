@@ -2594,8 +2594,9 @@ bool FffGcodeWriter::processLightningSupport(const ExtruderTrain& infill_extrude
     constexpr double support_infill_angle = 0;
     constexpr coord_t support_shift = 0;
 
-    constexpr bool connect_polygons = true;
-    constexpr size_t infill_multiplier = 2;
+    constexpr bool extra_stability = false;
+    const bool connect_polygons = extra_stability;
+    const size_t infill_multiplier = extra_stability ? 2 : 1;
 
     const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
     const coord_t support_line_distance = infill_extruder.settings.get<coord_t>("support_line_distance");

@@ -103,7 +103,7 @@ public:
         const coord_t prune_distance,
         const coord_t smooth_magnitude,
         const coord_t max_remove_colinear_dist,
-        const bool remove_roots = true
+        const coord_t start_prune_from = 0
     ) const;
 
     /*!
@@ -226,7 +226,7 @@ protected:
     /*! Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
      * \return The distance that has been pruned. If less than \p distance, then the whole tree was puned away.
      */
-    coord_t prune(const coord_t& distance, const bool& remove_roots = true);
+    coord_t prune(const coord_t& distance, const coord_t& start_prune_from = 0);
 
 public:
     /*!
