@@ -2590,12 +2590,12 @@ bool FffGcodeWriter::processLightningSupport(const ExtruderTrain& infill_extrude
 
     // makes little to no sense for lightning:
     constexpr bool zig_zaggify_infill = false;
-    constexpr bool connect_polygons = false;
     constexpr coord_t support_infill_overlap = 0;
     constexpr double support_infill_angle = 0;
     constexpr coord_t support_shift = 0;
 
-    constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
+    constexpr bool connect_polygons = true;
+    constexpr size_t infill_multiplier = 2;
 
     const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
     const coord_t support_line_distance = infill_extruder.settings.get<coord_t>("support_line_distance");
@@ -2621,41 +2621,31 @@ bool FffGcodeWriter::processLightningSupport(const ExtruderTrain& infill_extrude
     );
 
     std::vector<VariableWidthLines> dummy_wall_toolpaths;
-    Polygons dummy_support_polygons;
+    Polygons support_polygons; // Can become filled when either connect polygons >= 2 or infill multiplier is on ... and both are.
     Polygons support_lines;
     infill_comp.generate
     (
         dummy_wall_toolpaths,
-        dummy_support_polygons,
+        support_polygons,
         support_lines,
         infill_extruder.settings,
         storage.support.cross_fill_provider,
         &storage.support.lightning_supporter->getTreesForLayer(gcode_layer.getLayerNr())
     );
 
+    if (! support_polygons.empty())
+    {
+        setExtruder_addPrime(storage, gcode_layer, infill_extruder.extruder_nr); // only switch extruder if we're sure we're going to switch
+        gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+        gcode_layer.addPolygonsByOptimizer(support_polygons, gcode_layer.configs_storage.support_infill_config[0]);
+        added_something = true;
+    }
+
     if (! support_lines.empty())
     {
         setExtruder_addPrime(storage, gcode_layer, infill_extruder.extruder_nr); // only switch extruder if we're sure we're going to switch
         gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
-
-        constexpr bool enable_travel_optimization = false;
-        constexpr coord_t wipe_dist = 0;
-        constexpr Ratio flow_ratio = 1.0;
-        const std::optional<Point> near_start_location = std::optional<Point>();
-        constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
-
-        gcode_layer.addLinesByOptimizer
-        (
-            support_lines,
-            gcode_layer.configs_storage.support_infill_config[0],
-            SpaceFillType::None,
-            enable_travel_optimization,
-            wipe_dist,
-            flow_ratio,
-            near_start_location,
-            fan_speed
-        );
-
+        gcode_layer.addLinesByOptimizer(support_lines, gcode_layer.configs_storage.support_infill_config[0], SpaceFillType::None);
         added_something = true;
     }
 

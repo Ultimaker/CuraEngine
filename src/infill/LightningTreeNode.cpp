@@ -66,12 +66,13 @@ void LightningTreeNode::propagateToNextLayer
     const LocToLineGrid& outline_locator,
     const coord_t prune_distance,
     const coord_t smooth_magnitude,
-    const coord_t max_remove_colinear_dist
+    const coord_t max_remove_colinear_dist,
+    const bool remove_roots /* = true */
 ) const
 {
     auto tree_below = deepCopy();
 
-    tree_below->prune(prune_distance);
+    tree_below->prune(prune_distance, remove_roots);
     tree_below->straighten(smooth_magnitude, max_remove_colinear_dist);
     if (tree_below->realign(next_outlines, outline_locator, next_trees))
     {
@@ -319,7 +320,7 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten
 }
 
 // Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
-coord_t LightningTreeNode::prune(const coord_t& pruning_distance)
+coord_t LightningTreeNode::prune(const coord_t& pruning_distance, const bool& remove_roots /* = true */)
 {
     if (pruning_distance <= 0)
     {
@@ -346,14 +347,24 @@ coord_t LightningTreeNode::prune(const coord_t& pruning_distance)
             { // we're still in the process of pruning
                 assert(child->children.empty() && "when pruning away a node all it's children must already have been pruned away");
                 max_distance_pruned = std::max(max_distance_pruned, dist_pruned_child + ab_len);
-                child_it = children.erase(child_it);
+                if (remove_roots || ! is_root)
+                {
+                    child_it = children.erase(child_it);
+                }
+                else
+                {
+                    ++child_it;
+                }
             }
             else
             { // pruning stops in between this node and the child
-                const Point n = b + normal(ba, pruning_distance - dist_pruned_child);
-                assert(std::abs(vSize(n - b) + dist_pruned_child - pruning_distance) < 10 && "total pruned distance must be equal to the pruning_distance");
-                max_distance_pruned = std::max(max_distance_pruned, pruning_distance);
-                child->setLocation(n);
+                if (remove_roots || ! is_root)
+                {
+                    const Point n = b + normal(ba, pruning_distance - dist_pruned_child);
+                    assert(std::abs(vSize(n - b) + dist_pruned_child - pruning_distance) < 10 && "total pruned distance must be equal to the pruning_distance");
+                    max_distance_pruned = std::max(max_distance_pruned, pruning_distance);
+                    child->setLocation(n);
+                }
                 ++child_it;
             }
         }

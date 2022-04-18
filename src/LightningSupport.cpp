@@ -103,6 +103,7 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
 {
     lightning_layers.resize(mesh.full_overhang_areas.size());
     const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
+    const auto support_offset = mesh.settings.get<coord_t>("support_xy_distance");
     const auto infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
     const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
 
@@ -113,7 +114,7 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
     {
         Polygons mesh_outlines;
         mesh.layers[layer_id].getOutlines(mesh_outlines);
-        infill_outlines[layer_id] = (infill_outlines[layer_id + 1].unionPolygons(mesh.full_overhang_areas[layer_id + 1])).difference(mesh_outlines);
+        infill_outlines[layer_id] = infill_outlines[layer_id + 1].unionPolygons(mesh.full_overhang_areas[layer_id + 1]).difference(mesh_outlines.offset(support_offset + wall_supporting_radius));
     }
 
     // For various operations its beneficial to quickly locate nearby features on the polygon:
@@ -146,7 +147,8 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
         std::vector<LightningTreeNodeSPtr>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
         for (auto& tree : current_lightning_layer.tree_roots)
         {
-            tree->propagateToNextLayer(lower_trees, below_outlines, below_outlines_locator, prune_length, straightening_max_distance, locator_cell_size / 2);
+            constexpr bool remove_roots = false;
+            tree->propagateToNextLayer(lower_trees, below_outlines, below_outlines_locator, prune_length, straightening_max_distance, locator_cell_size / 2, remove_roots);
             //tree->visitBranches([&svg](const Point& a, const Point& b) { svg.writeLine(a, b); });
         }
     }
