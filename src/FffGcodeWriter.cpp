@@ -15,6 +15,7 @@
 #include "infill.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
+#include "LightningSupport.h"
 #include "raft.h"
 #include "Slice.h"
 #include "WallToolPaths.h"
@@ -2549,15 +2550,21 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
     const size_t support_roof_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr;
     const size_t support_bottom_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr;
     size_t support_infill_extruder_nr = (gcode_layer.getLayerNr() <= 0) ? mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr;
+    const auto& infill_extruder = Application::getInstance().current_slice->scene.extruders[support_infill_extruder_nr];
+    const auto& support_structure = infill_extruder.settings.get<ESupportStructure>("support_structure");
 
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, gcode_layer.getLayerNr())];
-    if (support_layer.support_bottom.empty() && support_layer.support_roof.empty() && support_layer.support_infill_parts.empty())
+    if (support_layer.support_bottom.empty() && support_layer.support_roof.empty() && support_layer.support_infill_parts.empty() && support_structure != ESupportStructure::LIGHTNING)
     {
         return support_added;
     }
 
     if (extruder_nr == support_infill_extruder_nr)
     {
+        if (support_structure == ESupportStructure::LIGHTNING)
+        {
+            return processLightningSupport(infill_extruder, storage, gcode_layer);
+        }
         support_added |= processSupportInfill(storage, gcode_layer);
     }
     if (extruder_nr == support_roof_extruder_nr)
@@ -2571,6 +2578,89 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
     return support_added;
 }
 
+bool FffGcodeWriter::processLightningSupport(const ExtruderTrain& infill_extruder, const SliceDataStorage& storage, LayerPlan& gcode_layer) const
+{
+    bool added_something = false;
+    const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, gcode_layer.getLayerNr())]; // account for negative layer numbers for raft filler layers
+
+    if (gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer)
+    {
+        return added_something;
+    }
+
+    // makes little to no sense for lightning:
+    constexpr bool zig_zaggify_infill = false;
+    constexpr bool connect_polygons = false;
+    constexpr coord_t support_infill_overlap = 0;
+    constexpr double support_infill_angle = 0;
+    constexpr coord_t support_shift = 0;
+
+    constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
+
+    const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
+    const coord_t support_line_distance = infill_extruder.settings.get<coord_t>("support_line_distance");
+    const coord_t max_resolution = infill_extruder.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = infill_extruder.settings.get<coord_t>("meshfix_maximum_deviation");
+
+    const Polygons& outlines = storage.support.lightning_supporter->getOutlinesForLayer(gcode_layer.getLayerNr());
+    Infill infill_comp
+    (
+        EFillMethod::LIGHTNING,
+        zig_zaggify_infill,
+        connect_polygons,
+        outlines,
+        support_line_width,
+        support_line_distance,
+        support_infill_overlap,
+        infill_multiplier,
+        support_infill_angle,
+        gcode_layer.z,
+        support_shift,
+        max_resolution,
+        max_deviation
+    );
+
+    std::vector<VariableWidthLines> dummy_wall_toolpaths;
+    Polygons dummy_support_polygons;
+    Polygons support_lines;
+    infill_comp.generate
+    (
+        dummy_wall_toolpaths,
+        dummy_support_polygons,
+        support_lines,
+        infill_extruder.settings,
+        storage.support.cross_fill_provider,
+        &storage.support.lightning_supporter->getTreesForLayer(gcode_layer.getLayerNr())
+    );
+
+    if (! support_lines.empty())
+    {
+        setExtruder_addPrime(storage, gcode_layer, infill_extruder.extruder_nr); // only switch extruder if we're sure we're going to switch
+        gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
+
+        constexpr bool enable_travel_optimization = false;
+        constexpr coord_t wipe_dist = 0;
+        constexpr Ratio flow_ratio = 1.0;
+        const std::optional<Point> near_start_location = std::optional<Point>();
+        constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+
+        gcode_layer.addLinesByOptimizer
+        (
+            support_lines,
+            gcode_layer.configs_storage.support_infill_config[0],
+            SpaceFillType::None,
+            enable_travel_optimization,
+            wipe_dist,
+            flow_ratio,
+            near_start_location,
+            fan_speed
+        );
+
+        added_something = true;
+    }
+
+    return added_something;
+}
 
 bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
 {

@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICE_DATA_STORAGE_H
@@ -30,6 +30,7 @@ namespace cura
 class Mesh;
 class SierpinskiFillProvider;
 class LightningGenerator;
+class LightningSupport;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
@@ -233,6 +234,8 @@ public:
 
     std::vector<SupportLayer> supportLayers;
     SierpinskiFillProvider* cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
+
+    LightningSupport* lightning_supporter; //!< Pre-computed structure for Lightning type infill
 
     SupportStorage();
     ~SupportStorage();

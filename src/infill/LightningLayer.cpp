@@ -249,7 +249,6 @@ void LightningLayer::reconnectRoots
     }
 }
 
-// Returns 'added someting'.
 Polygons LightningLayer::convertToLines(const Polygons& limit_to_outline, const coord_t line_width) const
 {
     Polygons result_lines;

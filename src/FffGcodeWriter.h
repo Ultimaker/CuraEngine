@@ -587,6 +587,8 @@ private:
      */
     bool processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer) const;
 
+    bool processLightningSupport(const ExtruderTrain& settings, const SliceDataStorage& storage, LayerPlan& gcode_layer) const;
+
     /*!
      * Add the support roofs to the layer plan \p gcodeLayer of the current
      * layer.
