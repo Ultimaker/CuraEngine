@@ -100,13 +100,12 @@ const Polygons& LightningSupport::getOutlinesForLayer(const size_t& layer_id) co
 void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
 {
     lightning_layers.resize(mesh.full_overhang_areas.size());
-    const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("support_wall_count"));
     const auto support_offset = mesh.settings.get<coord_t>("support_xy_distance");
     const auto infill_line_width = mesh.settings.get<coord_t>("support_line_width");
-    const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
+    const int attach_to_model_penalty = infill_line_width * 8;
 
     infill_outlines = mesh.full_overhang_areas;
-    no_root_areas.resize(infill_outlines.size());
+    discourage_root_areas.resize(infill_outlines.size());
 
     // For-each layer from top to bottom:
     for (int layer_id = mesh.full_overhang_areas.size() - 2; layer_id >= 0; layer_id--)
@@ -115,7 +114,7 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
         mesh.layers[layer_id].getOutlines(mesh_outlines);
         mesh_outlines = mesh_outlines.offset(std::max(support_offset, wall_supporting_radius));
         infill_outlines[layer_id] = infill_outlines[layer_id + 1].unionPolygons(mesh.full_overhang_areas[layer_id + 1]).difference(mesh_outlines);
-        no_root_areas[layer_id] = mesh_outlines.offset(infill_line_width);
+        discourage_root_areas[layer_id] = mesh_outlines.offset(infill_line_width);
     }
 
     // For various operations its beneficial to quickly locate nearby features on the polygon:
@@ -129,12 +128,19 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
         Polygons& current_outlines = infill_outlines[layer_id];
         const auto& outlines_locator = *outlines_locator_ptr;
 
+        const std::function<int(Point)>& root_location_penalty_function
+        (
+            [&](Point p)
+            {
+                return discourage_root_areas[layer_id].inside(p) ? attach_to_model_penalty : 0;
+            }
+        );
+
         // register all trees propagated from the previous layer as to-be-reconnected
         std::vector<LightningTreeNodeSPtr> to_be_reconnected_tree_roots = current_lightning_layer.tree_roots;
 
-        current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, outlines_locator, supporting_radius, wall_supporting_radius);
-
-        current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, outlines_locator, supporting_radius, wall_supporting_radius);
+        current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, outlines_locator, supporting_radius, wall_supporting_radius, root_location_penalty_function);
+        current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, outlines_locator, supporting_radius, wall_supporting_radius, root_location_penalty_function);
 
         // Initialize trees for next lower layer from the current one.
         if (layer_id == 0)

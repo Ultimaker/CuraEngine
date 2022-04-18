@@ -42,7 +42,8 @@ public:
         const Polygons& current_outlines,
         const LocToLineGrid& outline_locator,
         const coord_t supporting_radius,
-        const coord_t wall_supporting_radius
+        const coord_t wall_supporting_radius,
+        const std::function<int(Point)>& root_location_penalty_function = PolygonUtils::no_penalty_function
     );
 
     /*! Determine & connect to connection point in tree/outline.
@@ -56,6 +57,7 @@ public:
         const coord_t supporting_radius,
         const coord_t wall_supporting_radius,
         const SparseLightningTreeNodeGrid& tree_node_locator,
+        const std::function<int(Point)>& root_location_penalty_function = PolygonUtils::no_penalty_function,
         const LightningTreeNodeSPtr& exclude_tree = nullptr
     );
 
@@ -72,7 +74,8 @@ public:
         const Polygons& current_outlines,
         const LocToLineGrid& outline_locator,
         const coord_t supporting_radius,
-        const coord_t wall_supporting_radius
+        const coord_t wall_supporting_radius,
+        const std::function<int(Point)>& root_location_penalty_function = PolygonUtils::no_penalty_function
     );
 
     Polygons convertToLines(const Polygons& limit_to_outline, const coord_t line_width) const;

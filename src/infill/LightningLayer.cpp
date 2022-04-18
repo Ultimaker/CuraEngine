@@ -51,7 +51,8 @@ void LightningLayer::generateNewTrees
     const Polygons& current_outlines,
     const LocToLineGrid& outlines_locator,
     const coord_t supporting_radius,
-    const coord_t wall_supporting_radius
+    const coord_t wall_supporting_radius,
+    const std::function<int(Point)>& root_location_penalty_function
 )
 {
     LightningDistanceField distance_field(supporting_radius, current_outlines, current_overhang);
@@ -72,7 +73,8 @@ void LightningLayer::generateNewTrees
                 outlines_locator,
                 supporting_radius,
                 wall_supporting_radius,
-                tree_node_locator
+                tree_node_locator,
+                root_location_penalty_function
             );
 
         LightningTreeNodeSPtr new_parent;
@@ -97,10 +99,11 @@ GroundingLocation LightningLayer::getBestGroundingLocation
     const coord_t supporting_radius,
     const coord_t wall_supporting_radius,
     const SparseLightningTreeNodeGrid& tree_node_locator,
+    const std::function<int(Point)>& root_location_penalty_function,
     const LightningTreeNodeSPtr& exclude_tree
 )
 {
-    ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
+    ClosestPolygonPoint cpp = PolygonUtils::findClosest(unsupported_location, current_outlines, root_location_penalty_function);
     Point node_location = cpp.p();
     const coord_t within_dist = vSize(node_location - unsupported_location);
 
@@ -170,7 +173,8 @@ void LightningLayer::reconnectRoots
     const Polygons& current_outlines,
     const LocToLineGrid& outline_locator,
     const coord_t supporting_radius,
-    const coord_t wall_supporting_radius
+    const coord_t wall_supporting_radius,
+    const std::function<int(Point)>& root_location_penalty_function
 )
 {
     constexpr coord_t tree_connecting_ignore_offset = 100;
@@ -212,6 +216,7 @@ void LightningLayer::reconnectRoots
                 supporting_radius,
                 tree_connecting_ignore_width,
                 tree_node_locator,
+                root_location_penalty_function,
                 root_ptr
             );
         if (ground.boundary_location)
