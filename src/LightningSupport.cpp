@@ -7,6 +7,7 @@
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
+#include "TreeModelVolumes.h"
 #include "infill/LightningTreeNode.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
@@ -55,10 +56,16 @@ void LightningSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     // TODO: Only the last mesh gets properly processed, as each overwrites its predecessor at the moment.
+    generateTreeVolumes(storage, group_settings);
     std::for_each(storage.meshes.begin(), storage.meshes.end(), [&](SliceMeshStorage& mesh) { generateSupportForMesh(mesh); });
     storage.support.layer_nr_max_filled_layer = lightning_layers.size() - 1;
     storage.support.lightning_supporter = this;
     storage.support.generated = true;
+}
+
+void LightningSupport::generateTreeVolumes(const SliceDataStorage& storage, const Settings& settings)
+{
+    tree_model_volumes = std::make_shared<TreeModelVolumes>(storage, settings);
 }
 
 void LightningSupport::generateSupportForMesh(SliceMeshStorage& mesh)
@@ -75,6 +82,7 @@ void LightningSupport::generateSupportForMesh(SliceMeshStorage& mesh)
     wall_supporting_radius = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_overhang_angle"));
     prune_length = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_prune_angle"));
     straightening_max_distance = layer_thickness * std::tan(infill_extruder.settings.get<AngleRadians>("lightning_infill_straightening_angle"));
+    // ^^^ TODO: separate values for lightning infill and lightning support ^^^
 
     generateInitialInternalOverhangs(mesh);
     generateTrees(mesh);
@@ -102,10 +110,13 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
     lightning_layers.resize(mesh.full_overhang_areas.size());
     const auto support_offset = mesh.settings.get<coord_t>("support_xy_distance");
     const auto infill_line_width = mesh.settings.get<coord_t>("support_line_width");
+    const auto support_type = mesh.settings.get<ESupportType>("support_type");
     const int attach_to_model_penalty = infill_line_width * 8;
 
     infill_outlines = mesh.full_overhang_areas;
     discourage_root_areas.resize(infill_outlines.size());
+
+    const coord_t avoid_bp_extra_dist = (support_type == ESupportType::PLATFORM_ONLY) ? support_offset / 2 : 0;
 
     // For-each layer from top to bottom:
     for (int layer_id = mesh.full_overhang_areas.size() - 2; layer_id >= 0; layer_id--)
@@ -113,8 +124,17 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
         Polygons mesh_outlines;
         mesh.layers[layer_id].getOutlines(mesh_outlines);
         mesh_outlines = mesh_outlines.offset(std::max(support_offset, wall_supporting_radius));
+        //const auto& layer_volume = (support_type == ESupportType::PLATFORM_ONLY) ? tree_model_volumes->getAvoidance(avoid_bp_extra_dist, layer_id) : Polygons();
+        //infill_outlines[layer_id] = infill_outlines[layer_id + 1].unionPolygons(mesh.full_overhang_areas[layer_id + 1]).difference(mesh_outlines.unionPolygons(layer_volume));
         infill_outlines[layer_id] = infill_outlines[layer_id + 1].unionPolygons(mesh.full_overhang_areas[layer_id + 1]).difference(mesh_outlines);
         discourage_root_areas[layer_id] = mesh_outlines.offset(infill_line_width);
+    }
+    if (avoid_bp_extra_dist > 0)
+    {
+        for (int layer_id = mesh.full_overhang_areas.size() - 2; layer_id >= 0; layer_id--)
+        {
+            infill_outlines[layer_id] = infill_outlines[layer_id].offset(avoid_bp_extra_dist);
+        }
     }
 
     // For various operations its beneficial to quickly locate nearby features on the polygon:
@@ -154,8 +174,20 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
         std::vector<LightningTreeNodeSPtr>& lower_trees = lightning_layers[layer_id - 1].tree_roots;
         for (auto& tree : current_lightning_layer.tree_roots)
         {
-            const coord_t start_prune_from = support_offset;  // TODO: senisble value
-            tree->propagateToNextLayer(lower_trees, below_outlines, below_outlines_locator, prune_length, straightening_max_distance, locator_cell_size / 2, start_prune_from);
+            const coord_t start_prune_from = supporting_radius * 8;
+            const Polygons outside_poly = avoid_bp_extra_dist > 0 ? tree_model_volumes->getAvoidance(avoid_bp_extra_dist, layer_id) : Polygons();
+            tree->propagateToNextLayer
+            (
+                lower_trees,
+                below_outlines,
+                below_outlines_locator,
+                prune_length,
+                straightening_max_distance,
+                locator_cell_size / 2,
+                start_prune_from,
+                outside_poly,
+                supporting_radius * supporting_radius * 4
+            );
             //tree->visitBranches([&svg](const Point& a, const Point& b) { svg.writeLine(a, b); });
         }
     }

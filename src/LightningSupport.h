@@ -8,8 +8,10 @@
 
 namespace cura
 {
+    class Settings;
     class SliceDataStorage;
     class SliceMeshStorage;
+    class TreeModelVolumes;
 
     /*!
      * \brief Generates a 'lightning' structure to support models where needed.
@@ -35,6 +37,7 @@ namespace cura
         const Polygons& getOutlinesForLayer(const size_t& layer_id) const;
 
     protected:
+        void generateTreeVolumes(const SliceDataStorage& storage, const Settings& settings);
         void generateSupportForMesh(SliceMeshStorage& mesh);
         void generateInitialInternalOverhangs(const SliceMeshStorage& mesh);
         void generateTrees(const SliceMeshStorage& mesh);
@@ -84,6 +87,9 @@ namespace cura
 
         // TODO: document
         std::vector<Polygons> discourage_root_areas;
+
+        // TODO: document
+        std::shared_ptr<TreeModelVolumes> tree_model_volumes;
 
         /*!
          * For each layer, the generated lightning paths.

@@ -67,13 +67,19 @@ void LightningTreeNode::propagateToNextLayer
     const coord_t prune_distance,
     const coord_t smooth_magnitude,
     const coord_t max_remove_colinear_dist,
-    const coord_t start_prune_from /* = 0 */
+    const coord_t start_prune_from /* = 0 */,
+    const Polygons& outside_poly /* = Polygons()*/,
+    const coord_t max_move_outside_dist2 /* = 0 */
 ) const
 {
     auto tree_below = deepCopy();
 
     tree_below->prune(prune_distance, start_prune_from);
     tree_below->straighten(smooth_magnitude, max_remove_colinear_dist);
+    if (! outside_poly.empty())
+    {
+        tree_below->moveOutsideOf(outside_poly, max_move_outside_dist2);
+    }
     if (tree_below->realign(next_outlines, outline_locator, next_trees))
     {
         next_trees.push_back(tree_below);
@@ -166,6 +172,37 @@ LightningTreeNodeSPtr LightningTreeNode::closestNode(const Point& loc)
     }
 
     return result;
+}
+
+void LightningTreeNode::moveOutsideOf(const Polygons& outside_poly, const coord_t max_move_outside_dist2)
+{
+    bool some_inside = false;
+    const std::function<void(LightningTreeNodeSPtr)> any_in_func
+    (
+        [&outside_poly, &some_inside](LightningTreeNodeSPtr node)
+        {
+            some_inside |= outside_poly.inside(node->p, true);
+        }
+    );
+    if (! some_inside)
+    {
+        return;
+    }
+
+    Point copy_p = p;
+    PolygonUtils::moveInside(outside_poly, copy_p, -1, max_move_outside_dist2);
+    const auto moved_vec = copy_p - p;
+
+    std::fprintf(stderr, "AAAAAABBBB %lld\n", vSize(moved_vec));
+
+    const std::function<void(LightningTreeNodeSPtr)> move_out_func
+    (
+        [&moved_vec](LightningTreeNodeSPtr node)
+        {
+            node->p += moved_vec;
+        }
+    );
+    visitNodes(move_out_func);
 }
 
 bool LightningTreeNode::realign

@@ -103,7 +103,9 @@ public:
         const coord_t prune_distance,
         const coord_t smooth_magnitude,
         const coord_t max_remove_colinear_dist,
-        const coord_t start_prune_from = 0
+        const coord_t start_prune_from = 0,
+        const Polygons& outside_poly = Polygons(),
+        const coord_t max_move_outside_dist2 = 0
     ) const;
 
     /*!
@@ -195,6 +197,9 @@ protected:
      * tree).
      */
     LightningTreeNodeSPtr deepCopy() const;
+
+    // TODO: documentaiton
+    void moveOutsideOf(const Polygons& outside_poly, const coord_t max_move_outside_dist2);
 
     /*! Reconnect trees from the layer above to the new outlines of the lower layer.
      * \return Wether or not the root is kept (false is no, true is yes).
