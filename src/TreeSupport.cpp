@@ -366,7 +366,9 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                     continue;
                 }
                 //If the branch falls completely inside a collision area (the entire branch would be removed by the X/Y offset), delete it.
-                if (group_index > 0 && volumes_.getCollision(0, layer_nr).inside(node.position))
+
+                Polygons collision = volumes_.getCollision(0, layer_nr);
+                if (group_index > 0 && collision.inside(node.position))
                 {
                     const coord_t branch_radius_node = [&]() -> coord_t
                     {
@@ -379,8 +381,15 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                             return branch_radius * node.distance_to_top / tip_layers;
                         }
                     }();
-                    const ClosestPolygonPoint to_outside = PolygonUtils::findClosest(node.position, volumes_.getCollision(0, layer_nr));
-                    if (vSize2(node.position - to_outside.location) >= branch_radius_node * branch_radius_node) //Too far inside.
+
+                    const ClosestPolygonPoint to_outside = PolygonUtils::findClosest(node.position, collision);
+                    bool node_is_tip = node.distance_to_top <= tip_layers;
+                    coord_t max_inside_dist = branch_radius_node;
+                    if (node_is_tip) {
+                        // if the node is part of the tip allow the branch to travel through the support xy distance
+                        max_inside_dist += (tip_layers - node.distance_to_top) * maximum_move_distance;
+                    }
+                    if (vSize2(node.position - to_outside.location) >= max_inside_dist * max_inside_dist) //Too far inside.
                     {
                         if (! support_rests_on_model)
                         {
