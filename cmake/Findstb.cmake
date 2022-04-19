@@ -52,7 +52,7 @@ else()
             INSTALL_COMMAND "" #Assume that the user doesn't want to install all dependencies on his system. We just need to get them for building the application.
         )
         set(CuraEngine_Download_Stb TRUE)
-        set(Stb_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/stb-prefix/src")
+        set(Stb_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/stb-prefix/src/stb")
         set(Stb_FOUND TRUE)
         if(NOT Stb_FIND_QUIETLY)
             message(STATUS "Created Stb installation at: ${Stb_INCLUDE_DIRS}")
@@ -67,3 +67,9 @@ else()
 endif()
 
 mark_as_advanced(Stb_INCLUDE_DIRS)
+add_library(stb::stb INTERFACE)
+target_include_directories(stb::stb
+        PUBLIC
+        $<BUILD_INTERFACE:${Stb_INCLUDE_DIRS}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        )

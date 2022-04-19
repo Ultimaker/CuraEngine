@@ -2,7 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <gtest/gtest.h>
-#include <clipper.hpp>
+#include <polyclipping/clipper.hpp>
 
 #include "../src/utils/AABB.h"
 #include "../src/utils/AABB3D.h"

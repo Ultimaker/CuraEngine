@@ -4,10 +4,27 @@ on: [push, pull_request]
 jobs:
   build:
     name: Build and test
-    runs-on: ubuntu-latest
-    container: ultimaker/cura-build-environment
+    runs-on: ubuntu-20.04
+    env:
+      CONAN_USER: ${{ secrets.CONAN_USER }}
+      CONAN_PASS: ${{ secrets.CONAN_PASS }}
     steps:
     - name: Checkout master
       uses: actions/checkout@v1.2.0
     - name: Build and test
-      run: docker/build.sh
+      run: |
+        python -m pip install conan
+        conan profile new default --detect
+        conan config install https://github.com/ultimaker/conan-config.git
+        conan user -p $CONAN_PASS -r ultimaker $CONAN_USER
+        conan install . -if build -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing
+        
+        cd build
+        cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
+        -DBUILD_TESTS=OFF \
+        ..
+        make -j $(nproc)
+        
+        conan upload "*" -r ultimaker --all -c
