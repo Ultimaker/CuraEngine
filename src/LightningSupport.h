@@ -37,7 +37,7 @@ namespace cura
         const Polygons& getOutlinesForLayer(const size_t& layer_id) const;
 
     protected:
-        void generateTreeVolumes(const SliceDataStorage& storage, const Settings& settings);
+        void generateTreeVolumes(const SliceDataStorage& storage, const Settings& settings, const size_t max_layer);
         void generateSupportForMesh(SliceMeshStorage& mesh);
         void generateInitialInternalOverhangs(const SliceMeshStorage& mesh);
         void generateTrees(const SliceMeshStorage& mesh);
@@ -89,7 +89,9 @@ namespace cura
         std::vector<Polygons> discourage_root_areas;
 
         // TODO: document
-        std::shared_ptr<TreeModelVolumes> tree_model_volumes;
+        //std::shared_ptr<TreeModelVolumes> tree_model_volumes;
+        coord_t avoid_bp_extra_dist;
+        std::vector<Polygons> avoidance_envelope;
 
         /*!
          * For each layer, the generated lightning paths.

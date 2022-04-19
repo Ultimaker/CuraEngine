@@ -56,16 +56,45 @@ void LightningSupport::generateSupportAreas(SliceDataStorage& storage)
     }
 
     // TODO: Only the last mesh gets properly processed, as each overwrites its predecessor at the moment.
-    generateTreeVolumes(storage, group_settings);
+    size_t max_layer = 0;
+    std::for_each(storage.meshes.begin(), storage.meshes.end(), [&max_layer](SliceMeshStorage& mesh) { max_layer = std::max(max_layer, mesh.layers.size()); });
+    generateTreeVolumes(storage, group_settings, max_layer);
     std::for_each(storage.meshes.begin(), storage.meshes.end(), [&](SliceMeshStorage& mesh) { generateSupportForMesh(mesh); });
     storage.support.layer_nr_max_filled_layer = lightning_layers.size() - 1;
     storage.support.lightning_supporter = this;
     storage.support.generated = true;
 }
 
-void LightningSupport::generateTreeVolumes(const SliceDataStorage& storage, const Settings& settings)
+void LightningSupport::generateTreeVolumes(const SliceDataStorage& storage, const Settings& settings, const size_t max_layer)
 {
-    tree_model_volumes = std::make_shared<TreeModelVolumes>(storage, settings);
+    avoid_bp_extra_dist = 0;
+    avoidance_envelope.resize(max_layer);
+
+    const auto support_type = settings.get<ESupportType>("support_type");
+    if (support_type == ESupportType::PLATFORM_ONLY)
+    {
+        const auto infill_extruder = settings.get<ExtruderTrain&>("support_extruder_nr");
+        supporting_radius = std::max(settings.get<coord_t>("support_line_distance"), infill_extruder.settings.get<coord_t>("support_line_width")) / 2;
+        const auto support_offset = settings.get<coord_t>("support_xy_distance");
+        avoid_bp_extra_dist = support_offset / 2;
+
+        TreeModelVolumes tree_model_volumes(storage, settings);
+        
+        Polygons prev_layer;
+        for (size_t i_layer = 0; i_layer < max_layer; ++i_layer)
+        {
+            Polygons mesh_outlines;
+            std::for_each(storage.meshes.begin(), storage.meshes.end(), [&](const SliceMeshStorage& mesh) { mesh.layers[i_layer].getOutlines(mesh_outlines); });
+
+            avoidance_envelope[i_layer] =
+                prev_layer
+                .unionPolygons(mesh_outlines); // .offset(-supporting_radius);
+                //.unionPolygons(tree_model_volumes.getCollision(avoid_bp_extra_dist, i_layer));
+                //.unionPolygons(tree_model_volumes.getAvoidance(avoid_bp_extra_dist, i_layer));
+
+            prev_layer = avoidance_envelope[i_layer].offset(-infill_extruder.settings.get<coord_t>("support_line_width"));
+        }
+    }
 }
 
 void LightningSupport::generateSupportForMesh(SliceMeshStorage& mesh)
@@ -116,7 +145,7 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
     infill_outlines = mesh.full_overhang_areas;
     discourage_root_areas.resize(infill_outlines.size());
 
-    const coord_t avoid_bp_extra_dist = (support_type == ESupportType::PLATFORM_ONLY) ? support_offset / 2 : 0;
+    //const coord_t avoid_bp_extra_dist = (support_type == ESupportType::PLATFORM_ONLY) ? support_offset / 2 : 0;
 
     // For-each layer from top to bottom:
     for (int layer_id = mesh.full_overhang_areas.size() - 2; layer_id >= 0; layer_id--)
@@ -161,6 +190,13 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
 
         current_lightning_layer.generateNewTrees(overhang_per_layer[layer_id], current_outlines, outlines_locator, supporting_radius, wall_supporting_radius, root_location_penalty_function);
         current_lightning_layer.reconnectRoots(to_be_reconnected_tree_roots, current_outlines, outlines_locator, supporting_radius, wall_supporting_radius, root_location_penalty_function);
+        if (!avoidance_envelope.empty())
+        {
+            for (auto tree : current_lightning_layer.tree_roots)
+            {
+                tree->moveOutsideOf(avoidance_envelope[layer_id], supporting_radius * supporting_radius * 4);
+            }
+        }
 
         // Initialize trees for next lower layer from the current one.
         if (layer_id == 0)
@@ -175,7 +211,7 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
         for (auto& tree : current_lightning_layer.tree_roots)
         {
             const coord_t start_prune_from = supporting_radius * 8;
-            const Polygons outside_poly = avoid_bp_extra_dist > 0 ? tree_model_volumes->getAvoidance(avoid_bp_extra_dist, layer_id) : Polygons();
+            //const Polygons outside_poly = avoid_bp_extra_dist > 0 ? tree_model_volumes->getAvoidance(avoid_bp_extra_dist, layer_id) : Polygons();
             tree->propagateToNextLayer
             (
                 lower_trees,
@@ -184,10 +220,12 @@ void LightningSupport::generateTrees(const SliceMeshStorage& mesh)
                 prune_length,
                 straightening_max_distance,
                 locator_cell_size / 2,
-                start_prune_from,
-                outside_poly,
-                supporting_radius * supporting_radius * 4
+                start_prune_from
             );
+            if (! avoidance_envelope.empty())
+            {
+                tree->moveOutsideOf(avoidance_envelope[layer_id], supporting_radius * supporting_radius * 4);
+            }
             //tree->visitBranches([&svg](const Point& a, const Point& b) { svg.writeLine(a, b); });
         }
     }
