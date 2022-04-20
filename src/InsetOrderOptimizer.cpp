@@ -91,13 +91,13 @@ bool InsetOrderOptimizer::addToLayer()
             {
                 return wallsToBeAdded(paths.rbegin(), paths.rend()); // Complete wall with one extruder
             }
-            return wallsToBeAdded(paths.rbegin(), std::prev(paths.rend())); // Ignore outer wall
+            return wallsToBeAdded(paths.rbegin(), std::prev(paths.rend())); // Ignore inner wall
         }
         if (use_one_extruder)
         {
             return wallsToBeAdded(paths.begin(), paths.end()); // Complete wall with one extruder
         }
-        return wallsToBeAdded(paths.begin(), std::next(paths.begin())); // Ignore inner wall
+        return wallsToBeAdded(paths.begin(), std::next(paths.begin())); // Ignore outer wall
     };
     const auto walls_to_be_added = get_walls_to_be_added(reverse, paths);
 
