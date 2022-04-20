@@ -321,9 +321,10 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                     }();
 
                     //Avoid collisions.
-                    const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
-                    Polygons avoidance = group_index == 0 ? volumes_.getAvoidance(branch_radius_node, layer_nr - 1) : volumes_.getCollision(branch_radius_node, layer_nr - 1);
-                    PolygonUtils::moveOutside(avoidance, next_position, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples);
+                    constexpr size_t rounding_compensation = 100;
+                    const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + rounding_compensation;
+                    const Polygons avoidance = group_index == 0 ? volumes_.getAvoidance(branch_radius_node, layer_nr - 1) : volumes_.getCollision(branch_radius_node, layer_nr - 1);
+                    PolygonUtils::moveOutside(avoidance, next_position, radius_sample_resolution + rounding_compensation, maximum_move_between_samples * maximum_move_between_samples);
 
                     Node* neighbour = nodes_per_part[group_index][neighbours[0]];
                     size_t new_distance_to_top = std::max(node.distance_to_top, neighbour->distance_to_top) + 1;
