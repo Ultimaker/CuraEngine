@@ -861,7 +861,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             if (use_xy_distance_overhang) //Z overrides XY distance.
             {
                 // we also want to use the min XY distance when the support is resting on a sloped surface so we calculate the area of the
-                // layer below that protudes beyond the current layer's area and combine it with the current layer's overhang disallowed area
+                // layer below that protrudes beyond the current layer's area and combine it with the current layer's overhang disallowed area
 
                 Polygons larger_area_below; // the areas in the layer below that protrude beyond the area of the current layer
                 if (layer_idx > 1)
@@ -871,7 +871,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
                     if (larger_area_below.size())
                     {
-                        // if the layer below protudes sufficiently such that a normal support at xy_distance could be placed there,
+                        // if the layer below protrudes sufficiently such that a normal support at xy_distance could be placed there,
                         // we don't want to use the min XY distance in that area and so we remove the wide area from larger_area_below
 
                         // assume that a minimal support structure would be one line spaced at xy_distance from the model (verified by experiment)
