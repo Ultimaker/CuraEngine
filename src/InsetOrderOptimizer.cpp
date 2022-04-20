@@ -62,7 +62,7 @@ bool InsetOrderOptimizer::addToLayer()
     const bool use_one_extruder = wall_0_extruder_nr == wall_x_extruder_nr;
     const bool current_extruder_is_wall_x = wall_x_extruder_nr == extruder_nr;
 
-    auto should_reverse = [&](){
+    const auto should_reverse = [&](){
         if (use_one_extruder && current_extruder_is_wall_x)
         {
             // The entire wall is printed with the current extruder.
@@ -79,7 +79,7 @@ bool InsetOrderOptimizer::addToLayer()
 
     // Switches the begin()...end() forward iterator for a rbegin()...rend() reverse iterator
     // I can't wait till we use the C++20 standard and have access to ranges and views
-    auto get_walls_to_be_added = [&](const bool reverse, const std::vector<VariableWidthLines>& paths)
+    const auto get_walls_to_be_added = [&](const bool reverse, const std::vector<VariableWidthLines>& paths)
     {
         if (paths.empty())
         {
@@ -99,9 +99,9 @@ bool InsetOrderOptimizer::addToLayer()
         }
         return wallsToBeAdded(paths.begin(), std::next(paths.begin())); // Ignore inner wall
     };
-    auto walls_to_be_added = get_walls_to_be_added(reverse, paths);
+    const auto walls_to_be_added = get_walls_to_be_added(reverse, paths);
 
-    auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
+    const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
     
     constexpr Ratio flow = 1.0_r;
     
