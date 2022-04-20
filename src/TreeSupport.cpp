@@ -319,12 +319,11 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                              return branch_radius * (node.distance_to_top + 1) / tip_layers;
                         }
                     }();
-                    if (group_index == 0)
-                    {
-                        //Avoid collisions.
-                        const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
-                        PolygonUtils::moveOutside(volumes_.getAvoidance(branch_radius_node, layer_nr - 1), next_position, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
-                    }
+
+                    //Avoid collisions.
+                    const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
+                    Polygons avoidance = group_index == 0 ? volumes_.getAvoidance(branch_radius_node, layer_nr - 1) : volumes_.getCollision(branch_radius_node, layer_nr - 1);
+                    PolygonUtils::moveOutside(avoidance, next_position, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples);
 
                     Node* neighbour = nodes_per_part[group_index][neighbours[0]];
                     size_t new_distance_to_top = std::max(node.distance_to_top, neighbour->distance_to_top) + 1;
@@ -429,12 +428,11 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                         return branch_radius * (node.distance_to_top + 1) / tip_layers;
                     }
                 }();
-                if (group_index == 0)
-                {
-                    //Avoid collisions.
-                    const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
-                    PolygonUtils::moveOutside(volumes_.getAvoidance(branch_radius_node, layer_nr - 1), next_layer_vertex, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
-                }
+
+                //Avoid collisions.
+                const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
+                Polygons avoidance = group_index == 0 ? volumes_.getAvoidance(branch_radius_node, layer_nr - 1) : volumes_.getCollision(branch_radius_node, layer_nr - 1);
+                PolygonUtils::moveOutside(avoidance, next_layer_vertex, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples);
 
                 const bool to_buildplate = !volumes_.getAvoidance(branch_radius_node, layer_nr - 1).inside(next_layer_vertex);
                 Node* next_node = new Node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate, p_node);
