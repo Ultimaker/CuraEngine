@@ -118,6 +118,31 @@ private:
      * closing that polyline into a polygon.
      */
     constexpr static coord_t coincident_point_distance = 10;
+
+    /*!
+     * Helper function to either iterate forward or backward over the path and output a vector of ExtrusionLines
+     *
+     * @tparam It an iterator type, forward or revers
+     * @param begin either the begin() or rbegin() of the path
+     * @param end either the end() or rend() of the path
+     * @return a vector of const ExtrusionLine pointers (whom ever came up with that container???)
+     */
+    template<typename It>
+    std::vector<const ExtrusionLine*> wallsToBeAdded(It begin, It end)
+    {
+        std::vector<const ExtrusionLine*> walls_to_be_added;
+        for (It it = begin; it != end; ++it)
+        {
+            if (! it->empty())
+            {
+                for (const auto& wall : *it)
+                {
+                    walls_to_be_added.emplace_back(&wall);
+                }
+            }
+        }
+        return walls_to_be_added;
+    }
 };
 
 
