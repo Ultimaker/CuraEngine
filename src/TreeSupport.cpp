@@ -100,8 +100,9 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const size_t tip_layers = (branch_radius - minimum_tip_radius) / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const coord_t resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
 
-    std::atomic<size_t> completed = 0; //To track progress in a multi-threaded environment.
-    std::mutex critical_sections;
+    size_t completed = 0; //To track progress, should be locked when altered.
+    std::mutex critical_section_volumes;
+    std::mutex critical_section_progress;
     cura::parallel_for<size_t>(0, contact_nodes.size(), [&](const size_t layer_nr)
     {
         Polygons support_layer;
@@ -143,8 +144,12 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         support_layer = support_layer.unionPolygons();
         roof_layer = roof_layer.unionPolygons();
         const size_t z_collision_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(z_distance_bottom_layers) + 1)); //Layer to test against to create a Z-distance.
-        support_layer = support_layer.difference(volumes_.getCollision(0, z_collision_layer)); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
-        roof_layer = roof_layer.difference(volumes_.getCollision(0, z_collision_layer));
+        {
+            const std::lock_guard<std::mutex> lock(critical_section_volumes);
+
+            support_layer = support_layer.difference(volumes_.getCollision(0, z_collision_layer)); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
+            roof_layer = roof_layer.difference(volumes_.getCollision(0, z_collision_layer));
+        }
         support_layer = support_layer.difference(roof_layer);
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = static_cast<double>(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
@@ -182,19 +187,14 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         }
 
         {
-            std::lock_guard<std::mutex> critical_section_support_max_layer_nr(critical_sections);
+            const std::lock_guard<std::mutex> lock(critical_section_progress);
 
             if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
             {
                 storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, static_cast<int>(layer_nr));
             }
-        }
 
-        ++completed;
-
-        {
-            std::lock_guard<std::mutex> critical_section_progress(critical_sections);
-
+            ++completed;
             const double progress_contact_nodes = contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN;
             const double progress_current = completed * PROGRESS_WEIGHT_AREAS;
             const double progress_total = completed * PROGRESS_WEIGHT_AREAS;
