@@ -104,6 +104,8 @@ const Polygons& TreeModelVolumes::calculateCollision(const RadiusLayerPair& key)
             collision_areas = collision_areas.unionPolygons(collision_model.offset(radius));
         }
     }
+
+    const std::lock_guard<std::mutex> lock(object_mutex_);
     const auto ret = collision_cache_.insert({key, std::move(collision_areas)});
     assert(ret.second);
     return ret.first->second;
@@ -135,6 +137,8 @@ const Polygons& TreeModelVolumes::calculateAvoidance(const RadiusLayerPair& key)
     }
     auto avoidance_areas = getAvoidance(radius, layer_idx - 1).offset(-max_move_).smooth(5);
     avoidance_areas = avoidance_areas.unionPolygons(getCollision(radius, layer_idx));
+
+    const std::lock_guard<std::mutex> lock(object_mutex_);
     const auto ret = avoidance_cache_.insert({key, std::move(avoidance_areas)});
     assert(ret.second);
     return ret.first->second;
@@ -144,8 +148,9 @@ const Polygons& TreeModelVolumes::calculateInternalModel(const RadiusLayerPair& 
 {
     const auto& radius = key.first;
     const auto& layer_idx = key.second;
-
     const auto& internal_areas = getAvoidance(radius, layer_idx).difference(getCollision(radius, layer_idx));
+
+    const std::lock_guard<std::mutex> lock(object_mutex_);
     const auto ret = internal_model_cache_.insert({key, internal_areas});
     assert(ret.second);
     return ret.first->second;

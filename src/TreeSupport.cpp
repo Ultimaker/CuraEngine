@@ -31,10 +31,9 @@
 namespace cura
 {
 
-TreeSupport::TreeSupport(const SliceDataStorage& storage)
+TreeSupport::TreeSupport(const SliceDataStorage& storage) :
+    volumes_(storage, Application::getInstance().current_slice->scene.current_mesh_group->settings)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    volumes_ = TreeModelVolumes(storage, mesh_group_settings);
 }
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
