@@ -73,7 +73,7 @@ bool InsetOrderOptimizer::addToLayer()
         }
         // If the wall is partially printed with the current extruder we need to move forward
         // for the outer wall extruder and iterate back for the inner wall extruder
-        return ! current_extruder_is_wall_x;
+        return current_extruder_is_wall_x;
     };  // Helper lambda to ensure that the reverse bool can be a const type
     const bool reverse = should_reverse();
 
@@ -91,13 +91,13 @@ bool InsetOrderOptimizer::addToLayer()
             {
                 return wallsToBeAdded(paths.rbegin(), paths.rend()); // Complete wall with one extruder
             }
-            return wallsToBeAdded(std::next(paths.rbegin()), paths.rend()); // Ignore outer wall
+            return wallsToBeAdded(paths.rbegin(), std::prev(paths.rend())); // Ignore outer wall
         }
         if (use_one_extruder)
         {
             return wallsToBeAdded(paths.begin(), paths.end()); // Complete wall with one extruder
         }
-        return wallsToBeAdded(std::next(paths.begin()), paths.end()); // Ignore inner wall
+        return wallsToBeAdded(paths.begin(), std::next(paths.begin())); // Ignore inner wall
     };
     auto walls_to_be_added = get_walls_to_be_added(reverse, paths);
 
