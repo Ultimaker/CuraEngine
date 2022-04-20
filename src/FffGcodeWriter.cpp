@@ -2796,7 +2796,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, simplify_curvature);
                 InsetOrderOptimizer wall_orderer(*this, storage, gcode_layer, infill_extruder.settings, extruder_nr,
                                                 config, config, config, config,
-                                                retract_before_outer_wall, wipe_dist, wipe_dist, extruder_nr, extruder_nr, z_seam_config, wall_toolpaths);
+                                                retract_before_outer_wall, wipe_dist, wipe_dist, extruder_nr, extruder_nr, z_seam_config, wall_toolpaths_here);
                 added_something |= wall_orderer.addToLayer();
             }
         }
