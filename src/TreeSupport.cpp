@@ -366,7 +366,7 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                 }
                 //If the branch falls completely inside a collision area (the entire branch would be removed by the X/Y offset), delete it.
 
-                Polygons collision = volumes_.getCollision(0, layer_nr);
+                const Polygons collision = volumes_.getCollision(0, layer_nr);
                 if (group_index > 0 && collision.inside(node.position))
                 {
                     const coord_t branch_radius_node = [&]() -> coord_t
