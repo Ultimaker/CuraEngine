@@ -108,13 +108,17 @@ jobs:
       - name: Configure and Build CuraEngine
         run: |
           . cmake-build-release/conan/conanbuild.sh
-          cmake --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B cmake-build-release/
-          cd cmake-build-release
-          ninja
+          cmake -G Ninja --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B cmake-build-release/
+          cmake --build cmake-build-release/
       - name: Test CuraEngine
         run: |
-          cd $HOME/CuraEngine/CuraEngine/cmake-build-release/tests
-          ctest .
+          cd $HOME/CuraEngine/CuraEngine/cmake-build-release
+          ctest --output-junit engine_test.xml
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: $HOME/CuraEngine/CuraEngine/cmake-build-release/*.xml
   conan-package:
     runs-on: ${{ matrix.os }}
     needs: [ get-semver, testing ]
