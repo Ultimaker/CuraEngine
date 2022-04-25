@@ -63,3 +63,7 @@ documentation/latex/*
 ## Test results.
 tests/output.xml
 callgrind.out.*
+/conan.lock
+/conanbuildinfo.txt
+/conaninfo.txt
+/graph_info.json
