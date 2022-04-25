@@ -1,101 +1,53 @@
-include(CTest)
+# Copyright (c) 2022 Ultimaker B.V.
+# CuraEngine is released under the terms of the AGPLv3 or higher.
+
 message(STATUS "Building tests...")
 find_package(GTest 1.10.1 CONFIG REQUIRED)
 
-# List of tests. For each test there must be a file tests/${NAME}.cpp.
-set(engine_TEST
-        ClipperTest
-        ExtruderPlanTest
-        GCodeExportTest
-        InfillTest
-        LayerPlanTest
-        PathOrderOptimizerTest
-        PathOrderMonotonicTest
-        TimeEstimateCalculatorTest
-        WallsComputationTest
-        )
-set(engine_TEST_ARCUS
-        ArcusCommunicationTest
-        ArcusCommunicationPrivateTest
-        )
-set(engine_TEST_INFILL
-        )
-set(engine_TEST_INTEGRATION
-        SlicePhaseTest
-        )
-set(engine_TEST_SETTINGS
-        SettingsTest
-        )
-set(engine_TEST_UTILS
-        AABBTest
-        AABB3DTest
-        ExtrusionLineTest
-        IntPointTest
-        LinearAlg2DTest
-        MinimumSpanningTreeTest
-        PolygonConnectorTest
-        PolygonTest
-        PolygonUtilsTest
-        SparseGridTest
-        StringTest
-        UnionFindTest
-        )
-
-# Helper classes for some tests.
-set(engine_TEST_ARCUS_HELPERS
-        arcus/MockSocket.cpp
-        )
-set(engine_TEST_HELPERS
-        ReadTestPolygons.cpp
-        )
+enable_testing()
 
 target_link_libraries(_CuraEngine PUBLIC GTest::gtest GTest::gmock)
 
-#To make sure that the tests are built before running them, add the building of these tests as an additional test.
-add_custom_target(build_all_tests)
-add_test(BuildTests "${CMAKE_COMMAND}" --build "${CMAKE_CURRENT_BINARY_DIR}" --target build_all_tests)
+set(TESTS_SRC
+        ClipperTest.cpp
+        ExtruderPlanTest.cpp
+        GCodeExportTest.cpp
+        InfillTest.cpp
+        LayerPlanTest.cpp
+        PathOrderOptimizerTest.cpp
+        PathOrderMonotonicTest.cpp
+        TimeEstimateCalculatorTest.cpp
+        WallsComputationTest.cpp
+        integration/SlicePhaseTest.cpp
+        settings/SettingsTest.cpp
+        utils/AABBTest.cpp
+        utils/AABB3DTest.cpp
+        utils/ExtrusionLineTest.cpp
+        utils/IntPointTest.cpp
+        utils/LinearAlg2DTest.cpp
+        utils/MinimumSpanningTreeTest.cpp
+        utils/PolygonConnectorTest.cpp
+        utils/PolygonTest.cpp
+        utils/PolygonUtilsTest.cpp
+        utils/SparseGridTest.cpp
+        utils/StringTest.cpp
+        utils/UnionFindTest.cpp
+        )
 
-foreach (test ${engine_TEST})
-    add_executable(${test} main.cpp ${engine_TEST_HELPERS} ${test}.cpp)
-    target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
-    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tests")
-    add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    message(STATUS "Added test: ${test}")
-endforeach()
-foreach (test ${engine_TEST_INFILL})
-    add_executable(${test} main.cpp infill/${test}.cpp)
-    target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock)
-    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tests/")
-    add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    message(STATUS "Added test: ${test}")
-endforeach()
-foreach (test ${engine_TEST_INTEGRATION})
-    add_executable(${test} main.cpp integration/${test}.cpp)
-    target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
-    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tests/")
-    add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    message(STATUS "Added test: ${test}")
-endforeach()
-foreach (test ${engine_TEST_SETTINGS})
-    add_executable(${test} main.cpp settings/${test}.cpp)
-    target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
-    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tests/")
-    add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    message(STATUS "Added test: ${test}")
-endforeach()
-if (ENABLE_ARCUS)
-    foreach (test ${engine_TEST_ARCUS})
-        add_executable(${test} main.cpp ${engine_TEST_ARCUS_HELPERS} arcus/${test}.cpp)
-        target_link_libraries(${test} PRIVATE _CuraEngine GTest::gtest GTest::gmock arcus::libarcus clipper::clipper protobuf::libprotobuf)
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-        message(STATUS "Added test: ${test}")
-    endforeach()
-endif ()
-foreach (test ${engine_TEST_UTILS})
-    add_executable(${test} main.cpp utils/${test}.cpp)
-    target_link_libraries(${test} PUBLIC _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
-    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/tests/")
-    add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    message(STATUS "Added test: ${test}")
-endforeach()
+set(TESTS_HELPERS_SRC ReadTestPolygons.cpp)
+
+if(ENABLE_ARCUS)
+    list(APPEND TESTS_SRC
+            arcus/ArcusCommunicationTest.cpp
+            arcus/ArcusCommunicationPrivateTest.cpp)
+    list(APPEND TESTS_HELPERS_SRC arcus/MockSocket.cpp)
+endif()
+
+add_executable(engine_tests main.cpp ${TESTS_SRC} ${TESTS_HELPERS_SRC})
+target_link_libraries(engine_tests PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
+if(ENABLE_ARCUS)
+    target_link_libraries(engine_tests PRIVATE arcus::libarcus protobuf::libprotobuf)
+endif()
+
+include(GoogleTest)
+gtest_discover_tests(engine_tests)
