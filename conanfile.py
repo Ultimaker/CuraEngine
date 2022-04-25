@@ -48,8 +48,9 @@ class CuraEngineConan(ConanFile):
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
             tools.check_min_cppstd(self, 17)
-        if tools.Version(self.version) <= tools.Version("4"):
-            raise ConanInvalidConfiguration("Only versions 5+ are support")
+        if self.version:
+            if tools.Version(self.version) <= tools.Version("4"):
+                raise ConanInvalidConfiguration("Only versions 5+ are support")
 
     def build_requirements(self):
         self.tool_requires("ninja/[>=1.10.0]")
@@ -112,6 +113,8 @@ class CuraEngineConan(ConanFile):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
+        if self.options.enable_testing:
+            cmake.test()
 
     def package(self):
         packager = files.AutoPackager(self)
