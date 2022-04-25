@@ -1,0 +1,124 @@
+---
+name: conan-package
+on:
+  push:
+    paths:
+      - 'python/**'
+      - 'src/**'
+      - 'cmake/**'
+      - 'conanfile.py'
+      - 'CMakeLists.txt'
+      - '.github/workflows/conan-package.yml'
+    branches:
+      - main
+      - master
+      - dev
+      - 'CURA-*'
+      - 'release/**'
+      - '!15.*'
+      - '![1-4].[0-9]+'
+    tags:
+      - '![1-4].[0-9]+*'
+      - '!Arachne*'
+      - '!ancient*'
+      - '!jedi*'
+  pull_request:
+    branches:
+      - main
+      - master
+      - dev
+      - 'release/**'
+env:
+  CONAN_USER: ${{ secrets.CONAN_USER }}
+  CONAN_PASS: ${{ secrets.CONAN_PASS }}
+jobs:
+  get-semver:
+    runs-on: ubuntu-20.04
+    outputs:
+      semver_full: ${{ steps.git-tool.outputs.fullSemVer }}
+      semver_majorminorpatch: ${{ steps.git-tool.outputs.MajorMinorPatch }}
+      user: ${{ steps.get-conan-broadcast-data.outputs.user }}
+      channel: ${{ steps.get-conan-broadcast-data.outputs.channel }}
+    steps:
+      - name: Checkout CuraEngine
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.9.13
+        with:
+          versionSpec: '5.x'
+      - id: git-tool
+        name: GitTools
+        uses: gittools/actions/gitversion/execute@v0.9.13
+      - id: get-conan-broadcast-data
+        name: Get Conan broadcast data
+        run: |
+          echo ${{ github.repository_owner }} | awk '{print "::set-output name=user::"tolower($0)}'
+          
+          if [ "${{ github.ref_name == 'master' || github.ref_name == 'main' }}" = "true" ]; then
+            echo ${{ github.repository_owner }} | awk '{print "::set-output name=user::"tolower($0)}'
+            echo '::set-output name=channel::stable'
+          elif [ "${{ startsWith(github.ref_name, 'release/') || steps.git-tool.outputs.fullSemVer == steps.git-tool.outputs.MajorMinorPatch }}" = "true" ]; then
+            echo '::set-output name=user::_'
+            echo '::set-output name=channel::_'
+          elif [ "${{ github.ref_name == 'dev' }}" = "true" ]; then
+            echo ${{ github.repository_owner }} | awk '{print "::set-output name=user::"tolower($0)}'
+            echo '::set-output name=channel::testing'
+          else
+            echo ${{ github.repository_owner }} | awk '{print "::set-output name=user::"tolower($0)}'
+            echo ${{ github.ref_name }} | awk '{print "::set-output name=channel::"substr(tolower($0),0,9)}'
+          fi
+  conan-package:
+    runs-on: ${{ matrix.os }}
+    needs: get-semver
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-10.15, windows-2022, ubuntu-20.04 ]
+    steps:
+      - name: Checkout CuraEngine
+        uses: actions/checkout@v3
+      - name: Setup Python and pip
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.10.4'
+          architecture: 'x64'
+          cache: 'pip'
+      - name: Prepare Conan and sip-build (Bash)
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          pip install --require-hashes -r requirements.txt
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-9177_Fix_CI_CD" -tf $HOME/.conan
+          conan profile new default --detect
+          conan user -p $CONAN_PASS -r ultimaker $CONAN_USER
+      - name: Prepare Conan and sip-build (Powershell)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          pip install --require-hashes -r requirements.txt
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-9177_Fix_CI_CD" -tf C:\Users\runneradmin\.conan
+          conan profile new default --detect
+          conan user -p $env:CONAN_PASS -r ultimaker $env:CONAN_USER
+      - name: Cache Conan local repository packages (Bash)
+        uses: actions/cache@v3
+        if: ${{ runner.os != 'Windows' }}
+        with:
+          path: |
+            $HOME/.conan/data
+          key: ${{ runner.os }}-conan
+      - name: Cache Conan local repository packages (Powershell)
+        uses: actions/cache@v3
+        if: ${{ runner.os == 'Windows' }}
+        with:
+          path: |
+            C:\Users\runneradmin\.conan\data
+            C:\.conan
+          key: ${{ runner.os }}-conan
+      - name: Create the Packages
+        run: conan create . curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update
+      - name: Create the latest alias
+        if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' )  || github.ref_name == 'dev' || needs.get-semver.outputs.semver_full == needs.get-semver.outputs.semver_majorminorpatch }}
+        run: conan alias curaengine/latest@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }}
+      - name: Upload the Package(s)
+        run: conan upload "*" -r ultimaker --all -c
