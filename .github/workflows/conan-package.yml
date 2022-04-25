@@ -102,12 +102,13 @@ jobs:
             $HOME/.conan/data
           key: ${{ runner.os }}-testing
       - name: Install dependencies
-        run: conan install . -o enable_testing=True -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update
+        run: conan install . -o enable_testing=True -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update -g VirtualBuildEnv
       - name: Upload the Dependency package(s)
         run: conan upload "*" -r ultimaker --all -c
       - name: Configure and Build CuraEngine
-        run: | 
-          cmake -G Ninja --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B cmake-build-release/
+        run: |
+          . cmake-build-release/conan/conanbuild.sh
+          cmake --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B cmake-build-release/
           cd cmake-build-release
           ninja
       - name: Test CuraEngine
