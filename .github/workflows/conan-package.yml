@@ -105,10 +105,10 @@ jobs:
         run: conan install . -o enable_testing=True -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update
       - name: Upload the Dependency package(s)
         run: conan upload "*" -r ultimaker --all -c
-      - name: Build CuraEngine
-        run: cmake --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B ./cmake-build-release/
-      - name: Run UnitTests
-        run: $HOME/CuraEngine/CuraEngine/cmake-build-release/tests/engine_tests
+      - name: Build and test CuraEngine
+        run: | 
+          cmake --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B $HOME/CuraEngine/CuraEngine/cmake-build-release
+          ctest $HOME/CuraEngine/CuraEngine/cmake-build-release/tests/
   conan-package:
     runs-on: ${{ matrix.os }}
     needs: [ get-semver, testing ]
