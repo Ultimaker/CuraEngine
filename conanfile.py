@@ -15,6 +15,7 @@ class CuraEngineConan(ConanFile):
     topics = ("conan", "cura", "protobuf", "gcode", "c++", "curaengine", "libarcus", "gcode-generation")
     build_policy = "missing"
     exports = "LICENSE*"
+    settings = "os", "compiler", "build_type", "arch"
     options = {
         "enable_arcus": [True, False],
         "enable_openmp": [True, False],
