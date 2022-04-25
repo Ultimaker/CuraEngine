@@ -6,11 +6,13 @@ from conans import tools
 required_conan_version = ">=1.46.2"
 
 
-class CuraBuildEnvironemtConan(ConanFile):
-    name = "cura-build-environment"
-    description = "Building Cura dependencies"
-    topics = ("conan", "python", "pypi", "pip")
-    settings = "os", "compiler", "build_type", "arch"
+class CuraEngineConan(ConanFile):
+    name = "curaengine"
+    license = "AGPL-3.0"
+    author = "Ultimaker B.V."
+    url = "https://github.com/Ultimaker/CuraEngine"
+    description = "Powerful, fast and robust engine for converting 3D models into g-code instructions for 3D printers. It is part of the larger open source project Cura."
+    topics = ("conan", "cura", "protobuf", "gcode", "c++", "curaengine", "libarcus", "gcode-generation")
     build_policy = "missing"
     exports = "LICENSE*"
     options = {
