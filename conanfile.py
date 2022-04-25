@@ -42,7 +42,7 @@ class CuraEngineConan(ConanFile):
         self.options["clipper"].shared = True
         self.options["protobuf"].shared = True
         if self.options.enable_arcus:
-            self.options["arcus"].shared = not self.options.os == "Windows"
+            self.options["arcus"].shared = not self.settings.os == "Windows"
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
