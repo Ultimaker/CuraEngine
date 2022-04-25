@@ -34,41 +34,6 @@ function(set_project_standards project_name)
     endif()
 endfunction()
 
-function(set_rpath)
-    # Sets the RPATHS for targets (Linux and Windows, these can either be absolute paths or relative to the executable
-    # Usage:
-    #   set_rpath(TARGETS <list of targets to set rpaths for>
-    #             PATHS <list of paths>
-    #             <optional> RELATIVE)
-    # if the RELATIVE option is used the paths will be specified from either $ORIGIN on Linux or @executable_path on Mac
-    set(options RELATIVE)
-    set(oneValueArgs )
-    set(multiValueArgs TARGETS PATHS)
-    cmake_parse_arguments(SET_RPATH "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-    foreach(_target IN ITEMS ${SET_RPATH_TARGETS})
-        message(STATUS "Setting SKIP_BUILD_RPATH for target ${_target} to FALSE")
-        set_target_properties(${_target} PROPERTIES SKIP_BUILD_RPATH FALSE)
-        message(STATUS "Setting BUILD_WITH_INSTALL_RPATH for target ${_target} to FALSE")
-        set_target_properties(${_target} PROPERTIES BUILD_WITH_INSTALL_RPATH FALSE)
-        message(STATUS "Setting INSTALL_RPATH_USE_LINK_PATH for target ${_target} to TRUE")
-        set_target_properties(${_target} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
-        if(APPLE)
-            message(STATUS "Setting MACOSX_RPATH for target ${_target}")
-            set_target_properties(${_target} PROPERTIES MACOSX_RPATH ON)
-        endif()
-        if(SET_RPATH_RELATIVE)
-            list(PREPEND SET_RPATH_PATHS "")
-            if(APPLE)
-                list(TRANSFORM SET_RPATH_PATHS PREPEND "@executable_path/")
-            else(LINUX)
-                list(TRANSFORM SET_RPATH_PATHS PREPEND "\$ORIGIN/")
-            endif()
-        endif()
-        set_target_properties(${_target} PROPERTIES INSTALL_RPATH "${SET_RPATH_PATHS}")
-        message(STATUS "Setting install RPATH for target ${_target} to ${SET_RPATH_PATHS}")
-    endforeach()
-endfunction()
-
 # Ultimaker uniform Python linking method
 function(use_python project_name)
     find_package(Python REQUIRED)

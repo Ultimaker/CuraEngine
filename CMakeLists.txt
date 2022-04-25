@@ -230,13 +230,6 @@ endif()
 
 set_project_standards(_CuraEngine)
 enable_sanitizers(_CuraEngine)
-set_rpath(TARGETS
-        _CuraEngine
-        PATHS
-        "$<$<PLATFORM_ID:Linux>:usr/bin>"
-        "$<$<PLATFORM_ID:Linux>:usr/bin/lib>"
-        "$<$<PLATFORM_ID:Darwin>:../lib>"
-        RELATIVE)
 
 if(${EXTENSIVE_WARNINGS})
     set_project_warnings(_CuraEngine)
