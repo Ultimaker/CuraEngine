@@ -107,7 +107,7 @@ jobs:
         run: conan upload "*" -r ultimaker --all -c
       - name: Build and test CuraEngine
         run: | 
-          cmake --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B $HOME/CuraEngine/CuraEngine/cmake-build-release
+          cmake --toolchain cmake-build-release/conan/conan_toolchain.cmake -DBUILD_TESTS=ON -S . -B $HOME/CuraEngine/CuraEngine/cmake-build-release
           ctest $HOME/CuraEngine/CuraEngine/cmake-build-release/tests/
   conan-package:
     runs-on: ${{ matrix.os }}
@@ -115,8 +115,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ macos-10.15, windows-2022, ubuntu-20.04, ubuntu-latest]
-        enable_testing: ["False", "False", "False", "True"]
+        os: [ macos-10.15, windows-2022, ubuntu-20.04]
     steps:
       - name: Checkout CuraEngine
         uses: actions/checkout@v3
