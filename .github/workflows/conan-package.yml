@@ -107,8 +107,7 @@ jobs:
         run: conan upload "*" -r ultimaker --all -c
       - name: Configure and Build CuraEngine
         run: |
-          . cmake-build-release/conan/conanbuild.sh
-          cmake -G Ninja --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B cmake-build-release/
+          cmake --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B cmake-build-release/
           cmake --build cmake-build-release/
       - name: Test CuraEngine
         run: |
