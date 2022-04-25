@@ -251,32 +251,10 @@ if(ENABLE_ARCUS)
     target_link_libraries(_CuraEngine PRIVATE Arcus protobuf::libprotobuf)
 endif()
 
-find_package(clipper 6.4.2 QUIET)
-if (NOT TARGET clipper::clipper)
-    add_library(clipper::clipper STATIC libs/clipper/clipper.cpp)
-    target_include_directories(clipper::clipper
-            PUBLIC
-            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/clipper/include>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-            )
-endif ()
-
-find_package(rapidjson 1.1.0 QUIET)
-if (NOT TARGET rapidjson::rapidjson)
-    add_library(rapidjson::rapidjson INTERFACE)
-    target_include_directories(rapidjson::rapidjson
-            PUBLIC
-            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/clipper/include>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-            )
-endif()
-
-find_package(stb REQUIRED)
-
-find_package(Boost REQUIRED 1.75.0)
-if (NOT TARGET Boost::boost)  # Workaround for different namespace in non Conan find_packages
-    add_library(boost::boost ALIAS Boost::boost)
-endif ()
+find_package(clipper 6.4.2 REQUIRED)
+find_package(rapidjson 1.1.0 REQUIRED)
+find_package(stb 20200203 REQUIRED)
+find_package(Boost 1.78.0 REQUIRED)
 
 target_link_libraries(_CuraEngine PRIVATE clipper::clipper rapidjson::rapidjson stb::stb boost::boost)
 
