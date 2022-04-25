@@ -48,7 +48,7 @@ class CuraEngineConan(ConanFile):
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
             tools.check_min_cppstd(self, 17)
-        if tools.Version(self.version) < tools.Version("5.0.0"):
+        if tools.Version(self.version) <= tools.Version("4"):
             raise ConanInvalidConfiguration("Only versions 5+ are support")
 
     def build_requirements(self):
