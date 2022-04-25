@@ -22,7 +22,7 @@ class CuraBuildEnvironemtConan(ConanFile):
         self.requires("gtest/1.8.1")
         self.requires("rapidjson/1.1.0")
         self.requires("stb/20200203")
-        self.requires("arcus/5.0.0-a+1@ultimaker/testing")
+        self.requires("arcus/latest@ultimaker/stable")
 
     def generate(self):
         cmake = CMakeDeps(self)
