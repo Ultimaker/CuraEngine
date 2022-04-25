@@ -22,14 +22,8 @@ include(cmake/StandardProjectSettings.cmake)
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
 
-    find_package(Arcus REQUIRED 5.0.0)
-    find_package(protobuf 3.15.0 QUIET)
-    if (NOT TARGET protobuf::protobuf)
-        find_package(Protobuf 3.15.0 REQUIRED)
-    else ()
-        add_library(Protobuf::protobuf ALIAS protobuf::protobuf)
-    endif ()
-
+    find_package(arcus::libarcus REQUIRED 5.0.0)
+    find_package(protobuf 3.17.1 REQUIRED)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
@@ -254,7 +248,7 @@ if(NOT APPLE AND ENABLE_OPENMP)
 endif()
 
 if(ENABLE_ARCUS)
-    target_link_libraries(_CuraEngine PRIVATE Arcus protobuf::protobuf)
+    target_link_libraries(_CuraEngine PRIVATE Arcus protobuf::libprotobuf)
 endif()
 
 find_package(clipper 6.4.2 QUIET)
