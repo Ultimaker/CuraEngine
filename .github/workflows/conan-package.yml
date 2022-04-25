@@ -3,12 +3,12 @@ name: conan-package
 on:
   push:
     paths:
-      - 'python/**'
       - 'src/**'
       - 'cmake/**'
+      - 'tests/**'
       - 'conanfile.py'
       - 'CMakeLists.txt'
-      - '.github/workflows/conan-package.yml'
+      - '.github/workflows/**.yml'
     branches:
       - main
       - master
