@@ -371,4 +371,3 @@ endif ()
 # Installing CuraEngine.
 include(GNUInstallDirs)
 install(TARGETS CuraEngine DESTINATION "${CMAKE_INSTALL_BINDIR}")
-include(CPackConfig.cmake)
