@@ -2,6 +2,7 @@ from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools import files
 from conans import tools
+from conan.errors import ConanInvalidConfiguration
 
 required_conan_version = ">=1.46.2"
 
@@ -47,6 +48,8 @@ class CuraEngineConan(ConanFile):
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
             tools.check_min_cppstd(self, 17)
+        if tools.Version(self.version).major < 5:
+            raise ConanInvalidConfiguration("Only versions 5+ are support")
 
     def build_requirements(self):
         self.tool_requires("ninja/[>=1.10.0]")
