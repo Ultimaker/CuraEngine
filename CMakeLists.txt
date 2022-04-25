@@ -186,7 +186,7 @@ if(${EXTENSIVE_WARNINGS})
     set_project_warnings(_CuraEngine)
 endif()
 
-if(NOT APPLE AND ENABLE_OPENMP)
+if(ENABLE_OPENMP)
     find_package(llvm-openmp REQUIRED)
     target_link_libraries(_CuraEngine PUBLIC llvm-openmp::llvm-openmp)
 endif()
