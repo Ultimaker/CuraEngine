@@ -96,7 +96,7 @@ class CuraEngineConan(ConanFile):
 
         tc.variables["ALLOW_IN_SOURCE_BUILD"] = True
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
-        tc.variables["BUILD_TESTS"] = self.options.enable_testing
+        tc.variables["BUILD_TESTING"] = self.options.enable_testing
         tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp
 
         # Don't use Visual Studio as the CMAKE_GENERATOR

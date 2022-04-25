@@ -4,8 +4,6 @@
 message(STATUS "Building tests...")
 find_package(GTest 1.10.1 CONFIG REQUIRED)
 
-enable_testing()
-
 target_link_libraries(_CuraEngine PUBLIC GTest::gtest GTest::gmock)
 
 set(TESTS_SRC

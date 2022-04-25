@@ -6,7 +6,7 @@ project(CuraEngine)
 
 set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
-option(BUILD_TESTS "Build with unit tests" OFF)
+option(BUILD_TESTING "Build with unit tests" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
@@ -152,7 +152,7 @@ target_include_directories(_CuraEngine
         )
 target_compile_definitions(_CuraEngine
         PUBLIC
-        $<$<BOOL:${BUILD_TESTS}>:BUILD_TESTS=1>
+        $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS>
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
         PRIVATE
         VERSION=\"${CURA_ENGINE_VERSION}\"
@@ -225,7 +225,8 @@ target_link_libraries(CuraEngine PRIVATE _CuraEngine)
 target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
 
 # Compiling the test environment.
-if (BUILD_TESTS)
+if (BUILD_TESTING)
+    enable_testing()
     add_subdirectory(tests)
 endif()
 
