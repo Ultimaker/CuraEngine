@@ -84,7 +84,7 @@ jobs:
   conan-package:
     runs-on: ${{ matrix.os }}
 
-    needs: [ get-semver, testing ]
+    needs: [ get-semver ]
 
     strategy:
       fail-fast: true
