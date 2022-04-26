@@ -111,10 +111,10 @@ jobs:
           cmake --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B cmake-build-release/
           cmake --build cmake-build-release/
           cd cmake-build-release/
-          export RESULT_FILE=$HOME/engine_test.xml
-          echo "Storing Results in: $RESULT_FILE"
-          echo '::set-output name=test_result_file::$RESULT_FILE'
-          ctest --output-junit $RESULT_FILE
+          export RESULT_FILE=${GITHUB_WORKSPACE}/engine_test.xml
+          echo "Storing Results in: ${RESULT_FILE}"
+          echo '::set-output name=test_result_file::${RESULT_FILE}'
+          ctest --output-junit ${RESULT_FILE}
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
