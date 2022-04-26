@@ -31,9 +31,10 @@
 namespace cura
 {
 
-TreeSupport::TreeSupport(const SliceDataStorage& storage) :
-    volumes_(storage, Application::getInstance().current_slice->scene.current_mesh_group->settings)
+TreeSupport::TreeSupport(const SliceDataStorage& storage)
 {
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    volumes_ = TreeModelVolumes(storage, mesh_group_settings);
 }
 
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
@@ -98,8 +99,9 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const size_t tip_layers = (branch_radius - minimum_tip_radius) / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const coord_t resolution = mesh_group_settings.get<coord_t>("support_tree_collision_resolution");
 
-    std::atomic<size_t> completed = 0; //To track progress in a multi-threaded environment.
-    std::mutex critical_sections;
+    size_t completed = 0; //To track progress, should be locked when altered.
+    std::mutex critical_section_volumes;
+    std::mutex critical_section_progress;
     cura::parallel_for<size_t>(0, contact_nodes.size(), 1, [&](const size_t layer_nr)
     {
         Polygons support_layer;
@@ -141,8 +143,12 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         support_layer = support_layer.unionPolygons();
         roof_layer = roof_layer.unionPolygons();
         const size_t z_collision_layer = static_cast<size_t>(std::max(0, static_cast<int>(layer_nr) - static_cast<int>(z_distance_bottom_layers) + 1)); //Layer to test against to create a Z-distance.
-        support_layer = support_layer.difference(volumes_.getCollision(0, z_collision_layer)); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
-        roof_layer = roof_layer.difference(volumes_.getCollision(0, z_collision_layer));
+        {
+            const std::lock_guard<std::mutex> lock(critical_section_volumes);
+
+            support_layer = support_layer.difference(volumes_.getCollision(0, z_collision_layer)); //Subtract the model itself (sample 0 is with 0 diameter but proper X/Y offset).
+            roof_layer = roof_layer.difference(volumes_.getCollision(0, z_collision_layer));
+        }
         support_layer = support_layer.difference(roof_layer);
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = static_cast<double>(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
@@ -180,19 +186,14 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         }
 
         {
-            std::lock_guard<std::mutex> critical_section_support_max_layer_nr(critical_sections);
+            const std::lock_guard<std::mutex> lock(critical_section_progress);
 
             if (!storage.support.supportLayers[layer_nr].support_infill_parts.empty() || !storage.support.supportLayers[layer_nr].support_roof.empty())
             {
                 storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, static_cast<int>(layer_nr));
             }
-        }
 
-        ++completed;
-
-        {
-            std::lock_guard<std::mutex> critical_section_progress(critical_sections);
-
+            ++completed;
             const double progress_contact_nodes = contact_nodes.size() * PROGRESS_WEIGHT_DROPDOWN;
             const double progress_current = completed * PROGRESS_WEIGHT_AREAS;
             const double progress_total = completed * PROGRESS_WEIGHT_AREAS;
@@ -318,12 +319,12 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                              return branch_radius * (node.distance_to_top + 1) / tip_layers;
                         }
                     }();
-                    if (group_index == 0)
-                    {
-                        //Avoid collisions.
-                        const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
-                        PolygonUtils::moveOutside(volumes_.getAvoidance(branch_radius_node, layer_nr - 1), next_position, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
-                    }
+
+                    //Avoid collisions.
+                    constexpr size_t rounding_compensation = 100;
+                    const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + rounding_compensation;
+                    const Polygons avoidance = group_index == 0 ? volumes_.getAvoidance(branch_radius_node, layer_nr - 1) : volumes_.getCollision(branch_radius_node, layer_nr - 1);
+                    PolygonUtils::moveOutside(avoidance, next_position, radius_sample_resolution + rounding_compensation, maximum_move_between_samples * maximum_move_between_samples);
 
                     Node* neighbour = nodes_per_part[group_index][neighbours[0]];
                     size_t new_distance_to_top = std::max(node.distance_to_top, neighbour->distance_to_top) + 1;
@@ -365,7 +366,9 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                     continue;
                 }
                 //If the branch falls completely inside a collision area (the entire branch would be removed by the X/Y offset), delete it.
-                if (group_index > 0 && volumes_.getCollision(0, layer_nr).inside(node.position))
+
+                const Polygons collision = volumes_.getCollision(0, layer_nr);
+                if (group_index > 0 && collision.inside(node.position))
                 {
                     const coord_t branch_radius_node = [&]() -> coord_t
                     {
@@ -378,8 +381,15 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                             return branch_radius * node.distance_to_top / tip_layers;
                         }
                     }();
-                    const ClosestPolygonPoint to_outside = PolygonUtils::findClosest(node.position, volumes_.getCollision(0, layer_nr));
-                    if (vSize2(node.position - to_outside.location) >= branch_radius_node * branch_radius_node) //Too far inside.
+
+                    const ClosestPolygonPoint to_outside = PolygonUtils::findClosest(node.position, collision);
+                    const bool node_is_tip = node.distance_to_top <= tip_layers;
+                    coord_t max_inside_dist = branch_radius_node;
+                    if (node_is_tip) {
+                        // if the node is part of the tip allow the branch to travel through the support xy distance
+                        max_inside_dist += (tip_layers - node.distance_to_top) * maximum_move_distance;
+                    }
+                    if (vSize2(node.position - to_outside.location) >= max_inside_dist * max_inside_dist) // Too far inside.
                     {
                         if (! support_rests_on_model)
                         {
@@ -419,12 +429,12 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                         return branch_radius * (node.distance_to_top + 1) / tip_layers;
                     }
                 }();
-                if (group_index == 0)
-                {
-                    //Avoid collisions.
-                    const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + 100; //100 micron extra for rounding errors.
-                    PolygonUtils::moveOutside(volumes_.getAvoidance(branch_radius_node, layer_nr - 1), next_layer_vertex, radius_sample_resolution + 100, maximum_move_between_samples * maximum_move_between_samples); //Some extra offset to prevent rounding errors with the sample resolution.
-                }
+
+                //Avoid collisions.
+                constexpr size_t rounding_compensation = 100;
+                const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + rounding_compensation;
+                const Polygons avoidance = group_index == 0 ? volumes_.getAvoidance(branch_radius_node, layer_nr - 1) : volumes_.getCollision(branch_radius_node, layer_nr - 1);
+                PolygonUtils::moveOutside(avoidance, next_layer_vertex, radius_sample_resolution + rounding_compensation, maximum_move_between_samples * maximum_move_between_samples);
 
                 const bool to_buildplate = !volumes_.getAvoidance(branch_radius_node, layer_nr - 1).inside(next_layer_vertex);
                 Node* next_node = new Node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate, p_node);

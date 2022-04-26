@@ -4,7 +4,6 @@
 #ifndef TREEMODELVOLUMES_H
 #define TREEMODELVOLUMES_H
 
-#include <mutex>
 #include <unordered_map>
 
 #include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
@@ -21,7 +20,7 @@ class Settings;
 /*!
  * \brief Lazily generates tree guidance volumes.
  *
- * \warning This class blocks on thread access. Use calls to this in threaded blocks sparingly.
+ * \warning This class is not currently thread-safe and should not be accessed in OpenMP blocks
  */
 class TreeModelVolumes
 {
@@ -196,11 +195,6 @@ private:
     mutable std::unordered_map<RadiusLayerPair, Polygons> collision_cache_;
     mutable std::unordered_map<RadiusLayerPair, Polygons> avoidance_cache_;
     mutable std::unordered_map<RadiusLayerPair, Polygons> internal_model_cache_;
-
-    /*!
-     * \brief Used to make the class thread-safe.
-     */
-    mutable std::mutex object_mutex_;
 };
 
 }

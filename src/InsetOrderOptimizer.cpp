@@ -8,6 +8,8 @@
 #include "utils/logoutput.h"
 #include "WallToolPaths.h"
 
+#include <iterator>
+
 namespace cura
 {
 
@@ -52,81 +54,54 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
 bool InsetOrderOptimizer::addToLayer()
 {
     // Settings & configs:
-    const bool pack_by_inset = ! settings.get<bool>("optimize_wall_printing_order");
-    const InsetDirection inset_direction = settings.get<InsetDirection>("inset_direction");
-    const bool alternate_walls = settings.get<bool>("material_alternate_walls");
+    const auto pack_by_inset = ! settings.get<bool>("optimize_wall_printing_order");
+    const auto inset_direction = settings.get<InsetDirection>("inset_direction");
+    const auto alternate_walls = settings.get<bool>("material_alternate_walls");
 
     const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
-    
-    size_t start_inset;
-    size_t end_inset;
-    int direction;
-    //If the entire wall is printed with the current extruder, print all of it.
-    if (wall_0_extruder_nr == wall_x_extruder_nr && wall_x_extruder_nr == extruder_nr)
-    {
-        //If printing the outer inset first, start with the lowest inset.
-        //Otherwise start with the highest inset and iterate backwards.
-        if(inset_direction == InsetDirection::OUTSIDE_IN)
-        {
-            start_inset = 0;
-            end_inset = paths.size();
-            direction = 1;
-        }
-        else //INSIDE_OUT or CENTER_LAST.
-        {
-            start_inset = paths.size() - 1;
-            end_inset = -1;
-            direction = -1;
-        }
-    }
-    //If the wall is partially printed with the current extruder, print the correct part.
-    else if (wall_0_extruder_nr != wall_x_extruder_nr)
-    {
-        //If the wall_0 and wall_x extruders are different, then only include the insets that should be printed by the
-        //current extruder_nr.
-        if(extruder_nr == wall_0_extruder_nr)
-        {
-            start_inset = 0;
-            end_inset = 1; // Ignore inner walls
-            direction = 1;
-        }
-        else if(extruder_nr == wall_x_extruder_nr)
-        {
-            start_inset = paths.size() - 1;
-            end_inset = 0; // Ignore outer wall
-            direction = -1;
-        }
-        else
-        {
-            return added_something;
-        }
-    }
-    else //The wall is not printed with this extruder, not even in part. Don't print anything then.
-    {
-        return added_something;
-    }
+    const bool use_one_extruder = wall_0_extruder_nr == wall_x_extruder_nr;
+    const bool current_extruder_is_wall_x = wall_x_extruder_nr == extruder_nr;
 
-    
-    std::vector<const ExtrusionLine*> walls_to_be_added;
-    //Add all of the insets one by one.
-    for (size_t inset_idx = start_inset; inset_idx != end_inset; inset_idx += direction)
+    const auto should_reverse = [&](){
+        if (use_one_extruder && current_extruder_is_wall_x)
+        {
+            // The entire wall is printed with the current extruder.
+            // Reversing the insets now depends on the inverse of the inset direction.
+            // If we want to print the outer insets first we start with the lowest and move forward
+            // otherwise we start with the highest and iterate back.
+            return ! outer_to_inner;
+        }
+        // If the wall is partially printed with the current extruder we need to move forward
+        // for the outer wall extruder and iterate back for the inner wall extruder
+        return current_extruder_is_wall_x;
+    };  // Helper lambda to ensure that the reverse bool can be a const type
+    const bool reverse = should_reverse();
+
+    // Switches the begin()...end() forward iterator for a rbegin()...rend() reverse iterator
+    // I can't wait till we use the C++20 standard and have access to ranges and views
+    const auto get_walls_to_be_added = [&](const bool reverse, const std::vector<VariableWidthLines>& paths)
     {
-        if (paths[inset_idx].empty())
+        if (paths.empty())
         {
-            continue; //Don't switch extruders either, etc.
+            return std::vector<const ExtrusionLine*>{};
         }
-        const VariableWidthLines& inset = paths[inset_idx];
-        for (const ExtrusionLine& wall : inset)
+        if (reverse)
         {
-            walls_to_be_added.emplace_back(&wall);
+            if (use_one_extruder)
+            {
+                return wallsToBeAdded(paths.rbegin(), paths.rend()); // Complete wall with one extruder
+            }
+            return wallsToBeAdded(paths.rbegin(), std::prev(paths.rend())); // Ignore inner wall
         }
-    }
-    
-    
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = 
-        pack_by_inset?
-        getInsetOrder(walls_to_be_added, outer_to_inner)
-        : getRegionOrder(walls_to_be_added, outer_to_inner);
+        if (use_one_extruder)
+        {
+            return wallsToBeAdded(paths.begin(), paths.end()); // Complete wall with one extruder
+        }
+        return wallsToBeAdded(paths.begin(), std::next(paths.begin())); // Ignore outer wall
+    };
+    const auto walls_to_be_added = get_walls_to_be_added(reverse, paths);
+
+    const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
     
     constexpr Ratio flow = 1.0_r;
     
