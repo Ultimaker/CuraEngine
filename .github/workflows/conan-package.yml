@@ -136,7 +136,7 @@ jobs:
           key: ${{ runner.os }}-conan
 
       - name: Create the Packages
-        run: conan create . curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} -o enable_testing=${{ matrix.enable_testing }} -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update
+        run: conan create . curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update
 
       - name: Create the latest alias
         if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' )  || github.ref_name == 'dev' || needs.get-semver.outputs.semver_full == needs.get-semver.outputs.semver_majorminorpatch }}
