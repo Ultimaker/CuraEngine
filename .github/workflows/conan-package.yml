@@ -105,17 +105,17 @@ jobs:
         run: conan install . -o enable_testing=True -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update -g VirtualBuildEnv
       - name: Upload the Dependency package(s)
         run: conan upload "*" -r ultimaker --all -c
-      - name: Configure, Build and Test CuraEngine
+      - name: Run Unit Test CuraEngine
         run: |
           cmake --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B cmake-build-release/
           cmake --build cmake-build-release/
           cd cmake-build-release/
-          ctest --output-junit engine_test.xml
+          ctest --output-junit $HOME/engine_test.xml
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
-          files: $HOME/CuraEngine/CuraEngine/cmake-build-release/*.xml
+          files: $HOME/engine_test.xml
   conan-package:
     runs-on: ${{ matrix.os }}
     needs: [ get-semver, testing ]
