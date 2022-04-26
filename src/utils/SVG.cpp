@@ -9,6 +9,7 @@
 #include "polygon.h"
 #include "SVG.h"
 #include "ExtrusionLine.h"
+#include "VoronoiUtils.h"
 
 namespace cura {
 
@@ -395,6 +396,73 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const Color color, const 
         std::stringstream ss;
         ss << INT2MM(y);
         writeText(Point(aabb.min.X + (aabb.max.X - aabb.min.X) * dist_from_edge, y), ss.str(), color, font_size);
+    }
+}
+
+void SVG::writeVoronoi(const boost::polygon::voronoi_diagram<double>& voronoi, const Polygons& source_polygons, const Color color, const float stroke_width) const
+{
+    //Recreate segments that the Voronoi diagram refers to.
+    std::vector<PolygonsSegmentIndex> segments;
+    for(size_t poly = 0; poly < source_polygons.size(); ++poly)
+    {
+        for(size_t vertex = 0; vertex < source_polygons[poly].size(); ++vertex)
+        {
+            segments.emplace_back(&source_polygons, poly, vertex);
+        }
+    }
+    
+    for(const boost::polygon::voronoi_diagram<double>::edge_type& edge : voronoi.edges())
+    {
+        if(edge.is_infinite())
+        {
+            continue;
+        }
+        const boost::polygon::voronoi_diagram<double>::cell_type* left_cell = edge.cell();
+        const boost::polygon::voronoi_diagram<double>::cell_type* right_cell = edge.twin()->cell();
+        if(!edge.vertex0() || !edge.vertex1())
+        {
+            continue;
+        }
+        const Point start = VoronoiUtils::p(edge.vertex0());
+        const Point end = VoronoiUtils::p(edge.vertex1());
+
+        //Whether the left and right cells are defined by a point or by an edge.
+        bool point_left = left_cell->contains_point();
+        bool point_right = right_cell->contains_point();
+
+        if(point_left == point_right || edge.is_secondary()) //Both are edges or both are points, so we get a straight edge.
+        {
+            writeLine(start, end, color, stroke_width);
+        }
+        else //Parabolic curve between a point and a line.
+        {
+            const boost::polygon::voronoi_diagram<double>::cell_type* point_cell = point_left ? left_cell : right_cell;
+            const PolygonsSegmentIndex& segment = segments[point_cell->source_index()];
+            Point source_point;
+            switch(point_cell->source_category())
+            {
+                case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
+                    source_point = segment.to();
+                    break;
+                case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
+                    source_point = segment.from();
+                    break;
+                default:
+                    assert(false && "Malformed Voronoi diagram. Point-defined cell doesn't have a point.");
+                    continue;
+            }
+
+            const boost::polygon::voronoi_diagram<double>::cell_type* line_cell = point_left ? right_cell : left_cell;
+            const PolygonsSegmentIndex& source_segment = segments[line_cell->source_index()];
+
+            std::vector<Point> discretized = VoronoiUtils::discretizeParabola(source_point, source_segment, start, end, 10, 0.1);
+            Polygon discretized_polyline;
+            for(const Point& vertex : discretized)
+            {
+                discretized_polyline.add(vertex);
+            }
+            writePolyline(discretized, color, stroke_width);
+        }
     }
 }
 
