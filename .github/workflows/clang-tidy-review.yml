@@ -65,7 +65,7 @@ jobs:
         run: cmake . --toolchain cmake-build-release/conan/conan_toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -S . -B cmake-build-release
 
       - name: Run clang-tidy
-        uses: jellespijker/clang-tidy-review@master
+        uses: ZedThree/clang-tidy-review@master
         id: review
         with:
           build_dir: cmake-build-release
