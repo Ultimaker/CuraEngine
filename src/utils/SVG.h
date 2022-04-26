@@ -4,6 +4,7 @@
 #ifndef SVG_H
 #define SVG_H
 
+#include <boost/polygon/voronoi.hpp> //To draw Voronoi diagrams.
 #include <stdio.h> // for file output
 
 #include "AABB.h"
@@ -188,6 +189,15 @@ public:
      */
     void writeCoordinateGrid(const coord_t grid_size = MM2INT(1), const Color color = Color::BLACK, const float stroke_width = 0.1, const float font_size = 10) const;
 
+    /*!
+     * Draw a Voronoi diagram to the file.
+     * \param voronoi The Voronoi diagram to draw.
+     * \param source_polygons The polygons that the Voronoi was constructed
+     * from.
+     * \param color The color to draw the Voronoi diagram with.
+     * \param stroke_width The width of the edges of the Voronoi diagram.
+     */
+    void writeVoronoi(const boost::polygon::voronoi_diagram<double>& voronoi, const Polygons& source_polygons, const Color color = Color::BLACK, const float stroke_width = 1.0) const;
 };
 
 template<typename... Args>
