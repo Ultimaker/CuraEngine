@@ -15,7 +15,7 @@ env:
 
 jobs:
   review:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout CuraEngine
         uses: actions/checkout@v3
