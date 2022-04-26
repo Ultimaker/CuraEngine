@@ -3,6 +3,11 @@ name: clang-tidy-review
 
 on:
   pull_request:
+    paths:
+      - 'src/**'
+      - 'cmake/**'
+      - 'tests/**'
+      - '.github/workflows/clang-tidy-review.yml'
     branches:
       - main
       - master

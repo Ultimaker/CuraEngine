@@ -24,6 +24,13 @@ on:
       - '!jedi*'
 
   pull_request:
+    paths:
+      - 'src/**'
+      - 'cmake/**'
+      - 'tests/**'
+      - 'conanfile.py'
+      - 'CMakeLists.txt'
+      - '.github/workflows/conan-package.yml'
     branches:
       - main
       - master

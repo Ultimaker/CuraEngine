@@ -23,7 +23,15 @@ on:
       - '!Arachne*'
       - '!ancient*'
       - '!jedi*'
+      -
   pull_request:
+    paths:
+      - 'src/**'
+      - 'cmake/**'
+      - 'tests/**'
+      - 'conanfile.py'
+      - 'CMakeLists.txt'
+      - '.github/workflows/unit-test.yml'
     branches:
       - main
       - master
