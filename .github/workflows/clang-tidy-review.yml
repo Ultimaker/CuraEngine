@@ -69,3 +69,4 @@ jobs:
         id: review
         with:
           build_dir: cmake-build-release
+          config_file: '.clang-tidy'
