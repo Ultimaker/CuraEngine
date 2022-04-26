@@ -64,3 +64,4 @@ jobs:
         id: review
         with:
           build_dir: cmake-build-release
+          clang_tidy_version: 11
