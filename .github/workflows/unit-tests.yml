@@ -9,7 +9,7 @@ on:
       - 'tests/**'
       - 'conanfile.py'
       - 'CMakeLists.txt'
-      - '.github/workflows/**.yml'
+      - '.github/workflows/unit-test.yml'
     branches:
       - main
       - master
