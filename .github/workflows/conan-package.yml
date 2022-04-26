@@ -72,7 +72,7 @@ jobs:
           elif [ "${{ startsWith(github.ref_name, 'release/') || steps.git-tool.outputs.fullSemVer == steps.git-tool.outputs.MajorMinorPatch }}" = "true" ]; then
             echo '::set-output name=user::_'
             echo '::set-output name=channel::_'
-          elif [ "${{ github.ref_name == 'dev' || github.event_name == 'merge' || github.event_name == 'pull_request'" = "true" ]; then
+          elif [ "${{ github.ref_name == 'dev' || github.event_name == 'merge' || github.event_name == 'pull_request' }}" = "true" ]; then
             echo ${{ github.repository_owner }} | awk '{print "::set-output name=user::"tolower($0)}'
             echo '::set-output name=channel::testing'
           else
