@@ -1,5 +1,6 @@
 ---
 name: conan-package
+
 on:
   push:
     paths:
@@ -22,36 +23,45 @@ on:
       - '!Arachne*'
       - '!ancient*'
       - '!jedi*'
+
   pull_request:
     branches:
       - main
       - master
       - dev
       - 'release/**'
+
 env:
   CONAN_USER: ${{ secrets.CONAN_USER }}
   CONAN_PASS: ${{ secrets.CONAN_PASS }}
+
 jobs:
   get-semver:
+
     runs-on: ubuntu-20.04
+
     outputs:
       semver_full: ${{ steps.git-tool.outputs.fullSemVer }}
       semver_majorminorpatch: ${{ steps.git-tool.outputs.MajorMinorPatch }}
       user: ${{ steps.get-conan-broadcast-data.outputs.user }}
       channel: ${{ steps.get-conan-broadcast-data.outputs.channel }}
+
     steps:
       - name: Checkout CuraEngine
         uses: actions/checkout@v3
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
+
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v0.9.13
         with:
           versionSpec: '5.x'
+
       - id: git-tool
         name: GitTools
         uses: gittools/actions/gitversion/execute@v0.9.13
+
       - id: get-conan-broadcast-data
         name: Get Conan broadcast data
         run: |
@@ -70,84 +80,28 @@ jobs:
             echo ${{ github.repository_owner }} | awk '{print "::set-output name=user::"tolower($0)}'
             echo ${{ github.ref_name }} | awk '{print "::set-output name=channel::"substr(tolower($0),0,9)}'
           fi
-  testing:
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout CuraEngine
-        uses: actions/checkout@v3
-      - name: Setup Python and pip
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.10.4'
-          architecture: 'x64'
-          cache: 'pip'
-      - name: Prepare Conan and sip-build (Bash)
-        if: ${{ runner.os != 'Windows' }}
-        run: |
-          pip install --require-hashes -r requirements.txt
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-9177_Fix_CI_CD" -tf $HOME/.conan
-          conan profile new default --detect
-          conan user -p $CONAN_PASS -r ultimaker $CONAN_USER
-      - name: Prepare Conan and sip-build (Powershell)
-        if: ${{ runner.os == 'Windows' }}
-        run: |
-          pip install --require-hashes -r requirements.txt
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-9177_Fix_CI_CD" -tf C:\Users\runneradmin\.conan
-          conan profile new default --detect
-          conan user -p $env:CONAN_PASS -r ultimaker $env:CONAN_USER
-      - name: Cache Conan local repository packages (Bash)
-        uses: actions/cache@v3
-        with:
-          path: |
-            $HOME/.conan/data
-          key: ${{ runner.os }}-testing
-      - name: Install dependencies
-        run: conan install . -o enable_testing=True -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update -g VirtualBuildEnv
-      - name: Upload the Dependency package(s)
-        run: conan upload "*" -r ultimaker --all -c
-      - name: Run Unit Test CuraEngine
-        id: run-test
-        run: |
-          cmake --toolchain cmake-build-release/conan/conan_toolchain.cmake -S . -B cmake-build-release/
-          cmake --build cmake-build-release/
-          cd cmake-build-release/
-          export RESULT_FILE=${GITHUB_WORKSPACE}/engine_test.xml
-          echo "Storing Results in: ${RESULT_FILE}"
-          echo '::set-output name=test_result_file::${RESULT_FILE}'
-          ctest --output-junit ${RESULT_FILE}
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
-        if: always()
-        with:
-          files: ${{ steps.run-test.outputs.test_result_file }}
-  clang-tidy:
-    runs-on: ubuntu-20.04
-    if: ${{ github.event_name == 'pull_request' }}
-    steps:
-      - name: Checkout CuraEngine
-        uses: actions/checkout@v3
-      - uses: ZedThree/clang-tidy-review@v0.7.0
-        id: review
-        with:
-          cmake_command: cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=on
-      - if: steps.review.outputs.total_comments > 0
-        run: exit 1
+
   conan-package:
     runs-on: ${{ matrix.os }}
+
     needs: [ get-semver, testing ]
+
     strategy:
       fail-fast: true
       matrix:
         os: [ macos-10.15, windows-2022, ubuntu-20.04]
+
     steps:
       - name: Checkout CuraEngine
         uses: actions/checkout@v3
+
       - name: Setup Python and pip
         uses: actions/setup-python@v3
         with:
           python-version: '3.10.4'
           architecture: 'x64'
           cache: 'pip'
+
       - name: Prepare Conan and sip-build (Bash)
         if: ${{ runner.os != 'Windows' }}
         run: |
@@ -155,6 +109,7 @@ jobs:
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-9177_Fix_CI_CD" -tf $HOME/.conan
           conan profile new default --detect
           conan user -p $CONAN_PASS -r ultimaker $CONAN_USER
+
       - name: Prepare Conan and sip-build (Powershell)
         if: ${{ runner.os == 'Windows' }}
         run: |
@@ -162,6 +117,7 @@ jobs:
           conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-9177_Fix_CI_CD" -tf C:\Users\runneradmin\.conan
           conan profile new default --detect
           conan user -p $env:CONAN_PASS -r ultimaker $env:CONAN_USER
+
       - name: Cache Conan local repository packages (Bash)
         uses: actions/cache@v3
         if: ${{ runner.os != 'Windows' }}
@@ -169,6 +125,7 @@ jobs:
           path: |
             $HOME/.conan/data
           key: ${{ runner.os }}-conan
+
       - name: Cache Conan local repository packages (Powershell)
         uses: actions/cache@v3
         if: ${{ runner.os == 'Windows' }}
@@ -177,10 +134,13 @@ jobs:
             C:\Users\runneradmin\.conan\data
             C:\.conan
           key: ${{ runner.os }}-conan
+
       - name: Create the Packages
         run: conan create . curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} -o enable_testing=${{ matrix.enable_testing }} -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update
+
       - name: Create the latest alias
         if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' )  || github.ref_name == 'dev' || needs.get-semver.outputs.semver_full == needs.get-semver.outputs.semver_majorminorpatch }}
         run: conan alias curaengine/latest@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }}
+
       - name: Upload the Package(s)
         run: conan upload "*" -r ultimaker --all -c
