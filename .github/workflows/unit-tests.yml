@@ -93,4 +93,4 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: ${{ always() }}
         with:
-          files: ${{ steps.run-test.outputs.test_result_file }}
+          files: ${{ env.GITHUB_WORKSPACE }}/engine_test.xml
