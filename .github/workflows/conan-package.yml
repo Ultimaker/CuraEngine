@@ -120,6 +120,18 @@ jobs:
         if: always()
         with:
           files: ${{ steps.run-test.outputs.test_result_file }}
+  clang-tidy:
+    runs-on: ubuntu-20.04
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Checkout CuraEngine
+        uses: actions/checkout@v3
+      - uses: ZedThree/clang-tidy-review@v0.7.0
+        id: review
+        with:
+          cmake_command: cmake . -DCMAKE_EXPORT_COMPILE_COMMANDS=on
+      - if: steps.review.outputs.total_comments > 0
+        run: exit 1
   conan-package:
     runs-on: ${{ matrix.os }}
     needs: [ get-semver, testing ]
