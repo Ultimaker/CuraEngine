@@ -228,11 +228,6 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
         comb_paths.throughAir = true;
         if ( vSize(start_crossing.in_or_mid - end_crossing.in_or_mid) < vSize(start_crossing.in_or_mid - start_crossing.out) + vSize(end_crossing.in_or_mid - end_crossing.out) )
         { // via outside is moving more over the in-between zone
-            comb_paths.emplace_back();
-            // we are not sure if these paths travel through air or cross a boundary
-            // but, they might be so set it to be certain (error on the safe side).
-            comb_paths.throughAir = true;
-            comb_paths.back().cross_boundary = true;
             comb_paths.back().push_back(start_crossing.in_or_mid);
             comb_paths.back().push_back(end_crossing.in_or_mid);
         }
