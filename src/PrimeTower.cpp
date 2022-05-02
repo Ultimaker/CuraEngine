@@ -109,6 +109,7 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t> &cumulative_inse
     const Scene& scene = Application::getInstance().current_slice->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    const PrimeTowerMethod method = mesh_group_settings.get<PrimeTowerMethod>("prime_tower_mode");
     pattern_per_extruder.resize(extruder_count);
     pattern_per_extruder_layer0.resize(extruder_count);
 
@@ -136,7 +137,7 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t> &cumulative_inse
         cumulative_inset += wall_nr * line_width;
         cumulative_insets.push_back(cumulative_inset);
 
-        if (multiple_extruders_on_first_layer)
+        if (multiple_extruders_on_first_layer || method != PrimeTowerMethod::DEFAULT)
         {
             //With a raft there is no difference for the first layer (of the prime tower)
             pattern_per_extruder_layer0 = pattern_per_extruder;
