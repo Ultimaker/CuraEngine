@@ -70,6 +70,34 @@ class SkeletalTrapezoidationGraph: public HalfEdgeGraph<SkeletalTrapezoidationJo
     using edge_t = STHalfEdge;
     using node_t = STHalfEdgeNode;
 public:
+    /*!
+     * Adds a twin to edges that are missing it, and links it to neighbouring
+     * cells appropriately.
+     *
+     * Due to degeneracies in the Voronoi graph generation, it can occur that an
+     * edge has no twin, a case such as this:
+     *
+     *  ---> -----> ----
+     * o<---o<-----o<---
+     *      |      ^|
+     *empty!|      ||
+     *      v      |v
+     *      o      o
+     *
+     * This method adds it back, like so:
+     *
+     *  ---> -----> ----
+     * o<---o<-----o<---
+     *      ^|     ^|
+     *      ||     ||
+     *      |v     |v
+     *      o      o
+     *
+     * It adds a new edge where it is missing. If multiple edges are missing in
+     * a single cell, it adds all of them. The new edge is appropriately linked
+     * in the graph.
+     */
+    void cleanDegenerateCells();
 
     /*!
      * If an edge is too small, collapse it and its twin and fix the surrounding edges to ensure a consistent graph.

@@ -175,7 +175,60 @@ bool STHalfEdgeNode::isLocalMaximum(bool strict) const
     } while (edge = edge->twin->next, edge != incident_edge);
     return true;
 }
-    
+
+void SkeletalTrapezoidationGraph::cleanDegenerateCells()
+{
+    std::unordered_map<node_t*, std::list<node_t>::iterator> node_locator; //To remove vertices by their pointer, map which pointer is where in the list.
+    for(std::list<node_t>::iterator node_it = nodes.begin(); node_it != nodes.end(); ++node_it)
+    {
+        node_locator.emplace(&*node_it, node_it);
+    }
+
+    for(std::list<edge_t>::iterator edge_it = edges.begin(); edge_it != edges.end(); ++edge_it)
+    {
+        if(!edge_it->twin) //Edge has no twin. Create a twin for it.
+        {
+            std::cout << "Creating edge for missing twin!" << std::endl;
+            edges.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::TRANSITION_END));
+            edge_t* new_twin = &edges.front();
+
+            edge_it->twin = new_twin;
+            new_twin->twin = &*edge_it;
+            new_twin->from = edge_it->to;
+            new_twin->to = edge_it->from;
+            new_twin->from->incident_edge = new_twin;
+
+            //Connect up this new edge with where a previous/next edge is missing on the previous and next vertex.
+            if(edge_it->prev)
+            {
+                edge_t* twin_next = edge_it->prev->twin;
+                while(twin_next && twin_next->prev)
+                {
+                    twin_next = twin_next->prev->twin; //Traverse over edges on this vertex until we find one that is missing a prev.
+                }
+                if(twin_next) //Not also a twin missing there.
+                {
+                    twin_next->prev = new_twin;
+                    new_twin->next = twin_next;
+                }
+            }
+            if(edge_it->next)
+            {
+                edge_t* twin_prev = edge_it->next->twin;
+                while(twin_prev && twin_prev->next)
+                {
+                    twin_prev = twin_prev->next->twin; //Traverse over edges on this vertex until we find one that is missing a next.
+                }
+                if(twin_prev) //Not also a twin missing there.
+                {
+                    twin_prev->next = new_twin;
+                    new_twin->prev = twin_prev;
+                }
+            }
+        }
+    }
+}
+
 void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 {
     std::unordered_map<edge_t*, std::list<edge_t>::iterator> edge_locator;
