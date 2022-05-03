@@ -248,10 +248,8 @@ protected:
      * around the cell ends.
      * \param points All vertices of the input Polygons.
      * \param segments All edges of the input Polygons.
-     * /return Whether the cell is inside of the polygon. If it's outside of the
-     * polygon we should skip processing it altogether.
      */
-    void computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments);
+    void computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments, const Polygons& source_polys, const vd_t& source_voronoi);
 
     /*!
      * For VD cells associated with an input polygon vertex, we need to separate the node at the end and start of the cell into two

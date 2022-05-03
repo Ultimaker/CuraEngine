@@ -302,7 +302,7 @@ bool SkeletalTrapezoidation::computePointCellRange(vd_t::cell_type& cell, Point&
     return true;
 }
 
-void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments)
+void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Point& start_source_point, Point& end_source_point, vd_t::edge_type*& starting_vd_edge, vd_t::edge_type*& ending_vd_edge, const std::vector<Point>& points, const std::vector<Segment>& segments, const Polygons& source_polys, const vd_t& source_voronoi)
 {
     const Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
     Point from = source_segment.from();
@@ -322,7 +322,16 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
         }
         Point v0 = VoronoiUtils::p(edge->vertex0());
         Point v1 = VoronoiUtils::p(edge->vertex1());
-        assert(!(v0 == to && v1 == from));
+        if(v0 == to && v1 == from)
+        {
+            SVG svg("test.svg", AABB(source_polys));
+            svg.writePolygons(source_polys, SVG::Color::RED);
+            svg.writeVoronoi(source_voronoi, source_polys);
+            svg.writePoint(v0, false, 1.0, SVG::Color::GREEN);
+            svg.writePoint(v1, false, 1.0, SVG::Color::LIME);
+            //continue;
+        }
+        //assert(!(v0 == to && v1 == from));
         if (v0 == to && !after_start) // Use the last edge which starts in source_segment.to
         {
             starting_vd_edge = edge;
@@ -339,10 +348,10 @@ void SkeletalTrapezoidation::computeSegmentCellRange(vd_t::cell_type& cell, Poin
             ending_vd_edge = edge;
         }
     } while (edge = edge->next(), edge != cell.incident_edge());
-    
+
     assert(starting_vd_edge && ending_vd_edge);
-    assert(starting_vd_edge != ending_vd_edge);
-    
+    //assert(starting_vd_edge != ending_vd_edge);
+
     start_source_point = source_segment.to();
     end_source_point = source_segment.from();
 }
@@ -403,7 +412,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         }
         else
         {
-            computeSegmentCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
+            computeSegmentCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments, polys, vonoroi_diagram);
         }
         
         if (!starting_vonoroi_edge || !ending_vonoroi_edge)
@@ -435,8 +444,23 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     }
 
     separatePointyQuadEndNodes();
-    
+    /*bool do_debug = false;
+    for(auto& edge : graph.edges) {
+        if(!edge.twin) {
+            SVG svg("before.svg", AABB(polys));
+            svg.writePolygons(polys, SVG::Color::RED);
+            svg.writeVoronoi(graph, polys);
+            do_debug = true;
+            break;
+        }
+    }*/
+    //graph.cleanDegenerateCells();
     graph.collapseSmallEdges();
+    /*if(do_debug) {
+        SVG svg("after.svg", AABB(polys));
+        svg.writePolygons(polys, SVG::Color::RED);
+        svg.writeVoronoi(graph, polys);
+    }*/
 
     // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,
     // without needing to iterate backward
