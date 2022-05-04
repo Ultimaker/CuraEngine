@@ -183,7 +183,7 @@ public:
                         {
                             ++start_pos;
                         }
-                        chain.insert(chain.end(), (*closest.polygons)[closest.poly_idx].rbegin(), (*closest.polygons)[closest.poly_idx].rend());
+                        chain.insert(chain.end(), start_pos, (*closest.polygons)[closest.poly_idx].rend());
                     }
                     for(size_t i = old_size; i < chain.size(); ++i) //Update chain length.
                     {
