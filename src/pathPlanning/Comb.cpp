@@ -65,12 +65,12 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 , model_boundary(
           [&storage, layer_nr]()
           {
-              const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+//              const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
               bool travel_avoid_supports = false;
-              for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
-              {
-                  travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
-              }
+//              for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+//              {
+//                  travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
+//              }
               return storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports);
           }
       )
