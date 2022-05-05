@@ -233,28 +233,10 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
         }
         else
         {
-            CombPath tmp_comb_path;
-            bool combing_succeeded = LinePolygonsCrossings::comb(*boundary_outside, getOutsideLocToLine(), start_crossing.out, end_crossing.out, tmp_comb_path, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, true);
-
-            if (combing_succeeded)
-            {
-                // add combing travel moves if the combing was successful
-                comb_paths.push_back(tmp_comb_path);
-            }
-            else if (fail_on_unavoidable_obstacles)
+            bool combing_succeeded = LinePolygonsCrossings::comb(*boundary_outside, getOutsideLocToLine(), start_crossing.out, end_crossing.out, comb_paths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+            if (!combing_succeeded)
             {
                 return false;
-            }
-            else
-            {
-                // if combing is not possible then move directly to the target destination
-                // this happens for instance when trying to avoid skin-regions and combing from
-                // an origin that is on a hole-boundary to a destination that is on the outline-border
-                comb_paths.emplace_back();
-                comb_paths.throughAir = true;
-                comb_paths.back().cross_boundary = true;
-                comb_paths.back().push_back(start_crossing.in_or_mid);
-                comb_paths.back().push_back(end_crossing.in_or_mid);
             }
         }
     }
