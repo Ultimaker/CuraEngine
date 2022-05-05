@@ -241,10 +241,6 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
                 // add combing travel moves if the combing was successful
                 comb_paths.push_back(tmp_comb_path);
             }
-            else if (fail_on_unavoidable_obstacles)
-            {
-                return false;
-            }
             else
             {
                 // if combing is not possible then move directly to the target destination
@@ -255,6 +251,11 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
                 comb_paths.back().cross_boundary = true;
                 comb_paths.back().push_back(start_crossing.in_or_mid);
                 comb_paths.back().push_back(end_crossing.in_or_mid);
+
+                if (fail_on_unavoidable_obstacles)
+                {
+                    return false;
+                }
             }
         }
     }
