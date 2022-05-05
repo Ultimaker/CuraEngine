@@ -132,9 +132,7 @@ private:
     std::unique_ptr<LocToLineGrid> inside_loc_to_line_minimum; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     std::unique_ptr<LocToLineGrid> inside_loc_to_line_optimal; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    LazyInitialization<Polygons> model_boundary; //!< The boundary of the model itself
     LazyInitialization<std::unique_ptr<LocToLineGrid>, Comb*, const coord_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
-    LazyInitialization<std::unique_ptr<LocToLineGrid>, Comb*, const coord_t> model_boundary_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the model boundary
     coord_t move_inside_distance; //!< When using comb_boundary_inside_minimum for combing it tries to move points inside by this amount after calculating the path to move it from the border a bit.
 
     /*!

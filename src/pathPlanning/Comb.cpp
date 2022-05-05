@@ -62,27 +62,7 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
         , this
         , offset_from_inside_to_outside
     )
-, model_boundary(
-          [&storage, layer_nr]()
-          {
-              const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-              bool travel_avoid_supports = false;
-              for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
-              {
-                  travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
-              }
-              return storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports);
-          }
-      )
-, model_boundary_loc_to_line(
-          [](Comb* comber, const int64_t offset_from_inside_to_outside)
-          {
-              return PolygonUtils::createLocToLineGrid(*comber->model_boundary, offset_from_inside_to_outside * 3 / 2);
-          }
-          , this
-          , offset_from_inside_to_outside
-      )
-    , move_inside_distance(move_inside_distance)
+, move_inside_distance(move_inside_distance)
 {
 }
 
@@ -258,7 +238,7 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
             }
             else
             { // both start and end are outside
-                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, **model_boundary_loc_to_line);
+                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getOutsideLocToLine());
             }
         }
         else
