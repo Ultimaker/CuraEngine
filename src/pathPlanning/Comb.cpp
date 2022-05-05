@@ -236,8 +236,6 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
                 // this happens for instance when trying to avoid skin-regions and combing from
                 // an origin that is on a hole-boundary to a destination that is on the outline-border
                 comb_paths.emplace_back();
-                comb_paths.throughAir = true;
-                comb_paths.back().cross_boundary = true;
                 comb_paths.back().push_back(start_crossing.in_or_mid);
                 comb_paths.back().push_back(end_crossing.in_or_mid);
             }
