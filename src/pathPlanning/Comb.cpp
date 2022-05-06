@@ -65,12 +65,16 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 , model_boundary(
           [&storage, layer_nr]()
           {
-              const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+        /* NOTE/TODO: The commented-out lines in this scope are something that we want to reintroduce, but had to disable for proper PVA supports for now.
+         *            See the latest commit message (at time of writing) of those lines or internal ticket CURA-9163 for details.
+         */
+
+//              const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
               bool travel_avoid_supports = false;
-              for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
-              {
-                  travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
-              }
+//              for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+//              {
+//                  travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
+//              }
               return storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports);
           }
       )
@@ -241,10 +245,6 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
                 // add combing travel moves if the combing was successful
                 comb_paths.push_back(tmp_comb_path);
             }
-            else if (fail_on_unavoidable_obstacles)
-            {
-                return false;
-            }
             else
             {
                 // if combing is not possible then move directly to the target destination
@@ -255,6 +255,11 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
                 comb_paths.back().cross_boundary = true;
                 comb_paths.back().push_back(start_crossing.in_or_mid);
                 comb_paths.back().push_back(end_crossing.in_or_mid);
+
+                if (fail_on_unavoidable_obstacles)
+                {
+                    return false;
+                }
             }
         }
     }
