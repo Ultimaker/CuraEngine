@@ -1544,21 +1544,32 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
             added_something = true;
             setExtruder_addPrime(storage, gcode_layer, extruder_nr);
             gcode_layer.setIsInside(true); // going to print stuff inside print object
+
             if (!infill_polygons.empty())
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
                 gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[combine_idx]);
             }
-            std::optional<Point> near_start_location;
-            if (mesh.settings.get<bool>("infill_randomize_start_location"))
+
+            if (!infill_lines.empty())
             {
-                srand(gcode_layer.getLayerNr());
-                near_start_location = infill_lines[rand() % infill_lines.size()][0];
+                std::optional<Point> near_start_location;
+                if (mesh.settings.get<bool>("infill_randomize_start_location"))
+                {
+                    srand(gcode_layer.getLayerNr());
+                    near_start_location = infill_lines[rand() % infill_lines.size()][0];
+                }
+
+                const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
+                gcode_layer.addLinesByOptimizer(infill_lines,
+                                                mesh_config.infill_config[combine_idx],
+                                                zig_zaggify_infill ? SpaceFillType::PolyLines : SpaceFillType::Lines,
+                                                enable_travel_optimization,
+                                                /*wipe_dist = */ 0,
+                                                /* flow = */ 1.0,
+                                                near_start_location);
             }
-            const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
-            gcode_layer.addLinesByOptimizer(infill_lines, mesh_config.infill_config[combine_idx], zig_zaggify_infill ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization
-                , /*wipe_dist = */ 0, /* flow = */ 1.0, near_start_location);
         }
     }
     return added_something;

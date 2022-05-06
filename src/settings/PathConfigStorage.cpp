@@ -107,7 +107,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
 )
 , ironing_config(
     PrintFeatureType::Skin
-    , mesh.settings.get<coord_t>("skin_line_width")
+    , mesh.settings.get<coord_t>("ironing_line_spacing")
     , layer_thickness
     , mesh.settings.get<Ratio>("ironing_flow")
     , GCodePathConfig::SpeedDerivatives{mesh.settings.get<Velocity>("speed_ironing"), mesh.settings.get<Acceleration>("acceleration_ironing"), mesh.settings.get<Velocity>("jerk_ironing")}
