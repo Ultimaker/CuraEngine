@@ -65,6 +65,10 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 , model_boundary(
           [&storage, layer_nr]()
           {
+        /* NOTE/TODO: The commented-out lines in this scope are something that we want to reintroduce, but had to disable for proper PVA supports for now.
+         *            See the latest commit message (at time of writing) of those lines or internal ticket CURA-9163 for details.
+         */
+
 //              const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
               bool travel_avoid_supports = false;
 //              for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
