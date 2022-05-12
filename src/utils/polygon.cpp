@@ -540,7 +540,7 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
                 && height_2 <= allowed_error_distance_squared) // removing the vertex doesn't introduce too much error.)
             {
                 const coord_t next_length2 = vSize2(current - next);
-                if (next_length2 > smallest_line_segment_squared)
+                if (next_length2 > 4 * smallest_line_segment_squared)
                 {
                     // Special case; The next line is long. If we were to remove this, it could happen that we get quite noticeable artifacts.
                     // We should instead move this point to a location where both edges are kept and then remove the previous point that we wanted to keep.
