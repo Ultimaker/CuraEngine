@@ -1634,7 +1634,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
     size_t extruder_nr = gcode.getExtruderNr();
     const bool acceleration_enabled = mesh_group_settings.get<bool>("acceleration_enabled");
+    const bool acceleration_travel_enabled = mesh_group_settings.get<bool>("acceleration_travel_enabled");
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
+    const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
     std::string current_mesh = "NONMESH";
 
     for(size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
@@ -1734,7 +1736,27 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 if (path.config->isTravelPath())
                 {
-                    gcode.writeTravelAcceleration(path.config->getAcceleration());
+                    if(acceleration_travel_enabled)
+                    {
+                        gcode.writeTravelAcceleration(path.config->getAcceleration());
+                    }
+                    else
+                    {
+                        //Use the acceleration of the first non-travel move *after* the travel.
+                        size_t future_path_idx = path_idx + 1;
+                        while(future_path_idx < paths.size() && paths[future_path_idx].config->isTravelPath())
+                        {
+                            ++future_path_idx;
+                        }
+                        if(future_path_idx >= paths.size()) //Only travel moves for the remainder of the layer.
+                        {
+                            gcode.writeComment("Travel move at the end!");
+                        }
+                        else
+                        {
+                            gcode.writeTravelAcceleration(paths[future_path_idx].config->getAcceleration());
+                        }
+                    }
                 }
                 else
                 {
