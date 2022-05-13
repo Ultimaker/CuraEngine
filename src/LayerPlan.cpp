@@ -1736,6 +1736,16 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 continue;
             }
 
+            //In some cases we want to find the next non-travel move.
+            size_t next_extrusion_idx = path_idx + 1;
+            if((acceleration_enabled && !acceleration_travel_enabled) || (jerk_enabled && !jerk_travel_enabled))
+            {
+                while(next_extrusion_idx < paths.size() && paths[next_extrusion_idx].config->isTravelPath())
+                {
+                    ++next_extrusion_idx;
+                }
+            }
+
             if (acceleration_enabled)
             {
                 if (path.config->isTravelPath())
@@ -1747,12 +1757,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     else
                     {
                         //Use the acceleration of the first non-travel move *after* the travel.
-                        size_t future_path_idx = path_idx + 1;
-                        while(future_path_idx < paths.size() && paths[future_path_idx].config->isTravelPath())
-                        {
-                            ++future_path_idx;
-                        }
-                        if(future_path_idx >= paths.size()) //Only travel moves for the remainder of the layer.
+                        if(next_extrusion_idx >= paths.size()) //Only travel moves for the remainder of the layer.
                         {
                             if(static_cast<bool>(next_layer_acc_jerk))
                             {
@@ -1761,7 +1766,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         }
                         else
                         {
-                            gcode.writeTravelAcceleration(paths[future_path_idx].config->getAcceleration());
+                            gcode.writeTravelAcceleration(paths[next_extrusion_idx].config->getAcceleration());
                         }
                     }
                 }
@@ -1779,12 +1784,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 else
                 {
                     //Use the jerk of the first non-travel move *after* the travel.
-                    size_t future_path_idx = path_idx + 1;
-                    while(future_path_idx < paths.size() && paths[future_path_idx].config->isTravelPath())
-                    {
-                        ++future_path_idx;
-                    }
-                    if(future_path_idx >= paths.size()) //Only travel moves for the remainder of the layer.
+                    if(next_extrusion_idx >= paths.size()) //Only travel moves for the remainder of the layer.
                     {
                         if(static_cast<bool>(next_layer_acc_jerk))
                         {
@@ -1793,7 +1793,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     }
                     else
                     {
-                        gcode.writeJerk(paths[future_path_idx].config->getJerk());
+                        gcode.writeJerk(paths[next_extrusion_idx].config->getJerk());
                     }
                 }
             }
