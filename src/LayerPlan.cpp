@@ -515,6 +515,10 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFi
     GCodePath* path = getLatestPathWithConfig(config, space_fill_type, flow, width_factor, spiralize, speed_factor);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
+    if(!static_cast<bool>(first_extrusion_acc_jerk))
+    {
+        first_extrusion_acc_jerk = std::make_pair(path->config->getAcceleration(), path->config->getJerk());
+    }
     last_planned_position = p;
 }
 
@@ -1750,7 +1754,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         }
                         if(future_path_idx >= paths.size()) //Only travel moves for the remainder of the layer.
                         {
-                            gcode.writeComment("Travel move at the end!");
+                            if(static_cast<bool>(next_layer_acc_jerk))
+                            {
+                                gcode.writeTravelAcceleration(next_layer_acc_jerk->first);
+                            } //If the next layer has no extruded move, just keep the old acceleration. Should be very rare to have an empty layer.
                         }
                         else
                         {
