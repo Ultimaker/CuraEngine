@@ -1772,7 +1772,30 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
             if (jerk_enabled)
             {
-                gcode.writeJerk(path.config->getJerk());
+                if(jerk_travel_enabled)
+                {
+                    gcode.writeJerk(path.config->getJerk());
+                }
+                else
+                {
+                    //Use the jerk of the first non-travel move *after* the travel.
+                    size_t future_path_idx = path_idx + 1;
+                    while(future_path_idx < paths.size() && paths[future_path_idx].config->isTravelPath())
+                    {
+                        ++future_path_idx;
+                    }
+                    if(future_path_idx >= paths.size()) //Only travel moves for the remainder of the layer.
+                    {
+                        if(static_cast<bool>(next_layer_acc_jerk))
+                        {
+                            gcode.writeJerk(next_layer_acc_jerk->second);
+                        } //If the next layer has no extruded move, just keep the old jerk. Should be very rare to have an empty layer.
+                    }
+                    else
+                    {
+                        gcode.writeJerk(paths[future_path_idx].config->getJerk());
+                    }
+                }
             }
 
             if (path.retract)
