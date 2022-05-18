@@ -15,11 +15,11 @@ namespace cura
  * Utility class to reduce the resolution of polygons and polylines, under
  * certain constraints.
  *
- * This class implements a modified version of Ramer-Douglas-Peucker which is
- * meant to reduce the resolution of polylines or polygons. This class provides
- * several methods to simplify different geometrical objects such that they can
- * be printed without buffer underruns in a 3D printer. The simplified results
- * have the following constraints:
+ * This class implements a polygonal decimation algorithm which is meant to
+ * reduce the resolution of polylines or polygons. This class provides several
+ * methods to simplify different geometrical objects such that they can be
+ * printed without buffer underruns in a 3D printer. The simplified results have
+ * the following constraints:
  * * The simplified path does not deviate more than the Maximum Deviation from
  *   the original path.
  * * In variable-width lines, the simplified path may not deviate more than the
@@ -88,6 +88,13 @@ public:
 
 protected:
     /*!
+     * Line segments smaller than this should not occur in the output.
+     * If a vertex causes deviation of less than this, it should always be
+     * removed.
+     */
+    constexpr static coord_t min_resolution = 5; //5 units, regardless of how big those are, to allow for rounding errors.
+
+    /*!
      * Line segments shorter than this size should be considered for removal.
      */
     coord_t max_resolution;
@@ -103,6 +110,18 @@ protected:
      * change by more than this, it may not be removed.
      */
     coord_t max_area_deviation;
+
+    /*!
+     * A measure of the importance of a vertex.
+     * \param polygon The polygon or polyline the vertex is part of.
+     * \param point The location of the vertex to consider. Note that the vertex
+     * may not be in its original location of the polygon any more, so this may
+     * be different from ``polygon[vertex]``
+     * \param vertex The vertex index of that polygon.
+     * \param is_closed Whether the polygon is closed (a polygon) or open
+     * (a polyline).
+     */
+    coord_t importance(const PolygonRef& polygon, const Point& point, const size_t vertex, const bool is_closed);
 };
 
 } //namespace cura
