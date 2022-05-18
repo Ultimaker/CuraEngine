@@ -85,6 +85,24 @@ public:
      * \param polyline The polyline to simplify.
      */
     ExtrusionLine polyline(const ExtrusionLine& polyline);
+
+protected:
+    /*!
+     * Line segments shorter than this size should be considered for removal.
+     */
+    coord_t max_resolution;
+
+    /*!
+     * If removing a vertex causes a deviation further than this, it may not be
+     * removed.
+     */
+    coord_t max_deviation;
+
+    /*!
+     * If removing a vertex causes the covered area of the line segments to
+     * change by more than this, it may not be removed.
+     */
+    coord_t max_area_deviation;
 };
 
 } //namespace cura
