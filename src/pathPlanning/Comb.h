@@ -10,7 +10,6 @@
 #include "../settings/types/LayerIndex.h" // To store the layer on which we comb.
 #include "../utils/polygon.h"
 #include "../utils/polygonUtils.h"
-#include "../utils/LazyInitialization.h"
 
 namespace cura 
 {
