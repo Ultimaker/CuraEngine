@@ -515,6 +515,10 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFi
     GCodePath* path = getLatestPathWithConfig(config, space_fill_type, flow, width_factor, spiralize, speed_factor);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
+    if(!static_cast<bool>(first_extrusion_acc_jerk))
+    {
+        first_extrusion_acc_jerk = std::make_pair(path->config->getAcceleration(), path->config->getJerk());
+    }
     last_planned_position = p;
 }
 
@@ -1634,7 +1638,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
     size_t extruder_nr = gcode.getExtruderNr();
     const bool acceleration_enabled = mesh_group_settings.get<bool>("acceleration_enabled");
+    const bool acceleration_travel_enabled = mesh_group_settings.get<bool>("acceleration_travel_enabled");
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
+    const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
     std::string current_mesh = "NONMESH";
 
     for(size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
@@ -1730,11 +1736,39 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 continue;
             }
 
+            //In some cases we want to find the next non-travel move.
+            size_t next_extrusion_idx = path_idx + 1;
+            if((acceleration_enabled && !acceleration_travel_enabled) || (jerk_enabled && !jerk_travel_enabled))
+            {
+                while(next_extrusion_idx < paths.size() && paths[next_extrusion_idx].config->isTravelPath())
+                {
+                    ++next_extrusion_idx;
+                }
+            }
+
             if (acceleration_enabled)
             {
                 if (path.config->isTravelPath())
                 {
-                    gcode.writeTravelAcceleration(path.config->getAcceleration());
+                    if(acceleration_travel_enabled)
+                    {
+                        gcode.writeTravelAcceleration(path.config->getAcceleration());
+                    }
+                    else
+                    {
+                        //Use the acceleration of the first non-travel move *after* the travel.
+                        if(next_extrusion_idx >= paths.size()) //Only travel moves for the remainder of the layer.
+                        {
+                            if(static_cast<bool>(next_layer_acc_jerk))
+                            {
+                                gcode.writeTravelAcceleration(next_layer_acc_jerk->first);
+                            } //If the next layer has no extruded move, just keep the old acceleration. Should be very rare to have an empty layer.
+                        }
+                        else
+                        {
+                            gcode.writeTravelAcceleration(paths[next_extrusion_idx].config->getAcceleration());
+                        }
+                    }
                 }
                 else
                 {
@@ -1743,7 +1777,25 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
             if (jerk_enabled)
             {
-                gcode.writeJerk(path.config->getJerk());
+                if(jerk_travel_enabled)
+                {
+                    gcode.writeJerk(path.config->getJerk());
+                }
+                else
+                {
+                    //Use the jerk of the first non-travel move *after* the travel.
+                    if(next_extrusion_idx >= paths.size()) //Only travel moves for the remainder of the layer.
+                    {
+                        if(static_cast<bool>(next_layer_acc_jerk))
+                        {
+                            gcode.writeJerk(next_layer_acc_jerk->second);
+                        } //If the next layer has no extruded move, just keep the old jerk. Should be very rare to have an empty layer.
+                    }
+                    else
+                    {
+                        gcode.writeJerk(paths[next_extrusion_idx].config->getJerk());
+                    }
+                }
             }
 
             if (path.retract)

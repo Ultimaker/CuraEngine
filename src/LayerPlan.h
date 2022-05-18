@@ -255,6 +255,8 @@ private:
 
     std::optional<Point> first_travel_destination; //!< The destination of the first (travel) move (if this layer is not empty)
     bool first_travel_destination_is_inside; //!< Whether the destination of the first planned travel move is inside a layer part
+    std::optional<std::pair<Acceleration, Velocity>> first_extrusion_acc_jerk; //!< The acceleration and jerk rates of the first extruded move (if this layer is not empty).
+    std::optional<std::pair<Acceleration, Velocity>> next_layer_acc_jerk; //!< If there is a next layer, the first acceleration and jerk it starts with.
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Polygons comb_boundary_minimum; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
