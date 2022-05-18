@@ -16,7 +16,25 @@ namespace cura
  * certain constraints.
  *
  * This class implements a modified version of Ramer-Douglas-Peucker which is
- * meant to reduce the resolution of polylines or polygons.
+ * meant to reduce the resolution of polylines or polygons. This class provides
+ * several methods to simplify different geometrical objects such that they can
+ * be printed without buffer underruns in a 3D printer. The simplified results
+ * have the following constraints:
+ * * The simplified path does not deviate more than the Maximum Deviation from
+ *   the original path.
+ * * In variable-width lines, the simplified path may not deviate more than the
+ *   Maximum Area Deviation from the original path in the area that each line
+ *   segment covers (width * length). This does not mean that the line couldn't
+ *   be moved, only that its width may not locally be adjusted too much.
+ * * The simplified path does not contain line segments shorter than the Maximum
+ *   Resolution, unless that interferes with the first two criteria.
+ * * The simplified path does not contain any vertices where removing it would
+ *   cause a deviation of less than 5 micron.
+ * * The simplified path does not contain any line segments shorter than 5
+ *   micron.
+ * * Line segments significantly longer than the Maximum Resolution do not get
+ *   moved for the bigger part of their length by more than 5 micron, not even
+ *   if this would be allowable by the Maximum Deviation.
  */
 class Simplify
 {
@@ -72,4 +90,3 @@ public:
 } //namespace cura
 
 #endif //UTILS_SIMPLIFY_H
-
