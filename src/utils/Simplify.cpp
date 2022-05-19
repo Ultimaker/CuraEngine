@@ -2,6 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <limits>
+#include <queue> //Priority queue to prioritise removing unimportant vertices.
 
 #include "Simplify.h"
 #include "linearAlg2D.h"
@@ -21,7 +22,7 @@ Simplify::Simplify(const Settings& settings)
     , max_area_deviation(settings.get<coord_t>("meshfix_maximum_area_deviation"))
 {}
 
-coord_t Simplify::importance(const PolygonRef& polygon, const Point& point, const size_t vertex, const bool is_closed)
+coord_t Simplify::importance(const PolygonRef& polygon, const Point& point, const size_t vertex, const bool is_closed) const
 {
     const size_t poly_size = polygon.size();
     if(!is_closed && (vertex == 0 || vertex == poly_size - 1))
@@ -37,6 +38,32 @@ coord_t Simplify::importance(const PolygonRef& polygon, const Point& point, cons
         return std::numeric_limits<coord_t>::max(); //Long line segments, no need to remove this one.
     }
     return LinearAlg2D::getDist2FromLine(point, before, after); //Return simple deviation.
+}
+
+Polygon Simplify::polygon(const PolygonRef polygon)
+{
+    auto comparator = [this](const PolygonVertex& vertex_a, const PolygonVertex& vertex_b)
+    {
+        return compare(vertex_a, vertex_b);
+    };
+    std::priority_queue<PolygonVertex, std::vector<PolygonVertex>, decltype(comparator)> kept_vertices(comparator);
+
+    //Add the initial points.
+    for(size_t i = 0; i < polygon.size(); ++i)
+    {
+        kept_vertices.emplace(i, polygon[i], &polygon);
+    }
+
+    //TODO: Remove vertices to simplify the polygon.
+
+    return polygon; //TODO.
+}
+
+bool Simplify::compare(const PolygonVertex& vertex_a, const PolygonVertex& vertex_b) const
+{
+    const coord_t importance_a = importance(*vertex_a.polygon, vertex_a.position, vertex_a.index, true);
+    const coord_t importance_b = importance(*vertex_b.polygon, vertex_b.position, vertex_b.index, true);
+    return importance_a < importance_b;
 }
 
 }

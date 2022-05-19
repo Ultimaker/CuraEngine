@@ -121,7 +121,27 @@ protected:
      * \param is_closed Whether the polygon is closed (a polygon) or open
      * (a polyline).
      */
-    coord_t importance(const PolygonRef& polygon, const Point& point, const size_t vertex, const bool is_closed);
+    coord_t importance(const PolygonRef& polygon, const Point& point, const size_t vertex, const bool is_closed) const;
+
+    /*!
+     * Helper struct for comparing vertices of simplified polygons.
+     *
+     * The vertices may not actually match with vertices of the original
+     * polygon, but they are linked to the vertices of the original polygon.
+     * They may be moved.
+     */
+    struct PolygonVertex
+    {
+        size_t index; //!<The vertex index that this vertex originally had (before it was moved).
+        Point position; //!<The current position of the vertex.
+        const PolygonRef* polygon; //!<The polygon this vertex belonged to.
+        PolygonVertex(size_t index, Point position, const PolygonRef* polygon) : index(index), position(position), polygon(polygon) {};
+    };
+
+    /*!
+     * Compare vertices of a polygon by their importance.
+     */
+    bool compare(const PolygonVertex& vertex_a, const PolygonVertex& vertex_b) const;
 };
 
 } //namespace cura
