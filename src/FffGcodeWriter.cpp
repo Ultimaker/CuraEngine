@@ -1632,7 +1632,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     const auto pocket_size = mesh.settings.get<coord_t>("cross_infill_pocket_size");
     constexpr bool skip_stitching = false;
     constexpr bool connected_zigzags = false;
-    constexpr bool use_endpieces = true;
+    const bool use_endpieces = part.infill_area_per_combine_per_density.size() == 1; //Only use endpieces when not using gradual infill, since they will then overlap.
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
 
