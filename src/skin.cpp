@@ -648,7 +648,7 @@ void SkinInfillAreaComputation::generateTopAndBottomMostSkinSurfaces(SliceLayerP
 
     for (SkinPart& skin_part : part.skin_parts) {
         Polygons no_air_above = generateNoAirAbove(part, 1);
-        skin_part.top_most_surface_fill = skin_part.roofing_fill.difference(no_air_above);
+        skin_part.top_most_surface_fill = skin_part.outline.difference(no_air_above);
 
         Polygons no_air_below = generateNoAirBelow(part, 1);
         skin_part.bottom_most_surface_fill = skin_part.skin_fill.difference(no_air_below);
