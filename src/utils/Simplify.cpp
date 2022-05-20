@@ -58,7 +58,7 @@ Polygon Simplify::polygon(const PolygonRef polygon)
     }
 
     std::vector<bool> to_delete(polygon.size(), false);
-    auto comparator = [this, polygon, to_delete](const std::pair<size_t, coord_t>& vertex_a, const std::pair<size_t, coord_t>& vertex_b)
+    auto comparator = [](const std::pair<size_t, coord_t>& vertex_a, const std::pair<size_t, coord_t>& vertex_b)
     {
         return vertex_a.second < vertex_b.second;
     };
@@ -72,29 +72,43 @@ Polygon Simplify::polygon(const PolygonRef polygon)
     }
 
     //Iteratively remove the least important point until a threshold.
-    Polygon result = polygon;
-    coord_t lowest_importance = 0;
-    while(by_importance.size() > 3 && lowest_importance <= max_deviation * max_deviation)
+    Polygon result = polygon; //Make a copy so that we can also shift vertices.
+    coord_t vertex_importance = 0;
+    while(by_importance.size() > 3)
     {
         std::pair<size_t, coord_t> vertex = by_importance.top();
         by_importance.pop();
         //The importance may have changed since this vertex was inserted. Re-compute it now.
         //If it doesn't change, it's safe to process.
-        const coord_t updated_importance = importance(result, to_delete, vertex.first, true);
-        if(updated_importance != vertex.second)
+        vertex_importance = importance(result, to_delete, vertex.first, true);
+        if(vertex_importance != vertex.second)
         {
-            by_importance.emplace(vertex.first, updated_importance);
+            by_importance.emplace(vertex.first, vertex_importance); //Re-insert with updated importance.
+            continue;
         }
 
-        remove(result, to_delete, vertex.first, vertex.second);
+        if(vertex_importance <= max_deviation * max_deviation)
+        {
+            remove(result, to_delete, vertex.first, vertex.second);
+        }
     }
 
-    return result;
+    //Now remove the marked vertices in one sweep.
+    Polygon filtered;
+    for(size_t i = 0; i < polygon.size(); ++i)
+    {
+        if(!to_delete[i])
+        {
+            filtered.add(polygon[i]);
+        }
+    }
+
+    return filtered;
 }
 
 void Simplify::remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2) const
 {
-    if(deviation2 <= min_resolution * min_resolution)
+    if(deviation2 <= max_deviation * max_deviation)
     {
         //At less than the minimum resolution we're always allowed to delete the vertex.
         //Even if the adjacent line segments are very long.
