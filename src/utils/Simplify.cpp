@@ -48,6 +48,15 @@ coord_t Simplify::importance(const PolygonRef& polygon, const std::vector<bool>&
 
 Polygon Simplify::polygon(const PolygonRef polygon)
 {
+    if(polygon.size() < 2)
+    {
+        return Polygon();
+    }
+    if(polygon.size() == 3)
+    {
+        return polygon;
+    }
+
     std::vector<bool> to_delete(polygon.size(), false);
     auto comparator = [this, polygon, to_delete](const size_t vertex_a, const size_t vertex_b)
     {
