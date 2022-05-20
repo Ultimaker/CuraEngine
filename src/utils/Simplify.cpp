@@ -62,17 +62,26 @@ Polygon Simplify::polygon(const PolygonRef polygon)
     {
         return compare(polygon, to_delete, vertex_a, vertex_b, true);
     };
-    std::priority_queue<size_t, std::vector<size_t>, decltype(comparator)> kept_vertices(comparator);
+    std::priority_queue<size_t, std::vector<size_t>, decltype(comparator)> by_importance(comparator);
 
     //Add the initial points.
     for(size_t i = 0; i < polygon.size(); ++i)
     {
-        kept_vertices.emplace(i);
+        by_importance.emplace(i);
     }
 
-    //TODO: Remove vertices to simplify the polygon.
+    //Iteratively remove the least important point until a threshold.
+    Polygon result = polygon;
+    coord_t lowest_importance = 0;
+    while(by_importance.size() > 3 && lowest_importance <= max_deviation * max_deviation)
+    {
+        size_t least_important = by_importance.top();
+        by_importance.pop();
+        lowest_importance = importance(result, to_delete, least_important, true);
+        remove(result, to_delete, least_important);
+    }
 
-    return polygon; //TODO.
+    return result;
 }
 
 bool Simplify::compare(const PolygonRef& polygon, const std::vector<bool>& to_delete, const size_t vertex_a, const size_t vertex_b, const bool is_closed) const
@@ -80,6 +89,11 @@ bool Simplify::compare(const PolygonRef& polygon, const std::vector<bool>& to_de
     const coord_t importance_a = importance(polygon, to_delete, vertex_a, is_closed);
     const coord_t importance_b = importance(polygon, to_delete, vertex_b, is_closed);
     return importance_a < importance_b;
+}
+
+void Simplify::remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex) const
+{
+    //TODO.
 }
 
 size_t Simplify::nextNotDeleted(size_t index, const std::vector<bool>& to_delete) const

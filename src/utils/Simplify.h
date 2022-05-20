@@ -129,6 +129,19 @@ protected:
     bool compare(const PolygonRef& polygon, const std::vector<bool>& to_delete, const size_t vertex_a, const size_t vertex_b, const bool is_closed) const;
 
     /*!
+     * Mark a vertex for removal.
+     *
+     * This function looks in the vertex and the four edges surrounding it to
+     * determine the best way to remove the given vertex. It may choose instead
+     * to delete an edge, fusing two vertices together.
+     * \param polygon The polygon to remove a vertex from.
+     * \param to_delete The vertices that have been marked for deletion so far.
+     * This will be edited in-place.
+     * \param vertex The index of the vertex to remove.
+     */
+    void remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex) const;
+
+    /*!
      * Helper method to find the index of the next vertex that is not about to
      * get deleted.
      *
