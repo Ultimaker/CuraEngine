@@ -48,6 +48,7 @@ coord_t Simplify::importance(const PolygonRef& polygon, const std::vector<bool>&
 
 Polygon Simplify::polygon(const PolygonRef polygon)
 {
+    //std::cout << "_________________________________ GO!" << std::endl;
     if(polygon.size() < 2)
     {
         return Polygon();
@@ -89,7 +90,8 @@ Polygon Simplify::polygon(const PolygonRef polygon)
 
         if(vertex_importance <= max_deviation * max_deviation)
         {
-            remove(result, to_delete, vertex.first, vertex.second);
+            //std::cout << "Removing vertex " << vertex.first << " with deviation " << vertex.second << std::endl;
+            remove(result, to_delete, vertex.first, vertex_importance);
         }
     }
 
@@ -108,11 +110,27 @@ Polygon Simplify::polygon(const PolygonRef polygon)
 
 void Simplify::remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2) const
 {
-    if(deviation2 <= max_deviation * max_deviation)
+    if(deviation2 <= min_resolution * min_resolution)
     {
         //At less than the minimum resolution we're always allowed to delete the vertex.
         //Even if the adjacent line segments are very long.
         to_delete[vertex] = true;
+        return;
+    }
+
+    const size_t before = previousNotDeleted(vertex, to_delete);
+    const size_t after = nextNotDeleted(vertex, to_delete);
+    const Point vertex_position = polygon[vertex];
+    const Point before_position = polygon[before];
+    const Point after_position = polygon[after];
+    const coord_t length2_before = vSize2(vertex_position - before_position);
+    const coord_t length2_after = vSize2(vertex_position - after_position);
+
+    if(length2_before <= max_resolution * max_resolution && length2_after <= max_resolution * max_resolution) //Both adjacent line segments are short.
+    {
+        //Removing this vertex does little harm. No long lines will be shifted.
+        to_delete[vertex] = true;
+        return;
     }
 }
 
