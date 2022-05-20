@@ -58,16 +58,17 @@ Polygon Simplify::polygon(const PolygonRef polygon)
     }
 
     std::vector<bool> to_delete(polygon.size(), false);
-    auto comparator = [this, polygon, to_delete](const size_t vertex_a, const size_t vertex_b)
+    auto comparator = [this, polygon, to_delete](const std::pair<size_t, coord_t>& vertex_a, const std::pair<size_t, coord_t>& vertex_b)
     {
-        return compare(polygon, to_delete, vertex_a, vertex_b, true);
+        return vertex_a.second < vertex_b.second;
     };
-    std::priority_queue<size_t, std::vector<size_t>, decltype(comparator)> by_importance(comparator);
+    std::priority_queue<std::pair<size_t, coord_t>, std::vector<std::pair<size_t, coord_t>>, decltype(comparator)> by_importance(comparator);
 
     //Add the initial points.
     for(size_t i = 0; i < polygon.size(); ++i)
     {
-        by_importance.emplace(i);
+        const coord_t vertex_importance = importance(polygon, to_delete, i, true);
+        by_importance.emplace(i, vertex_importance);
     }
 
     //Iteratively remove the least important point until a threshold.
@@ -75,25 +76,30 @@ Polygon Simplify::polygon(const PolygonRef polygon)
     coord_t lowest_importance = 0;
     while(by_importance.size() > 3 && lowest_importance <= max_deviation * max_deviation)
     {
-        size_t least_important = by_importance.top();
+        std::pair<size_t, coord_t> vertex = by_importance.top();
         by_importance.pop();
-        lowest_importance = importance(result, to_delete, least_important, true);
-        remove(result, to_delete, least_important);
+        //The importance may have changed since this vertex was inserted. Re-compute it now.
+        //If it doesn't change, it's safe to process.
+        const coord_t updated_importance = importance(result, to_delete, vertex.first, true);
+        if(updated_importance != vertex.second)
+        {
+            by_importance.emplace(vertex.first, updated_importance);
+        }
+
+        remove(result, to_delete, vertex.first, vertex.second);
     }
 
     return result;
 }
 
-bool Simplify::compare(const PolygonRef& polygon, const std::vector<bool>& to_delete, const size_t vertex_a, const size_t vertex_b, const bool is_closed) const
+void Simplify::remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2) const
 {
-    const coord_t importance_a = importance(polygon, to_delete, vertex_a, is_closed);
-    const coord_t importance_b = importance(polygon, to_delete, vertex_b, is_closed);
-    return importance_a < importance_b;
-}
-
-void Simplify::remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex) const
-{
-    //TODO.
+    if(deviation2 <= min_resolution * min_resolution)
+    {
+        //At less than the minimum resolution we're always allowed to delete the vertex.
+        //Even if the adjacent line segments are very long.
+        to_delete[vertex] = true;
+    }
 }
 
 size_t Simplify::nextNotDeleted(size_t index, const std::vector<bool>& to_delete) const

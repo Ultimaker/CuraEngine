@@ -124,11 +124,6 @@ protected:
     coord_t importance(const PolygonRef& polygon, const std::vector<bool>& to_delete, const size_t index, const bool is_closed) const;
 
     /*!
-     * Compare vertices of a polygon by their importance.
-     */
-    bool compare(const PolygonRef& polygon, const std::vector<bool>& to_delete, const size_t vertex_a, const size_t vertex_b, const bool is_closed) const;
-
-    /*!
      * Mark a vertex for removal.
      *
      * This function looks in the vertex and the four edges surrounding it to
@@ -138,8 +133,9 @@ protected:
      * \param to_delete The vertices that have been marked for deletion so far.
      * This will be edited in-place.
      * \param vertex The index of the vertex to remove.
+     * \param deviation2 The previously found deviation for this vertex.
      */
-    void remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex) const;
+    void remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2) const;
 
     /*!
      * Helper method to find the index of the next vertex that is not about to
