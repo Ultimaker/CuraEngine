@@ -60,7 +60,7 @@ Polygon Simplify::polygon(const PolygonRef polygon)
     std::vector<bool> to_delete(polygon.size(), false);
     auto comparator = [](const std::pair<size_t, coord_t>& vertex_a, const std::pair<size_t, coord_t>& vertex_b)
     {
-        return vertex_a.second < vertex_b.second;
+        return vertex_a.second > vertex_b.second || (vertex_a.second == vertex_b.second && vertex_a.first > vertex_b.first);
     };
     std::priority_queue<std::pair<size_t, coord_t>, std::vector<std::pair<size_t, coord_t>>, decltype(comparator)> by_importance(comparator);
 
