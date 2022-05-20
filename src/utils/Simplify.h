@@ -114,34 +114,45 @@ protected:
     /*!
      * A measure of the importance of a vertex.
      * \param polygon The polygon or polyline the vertex is part of.
-     * \param point The location of the vertex to consider. Note that the vertex
-     * may not be in its original location of the polygon any more, so this may
-     * be different from ``polygon[vertex]``
-     * \param vertex The vertex index of that polygon.
+     * \param to_delete For each vertex, whether it is set to be deleted.
+     * \param index The vertex index to compute the importance of.
      * \param is_closed Whether the polygon is closed (a polygon) or open
      * (a polyline).
+     * \return A measure of how important the vertex is. Higher importance means
+     * that the vertex should probably be retained in the output.
      */
-    coord_t importance(const PolygonRef& polygon, const Point& point, const size_t vertex, const bool is_closed) const;
-
-    /*!
-     * Helper struct for comparing vertices of simplified polygons.
-     *
-     * The vertices may not actually match with vertices of the original
-     * polygon, but they are linked to the vertices of the original polygon.
-     * They may be moved.
-     */
-    struct PolygonVertex
-    {
-        size_t index; //!<The vertex index that this vertex originally had (before it was moved).
-        Point position; //!<The current position of the vertex.
-        const PolygonRef* polygon; //!<The polygon this vertex belonged to.
-        PolygonVertex(size_t index, Point position, const PolygonRef* polygon) : index(index), position(position), polygon(polygon) {};
-    };
+    coord_t importance(const PolygonRef& polygon, const std::vector<bool>& to_delete, const size_t index, const bool is_closed) const;
 
     /*!
      * Compare vertices of a polygon by their importance.
      */
-    bool compare(const PolygonVertex& vertex_a, const PolygonVertex& vertex_b) const;
+    bool compare(const PolygonRef& polygon, const std::vector<bool>& to_delete, const size_t vertex_a, const size_t vertex_b, const bool is_closed) const;
+
+    /*!
+     * Helper method to find the index of the next vertex that is not about to
+     * get deleted.
+     *
+     * This method assumes that the polygon is looping. If it is a polyline, the
+     * endpoints of the polyline may never be deleted so it should never be an
+     * issue.
+     * \param index The index of the current vertex.
+     * \param to_delete For each vertex, whether it is to be deleted.
+     * \return The index of the vertex afterwards.
+     */
+    size_t nextNotDeleted(size_t index, const std::vector<bool>& to_delete) const;
+
+    /*!
+     * Helper method to find the index of the previous vertex that is not about
+     * to get deleted.
+     *
+     * This method assumes that the polygon is looping. If it is a polyline, the
+     * endpoints of the polyline may never be deleted so it should never be an
+     * issue.
+     * \param index The index of the current vertex.
+     * \param to_delete For each vertex, whether it is to be deleted.
+     * \return The index of the vertex before it.
+     */
+    size_t previousNotDeleted(size_t index, const std::vector<bool>& to_delete) const;
 };
 
 } //namespace cura
