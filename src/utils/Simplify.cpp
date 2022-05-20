@@ -33,11 +33,16 @@ coord_t Simplify::importance(const PolygonRef& polygon, const Point& point, cons
 
     const Point& before = polygon[(vertex + poly_size - 1) % poly_size];
     const Point& after = polygon[(vertex + 1) % poly_size];
+    const coord_t deviation2 = LinearAlg2D::getDist2FromLine(point, before, after);
+    if(deviation2 <= min_resolution * min_resolution) //Deviation so small that it's always desired to remove them.
+    {
+        return deviation2;
+    }
     if(vSize2(before - point) > max_resolution * max_resolution && vSize2(after - point) > max_resolution * max_resolution)
     {
         return std::numeric_limits<coord_t>::max(); //Long line segments, no need to remove this one.
     }
-    return LinearAlg2D::getDist2FromLine(point, before, after); //Return simple deviation.
+    return deviation2;
 }
 
 Polygon Simplify::polygon(const PolygonRef polygon)
