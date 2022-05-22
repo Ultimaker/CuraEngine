@@ -27,7 +27,7 @@ if (ENABLE_ARCUS)
     if (NOT TARGET protobuf::protobuf)
         find_package(Protobuf 3.15.0 REQUIRED)
     else ()
-        add_library(Protobuf::protobuf ALIAS protobuf::protobuf)
+        add_library(protobuf::protobuf ALIAS Protobuf::protobuf)
     endif ()
 
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
