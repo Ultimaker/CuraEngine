@@ -279,7 +279,7 @@ endif()
 
 find_package(stb REQUIRED)
 
-find_package(Boost REQUIRED 1.75.0)
+find_package(Boost 1.75.0 REQUIRED)
 if (NOT TARGET Boost::boost)  # Workaround for different namespace in non Conan find_packages
     add_library(boost::boost ALIAS Boost::boost)
 endif ()
