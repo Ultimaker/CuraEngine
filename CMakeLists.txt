@@ -284,7 +284,7 @@ if (NOT TARGET Boost::boost)  # Workaround for different namespace in non Conan 
     add_library(Boost::boost ALIAS boost::boost)
 endif ()
 
-target_link_libraries(_CuraEngine PRIVATE clipper::clipper rapidjson::rapidjson stb::stb boost::boost)
+target_link_libraries(_CuraEngine PRIVATE clipper::clipper rapidjson::rapidjson stb::stb Boost::boost)
 
 if (WIN32)
     message(STATUS "Using windres")
