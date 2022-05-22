@@ -281,7 +281,7 @@ find_package(stb REQUIRED)
 
 find_package(Boost REQUIRED 1.75.0)
 if (NOT TARGET Boost::boost)  # Workaround for different namespace in non Conan find_packages
-    add_library(boost::boost ALIAS Boost::boost)
+    add_library(Boost::boost ALIAS boost::boost)
 endif ()
 
 target_link_libraries(_CuraEngine PRIVATE clipper::clipper rapidjson::rapidjson stb::stb boost::boost)
