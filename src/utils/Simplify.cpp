@@ -54,11 +54,12 @@ Polygon Simplify::polygon(const PolygonRef polygon)
 
 Polygon Simplify::simplify(const PolygonRef polygon, const bool is_closed)
 {
-    if(polygon.size() < 2)
+    const size_t min_size = is_closed ? 2 : 3;
+    if(polygon.size() < min_size) //For polygon, 2 or fewer vertices is degenerate. Delete it. For polyline, 1 vertex is degenerate.
     {
         return Polygon();
     }
-    if(polygon.size() == 3)
+    if(polygon.size() == min_size) //For polygon, don't reduce below 3. For polyline, not below 2.
     {
         return polygon;
     }
