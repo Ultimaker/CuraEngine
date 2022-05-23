@@ -112,6 +112,14 @@ protected:
     coord_t max_area_deviation;
 
     /*!
+     * The main simplification algorithm starts here.
+     * \param polygon The polygonal chain to simplify.
+     * \param is_closed Whether this is a closed polygon or an open polyline.
+     * \return A simplified polygonal chain.
+     */
+    Polygon simplify(const PolygonRef polygon, const bool is_closed);
+
+    /*!
      * A measure of the importance of a vertex.
      * \param polygon The polygon or polyline the vertex is part of.
      * \param to_delete For each vertex, whether it is set to be deleted.

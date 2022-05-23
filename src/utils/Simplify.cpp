@@ -48,6 +48,12 @@ coord_t Simplify::importance(const PolygonRef& polygon, const std::vector<bool>&
 
 Polygon Simplify::polygon(const PolygonRef polygon)
 {
+    constexpr bool is_closed = true;
+    return simplify(polygon, is_closed);
+}
+
+Polygon Simplify::simplify(const PolygonRef polygon, const bool is_closed)
+{
     if(polygon.size() < 2)
     {
         return Polygon();
@@ -67,7 +73,7 @@ Polygon Simplify::polygon(const PolygonRef polygon)
     //Add the initial points.
     for(size_t i = 0; i < polygon.size(); ++i)
     {
-        const coord_t vertex_importance = importance(polygon, to_delete, i, true);
+        const coord_t vertex_importance = importance(polygon, to_delete, i, is_closed);
         by_importance.emplace(i, vertex_importance);
     }
 
@@ -80,7 +86,7 @@ Polygon Simplify::polygon(const PolygonRef polygon)
         by_importance.pop();
         //The importance may have changed since this vertex was inserted. Re-compute it now.
         //If it doesn't change, it's safe to process.
-        vertex_importance = importance(result, to_delete, vertex.first, true);
+        vertex_importance = importance(result, to_delete, vertex.first, is_closed);
         if(vertex_importance != vertex.second)
         {
             by_importance.emplace(vertex.first, vertex_importance); //Re-insert with updated importance.
@@ -89,7 +95,7 @@ Polygon Simplify::polygon(const PolygonRef polygon)
 
         if(vertex_importance <= max_deviation * max_deviation)
         {
-            remove(result, to_delete, vertex.first, vertex_importance, true);
+            remove(result, to_delete, vertex.first, vertex_importance, is_closed);
         }
     }
 
