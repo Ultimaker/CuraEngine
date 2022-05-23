@@ -48,7 +48,6 @@ coord_t Simplify::importance(const PolygonRef& polygon, const std::vector<bool>&
 
 Polygon Simplify::polygon(const PolygonRef polygon)
 {
-    //std::cout << "_________________________________ GO!" << std::endl;
     if(polygon.size() < 2)
     {
         return Polygon();
@@ -90,8 +89,7 @@ Polygon Simplify::polygon(const PolygonRef polygon)
 
         if(vertex_importance <= max_deviation * max_deviation)
         {
-            //std::cout << "Removing vertex " << vertex.first << " with deviation " << vertex.second << std::endl;
-            remove(result, to_delete, vertex.first, vertex_importance);
+            remove(result, to_delete, vertex.first, vertex_importance, true);
         }
     }
 
@@ -108,7 +106,7 @@ Polygon Simplify::polygon(const PolygonRef polygon)
     return filtered;
 }
 
-void Simplify::remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2) const
+void Simplify::remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2, const bool is_closed) const
 {
     if(deviation2 <= min_resolution * min_resolution)
     {
@@ -131,6 +129,54 @@ void Simplify::remove(Polygon& polygon, std::vector<bool>& to_delete, const size
         //Removing this vertex does little harm. No long lines will be shifted.
         to_delete[vertex] = true;
         return;
+    }
+
+    //Otherwise, one edge next to this vertex is longer than max_resolution. The other is shorter.
+    //In this case we want to remove the short edge by replacing it with a vertex where the two surrounding edges intersect.
+    //Find the two line segments surrounding the short edge here ("before" and "after" edges).
+    Point before_from, before_to, after_from, after_to;
+    if(length2_before <= length2_after) //Before is the shorter line.
+    {
+        if(!is_closed && before == 0) //No edge before the short edge.
+        {
+            return; //Edge cannot be deleted without shifting a long edge. Don't remove anything.
+        }
+        const size_t before_before = previousNotDeleted(before, to_delete);
+        before_from = polygon[before_before];
+        before_to = polygon[before];
+        after_from = polygon[vertex];
+        after_to = polygon[after];
+    }
+    else
+    {
+        if(!is_closed && after == polygon.size() - 1) //No edge after the short edge.
+        {
+            return; //Edge cannot be deleted without shifting a long edge. Don't remove anything.
+        }
+        const size_t after_after = nextNotDeleted(after, to_delete);
+        before_from = polygon[before];
+        before_to = polygon[vertex];
+        after_from = polygon[after];
+        after_to = polygon[after_after];
+    }
+    Point intersection;
+    const bool did_intersect = LinearAlg2D::lineLineIntersection(before_from, before_to, after_from, after_to, intersection);
+    if(!did_intersect) //Lines are parallel.
+    {
+        return; //Cannot remove edge without shifting a long edge. Don't remove anything.
+    }
+    const coord_t intersection_deviation = LinearAlg2D::getDist2FromLine(intersection, before_to, after_from);
+    if(intersection_deviation <= max_deviation * max_deviation) //Intersection point doesn't deviate too much. Use it!
+    {
+        to_delete[vertex] = true;
+        if(length2_before <= length2_after)
+        {
+            polygon[before] = intersection;
+        }
+        else
+        {
+            polygon[after] = intersection;
+        }
     }
 }
 

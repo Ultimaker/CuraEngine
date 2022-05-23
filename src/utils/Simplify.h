@@ -134,8 +134,10 @@ protected:
      * This will be edited in-place.
      * \param vertex The index of the vertex to remove.
      * \param deviation2 The previously found deviation for this vertex.
+     * \param is_closed Whether we're working on a closed polygon or an open
+     * polyline.
      */
-    void remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2) const;
+    void remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2, const bool is_closed) const;
 
     /*!
      * Helper method to find the index of the next vertex that is not about to
