@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "GCodePath.h"
@@ -6,12 +6,14 @@
 
 namespace cura
 {
-GCodePath::GCodePath(const GCodePathConfig& config, std::string mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const bool spiralize, const Ratio speed_factor) :
+GCodePath::GCodePath(const GCodePathConfig& config, std::string mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor) :
 config(&config),
 mesh_id(mesh_id),
 space_fill_type(space_fill_type),
 flow(flow),
+width_factor(width_factor),
 speed_factor(speed_factor),
+speed_back_pressure_factor(1.0),
 retract(false),
 unretract_before_last_travel_move(false),
 perform_z_hop(false),
@@ -32,12 +34,12 @@ bool GCodePath::isTravelPath() const
 
 double GCodePath::getExtrusionMM3perMM() const
 {
-    return flow * config->getExtrusionMM3perMM();
+    return flow * width_factor * config->getExtrusionMM3perMM();
 }
 
 coord_t GCodePath::getLineWidthForLayerView() const
 {
-    return flow * config->getLineWidth() * config->getFlowRatio();
+    return flow * width_factor * config->getLineWidth() * config->getFlowRatio();
 }
 
 void GCodePath::setFanSpeed(double fan_speed)

@@ -1,101 +1,181 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
 
-#include "pathOrderOptimizer.h"
+#include <unordered_set>
+
 #include "sliceDataStorage.h" //For SliceMeshStorage, which is used here at implementation in the header.
+#include "settings/ZSeamConfig.h"
 
 namespace cura
 {
 
 class FffGcodeWriter;
 class LayerPlan;
-class WallOverlapComputation;
 
 class InsetOrderOptimizer
 {
 public:
-    /*!
-     * Constructor for inset ordering optimizer
-     * \param gcode_writer The gcode_writer on whose behalf the inset order is being optimized
-     * \param storage where the slice data is stored
-     * \param gcode_layer The initial planning of the gcode of the layer
-     * \param mesh The mesh to be added to the layer plan
-     * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
-     * \param mesh_config the line config with which to print a print feature
-     * \param part The part for which to create gcode
-     * \param layer_nr The current layer number
-     */
-    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer, const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const int extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr) :
-    gcode_writer(gcode_writer),
-    storage(storage),
-    gcode_layer(gcode_layer),
-    mesh(mesh),
-    extruder_nr(extruder_nr),
-    mesh_config(mesh_config),
-    part(part),
-    layer_nr(layer_nr),
-    z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner")),
-    added_something(false),
-    retraction_region_calculated(false),
-    wall_overlapper_0(nullptr),
-    wall_overlapper_x(nullptr)
-    {
-    }
-private:
 
+    /*!
+     * Constructor for inset ordering optimizer.
+     *
+     * This constructor gets basically all of the locals passed when it needs to
+     * optimise the order of insets.
+     * \param gcode_writer The FffGcodeWriter on whose behalf the inset order is
+     * being optimized.
+     * \param storage Read slice data from this storage.
+     * \param gcode_layer The layer where the resulting insets must be planned.
+     * \param mesh The mesh that these insets are part of.
+     * \param extruder_nr Which extruder to process. If an inset is not printed
+     * with this extruder, it will not be added to the plan.
+     * \param mesh_config The path configs for a single mesh, indicating the
+     * line widths, flows, speeds, etc to print this mesh with.
+     * \param part The part from which to read the previously generated insets.
+     * \param layer_nr The current layer number.
+     */
+    InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
+                        const SliceDataStorage& storage,
+                        LayerPlan& gcode_layer,
+                        const Settings& settings,
+                        const int extruder_nr,
+                        const GCodePathConfig& inset_0_non_bridge_config,
+                        const GCodePathConfig& inset_X_non_bridge_config,
+                        const GCodePathConfig& inset_0_bridge_config,
+                        const GCodePathConfig& inset_X_bridge_config,
+                        const bool retract_before_outer_wall,
+                        const coord_t wall_0_wipe_dist,
+                        const coord_t wall_x_wipe_dist,
+                        const size_t wall_0_extruder_nr,
+                        const size_t wall_x_extruder_nr,
+                        const ZSeamConfig& z_seam_config,
+                        const std::vector<VariableWidthLines>& paths);
+
+    /*!
+     * Adds the insets to the given layer plan.
+     *
+     * The insets and the layer plan are passed to the constructor of this
+     * class, so this optimize function needs no additional information.
+     * \return Whether anything was added to the layer plan.
+     */
+    bool addToLayer();
+
+    /*!
+     * Get the order constraints of the insets when printing walls per region / hole.
+     * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
+     * 
+     * Odd walls should always go after their enclosing wall polygons.
+     * 
+     * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
+     */
+    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getRegionOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner);
+
+    /*!
+     * Get the order constraints of the insets when printing walls per inset.
+     * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
+     * 
+     * Odd walls should always go after their enclosing wall polygons.
+     * 
+     * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
+     */
+    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getInsetOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner);
+
+    /*!
+     * Make order requirements transitive.
+     * If the input contains A,B and B,C then after this call it will also include A,C.
+     */
+    template<typename PathType>
+    static std::unordered_set<std::pair<PathType, PathType>> makeOrderIncludeTransitive(const std::unordered_set<std::pair<PathType, PathType>>& order_requirements);
+private:
     const FffGcodeWriter& gcode_writer;
     const SliceDataStorage& storage;
     LayerPlan& gcode_layer;
-    const SliceMeshStorage& mesh;
+    const Settings& settings;
     const size_t extruder_nr;
-    const PathConfigStorage::MeshPathConfigs& mesh_config;
-    const SliceLayerPart& part;
+    const GCodePathConfig& inset_0_non_bridge_config;
+    const GCodePathConfig& inset_X_non_bridge_config;
+    const GCodePathConfig& inset_0_bridge_config;
+    const GCodePathConfig& inset_X_bridge_config;
+    const bool retract_before_outer_wall;
+    const coord_t wall_0_wipe_dist;
+    const coord_t wall_x_wipe_dist;
+    const size_t wall_0_extruder_nr;
+    const size_t wall_x_extruder_nr;
+    const ZSeamConfig& z_seam_config;
+    const std::vector<VariableWidthLines>& paths;
     const unsigned int layer_nr;
-    const ZSeamConfig z_seam_config;
+    
     bool added_something;
     bool retraction_region_calculated; //Whether the retraction_region field has been calculated or not.
-    WallOverlapComputation* wall_overlapper_0;
-    WallOverlapComputation* wall_overlapper_x;
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
     Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
 
     /*!
-     * Generate the insets for the holes of a given layer part after optimizing the ordering.
+     * Endpoints of polylines that are closer together than this distance
+     * will be considered to be coincident,
+     * closing that polyline into a polygon.
      */
-    void processHoleInsets();
+    constexpr static coord_t coincident_point_distance = 10;
 
     /*!
-     * Generate the insets for the outer walls of a given layer part after optimizing the ordering.
-     * \param include_outer true if the outermost inset is to be output
-     * \param include_inners true if the innermost insets are to be output
+     * Helper function to either iterate forward or backward over the path and output a vector of ExtrusionLines
+     *
+     * @tparam It an iterator type, forward or revers
+     * @param begin either the begin() or rbegin() of the path
+     * @param end either the end() or rend() of the path
+     * @return a vector of const ExtrusionLine pointers (whom ever came up with that container???)
      */
-    void processOuterWallInsets(const bool include_outer, const bool include_inners);
-
-    /*!
-     * Generate a travel move from the current position to inside the part.
-     * This is used after generating an outer wall so that if a retraction occurs immediately afterwards,
-     * the extruder won't be on the outer wall.
-     */
-    void moveInside();
-
-public:
-    /*!
-     * Generate the insets for all of the walls of a given layer part after optimizing the ordering.
-     * \return Whether this function added anything to the layer plan
-     */
-    bool processInsetsWithOptimizedOrdering();
-
-    /*!
-     * Test whether it looks to be worthwhile to optimize the inset order of a given layer part.
-     * \param mesh The mesh to be added to the layer plan.
-     * \param part The part for which to create gcode
-     * \return true if it is worth optimizing the inset order, false if not
-     */
-    static bool optimizingInsetsIsWorthwhile(const SliceMeshStorage& mesh, const SliceLayerPart& part);
+    template<typename It>
+    std::vector<const ExtrusionLine*> wallsToBeAdded(It begin, It end)
+    {
+        std::vector<const ExtrusionLine*> walls_to_be_added;
+        for (It it = begin; it != end; ++it)
+        {
+            if (! it->empty())
+            {
+                for (const auto& wall : *it)
+                {
+                    walls_to_be_added.emplace_back(&wall);
+                }
+            }
+        }
+        return walls_to_be_added;
+    }
 };
+
+
+template<typename PathType>
+std::unordered_set<std::pair<PathType, PathType>> InsetOrderOptimizer::makeOrderIncludeTransitive(const std::unordered_set<std::pair<PathType, PathType>>& order_requirements)
+{
+    if (order_requirements.empty()) return order_requirements;
+
+    std::unordered_multimap<PathType, PathType> order_mapping;
+    for (auto [from, to] : order_requirements)
+    {
+        order_mapping.emplace(from, to);
+    }
+    std::unordered_set<std::pair<PathType, PathType>> transitive_order = order_requirements;
+    for (auto [from, to] : order_requirements)
+    {
+        std::queue<PathType> starts_of_next_relation;
+        starts_of_next_relation.emplace(to);
+        while ( ! starts_of_next_relation.empty())
+        {
+            PathType start_of_next_relation = starts_of_next_relation.front();
+            starts_of_next_relation.pop();
+            auto range = order_mapping.equal_range(start_of_next_relation);
+            for (auto it = range.first; it != range.second; ++it)
+            {
+                auto [ next_from, next_to ] = *it;
+                starts_of_next_relation.emplace(next_to);
+                transitive_order.emplace(from, next_to);
+            }
+        }
+    }
+    return transitive_order;    
+}
 
 } //namespace cura
 

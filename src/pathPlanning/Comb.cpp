@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Comb.h"
@@ -33,7 +33,7 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
-, max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
+, max_moveInside_distance2(offset_from_outlines * offset_from_outlines)
 , offset_from_inside_to_outside(offset_from_outlines + travel_avoid_distance)
 , max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 2) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(2) =approx 1.5 to allow for slightly diagonal crossings and slightly inaccurate crossing computation
 , boundary_inside_minimum( comb_boundary_inside_minimum ) // copy the boundary, because the partsView_inside will reorder the polygons
@@ -57,42 +57,54 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 , outside_loc_to_line(
         [](Comb* comber, const int64_t offset_from_inside_to_outside)
         {
-            return std::unique_ptr<LocToLineGrid>(PolygonUtils::createLocToLineGrid(comber->getBoundaryOutside(), offset_from_inside_to_outside * 3 / 2));
+            return PolygonUtils::createLocToLineGrid(comber->getBoundaryOutside(), offset_from_inside_to_outside * 3 / 2);
         }
         , this
         , offset_from_inside_to_outside
     )
-, move_inside_distance(move_inside_distance)
-{
-}
+, model_boundary(
+          [&storage, layer_nr]()
+          {
+        /* NOTE/TODO: The commented-out lines in this scope are something that we want to reintroduce, but had to disable for proper PVA supports for now.
+         *            See the latest commit message (at time of writing) of those lines or internal ticket CURA-9163 for details.
+         */
 
-Comb::~Comb()
+//              const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+              bool travel_avoid_supports = false;
+//              for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+//              {
+//                  travel_avoid_supports |= extruder_is_used[extruder.extruder_nr] && extruder.settings.get<bool>("travel_avoid_other_parts") && extruder.settings.get<bool>("travel_avoid_supports");
+//              }
+              return storage.getLayerOutlines(layer_nr, travel_avoid_supports, travel_avoid_supports);
+          }
+      )
+, model_boundary_loc_to_line(
+          [](Comb* comber, const int64_t offset_from_inside_to_outside)
+          {
+              return PolygonUtils::createLocToLineGrid(*comber->model_boundary, offset_from_inside_to_outside * 3 / 2);
+          }
+          , this
+          , offset_from_inside_to_outside
+      )
+    , move_inside_distance(move_inside_distance)
 {
-    if (inside_loc_to_line_minimum)
-    {
-        delete inside_loc_to_line_minimum;
-    }
-    if (inside_loc_to_line_optimal)
-    {
-        delete inside_loc_to_line_optimal;
-    }
 }
 
 bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, CombPaths& comb_paths, bool _start_inside, bool _end_inside, coord_t max_comb_distance_ignored, bool &unretract_before_last_travel_move)
 {
-    if (shorterThen(end_point - start_point, max_comb_distance_ignored))
+    if(shorterThen(end_point - start_point, max_comb_distance_ignored))
     {
         return true;
     }
     const Point travel_end_point_before_combing = end_point;
     //Move start and end point inside the optimal comb boundary
     unsigned int start_inside_poly = NO_INDEX;
-    const bool start_inside = moveInside(boundary_inside_optimal, _start_inside, inside_loc_to_line_optimal, start_point, start_inside_poly);
+    const bool start_inside = moveInside(boundary_inside_optimal, _start_inside, inside_loc_to_line_optimal.get(), start_point, start_inside_poly);
 
     unsigned int end_inside_poly = NO_INDEX;
-    const bool end_inside = moveInside(boundary_inside_optimal, _end_inside, inside_loc_to_line_optimal, end_point, end_inside_poly);
+    const bool end_inside = moveInside(boundary_inside_optimal, _end_inside, inside_loc_to_line_optimal.get(), end_point, end_inside_poly);
 
-    unsigned int start_part_boundary_poly_idx = NO_INDEX;		// Added initial value to stop MSVC throwing an exception in debug mode
+    unsigned int start_part_boundary_poly_idx = NO_INDEX; // Added initial value to stop MSVC throwing an exception in debug mode
     unsigned int end_part_boundary_poly_idx = NO_INDEX;
     unsigned int start_part_idx =   (start_inside_poly == NO_INDEX)?    NO_INDEX : partsView_inside_optimal.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
     unsigned int end_part_idx =     (end_inside_poly == NO_INDEX)?      NO_INDEX : partsView_inside_optimal.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
@@ -115,10 +127,10 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
 
     // Move start and end point inside the minimum comb boundary
     unsigned int start_inside_poly_min = NO_INDEX;
-    const bool start_inside_min = moveInside(boundary_inside_minimum, _start_inside, inside_loc_to_line_minimum, start_point, start_inside_poly_min);
+    const bool start_inside_min = moveInside(boundary_inside_minimum, _start_inside, inside_loc_to_line_minimum.get(), start_point, start_inside_poly_min);
 
     unsigned int end_inside_poly_min = NO_INDEX;
-    const bool end_inside_min = moveInside(boundary_inside_minimum, _end_inside, inside_loc_to_line_minimum, end_point, end_inside_poly_min);
+    const bool end_inside_min = moveInside(boundary_inside_minimum, _end_inside, inside_loc_to_line_minimum.get(), end_point, end_inside_poly_min);
 
     unsigned int start_part_boundary_poly_idx_min;
     unsigned int end_part_boundary_poly_idx_min;
@@ -146,7 +158,7 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
     //  INSIDE  |          in_between            |            OUTSIDE     |              in_between         |     INSIDE
     //        ^crossing_1_in     ^crossing_1_mid  ^crossing_1_out        ^crossing_2_out    ^crossing_2_mid   ^crossing_2_in
     //
-    // when startPoint is inside crossing_1_in is of interest
+    // when start_point is inside crossing_1_in is of interest
     // when it is in between inside and outside it is equal to crossing_1_mid
 
     if (perform_z_hops && !perform_z_hops_only_when_collides) //Combing via outside makes combing fail.
@@ -154,17 +166,19 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
         return false;
     }
 
-    Crossing start_crossing(start_point, start_inside, start_part_idx, start_part_boundary_poly_idx, boundary_inside_optimal, inside_loc_to_line_optimal);
-    Crossing end_crossing(end_point, end_inside, end_part_idx, end_part_boundary_poly_idx, boundary_inside_optimal, inside_loc_to_line_optimal);
+    //Find the crossings using the minimum comb boundary, since it's guaranteed to be as close as we can get to the destination.
+    //Getting as close as possible prevents exiting the polygon in the wrong direction (e.g. into a hole instead of to the outside).
+    Crossing start_crossing(start_point, start_inside_min, start_part_idx_min, start_part_boundary_poly_idx_min, boundary_inside_minimum, *inside_loc_to_line_minimum);
+    Crossing end_crossing(end_point, end_inside_min, end_part_idx_min, end_part_boundary_poly_idx_min, boundary_inside_minimum, *inside_loc_to_line_minimum);
 
     { // find crossing over the in-between area between inside and outside
-        start_crossing.findCrossingInOrMid(partsView_inside_optimal, end_point);
-        end_crossing.findCrossingInOrMid(partsView_inside_optimal, start_crossing.in_or_mid);
+        start_crossing.findCrossingInOrMid(partsView_inside_minimum, end_point);
+        end_crossing.findCrossingInOrMid(partsView_inside_minimum, start_crossing.in_or_mid);
     }
 
     bool skip_avoid_other_parts_path = false;
     if (vSize2(start_crossing.in_or_mid - end_crossing.in_or_mid) < offset_from_inside_to_outside * offset_from_inside_to_outside * 4)
-    { // parts are next to eachother, i.e. the direct crossing will always be smaller than two crossings via outside
+    { // parts are next to each other, i.e. the direct crossing will always be smaller than two crossings via outside
         skip_avoid_other_parts_path = true;
     }
 
@@ -193,12 +207,18 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
     }
 
     // generate the actual comb paths
-    if (start_inside)
+    if (start_inside_min)
     {
         // start to boundary
         assert(start_crossing.dest_part.size() > 0 && "The part we start inside when combing should have been computed already!");
         comb_paths.emplace_back();
-        bool combing_succeeded = LinePolygonsCrossings::comb(start_crossing.dest_part, *inside_loc_to_line_optimal, start_point, start_crossing.in_or_mid, comb_paths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+        //If we're inside the optimal bound, first try the optimal combing path. If it fails, use the minimum path instead.
+        constexpr bool fail_for_optimum_bound = true;
+        bool combing_succeeded = start_inside && LinePolygonsCrossings::comb(boundary_inside_optimal, *inside_loc_to_line_optimal, start_point, start_crossing.in_or_mid, comb_paths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_for_optimum_bound);
+        if(!combing_succeeded)
+        {
+            combing_succeeded = LinePolygonsCrossings::comb(start_crossing.dest_part, *inside_loc_to_line_minimum, start_point, start_crossing.in_or_mid, comb_paths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+        }
         if (!combing_succeeded)
         { // Couldn't comb between start point and computed crossing from the start part! Happens for very thin parts when the offset_to_get_off_boundary moves points to outside the polygon
             return false;
@@ -217,10 +237,29 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
         }
         else
         {
-            bool combing_succeeded = LinePolygonsCrossings::comb(*boundary_outside, getOutsideLocToLine(), start_crossing.out, end_crossing.out, comb_paths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
-            if (!combing_succeeded)
+            CombPath tmp_comb_path;
+            bool combing_succeeded = LinePolygonsCrossings::comb(*boundary_outside, getOutsideLocToLine(), start_crossing.out, end_crossing.out, tmp_comb_path, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, true);
+
+            if (combing_succeeded)
             {
-                return false;
+                // add combing travel moves if the combing was successful
+                comb_paths.push_back(tmp_comb_path);
+            }
+            else
+            {
+                // if combing is not possible then move directly to the target destination
+                // this happens for instance when trying to avoid skin-regions and combing from
+                // an origin that is on a hole-boundary to a destination that is on the outline-border
+                comb_paths.emplace_back();
+                comb_paths.throughAir = true;
+                comb_paths.back().cross_boundary = true;
+                comb_paths.back().push_back(start_crossing.in_or_mid);
+                comb_paths.back().push_back(end_crossing.in_or_mid);
+
+                if (fail_on_unavoidable_obstacles)
+                {
+                    return false;
+                }
             }
         }
     }
@@ -242,7 +281,7 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
             }
             else
             { // both start and end are outside
-                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getOutsideLocToLine());
+                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, **model_boundary_loc_to_line);
             }
         }
         else
@@ -256,10 +295,15 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
         // boundary to end
         assert(end_crossing.dest_part.size() > 0 && "The part we end up inside when combing should have been computed already!");
         comb_paths.emplace_back();
-
-        bool combing_succeeded = LinePolygonsCrossings::comb(end_crossing.dest_part, *inside_loc_to_line_optimal, end_crossing.in_or_mid, end_point, comb_paths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+        //If we're inside the optimal bound, first try the optimal combing path. If it fails, use the minimum path instead.
+        constexpr bool fail_for_optimum_bound = true;
+        bool combing_succeeded = end_inside && LinePolygonsCrossings::comb(boundary_inside_optimal, *inside_loc_to_line_optimal, end_crossing.in_or_mid, end_point, comb_paths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_for_optimum_bound);
+        if(!combing_succeeded)
+        {
+            combing_succeeded = LinePolygonsCrossings::comb(end_crossing.dest_part, *inside_loc_to_line_minimum, end_crossing.in_or_mid, end_point, comb_paths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+        }
         // If the endpoint of the travel path changes with combing, then it means that we are moving to an outer wall
-        // and we should unretract before the last travel move when travelling to that outer wall
+        // and we should unretract before the last travel move when traveling to that outer wall
         unretract_before_last_travel_move = combing_succeeded && end_point != travel_end_point_before_combing;
         if (!combing_succeeded)
         { // Couldn't comb between end point and computed crossing to the end part! Happens for very thin parts when the offset_to_get_off_boundary moves points to outside the polygon
@@ -302,7 +346,7 @@ void Comb::moveCombPathInside(Polygons& boundary_inside, Polygons& boundary_insi
 
 }
 
-Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside, const LocToLineGrid* inside_loc_to_line)
+Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside, const LocToLineGrid& inside_loc_to_line)
 : dest_is_inside(dest_is_inside)
 , boundary_inside(boundary_inside)
 , inside_loc_to_line(inside_loc_to_line)
@@ -366,7 +410,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
                     }
                     return true;
                 };
-            inside_loc_to_line->processLine(std::make_pair(dest_point, close_to), line_processor);
+            inside_loc_to_line.processLine(std::make_pair(dest_point, close_to), line_processor);
         }
 
         Point result(boundary_crossing_point.p()); // the inside point of the crossing
@@ -375,7 +419,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
             result = dest_point;
         }
 
-        ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(dest_part, result, boundary_crossing_point, offset_dist_to_get_from_on_the_polygon_to_outside, &boundary_inside, inside_loc_to_line, close_towards_start_penalty_function);
+        ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(dest_part, result, boundary_crossing_point, offset_dist_to_get_from_on_the_polygon_to_outside, &boundary_inside, &inside_loc_to_line, close_towards_start_penalty_function);
         if (crossing_1_in_cp.isValid())
         {
             dest_crossing_poly = crossing_1_in_cp.poly;

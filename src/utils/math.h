@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_MATH_H
@@ -39,6 +39,18 @@ inline uint64_t round_divide(const uint64_t dividend, const uint64_t divisor) //
 inline uint64_t round_up_divide(const uint64_t dividend, const uint64_t divisor) //!< Return dividend divided by divisor rounded to the nearest integer
 {
     return (dividend + divisor - 1) / divisor;
+}
+
+template<typename T>
+constexpr T pi_div(const T div)
+{
+    return  static_cast<T>(M_PI) / div;
+}
+
+template<typename T>
+constexpr T pi_mul(const T mul)
+{
+    return  static_cast<T>(M_PI) / mul;
 }
 
 }//namespace cura

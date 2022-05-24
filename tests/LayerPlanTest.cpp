@@ -1,4 +1,4 @@
-//Copyright (c) 2019 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <gtest/gtest.h>
@@ -97,7 +97,11 @@ public:
         settings->add("acceleration_support_infill", "5009");
         settings->add("acceleration_support_roof", "5004");
         settings->add("acceleration_travel", "5006");
+        settings->add("skirt_brim_extruder_nr", "0");
         settings->add("adhesion_extruder_nr", "0");
+        settings->add("raft_base_extruder_nr", "0");
+        settings->add("raft_interface_extruder_nr", "0");
+        settings->add("raft_surface_extruder_nr", "0");
         settings->add("adhesion_type", "brim");
         settings->add("cool_fan_full_layer", "3");
         settings->add("cool_fan_speed_0", "0");
@@ -384,11 +388,11 @@ public:
                 layer_plan.was_inside = true;
                 break;
         }
-        layer_plan.comb_boundary_inside1 = slice_data;
-        layer_plan.comb_boundary_inside2 = slice_data; //We don't care about the combing accuracy itself, so just use the same for both.
+        layer_plan.comb_boundary_minimum = slice_data;
+        layer_plan.comb_boundary_preferred = slice_data; //We don't care about the combing accuracy itself, so just use the same for both.
         if(parameters.combing != "off")
         {
-            layer_plan.comb = new Comb(*storage, /*layer_nr=*/100, layer_plan.comb_boundary_inside1, layer_plan.comb_boundary_inside2, /*comb_boundary_offset=*/20, /*travel_avoid_distance=*/5000, /*comb_move_inside_distance=*/10);
+            layer_plan.comb = new Comb(*storage, /*layer_nr=*/100, layer_plan.comb_boundary_minimum, layer_plan.comb_boundary_preferred, /*comb_boundary_offset=*/20, /*travel_avoid_distance=*/5000, /*comb_move_inside_distance=*/10);
         }
         else
         {

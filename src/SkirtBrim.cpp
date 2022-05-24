@@ -1,4 +1,4 @@
-//Copyright (C) 2019 Ultimaker B.V.
+//Copyright (C) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h"
@@ -15,7 +15,7 @@ namespace cura
 
 void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t primary_line_count, const bool is_skirt, Polygons& first_layer_outline)
 {
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+    const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
     const ExtruderTrain& support_infill_extruder = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const bool external_only = is_skirt || train.settings.get<bool>("brim_outside_only"); //Whether to include holes or not. Skirt doesn't have any holes.
     const LayerIndex layer_nr = 0;
@@ -89,7 +89,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
 
 coord_t SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_t& primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
 {
-    const Settings& adhesion_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
+    const Settings& adhesion_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").settings;
     const coord_t primary_extruder_skirt_brim_line_width = adhesion_settings.get<coord_t>("skirt_brim_line_width") * adhesion_settings.get<Ratio>("initial_layer_line_width_factor");
     coord_t offset_distance = start_distance - primary_extruder_skirt_brim_line_width / 2;
     for (unsigned int skirt_brim_number = 0; skirt_brim_number < primary_line_count; skirt_brim_number++)
@@ -123,12 +123,12 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
 {
     const bool is_skirt = start_distance > 0;
     Scene& scene = Application::getInstance().current_slice->scene;
-    const size_t adhesion_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").extruder_nr;
-    const Settings& adhesion_settings = scene.extruders[adhesion_extruder_nr].settings;
+    const size_t skirt_brim_extruder_nr = scene.current_mesh_group->settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr;
+    const Settings& adhesion_settings = scene.extruders[skirt_brim_extruder_nr].settings;
     const coord_t primary_extruder_skirt_brim_line_width = adhesion_settings.get<coord_t>("skirt_brim_line_width") * adhesion_settings.get<Ratio>("initial_layer_line_width_factor");
     const coord_t primary_extruder_minimal_length = adhesion_settings.get<coord_t>("skirt_brim_minimal_length");
 
-    Polygons& skirt_brim_primary_extruder = storage.skirt_brim[adhesion_extruder_nr];
+    Polygons& skirt_brim_primary_extruder = storage.skirt_brim[skirt_brim_extruder_nr];
 
     const bool has_ooze_shield = allow_helpers && storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
     const bool has_draft_shield = allow_helpers && storage.draft_protection_shield.size() > 0;
@@ -153,7 +153,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
 
     // Skirt needs to be 'locked' first, otherwise the optimizer can change to order, which can cause undesirable outcomes w.r.t combo w. support-brim or prime-tower brim.
     // If this method is called multiple times, the max order shouldn't reset to 0, so the maximum is taken.
-    storage.skirt_brim_max_locked_part_order[adhesion_extruder_nr] = std::max(is_skirt ? primary_line_count : 0, storage.skirt_brim_max_locked_part_order[adhesion_extruder_nr]);
+    storage.skirt_brim_max_locked_part_order[skirt_brim_extruder_nr] = std::max(is_skirt ? primary_line_count : 0, storage.skirt_brim_max_locked_part_order[skirt_brim_extruder_nr]);
 
     // handle support-brim
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
@@ -216,7 +216,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
         std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
         for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
         {
-            if (extruder_nr == adhesion_extruder_nr || !extruder_is_used[extruder_nr])
+            if (extruder_nr == skirt_brim_extruder_nr || !extruder_is_used[extruder_nr])
             {
                 continue;
             }

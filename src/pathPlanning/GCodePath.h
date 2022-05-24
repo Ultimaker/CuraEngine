@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PATH_PLANNING_G_CODE_PATH_H
@@ -31,8 +31,10 @@ public:
     const GCodePathConfig* config; //!< The configuration settings of the path.
     std::string mesh_id; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh ID should be 0.
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
-    Ratio flow; //!< A type-independent flow configuration (used for wall overlap compensation)
+    Ratio flow; //!< A type-independent flow configuration
+    Ratio width_factor; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.
     Ratio speed_factor; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
+    Ratio speed_back_pressure_factor; // <! The factor the (non-travel) speed should be multiplied with as a consequence of back pressure compensation.
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     bool unretract_before_last_travel_move; //!< Whether the last move of the path should be preceded by an unretraction. Used to unretract in the last travel move before an outer wall
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
@@ -55,11 +57,12 @@ public:
      * \param space_fill_type The type of space filling of which this path is a
      * part.
      * \param flow The flow rate to print this path with.
+     * \param width_factor A multiplier on the line width.
      * \param spiralize Gradually increment the z-coordinate while traversing
      * \param speed_factor The factor that the travel speed will be multiplied with
      * this path.
      */
-    GCodePath(const GCodePathConfig& config, std::string mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const bool spiralize, const Ratio speed_factor = 1.0);
+    GCodePath(const GCodePathConfig& config, std::string mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor = 1.0);
 
     /*!
      * Whether this config is the config of a travel path.

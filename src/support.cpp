@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt, round
@@ -16,6 +16,7 @@
 #include "slicer.h"
 #include "sliceDataStorage.h"
 #include "support.h"
+#include "infill.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
@@ -74,15 +75,15 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     const EFillMethod support_pattern = infill_extruder.settings.get<EFillMethod>("support_pattern");
     const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
 
-    // the wall line count is used for calculating insets, and we generate support infill patterns within the insets
+    // The wall line count is used for calculating insets, and we generate support infill patterns within the insets
     const size_t wall_line_count = infill_extruder.settings.get<size_t>("support_wall_count");
 
-    // generate separate support islands
+    // Generate separate support islands
     for (unsigned int layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
         unsigned int wall_line_count_this_layer = wall_line_count;
         if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
-        { // the first layer will be printed wit ha grid pattern
+        { // The first layer will be printed with a grid pattern
             wall_line_count_this_layer++;
         }
         assert(storage.support.supportLayers[layer_nr].support_infill_parts.empty() && "support infill part list is supposed to be uninitialized");
@@ -90,7 +91,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
         const Polygons& global_support_areas = global_support_areas_per_layer[layer_nr];
         if (global_support_areas.size() == 0 || layer_nr < min_layer || layer_nr > max_layer)
         {
-            // initialize support_infill_parts empty
+            // Initialize support_infill_parts empty
             storage.support.supportLayers[layer_nr].support_infill_parts.clear();
             continue;
         }
@@ -103,7 +104,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
             {
                 support_line_width_here *= infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
             }
-            // we don't generate insets and infill area for the parts yet because later the skid/brim and prime
+            // We don't generate insets and infill area for the parts yet because later the skirt/brim and prime
             // tower will remove themselves from the support, so the outlines of the parts can be changed.
             SupportInfillPart support_infill_part(island_outline, support_line_width_here, wall_line_count_this_layer);
 
@@ -115,7 +116,6 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 
 void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
 {
-    AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(storage);
     AreaSupport::generateGradualSupport(storage);
 
     // combine support infill layers
@@ -123,32 +123,6 @@ void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
 
     AreaSupport::cleanup(storage);
 }
-
-
-void AreaSupport::prepareInsetsAndInfillAreasForForSupportInfillParts(SliceDataStorage& storage)
-{
-    coord_t max_resolution = Application::getInstance().current_slice->scene.settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings.get<coord_t>("meshfix_maximum_resolution");
-    coord_t max_deviation = Application::getInstance().current_slice->scene.settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings.get<coord_t>("meshfix_maximum_deviation");
-
-    // at this stage, the outlines are final, and we can generate insets and infill area
-    for (SupportLayer& support_layer : storage.support.supportLayers)
-    {
-        for (std::vector<SupportInfillPart>::iterator part_itr = support_layer.support_infill_parts.begin(); part_itr != support_layer.support_infill_parts.end();)
-        {
-            SupportInfillPart& part = *part_itr;
-            const bool is_not_empty_part = part.generateInsetsAndInfillAreas(max_resolution, max_deviation);
-            if (!is_not_empty_part)
-            {
-                part_itr = support_layer.support_infill_parts.erase(part_itr);
-            }
-            else
-            {
-                part_itr++;
-            }
-        }
-    }
-}
-
 
 void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 {
@@ -199,6 +173,10 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     const coord_t gradual_support_step_height = infill_extruder.settings.get<coord_t>("gradual_support_infill_step_height");
     const size_t max_density_steps = infill_extruder.settings.get<size_t>("gradual_support_infill_steps");
 
+    const coord_t wall_count = infill_extruder.settings.get<size_t>("support_wall_count");
+    const coord_t wall_width = infill_extruder.settings.get<coord_t>("support_line_width");
+    const coord_t overlap = infill_extruder.settings.get<coord_t>("infill_overlap_mm");
+
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
     size_t gradual_support_step_layer_count = round_divide(gradual_support_step_height, mesh_group_settings.get<coord_t>("layer_height")); //The difference in layer count between consecutive density infill areas.
@@ -223,14 +201,18 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
         for (unsigned int part_idx = 0; part_idx < support_infill_parts.size(); ++part_idx)
         {
             SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
-            if (support_infill_part.getInfillArea().empty())
+
+            Polygons original_area = support_infill_part.getInfillArea();
+            if (original_area.empty())
             {
                 continue;
             }
+            // NOTE: This both generates the walls _and_ returns the _actual_ infill area (the one _without_ walls) for use in the rest of the method.
+            const Polygons infill_area = Infill::generateWallToolPaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, overlap, infill_extruder.settings);
             const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box;
 
             // calculate density areas for this island
-            Polygons less_dense_support = support_infill_part.getInfillArea(); // one step less dense with each density_step
+            Polygons less_dense_support = infill_area; // one step less dense with each density_step
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
             {
                 LayerIndex min_layer = layer_nr + density_step * gradual_support_step_layer_count + LayerIndex(layer_skip_count);
@@ -244,7 +226,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                         break;
                     }
 
-                    // compute intersections with relevent upper parts
+                    // compute intersections with relevant upper parts
                     const std::vector<SupportInfillPart> upper_infill_parts = storage.support.supportLayers[upper_layer_idx].support_infill_parts;
                     Polygons relevant_upper_polygons;
                     for (unsigned int upper_part_idx = 0; upper_part_idx < upper_infill_parts.size(); ++upper_part_idx)
@@ -288,13 +270,13 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                 // add new infill_area_per_combine_per_density for the current density
                 support_infill_part.infill_area_per_combine_per_density.emplace_back();
                 std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density.back();
-                const Polygons more_dense_support = support_infill_part.getInfillArea().difference(less_dense_support);
+                const Polygons more_dense_support = infill_area.difference(less_dense_support);
                 support_area_current_density.push_back(more_dense_support);
             }
 
             support_infill_part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& support_area_current_density = support_infill_part.infill_area_per_combine_per_density.back();
-            support_area_current_density.push_back(support_infill_part.getInfillArea());
+            support_area_current_density.push_back(infill_area);
 
             assert(support_infill_part.infill_area_per_combine_per_density.size() != 0 && "support_infill_part.infill_area_per_combine_per_density should now be initialized");
 #ifdef DEBUG
@@ -355,7 +337,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 
             for (SupportInfillPart& part : layer.support_infill_parts)
             {
-                if (part.insets.empty() && part.inset_count_to_generate > 0)
+                if (part.getInfillArea().empty())
                 {
                     continue;
                 }
@@ -365,10 +347,6 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
                     Polygons result;
                     for (SupportInfillPart& lower_layer_part : lower_layer.support_infill_parts)
                     {
-                        if (lower_layer_part.insets.empty() && part.inset_count_to_generate > 0)
-                        {
-                            continue;
-                        }
                         if (!part.outline_boundary_box.hit(lower_layer_part.outline_boundary_box))
                         {
                             continue;
@@ -410,31 +388,6 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
     }
 }
 
-
-void AreaSupport::generateOutlineInsets(std::vector<Polygons>& insets, Polygons& outline, const unsigned int inset_count, const coord_t wall_line_width_x, const coord_t max_resolution, const coord_t max_deviation)
-{
-    for (unsigned int inset_idx = 0; inset_idx < inset_count; inset_idx++)
-    {
-        insets.push_back(Polygons());
-        if (inset_idx == 0)
-        {
-            insets[0] = outline.offset(-wall_line_width_x / 2);
-        }
-        else
-        {
-            insets[inset_idx] = insets[inset_idx - 1].offset(-wall_line_width_x);
-        }
-
-        // optimize polygons: remove unnecessary verts
-        insets[inset_idx].simplify(max_resolution, max_deviation);
-        if (insets[inset_idx].size() < 1)
-        {
-            insets.pop_back();
-            break;
-        }
-    }
-}
-
 void AreaSupport::cleanup(SliceDataStorage& storage)
 {
     const coord_t support_line_width = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("support_line_width");
@@ -447,10 +400,7 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
             bool can_be_removed = true;
             if (part.inset_count_to_generate > 0)
             {
-                if (part.insets.size() > 0 && part.insets[0].size() > 0)
-                {
-                    can_be_removed = false;
-                }
+                can_be_removed = false;
             }
             else
             {
@@ -458,7 +408,7 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
                 {
                     for (const Polygons& infill_area_this_combine_this_density : infill_area_per_combine_this_density)
                     {
-                        // remove small areas which were intorduced by rounding errors in comparing the same area on two consecutive layer
+                        // remove small areas which were introduced by rounding errors in comparing the same area on two consecutive layer
                         if (!infill_area_this_combine_this_density.empty()
                             && infill_area_this_combine_this_density.area() > support_line_width * support_line_width)
                         {
@@ -530,12 +480,12 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 break;
         }
         coord_t adhesion_size = 0; //Make sure there is enough room for the platform adhesion around support.
-        const ExtruderTrain& adhesion_extruder = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+        const ExtruderTrain& skirt_brim_extruder = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
         coord_t extra_skirt_line_width = 0;
         const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
         for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
         {
-            if (extruder_nr == adhesion_extruder.extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+            if (extruder_nr == skirt_brim_extruder.extruder_nr || !is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
             {
                 continue;
             }
@@ -545,13 +495,21 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
         switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
         {
             case EPlatformAdhesion::BRIM:
-                adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
+                adhesion_size = 
+                    skirt_brim_extruder.settings.get<coord_t>("brim_width")
+                    + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width")
+                    * skirt_brim_extruder.settings.get<size_t>("brim_line_count")
+                    * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
+                    + extra_skirt_line_width;
                 break;
             case EPlatformAdhesion::RAFT:
-                adhesion_size = adhesion_extruder.settings.get<coord_t>("raft_margin");
+            {
+                const ExtruderTrain& raft_extruder = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+                adhesion_size = raft_extruder.settings.get<coord_t>("raft_margin");
                 break;
+            }
             case EPlatformAdhesion::SKIRT:
-                adhesion_size = adhesion_extruder.settings.get<coord_t>("skirt_gap") + adhesion_extruder.settings.get<coord_t>("skirt_brim_line_width") * adhesion_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * adhesion_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;
+                adhesion_size = skirt_brim_extruder.settings.get<coord_t>("skirt_gap") + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width") * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * skirt_brim_extruder.settings.get<size_t>("skirt_line_count") + extra_skirt_line_width;
                 break;
             case EPlatformAdhesion::NONE:
                 adhesion_size = 0;
@@ -907,7 +865,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
             if (use_xy_distance_overhang) //Z overrides XY distance.
             {
                 // we also want to use the min XY distance when the support is resting on a sloped surface so we calculate the area of the
-                // layer below that protudes beyond the current layer's area and combine it with the current layer's overhang disallowed area
+                // layer below that protrudes beyond the current layer's area and combine it with the current layer's overhang disallowed area
 
                 Polygons larger_area_below; // the areas in the layer below that protrude beyond the area of the current layer
                 if (layer_idx > 1)
@@ -917,7 +875,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage, const S
 
                     if (larger_area_below.size())
                     {
-                        // if the layer below protudes sufficiently such that a normal support at xy_distance could be placed there,
+                        // if the layer below protrudes sufficiently such that a normal support at xy_distance could be placed there,
                         // we don't want to use the min XY distance in that area and so we remove the wide area from larger_area_below
 
                         // assume that a minimal support structure would be one line spaced at xy_distance from the model (verified by experiment)
@@ -1309,8 +1267,9 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
     const ExtruderTrain& infill_extruder = mesh.settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    const coord_t support_line_width = infill_extruder.settings.get<coord_t>("support_line_width");
+    const coord_t offset = - infill_extruder.settings.get<coord_t>("support_line_width") / 2;
     const coord_t max_tower_supported_diameter = mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter");
+    const coord_t max_tower_supported_area = max_tower_supported_diameter * max_tower_supported_diameter;
 
     mesh.overhang_points.resize(storage.print_layer_count);
 
@@ -1319,29 +1278,18 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
         const SliceLayer& layer = mesh.layers[layer_idx];
         for (const SliceLayerPart& part : layer.parts)
         {
-            if (part.outline.outerPolygon().area() < max_tower_supported_diameter * max_tower_supported_diameter)
+            if (part.outline.outerPolygon().area() < max_tower_supported_area)
             {
                 const SliceLayer& layer_below = mesh.layers[layer_idx - 1];
-                if (layer_below.getOutlines().intersection(part.outline).size() > 0)
+                if (!layer_below.getOutlines().intersection(part.outline).empty())
                 {
                     continue;
                 }
 
-                Polygons part_poly_computed;
-                const Polygons& part_poly = (part.insets.size() > 0) ? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
-                if (part.insets.size() == 0)
+                const Polygons overhang = part.outline.offset(offset).difference(storage.support.supportLayers[layer_idx].anti_overhang);
+                if (!overhang.empty())
                 {
-                    part_poly_computed = part.outline.offset(-support_line_width / 2);
-                }
-
-                if (part_poly.size() > 0)
-                {
-                    Polygons part_poly_recomputed = part_poly.difference(storage.support.supportLayers[layer_idx].anti_overhang);
-                    if (part_poly_recomputed.size() == 0)
-                    {
-                        continue;
-                    }
-                    mesh.overhang_points[layer_idx].push_back(part_poly_recomputed);
+                    mesh.overhang_points[layer_idx].push_back(overhang);
                 }
             }
         }

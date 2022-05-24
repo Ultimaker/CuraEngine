@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "LinePolygonsCrossings.h"
@@ -103,7 +103,7 @@ bool LinePolygonsCrossings::generateCombingPath(CombPath& combPath, int64_t max_
         combPath.push_back(endPoint);
         return true;
     }
-    
+
     bool success = calcScanlineCrossings(fail_on_unavoidable_obstacles);
     if (!success)
     {
@@ -113,7 +113,7 @@ bool LinePolygonsCrossings::generateCombingPath(CombPath& combPath, int64_t max_
     CombPath basicPath;
     generateBasicCombingPath(basicPath);
     optimizePath(basicPath, combPath);
-//     combPath = basicPath; // uncomment to disable comb path optimization
+//    combPath = basicPath; // uncomment to disable comb path optimization
     return true;
 }
 
