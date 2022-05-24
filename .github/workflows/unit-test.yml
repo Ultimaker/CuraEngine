@@ -50,7 +50,7 @@ jobs:
             -   name: Prepare Conan and sip-build (Bash)
                 if: ${{ runner.os != 'Windows' }}
                 run: |
-                    pip install --require-hashes -r requirements-dev.txt
+                    pip install --require-hashes -r requirements.txt
                     # FIXME: Once we fully support Conan change to: `conan config install https://github.com/Ultimaker/conan-config.git`
                     conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-9177_Fix_CI_CD" -tf $HOME/.conan
                     conan profile new default --detect
