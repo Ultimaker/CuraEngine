@@ -35,7 +35,7 @@ class CuraEngineConan(ConanFile):
     }
 
     def config_options(self):
-        if self.settings.os == "Mac":
+        if self.settings.os == "Macos":
             self.options.enable_openmp = False
 
     def configure(self):
