@@ -175,7 +175,8 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 
     const coord_t wall_count = infill_extruder.settings.get<size_t>("support_wall_count");
     const coord_t wall_width = infill_extruder.settings.get<coord_t>("support_line_width");
-    const coord_t overlap = infill_extruder.settings.get<coord_t>("infill_overlap_mm");
+    const bool tree_support_enabled = infill_extruder.settings.get<ESupportStructure>("support_structure") == ESupportStructure::TREE;
+
 
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
@@ -207,8 +208,19 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
             {
                 continue;
             }
+
+            Settings wall_settings=infill_extruder.settings;
+            if(tree_support_enabled){
+                // For some reason having a 0.4mm wall with 0.4mm line width means the result will be two 0.2mm lines, but no matter the minimum wall thickness setting it seems to always draw one line.
+                // TreeSupport would rather have one line of 0.4 mm than two of 0.2mm.
+                // This was the best way I found to make SURE it actually adheres to this.
+                // This causes errors and warnings down the road (when generating the wallToolPaths), BUT i did not see any issues with the result, so this stays as some kind of stop-gap solution.
+                wall_settings.add("wall_split_middle_threshold","100");
+                wall_settings.add("wall_add_middle_threshold","100");
+            }
+
             // NOTE: This both generates the walls _and_ returns the _actual_ infill area (the one _without_ walls) for use in the rest of the method.
-            const Polygons infill_area = Infill::generateWallToolPaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, overlap, infill_extruder.settings);
+            const Polygons infill_area = Infill::generateWallToolPaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, 0, wall_settings);
             const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box;
 
             // calculate density areas for this island
