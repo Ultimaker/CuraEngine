@@ -73,9 +73,9 @@ patch-ng==1.17.4 \
 tqdm==4.63.0 \
     --hash=sha256:1d9835ede8e394bb8c9dcbffbca02d717217113adc679236873eeaac5bc0b3cd \
     --hash=sha256:e643e071046f17139dea55b880dc9b33822ce21613b4a4f5ea57f202833dbc29
-PyJWT==1.7.1 \
-    --hash=sha256:5c6eca3c2940464d106b99ba83b00c6add741c9becaec087fb7ccdefea71350e \
-    --hash=sha256:8d59a976fb773f3e6a39c85636357c4f0e242707394cadadd9814f5cbaa20e96
+PyJWT==2.4.0 \
+    --hash=sha256:72d1d253f32dbd4f5c88eaf1fdc62f3a19f676ccbadb9dbc5d07e951b2b26daf \
+    --hash=sha256:d42908208c699b3b973cbeb01a969ba6a96c821eefb1c5bfe4c390c01d67abba
 fasteners==0.17.3 \
     --hash=sha256:a9a42a208573d4074c77d041447336cf4e3c1389a256fd3e113ef59cf29b7980 \
     --hash=sha256:cae0772df265923e71435cc5057840138f4e8b6302f888a567d06ed8e1cbca03
