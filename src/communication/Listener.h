@@ -20,7 +20,7 @@ public:
     /*
      * Changes the ``stateChanged`` signal to do nothing.
      */
-    void stateChanged(Arcus::SocketState::SocketState) override;
+    void stateChanged(Arcus::SocketState) override;
 
     /*
      * Changes the ``messageReceived`` signal to do nothing.

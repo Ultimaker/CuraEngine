@@ -5,19 +5,23 @@
 #define UTILS_POLYGON_H
 
 #include <vector>
+
 #include <assert.h>
 #include <float.h>
-#include "clipper.hpp"
+#include <algorithm>
+#include <polyclipping/clipper.hpp>
 
 #include <algorithm>    // std::reverse, fill_n array
+#include <unordered_map>
 #include <cmath> // fabs
 #include <limits> // int64_t.min
 #include <list>
 
 #include <initializer_list>
 
-#include "IntPoint.h"
 #include "../settings/types/Angle.h" //For angles between vertices.
+#include "../settings/types/Ratio.h"
+#include "IntPoint.h"
 
 #define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -28,6 +32,22 @@
 
 namespace cura {
 
+template<typename T>
+bool shorterThan(const T& shape, const coord_t check_length)
+{
+    const auto* p0 = &shape.back();
+    int64_t length = 0;
+    for (const auto& p1 : shape)
+    {
+        length += vSize(*p0 - p1);
+        if (length >= check_length)
+        {
+            return false;
+        }
+        p0 = &p1;
+    }
+    return true;
+}
 
 class PartsView;
 class Polygons;
@@ -62,13 +82,15 @@ public:
     : path(const_cast<ClipperLib::Path*>(&polygon))
     {}
 
+    ConstPolygonRef() = delete; // you cannot have a reference without an object!
+
     virtual ~ConstPolygonRef()
     {
     }
 
-    bool operator==(ConstPolygonRef& other) const =delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
+    bool operator==(ConstPolygonRef& other) const = delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
 
-    ConstPolygonRef& operator=(const ConstPolygonRef& other) =delete; // Cannot assign to a const object
+    ConstPolygonRef& operator=(const ConstPolygonRef& other) = delete; // Cannot assign to a const object
 
     /*!
      * Gets the number of vertices in this polygon.
@@ -104,6 +126,21 @@ public:
         return path->end();
     }
 
+    ClipperLib::Path::const_reverse_iterator rbegin() const
+    {
+        return path->rbegin();
+    }
+
+    ClipperLib::Path::const_reverse_iterator rend() const
+    {
+        return path->rend();
+    }
+
+    ClipperLib::Path::const_reference front() const
+    {
+        return path->front();
+    }
+
     ClipperLib::Path::const_reference back() const
     {
         return path->back();
@@ -127,11 +164,16 @@ public:
 
     Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
-    int64_t polygonLength() const
+    coord_t polygonLength() const
     {
-        int64_t length = 0;
-        Point p0 = (*path)[path->size()-1];
-        for(unsigned int n=0; n<path->size(); n++)
+        return polylineLength() + vSize(path->front() - path->back());
+    }
+
+    coord_t polylineLength() const
+    {
+        coord_t length = 0;
+        Point p0 = path->front();
+        for (unsigned int n = 1; n < path->size(); n++)
         {
             Point p1 = (*path)[n];
             length += vSize(p0 - p1);
@@ -139,6 +181,20 @@ public:
         }
         return length;
     }
+
+    /*!
+     * Split these poly line objects into several line segment objects consisting of only two verts
+     * and store them in the \p result
+     */
+    void splitPolylineIntoSegments(Polygons& result) const;
+    Polygons splitPolylineIntoSegments() const;
+
+    /*!
+     * Split these polygon objects into several line segment objects consisting of only two verts
+     * and store them in the \p result
+     */
+    void splitPolygonIntoSegments(Polygons& result) const;
+    Polygons splitPolygonIntoSegments() const;
 
     bool shorterThan(const coord_t check_length) const;
 
@@ -216,11 +272,11 @@ public:
      * A segment is tested if pa.Y <= p.Y < pb.Y, where pa and pb are the points (from p0,p1) with smallest & largest Y.
      * When both have the same Y, no intersections are counted but there is a special test to see if the point falls
      * exactly on the line.
-     * 
+     *
      * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
-     * 
+     *
      * \deprecated This function is no longer used, since the Clipper function is used by the function PolygonRef::inside(.)
-     * 
+     *
      * \param p The point for which to check if it is inside this polygon
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
@@ -230,7 +286,7 @@ public:
     /*!
      * Clipper function.
      * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
-     * 
+     *
      * http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/PointInPolygon.htm
      */
     bool inside(Point p, bool border_result = false) const
@@ -247,10 +303,10 @@ public:
      * Smooth out small perpendicular segments and store the result in \p result.
      * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
      * which has an angle with the next and previous line segment smaller than roughly 150*
-     * 
+     *
      * Note that in its current implementation this function doesn't remove line segments with an angle smaller than 30*
      * Such would be the case for an N shape.
-     * 
+     *
      * \param remove_length The length of the largest segment removed
      * \param result (output) The result polygon, assumed to be empty
      */
@@ -258,7 +314,7 @@ public:
 
     /*!
      * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
-     * 
+     *
      * \param angle The maximum angle of inner corners to be smoothed out
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \param result The resulting polygon
@@ -268,7 +324,7 @@ public:
     /*!
      * Smooth out the polygon and store the result in \p result.
      * Smoothing is performed by removing vertices for which both connected line segments are smaller than \p remove_length
-     * 
+     *
      * \param remove_length The length of the largest segment removed
      * \param result (output) The result polygon, assumed to be empty
      */
@@ -288,9 +344,9 @@ public:
 private:
     /*!
      * Smooth out a simple corner consisting of two linesegments.
-     * 
+     *
      * Auxiliary function for \ref smooth_outward
-     * 
+     *
      * \param p0 The point before the corner
      * \param p1 The corner
      * \param p2 The point after the corner
@@ -307,12 +363,12 @@ private:
 
     /*!
      * Smooth out a complex corner where the shortcut bypasses more than two line segments
-     * 
+     *
      * Auxiliary function for \ref smooth_outward
-     * 
+     *
      * \warning This function might try to remove the whole polygon
      * Error code -1 means the whole polygon should be removed (which means it is a hole polygon)
-     * 
+     *
      * \param p1 The corner point
      * \param[in,out] p0_it Iterator to the last point checked before \p p1 to consider cutting off
      * \param[in,out] p2_it Iterator to the last point checked after \p p1 to consider cutting off
@@ -323,11 +379,11 @@ private:
 
     /*!
      * Try to take a step away from the corner point in order to take a bigger shortcut.
-     * 
+     *
      * Try to take the shortcut from a place as far away from the corner as the place we are taking the shortcut to.
-     * 
+     *
      * Auxiliary function for \ref smooth_outward
-     * 
+     *
      * \param[in] p1 The corner point
      * \param[in] shortcut_length2 The square of the desired length ofthe shortcutting line
      * \param[in,out] p0_it Iterator to the previously checked point somewhere beyond \p p1. Updated for the next iteration.
@@ -346,6 +402,8 @@ class PolygonPointer;
 class PolygonRef : public ConstPolygonRef
 {
     friend class PolygonPointer;
+    friend class Polygons;
+    friend class PolygonsPart;
 public:
     PolygonRef(ClipperLib::Path& polygon)
     : ConstPolygonRef(polygon)
@@ -354,6 +412,8 @@ public:
     PolygonRef(const PolygonRef& other)
     : ConstPolygonRef(*other.path)
     {}
+
+    PolygonRef() = delete; // you cannot have a reference without an object!
 
     virtual ~PolygonRef()
     {
@@ -364,9 +424,15 @@ public:
         path->reserve(min_size);
     }
 
-    PolygonRef& operator=(const ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+    template <class iterator>
+    ClipperLib::Path::iterator insert(ClipperLib::Path::const_iterator pos, iterator first, iterator last)
+    {
+        return path->insert(pos, first, last);
+    }
 
-    PolygonRef& operator=(ConstPolygonRef& other) =delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+    PolygonRef& operator=(const ConstPolygonRef& other) = delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+
+    PolygonRef& operator=(ConstPolygonRef& other) = delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
 //     { path = other.path; return *this; }
 
     PolygonRef& operator=(PolygonRef&& other)
@@ -381,9 +447,10 @@ public:
         return (*path)[index];
     }
 
-    const Point& operator[] (const unsigned int& index) const
+    const Point& operator[] (unsigned int index) const
     {
-        return path->at(index);
+        POLY_ASSERT(index < size());
+        return (*path)[index];
     }
 
     ClipperLib::Path::iterator begin()
@@ -394,6 +461,11 @@ public:
     ClipperLib::Path::iterator end()
     {
         return path->end();
+    }
+
+    ClipperLib::Path::reference front()
+    {
+        return path->front();
     }
 
     ClipperLib::Path::reference back()
@@ -428,6 +500,12 @@ public:
         path->erase(path->begin() + index);
     }
 
+    void insert(size_t index, Point p)
+    {
+        POLY_ASSERT(index < size() && index <= static_cast<size_t>(std::numeric_limits<int>::max()));
+        path->insert(path->begin() + index, p);
+    }
+
     void clear()
     {
         path->clear();
@@ -440,7 +518,7 @@ public:
 
     /*!
      * Translate the whole polygon in some direction.
-     * 
+     *
      * \param translation The direction in which to move the polygon
      */
     void translate(Point translation)
@@ -451,9 +529,11 @@ public:
         }
     }
 
-    /*! 
+    void removeColinearEdges(const AngleRadians max_deviation_angle);
+
+    /*!
      * Removes consecutive line segments with same orientation and changes this polygon.
-     * 
+     *
      * 1. Removes verts which are connected to line segments which are too small.
      * 2. Removes verts which detour from a direct line from the previous and next vert by a too small amount.
      * 3. Moves a vert when a small line segment is connected to a much longer one. in order to maintain the outline of the object.
@@ -467,14 +547,27 @@ public:
      *
      * """"""""""""""""""""""""""""""""i,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
-     * 
+     *
      * \param smallest_line_segment_squared maximal squared length of removed line segments
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
     void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
 
+    /*!
+     * See simplify(.)
+     */
+    void simplifyPolyline(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25);
+protected:
+    /*!
+     * Private implementation for both simplify and simplifyPolygons.
+     * 
+     * Made private to avoid accidental use of the wrong function.
+     */
+    void _simplify(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25, bool processing_polylines = false);
+
+public:
     void pop_back()
-    { 
+    {
         path->pop_back();
     }
 
@@ -516,34 +609,45 @@ public:
         return path;
     }
 
-    bool operator==(const ConstPolygonPointer& rhs)
+    bool operator==(const ConstPolygonPointer& rhs) const
     {
         return path == rhs.path;
     }
 };
 
-class PolygonPointer
+class PolygonPointer : public ConstPolygonPointer
 {
-protected:
-    ClipperLib::Path* path;
 public:
     PolygonPointer()
-    : path(nullptr)
+    : ConstPolygonPointer(nullptr)
     {}
     PolygonPointer(PolygonRef* ref)
-    : path(ref->path)
+    : ConstPolygonPointer(ref)
     {}
 
     PolygonPointer(PolygonRef& ref)
-    : path(ref.path)
+    : ConstPolygonPointer(ref)
     {}
 
     PolygonRef operator*()
     {
         assert(path);
-        return PolygonRef(*path);
+        return PolygonRef(*const_cast<ClipperLib::Path*>(path));
     }
+
+    ConstPolygonRef operator*() const
+    {
+        assert(path);
+        return ConstPolygonRef(*path);
+    }
+
     ClipperLib::Path* operator->()
+    {
+        assert(path);
+        return const_cast<ClipperLib::Path*>(path);
+    }
+
+    const ClipperLib::Path* operator->() const
     {
         assert(path);
         return path;
@@ -554,6 +658,40 @@ public:
         return path;
     }
 };
+
+} // namespace cura
+
+
+namespace std
+{
+template<>
+struct hash<cura::ConstPolygonRef>
+{
+    size_t operator()(const cura::ConstPolygonRef& poly) const
+    {
+        return std::hash<const ClipperLib::Path*>()(&*poly);
+    }
+};
+template<>
+struct hash<cura::ConstPolygonPointer>
+{
+    size_t operator()(const cura::ConstPolygonPointer& poly) const
+    {
+        return std::hash<const ClipperLib::Path*>()(&**poly);
+    }
+};
+template<>
+struct hash<cura::PolygonPointer>
+{
+    size_t operator()(const cura::PolygonPointer& poly) const
+    {
+        const cura::ConstPolygonRef ref = *static_cast<cura::PolygonPointer>(poly);
+        return std::hash<const ClipperLib::Path*>()(&*ref);
+    }
+};
+}//namespace std
+
+namespace cura {
 
 class Polygon : public PolygonRef
 {
@@ -607,6 +745,7 @@ class Polygons
     friend class Polygon;
     friend class PolygonRef;
     friend class ConstPolygonRef;
+    friend class PolygonUtils;
 protected:
     ClipperLib::Paths paths;
 public:
@@ -652,7 +791,7 @@ public:
     }
     /*!
      * Remove a polygon from the list and move the last polygon to its place
-     * 
+     *
      * \warning changes the order of the polygons!
      */
     void remove(unsigned int index)
@@ -705,6 +844,21 @@ public:
         paths.emplace_back(ClipperLib::Path{from, to});
     }
 
+    void emplace_back(const Polygon& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+
+    void emplace_back(const ConstPolygonRef& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+
+    void emplace_back(const PolygonRef& poly)
+    {
+        paths.emplace_back(*poly.path);
+    }
+    
     template<typename... Args>
     void emplace_back(Args... args)
     {
@@ -715,6 +869,14 @@ public:
     {
         paths.emplace_back();
         return PolygonRef(paths.back());
+    }
+    PolygonRef front()
+    {
+        return PolygonRef(paths.front());
+    }
+    ConstPolygonRef front() const
+    {
+        return ConstPolygonRef(paths.front());
     }
     PolygonRef back()
     {
@@ -732,7 +894,7 @@ public:
     Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
     Polygons& operator=(Polygons&& other) { paths = std::move(other.paths); return *this; }
 
-    bool operator==(const Polygons& other) const =delete;
+    bool operator==(const Polygons& other) const = delete;
 
     /*!
      * Convert ClipperLib::PolyTree to a Polygons object,
@@ -777,35 +939,46 @@ public:
 
     /*!
      * Intersect polylines with this area Polygons object.
+     * 
+     * \note Due to a clipper bug with polylines with nearly collinear segments, the polylines are cut up into separate polylines, and restitched back together at the end.
+     * 
+     * \param polylines The (non-closed!) polylines to limit to the area of this Polygons object
+     * \param restitch Whether to stitch the resulting segments into longer polylines, or leave every segment as a single segment
+     * \param max_stitch_distance The maximum distance for two polylines to be stitched together with a segment
+     * \return The resulting polylines limited to the area of this Polygons object
      */
-    Polygons intersectionPolyLines(const Polygons& polylines) const;
+    Polygons intersectionPolyLines(const Polygons& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
     /*!
-     * Clips input line segments by this Polygons.
-     * \param other Input line segments to be cropped
-     * \param segment_tree the resulting interior line segments
+     * Split this poly line object into several line segment objects
+     * and store them in the \p result
      */
-    void lineSegmentIntersection(const Polygons& other, ClipperLib::PolyTree& segment_tree) const
-    {
-        ClipperLib::Clipper clipper(clipper_init);
-        clipper.AddPaths(paths, ClipperLib::ptClip, true);
-        clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
-        clipper.Execute(ClipperLib::ctIntersection, segment_tree);
-    }
+    void splitPolylinesIntoSegments(Polygons& result) const;
+    Polygons splitPolylinesIntoSegments() const;
 
     /*!
-     * Cut this polygon using an other polygon as a tool
-     * \param tool a closed polygon serving as boundary
+     * Split this polygon object into several line segment objects
+     * and store them in the \p result
      */
-    Polygons& cut(const Polygons& tool);
+    void splitPolygonsIntoSegments(Polygons& result) const;
+    Polygons splitPolygonsIntoSegments() const;
 
-    Polygons xorPolygons(const Polygons& other) const
+    Polygons xorPolygons(const Polygons& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(paths, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.paths, ClipperLib::ptClip, true);
-        clipper.Execute(ClipperLib::ctXor, ret.paths);
+        clipper.Execute(ClipperLib::ctXor, ret.paths, pft);
+        return ret;
+    }
+
+    Polygons execute (ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const
+    {
+        Polygons ret;
+        ClipperLib::Clipper clipper(clipper_init);
+        clipper.AddPaths(paths, ClipperLib::ptSubject, true);
+        clipper.Execute(ClipperLib::ctXor, ret.paths, pft);
         return ret;
     }
 
@@ -822,15 +995,15 @@ public:
         clipper.Execute(ret.paths, distance);
         return ret;
     }
-    
+
     /*!
      * Check if we are inside the polygon.
-     * 
+     *
      * We do this by counting the number of polygons inside which this point lies.
      * An odd number is inside, while an even number is outside.
-     * 
+     *
      * Returns false if outside, true if inside; if the point lies exactly on the border, will return \p border_result.
-     * 
+     *
      * \param p The point for which to check if it is inside this polygon
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
@@ -846,43 +1019,48 @@ public:
      * A segment is tested if pa.Y <= p.Y < pb.Y, where pa and pb are the points (from p0,p1) with smallest & largest Y.
      * When both have the same Y, no intersections are counted but there is a special test to see if the point falls
      * exactly on the line.
-     * 
+     *
      * Returns false if outside, true if inside; if the point lies exactly on the border, will return \p border_result.
-     * 
+     *
      * \deprecated This function is old and no longer used. instead use \ref Polygons::inside
-     * 
+     *
      * \param p The point for which to check if it is inside this polygon
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
     bool insideOld(Point p, bool border_result = false) const;
-    
+
     /*!
-     * Find the polygon inside which point \p p resides. 
-     * 
+     * Find the polygon inside which point \p p resides.
+     *
      * We do this by tracing from the point towards the positive X direction,
      * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
      * We then find the polygon with an uneven number of crossings which is closest to \p p.
-     * 
+     *
      * If \p border_result, we return the first polygon which is exactly on \p p.
-     * 
+     *
      * \param p The point for which to check in which polygon it is.
      * \param border_result Whether a point exactly on a polygon counts as inside
      * \return The index of the polygon inside which the point \p p resides
      */
     unsigned int findInside(Point p, bool border_result = false);
-    
+
     /*!
      * Approximates the convex hull of the polygons.
      * \p extra_outset Extra offset outward
      * \return the convex hull (approximately)
-     * 
+     *
      */
     Polygons approxConvexHull(int extra_outset = 0);
 
     /*!
+     * Make each of the polygons convex
+     */
+    void makeConvex();
+
+    /*!
      * Compute the area enclosed within the polygons (minus holes)
-     * 
+     *
      * \return The area in square micron
      */
     double area() const;
@@ -891,10 +1069,10 @@ public:
      * Smooth out small perpendicular segments
      * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
      * which has an angle with the next and previous line segment smaller than roughly 150*
-     * 
+     *
      * Note that in its current implementation this function doesn't remove line segments with an angle smaller than 30*
      * Such would be the case for an N shape.
-     * 
+     *
      * \param remove_length The length of the largest segment removed
      * \return The smoothed polygon
      */
@@ -902,7 +1080,7 @@ public:
 
     /*!
      * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
-     * 
+     *
      * \param angle The maximum angle of inner corners to be smoothed out
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \return The resulting polygons
@@ -910,7 +1088,21 @@ public:
     Polygons smooth_outward(const AngleDegrees angle, int shortcut_length);
 
     Polygons smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
-    
+
+    void removeColinearEdges(const AngleRadians max_deviation_angle = AngleRadians(0.0005))
+    {
+        Polygons& thiss = *this;
+        for (size_t p = 0; p < size(); p++)
+        {
+            thiss[p].removeColinearEdges(max_deviation_angle);
+            if (thiss[p].size() < 3)
+            {
+                remove(p);
+                p--;
+            }
+        }
+    }
+
     /*!
      * Removes vertices of the polygons to make sure that they are not too high
      * resolution.
@@ -930,7 +1122,7 @@ public:
      * vertices under the above criteria, but simplify may never violate these
      * criteria. Unless the segments or the distance is smaller than the
      * rounding error of 5 micron.
-     * 
+     *
      * Vertices which introduce an error of less than 5 microns are removed
      * anyway, even if the segments are longer than the smallest line segment.
      * This makes sure that (practically) colinear line segments are joined into
@@ -940,19 +1132,59 @@ public:
      * from the original path that is more than this distance, the vertex may
      * not be removed.
      */
-    void simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5) 
+    void simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5)
+    {
+        _simplify(smallest_line_segment, allowed_error_distance, false);
+    }
+    void simplifyPolylines(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5) 
+    {
+        _simplify(smallest_line_segment, allowed_error_distance, true);
+    }
+private:
+    void _simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5, bool processing_polylines = false) 
     {
         const coord_t allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
         const coord_t smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
+        const size_t min_poly_length = processing_polylines ? 2 : 3;
         Polygons& thiss = *this;
         for (size_t p = 0; p < size(); p++)
         {
-            thiss[p].simplify(smallest_line_segment_squared, allowed_error_distance_squared);
-            if (thiss[p].size() < 3)
+            thiss[p]._simplify(smallest_line_segment_squared, allowed_error_distance_squared, processing_polylines);
+            if (thiss[p].size() < min_poly_length) // remove polys with not enough verts to be a polyline/polygon
             {
                 remove(p);
                 p--;
             }
+        }
+    }
+public:
+
+    void scale(const Ratio& ratio)
+    {
+        if (ratio == 1.)
+        {
+            return;
+        }
+
+        for (auto& points : *this)
+        {
+            for (auto& pt : points)
+            {
+                pt = pt * static_cast<double>(ratio);
+            }
+        }
+    }
+
+    void translate(const Point vec)
+    {
+        if (vec.X == 0 && vec.Y == 0)
+        {
+            return;
+        }
+
+        for (PolygonRef poly : *this)
+        {
+            poly.translate(vec);
         }
     }
 
@@ -999,22 +1231,19 @@ private:
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
 
-    /*!
-     * Convert a node from a ClipperLib::PolyTree and add it to a Polygons object,
-     * which uses ClipperLib::Paths instead of ClipperLib::PolyTree
-     */
-    void addPolyTreeNodeRecursive(const ClipperLib::PolyNode& node);
 public:
     /*!
      * Split up the polygons into groups according to the even-odd rule.
      * Each vector in the result has the index to an outline as first index, whereas the rest are indices to holes.
-     * 
+     *
      * \warning Note that this function reorders the polygons!
      */
     PartsView splitIntoPartsView(bool unionAll = false);
 private:
     void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const;
 public:
+    
+    
     /*!
      * Removes polygons with area smaller than \p min_area_size (note that min_area_size is in mm^2, not in micron^2).
      * Unless \p remove_holes is true, holes are not removed even if their area is below \p min_area_size.
@@ -1066,13 +1295,13 @@ public:
         {
             ConstPolygonRef poly_keep = (*this)[poly_keep_idx];
             bool should_be_removed = false;
-            if (poly_keep.size() > 0) 
+            if (poly_keep.size() > 0)
 //             for (int hole_poly_idx = 0; hole_poly_idx < to_be_removed.size(); hole_poly_idx++)
             for (ConstPolygonRef poly_rem : to_be_removed)
             {
 //                 PolygonRef poly_rem = to_be_removed[hole_poly_idx];
                 if (poly_rem.size() != poly_keep.size() || poly_rem.size() == 0) continue;
-                
+
                 // find closest point, supposing this point aligns the two shapes in the best way
                 int closest_point_idx = 0;
                 int smallestDist2 = -1;
@@ -1106,38 +1335,43 @@ public:
             }
             if (!should_be_removed)
                 result.add(poly_keep);
-            
+
         }
         return result;
     }
 
-    Polygons processEvenOdd() const
+    Polygons processEvenOdd(ClipperLib::PolyFillType poly_fill_type = ClipperLib::PolyFillType::pftEvenOdd) const
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(paths, ClipperLib::ptSubject, true);
-        clipper.Execute(ClipperLib::ctUnion, ret.paths);
+        clipper.Execute(ClipperLib::ctUnion, ret.paths, poly_fill_type);
         return ret;
     }
+
+    /*!
+     * Ensure the polygon is manifold, by removing small areas where the polygon touches itself.
+     *  ____                  ____
+     * |    |                |    |
+     * |    |____     ==>    |   / ____
+     *  """"|    |            """ /    |
+     *      |____|                |____|
+     *
+     */
+    void ensureManifold();
 
     coord_t polygonLength() const
     {
         coord_t length = 0;
-        for(unsigned int i=0; i<paths.size(); i++)
+        for (ConstPolygonRef poly : *this)
         {
-            Point p0 = paths[i][paths[i].size()-1];
-            for(unsigned int n=0; n<paths[i].size(); n++)
-            {
-                Point p1 = paths[i][n];
-                length += vSize(p0 - p1);
-                p0 = p1;
-            }
+            length += poly.polygonLength();
         }
         return length;
     }
 
     coord_t polyLineLength() const;
-    
+
     Point min() const
     {
         Point ret = Point(POINT_MAX, POINT_MAX);
@@ -1151,7 +1385,7 @@ public:
         }
         return ret;
     }
-    
+
     Point max() const
     {
         Point ret = Point(POINT_MIN, POINT_MIN);
@@ -1176,11 +1410,22 @@ public:
             }
         }
     }
+
+    void applyMatrix(const Point3Matrix& matrix)
+    {
+        for(unsigned int i=0; i<paths.size(); i++)
+        {
+            for(unsigned int j=0; j<paths[i].size(); j++)
+            {
+                paths[i][j] = matrix.apply(paths[i][j]);
+            }
+        }
+    }
 };
 
 /*!
  * A single area with holes. The first polygon is the outline, while the rest are holes within this outline.
- * 
+ *
  * This class has little more functionality than Polygons, but serves to show that a specific instance is ordered such that the first Polygon is the outline and the rest are holes.
  */
 class PolygonsPart : public Polygons
@@ -1214,7 +1459,7 @@ public:
     PartsView(Polygons& polygons) : polygons(polygons) { }
     /*!
      * Get the index of the PolygonsPart of which the polygon with index \p poly_idx is part.
-     * 
+     *
      * \param poly_idx The index of the polygon in \p polygons
      * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
      * \return The PolygonsPart containing the polygon with index \p poly_idx
@@ -1222,7 +1467,7 @@ public:
     unsigned int getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr) const;
     /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
-     * 
+     *
      * \param poly_idx The index of the polygon in \p polygons
      * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
      * \return The PolygonsPart containing the polygon with index \p poly_idx
@@ -1230,7 +1475,7 @@ public:
     PolygonsPart assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr) const;
     /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
-     * 
+     *
      * \param part_idx The index of the part
      * \return The PolygonsPart with index \p poly_idx
      */

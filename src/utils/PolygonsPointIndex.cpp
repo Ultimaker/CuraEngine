@@ -6,9 +6,10 @@
 namespace cura
 {
 
-bool PolygonsPointIndex::initialized() const
+template<>
+ConstPolygonRef PathsPointIndex<Polygons>::getPolygon() const
 {
-    return polygons;
+    return (*polygons)[poly_idx];
 }
 
 }

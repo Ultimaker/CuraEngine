@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
@@ -71,7 +71,7 @@ void PrimeTower::generateGroundpoly()
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
     
-    const Settings& brim_extruder_settings = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
+    const Settings& brim_extruder_settings = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").settings;
     const bool has_raft = (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT);
     const bool has_prime_brim = mesh_group_settings.get<bool>("prime_tower_brim_enable");
     const coord_t offset = (has_raft || ! has_prime_brim) ? 0 :
@@ -79,20 +79,13 @@ void PrimeTower::generateGroundpoly()
         brim_extruder_settings.get<coord_t>("skirt_brim_line_width") *
         brim_extruder_settings.get<Ratio>("initial_layer_line_width_factor");
 
-    PolygonRef p = outer_poly.newPoly();
-    int tower_distance = 0; 
     const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x") - offset;
     const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y") - offset;
     const coord_t tower_radius = tower_size / 2;
-    for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
-    {
-        const double angle = (double) i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
-        p.add(Point(x - tower_radius + tower_distance + cos(angle) * tower_radius,
-                    y + tower_radius + tower_distance + sin(angle) * tower_radius));
-    }
+    outer_poly.add(PolygonUtils::makeCircle(Point(x - tower_radius, y + tower_radius), tower_radius, TAU / CIRCLE_RESOLUTION));
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
-    post_wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
+    post_wipe_point = Point(x - tower_size / 2, y + tower_size / 2);
 
     outer_poly_first_layer = outer_poly.offset(offset);
 }

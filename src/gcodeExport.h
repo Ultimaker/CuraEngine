@@ -247,10 +247,7 @@ public:
      *
      * \param extra_prime_distance Amount of material in mm.
      */
-    void addExtraPrimeAmount(double extra_prime_volume)
-    {
-        extruder_attr[current_extruder].prime_volume += extra_prime_volume;
-    }
+    void addExtraPrimeAmount(double extra_prime_volume);
     
     Point3 getPosition() const;
     
@@ -564,4 +561,3 @@ public:
 }
 
 #endif//GCODEEXPORT_H
-

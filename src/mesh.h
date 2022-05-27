@@ -100,6 +100,12 @@ public:
      */
     void transform(const FMatrix4x3& transformation);
 
+    /*!
+     * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
+     * etc.)
+     * \return True if it's a mesh that gets printed.
+     */
+    bool isPrinted() const;
 private:
     mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
     mutable bool has_overlapping_faces; //!< Whether it has been logged that this mesh contains overlapping faces

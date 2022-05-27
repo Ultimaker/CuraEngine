@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To flush g-code through the communication channel.
@@ -7,7 +7,6 @@
 #include "gcodeExport.h"
 #include "LayerPlan.h"
 #include "LayerPlanBuffer.h"
-#include "MergeInfillLines.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "utils/logoutput.h"
@@ -97,7 +96,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         const Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[prev_layer->extruder_plans.back().extruder_nr].settings;
         prev_layer->setIsInside(new_layer_destination_state->second);
         const bool force_retract = extruder_settings.get<bool>("retract_at_layer_change") ||
-                (mesh_group_settings.get<bool>("travel_retract_before_outer_wall") && (mesh_group_settings.get<bool>("outer_inset_first") || mesh_group_settings.get<size_t>("wall_line_count") == 1)); //Moving towards an outer wall.
+          (mesh_group_settings.get<bool>("travel_retract_before_outer_wall") && (mesh_group_settings.get<InsetDirection>("inset_direction") == InsetDirection::OUTSIDE_IN || mesh_group_settings.get<size_t>("wall_line_count") == 1)); //Moving towards an outer wall.
         prev_layer->final_travel_z = newest_layer->z;
         GCodePath &path = prev_layer->addTravel(first_location_new_layer, force_retract);
         if (force_retract && !path.retract)
