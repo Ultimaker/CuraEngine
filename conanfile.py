@@ -128,6 +128,15 @@ class CuraEngineConan(ConanFile):
         self.cpp.package.libdirs = ["lib"]
         self.cpp.package.bindirs = ['bin']
 
+    def imports(self):
+        if self.settings.os == "Windows":
+            self.copy("*", dst=self.build_folder, src="@bindirs")
+            self.copy("*", dst=self.build_folder, src="@libdirs")
+            if self.options.enable_testing:
+                dest = os.path.join(self.build_folder, "tests")
+                self.copy("*", dst=dest, src="@bindirs")
+                self.copy("*", dst=dest, src="@libdirs")
+
     def build(self):
         cmake = CMake(self)
         cmake.configure()
