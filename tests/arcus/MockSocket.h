@@ -14,9 +14,9 @@ namespace cura
  * \brief Mocks a socket connection from libArcus such that we can test with it
  * without creating an actual connection.
  */
-class ARCUS_EXPORT MockSocket : public Arcus::Socket
+class MockSocket : public Arcus::Socket
 {
-public:
+  public:
     MockSocket();
 
     //These functions are overridden to be no-op.

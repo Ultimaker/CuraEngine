@@ -18,6 +18,7 @@ build/*
 debug_build/*
 release_build/*
 cmake-build-debug/*
+cmake-build-release/*
 libs/stb
 *.pyc
 *.exe
