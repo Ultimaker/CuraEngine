@@ -1,8 +1,11 @@
+import os
+
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools import files
 from conans import tools
 from conan.errors import ConanInvalidConfiguration
+from conans.errors import ConanException
 
 required_conan_version = ">=1.47.0"
 
@@ -105,7 +108,25 @@ class CuraEngineConan(ConanFile):
         tc.generate()
 
     def layout(self):
-        cmake_layout(self)
+        self.folders.source = "."
+        try:
+            build_type = str(self.settings.build_type)
+        except ConanException:
+            raise ConanException("'build_type' setting not defined, it is necessary")
+
+        self.folders.build = f"cmake-build-{build_type.lower()}"
+        self.folders.generators = os.path.join(self.folders.build, "conan")
+
+        self.cpp.source.includedirs = ["src"]  # TODO: Seperate headers and cpp
+
+        self.cpp.build.libdirs = ["."]
+        self.cpp.build.bindirs = ["."]
+
+        self.cpp.build.libs = ["_CuraEngine"]
+
+        self.cpp.package.includedirs = ["include"]
+        self.cpp.package.libdirs = ["lib"]
+        self.cpp.package.bindirs = ['bin']
 
     def build(self):
         cmake = CMake(self)
