@@ -247,6 +247,7 @@ const Polygons& TreeModelVolumes::getCollision(coord_t radius, LayerIndex layer_
     if (precalculated)
     {
         logWarning("Had to calculate collision at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+        TreeSupport::showError("Not precalculated Collision requested.", false);
     }
     calculateCollision(key);
     return getCollision(orig_radius, layer_idx, min_xy_dist);
@@ -277,6 +278,7 @@ const Polygons& TreeModelVolumes::getCollisionHolefree(coord_t radius, LayerInde
     if (precalculated)
     {
         logWarning("Had to calculate collision holefree at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+        TreeSupport::showError("Not precalculated Holefree Collision requested.", false);
     }
     calculateCollisionHolefree(key);
     return getCollisionHolefree(orig_radius, layer_idx, min_xy_dist);
@@ -341,6 +343,7 @@ const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_
     else
     {
         logError("Invalid Avoidance Request\n");
+        TreeSupport::showError("Invalid Avoidance Request.\n", true);
     }
 
 
@@ -357,6 +360,7 @@ const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_
         if (precalculated)
         {
             logWarning("Had to calculate Avoidance to model at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            TreeSupport::showError("Not precalculated Avoidance(to model) requested.", false);
         }
         calculateAvoidanceToModel(key);
     }
@@ -373,6 +377,7 @@ const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_
         if (precalculated)
         {
             logWarning("Had to calculate Avoidance at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            TreeSupport::showError("Not precalculated Avoidance(to buildplate) requested.", false);
         }
         calculateAvoidance(key);
     }
@@ -397,6 +402,7 @@ const Polygons& TreeModelVolumes::getPlaceableAreas(coord_t radius, LayerIndex l
     if (precalculated)
     {
         logWarning("Had to calculate Placeable Areas at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", radius, layer_idx);
+        TreeSupport::showError("Not precalculated Placeable areas requested.", false);
     }
     if (radius != 0)
     {
@@ -449,6 +455,7 @@ const Polygons& TreeModelVolumes::getWallRestriction(coord_t radius, LayerIndex 
         if (precalculated)
         {
             logWarning("Had to calculate Wall restricions at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            TreeSupport::showError("Not precalculated Wall restriction of minimum xy distance requested ).", false);
         }
     }
     else
@@ -464,6 +471,7 @@ const Polygons& TreeModelVolumes::getWallRestriction(coord_t radius, LayerIndex 
         if (precalculated)
         {
             logWarning("Had to calculate Wall restricions at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            TreeSupport::showError("Not precalculated Wall restriction requested ).", false);
         }
     }
     calculateWallRestrictions(key);

@@ -18,7 +18,7 @@
 #include <string>
 #include <thread>
 #include <utils/algorithm.h>
-
+#include <windows.h> //todo Remove!  ONLY FOR PUBLIC BETA!!
 
 namespace cura
 {
@@ -106,6 +106,22 @@ std::string getPolygonAsString(const Polygons& poly)
     return ret;
 }
 
+
+void TreeSupport::showError(std::string message, bool critical)
+{ // todo Remove!  ONLY FOR PUBLIC BETA!!
+
+    std::string bugtype = std::string(critical ? " This is a critical bug. It may cause missing or malformed branches.\n" : "This bug should only decrease performance.\n");
+    bool show = (critical && !TreeSupport::showed_critical) || (!critical && !TreeSupport::showed_performance);
+    (critical ? TreeSupport::showed_critical : TreeSupport::showed_performance) = true;
+
+    if (show)
+    {
+        MessageBox(nullptr, std::string("TreeSupport_2 MOD detected an error while generating the tree support.\nPlease report this back to me with profile and model.\nRevision 4.1\n" + message + "\n" + bugtype).c_str(), "Bug detected!", MB_OK | MB_SYSTEMMODAL | MB_SETFOREGROUND | MB_ICONWARNING);
+    }
+}
+
+
+
 void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 {
     if (grouped_meshes.empty())
@@ -176,7 +192,11 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         auto dur_draw = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_place).count();
         auto dur_total = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_start).count();
         log("Total time used creating Tree support for the currently grouped meshes: %.3lf ms. Different subtasks:\nCalculating Avoidance: %.3lf ms Creating inital influence areas: %.3lf ms Influence area creation: %.3lf ms Placement of Points in InfluenceAreas: %.3lf ms Drawing result as support %.3lf ms\n", dur_total, dur_pre_gen, dur_gen, dur_path, dur_place, dur_draw);
-
+        if(config.branch_radius==2121)
+        {
+        	showError("Why ask questions when you already know the answer twice.\n (This is not a real bug, please dont report it.)",false);
+        }
+        
         for (auto& layer : move_bounds)
         {
             for (auto elem : layer)
@@ -497,6 +517,7 @@ Polygons TreeSupport::ensureMaximumDistancePolyline(const Polygons& input, coord
                         {
                             // In case a fixpoint is encountered, better aggressively overcompensate so the code does not become stuck here...
                             logWarning("Tree Support: Encountered a fixpoint in getNextPointWithDistance. This is expected to happen if the distance (currently %lld) is smaller than 100\n", next_distance);
+                            TreeSupport::showError("Encountered issue while placing tips. Some tips may be missing.", true);
                             if (next_distance > 2 * current_distance)
                             {
                                 // This case should never happen, but better safe than sorry.
@@ -620,6 +641,7 @@ SierpinskiFillProvider* TreeSupport::generateCrossFillProvider(const SliceMeshSt
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             logWarning("Tree support tried to generate a CrossFillProvider for a non model mesh.\n");
+            TreeSupport::showError("Tried to generate a CrossFillProvider for a non model mesh..\n", true);
             return nullptr;
         }
 
@@ -708,6 +730,7 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
             if (!mesh_config.support_rests_on_model && !to_bp)
             {
                 logWarning("Tried to add an invalid support point\n");
+                TreeSupport::showError("Unable to add tip. Some overhang may not be supported correctly.", true);
                 return;
             }
             Polygon circle;
@@ -985,6 +1008,7 @@ Polygons TreeSupport::safeOffsetInc(const Polygons& me, coord_t distance, const 
     if (safe_step_size < 0 || last_step_offset_without_check < 0)
     {
         logError("Offset increase got invalid parameter!\n");
+        TreeSupport::showError("Negative offset distance... How did you manage this ?", true);
         return (do_final_difference ? ret.difference(collision) : ret).unionPolygons();
     }
 
@@ -1474,6 +1498,7 @@ std::optional<TreeSupport::SupportElement> TreeSupport::increaseSingleArea(AreaI
             if (check_layer_data.area() < 1)
             {
                 logError("Lost area by doing catch up from %lld to radius %lld\n", ceil_radius_before, volumes_.ceilRadius(config.getCollisionRadius(current_elem), settings.use_min_distance));
+                TreeSupport::showError("Area lost catching up radius. May not cause visible malformation.", true);
             }
         }
     }
@@ -1661,6 +1686,7 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement, Polygons>& to
                          "Radius: %lld at layer: %d NextTarget: %lld Distance to top: %lld Elephant foot increases %llf  use_min_xy_dist %d to buildplate %d gracious %d safe %d until move %d \n "
                          "Parent %lld: Radius: %lld at layer: %d NextTarget: %lld Distance to top: %lld Elephant foot increases %llf  use_min_xy_dist %d to buildplate %d gracious %d safe %d until move %d\n",
                     radius, layer_idx - 1, elem.next_height, elem.distance_to_top, elem.elephant_foot_increases, elem.use_min_xy_dist, elem.to_buildplate, elem.to_model_gracious, elem.can_use_safe_radius, elem.dont_move_until, parent, config.getCollisionRadius(*parent), layer_idx, parent->next_height, parent->distance_to_top, parent->elephant_foot_increases, parent->use_min_xy_dist, parent->to_buildplate, parent->to_model_gracious, parent->can_use_safe_radius, parent->dont_move_until);
+                showError("Potentially lost branch!", true);
             }
             else
             {
@@ -1809,6 +1835,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<SupportElement*>>& mov
             if (new_area->area() < 1)
             {
                 logError("Insert Error of Influence area on layer %lld. Origin of %lld areas. Was to bp %d\n", layer_idx - 1, elem.parents.size(), elem.to_buildplate);
+                TreeSupport::showError("Insert error of area after merge.\n", true);
             }
         }
 
@@ -1818,6 +1845,8 @@ void TreeSupport::createLayerPathing(std::vector<std::set<SupportElement*>>& mov
             if (elem->area->area() < 1)
             {
                 logError("Insert Error of Influence area bypass on layer %lld.\n", layer_idx - 1);
+                TreeSupport::showError("Insert error of area after bypassing merge.\n", true);
+
             }
             move_bounds[layer_idx - 1].emplace(elem);
         }
@@ -1837,6 +1866,7 @@ void TreeSupport::setPointsOnAreas(const SupportElement* elem)
     if (elem->result_on_layer == Point(-1, -1))
     {
         logError("Uninitialized support element\n");
+        TreeSupport::showError("Uninitialized support element. A branch may be missing.\n", true);
         return;
     }
 
@@ -1894,6 +1924,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<SupportElement*>>& move
             if (SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL)
             {
                 logWarning("No valid placement found for to model gracious element on layer %lld: REMOVING BRANCH\n", layer_idx);
+                TreeSupport::showError("Could not fine valid placement on model! Removing this branch...", true);
                 for (LayerIndex layer = layer_idx; layer <= first_elem->next_height; layer++)
                 {
                     move_bounds[layer].erase(checked[layer - layer_idx]);
@@ -1904,6 +1935,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<SupportElement*>>& move
             else
             {
                 logWarning("No valid placement found for to model gracious element on layer %lld\n", layer_idx);
+                TreeSupport::showError("Could not fine valid placement on model! Just placing it down anyway. Could cause floating branches.", true);
                 first_elem->to_model_gracious = false;
                 return setToModelContact(move_bounds, first_elem, layer_idx);
             }
@@ -1972,6 +2004,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<SupportElement*>>& mo
                     if (elem->to_buildplate)
                     {
                         logError("Uninitialized Influence area targeting (%lld,%lld) at target_height: %lld layer: %lld\n", elem->target_position.X, elem->target_position.Y, elem->target_height, layer_idx);
+                        TreeSupport::showError("Uninitialized support element! A branch could be missing or exist partially.", true);
                     }
                     remove.emplace(elem); // we dont need to remove yet the parents as they will have a lower dtt and also no result_on_layer set
                     removed = true;
