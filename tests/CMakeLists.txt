@@ -8,39 +8,39 @@ include(GoogleTest)
 target_link_libraries(_CuraEngine PUBLIC GTest::gtest GTest::gmock)
 
 set(TESTS_SRC_BASE
-        ClipperTest.cpp
-        ExtruderPlanTest.cpp
-        GCodeExportTest.cpp
-        InfillTest.cpp
-        LayerPlanTest.cpp
-        PathOrderOptimizerTest.cpp
-        PathOrderMonotonicTest.cpp
-        TimeEstimateCalculatorTest.cpp
-        WallsComputationTest.cpp
-        )
+        ClipperTest
+        ExtruderPlanTest
+        GCodeExportTest
+        InfillTest
+        LayerPlanTest
+        PathOrderOptimizerTest
+        PathOrderMonotonicTest
+        TimeEstimateCalculatorTest
+        WallsComputationTest
+)
 
 set(TESTS_SRC_INTEGRATION
-        integration/SlicePhaseTest.cpp
-        )
+        SlicePhaseTest
+)
 
 set(TESTS_SRC_SETTINGS
-        settings/SettingsTest.cpp
-        )
+        SettingsTest
+)
 
 set(TESTS_SRC_UTILS
-        utils/AABBTest.cpp
-        utils/AABB3DTest.cpp
-        utils/ExtrusionLineTest.cpp
-        utils/IntPointTest.cpp
-        utils/LinearAlg2DTest.cpp
-        utils/MinimumSpanningTreeTest.cpp
-        utils/PolygonConnectorTest.cpp
-        utils/PolygonTest.cpp
-        utils/PolygonUtilsTest.cpp
-        utils/SparseGridTest.cpp
-        utils/StringTest.cpp
-        utils/UnionFindTest.cpp
-        )
+        AABBTest
+        AABB3DTest
+        ExtrusionLineTest
+        IntPointTest
+        LinearAlg2DTest
+        MinimumSpanningTreeTest
+        PolygonConnectorTest
+        PolygonTest
+        PolygonUtilsTest
+        SparseGridTest
+        StringTest
+        UnionFindTest
+)
 
 set(TESTS_HELPERS_SRC ReadTestPolygons.cpp)
 
@@ -50,39 +50,48 @@ if(ENABLE_ARCUS)
             arcus/ArcusCommunicationPrivateTest.cpp)
     list(APPEND TESTS_HELPERS_SRC arcus/MockSocket.cpp)
 endif()
-
-add_executable(base_tests main.cpp ${TESTS_SRC_BASE} ${TESTS_HELPERS_SRC})
-target_link_libraries(base_tests PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
+add_library(test_helpers ${TESTS_HELPERS_SRC})
+target_link_libraries(test_helpers PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
 if(ENABLE_ARCUS)
-    target_link_libraries(base_tests PRIVATE arcus::libarcus protobuf::libprotobuf)
+    target_link_libraries(test_helpers PRIVATE arcus::libarcus protobuf::libprotobuf)
 endif()
-gtest_discover_tests(base_tests
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        )
 
-add_executable(integration_tests main.cpp ${TESTS_SRC_INTEGRATION} ${TESTS_HELPERS_SRC})
-target_link_libraries(integration_tests PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
-if(ENABLE_ARCUS)
-    target_link_libraries(integration_tests PRIVATE arcus::libarcus protobuf::libprotobuf)
-endif()
-gtest_discover_tests(integration_tests
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        )
+foreach(test ${TESTS_SRC_BASE})
+    add_executable(${test} main.cpp ${test}.cpp)
+    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
+    if(ENABLE_ARCUS)
+        target_link_libraries(${test} PRIVATE arcus::libarcus protobuf::libprotobuf)
+    endif()
+    gtest_discover_tests(${test} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+endforeach()
 
-add_executable(settings_tests main.cpp ${TESTS_SRC_SETTINGS} ${TESTS_HELPERS_SRC})
-target_link_libraries(settings_tests PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
-if(ENABLE_ARCUS)
-    target_link_libraries(settings_tests PRIVATE arcus::libarcus protobuf::libprotobuf)
-endif()
-gtest_discover_tests(settings_tests
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        )
+foreach(test ${TESTS_SRC_INTEGRATION})
+    add_executable(${test} main.cpp integration/${test}.cpp)
+    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
+    if(ENABLE_ARCUS)
+        target_link_libraries(${test} PRIVATE arcus::libarcus protobuf::libprotobuf)
+    endif()
+    gtest_discover_tests(${test} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+endforeach()
 
-add_executable(util_tests main.cpp ${TESTS_SRC_UTILS} ${TESTS_HELPERS_SRC})
-target_link_libraries(util_tests PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
-if(ENABLE_ARCUS)
-    target_link_libraries(util_tests PRIVATE arcus::libarcus protobuf::libprotobuf)
-endif()
-gtest_discover_tests(util_tests
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        )
+foreach(test ${TESTS_SRC_SETTINGS})
+    add_executable(${test} main.cpp settings/${test}.cpp)
+    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
+    if(ENABLE_ARCUS)
+        target_link_libraries(${test} PRIVATE arcus::libarcus protobuf::libprotobuf)
+    endif()
+    gtest_discover_tests(${test} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+endforeach()
+
+foreach(test ${TESTS_SRC_UTILS})
+    add_executable(${test} main.cpp utils/${test}.cpp)
+    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
+    if(ENABLE_ARCUS)
+        target_link_libraries(${test} PRIVATE arcus::libarcus protobuf::libprotobuf)
+    endif()
+    gtest_discover_tests(${test} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+endforeach()
