@@ -37,6 +37,7 @@ set(TESTS_SRC_UTILS
         PolygonConnectorTest
         PolygonTest
         PolygonUtilsTest
+        SimplifyTest
         SparseGridTest
         StringTest
         UnionFindTest
