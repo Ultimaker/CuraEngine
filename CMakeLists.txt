@@ -1,12 +1,13 @@
 #Copyright (c) 2022 Ultimaker B.V.
 #CuraEngine is released under the terms of the AGPLv3 or higher.
 
+cmake_policy(SET CMP0091 NEW)  # For MSVC flags, will be ignored on non-Windows OS's
 cmake_minimum_required(VERSION 3.20)
 project(CuraEngine)
 
-set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
+set(CURA_ENGINE_VERSION "main" CACHE STRING "Version name of Cura")
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
-option(BUILD_TESTS "Build with unit tests" OFF)
+option(BUILD_TESTING "Build with unit tests" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
@@ -22,14 +23,9 @@ include(cmake/StandardProjectSettings.cmake)
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
 
-    find_package(Arcus REQUIRED 5.0.0)
-    find_package(protobuf 3.15.0 QUIET)
-    if (NOT TARGET protobuf::protobuf)
-        find_package(Protobuf 3.15.0 REQUIRED)
-    else ()
-        add_library(Protobuf::protobuf ALIAS protobuf::protobuf)
-    endif ()
-
+    find_package(arcus 5.0.0 REQUIRED)
+    find_package(protobuf_BUILD 3.17.1 REQUIRED)  # Used for protoc
+    find_package(protobuf 3.17.1 REQUIRED)  # Used for linking
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
@@ -147,55 +143,6 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoronoiUtils.cpp
         )
 
-# List of tests. For each test there must be a file tests/${NAME}.cpp.
-set(engine_TEST
-        ClipperTest
-        ExtruderPlanTest
-        GCodeExportTest
-        InfillTest
-        LayerPlanTest
-        PathOrderOptimizerTest
-        PathOrderMonotonicTest
-        TimeEstimateCalculatorTest
-        WallsComputationTest
-        )
-if (ENABLE_ARCUS)
-    set(engine_TEST_ARCUS
-            ArcusCommunicationTest
-            ArcusCommunicationPrivateTest
-            )
-endif ()
-set(engine_TEST_INFILL
-        )
-set(engine_TEST_INTEGRATION
-        SlicePhaseTest
-        )
-set(engine_TEST_SETTINGS
-        SettingsTest
-        )
-set(engine_TEST_UTILS
-        AABBTest
-        AABB3DTest
-        ExtrusionLineTest
-        IntPointTest
-        LinearAlg2DTest
-        MinimumSpanningTreeTest
-        PolygonConnectorTest
-        PolygonTest
-        PolygonUtilsTest
-        SparseGridTest
-        StringTest
-        UnionFindTest
-        )
-
-# Helper classes for some tests.
-set(engine_TEST_ARCUS_HELPERS
-        tests/arcus/MockSocket.cpp
-        )
-set(engine_TEST_HELPERS
-        tests/ReadTestPolygons.cpp
-        )
-
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
 use_threads(_CuraEngine)
 
@@ -207,8 +154,7 @@ target_include_directories(_CuraEngine
         )
 target_compile_definitions(_CuraEngine
         PUBLIC
-        $<$<BOOL:${BUILD_TESTS}>:BUILD_TESTS=1>
-        $<$<BOOL:${BUILD_TESTS}>:BUILD_TESTS>
+        $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS>
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
         PRIVATE
         VERSION=\"${CURA_ENGINE_VERSION}\"
@@ -237,53 +183,24 @@ endif()
 
 set_project_standards(_CuraEngine)
 enable_sanitizers(_CuraEngine)
-set_rpath(TARGETS
-        _CuraEngine
-        PATHS
-        "$<$<PLATFORM_ID:Linux>:usr/bin>"
-        "$<$<PLATFORM_ID:Linux>:usr/bin/lib>"
-        "$<$<PLATFORM_ID:Darwin>:../lib>"
-        RELATIVE)
 
 if(${EXTENSIVE_WARNINGS})
     set_project_warnings(_CuraEngine)
 endif()
 
-if(NOT APPLE AND ENABLE_OPENMP)
+if(ENABLE_OPENMP)
     find_package(OpenMP REQUIRED)
     target_link_libraries(_CuraEngine PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
 if(ENABLE_ARCUS)
-    target_link_libraries(_CuraEngine PRIVATE Arcus protobuf::protobuf)
+    target_link_libraries(_CuraEngine PRIVATE arcus::libarcus protobuf::libprotobuf)
 endif()
 
-find_package(clipper 6.4.2 QUIET)
-if (NOT TARGET clipper::clipper)
-    add_library(clipper::clipper STATIC libs/clipper/clipper.cpp)
-    target_include_directories(clipper::clipper
-            PUBLIC
-            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/clipper/include>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-            )
-endif ()
-
-find_package(rapidjson 1.1.0 QUIET)
-if (NOT TARGET rapidjson::rapidjson)
-    add_library(rapidjson::rapidjson INTERFACE)
-    target_include_directories(rapidjson::rapidjson
-            PUBLIC
-            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/libs/clipper/include>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-            )
-endif()
-
-find_package(stb REQUIRED)
-
-find_package(Boost REQUIRED 1.75.0)
-if (NOT TARGET Boost::boost)  # Workaround for different namespace in non Conan find_packages
-    add_library(boost::boost ALIAS Boost::boost)
-endif ()
+find_package(clipper 6.4.2 REQUIRED)
+find_package(rapidjson 1.1.0 REQUIRED)
+find_package(stb 20200203 REQUIRED)
+find_package(Boost 1.78.0 REQUIRED)
 
 target_link_libraries(_CuraEngine PRIVATE clipper::clipper rapidjson::rapidjson stb::stb boost::boost)
 
@@ -310,66 +227,11 @@ target_link_libraries(CuraEngine PRIVATE _CuraEngine)
 target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
 
 # Compiling the test environment.
-if (BUILD_TESTS)
-    include(CTest)
-
-    message(STATUS "Building tests...")
-    set(GTEST_USE_STATIC_LIBS true)
-    set(GMOCK_ROOT "${CMAKE_CURRENT_BINARY_DIR}/gmock")
-    set(GMOCK_VER "1.8.1")
-    find_package(GMock REQUIRED)
-    include_directories(${GTEST_INCLUDE_DIRS})
-    include_directories(${GMOCK_INCLUDE_DIRS})
-    add_dependencies(_CuraEngine GTest::GTest GTest::Main GMock::GMock GMock::Main)
-    add_definitions(-DBUILD_TESTS)
-
-    target_compile_definitions(_CuraEngine PUBLIC BUILD_TESTS=1)
-
-    #To make sure that the tests are built before running them, add the building of these tests as an additional test.
-    add_custom_target(build_all_tests)
-    add_test(BuildTests "${CMAKE_COMMAND}" --build "${CMAKE_CURRENT_BINARY_DIR}" --target build_all_tests)
-
-    foreach (test ${engine_TEST})
-        add_executable(${test} tests/main.cpp ${engine_TEST_HELPERS} tests/${test}.cpp)
-        target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    endforeach ()
-    if (ENABLE_ARCUS)
-        foreach (test ${engine_TEST_ARCUS})
-            add_executable(${test} tests/main.cpp ${engine_TEST_ARCUS_HELPERS} tests/arcus/${test}.cpp)
-            target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-            add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-            add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-        endforeach()
-    endif()
-    foreach (test ${engine_TEST_INFILL})
-        add_executable(${test} tests/main.cpp tests/infill/${test}.cpp)
-        target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    endforeach ()
-    foreach (test ${engine_TEST_INTEGRATION})
-        add_executable(${test} tests/main.cpp tests/integration/${test}.cpp)
-        target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    endforeach ()
-    foreach (test ${engine_TEST_SETTINGS})
-        add_executable(${test} tests/main.cpp tests/settings/${test}.cpp)
-        target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    endforeach ()
-    foreach (test ${engine_TEST_UTILS})
-        add_executable(${test} tests/main.cpp tests/utils/${test}.cpp)
-        target_link_libraries(${test} _CuraEngine ${GTEST_BOTH_LIBRARIES} ${GMOCK_BOTH_LIBRARIES})
-        add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/")
-        add_dependencies(build_all_tests ${test}) #Make sure that this gets built as part of the build_all_tests target.
-    endforeach ()
-endif ()
+if (BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # Installing CuraEngine.
 include(GNUInstallDirs)
 install(TARGETS CuraEngine DESTINATION "${CMAKE_INSTALL_BINDIR}")
-include(CPackConfig.cmake)
