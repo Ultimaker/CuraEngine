@@ -46,22 +46,6 @@ std::vector<size_t> order(const std::vector<T> &in)
 }
 
 
-
-/* An implementation of parallel for.
- * There are still a lot of compilers that claim to be fully C++17 compatible, but don't implement the Parallel Execution TS of the accompanying standard library.
- * This means that we mostly have to fall back to the things that C++11/14 provide when it comes to threading/parallelism/etc.
- *
- * \param from The index starts here (inclusive).
- * \param to The index ends here (not inclusive).
- * \param increment Add this to the index each time.
- * \param body The loop-body, as a closure. Receives the index on invocation.
- */
-template<typename T>
-void parallel_for(T from, T to, T increment, const std::function<void(const T)>& body)
-{
-    parallel_for_nowait<T>(from,to,increment,body).wait();
-}
-
 /* An implementation of parallel for nowait.
  * There are still a lot of compilers that claim to be fully C++17 compatible, but don't implement the Parallel Execution TS of the accompanying standard library.
  * This means that we mostly have to fall back to the things that C++11/14 provide when it comes to threading/parallelism/etc.
@@ -100,6 +84,22 @@ std::future<void> parallel_for_nowait(T from, T to, T increment, const std::func
     auto ret = std::async(std::launch::async, starter);
     return ret;
 }
+
+/* An implementation of parallel for.
+ * There are still a lot of compilers that claim to be fully C++17 compatible, but don't implement the Parallel Execution TS of the accompanying standard library.
+ * This means that we mostly have to fall back to the things that C++11/14 provide when it comes to threading/parallelism/etc.
+ *
+ * \param from The index starts here (inclusive).
+ * \param to The index ends here (not inclusive).
+ * \param increment Add this to the index each time.
+ * \param body The loop-body, as a closure. Receives the index on invocation.
+ */
+template<typename T>
+void parallel_for(T from, T to, T increment, const std::function<void(const T)>& body)
+{
+    parallel_for_nowait<T>(from,to,increment,body).wait();
+}
+
 
 
 } // namespace cura
