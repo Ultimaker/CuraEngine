@@ -86,14 +86,6 @@ public:
      */
     ExtrusionLine polyline(const ExtrusionLine& polyline);
 
-protected:
-    /*!
-     * Line segments smaller than this should not occur in the output.
-     * If a vertex causes deviation of less than this, it should always be
-     * removed.
-     */
-    constexpr static coord_t min_resolution = 5; //5 units, regardless of how big those are, to allow for rounding errors.
-
     /*!
      * Line segments shorter than this size should be considered for removal.
      */
@@ -110,6 +102,14 @@ protected:
      * change by more than this, it may not be removed.
      */
     coord_t max_area_deviation;
+
+protected:
+    /*!
+     * Line segments smaller than this should not occur in the output.
+     * If a vertex causes deviation of less than this, it should always be
+     * removed.
+     */
+    constexpr static coord_t min_resolution = 5; //5 units, regardless of how big those are, to allow for rounding errors.
 
     /*!
      * The main simplification algorithm starts here.
