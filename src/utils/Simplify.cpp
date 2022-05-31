@@ -61,7 +61,7 @@ Polygon Simplify::polyline(const PolygonRef polyline)
 
 Polygon Simplify::simplify(const PolygonRef polygon, const bool is_closed)
 {
-    const size_t min_size = is_closed ? 2 : 3;
+    const size_t min_size = is_closed ? 3 : 2;
     if(polygon.size() < min_size) //For polygon, 2 or fewer vertices is degenerate. Delete it. For polyline, 1 vertex is degenerate.
     {
         return Polygon();
@@ -88,7 +88,7 @@ Polygon Simplify::simplify(const PolygonRef polygon, const bool is_closed)
     //Iteratively remove the least important point until a threshold.
     Polygon result = polygon; //Make a copy so that we can also shift vertices.
     coord_t vertex_importance = 0;
-    while(by_importance.size() > 3)
+    while(by_importance.size() > min_size)
     {
         std::pair<size_t, coord_t> vertex = by_importance.top();
         by_importance.pop();
