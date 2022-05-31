@@ -216,32 +216,6 @@ TEST_F(PolygonTest, getEmptyHolesTest)
     }
 }
 
-TEST_F(PolygonTest, simplifyDegenerateVertex)
-{
-    //Generate a line with several vertices halfway.
-    constexpr coord_t spacing = 100;
-    Polygons colinear_polygons;
-    PolygonRef colinear = colinear_polygons.newPoly();
-    colinear.emplace_back(0, 0);
-    colinear.emplace_back(spacing, 0);
-    colinear.emplace_back(spacing, spacing);
-    colinear.emplace_back(0, spacing);
-    colinear.emplace_back(0, -spacing); // degenerate vertex
-    
-    Polygon colinear_before = colinear;
-
-    colinear_polygons.simplify(20, 5); //Regardless of parameters, it should always remove the one vertex
-    if (visualize)
-    {
-        SVG svg("output/simplifyDegenerateVertex.svg", AABB(colinear_before));
-        svg.writePolygon(colinear_before);
-        svg.nextLayer();
-        svg.writePolygon(colinear, SVG::Color::RED);
-    }
-    ASSERT_EQ(colinear_polygons.size(), 1) << "Polygon shouldn't have gotten removed altogether";
-    ASSERT_EQ(colinear_polygons[0].size(), 4) << "The one colinear vertex should have gotten removed.";
-}
-
 /*
  * Test whether a polygon can be reduced to 1 or 2 vertices. In that case, it
  * should get reduced to 0 or stay at 3.

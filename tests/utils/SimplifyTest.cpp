@@ -334,4 +334,28 @@ TEST_F(SimplifyTest, Collinear)
     EXPECT_EQ(simplified.size(), 4) << "The square has 4 corners. All other extra vertices deviate by less than the minimum resolution.";
 }
 
+/*!
+ * Tests that duplicate vertices are always removed.
+ */
+TEST_F(SimplifyTest, IdenticalVertices)
+{
+    Polygon polygon; //Make a rudimentary triangle, but with vertices repeated.
+    constexpr size_t repeats = 10; //How many copies of each vertex to include.
+    for(size_t vertex = 0; vertex < 3; ++vertex)
+    {
+        for(size_t i = 0; i < repeats; ++i)
+        {
+            switch(vertex)
+            {
+                case 0: polygon.add(Point(0, 0)); break;
+                case 1: polygon.add(Point(10000, 0)); break;
+                case 2: polygon.add(Point(5000, 10000)); break;
+            }
+        }
+    }
+
+    Polygon simplified = simplifier.polygon(polygon);
+    EXPECT_EQ(simplified.size(), 3) << "Only the actual vertices of the triangle should remain.";
+}
+
 }
