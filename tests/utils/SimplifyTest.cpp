@@ -252,6 +252,42 @@ TEST_F(SimplifyTest, LongEdgesNotMoved)
 }
 
 /*!
+ * Tests the case where there are small edges between long edges, where it would
+ * normally extend the long edges to prevent shifting them. But extending them
+ * to their intersection point would create a vertex that deviates too much from
+ * the original shape, so the polygons then can't be simplified.
+ */
+TEST_F(SimplifyTest, LongEdgesButTooMuchDeviation)
+{
+    Polygon polyline;
+    polyline.add(Point(0, 0));
+    polyline.add(Point(0, 10000)); //Long edge.
+    polyline.add(Point(10, 10000)); //Short edge.
+    polyline.add(Point(20, 0)); //Long edge. Intersection with previous long edge is at 0,20000, which is too far.
+
+    Polygon simplified = simplifier.polyline(polyline);
+
+    //Verify that the polyline is unchanged.
+    ASSERT_EQ(polyline.size(), simplified.size()) << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
+    for(size_t i = 0; i < polyline.size(); ++i)
+    {
+        EXPECT_EQ(polyline[i], simplified[i]) << "The position of the vertices may not have been altered since the polyline was not simplified.";
+    }
+
+    polyline.pop_back();
+    polyline.add(Point(10, 0)); //Replace last vertex with one that makes the two long edges exactly parallel.
+
+    simplified = simplifier.polyline(polyline);
+
+    //Verify that the polyline is again unchanged.
+    ASSERT_EQ(polyline.size(), simplified.size()) << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
+    for(size_t i = 0; i < polyline.size(); ++i)
+    {
+        EXPECT_EQ(polyline[i], simplified[i]) << "The position of the vertices may not have been altered since the polyline was not simplified.";
+    }
+}
+
+/*!
  * Test simplifying a sine wave with an amplitude lower than the deviation.
  *
  * The sine wave should get simplified to a line then.
