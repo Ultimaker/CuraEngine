@@ -68,34 +68,33 @@ public:
 
     static bool lineLineIntersection(const Point& a, const Point& b, const Point& c, const Point& d, Point& output)
     {
-        // Line AB represented as a1x + b1y = c1
-        const double a1 = b.Y - a.Y;
-        const double b1 = a.X - b.X;
-
-        // Line CD represented as a2x + b2y = c2
-        const double a2 = d.Y - c.Y;
-        const double b2 = c.X - d.X;
-
-        const double determinant = a1 * b2 - a2 * b1;
-
-        if (determinant == 0)
+        //Adapted from Apex: https://github.com/Ghostkeeper/Apex/blob/eb75f0d96e36c7193d1670112826842d176d5214/include/apex/line_segment.hpp#L91
+        //Adjusted to work with lines instead of line segments.
+        const Point l1_delta = b - a;
+        const Point l2_delta = d - c;
+        const coord_t divisor = cross(l1_delta, l2_delta); //Pre-compute divisor needed for the intersection check.
+        if(divisor == 0)
         {
-            // The lines are parallel
+            //The lines are parallel if the cross product of their directions is zero.
             return false;
         }
 
-        const double c1 = a1 * (a.X) + b1 * (a.Y);
-        const double c2 = a2 * (c.X) + b2 * (c.Y);
+        //Create a parametric representation of each line.
+        //We'll equate the parametric equations to each other to find the intersection then.
+        //Parametric equation is L = P + Vt (where P and V are a starting point and directional vector).
+        //We'll map the starting point of each line onto the parameter system of the other line.
+        //Then using the divisor we can see whether and where they cross.
+        const Point starts_delta = a - c;
+        const coord_t l1_parametric = cross(l2_delta, starts_delta);
+        const coord_t l2_parametric = cross(l1_delta, starts_delta);
+        Point result = a + Point(round_divide(l1_parametric * l1_delta.X, divisor), round_divide(l1_parametric * l1_delta.Y, divisor));
 
-        const Point result((b2 * c1 - b1 * c2) / determinant,
-                     (a1 * c1 - a2 * c1) / determinant);
         if(std::abs(result.X) > std::numeric_limits<int32_t>::max() || std::abs(result.Y) > std::numeric_limits<int32_t>::max())
         {
             //Intersection is so far away that it could lead to integer overflows.
             //Even though the lines aren't 100% parallel, it's better to pretend they are. They are practically parallel.
             return false;
         }
-
         output = result;
         return true;
     }
