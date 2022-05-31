@@ -6,6 +6,7 @@
 
 #include "Simplify.h"
 #include "linearAlg2D.h"
+#include "SVG.h" //DEBUG!
 
 namespace cura
 {
@@ -29,7 +30,7 @@ coord_t Simplify::importance(const PolygonRef& polygon, const std::vector<bool>&
     {
         return std::numeric_limits<coord_t>::max(); //Endpoints of the polyline must always be retained.
     }
-    //From here on out we can safely look at the vertex neighbours and assume it's a polygon. We won't go out of bounds of the polyline.
+    //From here on out we can safely look at the vertex neighbors and assume it's a polygon. We won't go out of bounds of the polyline.
 
     const Point& vertex = polygon[index];
     const Point& before = polygon[previousNotDeleted(index, to_delete)];
@@ -102,11 +103,11 @@ Polygon Simplify::simplify(const PolygonRef polygon, const bool is_closed)
 
     //Now remove the marked vertices in one sweep.
     Polygon filtered;
-    for(size_t i = 0; i < polygon.size(); ++i)
+    for(size_t i = 0; i < result.size(); ++i)
     {
         if(!to_delete[i])
         {
-            filtered.add(polygon[i]);
+            filtered.add(result[i]);
         }
     }
 
