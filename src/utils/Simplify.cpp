@@ -53,6 +53,12 @@ Polygon Simplify::polygon(const PolygonRef polygon)
     return simplify(polygon, is_closed);
 }
 
+Polygon Simplify::polyline(const PolygonRef polyline)
+{
+    constexpr bool is_closed = false;
+    return simplify(polyline, is_closed);
+}
+
 Polygon Simplify::simplify(const PolygonRef polygon, const bool is_closed)
 {
     const size_t min_size = is_closed ? 2 : 3;
