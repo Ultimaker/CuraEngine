@@ -169,6 +169,12 @@ TEST_F(SimplifyTest, LimitedLength)
     }
 }
 
+/*!
+ * Test simplifying a zig-zag pattern where the deviation gradually increases.
+ *
+ * When the deviation is less than max_deviation, it should remove vertices.
+ * When it's greater, it should not remove vertices.
+ */
 TEST_F(SimplifyTest, LimitedError)
 {
     simplifier.max_resolution = 9999999;
@@ -199,6 +205,43 @@ TEST_F(SimplifyTest, LimitedError)
             break; //Things are allowed to be simplified from here.
         }
         EXPECT_EQ(increasing_zigzag[vertex_zigzag], simplified[vertex_simplified]) << "Where line segments are deviating more than max_deviation, vertices should not be altered.";
+    }
+}
+
+/*!
+ * Test simplifying a polyline with small edges encompassed by long edges.
+ *
+ * The small edges should be removed, but the long edges may not be shifted. The
+ * only correct solution involves a vertex that wasn't in the original polyline.
+ */
+TEST_F(SimplifyTest, LongEdgesNotMoved)
+{
+    Polygon polyline;
+    polyline.add(Point(0, 0));
+    polyline.add(Point(10000, 10000)); //Long edge.
+    polyline.add(Point(10010, 10000)); //Short edge.
+    polyline.add(Point(21010, 0)); //Long edge.
+
+    Polygon simplified = simplifier.polyline(polyline);
+
+    //Verify that all small segments are removed.
+    for(size_t i = 1; i < simplified.size(); ++i)
+    {
+        EXPECT_GE(vSize(simplified[i] - simplified[i - 1]), simplifier.max_resolution) << "There may not be any segment smaller than max resolution.";
+    }
+
+    //Verify that all long segments are still present.
+    for(size_t i = 0; i < polyline.size() - 1; ++i)
+    {
+        if(vSize(polyline[i] - polyline[i + 1]) > simplifier.max_resolution)
+        {
+            //Both endpoints of this line segment must have a distance to the simplified polygon of 0, theoretically.
+            //Due to rounding errors we'll allow up to 1 unit.
+            Point moved_point = polyline[i];
+            PolygonUtils::moveInside(simplified, moved_point);
+            const coord_t deviation = vSize(moved_point - polyline[i]);
+            EXPECT_LE(deviation, 1) << "The endpoints of long segments must still be in the simplified result.";
+        }
     }
 }
 
