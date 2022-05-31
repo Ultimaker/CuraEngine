@@ -216,32 +216,6 @@ TEST_F(PolygonTest, getEmptyHolesTest)
     }
 }
 
-TEST_F(PolygonTest, simplifyColinear)
-{
-    //Generate a line with several vertices halfway.
-    constexpr coord_t spacing = 100;
-    Polygons colinear_polygons;
-    PolygonRef colinear = colinear_polygons.newPoly();
-    for(size_t i = 0; i < 10; i++)
-    {
-        colinear.add(Point(i * spacing + i % 2 - 1, i * spacing + i % 2 - 1)); //Some jitter of 2 microns is allowed.
-    }
-    colinear.add(Point(spacing * 9, 0)); //Make it a triangle so that the area is not 0 or anything.
-
-    Polygon colinear_before = colinear;
-
-    colinear_polygons.simplify(20, 20); //Regardless of parameters, it should always remove vertices with less than 5 micron deviation.
-    if (visualize)
-    {
-        SVG svg("output/simplifyColinear.svg", AABB(colinear_before));
-        svg.writePolygon(colinear_before);
-        svg.nextLayer();
-        svg.writePolygon(colinear, SVG::Color::RED);
-    }
-    ASSERT_EQ(colinear_polygons.size(), 1) << "Polygon shouldn't have gotten removed altogether";
-    ASSERT_LE(colinear_polygons[0].size(), 8) << "At least half of the colinear points should have been removed";
-}
-
 TEST_F(PolygonTest, simplifyDegenerateVertex)
 {
     //Generate a line with several vertices halfway.

@@ -24,6 +24,7 @@ public:
 
     //Some polygons to run tests on.
     Polygon circle; //High resolution circle.
+    Polygon square_collinear; //Square, but with extra vertices along each edge, with up to 4 units jitter.
     //And some polylines.
     Polygon sine; //A sinewave.
     Polygon spiral; //A spiral with gradually increasing segment length.
@@ -43,6 +44,26 @@ public:
         for(double angle = 0; angle < tau; angle += increment)
         {
             circle.add(Point(std::cos(angle) * radius, std::sin(angle) * radius));
+        }
+
+        square_collinear.clear();
+        constexpr size_t extra_vertices = 10; //Vertices per side (including corners).
+        constexpr size_t jitter = 4;
+        constexpr size_t width = 100000; //Big width so that the individual edges are longer than max_resolution.
+        for(size_t side = 0; side < 4; side++)
+        {
+            for(size_t vertex = 0; vertex < extra_vertices; ++vertex)
+            {
+                const coord_t latitude = (vertex % 2) * jitter;
+                const coord_t longitude = vertex * width / extra_vertices;
+                switch(side)
+                {
+                    case 0: square_collinear.add(Point(longitude, latitude)); break;
+                    case 1: square_collinear.add(Point(width + latitude, longitude)); break;
+                    case 2: square_collinear.add(Point(width - longitude, width + latitude)); break;
+                    case 3: square_collinear.add(Point(latitude, width - longitude)); break;
+                }
+            }
         }
 
         sine.clear();
@@ -301,6 +322,16 @@ TEST_F(SimplifyTest, Sine)
     Polygon simplified = simplifier.polyline(sine);
 
     EXPECT_EQ(simplified.size(), 2) << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
+}
+
+/*!
+ * Tests that vertices that deviate by less than the minimum resolution always
+ * get removed, regardless of how long the incident edges are.
+ */
+TEST_F(SimplifyTest, Collinear)
+{
+    Polygon simplified = simplifier.polygon(square_collinear);
+    EXPECT_EQ(simplified.size(), 4) << "The square has 4 corners. All other extra vertices deviate by less than the minimum resolution.";
 }
 
 }
