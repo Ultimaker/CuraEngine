@@ -86,7 +86,7 @@ public:
         //Then using the divisor we can see whether and where they cross.
         const Point starts_delta = a - c;
         const coord_t l1_parametric = cross(l2_delta, starts_delta);
-        Point result = a + Point(round_divide(l1_parametric * l1_delta.X, divisor), round_divide(l1_parametric * l1_delta.Y, divisor));
+        Point result = a + Point(round_divide_signed(l1_parametric * l1_delta.X, divisor), round_divide_signed(l1_parametric * l1_delta.Y, divisor));
 
         if(std::abs(result.X) > std::numeric_limits<int32_t>::max() || std::abs(result.Y) > std::numeric_limits<int32_t>::max())
         {
