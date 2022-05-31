@@ -24,6 +24,8 @@ public:
 
     //Some polygons to run tests on.
     Polygon circle; //High resolution circle.
+    //And some polylines.
+    Polygon zigzag; //Sawtooth zig-zag pattern.
 
     SimplifyTest() : simplifier(max_resolution, max_deviation, max_area_deviation) {}
 
@@ -31,6 +33,7 @@ public:
     {
         simplifier = Simplify(max_resolution, max_deviation, max_area_deviation); //Reset in case the test wants to change a parameter.
 
+        circle.clear();
         constexpr coord_t radius = 100000;
         constexpr double segment_length = max_resolution - 10;
         constexpr double tau = 6.283185307179586476925286766559; //2 * pi.
@@ -38,6 +41,15 @@ public:
         for(double angle = 0; angle < tau; angle += increment)
         {
             circle.add(Point(std::cos(angle) * radius, std::sin(angle) * radius));
+        }
+
+        zigzag.clear();
+        constexpr coord_t amplitude = 45;
+        constexpr coord_t invfreq = 30;
+        constexpr coord_t vertex_count = 1000;
+        for(size_t i = 0; i < vertex_count; ++i)
+        {
+            zigzag.add(Point(-amplitude + (i % 2) * 2 * amplitude, i * invfreq));
         }
     }
 };
@@ -88,6 +100,24 @@ TEST_F(SimplifyTest, CircleMaxDeviation)
         const coord_t deviation = vSize(moved_point - v);
         EXPECT_LE(deviation, simplifier.max_deviation);
     }
+}
+
+/*!
+ * Test a zig-zagging line where all line segments are considered short.
+ *
+ * The line zig-zags in a sawtooth pattern, but within a band of a width smaller
+ * than the deviation. When all line segments are short, they can all be removed
+ * and turned into one straight line.
+ */
+TEST_F(SimplifyTest, Zigzag)
+{
+    simplifier.max_resolution = 9999999;
+    Polygon simplified = simplifier.polyline(zigzag);
+    SVG svg("test.svg", AABB(zigzag));
+    svg.writePolyline(zigzag);
+    svg.writePolyline(simplified, SVG::Color::RED);
+
+    EXPECT_EQ(simplified.size(), 2) << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
 }
 
 }
