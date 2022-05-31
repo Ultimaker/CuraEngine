@@ -358,4 +358,27 @@ TEST_F(SimplifyTest, IdenticalVertices)
     EXPECT_EQ(simplified.size(), 3) << "Only the actual vertices of the triangle should remain.";
 }
 
+/*!
+ * Tests that simplification doesn't make polygons or polylines degenerate.
+ */
+TEST_F(SimplifyTest, ToDegenerate)
+{
+    //Create a triangle where one of the vertices could be removed.
+    Polygon triangle;
+    triangle.add(Point(0, 0));
+    triangle.add(Point(1100, 0));
+    triangle.add(Point(550, 50)); //Deviates by 50, and both adjacent edges are just over 550 long. Could be removed.
+
+    triangle = simplifier.polygon(triangle);
+    EXPECT_EQ(triangle.size(), 3) << "The triangle did not get simplified because that would reduce its vertices to less than 3, making it degenerate.";
+
+    //Create a polyline that is shorter than the minimum resolution.
+    Polygon segment;
+    segment.add(Point(0, 0));
+    segment.add(Point(4, 0)); //Less than 5 micron long, so vertices would always be removed.
+
+    segment = simplifier.polyline(segment);
+    EXPECT_EQ(segment.size(), 2) << "The segment did not get simplified because that would reduce its vertices to less than 2, making it degenerate.";
+}
+
 }

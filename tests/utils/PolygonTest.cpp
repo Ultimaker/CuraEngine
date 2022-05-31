@@ -217,25 +217,6 @@ TEST_F(PolygonTest, getEmptyHolesTest)
 }
 
 /*
- * Test whether a polygon can be reduced to 1 or 2 vertices. In that case, it
- * should get reduced to 0 or stay at 3.
- */
-TEST_F(PolygonTest, simplifyToDegenerate)
-{
-    //Generate a D shape with one long side and another curved side broken up into smaller pieces that can be removed.
-    Polygons d_polygons;
-    PolygonRef d = d_polygons.newPoly();
-    d.add(Point(0, 0));
-    d.add(Point(10, 55));
-    d.add(Point(0, 110));
-
-    d.simplify(100, 15);
-
-    EXPECT_NE(d.size(), 1);
-    EXPECT_NE(d.size(), 2);
-}
-
-/*
  * The convex hull of a cube should still be a cube
  */
 TEST_F(PolygonTest, convexTestCube)
