@@ -25,6 +25,7 @@ public:
     //Some polygons to run tests on.
     Polygon circle; //High resolution circle.
     //And some polylines.
+    Polygon sine; //A sinewave.
     Polygon spiral; //A spiral with gradually increasing segment length.
     Polygon zigzag; //Sawtooth zig-zag pattern.
 
@@ -44,6 +45,16 @@ public:
             circle.add(Point(std::cos(angle) * radius, std::sin(angle) * radius));
         }
 
+        sine.clear();
+        const AngleRadians sine_step = 0.01; //How far to continue along the sine curve at every vertex.
+        constexpr coord_t amplitude = 45;
+        constexpr coord_t y_step = 100;
+        constexpr size_t periods = 10; //How many waves of the sine to construct.
+        for(double current_sine = 0; current_sine < M_PI * periods; current_sine += sine_step)
+        {
+            sine.add(Point(std::sin(current_sine) * amplitude, y_step * sine.size()));
+        }
+
         spiral.clear();
         const AngleRadians angle_step = 0.1; //Rotate every next vertex by this amount of radians.
         constexpr coord_t radius_step = 100; //Increase the radius by this amount every vertex.
@@ -58,7 +69,6 @@ public:
         }
 
         zigzag.clear();
-        constexpr coord_t amplitude = 45;
         constexpr coord_t invfreq = 30;
         for(size_t i = 0; i < vertex_count; ++i)
         {
@@ -126,10 +136,6 @@ TEST_F(SimplifyTest, Zigzag)
 {
     simplifier.max_resolution = 9999999;
     Polygon simplified = simplifier.polyline(zigzag);
-    SVG svg("test.svg", AABB(zigzag));
-    svg.writePolyline(zigzag);
-    svg.writePolyline(simplified, SVG::Color::RED);
-
     EXPECT_EQ(simplified.size(), 2) << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
 }
 
@@ -243,6 +249,22 @@ TEST_F(SimplifyTest, LongEdgesNotMoved)
             EXPECT_LE(deviation, 1) << "The endpoints of long segments must still be in the simplified result.";
         }
     }
+}
+
+/*!
+ * Test simplifying a sine wave with an amplitude lower than the deviation.
+ *
+ * The sine wave should get simplified to a line then.
+ *
+ * This test is similar to LimitedError, but with a higher resolution curve to
+ * start with, requiring the algorithm to aggregate errors.
+ */
+TEST_F(SimplifyTest, Sine)
+{
+    simplifier.max_resolution = 9999999;
+    Polygon simplified = simplifier.polyline(sine);
+
+    EXPECT_EQ(simplified.size(), 2) << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
 }
 
 }
