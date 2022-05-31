@@ -25,6 +25,7 @@ public:
     //Some polygons to run tests on.
     Polygon circle; //High resolution circle.
     //And some polylines.
+    Polygon spiral; //A spiral with gradually increasing segment length.
     Polygon zigzag; //Sawtooth zig-zag pattern.
 
     SimplifyTest() : simplifier(max_resolution, max_deviation, max_area_deviation) {}
@@ -34,19 +35,31 @@ public:
         simplifier = Simplify(max_resolution, max_deviation, max_area_deviation); //Reset in case the test wants to change a parameter.
 
         circle.clear();
-        constexpr coord_t radius = 100000;
+        coord_t radius = 100000;
         constexpr double segment_length = max_resolution - 10;
         constexpr double tau = 6.283185307179586476925286766559; //2 * pi.
-        constexpr double increment = segment_length / radius; //Segments of 990 units.
+        const double increment = segment_length / radius; //Segments of 990 units.
         for(double angle = 0; angle < tau; angle += increment)
         {
             circle.add(Point(std::cos(angle) * radius, std::sin(angle) * radius));
         }
 
+        spiral.clear();
+        const AngleRadians angle_step = 0.1; //Rotate every next vertex by this amount of radians.
+        constexpr coord_t radius_step = 100; //Increase the radius by this amount every vertex.
+        constexpr coord_t vertex_count = 1000;
+        AngleRadians angle = 0;
+        radius = 0;
+        for(size_t i = 0; i < vertex_count; ++i)
+        {
+            spiral.add(Point(std::cos(angle) * radius, std::sin(angle) * radius));
+            angle += angle_step;
+            radius += radius_step;
+        }
+
         zigzag.clear();
         constexpr coord_t amplitude = 45;
         constexpr coord_t invfreq = 30;
-        constexpr coord_t vertex_count = 1000;
         for(size_t i = 0; i < vertex_count; ++i)
         {
             zigzag.add(Point(-amplitude + (i % 2) * 2 * amplitude, i * invfreq));
@@ -118,6 +131,41 @@ TEST_F(SimplifyTest, Zigzag)
     svg.writePolyline(simplified, SVG::Color::RED);
 
     EXPECT_EQ(simplified.size(), 2) << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
+}
+
+/*!
+ * Test simplifying a spiral where the line segments gradually increase in
+ * segment length.
+ *
+ * The simplification should only be applied to segments that were shorter than
+ * the maximum resolution.
+ */
+TEST_F(SimplifyTest, LimitedLength)
+{
+    simplifier.max_deviation = 999999; //Maximum deviation should have no effect.
+    //Find from where on the segments become longer than the maximum resolution.
+    size_t limit_vertex;
+    for(limit_vertex = 1; limit_vertex < spiral.size(); ++limit_vertex)
+    {
+        if(vSize2(spiral[limit_vertex] - spiral[limit_vertex - 1]) > simplifier.max_resolution * simplifier.max_resolution)
+        {
+            limit_vertex--;
+            break;
+        }
+    }
+
+    Polygon simplified = simplifier.polyline(spiral);
+    //Look backwards until the limit vertex is reached to verify that the polygon is unaltered there.
+    for(size_t i = 0; i < simplified.size(); ++i)
+    {
+        size_t vertex_spiral = spiral.size() - 1 - i;
+        size_t vertex_simplified = simplified.size() - 1 - i;
+        if(vertex_spiral < limit_vertex)
+        {
+            break; //Things are allowed to be simplified here.
+        }
+        EXPECT_EQ(spiral[vertex_spiral], simplified[vertex_simplified]) << "Where line segments are longer than max_resolution, vertices should not be altered.";
+    }
 }
 
 }
