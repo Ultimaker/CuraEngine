@@ -155,6 +155,7 @@ TEST_F(SimplifyTest, LimitedLength)
     }
 
     Polygon simplified = simplifier.polyline(spiral);
+
     //Look backwards until the limit vertex is reached to verify that the polygon is unaltered there.
     for(size_t i = 0; i < simplified.size(); ++i)
     {
@@ -162,9 +163,42 @@ TEST_F(SimplifyTest, LimitedLength)
         size_t vertex_simplified = simplified.size() - 1 - i;
         if(vertex_spiral < limit_vertex)
         {
-            break; //Things are allowed to be simplified here.
+            break; //Things are allowed to be simplified from here.
         }
         EXPECT_EQ(spiral[vertex_spiral], simplified[vertex_simplified]) << "Where line segments are longer than max_resolution, vertices should not be altered.";
+    }
+}
+
+TEST_F(SimplifyTest, LimitedError)
+{
+    simplifier.max_resolution = 9999999;
+
+    //Generate a zig-zag with gradually increasing deviation.
+    Polygon increasing_zigzag;
+    increasing_zigzag.add(Point(0, 0));
+    constexpr coord_t amplitude_step = 1; //Every 2 vertices, the amplitude increases by this much.
+    constexpr coord_t y_step = 100;
+    const coord_t amplitude_limit = simplifier.max_deviation * 2; //Increase amplitude up to this point. About half of the vertices should get removed.
+    for(coord_t amplitude = 0; amplitude < amplitude_limit; amplitude += amplitude_step)
+    {
+        increasing_zigzag.add(Point(amplitude, increasing_zigzag.size() * y_step));
+        increasing_zigzag.add(Point(0, increasing_zigzag.size() * y_step));
+    }
+
+    size_t limit_vertex = 2 * simplifier.max_deviation / amplitude_step + 2; //2 vertices per zag. Deviation/step zags. Add 2 since deviation equal to max is allowed.
+
+    Polygon simplified = simplifier.polyline(increasing_zigzag);
+
+    //Look backwards until the limit vertex is reached to verify that the polygon is unaltered there.
+    for(size_t i = 0; i < simplified.size(); ++i)
+    {
+        size_t vertex_zigzag = increasing_zigzag.size() - 1 - i;
+        size_t vertex_simplified = simplified.size() - 1 - i;
+        if(vertex_zigzag < limit_vertex)
+        {
+            break; //Things are allowed to be simplified from here.
+        }
+        EXPECT_EQ(increasing_zigzag[vertex_zigzag], simplified[vertex_simplified]) << "Where line segments are deviating more than max_deviation, vertices should not be altered.";
     }
 }
 

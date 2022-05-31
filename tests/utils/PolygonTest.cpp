@@ -216,53 +216,6 @@ TEST_F(PolygonTest, getEmptyHolesTest)
     }
 }
 
-TEST_F(PolygonTest, simplifyLimitedError)
-{
-    // Generate a large polygon with a small region with arbitrary simplifiable geometry
-    // We choose a spiral for that arbitrary geometry
-    
-    //Generate a square spiral with increasingly large corners
-    Polygons spiral_polygons;
-    PolygonRef spiral = spiral_polygons.newPoly();
-    spiral.emplace_back(-15000, 11000); // introduce points that may never be simplified so that we know the simplification should start at 0,0
-    spiral.emplace_back(-15000, 1000);
-    spiral.emplace_back(0, 0);
-
-    //Generate a square spiral, 90 degree corners to make it easy to compute the area loss while retaining a positive area per corner.
-    coord_t segment_length = 1000;
-    Point last_position(0, 0);
-    double angle = 0;
-    for (size_t i = 0; i < 10; i++)
-    {
-        const coord_t dx = std::cos(angle) * segment_length;
-        const coord_t dy = std::sin(angle) * segment_length;
-        last_position += Point(dx, dy);
-        spiral.add(last_position);
-        segment_length += 100;
-        angle += M_PI / 2;
-    }
-    Polygon spiral_before = spiral;
-
-    coord_t max_height = segment_length * std::sqrt(2.0); // the diameter of the circle along the diagonal
-
-    for (size_t i = 0; i < spiral_before.size(); ++i)
-    {
-        // apply simplify iteratively for each point until nothing is simplifiable any more
-        spiral_polygons.simplify(10000, max_height);
-    }
-    
-    if (visualize)
-    {
-        SVG svg("output/simplifyLimitedError.svg", AABB(spiral_before));
-        svg.writePolygon(spiral_before);
-        svg.nextLayer();
-        svg.writePolygon(spiral, SVG::Color::RED);
-    }
-
-    EXPECT_THAT(spiral.size(), testing::Eq(4)) << "Should simplify all spiral points except those connected to far away geometry.";
-}
-
-
 TEST_F(PolygonTest, simplifyIncreasingLimitedError)
 {
     // Generate a zigzag with bends in the outer ends with increasing height
