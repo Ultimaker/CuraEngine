@@ -82,11 +82,10 @@ public:
         //Create a parametric representation of each line.
         //We'll equate the parametric equations to each other to find the intersection then.
         //Parametric equation is L = P + Vt (where P and V are a starting point and directional vector).
-        //We'll map the starting point of each line onto the parameter system of the other line.
+        //We'll map the starting point of one line onto the parameter system of the other line.
         //Then using the divisor we can see whether and where they cross.
         const Point starts_delta = a - c;
         const coord_t l1_parametric = cross(l2_delta, starts_delta);
-        const coord_t l2_parametric = cross(l1_delta, starts_delta);
         Point result = a + Point(round_divide(l1_parametric * l1_delta.X, divisor), round_divide(l1_parametric * l1_delta.Y, divisor));
 
         if(std::abs(result.X) > std::numeric_limits<int32_t>::max() || std::abs(result.Y) > std::numeric_limits<int32_t>::max())
