@@ -63,7 +63,7 @@ public:
      * Simplify a polygon.
      * \param polygon The polygon to simplify.
      */
-    Polygon polygon(const PolygonRef polygon);
+    Polygon polygon(const Polygon& polygon);
 
     /*!
      * Simplify a variable-line-width polygon.
@@ -77,7 +77,7 @@ public:
      * The endpoints of the polyline cannot be altered.
      * \param polyline The polyline to simplify.
      */
-    Polygon polyline(const PolygonRef polyline);
+    Polygon polyline(const Polygon& polyline);
 
     /*!
      * Simplify a variable-line-width polyline.
@@ -113,11 +113,72 @@ protected:
 
     /*!
      * The main simplification algorithm starts here.
+     * \tparam Polygonal A polygonal object, which is a list of vertices.
      * \param polygon The polygonal chain to simplify.
      * \param is_closed Whether this is a closed polygon or an open polyline.
      * \return A simplified polygonal chain.
      */
-    Polygon simplify(const PolygonRef polygon, const bool is_closed);
+    template<typename Polygonal>
+    Polygonal simplify(const Polygonal& polygon, const bool is_closed)
+    {
+        const size_t min_size = is_closed ? 3 : 2;
+        if(polygon.size() < min_size) //For polygon, 2 or fewer vertices is degenerate. Delete it. For polyline, 1 vertex is degenerate.
+        {
+            return Polygonal();
+        }
+        if(polygon.size() == min_size) //For polygon, don't reduce below 3. For polyline, not below 2.
+        {
+            return polygon;
+        }
+
+        std::vector<bool> to_delete(polygon.size(), false);
+        auto comparator = [](const std::pair<size_t, coord_t>& vertex_a, const std::pair<size_t, coord_t>& vertex_b)
+        {
+            return vertex_a.second > vertex_b.second || (vertex_a.second == vertex_b.second && vertex_a.first > vertex_b.first);
+        };
+        std::priority_queue<std::pair<size_t, coord_t>, std::vector<std::pair<size_t, coord_t>>, decltype(comparator)> by_importance(comparator);
+
+        //Add the initial points.
+        for(size_t i = 0; i < polygon.size(); ++i)
+        {
+            const coord_t vertex_importance = importance(polygon, to_delete, i, is_closed);
+            by_importance.emplace(i, vertex_importance);
+        }
+
+        //Iteratively remove the least important point until a threshold.
+        Polygonal result = polygon; //Make a copy so that we can also shift vertices.
+        coord_t vertex_importance = 0;
+        while(by_importance.size() > min_size)
+        {
+            std::pair<size_t, coord_t> vertex = by_importance.top();
+            by_importance.pop();
+            //The importance may have changed since this vertex was inserted. Re-compute it now.
+            //If it doesn't change, it's safe to process.
+            vertex_importance = importance(result, to_delete, vertex.first, is_closed);
+            if(vertex_importance != vertex.second)
+            {
+                by_importance.emplace(vertex.first, vertex_importance); //Re-insert with updated importance.
+                continue;
+            }
+
+            if(vertex_importance <= max_deviation * max_deviation)
+            {
+                remove(result, to_delete, vertex.first, vertex_importance, is_closed);
+            }
+        }
+
+        //Now remove the marked vertices in one sweep.
+        Polygonal filtered;
+        for(size_t i = 0; i < result.size(); ++i)
+        {
+            if(!to_delete[i])
+            {
+                filtered.add(result[i]);
+            }
+        }
+
+        return filtered;
+    }
 
     /*!
      * A measure of the importance of a vertex.
