@@ -51,8 +51,7 @@ set(engine_SRCS # Except main.cpp.
         src/MeshGroup.cpp
         src/Mold.cpp
         src/multiVolumes.cpp
-        src/PathOrderOptimizer.cpp
-        src/PathOrder.cpp
+        src/PathOrderPath.cpp
         src/Preheat.cpp
         src/PrimeTower.cpp
         src/raft.cpp
@@ -77,7 +76,6 @@ set(engine_SRCS # Except main.cpp.
 
         src/BeadingStrategy/BeadingStrategy.cpp
         src/BeadingStrategy/BeadingStrategyFactory.cpp
-        src/BeadingStrategy/CenterDeviationBeadingStrategy.cpp
         src/BeadingStrategy/DistributedBeadingStrategy.cpp
         src/BeadingStrategy/LimitedBeadingStrategy.cpp
         src/BeadingStrategy/RedistributeBeadingStrategy.cpp
