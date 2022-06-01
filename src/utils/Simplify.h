@@ -203,8 +203,17 @@ protected:
         //From here on out we can safely look at the vertex neighbors and assume it's a polygon. We won't go out of bounds of the polyline.
 
         const Point vertex = getPosition(polygon[index]);
-        const Point before = getPosition(polygon[previousNotDeleted(index, to_delete)]);
-        const Point after = getPosition(polygon[nextNotDeleted(index, to_delete)]);
+        const size_t before_index = previousNotDeleted(index, to_delete);
+        const size_t after_index = nextNotDeleted(index, to_delete);
+
+        const coord_t area_deviation = getAreaDeviation(polygon[before_index], polygon[index], polygon[after_index]);
+        if(area_deviation > max_area_deviation) //Removing this line causes the variable line width to get flattened out too much.
+        {
+            return std::numeric_limits<coord_t>::max();
+        }
+
+        const Point before = getPosition(polygon[before_index]);
+        const Point after = getPosition(polygon[after_index]);
         const coord_t deviation2 = LinearAlg2D::getDist2FromLine(vertex, before, after);
         if(deviation2 <= min_resolution * min_resolution) //Deviation so small that it's always desired to remove them.
         {
@@ -389,6 +398,29 @@ protected:
      * intersection vertex.
      */
     ExtrusionJunction createIntersection(const ExtrusionJunction& before, const Point intersection, const ExtrusionJunction& after) const;
+
+    /*!
+     * Get the extrusion area deviation that would be caused by removing this
+     * vertex.
+     *
+     * This is the overload for fixed-width polygons. Because those don't have
+     * variable line width, the deviation is always 0.
+     * \param before The vertex before the one that is to be removed.
+     * \param vertex The vertex that is to be removed.
+     * \param after The vertex after the one that is to be removed.
+     * \return The area deviation that would be caused by removing the vertex.
+     */
+    coord_t getAreaDeviation(const Point& before, const Point& vertex, const Point& after) const;
+
+    /*!
+     * Get the extrusion area deviation that would be caused by removing this
+     * vertex.
+     * \param before The vertex before the one that is to be removed.
+     * \param vertex The vertex that is to be removed.
+     * \param after The vertex after the one that is to be removed.
+     * \return The area deviation that would be caused by removing the vertex.
+     */
+    coord_t getAreaDeviation(const ExtrusionJunction& before, const ExtrusionJunction& vertex, const ExtrusionJunction& after) const;
 };
 
 } //namespace cura

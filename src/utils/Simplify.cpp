@@ -86,4 +86,47 @@ ExtrusionJunction Simplify::createIntersection(const ExtrusionJunction& before, 
     return ExtrusionJunction(intersection, (before.w + after.w) / 2, before.perimeter_index);
 }
 
+coord_t Simplify::getAreaDeviation(const Point& before, const Point& vertex, const Point& after) const
+{
+    return 0; //Fixed-width polygons don't have any deviation.
+}
+
+coord_t Simplify::getAreaDeviation(const ExtrusionJunction& before, const ExtrusionJunction& vertex, const ExtrusionJunction& after) const
+{
+    /*
+     * A             B                          C              A                                        C
+     * ---------------                                         **************
+     * |             |                                         ------------------------------------------
+     * |             |--------------------------|  B removed   |            |***************************|
+     * |             |                          |  --------->  |            |                           |
+     * |             |--------------------------|              |            |***************************|
+     * |             |                                         ------------------------------------------
+     * ---------------             ^                           **************
+     *       ^                B.w + C.w / 2                                       ^
+     *  A.w + B.w / 2                                               new_width = weighted_average_width
+     *
+     *
+     * ******** denote the total extrusion area deviation error in the consecutive segments as a result of using the
+     * weighted-average width for the entire extrusion line.
+     *
+     * */
+    const coord_t ab_length = vSize(vertex - before);
+    const coord_t bc_length = vSize(after - vertex);
+    const coord_t width_diff = std::max(std::abs(vertex.w - before.w), std::abs(after.w - vertex.w));
+    if (width_diff > 1)
+    {
+        // Adjust the width only if there is a difference, or else the rounding errors may produce the wrong
+        // weighted average value.
+        const coord_t ab_weight = (before.w + vertex.w) / 2;
+        const coord_t bc_weight = (vertex.w + after.w) / 2;
+        const coord_t weighted_average_width = (ab_length * ab_weight + bc_length * bc_weight) / vSize(after - before);
+        return std::abs(ab_weight - weighted_average_width) * ab_length + std::abs(bc_weight - weighted_average_width) * bc_length;
+    }
+    else
+    {
+        // If the width difference is very small, then select the width of the segment that is longer
+        return ab_length > bc_length ? width_diff * bc_length : width_diff * ab_length;
+    }
+}
+
 }
