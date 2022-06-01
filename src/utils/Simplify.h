@@ -251,6 +251,25 @@ protected:
      * \param vertex The vertex to add.
      */
     void appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJunction& vertex);
+
+    /*!
+     * Get the coordinates of a vertex.
+     *
+     * This overload is for the vertices of a Polygon, which are simply the
+     * coordinates themselves. So this function is the identity.
+     * \param vertex A vertex to get the coordinates of.
+     * \return The coordinates of that vertex.
+     */
+    Point getPosition(const Point& vertex);
+
+    /*!
+     * Get the coordinates of a vertex.
+     *
+     * This overload is for the vertices of an ExtrusionJunction.
+     * \param vertex A vertex to get the coordinates of.
+     * \return The coordinates of that vertex.
+     */
+    Point getPosition(const ExtrusionJunction& vertex);
 };
 
 } //namespace cura
