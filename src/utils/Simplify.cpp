@@ -39,6 +39,12 @@ Polygon Simplify::polyline(const Polygon& polyline)
     return simplify(polyline, is_closed);
 }
 
+ExtrusionLine Simplify::polyline(const ExtrusionLine& polyline)
+{
+    constexpr bool is_closed = false;
+    return simplify(polyline, is_closed);
+}
+
 size_t Simplify::nextNotDeleted(size_t index, const std::vector<bool>& to_delete) const
 {
     const size_t size = to_delete.size();
