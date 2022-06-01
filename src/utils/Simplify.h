@@ -173,7 +173,7 @@ protected:
         {
             if(!to_delete[i])
             {
-                filtered.add(result[i]);
+                appendVertex(filtered, result[i]);
             }
         }
 
@@ -233,6 +233,24 @@ protected:
      * \return The index of the vertex before it.
      */
     size_t previousNotDeleted(size_t index, const std::vector<bool>& to_delete) const;
+
+    /*!
+     * Append a vertex to this polygon.
+     *
+     * This function overloads to allow adding to all supported polygonal types.
+     * \param polygon The polygon to add to.
+     * \param vertex The vertex to add.
+     */
+    void appendVertex(Polygon& polygon, const Point& vertex);
+
+    /*!
+     * Append a vertex to this extrusion line.
+     *
+     * This function overloads to allow adding to all supported polygonal types.
+     * \param extrusion_line The extrusion line to add to.
+     * \param vertex The vertex to add.
+     */
+    void appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJunction& vertex);
 };
 
 } //namespace cura

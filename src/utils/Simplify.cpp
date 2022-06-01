@@ -147,4 +147,14 @@ size_t Simplify::previousNotDeleted(size_t index, const std::vector<bool>& to_de
     return index;
 }
 
+void Simplify::appendVertex(Polygon& polygon, const Point& vertex)
+{
+    polygon.add(vertex);
+}
+
+void Simplify::appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJunction& vertex)
+{
+    extrusion_line.junctions.push_back(vertex);
+}
+
 }
