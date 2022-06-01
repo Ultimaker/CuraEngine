@@ -223,7 +223,7 @@ template<typename Producer, typename Consumer> class MultipleProducersOrderedCon
  * \param max_pending_per_worker Number of allocated slots per worker for items waiting to be consumed.
  */
 template<typename P, typename C>
-void run_multiple_producers_ordered_consumer(ssize_t first, ssize_t last, P&& producer, C&& consumer, size_t max_pending_per_worker=8)
+void run_multiple_producers_ordered_consumer(ptrdiff_t first, ptrdiff_t last, P&& producer, C&& consumer, size_t max_pending_per_worker=8)
 {
     ThreadPool* thread_pool = Application::getInstance().thread_pool;
     assert(thread_pool);
@@ -235,7 +235,7 @@ void run_multiple_producers_ordered_consumer(ssize_t first, ssize_t last, P&& pr
 template<typename Producer, typename Consumer>
 class MultipleProducersOrderedConsumer
 {
-    using item_t = std::invoke_result_t<Producer, ssize_t>;
+    using item_t = std::invoke_result_t<Producer, ptrdiff_t>;
     using lock_t = ThreadPool::lock_t;
 
   public:
@@ -244,7 +244,7 @@ class MultipleProducersOrderedConsumer
      * \param max_pending Number of allocated slots for items waiting to be consumed.
      */
     template<typename P, typename C>
-    MultipleProducersOrderedConsumer(ssize_t first, ssize_t last, P&& producer, C&& consumer, size_t max_pending)
+    MultipleProducersOrderedConsumer(ptrdiff_t first, ptrdiff_t last, P&& producer, C&& consumer, size_t max_pending)
       : producer(std::forward<P>(producer)), consumer(std::forward<C>(consumer)),
         max_pending(max_pending),
         queue(std::make_unique<item_t[]>(max_pending)),
@@ -296,9 +296,9 @@ class MultipleProducersOrderedConsumer
     }
 
     //! Produces an item and store in in the ring buffer. Assumes that there is items to produce and free space in the ring
-    ssize_t produce(lock_t& lock)
+    ptrdiff_t produce(lock_t& lock)
     {
-        ssize_t produced_idx = write_idx++;
+        ptrdiff_t produced_idx = write_idx++;
         item_t* slot = &queue[produced_idx % max_pending];
         assert(produced_idx < last_idx);
 
@@ -344,7 +344,7 @@ class MultipleProducersOrderedConsumer
     {
         while(wait(lock)) // While there is work to do
         {
-            ssize_t produced_idx = produce(lock);
+            ptrdiff_t produced_idx = produce(lock);
             if (produced_idx == consumer_wait_idx)
             {   // This thread just produced the item that was waited for by the consumer
                 consume_many(lock); // Consume a contiguous block starting at consumer_wait_idx
@@ -366,19 +366,19 @@ class MultipleProducersOrderedConsumer
 
     Producer producer;
     Consumer consumer;
-    const ssize_t max_pending; // Number of produced items that can wait in the queue
+    const ptrdiff_t max_pending; // Number of produced items that can wait in the queue
     const std::unique_ptr<item_t[]> queue; // Ring buffer mapping each intermediary result to a slot
-    const ssize_t last_idx;
+    const ptrdiff_t last_idx;
 
-    ssize_t write_idx; // Next slot to produce
-    ssize_t read_idx; // Next slot to consume
-    ssize_t consumer_wait_idx; // First slot that is waited for by the consumer
+    ptrdiff_t write_idx; // Next slot to produce
+    ptrdiff_t read_idx; // Next slot to consume
+    ptrdiff_t consumer_wait_idx; // First slot that is waited for by the consumer
     std::condition_variable free_slot_cond; // Condition to wait for available space in the buffer
 };
 
 //! \private Template deduction guide: defaults to inlining closures into the class layout
 template<typename P, typename C>
-MultipleProducersOrderedConsumer(ssize_t, ssize_t, P , C, size_t) -> MultipleProducersOrderedConsumer<P, C>;
+MultipleProducersOrderedConsumer(ptrdiff_t, ptrdiff_t, P , C, size_t) -> MultipleProducersOrderedConsumer<P, C>;
 
 } //Cura namespace.
 #endif // THREADPOOL_H
