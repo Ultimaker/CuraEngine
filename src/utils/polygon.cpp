@@ -7,6 +7,7 @@
 #include <unordered_set>
 
 #include "linearAlg2D.h" // pointLiesOnTheRightOfLine
+#include "Simplify.h"
 
 #include "ListPolyIt.h"
 
@@ -449,7 +450,19 @@ void PolygonRef::simplifyPolyline(const coord_t smallest_line_segment_squared, c
 }
 void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, bool processing_polylines)
 {
-    const size_t min_poly_length = processing_polylines ? 2 : 3;
+    Simplify simplifier(std::sqrt(smallest_line_segment_squared), std::sqrt(allowed_error_distance_squared), 0);
+    Polygon result;
+    if(processing_polylines)
+    {
+        result = simplifier.polyline(*this);
+    }
+    else
+    {
+        result = simplifier.polygon(*this);
+    }
+    *path = *result.path;
+    
+    /*const size_t min_poly_length = processing_polylines ? 2 : 3;
     if (size() < min_poly_length)
     {
         clear();
@@ -463,7 +476,7 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
     ClipperLib::Path new_path;
     Point previous = path->back();
     Point previous_previous = path->at(path->size() - 2);
-    Point current = path->at(0);
+    Point current = path->at(0);*/
 
     /* When removing a vertex, we check the height of the triangle of the area
      being removed from the original polygon by the simplification. However,
@@ -480,7 +493,7 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
      From this area we compute the height of the representative triangle using
      the standard formula for a triangle area: A = .5*b*h
      */
-    coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; // Twice the Shoelace formula for area of polygon per line segment.
+    /*coord_t accumulated_area_removed = previous.X * current.Y - previous.Y * current.X; // Twice the Shoelace formula for area of polygon per line segment.
 
     for (size_t point_idx = 0; point_idx < size(); point_idx++)
     {
@@ -592,7 +605,7 @@ void PolygonRef::_simplify(const coord_t smallest_line_segment_squared, const co
         }
     }
 
-    *path = new_path;
+    *path = new_path;*/
 }
 
 void PolygonRef::applyMatrix(const PointMatrix& matrix)

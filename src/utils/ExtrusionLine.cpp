@@ -5,6 +5,7 @@
 
 #include "ExtrusionLine.h"
 #include "linearAlg2D.h"
+#include "Simplify.h"
 
 namespace cura
 {
@@ -46,28 +47,40 @@ coord_t ExtrusionLine::getMinimalWidth() const
 
 void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const coord_t allowed_error_distance_squared, const coord_t maximum_extrusion_area_deviation)
 {
-    const size_t min_path_size = is_closed ? 3 : 2;
+    Simplify simplifier(std::sqrt(smallest_line_segment_squared), std::sqrt(allowed_error_distance_squared), std::sqrt(maximum_extrusion_area_deviation));
+    ExtrusionLine result;
+    if (vSize2(junctions.front().p - junctions.back().p) == 0)
+    {
+        result = simplifier.polygon(*this);
+    }
+    else
+    {
+        result = simplifier.polyline(*this);
+    }
+    junctions = result.junctions;
+    
+    /*const size_t min_path_size = is_closed ? 3 : 2;
     if (junctions.size() <= min_path_size)
     {
         return;
     }
 
-    // TODO: allow for the first point to be removed in case of simplifying closed Extrusionlines.
+    // TODO: allow for the first point to be removed in case of simplifying closed Extrusionlines.*/
 
     /* ExtrusionLines are treated as (open) polylines, so in case an ExtrusionLine is actually a closed polygon, its
      * starting and ending points will be equal (or almost equal). Therefore, the simplification of the ExtrusionLine
      * should not touch the first and last points. As a result, start simplifying from point at index 1.
      * */
-    std::vector<ExtrusionJunction> new_junctions;
+    /*std::vector<ExtrusionJunction> new_junctions;
     // Starting junction should always exist in the simplified path
-    new_junctions.emplace_back(junctions.front());
+    new_junctions.emplace_back(junctions.front());*/
 
     /* Initially, previous_previous is always the same as previous because, for open ExtrusionLines the last junction
      * cannot be taken into consideration when checking the points at index 1. For closed ExtrusionLines, the first and
      * last junctions are anyway the same.
      * */
-    ExtrusionJunction previous_previous = junctions.front();
-    ExtrusionJunction previous = junctions.front();
+    //ExtrusionJunction previous_previous = junctions.front();
+    //ExtrusionJunction previous = junctions.front();
 
     /* When removing a vertex, we check the height of the triangle of the area
      being removed from the original polygon by the simplification. However,
@@ -84,7 +97,7 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
      From this area we compute the height of the representative triangle using
      the standard formula for a triangle area: A = .5*b*h
      */
-    const ExtrusionJunction& initial = junctions.at(1);
+    /*const ExtrusionJunction& initial = junctions.at(1);
     coord_t accumulated_area_removed = previous.p.X * initial.p.Y - previous.p.Y * initial.p.X; // Twice the Shoelace formula for area of polygon per line segment.
 
     for (size_t point_idx = 1; point_idx < junctions.size() - 1; point_idx++)
@@ -184,17 +197,17 @@ void ExtrusionLine::simplify(const coord_t smallest_line_segment_squared, const 
     }
 
     // Ending junction (vertex) should always exist in the simplified path
-    new_junctions.emplace_back(junctions.back());
+    new_junctions.emplace_back(junctions.back());*/
 
     /* In case this is a closed polygon (instead of a poly-line-segments), the invariant that the first and last points are the same should be enforced.
      * Since one of them didn't move, and the other can't have been moved further than the constraints, if originally equal, they can simply be equated.
      */
-    if (vSize2(junctions.front().p - junctions.back().p) == 0)
+    /*if (vSize2(junctions.front().p - junctions.back().p) == 0)
     {
         new_junctions.back().p = junctions.front().p;
     }
 
-    junctions = new_junctions;
+    junctions = new_junctions;*/
 }
 
 coord_t ExtrusionLine::calculateExtrusionAreaDeviationError(ExtrusionJunction A, ExtrusionJunction B, ExtrusionJunction C, coord_t& weighted_average_width)
