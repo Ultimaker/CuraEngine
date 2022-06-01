@@ -223,6 +223,7 @@ protected:
      * This function looks in the vertex and the four edges surrounding it to
      * determine the best way to remove the given vertex. It may choose instead
      * to delete an edge, fusing two vertices together.
+     * \tparam Polygonal A polygonal object, which is a list of vertices.
      * \param polygon The polygon to remove a vertex from.
      * \param to_delete The vertices that have been marked for deletion so far.
      * This will be edited in-place.
@@ -231,7 +232,80 @@ protected:
      * \param is_closed Whether we're working on a closed polygon or an open
      * polyline.
      */
-    void remove(Polygon& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2, const bool is_closed) const;
+    template<typename Polygonal>
+    void remove(Polygonal& polygon, std::vector<bool>& to_delete, const size_t vertex, const coord_t deviation2, const bool is_closed) const
+    {
+        if(deviation2 <= min_resolution * min_resolution)
+        {
+            //At less than the minimum resolution we're always allowed to delete the vertex.
+            //Even if the adjacent line segments are very long.
+            to_delete[vertex] = true;
+            return;
+        }
+
+        const size_t before = previousNotDeleted(vertex, to_delete);
+        const size_t after = nextNotDeleted(vertex, to_delete);
+        const Point vertex_position = getPosition(polygon[vertex]);
+        const Point before_position = getPosition(polygon[before]);
+        const Point after_position = getPosition(polygon[after]);
+        const coord_t length2_before = vSize2(vertex_position - before_position);
+        const coord_t length2_after = vSize2(vertex_position - after_position);
+
+        if(length2_before <= max_resolution * max_resolution && length2_after <= max_resolution * max_resolution) //Both adjacent line segments are short.
+        {
+            //Removing this vertex does little harm. No long lines will be shifted.
+            to_delete[vertex] = true;
+            return;
+        }
+
+        //Otherwise, one edge next to this vertex is longer than max_resolution. The other is shorter.
+        //In this case we want to remove the short edge by replacing it with a vertex where the two surrounding edges intersect.
+        //Find the two line segments surrounding the short edge here ("before" and "after" edges).
+        Point before_from, before_to, after_from, after_to;
+        if(length2_before <= length2_after) //Before is the shorter line.
+        {
+            if(!is_closed && before == 0) //No edge before the short edge.
+            {
+                return; //Edge cannot be deleted without shifting a long edge. Don't remove anything.
+            }
+            const size_t before_before = previousNotDeleted(before, to_delete);
+            before_from = getPosition(polygon[before_before]);
+            before_to = getPosition(polygon[before]);
+            after_from = getPosition(polygon[vertex]);
+            after_to = getPosition(polygon[after]);
+        }
+        else
+        {
+            if(!is_closed && after == polygon.size() - 1) //No edge after the short edge.
+            {
+                return; //Edge cannot be deleted without shifting a long edge. Don't remove anything.
+            }
+            const size_t after_after = nextNotDeleted(after, to_delete);
+            before_from = getPosition(polygon[before]);
+            before_to = getPosition(polygon[vertex]);
+            after_from = getPosition(polygon[after]);
+            after_to = getPosition(polygon[after_after]);
+        }
+        Point intersection;
+        const bool did_intersect = LinearAlg2D::lineLineIntersection(before_from, before_to, after_from, after_to, intersection);
+        if(!did_intersect) //Lines are parallel.
+        {
+            return; //Cannot remove edge without shifting a long edge. Don't remove anything.
+        }
+        const coord_t intersection_deviation = LinearAlg2D::getDist2FromLine(intersection, before_to, after_from);
+        if(intersection_deviation <= max_deviation * max_deviation) //Intersection point doesn't deviate too much. Use it!
+        {
+            to_delete[vertex] = true;
+            if(length2_before <= length2_after)
+            {
+                polygon[before] = createIntersection(polygon[before], intersection, polygon[after]);
+            }
+            else
+            {
+                polygon[after] = createIntersection(polygon[before], intersection, polygon[after]);
+            }
+        }
+    }
 
     /*!
      * Helper method to find the index of the next vertex that is not about to
@@ -295,6 +369,26 @@ protected:
      * \return The coordinates of that vertex.
      */
     Point getPosition(const ExtrusionJunction& vertex) const;
+
+    /*!
+     * Create an intersection vertex that can be placed in a polygon.
+     * \param before One of the vertices of a removed edge. Unused in this
+     * overload.
+     * \param intersection The position of the intersection.
+     * \param after One of the vertices of a removed edge. Unused in this
+     * overload.
+     */
+    Point createIntersection(const Point& before, const Point intersection, const Point& after) const;
+
+    /*!
+     * Create an intersection vertex that can be placed in an ExtrusionLine.
+     * \param before One of the vertices of the edge that gets replaced by an
+     * intersection vertex.
+     * \param intersection The position of the new intersection vertex.
+     * \param after One of the vertices of the edge that gets replaced by an
+     * intersection vertex.
+     */
+    ExtrusionJunction createIntersection(const ExtrusionJunction& before, const Point intersection, const ExtrusionJunction& after) const;
 };
 
 } //namespace cura
