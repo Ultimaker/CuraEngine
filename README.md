@@ -50,21 +50,23 @@ which is quite extensive and well maintained. Conan is a Python program and can 
 pip install conan
 ```
 
-> **IMPORTANT**  
-> CuraEngine is a fickle beast, Ultimaker has its own Conan config repository; which ensures that the correct compiler
-> settings and Conan remotes are used. Although you could use your own Conan configuration and profiles it might be
-> easier to use the Conan configuration which Ultimaker uses. This can be installed with the following command:
-> ```shell
-> conan profile new default --detect  # This should create a default profile with the system detected standard compiler
-> conan config install https://github.com/ultimaker/conan-config.git  # This will install our profiles, settinsg and remotes
-> ```
-
-As mentioned in the notes above we use our own JFrog Artifactory server, so make sure you add this server tou your Conan
-remotes. **This step is not necessary if you use our supplied Conan configuration.**
-
+**IMPORTANT**  
+CuraEngine is a fickle beast, Ultimaker has its own Conan config repository; which ensures that the correct compiler
+settings and Conan remotes are used. Although you could use your own Conan configuration and profiles it might be
+easier to use the Conan configuration which Ultimaker uses. This can be installed with the following command:
 ```shell
-conan remote add ultimaker https://peer23peer.jfrog.io/artifactory/api/conan/cura-conan True 
+conan profile new default --detect  # This should create a default profile with the system detected standard compiler
+# FIXME: Once we fully support Conan change to: `conan config install https://github.com/Ultimaker/conan-config.git`
+conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-9177_Fix_CI_CD" -tf $HOME/.conan # This will install our profiles, settings and remotes
 ```
+
+> **Note:**
+> As mentioned in the above we use our own JFrog Artifactory server, so make sure you add this server tou your Conan
+> remotes. **This step is not necessary if you use our supplied Conan configuration.**
+>
+> ```shell
+> conan remote add ultimaker https://peer23peer.jfrog.io/artifactory/api/conan/cura-conan True 
+> ```
 
 The steps above should be enough to get your system in such a state you can start development on CuraEngine. If you want
 to use your own system provided CMake and CMake generators, such as: Ninja, Make, NMake use the following steps to
