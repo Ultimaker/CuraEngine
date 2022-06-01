@@ -6,6 +6,7 @@
 
 #include "polygon.h"
 #include "ExtrusionLine.h"
+#include "linearAlg2D.h" //To calculate line deviations and intersecting lines.
 #include "../settings/Settings.h" //To load the parameters from a Settings object.
 
 namespace cura
@@ -182,6 +183,7 @@ protected:
 
     /*!
      * A measure of the importance of a vertex.
+     * \tparam Polygonal A polygonal object, which is a list of vertices.
      * \param polygon The polygon or polyline the vertex is part of.
      * \param to_delete For each vertex, whether it is set to be deleted.
      * \param index The vertex index to compute the importance of.
@@ -190,7 +192,30 @@ protected:
      * \return A measure of how important the vertex is. Higher importance means
      * that the vertex should probably be retained in the output.
      */
-    coord_t importance(const PolygonRef& polygon, const std::vector<bool>& to_delete, const size_t index, const bool is_closed) const;
+    template<typename Polygonal>
+    coord_t importance(const Polygonal& polygon, const std::vector<bool>& to_delete, const size_t index, const bool is_closed) const
+    {
+        const size_t poly_size = polygon.size();
+        if(!is_closed && (index == 0 || index == poly_size - 1))
+        {
+            return std::numeric_limits<coord_t>::max(); //Endpoints of the polyline must always be retained.
+        }
+        //From here on out we can safely look at the vertex neighbors and assume it's a polygon. We won't go out of bounds of the polyline.
+
+        const Point vertex = getPosition(polygon[index]);
+        const Point before = getPosition(polygon[previousNotDeleted(index, to_delete)]);
+        const Point after = getPosition(polygon[nextNotDeleted(index, to_delete)]);
+        const coord_t deviation2 = LinearAlg2D::getDist2FromLine(vertex, before, after);
+        if(deviation2 <= min_resolution * min_resolution) //Deviation so small that it's always desired to remove them.
+        {
+            return deviation2;
+        }
+        if(vSize2(before - vertex) > max_resolution * max_resolution && vSize2(after - vertex) > max_resolution * max_resolution)
+        {
+            return std::numeric_limits<coord_t>::max(); //Long line segments, no need to remove this one.
+        }
+        return deviation2;
+    }
 
     /*!
      * Mark a vertex for removal.
@@ -241,7 +266,7 @@ protected:
      * \param polygon The polygon to add to.
      * \param vertex The vertex to add.
      */
-    void appendVertex(Polygon& polygon, const Point& vertex);
+    void appendVertex(Polygon& polygon, const Point& vertex) const;
 
     /*!
      * Append a vertex to this extrusion line.
@@ -250,7 +275,7 @@ protected:
      * \param extrusion_line The extrusion line to add to.
      * \param vertex The vertex to add.
      */
-    void appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJunction& vertex);
+    void appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJunction& vertex) const;
 
     /*!
      * Get the coordinates of a vertex.
@@ -260,7 +285,7 @@ protected:
      * \param vertex A vertex to get the coordinates of.
      * \return The coordinates of that vertex.
      */
-    Point getPosition(const Point& vertex);
+    Point getPosition(const Point& vertex) const;
 
     /*!
      * Get the coordinates of a vertex.
@@ -269,7 +294,7 @@ protected:
      * \param vertex A vertex to get the coordinates of.
      * \return The coordinates of that vertex.
      */
-    Point getPosition(const ExtrusionJunction& vertex);
+    Point getPosition(const ExtrusionJunction& vertex) const;
 };
 
 } //namespace cura

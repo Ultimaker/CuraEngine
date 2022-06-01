@@ -5,8 +5,6 @@
 #include <queue> //Priority queue to prioritise removing unimportant vertices.
 
 #include "Simplify.h"
-#include "linearAlg2D.h"
-#include "SVG.h" //DEBUG!
 
 namespace cura
 {
@@ -23,31 +21,13 @@ Simplify::Simplify(const Settings& settings)
     , max_area_deviation(settings.get<coord_t>("meshfix_maximum_area_deviation"))
 {}
 
-coord_t Simplify::importance(const PolygonRef& polygon, const std::vector<bool>& to_delete, const size_t index, const bool is_closed) const
+Polygon Simplify::polygon(const Polygon& polygon)
 {
-    const size_t poly_size = polygon.size();
-    if(!is_closed && (index == 0 || index == poly_size - 1))
-    {
-        return std::numeric_limits<coord_t>::max(); //Endpoints of the polyline must always be retained.
-    }
-    //From here on out we can safely look at the vertex neighbors and assume it's a polygon. We won't go out of bounds of the polyline.
-
-    const Point& vertex = polygon[index];
-    const Point& before = polygon[previousNotDeleted(index, to_delete)];
-    const Point& after = polygon[nextNotDeleted(index, to_delete)];
-    const coord_t deviation2 = LinearAlg2D::getDist2FromLine(vertex, before, after);
-    if(deviation2 <= min_resolution * min_resolution) //Deviation so small that it's always desired to remove them.
-    {
-        return deviation2;
-    }
-    if(vSize2(before - vertex) > max_resolution * max_resolution && vSize2(after - vertex) > max_resolution * max_resolution)
-    {
-        return std::numeric_limits<coord_t>::max(); //Long line segments, no need to remove this one.
-    }
-    return deviation2;
+    constexpr bool is_closed = true;
+    return simplify(polygon, is_closed);
 }
 
-Polygon Simplify::polygon(const Polygon& polygon)
+ExtrusionLine Simplify::polygon(const ExtrusionLine& polygon)
 {
     constexpr bool is_closed = true;
     return simplify(polygon, is_closed);
@@ -147,22 +127,22 @@ size_t Simplify::previousNotDeleted(size_t index, const std::vector<bool>& to_de
     return index;
 }
 
-void Simplify::appendVertex(Polygon& polygon, const Point& vertex)
+void Simplify::appendVertex(Polygon& polygon, const Point& vertex) const
 {
     polygon.add(vertex);
 }
 
-void Simplify::appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJunction& vertex)
+void Simplify::appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJunction& vertex) const
 {
     extrusion_line.junctions.push_back(vertex);
 }
 
-Point Simplify::getPosition(const Point& vertex)
+Point Simplify::getPosition(const Point& vertex) const
 {
     return vertex;
 }
 
-Point Simplify::getPosition(const ExtrusionJunction& vertex)
+Point Simplify::getPosition(const ExtrusionJunction& vertex) const
 {
     return vertex.p;
 }
