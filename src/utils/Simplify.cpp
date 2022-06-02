@@ -24,9 +24,9 @@ Simplify::Simplify(const Settings& settings)
 Polygons Simplify::polygon(const Polygons& polygons)
 {
     Polygons result;
-    for(const PolygonRef& subpoly : polygons)
+    for(size_t i = 0; i < polygons.size(); ++i)
     {
-        result.add(polygon(subpoly));
+        result.add(polygon(polygons[i]));
     }
     return result;
 }
@@ -46,9 +46,9 @@ ExtrusionLine Simplify::polygon(const ExtrusionLine& polygon)
 Polygons Simplify::polyline(const Polygons& polylines)
 {
     Polygons result;
-    for(const PolygonRef& subpoly : polylines)
+    for(size_t i = 0; i < polylines.size(); ++i)
     {
-        result.add(polyline(subpoly));
+        result.add(polyline(polylines[i]));
     }
     return result;
 }
