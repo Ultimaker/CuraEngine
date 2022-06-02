@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stdio.h>
@@ -12,6 +12,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
+#include "utils/Simplify.h"
 #include "utils/SparsePointGridInclusive.h"
 
 
@@ -781,7 +782,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     polygons.erase(it, polygons.end());
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
-    polygons.simplify();
+    polygons = Simplify(mesh->settings).polygon(polygons);
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 

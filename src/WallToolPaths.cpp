@@ -11,6 +11,7 @@
 #include "utils/polygonUtils.h"
 #include "ExtruderTrain.h"
 #include "utils/PolylineStitcher.h"
+#include "utils/Simplify.h"
 
 namespace cura
 {
@@ -49,7 +50,6 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
 
 const std::vector<VariableWidthLines>& WallToolPaths::generate()
 {
-    const coord_t smallest_segment = settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t allowed_distance = settings.get<coord_t>("meshfix_maximum_deviation");
     const coord_t epsilon_offset = (allowed_distance / 2) - 1;
     const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
@@ -58,7 +58,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
     Polygons prepared_outline = outline.offset(-epsilon_offset).offset(epsilon_offset * 2).offset(-epsilon_offset);
-    prepared_outline.simplify(smallest_segment, allowed_distance);
+    prepared_outline = Simplify(settings).polygon(prepared_outline);
     PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
     prepared_outline.removeDegenerateVerts();
     prepared_outline.removeColinearEdges(AngleRadians(0.005));
@@ -181,14 +181,11 @@ void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines>& toolpaths)
 
 void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
 {
-    for (size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
+    for(size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
     {
-        const coord_t maximum_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
-        const coord_t maximum_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
-        const coord_t maximum_extrusion_area_deviation = settings.get<int>("meshfix_maximum_extrusion_area_deviation"); // unit: μm²
-        for (auto& line : toolpaths[toolpaths_idx])
+        for(ExtrusionLine& line : toolpaths[toolpaths_idx])
         {
-            line.simplify(maximum_resolution * maximum_resolution, maximum_deviation * maximum_deviation, maximum_extrusion_area_deviation);
+            line = Simplify(settings).polyline(line);
         }
     }
 }

@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "layerPart.h"
@@ -9,7 +9,7 @@
 #include "progress/Progress.h"
 
 #include "utils/PolylineStitcher.h"
-#include "utils/SVG.h" // debug output
+#include "utils/Simplify.h" //Simplifying the layers after creating them.
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
@@ -28,10 +28,8 @@ namespace cura {
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
 {
     PolylineStitcher<Polygons, Polygon, Point>::stitch(layer->openPolylines, storageLayer.openPolyLines, layer->polygons, settings.get<coord_t>("wall_line_width_0"));
-    
-    const coord_t maximum_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t maximum_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
-    storageLayer.openPolyLines.simplifyPolylines(maximum_resolution, maximum_deviation);
+
+    storageLayer.openPolyLines = Simplify(settings).polyline(storageLayer.openPolyLines);
 
     const bool union_all_remove_holes = settings.get<bool>("meshfix_union_all_remove_holes");
     if (union_all_remove_holes)

@@ -47,6 +47,7 @@
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/math.h"
+#include "utils/Simplify.h"
 
 
 namespace cura
@@ -982,7 +983,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         maximum_resolution = std::max(maximum_resolution, extruder.settings.get<coord_t>("meshfix_maximum_resolution"));
         maximum_deviation = std::min(maximum_deviation, extruder.settings.get<coord_t>("meshfix_maximum_deviation"));
     }
-    storage.draft_protection_shield.simplify(maximum_resolution, maximum_deviation);
+    storage.draft_protection_shield = Simplify(maximum_resolution, maximum_deviation, 0).polygon(storage.draft_protection_shield);
 }
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
@@ -1031,11 +1032,10 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     }
 
     // Also apply maximum_[deviation|resolution] to skirt/brim.
-    const coord_t line_segment_resolution = train.settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t line_segment_deviation = train.settings.get<coord_t>("meshfix_maximum_deviation");
+    Simplify simplifier(train.settings);
     for (Polygons& polygons : storage.skirt_brim)
     {
-        polygons.simplify(line_segment_resolution, line_segment_deviation);
+        polygons = simplifier.polygon(polygons);
     }
 }
 
