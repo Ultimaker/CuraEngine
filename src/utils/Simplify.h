@@ -61,29 +61,50 @@ public:
     Simplify(const Settings& settings);
 
     /*!
+     * Simplify a batch of polygons.
+     * \param polygons The polygons to simplify.
+     * \return The simplified polygons.
+     */
+    Polygons polygon(const Polygons& polygons);
+
+    /*!
      * Simplify a polygon.
      * \param polygon The polygon to simplify.
+     * \return The simplified polygon.
      */
     Polygon polygon(const Polygon& polygon);
 
     /*!
      * Simplify a variable-line-width polygon.
      * \param polygon The polygon to simplify.
+     * \return The simplified polygon.
      */
     ExtrusionLine polygon(const ExtrusionLine& polygon);
+
+    /*!
+     * Simplify a batch of polylines.
+     *
+     * The endpoints of each polyline cannot be altered.
+     * \param polylines The polylines to simplify.
+     * \return The simplified polylines.
+     */
+    Polygons polyline(const Polygons& polylines);
 
     /*!
      * Simplify a polyline.
      *
      * The endpoints of the polyline cannot be altered.
      * \param polyline The polyline to simplify.
+     * \return The simplified polyline.
      */
     Polygon polyline(const Polygon& polyline);
 
     /*!
      * Simplify a variable-line-width polyline.
+     *
      * The endpoints of the polyline cannot be altered.
      * \param polyline The polyline to simplify.
+     * \return The simplified polyline.
      */
     ExtrusionLine polyline(const ExtrusionLine& polyline);
 
