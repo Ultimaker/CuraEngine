@@ -30,7 +30,6 @@ set(TESTS_SRC_SETTINGS
 set(TESTS_SRC_UTILS
         AABBTest
         AABB3DTest
-        ExtrusionLineTest
         IntPointTest
         LinearAlg2DTest
         MinimumSpanningTreeTest
