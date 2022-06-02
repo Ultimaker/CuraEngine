@@ -118,6 +118,11 @@ coord_t Simplify::getAreaDeviation(const ExtrusionJunction& before, const Extrus
      * */
     const coord_t ab_length = vSize(vertex - before);
     const coord_t bc_length = vSize(after - vertex);
+    const coord_t ac_length = vSize(after - before);
+    if(ab_length == 0 || ac_length == 0 || bc_length == 0)
+    {
+        return 0; //Either of the line segments is zero, so the deviation of one of the line segments doesn't matter (not printed). So effectively there is no deviation.
+    }
     const coord_t width_diff = std::max(std::abs(vertex.w - before.w), std::abs(after.w - vertex.w));
     if (width_diff > 1)
     {
@@ -125,7 +130,7 @@ coord_t Simplify::getAreaDeviation(const ExtrusionJunction& before, const Extrus
         // weighted average value.
         const coord_t ab_weight = (before.w + vertex.w) / 2;
         const coord_t bc_weight = (vertex.w + after.w) / 2;
-        const coord_t weighted_average_width = (ab_length * ab_weight + bc_length * bc_weight) / vSize(after - before);
+        const coord_t weighted_average_width = (ab_length * ab_weight + bc_length * bc_weight) / ac_length;
         return std::abs(ab_weight - weighted_average_width) * ab_length + std::abs(bc_weight - weighted_average_width) * bc_length;
     }
     else
