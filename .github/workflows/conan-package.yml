@@ -136,8 +136,8 @@ jobs:
               run: conan create . curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update
 
             - name: Export the Packages
-              if: ${{ github.event_name == 'push' && github.ref_name != 'main' }}
-              run: conan export-pkg . curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update
+              if: ${{ github.event_name == 'push' && github.ref_name != 'main' && runner.os == 'Linux' }}
+              run: conan export-pkg . curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} -pr:b cura_build.jinja -pr:h cura_release.jinja
 
             - name: Create the latest alias
               if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
