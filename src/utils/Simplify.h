@@ -146,7 +146,7 @@ protected:
         const size_t min_size = is_closed ? 3 : 2;
         if(polygon.size() < min_size) //For polygon, 2 or fewer vertices is degenerate. Delete it. For polyline, 1 vertex is degenerate.
         {
-            return Polygonal();
+            return createEmpty(polygon);
         }
         if(polygon.size() == min_size) //For polygon, don't reduce below 3. For polyline, not below 2.
         {
@@ -190,7 +190,7 @@ protected:
         }
 
         //Now remove the marked vertices in one sweep.
-        Polygonal filtered;
+        Polygonal filtered = createEmpty(polygon);
         for(size_t i = 0; i < result.size(); ++i)
         {
             if(!to_delete[i])
@@ -362,6 +362,22 @@ protected:
      * \return The index of the vertex before it.
      */
     size_t previousNotDeleted(size_t index, const std::vector<bool>& to_delete) const;
+
+    /*!
+     * Create an empty polygon with the same properties as an original polygon,
+     * but without the vertex data.
+     * \param original The polygon to copy the properties from.
+     * \return An empty polygon.
+     */
+    Polygon createEmpty(const Polygon& original) const;
+
+    /*!
+     * Create an empty extrusion line with the same properties as an original
+     * extrusion line, but without the vertex data.
+     * \param original The extrusion line to copy the properties from.
+     * \return An empty extrusion line.
+     */
+    ExtrusionLine createEmpty(const ExtrusionLine& original) const;
 
     /*!
      * Append a vertex to this polygon.

@@ -79,6 +79,18 @@ size_t Simplify::previousNotDeleted(size_t index, const std::vector<bool>& to_de
     return index;
 }
 
+Polygon Simplify::createEmpty(const Polygon& original) const
+{
+    return Polygon();
+}
+
+ExtrusionLine Simplify::createEmpty(const ExtrusionLine& original) const
+{
+    ExtrusionLine result(original.inset_idx, original.is_odd);
+    result.is_closed = original.is_closed;
+    return result;
+}
+
 void Simplify::appendVertex(Polygon& polygon, const Point& vertex) const
 {
     polygon.add(vertex);
