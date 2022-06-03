@@ -355,12 +355,13 @@ void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths
     const coord_t min_area = infill_line_width * infill_line_width;
 
     Polygons current_inset = inner_contour;
+    Simplify simplifier(settings);
     while(true)
     {
         //If line_distance is 0, start from the same contour as the previous line, except where the previous line closed up the shape.
         //So we add the whole nominal line width first (to allow lines to be closer together than 1 line width if the line distance is smaller) and then subtract line_distance.
         current_inset = current_inset.offset(infill_line_width - line_distance);
-        current_inset = Simplify(settings).polygon(current_inset); //Many insets lead to increasingly detailed shapes. Simplify to speed up processing.
+        current_inset = simplifier.polygon(current_inset); //Many insets lead to increasingly detailed shapes. Simplify to speed up processing.
         if(current_inset.area() < min_area) //So small that it's inconsequential. Stop here.
         {
             break;

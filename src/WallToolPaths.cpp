@@ -181,11 +181,12 @@ void WallToolPaths::removeSmallLines(std::vector<VariableWidthLines>& toolpaths)
 
 void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
 {
+    const Simplify simplifier(settings);
     for(size_t toolpaths_idx = 0; toolpaths_idx < toolpaths.size(); ++toolpaths_idx)
     {
         for(ExtrusionLine& line : toolpaths[toolpaths_idx])
         {
-            line = Simplify(settings).polyline(line);
+            line = simplifier.polyline(line);
         }
     }
 }

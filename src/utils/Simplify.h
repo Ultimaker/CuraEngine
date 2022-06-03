@@ -65,21 +65,21 @@ public:
      * \param polygons The polygons to simplify.
      * \return The simplified polygons.
      */
-    Polygons polygon(const Polygons& polygons);
+    Polygons polygon(const Polygons& polygons) const;
 
     /*!
      * Simplify a polygon.
      * \param polygon The polygon to simplify.
      * \return The simplified polygon.
      */
-    Polygon polygon(const Polygon& polygon);
+    Polygon polygon(const Polygon& polygon) const;
 
     /*!
      * Simplify a variable-line-width polygon.
      * \param polygon The polygon to simplify.
      * \return The simplified polygon.
      */
-    ExtrusionLine polygon(const ExtrusionLine& polygon);
+    ExtrusionLine polygon(const ExtrusionLine& polygon) const;
 
     /*!
      * Simplify a batch of polylines.
@@ -88,7 +88,7 @@ public:
      * \param polylines The polylines to simplify.
      * \return The simplified polylines.
      */
-    Polygons polyline(const Polygons& polylines);
+    Polygons polyline(const Polygons& polylines) const;
 
     /*!
      * Simplify a polyline.
@@ -97,7 +97,7 @@ public:
      * \param polyline The polyline to simplify.
      * \return The simplified polyline.
      */
-    Polygon polyline(const Polygon& polyline);
+    Polygon polyline(const Polygon& polyline) const;
 
     /*!
      * Simplify a variable-line-width polyline.
@@ -106,7 +106,7 @@ public:
      * \param polyline The polyline to simplify.
      * \return The simplified polyline.
      */
-    ExtrusionLine polyline(const ExtrusionLine& polyline);
+    ExtrusionLine polyline(const ExtrusionLine& polyline) const;
 
     /*!
      * Line segments shorter than this size should be considered for removal.
@@ -141,7 +141,7 @@ protected:
      * \return A simplified polygonal chain.
      */
     template<typename Polygonal>
-    Polygonal simplify(const Polygonal& polygon, const bool is_closed)
+    Polygonal simplify(const Polygonal& polygon, const bool is_closed) const
     {
         const size_t min_size = is_closed ? 3 : 2;
         if(polygon.size() < min_size) //For polygon, 2 or fewer vertices is degenerate. Delete it. For polyline, 1 vertex is degenerate.

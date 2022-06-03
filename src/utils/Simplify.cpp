@@ -21,7 +21,7 @@ Simplify::Simplify(const Settings& settings)
     , max_area_deviation(settings.get<coord_t>("meshfix_maximum_extrusion_area_deviation"))
 {}
 
-Polygons Simplify::polygon(const Polygons& polygons)
+Polygons Simplify::polygon(const Polygons& polygons) const
 {
     Polygons result;
     for(size_t i = 0; i < polygons.size(); ++i)
@@ -31,19 +31,19 @@ Polygons Simplify::polygon(const Polygons& polygons)
     return result;
 }
 
-Polygon Simplify::polygon(const Polygon& polygon)
+Polygon Simplify::polygon(const Polygon& polygon) const
 {
     constexpr bool is_closed = true;
     return simplify(polygon, is_closed);
 }
 
-ExtrusionLine Simplify::polygon(const ExtrusionLine& polygon)
+ExtrusionLine Simplify::polygon(const ExtrusionLine& polygon) const
 {
     constexpr bool is_closed = true;
     return simplify(polygon, is_closed);
 }
 
-Polygons Simplify::polyline(const Polygons& polylines)
+Polygons Simplify::polyline(const Polygons& polylines) const
 {
     Polygons result;
     for(size_t i = 0; i < polylines.size(); ++i)
@@ -53,13 +53,13 @@ Polygons Simplify::polyline(const Polygons& polylines)
     return result;
 }
 
-Polygon Simplify::polyline(const Polygon& polyline)
+Polygon Simplify::polyline(const Polygon& polyline) const
 {
     constexpr bool is_closed = false;
     return simplify(polyline, is_closed);
 }
 
-ExtrusionLine Simplify::polyline(const ExtrusionLine& polyline)
+ExtrusionLine Simplify::polyline(const ExtrusionLine& polyline) const
 {
     constexpr bool is_closed = false;
     return simplify(polyline, is_closed);
