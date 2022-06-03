@@ -1,9 +1,10 @@
 //Copyright (c) 2016 Tim Kuipers
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ConicalOverhang.h"
 #include "mesh.h"
+#include "utils/Simplify.h" //Simplifying at every step to prevent getting lots of vertices from all the insets.
 #include "slicer.h"
 #include "settings/types/Angle.h" //To process the overhang angle.
 
@@ -24,11 +25,11 @@ namespace cura {
 			if (std::abs(max_dist_from_lower_layer) < 5)
 			{ // magically nothing happens when max_dist_from_lower_layer == 0
 				// below magic code solves that
-				int safe_dist = 20;
+				constexpr coord_t safe_dist = 20;
 				Polygons diff = layer_above.polygons.difference(layer.polygons.offset(-safe_dist));
 				layer.polygons = layer.polygons.unionPolygons(diff);
 				layer.polygons = layer.polygons.smooth(safe_dist);
-				layer.polygons.simplify(safe_dist, safe_dist * safe_dist / 4);
+                                layer.polygons = Simplify(safe_dist, safe_dist / 2, 0).polygon(layer.polygons);
 				// somehow layer.polygons get really jagged lines with a lot of vertices
 				// without the above steps slicing goes really slow
 			}

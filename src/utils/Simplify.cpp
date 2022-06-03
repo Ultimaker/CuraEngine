@@ -18,8 +18,18 @@ Simplify::Simplify(const coord_t max_resolution, const coord_t max_deviation, co
 Simplify::Simplify(const Settings& settings)
     : max_resolution(settings.get<coord_t>("meshfix_maximum_resolution"))
     , max_deviation(settings.get<coord_t>("meshfix_maximum_deviation"))
-    , max_area_deviation(settings.get<coord_t>("meshfix_maximum_area_deviation"))
+    , max_area_deviation(settings.get<coord_t>("meshfix_maximum_extrusion_area_deviation"))
 {}
+
+Polygons Simplify::polygon(const Polygons& polygons)
+{
+    Polygons result;
+    for(size_t i = 0; i < polygons.size(); ++i)
+    {
+        result.add(polygon(polygons[i]));
+    }
+    return result;
+}
 
 Polygon Simplify::polygon(const Polygon& polygon)
 {
@@ -31,6 +41,16 @@ ExtrusionLine Simplify::polygon(const ExtrusionLine& polygon)
 {
     constexpr bool is_closed = true;
     return simplify(polygon, is_closed);
+}
+
+Polygons Simplify::polyline(const Polygons& polylines)
+{
+    Polygons result;
+    for(size_t i = 0; i < polylines.size(); ++i)
+    {
+        result.add(polyline(polylines[i]));
+    }
+    return result;
 }
 
 Polygon Simplify::polyline(const Polygon& polyline)
