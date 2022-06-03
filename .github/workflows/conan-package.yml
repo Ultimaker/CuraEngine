@@ -97,6 +97,7 @@ jobs:
               if: ${{ runner.os != 'Windows' }}
               run: |
                   pip install --require-hashes -r requirements.txt
+                  conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-9177_Fix_CI_CD" -tf $HOME/.conan
                   conan profile new default --detect
                   conan user -p $CONAN_PASS -r ultimaker $CONAN_USER
 
