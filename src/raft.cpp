@@ -40,6 +40,12 @@ void Raft::generate(SliceDataStorage& storage)
 
     if(settings.get<bool>("raft_remove_inside_corners"))
     {
+        // There are some cases where the makeConvex can fail, especially in sharp corners with very small line segments.
+        // By first using the approx convexhull, we filter out these situations.
+        storage.raftOutline = storage.raftOutline.approxConvexHull();
+
+        // Since the approxConvexHull doesn't fully guarantee that the resulting shape is convex (as the name already implies), we have to
+        // refine the result and ensure that whatever non convex areas that might be left are fixed.
         storage.raftOutline.makeConvex();
     }
     else
