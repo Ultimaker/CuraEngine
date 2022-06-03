@@ -77,10 +77,59 @@ jobs:
                     echo ${{ github.ref_name }} | awk '{print "::set-output name=channel::"substr(tolower($0),0,9)}'
                   fi
 
-    conan-package:
-        runs-on: ${{ matrix.os }}
+    conan-package-export:
+        runs-on: ubuntu-20.04
 
         needs: [ get-semver ]
+
+        steps:
+            - name: Checkout CuraEngine
+              uses: actions/checkout@v3
+
+            - name: Setup Python and pip
+              uses: actions/setup-python@v3
+              with:
+                  python-version: '3.10.4'
+                  architecture: 'x64'
+                  cache: 'pip'
+
+            - name: Prepare Conan and sip-build (Bash)
+              if: ${{ runner.os != 'Windows' }}
+              run: |
+                  pip install --require-hashes -r requirements.txt
+                  conan profile new default --detect
+                  conan user -p $CONAN_PASS -r ultimaker $CONAN_USER
+
+            - name: Prepare Conan and sip-build (Powershell)
+              if: ${{ runner.os == 'Windows' }}
+              run: |
+                  pip install --require-hashes -r requirements.txt
+                  conan profile new default --detect
+                  conan user -p $env:CONAN_PASS -r ultimaker $env:CONAN_USER
+
+            - name: Cache Conan local repository packages (Bash)
+              uses: actions/cache@v3
+              if: ${{ runner.os != 'Windows' }}
+              with:
+                  path: |
+                      $HOME/.conan/data
+                  key: ${{ runner.os }}-conan
+
+            - name: Export the Package
+              run: conan export . curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }}
+
+            - name: Create the latest alias
+              if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+              run: conan alias curaengine/latest@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }}
+
+            - name: Upload the Package(s)
+              run: conan upload "*" -r ultimaker --all -c
+
+    conan-package-create:
+        if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+        runs-on: ${{ matrix.os }}
+
+        needs: [ get-semver, conan-package-export ]
 
         strategy:
             fail-fast: true
@@ -88,9 +137,6 @@ jobs:
                 os: [ macos-10.15, windows-2022, ubuntu-20.04]
 
         steps:
-            - name: Checkout CuraEngine
-              uses: actions/checkout@v3
-
             - name: Setup Python and pip
               uses: actions/setup-python@v3
               with:
@@ -132,16 +178,7 @@ jobs:
                   key: ${{ runner.os }}-conan
 
             - name: Create the Packages
-              if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-              run: conan create . curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update
-
-            - name: Export the Packages
-              if: ${{ github.event_name == 'push' && github.ref_name != 'main' && runner.os == 'Linux' }}
-              run: conan export . curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }}
-
-            - name: Create the latest alias
-              if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-              run: conan alias curaengine/latest@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }}
+              run: conan install curaengine/${{ needs.get-semver.outputs.semver_full }}@${{ needs.get-semver.outputs.user }}/${{ needs.get-semver.outputs.channel }} -pr:b cura_build.jinja -pr:h cura_release.jinja --build=missing --update
 
             - name: Upload the Package(s)
               run: conan upload "*" -r ultimaker --all -c
