@@ -42,7 +42,7 @@ private:
 
     std::vector<ExtrusionMoves> pattern_per_extruder; //!< For each extruder the pattern to print on all layers of the prime tower.
     std::vector<ExtrusionMoves> pattern_per_extruder_layer0; //!< For each extruder the pattern to print on the first layer
-    std::map<size_t, std::map<coord_t, ExtrusionMoves>> sparse_pattern_per_extruders; //!< For each extruders combination, and for each possible line width, the pattern to print on all layers where extruders are actually useless.
+    std::map<size_t, std::map<size_t, ExtrusionMoves>> sparse_pattern_per_extruders; //!< For each extruders combination, and for each actual extruder, the pattern to print on all layers where extruders are actually useless.
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
@@ -124,8 +124,9 @@ private:
      * \param last_extruder The index of the last extruder to be pseudo-primed
      * \param rings_radii The external radii of each extruder ring, plus the internal radius of the internal ring
      * \param line_width The actual line width of the extruder
+     * \param actual_extruder_nr The actual extruder to be used
      */
-    ExtrusionMoves generatePath_sparseInfill(const size_t first_extruder, const size_t last_extruder, const std::vector<coord_t> &rings_radii, const coord_t line_width);
+    ExtrusionMoves generatePath_sparseInfill(const size_t first_extruder, const size_t last_extruder, const std::vector<coord_t> &rings_radii, const coord_t line_width, const size_t actual_extruder_nr);
 
     /*!
      * Generate start locations on the prime tower. The locations are evenly spread around the prime tower's perimeter.
