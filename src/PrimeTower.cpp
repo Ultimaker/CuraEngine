@@ -41,7 +41,10 @@ PrimeTower::PrimeTower()
         //used (sacrifying for this purpose the usual single-extruder first layer, that would be better for prime-tower
         //adhesion).
 
-        multiple_extruders_on_first_layer = scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle") && ((adhesion_type != EPlatformAdhesion::SKIRT) && (adhesion_type != EPlatformAdhesion::BRIM));
+        multiple_extruders_on_first_layer = (method == PrimeTowerMethod::OPTIMIZED) ||
+                                            (method == PrimeTowerMethod::OPTIMIZED_CONSISTENT) ||
+                                            (scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle") &&
+                                             ((adhesion_type != EPlatformAdhesion::SKIRT) && (adhesion_type != EPlatformAdhesion::BRIM)));
     }
 
     enabled = method != PrimeTowerMethod::NONE
