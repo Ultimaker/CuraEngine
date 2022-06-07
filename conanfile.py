@@ -129,7 +129,7 @@ class CuraEngineConan(ConanFile):
         self.cpp.package.bindirs = ['bin']
 
     def imports(self):
-        if self.settings.os == "Windows":
+        if self.settings.os == "Windows" and not self.in_local_cache:
             self.copy("*", dst=self.build_folder, src="@bindirs")
             self.copy("*", dst=self.build_folder, src="@libdirs")
             if self.options.enable_testing:
