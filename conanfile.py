@@ -147,3 +147,5 @@ class CuraEngineConan(ConanFile):
     def package(self):
         packager = files.AutoPackager(self)
         packager.run()
+
+        files.rmdir(self, os.path.join(self.package_folder, "bin", "CMakeFiles"))
