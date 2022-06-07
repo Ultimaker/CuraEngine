@@ -1244,6 +1244,15 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
         std::vector<size_t> extruder_order = getUsedExtrudersOnLayerExcludingStartingExtruder(storage, last_extruder, layer_nr);
         extruder_order_per_layer_here.push_back(extruder_order);
 
+        #warning remove this
+        #if 0
+        logAlways("##### Used extruders for layer %d (last %d)\n", layer_nr, last_extruder);
+        for(const size_t &extruder_nr : extruder_order)
+        {
+            logAlways("##### %d\n", extruder_nr);
+        }
+        #endif
+
         if(layer_nr >= 0 && !extruder_order_per_layer_here.empty())
         {
             std::vector<bool> extruder_prime_required(extruder_count, false);
@@ -1251,7 +1260,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
             // First used extruder only needs to be primed if an other extruder has been used before
             if(extruder_order.front() != last_extruder)
             {
-                extruder_prime_required[last_extruder] = true;
+                extruder_prime_required[extruder_order.front()] = true;
             }
 
             // All other used extruders need to be primed
@@ -1264,10 +1273,10 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 
             #warning remove this
             #if 0
-            log("##### Required primes for layer %d:\n", layer_nr);
-            for(const size_t &extruder_nr : extruder_prime_required)
+            logAlways("##### Required primes for layer %d:\n", layer_nr);
+            for(size_t extruder_nr = 0 ; extruder_nr < extruder_count ; ++extruder_nr)
             {
-                log("##### %d\n", extruder_nr);
+                logAlways("##### EX%d %d\n", extruder_nr, extruder_prime_required[extruder_nr] ? 1 : 0);
             }
             #endif
         }
