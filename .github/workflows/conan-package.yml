@@ -138,6 +138,9 @@ jobs:
                 os: [ macos-10.15, windows-2022, ubuntu-20.04]
 
         steps:
+            -   name: Checkout CuraEngine
+                uses: actions/checkout@v3
+
             - name: Setup Python and pip
               uses: actions/setup-python@v3
               with:
