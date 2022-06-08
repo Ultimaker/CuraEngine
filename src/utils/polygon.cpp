@@ -124,8 +124,7 @@ void Polygons::makeConvex()
 
         Polygon convexified;
 
-        std::sort (poly.begin(), poly.end(), [](Point a, Point b) { return a.X == b.X ? a.Y < b.Y : a.X < b.X; });
-        makeSortedPolyConvex(poly, convexified);
+        std::sort (poly.begin(), poly.end(), [](Point a, Point b) { return a < b; });
 
         std::reverse(poly.begin(), poly.end());
         makeSortedPolyConvex(poly, convexified);
