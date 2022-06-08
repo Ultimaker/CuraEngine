@@ -13,8 +13,9 @@
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "settings/EnumSettings.h" //To get the seam settings.
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
-#include "utils/polygonUtils.h"
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
+#include "utils/polygonUtils.h"
+#include "utils/Simplify.h"
 
 namespace cura
 {
@@ -420,8 +421,8 @@ protected:
         Polygon simple_poly(*path.converted);
         if (seam_config.simplify_curvature > 0 && simple_poly.size() > 2)
         {
-            const coord_t max_simplify_dist2 = seam_config.simplify_curvature * seam_config.simplify_curvature;
-            simple_poly.simplify(max_simplify_dist2, max_simplify_dist2 / 4);
+            const coord_t max_simplify_dist = seam_config.simplify_curvature;
+            simple_poly = Simplify(max_simplify_dist, max_simplify_dist / 2, 0).polygon(simple_poly);
         }
         if(simple_poly.empty()) //Simplify removed everything because it's all too small.
         {

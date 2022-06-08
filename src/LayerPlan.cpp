@@ -16,8 +16,9 @@
 #include "pathPlanning/CombPaths.h"
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
-#include "utils/polygonUtils.h"
 #include "utils/linearAlg2D.h"
+#include "utils/polygonUtils.h"
+#include "utils/Simplify.h"
 #include "WipeScriptConfig.h"
 
 namespace cura {
@@ -1104,7 +1105,7 @@ void LayerPlan::addLinesByOptimizer
         }
         boundary.add(comb_boundary_minimum.offset(dist));
         // simplify boundary to cut down processing time
-        boundary.simplify(MM2INT(0.1), MM2INT(0.1));
+        boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
     }
     constexpr bool detect_loops = true;
     PathOrderOptimizer<ConstPolygonPointer> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction);

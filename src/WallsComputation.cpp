@@ -1,4 +1,4 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ExtruderTrain.h"
@@ -7,6 +7,7 @@
 #include "settings/types/Ratio.h"
 #include "WallToolPaths.h"
 #include "utils/polygonUtils.h"
+#include "utils/Simplify.h" //We're simplifying the spiralized insets.
 #include "Application.h"
 #include "Slice.h"
 
@@ -114,9 +115,7 @@ void WallsComputation::generateSpiralInsets(SliceLayerPart *part, coord_t line_w
 
     //Optimize the wall. This prevents buffer underruns in the printer firmware, and reduces processing time in CuraEngine.
     const ExtruderTrain& train_wall = settings.get<ExtruderTrain&>("wall_0_extruder_nr");
-    const coord_t maximum_resolution = train_wall.settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t maximum_deviation = train_wall.settings.get<coord_t>("meshfix_maximum_deviation");
-    part->spiral_wall.simplify(maximum_resolution, maximum_deviation);
+    part->spiral_wall = Simplify(train_wall.settings).polygon(part->spiral_wall);
     part->spiral_wall.removeDegenerateVerts();
     if (recompute_outline_based_on_outer_wall)
     {

@@ -1102,61 +1102,6 @@ public:
             }
         }
     }
-
-    /*!
-     * Removes vertices of the polygons to make sure that they are not too high
-     * resolution.
-     *
-     * This removes points which are connected to line segments that are shorter
-     * than the `smallest_line_segment`, unless that would introduce a deviation
-     * in the contour of more than `allowed_error_distance`.
-     *
-     * Criteria:
-     * 1. Never remove a vertex if either of the connceted segments is larger than \p smallest_line_segment
-     * 2. Never remove a vertex if the distance between that vertex and the final resulting polygon would be higher than \p allowed_error_distance
-     * 3. The direction of segments longer than \p smallest_line_segment always
-     * remains unaltered (but their end points may change if it is connected to
-     * a small segment)
-     *
-     * Simplify uses a heuristic and doesn't neccesarily remove all removable
-     * vertices under the above criteria, but simplify may never violate these
-     * criteria. Unless the segments or the distance is smaller than the
-     * rounding error of 5 micron.
-     *
-     * Vertices which introduce an error of less than 5 microns are removed
-     * anyway, even if the segments are longer than the smallest line segment.
-     * This makes sure that (practically) colinear line segments are joined into
-     * a single line segment.
-     * \param smallest_line_segment Maximal length of removed line segments.
-     * \param allowed_error_distance If removing a vertex introduces a deviation
-     * from the original path that is more than this distance, the vertex may
-     * not be removed.
-     */
-    void simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5)
-    {
-        _simplify(smallest_line_segment, allowed_error_distance, false);
-    }
-    void simplifyPolylines(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5) 
-    {
-        _simplify(smallest_line_segment, allowed_error_distance, true);
-    }
-private:
-    void _simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5, bool processing_polylines = false) 
-    {
-        const coord_t allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
-        const coord_t smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
-        const size_t min_poly_length = processing_polylines ? 2 : 3;
-        Polygons& thiss = *this;
-        for (size_t p = 0; p < size(); p++)
-        {
-            thiss[p]._simplify(smallest_line_segment_squared, allowed_error_distance_squared, processing_polylines);
-            if (thiss[p].size() < min_poly_length) // remove polys with not enough verts to be a polyline/polygon
-            {
-                remove(p);
-                p--;
-            }
-        }
-    }
 public:
 
     void scale(const Ratio& ratio)
