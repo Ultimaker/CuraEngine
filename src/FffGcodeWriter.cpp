@@ -8,6 +8,7 @@
 
 #include "Application.h"
 #include "bridge.h"
+#include "communication/Communication.h" //To send layer view data.
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
 #include "FffProcessor.h"
@@ -15,14 +16,14 @@
 #include "infill.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
+#include "progress/Progress.h"
 #include "raft.h"
 #include "Slice.h"
-#include "WallToolPaths.h"
-#include "communication/Communication.h" //To send layer view data.
-#include "progress/Progress.h"
+#include "utils/linearAlg2D.h"
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
-#include "utils/linearAlg2D.h"
+#include "utils/Simplify.h" //Removing micro-segments created by offsetting.
+#include "WallToolPaths.h"
 
 #define OMP_MAX_ACTIVE_LAYERS_PROCESSED 30 // TODO: hardcoded-value for the max number of layers being in the pipeline while writing away and destroying layers in a multi-threaded context
 
@@ -820,7 +821,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, interface_layer_height);
 
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_interface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        raft_outline_path.simplify(); //Remove those micron-movements.
+        raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); //Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
         Polygons raftLines;
         AngleDegrees fill_angle = (num_surface_layers + num_interface_layers - raft_interface_layer) % 2 ? 45 : 135; //90 degrees rotated from the first top layer.
@@ -882,7 +883,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         Application::getInstance().communication->sendLayerComplete(layer_nr, z, surface_layer_height);
 
         Polygons raft_outline_path = storage.raftOutline.offset(-gcode_layer.configs_storage.raft_surface_config.getLineWidth() / 2); //Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
-        raft_outline_path.simplify(); //Remove those micron-movements.
+        raft_outline_path = Simplify(surface_settings).polygon(raft_outline_path); //Remove those micron-movements.
         const coord_t infill_outline_width = gcode_layer.configs_storage.raft_interface_config.getLineWidth();
         Polygons raft_lines;
         AngleDegrees fill_angle = (num_surface_layers - raft_surface_layer) % 2 ? 45 : 135; //Alternate between -45 and +45 degrees, ending up 90 degrees rotated from the default skin angle.
@@ -1360,9 +1361,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
         polygons.add(part.outline);
     }
 
-    coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
-    coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
-    polygons.simplify(max_resolution, max_deviation);
+    polygons = Simplify(mesh.settings).polygon(polygons);
 
     ZSeamConfig z_seam_config(mesh.settings.get<EZSeamType>("z_seam_type"), mesh.getZSeamHint(), mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"), mesh.settings.get<coord_t>("wall_line_width_0") * 2);
     const bool spiralize = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("magic_spiralize");

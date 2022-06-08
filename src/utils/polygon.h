@@ -1,21 +1,21 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef UTILS_POLYGON_H
 #define UTILS_POLYGON_H
 
 #include <vector>
 
-#include <algorithm>
 #include <assert.h>
 #include <float.h>
+#include <algorithm>
 #include <polyclipping/clipper.hpp>
 
-#include <algorithm> // std::reverse, fill_n array
+#include <algorithm>    // std::reverse, fill_n array
+#include <unordered_map>
 #include <cmath> // fabs
 #include <limits> // int64_t.min
 #include <list>
-#include <unordered_map>
 
 #include <initializer_list>
 
@@ -27,14 +27,10 @@
 #ifdef CHECK_POLY_ACCESS
 #define POLY_ASSERT(e) assert(e)
 #else
-#define POLY_ASSERT(e) \
-    do                 \
-    {                  \
-    } while (0)
+#define POLY_ASSERT(e) do {} while(0)
 #endif
 
-namespace cura
-{
+namespace cura {
 
 template<typename T>
 bool shorterThan(const T& shape, const coord_t check_length)
@@ -79,14 +75,12 @@ class ConstPolygonRef
     friend class Polygon;
     friend class PolygonRef;
     friend class ConstPolygonPointer;
-
-  protected:
+protected:
     ClipperLib::Path* path;
-
-  public:
-    ConstPolygonRef(const ClipperLib::Path& polygon) : path(const_cast<ClipperLib::Path*>(&polygon))
-    {
-    }
+public:
+    ConstPolygonRef(const ClipperLib::Path& polygon)
+    : path(const_cast<ClipperLib::Path*>(&polygon))
+    {}
 
     ConstPolygonRef() = delete; // you cannot have a reference without an object!
 
@@ -94,8 +88,7 @@ class ConstPolygonRef
     {
     }
 
-    bool operator==(ConstPolygonRef& other) const =
-      delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
+    bool operator==(ConstPolygonRef& other) const = delete; // polygon comparison is expensive and probably not what you want when you use the equality operator
 
     ConstPolygonRef& operator=(const ConstPolygonRef& other) = delete; // Cannot assign to a const object
 
@@ -112,7 +105,7 @@ class ConstPolygonRef
      */
     bool empty() const;
 
-    const Point& operator[](unsigned int index) const
+    const Point& operator[] (unsigned int index) const
     {
         POLY_ASSERT(index < size());
         return (*path)[index];
@@ -208,7 +201,7 @@ class ConstPolygonRef
     Point min() const
     {
         Point ret = Point(POINT_MAX, POINT_MAX);
-        for (Point p : *path)
+        for(Point p : *path)
         {
             ret.X = std::min(ret.X, p.X);
             ret.Y = std::min(ret.Y, p.Y);
@@ -219,7 +212,7 @@ class ConstPolygonRef
     Point max() const
     {
         Point ret = Point(POINT_MIN, POINT_MIN);
-        for (Point p : *path)
+        for(Point p : *path)
         {
             ret.X = std::max(ret.X, p.X);
             ret.Y = std::max(ret.Y, p.Y);
@@ -235,8 +228,8 @@ class ConstPolygonRef
     Point centerOfMass() const
     {
         double x = 0, y = 0;
-        Point p0 = (*path)[path->size() - 1];
-        for (unsigned int n = 0; n < path->size(); n++)
+        Point p0 = (*path)[path->size()-1];
+        for(unsigned int n=0; n<path->size(); n++)
         {
             Point p1 = (*path)[n];
             double second_factor = (p0.X * p1.Y) - (p1.X * p0.Y);
@@ -258,7 +251,7 @@ class ConstPolygonRef
     {
         Point ret = p;
         float bestDist = FLT_MAX;
-        for (unsigned int n = 0; n < path->size(); n++)
+        for(unsigned int n=0; n<path->size(); n++)
         {
             float dist = vSize2f(p - (*path)[n]);
             if (dist < bestDist)
@@ -348,7 +341,7 @@ class ConstPolygonRef
     Polygons intersection(const ConstPolygonRef& other) const;
 
 
-  private:
+private:
     /*!
      * Smooth out a simple corner consisting of two linesegments.
      *
@@ -366,17 +359,7 @@ class ConstPolygonRef
      * \param shortcut_length The desired length ofthe shortcutting line
      * \param cos_angle The cosine on the angle in L 012
      */
-    static void smooth_corner_simple(const Point p0,
-                                     const Point p1,
-                                     const Point p2,
-                                     const ListPolyIt p0_it,
-                                     const ListPolyIt p1_it,
-                                     const ListPolyIt p2_it,
-                                     const Point v10,
-                                     const Point v12,
-                                     const Point v02,
-                                     const int64_t shortcut_length,
-                                     float cos_angle);
+    static void smooth_corner_simple(const Point p0, const Point p1, const Point p2, const ListPolyIt p0_it, const ListPolyIt p1_it, const ListPolyIt p2_it, const Point v10, const Point v12, const Point v02, const int64_t shortcut_length, float cos_angle);
 
     /*!
      * Smooth out a complex corner where the shortcut bypasses more than two line segments
@@ -405,20 +388,12 @@ class ConstPolygonRef
      * \param[in] shortcut_length2 The square of the desired length ofthe shortcutting line
      * \param[in,out] p0_it Iterator to the previously checked point somewhere beyond \p p1. Updated for the next iteration.
      * \param[in,out] p2_it Iterator to the previously checked point somewhere before \p p1. Updated for the next iteration.
-     * \param[in,out] forward_is_blocked Whether trying another step forward is blocked by the smoothing outward condition. Updated for the
-     * next iteration. \param[in,out] backward_is_blocked Whether trying another step backward is blocked by the smoothing outward
-     * condition. Updated for the next iteration. \param[in,out] forward_is_too_far Whether trying another step forward is blocked by the
-     * shortcut length condition. Updated for the next iteration. \param[in,out] backward_is_too_far Whether trying another step backward is
-     * blocked by the shortcut length condition. Updated for the next iteration.
+     * \param[in,out] forward_is_blocked Whether trying another step forward is blocked by the smoothing outward condition. Updated for the next iteration.
+     * \param[in,out] backward_is_blocked Whether trying another step backward is blocked by the smoothing outward condition. Updated for the next iteration.
+     * \param[in,out] forward_is_too_far Whether trying another step forward is blocked by the shortcut length condition. Updated for the next iteration.
+     * \param[in,out] backward_is_too_far Whether trying another step backward is blocked by the shortcut length condition. Updated for the next iteration.
      */
-    static void smooth_outward_step(const Point p1,
-                                    const int64_t shortcut_length2,
-                                    ListPolyIt& p0_it,
-                                    ListPolyIt& p2_it,
-                                    bool& forward_is_blocked,
-                                    bool& backward_is_blocked,
-                                    bool& forward_is_too_far,
-                                    bool& backward_is_too_far);
+    static void smooth_outward_step(const Point p1, const int64_t shortcut_length2, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far);
 };
 
 
@@ -429,15 +404,14 @@ class PolygonRef : public ConstPolygonRef
     friend class PolygonPointer;
     friend class Polygons;
     friend class PolygonsPart;
+public:
+    PolygonRef(ClipperLib::Path& polygon)
+    : ConstPolygonRef(polygon)
+    {}
 
-  public:
-    PolygonRef(ClipperLib::Path& polygon) : ConstPolygonRef(polygon)
-    {
-    }
-
-    PolygonRef(const PolygonRef& other) : ConstPolygonRef(*other.path)
-    {
-    }
+    PolygonRef(const PolygonRef& other)
+    : ConstPolygonRef(*other.path)
+    {}
 
     PolygonRef() = delete; // you cannot have a reference without an object!
 
@@ -450,18 +424,16 @@ class PolygonRef : public ConstPolygonRef
         path->reserve(min_size);
     }
 
-    template<class iterator>
+    template <class iterator>
     ClipperLib::Path::iterator insert(ClipperLib::Path::const_iterator pos, iterator first, iterator last)
     {
         return path->insert(pos, first, last);
     }
 
-    PolygonRef& operator=(const ConstPolygonRef& other) =
-      delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+    PolygonRef& operator=(const ConstPolygonRef& other) = delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
 
-    PolygonRef& operator=(ConstPolygonRef& other) =
-      delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
-    //     { path = other.path; return *this; }
+    PolygonRef& operator=(ConstPolygonRef& other) = delete; // polygon assignment is expensive and probably not what you want when you use the assignment operator
+//     { path = other.path; return *this; }
 
     PolygonRef& operator=(PolygonRef&& other)
     {
@@ -469,13 +441,13 @@ class PolygonRef : public ConstPolygonRef
         return *this;
     }
 
-    Point& operator[](unsigned int index)
+    Point& operator[] (unsigned int index)
     {
         POLY_ASSERT(index < size());
         return (*path)[index];
     }
 
-    const Point& operator[](unsigned int index) const
+    const Point& operator[] (unsigned int index) const
     {
         POLY_ASSERT(index < size());
         return (*path)[index];
@@ -516,7 +488,7 @@ class PolygonRef : public ConstPolygonRef
         return *path;
     }
 
-    template<typename... Args>
+    template <typename... Args>
     void emplace_back(Args&&... args)
     {
         path->emplace_back(args...);
@@ -567,42 +539,33 @@ class PolygonRef : public ConstPolygonRef
      * 3. Moves a vert when a small line segment is connected to a much longer one. in order to maintain the outline of the object.
      * 4. Don't remove a vert when the impact on the outline of the object is too great.
      *
-     * Note that the simplify is a best effort algorithm. It does not guarantee that no lines below the provided
-     smallest_line_segment_squared are left.
+     * Note that the simplify is a best effort algorithm. It does not guarantee that no lines below the provided smallest_line_segment_squared are left.
      *
-     * The following example (Two very long line segments (" & , respectively) that are connected by a very small line segment (i) is
-     unsimplifable by this
-     * function, even though the actual area change of removing line segment i is very small. The reason for this is that in the case of
-     long lines, even a small
-     * deviation from it's original direction is very noticeable in the final result, especially if the polygons above make a slightly
-     different choice.
+     * The following example (Two very long line segments (" & , respectively) that are connected by a very small line segment (i) is unsimplifable by this
+     * function, even though the actual area change of removing line segment i is very small. The reason for this is that in the case of long lines, even a small
+     * deviation from it's original direction is very noticeable in the final result, especially if the polygons above make a slightly different choice.
      *
      * """"""""""""""""""""""""""""""""i,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
      *
      * \param smallest_line_segment_squared maximal squared length of removed line segments
-     * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and
-     previous point for which the middle point is removed
+     * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
-    void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01),
-                  const coord_t allowed_error_distance_squared = 25);
+    void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
 
     /*!
      * See simplify(.)
      */
     void simplifyPolyline(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25);
-
-  protected:
+protected:
     /*!
      * Private implementation for both simplify and simplifyPolygons.
-     *
+     * 
      * Made private to avoid accidental use of the wrong function.
      */
-    void _simplify(const coord_t smallest_line_segment_squared = 100,
-                   const coord_t allowed_error_distance_squared = 25,
-                   bool processing_polylines = false);
+    void _simplify(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25, bool processing_polylines = false);
 
-  public:
+public:
     void pop_back()
     {
         path->pop_back();
@@ -617,19 +580,18 @@ class PolygonRef : public ConstPolygonRef
 
 class ConstPolygonPointer
 {
-  protected:
+protected:
     const ClipperLib::Path* path;
-
-  public:
-    ConstPolygonPointer() : path(nullptr)
-    {
-    }
-    ConstPolygonPointer(const ConstPolygonRef* ref) : path(ref->path)
-    {
-    }
-    ConstPolygonPointer(const ConstPolygonRef& ref) : path(ref.path)
-    {
-    }
+public:
+    ConstPolygonPointer()
+    : path(nullptr)
+    {}
+    ConstPolygonPointer(const ConstPolygonRef* ref)
+    : path(ref->path)
+    {}
+    ConstPolygonPointer(const ConstPolygonRef& ref)
+    : path(ref.path)
+    {}
 
     ConstPolygonRef operator*() const
     {
@@ -655,17 +617,17 @@ class ConstPolygonPointer
 
 class PolygonPointer : public ConstPolygonPointer
 {
-  public:
-    PolygonPointer() : ConstPolygonPointer(nullptr)
-    {
-    }
-    PolygonPointer(PolygonRef* ref) : ConstPolygonPointer(ref)
-    {
-    }
+public:
+    PolygonPointer()
+    : ConstPolygonPointer(nullptr)
+    {}
+    PolygonPointer(PolygonRef* ref)
+    : ConstPolygonPointer(ref)
+    {}
 
-    PolygonPointer(PolygonRef& ref) : ConstPolygonPointer(ref)
-    {
-    }
+    PolygonPointer(PolygonRef& ref)
+    : ConstPolygonPointer(ref)
+    {}
 
     PolygonRef operator*()
     {
@@ -727,29 +689,34 @@ struct hash<cura::PolygonPointer>
         return std::hash<const ClipperLib::Path*>()(&*ref);
     }
 };
-} // namespace std
+}//namespace std
 
-namespace cura
-{
+namespace cura {
 
 class Polygon : public PolygonRef
 {
     ClipperLib::Path poly;
-
-  public:
-    Polygon() : PolygonRef(poly)
+public:
+    Polygon()
+    : PolygonRef(poly)
     {
     }
 
-    Polygon(const ConstPolygonRef& other) : PolygonRef(poly), poly(*other.path)
+    Polygon(const ConstPolygonRef& other)
+    : PolygonRef(poly)
+    , poly(*other.path)
     {
     }
 
-    Polygon(const Polygon& other) : PolygonRef(poly), poly(*other.path)
+    Polygon(const Polygon& other)
+    : PolygonRef(poly)
+    , poly(*other.path)
     {
     }
 
-    Polygon(Polygon&& moved) : PolygonRef(poly), poly(std::move(moved.poly))
+    Polygon(Polygon&& moved)
+    : PolygonRef(poly)
+    , poly(std::move(moved.poly))
     {
     }
 
@@ -758,11 +725,11 @@ class Polygon : public PolygonRef
     }
 
     Polygon& operator=(const ConstPolygonRef& other) = delete; // copying a single polygon is generally not what you want
-    //     {
-    //         path = other.path;
-    //         poly = *other.path;
-    //         return *this;
-    //     }
+//     {
+//         path = other.path;
+//         poly = *other.path;
+//         return *this;
+//     }
 
     Polygon& operator=(Polygon&& other) //!< move assignment
     {
@@ -779,11 +746,9 @@ class Polygons
     friend class PolygonRef;
     friend class ConstPolygonRef;
     friend class PolygonUtils;
-
-  protected:
+protected:
     ClipperLib::Paths paths;
-
-  public:
+public:
     unsigned int size() const
     {
         return paths.size();
@@ -798,12 +763,12 @@ class Polygons
 
     unsigned int pointCount() const; //!< Return the amount of points in all polygons
 
-    PolygonRef operator[](unsigned int index)
+    PolygonRef operator[] (unsigned int index)
     {
         POLY_ASSERT(index < size() && index <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
         return paths[index];
     }
-    ConstPolygonRef operator[](unsigned int index) const
+    ConstPolygonRef operator[] (unsigned int index) const
     {
         POLY_ASSERT(index < size() && index <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
         return paths[index];
@@ -876,7 +841,7 @@ class Polygons
      */
     void addLine(const Point from, const Point to)
     {
-        paths.emplace_back(ClipperLib::Path{ from, to });
+        paths.emplace_back(ClipperLib::Path{from, to});
     }
 
     void emplace_back(const Polygon& poly)
@@ -893,7 +858,7 @@ class Polygons
     {
         paths.emplace_back(*poly.path);
     }
-
+    
     template<typename... Args>
     void emplace_back(Args... args)
     {
@@ -922,28 +887,12 @@ class Polygons
         return ConstPolygonRef(paths.back());
     }
 
-    Polygons()
-    {
-    }
+    Polygons() {}
 
-    Polygons(const Polygons& other)
-    {
-        paths = other.paths;
-    }
-    Polygons(Polygons&& other)
-    {
-        paths = std::move(other.paths);
-    }
-    Polygons& operator=(const Polygons& other)
-    {
-        paths = other.paths;
-        return *this;
-    }
-    Polygons& operator=(Polygons&& other)
-    {
-        paths = std::move(other.paths);
-        return *this;
-    }
+    Polygons(const Polygons& other) { paths = other.paths; }
+    Polygons(Polygons&& other) { paths = std::move(other.paths); }
+    Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
+    Polygons& operator=(Polygons&& other) { paths = std::move(other.paths); return *this; }
 
     bool operator==(const Polygons& other) const = delete;
 
@@ -990,10 +939,9 @@ class Polygons
 
     /*!
      * Intersect polylines with this area Polygons object.
-     *
-     * \note Due to a clipper bug with polylines with nearly collinear segments, the polylines are cut up into separate polylines, and
-     * restitched back together at the end.
-     *
+     * 
+     * \note Due to a clipper bug with polylines with nearly collinear segments, the polylines are cut up into separate polylines, and restitched back together at the end.
+     * 
      * \param polylines The (non-closed!) polylines to limit to the area of this Polygons object
      * \param restitch Whether to stitch the resulting segments into longer polylines, or leave every segment as a single segment
      * \param max_stitch_distance The maximum distance for two polylines to be stitched together with a segment
@@ -1025,7 +973,7 @@ class Polygons
         return ret;
     }
 
-    Polygons execute(ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const
+    Polygons execute (ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
@@ -1040,7 +988,7 @@ class Polygons
     {
         Polygons ret;
         double miterLimit = 1.2;
-        ClipperLib::EndType end_type = (joinType == ClipperLib::jtMiter) ? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
+        ClipperLib::EndType end_type = (joinType == ClipperLib::jtMiter)? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
         ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
         clipper.AddPaths(paths, joinType, end_type);
         clipper.MiterLimit = miterLimit;
@@ -1154,65 +1102,8 @@ class Polygons
             }
         }
     }
+public:
 
-    /*!
-     * Removes vertices of the polygons to make sure that they are not too high
-     * resolution.
-     *
-     * This removes points which are connected to line segments that are shorter
-     * than the `smallest_line_segment`, unless that would introduce a deviation
-     * in the contour of more than `allowed_error_distance`.
-     *
-     * Criteria:
-     * 1. Never remove a vertex if either of the connceted segments is larger than \p smallest_line_segment
-     * 2. Never remove a vertex if the distance between that vertex and the final resulting polygon would be higher than \p
-     * allowed_error_distance
-     * 3. The direction of segments longer than \p smallest_line_segment always
-     * remains unaltered (but their end points may change if it is connected to
-     * a small segment)
-     *
-     * Simplify uses a heuristic and doesn't neccesarily remove all removable
-     * vertices under the above criteria, but simplify may never violate these
-     * criteria. Unless the segments or the distance is smaller than the
-     * rounding error of 5 micron.
-     *
-     * Vertices which introduce an error of less than 5 microns are removed
-     * anyway, even if the segments are longer than the smallest line segment.
-     * This makes sure that (practically) colinear line segments are joined into
-     * a single line segment.
-     * \param smallest_line_segment Maximal length of removed line segments.
-     * \param allowed_error_distance If removing a vertex introduces a deviation
-     * from the original path that is more than this distance, the vertex may
-     * not be removed.
-     */
-    void simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5)
-    {
-        _simplify(smallest_line_segment, allowed_error_distance, false);
-    }
-    void simplifyPolylines(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5)
-    {
-        _simplify(smallest_line_segment, allowed_error_distance, true);
-    }
-
-  private:
-    void _simplify(const coord_t smallest_line_segment = 10, const coord_t allowed_error_distance = 5, bool processing_polylines = false)
-    {
-        const coord_t allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
-        const coord_t smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
-        const size_t min_poly_length = processing_polylines ? 2 : 3;
-        Polygons& thiss = *this;
-        for (size_t p = 0; p < size(); p++)
-        {
-            thiss[p]._simplify(smallest_line_segment_squared, allowed_error_distance_squared, processing_polylines);
-            if (thiss[p].size() < min_poly_length) // remove polys with not enough verts to be a polyline/polygon
-            {
-                remove(p);
-                p--;
-            }
-        }
-    }
-
-  public:
     void scale(const Ratio& ratio)
     {
         if (ratio == 1.)
@@ -1269,13 +1160,13 @@ class Polygons
 
     /*!
      * Utility method for creating the tube (or 'donut') of a shape.
-     * \param inner_offset Offset relative to the original shape-outline towards the inside of the shape. Sort-of like a negative normal
-     * offset, except it's the offset part that's kept, not the shape. \param outer_offset Offset relative to the original shape-outline
-     * towards the outside of the shape. Comparable to normal offset. \return The resulting polygons.
+     * \param inner_offset Offset relative to the original shape-outline towards the inside of the shape. Sort-of like a negative normal offset, except it's the offset part that's kept, not the shape.
+     * \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset.
+     * \return The resulting polygons.
      */
     Polygons tubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 
-  private:
+private:
     /*!
      * recursive part of \ref Polygons::removeEmptyHoles and \ref Polygons::getEmptyHoles
      * \param node The node of the polygons part to process
@@ -1285,7 +1176,7 @@ class Polygons
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
 
-  public:
+public:
     /*!
      * Split up the polygons into groups according to the even-odd rule.
      * Each vector in the result has the index to an outline as first index, whereas the rest are indices to holes.
@@ -1293,11 +1184,11 @@ class Polygons
      * \warning Note that this function reorders the polygons!
      */
     PartsView splitIntoPartsView(bool unionAll = false);
-
-  private:
+private:
     void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const;
-
-  public:
+public:
+    
+    
     /*!
      * Removes polygons with area smaller than \p min_area_size (note that min_area_size is in mm^2, not in micron^2).
      * Unless \p remove_holes is true, holes are not removed even if their area is below \p min_area_size.
@@ -1350,45 +1241,46 @@ class Polygons
             ConstPolygonRef poly_keep = (*this)[poly_keep_idx];
             bool should_be_removed = false;
             if (poly_keep.size() > 0)
-                //             for (int hole_poly_idx = 0; hole_poly_idx < to_be_removed.size(); hole_poly_idx++)
-                for (ConstPolygonRef poly_rem : to_be_removed)
-                {
-                    if (poly_rem.size() != poly_keep.size() || poly_rem.size() == 0)
-                        continue;
+//             for (int hole_poly_idx = 0; hole_poly_idx < to_be_removed.size(); hole_poly_idx++)
+            for (ConstPolygonRef poly_rem : to_be_removed)
+            {
+//                 PolygonRef poly_rem = to_be_removed[hole_poly_idx];
+                if (poly_rem.size() != poly_keep.size() || poly_rem.size() == 0) continue;
 
-                    // find closest point, supposing this point aligns the two shapes in the best way
-                    int closest_point_idx = 0;
-                    int smallestDist2 = -1;
-                    for (unsigned int point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
+                // find closest point, supposing this point aligns the two shapes in the best way
+                int closest_point_idx = 0;
+                int smallestDist2 = -1;
+                for (unsigned int point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
+                {
+                    int dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
+                    if (dist2 < smallestDist2 || smallestDist2 < 0)
                     {
-                        int dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
-                        if (dist2 < smallestDist2 || smallestDist2 < 0)
-                        {
-                            smallestDist2 = dist2;
-                            closest_point_idx = point_rem_idx;
-                        }
+                        smallestDist2 = dist2;
+                        closest_point_idx = point_rem_idx;
                     }
-                    bool poly_rem_is_poly_keep = true;
-                    // compare the two polygons on all points
-                    if (smallestDist2 > same_distance * same_distance)
-                        continue;
-                    for (unsigned int point_idx = 0; point_idx < poly_rem.size(); point_idx++)
+                }
+                bool poly_rem_is_poly_keep = true;
+                // compare the two polygons on all points
+                if (smallestDist2 > same_distance * same_distance)
+                    continue;
+                for (unsigned int point_idx = 0; point_idx < poly_rem.size(); point_idx++)
+                {
+                    int dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
+                    if (dist2 > same_distance * same_distance)
                     {
-                        int dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
-                        if (dist2 > same_distance * same_distance)
-                        {
-                            poly_rem_is_poly_keep = false;
-                            break;
-                        }
-                    }
-                    if (poly_rem_is_poly_keep)
-                    {
-                        should_be_removed = true;
+                        poly_rem_is_poly_keep = false;
                         break;
                     }
                 }
-            if (! should_be_removed)
+                if (poly_rem_is_poly_keep)
+                {
+                    should_be_removed = true;
+                    break;
+                }
+            }
+            if (!should_be_removed)
                 result.add(poly_keep);
+
         }
         return result;
     }
@@ -1428,9 +1320,9 @@ class Polygons
     Point min() const
     {
         Point ret = Point(POINT_MAX, POINT_MAX);
-        for (const ClipperLib::Path& polygon : paths)
+        for(const ClipperLib::Path& polygon : paths)
         {
-            for (Point p : polygon)
+            for(Point p : polygon)
             {
                 ret.X = std::min(ret.X, p.X);
                 ret.Y = std::min(ret.Y, p.Y);
@@ -1442,9 +1334,9 @@ class Polygons
     Point max() const
     {
         Point ret = Point(POINT_MIN, POINT_MIN);
-        for (const ClipperLib::Path& polygon : paths)
+        for(const ClipperLib::Path& polygon : paths)
         {
-            for (Point p : polygon)
+            for(Point p : polygon)
             {
                 ret.X = std::max(ret.X, p.X);
                 ret.Y = std::max(ret.Y, p.Y);
@@ -1455,9 +1347,9 @@ class Polygons
 
     void applyMatrix(const PointMatrix& matrix)
     {
-        for (unsigned int i = 0; i < paths.size(); i++)
+        for(unsigned int i=0; i<paths.size(); i++)
         {
-            for (unsigned int j = 0; j < paths[i].size(); j++)
+            for(unsigned int j=0; j<paths[i].size(); j++)
             {
                 paths[i][j] = matrix.apply(paths[i][j]);
             }
@@ -1466,9 +1358,9 @@ class Polygons
 
     void applyMatrix(const Point3Matrix& matrix)
     {
-        for (unsigned int i = 0; i < paths.size(); i++)
+        for(unsigned int i=0; i<paths.size(); i++)
         {
-            for (unsigned int j = 0; j < paths[i].size(); j++)
+            for(unsigned int j=0; j<paths[i].size(); j++)
             {
                 paths[i][j] = matrix.apply(paths[i][j]);
             }
@@ -1479,12 +1371,11 @@ class Polygons
 /*!
  * A single area with holes. The first polygon is the outline, while the rest are holes within this outline.
  *
- * This class has little more functionality than Polygons, but serves to show that a specific instance is ordered such that the first
- * Polygon is the outline and the rest are holes.
+ * This class has little more functionality than Polygons, but serves to show that a specific instance is ordered such that the first Polygon is the outline and the rest are holes.
  */
 class PolygonsPart : public Polygons
 {
-  public:
+public:
     PolygonRef outerPolygon()
     {
         return paths[0];
@@ -1504,16 +1395,13 @@ class PolygonsPart : public Polygons
 };
 
 /*!
- * Extension of vector<vector<unsigned int>> which is similar to a vector of PolygonParts, except the base of the container is indices to
- * polygons into the original Polygons, instead of the polygons themselves
+ * Extension of vector<vector<unsigned int>> which is similar to a vector of PolygonParts, except the base of the container is indices to polygons into the original Polygons, instead of the polygons themselves
  */
 class PartsView : public std::vector<std::vector<unsigned int>>
 {
-  public:
+public:
     Polygons& polygons;
-    PartsView(Polygons& polygons) : polygons(polygons)
-    {
-    }
+    PartsView(Polygons& polygons) : polygons(polygons) { }
     /*!
      * Get the index of the PolygonsPart of which the polygon with index \p poly_idx is part.
      *
@@ -1539,6 +1427,6 @@ class PartsView : public std::vector<std::vector<unsigned int>>
     PolygonsPart assemblePart(unsigned int part_idx) const;
 };
 
-} // namespace cura
+}//namespace cura
 
-#endif // UTILS_POLYGON_H
+#endif//UTILS_POLYGON_H

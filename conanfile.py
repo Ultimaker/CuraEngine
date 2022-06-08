@@ -43,10 +43,7 @@ class CuraEngineConan(ConanFile):
 
     def configure(self):
         self.options["boost"].header_only = True
-        self.options["clipper"].shared = True
-        if self.options.enable_arcus:
-            self.options["arcus"].shared = not self.settings.os == "Windows"
-            self.options["protobuf"].shared = not self.settings.os == "Windows"
+        self.options["*"].shared = True
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
@@ -71,7 +68,7 @@ class CuraEngineConan(ConanFile):
         self.requires("stb/20200203")
         if self.options.enable_arcus:
             self.requires("protobuf/3.17.1")
-            self.requires("arcus/latest@ultimaker/stable")
+            self.requires("arcus/5.0.1-PullRequest0137.86@ultimaker/testing")
 
     def generate(self):
         cmake = CMakeDeps(self)
