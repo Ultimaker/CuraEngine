@@ -326,14 +326,7 @@ protected:
         if(intersection_deviation <= max_deviation * max_deviation) //Intersection point doesn't deviate too much. Use it!
         {
             to_delete[vertex] = true;
-            if(length2_before <= length2_after)
-            {
-                polygon[before] = createIntersection(polygon[before], intersection, polygon[after]);
-            }
-            else
-            {
-                polygon[after] = createIntersection(polygon[before], intersection, polygon[after]);
-            }
+            polygon[length2_before <= length2_after ? before : after] = createIntersection(polygon[before], intersection, polygon[after]);
         }
     }
 
