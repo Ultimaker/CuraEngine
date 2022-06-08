@@ -1690,7 +1690,10 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         // Zig zaggify lines are located on the boundary of the density area polygons. If boundaries of different densities are
         // aligned then it is possible for the Zig zaggify lines to be printed in the same location. By offsetting each density
         // we prevent this.
-        if (zig_zaggify_infill) in_outline = in_outline.offset(-density_idx * infill_line_width);
+        if (zig_zaggify_infill)
+        {
+            in_outline = in_outline.offset(-(last_idx - density_idx) * infill_line_width);
+        }
 
         const LightningLayer * lightning_layer = nullptr;
         if (mesh.lightning_generator)
