@@ -223,7 +223,7 @@ protected:
         }
         //From here on out we can safely look at the vertex neighbors and assume it's a polygon. We won't go out of bounds of the polyline.
 
-        const Point vertex = getPosition(polygon[index]);
+        const Point& vertex = getPosition(polygon[index]);
         const size_t before_index = previousNotDeleted(index, to_delete);
         const size_t after_index = nextNotDeleted(index, to_delete);
 
@@ -233,8 +233,8 @@ protected:
             return std::numeric_limits<coord_t>::max();
         }
 
-        const Point before = getPosition(polygon[before_index]);
-        const Point after = getPosition(polygon[after_index]);
+        const Point& before = getPosition(polygon[before_index]);
+        const Point& after = getPosition(polygon[after_index]);
         const coord_t deviation2 = LinearAlg2D::getDist2FromLine(vertex, before, after);
         if(deviation2 <= min_resolution * min_resolution) //Deviation so small that it's always desired to remove them.
         {
@@ -275,9 +275,9 @@ protected:
 
         const size_t before = previousNotDeleted(vertex, to_delete);
         const size_t after = nextNotDeleted(vertex, to_delete);
-        const Point vertex_position = getPosition(polygon[vertex]);
-        const Point before_position = getPosition(polygon[before]);
-        const Point after_position = getPosition(polygon[after]);
+        const Point& vertex_position = getPosition(polygon[vertex]);
+        const Point& before_position = getPosition(polygon[before]);
+        const Point& after_position = getPosition(polygon[after]);
         const coord_t length2_before = vSize2(vertex_position - before_position);
         const coord_t length2_after = vSize2(vertex_position - after_position);
 
@@ -398,7 +398,7 @@ protected:
      * \param vertex A vertex to get the coordinates of.
      * \return The coordinates of that vertex.
      */
-    Point getPosition(const Point& vertex) const;
+    const Point& getPosition(const Point& vertex) const;
 
     /*!
      * Get the coordinates of a vertex.
@@ -407,7 +407,7 @@ protected:
      * \param vertex A vertex to get the coordinates of.
      * \return The coordinates of that vertex.
      */
-    Point getPosition(const ExtrusionJunction& vertex) const;
+    const Point& getPosition(const ExtrusionJunction& vertex) const;
 
     /*!
      * Create an intersection vertex that can be placed in a polygon.

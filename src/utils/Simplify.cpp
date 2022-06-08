@@ -101,12 +101,12 @@ void Simplify::appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJuncti
     extrusion_line.junctions.push_back(vertex);
 }
 
-Point Simplify::getPosition(const Point& vertex) const
+const Point& Simplify::getPosition(const Point& vertex) const
 {
     return vertex;
 }
 
-Point Simplify::getPosition(const ExtrusionJunction& vertex) const
+const Point& Simplify::getPosition(const ExtrusionJunction& vertex) const
 {
     return vertex.p;
 }
