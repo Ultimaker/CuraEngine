@@ -61,7 +61,6 @@ class CuraEngineConan(ConanFile):
             self.test_requires("gtest/[>=1.10.0]")
 
     def requirements(self):
-        self.requires("protobuf/3.17.1")
         self.requires("clipper/6.4.2")
         self.requires("boost/1.78.0")
         self.requires("rapidjson/1.1.0")
