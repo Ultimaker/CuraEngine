@@ -67,7 +67,7 @@ class CuraEngineConan(ConanFile):
         self.requires("stb/20200203")
         if self.options.enable_arcus:
             self.requires("protobuf/3.17.1")
-            self.requires("arcus/5.0.1-PullRequest0137.86@ultimaker/testing")
+            self.requires("arcus/latest@ultimaker/cura-9365")  # FIXME: change to ultimaker/stable once the Arcus PR for CURA-9365 has been merged
 
     def generate(self):
         cmake = CMakeDeps(self)
