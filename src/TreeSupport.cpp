@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" //To get settings.
@@ -17,6 +17,7 @@
 #include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
 #include "utils/polygon.h" //For splitting polygons into parts.
 #include "utils/polygonUtils.h" //For moveInside.
+#include "utils/Simplify.h" //Reduce the resolution of small branches.
 
 #include <mutex>
 
@@ -152,7 +153,8 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
         support_layer = support_layer.difference(roof_layer);
         //We smooth this support as much as possible without altering single circles. So we remove any line less than the side length of those circles.
         const double diameter_angle_scale_factor_this_layer = static_cast<double>(storage.support.supportLayers.size() - layer_nr - tip_layers) * diameter_angle_scale_factor; //Maximum scale factor.
-        support_layer.simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), resolution); //Don't deviate more than the collision resolution so that the lines still stack properly.
+        //Don't deviate more than the collision resolution so that the lines still stack properly.
+        support_layer = Simplify(circle_side_length * (1 + diameter_angle_scale_factor_this_layer), resolution, 0).polygon(support_layer);
 
         //Subtract support floors.
         if (mesh_group_settings.get<bool>("support_bottom_enable"))
