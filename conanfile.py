@@ -20,6 +20,7 @@ class CuraEngineConan(ConanFile):
     build_policy = "missing"
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
+    short_paths = True
     options = {
         "enable_arcus": [True, False],
         "enable_openmp": [True, False],
