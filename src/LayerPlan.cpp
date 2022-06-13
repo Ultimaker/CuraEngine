@@ -196,14 +196,22 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 {
                     continue;
                 }
-                const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
-                const coord_t inner_walls_offset = boundary_type == CombBoundary::MINIMUM
-                                                       ? 0
-                                                       : mesh.settings.get<coord_t>("wall_line_width_x")
-                                                             * (mesh.settings.get<size_t>("wall_line_count") - 1)
-                                                             / 4;
-                const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") - inner_walls_offset;
+                coord_t offset;
+                switch(boundary_type)
+                {
+                    case CombBoundary::MINIMUM:
+                        offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - 0.1 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                        break;
+                    case CombBoundary::PREFERRED:
+                        offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                        break;
+                    default:
+                        offset = 0;
+                        logWarning("Unknown combing boundary type. Did you forget to configure the comb offset for a new boundary type?");
+                        break;
+                }
 
+                const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
                 for (const SliceLayerPart& part : layer.parts)
                 {
                     if (combing_mode == CombingMode::ALL) // Add the increased outline offset (skin, infill and part of the inner walls)
