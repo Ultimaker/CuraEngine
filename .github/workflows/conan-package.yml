@@ -41,13 +41,13 @@ on:
 
 jobs:
     conan-recipe-version:
-        uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@CURA-8160_fix_main
+        uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@CURA-9365_fix_building_cura_main
         with:
             project_name: curaengine
 
     conan-package-export:
         needs: [ conan-recipe-version ]
-        uses: ultimaker/cura/.github/workflows/conan-recipe-export.yml@CURA-8160_fix_main
+        uses: ultimaker/cura/.github/workflows/conan-recipe-export.yml@CURA-9365_fix_building_cura_main
         with:
             recipe_id_full: ${{ jobs.conan-recipe-version.outputs.recipe_id_full }}
             recipe_id_latest: ${{ jobs.conan-recipe-version.outputs.recipe_id_latest }}
@@ -67,7 +67,7 @@ jobs:
             matrix:
                 os: [ macos-10.15, windows-2022, ubuntu-20.04 ]
 
-        uses: ultimaker/cura/.github/workflows/conan-package-create.yml@CURA-8160_fix_main
+        uses: ultimaker/cura/.github/workflows/conan-package-create.yml@CURA-9365_fix_building_cura_main
         with:
             recipe_id_full: ${{ jobs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: ${{ matrix.os }}
