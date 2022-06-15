@@ -49,8 +49,8 @@ jobs:
         needs: [ conan-recipe-version ]
         uses: ultimaker/cura/.github/workflows/conan-recipe-export.yml@CURA-9365_fix_building_cura_main
         with:
-            recipe_id_full: ${{ jobs.conan-recipe-version.outputs.recipe_id_full }}
-            recipe_id_latest: ${{ jobs.conan-recipe-version.outputs.recipe_id_latest }}
+            recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+            recipe_id_latest: ${{ needs.conan-recipe-version.outputs.recipe_id_latest }}
             runs_on: 'ubuntu-20.04'
             python_version: '3.10.4'
             conan_config_branch: 'CURA-9177_Fix_CI_CD'
@@ -60,7 +60,7 @@ jobs:
     conan-package-create:
         # FIXME: Remove once merged to main
         if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'CURA-9365_fix_building_cura_main') }}
-        needs: [ conan-package-export ]
+        needs: [ conan-recipe-version, conan-package-export ]
 
         strategy:
             fail-fast: true
@@ -69,7 +69,7 @@ jobs:
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@CURA-9365_fix_building_cura_main
         with:
-            recipe_id_full: ${{ jobs.conan-recipe-version.outputs.recipe_id_full }}
+            recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: ${{ matrix.os }}
             python_version: '3.10.4'
             conan_config_branch: 'CURA-9177_Fix_CI_CD'
