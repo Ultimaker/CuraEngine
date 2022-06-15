@@ -57,20 +57,43 @@ jobs:
             conan_logging_level: 'info'
         secrets: inherit
 
-    conan-package-create:
+    conan-package-create-macos:
         # FIXME: Remove once merged to main
         if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'CURA-9365_fix_building_cura_main') }}
         needs: [ conan-recipe-version, conan-package-export ]
 
-        strategy:
-            fail-fast: true
-            matrix:
-                os: [ macos-10.15, windows-2022, ubuntu-20.04 ]
+        uses: ultimaker/cura/.github/workflows/conan-package-create.yml@CURA-9365_fix_building_cura_main
+        with:
+            recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+            runs_on: 'macos-10.15'
+            python_version: '3.10.4'
+            conan_config_branch: 'CURA-9177_Fix_CI_CD'
+            conan_logging_level: 'info'
+        secrets: inherit
+
+    conan-package-create-windows:
+        # FIXME: Remove once merged to main
+        if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'CURA-9365_fix_building_cura_main') }}
+        needs: [ conan-recipe-version, conan-package-export ]
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@CURA-9365_fix_building_cura_main
         with:
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
-            runs_on: ${{ matrix.os }}
+            runs_on: 'windows-2022'
+            python_version: '3.10.4'
+            conan_config_branch: 'CURA-9177_Fix_CI_CD'
+            conan_logging_level: 'info'
+        secrets: inherit
+
+    conan-package-create-linux:
+        # FIXME: Remove once merged to main
+        if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'CURA-9365_fix_building_cura_main') }}
+        needs: [ conan-recipe-version, conan-package-export ]
+
+        uses: ultimaker/cura/.github/workflows/conan-package-create.yml@CURA-9365_fix_building_cura_main
+        with:
+            recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
+            runs_on: 'ubuntu-20.04'
             python_version: '3.10.4'
             conan_config_branch: 'CURA-9177_Fix_CI_CD'
             conan_logging_level: 'info'
