@@ -8,11 +8,12 @@
 #include "../utils/math.h" // round_up_divide
 
 #include <cassert>
-#include <thread>
-#include <mutex>
 #include <condition_variable>
 #include <deque>
 #include <functional> // std::function<>
+#include <mutex>
+#include <thread>
+#include <vector>
 
 namespace cura
 {
