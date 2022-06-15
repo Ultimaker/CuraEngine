@@ -1,9 +1,10 @@
 mode: ContinuousDelivery
+next-version: 5.1
 branches:
   main:
     regex: ^main$
     mode: ContinuousDelivery
-    tag: ''
+    tag: alpha
     increment: None
     prevent-increment-of-merged-branch-version: true
     track-merge-target: false
