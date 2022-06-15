@@ -114,7 +114,9 @@ void Polygons::makeConvex()
             const Point& current = poly[(start_index + i) % poly.size()];
 
             //Track backwards to make sure we haven't been in a concave pocket for multiple vertices already.
-            while(convexified.size() >= 2 && LinearAlg2D::pointIsLeftOfLine(convexified.path->back(), (*convexified.path)[convexified.size() - 2], current) >= 0)
+            while(convexified.size() >= 2
+                && (LinearAlg2D::pointIsLeftOfLine(convexified.path->back(), (*convexified.path)[convexified.size() - 2], current) >= 0
+                ||  LinearAlg2D::pointIsLeftOfLine(convexified.path->back(), (*convexified.path)[convexified.size() - 2], convexified.path->front()) > 0))
             {
                 convexified.path->pop_back();
             }
