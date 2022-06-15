@@ -368,7 +368,6 @@ void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths
         constexpr coord_t wall_0_inset = 0; //Don't apply any outer wall inset for these. That's just for the outer wall.
         WallToolPaths wall_toolpaths(current_inset, infill_line_width, inset_wall_count, wall_0_inset, settings);
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
-
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 
         current_inset = wall_toolpaths.getInnerContour();
