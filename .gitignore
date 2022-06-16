@@ -66,3 +66,4 @@ tests/output.xml
 callgrind.out.*
 
 CMakeUserPresets.json
+/conan_imports_manifest.txt
