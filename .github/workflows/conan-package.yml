@@ -55,6 +55,7 @@ jobs:
             python_version: '3.10.4'
             conan_config_branch: 'CURA-9177_Fix_CI_CD'
             conan_logging_level: 'info'
+            conan_update: false # FIXME: Once we have the new JFrog server up and running
         secrets: inherit
 
     conan-package-create-macos:
@@ -69,6 +70,7 @@ jobs:
             python_version: '3.10.4'
             conan_config_branch: 'CURA-9177_Fix_CI_CD'
             conan_logging_level: 'info'
+            conan_update: false # FIXME: Once we have the new JFrog server up and running
         secrets: inherit
 
     conan-package-create-windows:
@@ -83,6 +85,7 @@ jobs:
             python_version: '3.10.4'
             conan_config_branch: 'CURA-9177_Fix_CI_CD'
             conan_logging_level: 'info'
+            conan_update: false # FIXME: Once we have the new JFrog server up and running
         secrets: inherit
 
     conan-package-create-linux:
@@ -97,4 +100,5 @@ jobs:
             python_version: '3.10.4'
             conan_config_branch: 'CURA-9177_Fix_CI_CD'
             conan_logging_level: 'info'
+            conan_update: false # FIXME: Once we have the new JFrog server up and running
         secrets: inherit
