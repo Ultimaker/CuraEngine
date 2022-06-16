@@ -98,3 +98,16 @@ jobs:
             conan_config_branch: 'CURA-9177_Fix_CI_CD'
             conan_logging_level: 'info'
         secrets: inherit
+
+    notify:
+        # FIXME: Remove once merged to main
+        if: ${{ always() }}
+        needs: [ conan-package-create-macos, conan-package-create-windows, conan-package-create-linux ]
+
+        uses: ultimaker/cura/.github/workflows/notify.yml@CURA-9365_fix_building_cura_main
+        with:
+            success: ${{ contains(join(needs.*.result, ','), 'success') }}
+            success_title: "New binaries created for ${{ github.repository }}"
+            success_body: "New binaries created for ${{ github.repository }}"
+            failure_title: "Failed to create binaries ${{ github.repository }}"
+            failure_body: "Failed to create binaries ${{ github.repository }}"
