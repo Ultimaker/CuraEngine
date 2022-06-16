@@ -1970,6 +1970,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         extruder_plan.handleAllRemainingInserts(gcode);
     } // extruder plans /\  .
     
+    communication->sendLayerComplete(layer_nr, z, layer_thickness);
     gcode.updateTotalPrintTime();
 }
 
