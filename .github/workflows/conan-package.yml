@@ -111,3 +111,4 @@ jobs:
             success_body: "New binaries created for ${{ github.repository }}"
             failure_title: "Failed to create binaries ${{ github.repository }}"
             failure_body: "Failed to create binaries ${{ github.repository }}"
+        secrets: inherit
