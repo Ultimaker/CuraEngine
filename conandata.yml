@@ -1,0 +1,18 @@
+requirements:
+    "5.1.0-beta":
+    - "clipper/6.4.2"
+    - "boost/1.78.0"
+    - "rapidjson/1.1.0"
+    - "stb/20200203"
+    "5.1.0-cura_9365":
+    - "clipper/6.4.2"
+    - "boost/1.78.0"
+    - "rapidjson/1.1.0"
+    - "stb/20200203"
+requirements_arcus:
+    "5.1.0-beta":
+    - "protobuf/3.17.1"
+    - "arcus/5.1.0-beta@ultimaker/stable"
+    "5.1.0-cura_9365":
+    - "protobuf/3.17.1"
+    - "arcus/5.1.0-CURA-9365@ultimaker/testing"

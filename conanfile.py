@@ -38,6 +38,11 @@ class CuraEngineConan(ConanFile):
         "revision": "auto"
     }
 
+    @property
+    def _conan_data_version(self):
+        version = tools.Version(self.version)
+        return f"{version.major}.{version.minor}.{version.patch}-{version.prerelease}"
+
     def config_options(self):
         if self.settings.os == "Macos":
             self.options.enable_openmp = False
@@ -62,13 +67,11 @@ class CuraEngineConan(ConanFile):
             self.test_requires("gtest/[>=1.10.0]")
 
     def requirements(self):
-        self.requires("clipper/6.4.2")
-        self.requires("boost/1.78.0")
-        self.requires("rapidjson/1.1.0")
-        self.requires("stb/20200203")
+        for req in self.conan_data["requirements"][self._conan_data_version]:
+            self.requires(req)
         if self.options.enable_arcus:
-            self.requires("protobuf/3.17.1")
-            self.requires("arcus/latest@ultimaker/cura-9365")  # FIXME: change to ultimaker/stable once the Arcus PR for CURA-9365 has been merged
+            for req in self.conan_data["requirements_arcus"][self._conan_data_version]:
+                self.requires(req)
 
     def generate(self):
         cmake = CMakeDeps(self)
