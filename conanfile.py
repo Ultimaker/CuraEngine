@@ -59,8 +59,6 @@ class CuraEngineConan(ConanFile):
                 raise ConanInvalidConfiguration("Only versions 5+ are support")
 
     def build_requirements(self):
-        self.tool_requires("ninja/[>=1.10.0]")
-        self.tool_requires("cmake/[>=3.23.0]")
         if self.options.enable_arcus:
             self.tool_requires("protobuf/3.17.1")
         if self.options.enable_testing:
