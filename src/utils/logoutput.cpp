@@ -3,16 +3,15 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <mutex>
 
-#ifdef _OPENMP
-    #include <omp.h>
-#endif // _OPENMP
 #include "logoutput.h"
 
 namespace cura {
 
 static int verbose_level;
 static bool progressLogging;
+static std::mutex log_mutex;
 
 void increaseVerboseLevel()
 {
@@ -28,8 +27,8 @@ void logError(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    #pragma omp critical
     {
+        std::unique_lock lock(log_mutex);
         fprintf(stderr, "[ERROR] ");
         vfprintf(stderr, fmt, args);
         fflush(stderr);
@@ -41,8 +40,8 @@ void logWarning(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    #pragma omp critical
     {
+        std::unique_lock lock(log_mutex);
         fprintf(stderr, "[WARNING] ");
         vfprintf(stderr, fmt, args);
         fflush(stderr);
@@ -54,8 +53,8 @@ void logAlways(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    #pragma omp critical
     {
+        std::unique_lock lock(log_mutex);
         vfprintf(stderr, fmt, args);
         fflush(stderr);
     }
@@ -69,8 +68,8 @@ void log(const char* fmt, ...)
         return;
 
     va_start(args, fmt);
-    #pragma omp critical
     {
+        std::unique_lock lock(log_mutex);
         vfprintf(stderr, fmt, args);
         fflush(stderr);
     }
@@ -85,8 +84,8 @@ void logDebug(const char* fmt, ...)
         return;
     }
     va_start(args, fmt);
-    #pragma omp critical
     {
+        std::unique_lock lock(log_mutex);
         fprintf(stderr, "[DEBUG] ");
         vfprintf(stderr, fmt, args);
         fflush(stderr);
@@ -99,8 +98,8 @@ void logProgress(const char* type, int value, int maxValue, float percent)
     if (!progressLogging)
         return;
 
-    #pragma omp critical
     {
+        std::unique_lock lock(log_mutex);
         fprintf(stderr, "Progress:%s:%i:%i \t%f%%\n", type, value, maxValue, percent);
         fflush(stderr);
     }

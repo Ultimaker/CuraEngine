@@ -10,7 +10,7 @@
 #include "settings/EnumSettings.h"
 #include "settings/types/Angle.h" //Creating the correct branch angles.
 #include "settings/types/Ratio.h"
-#include "utils/algorithm.h"
+#include "utils/ThreadPool.h"
 #include "utils/IntPoint.h" //To normalize vectors.
 #include "utils/logoutput.h"
 #include "utils/math.h" //For round_up_divide and PI.
@@ -19,6 +19,7 @@
 #include "utils/polygonUtils.h" //For moveInside.
 #include "utils/Simplify.h" //Reduce the resolution of small branches.
 
+#include <atomic>
 #include <mutex>
 
 #define SQRT_2 1.4142135623730950488 //Square root of 2.
@@ -103,7 +104,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     size_t completed = 0; //To track progress, should be locked when altered.
     std::mutex critical_section_volumes;
     std::mutex critical_section_progress;
-    cura::parallel_for<size_t>(0, contact_nodes.size(), 1, [&](const size_t layer_nr)
+    cura::parallel_for<size_t>(0, contact_nodes.size(), [&](const size_t layer_nr)
     {
         Polygons support_layer;
         Polygons& roof_layer = storage.support.supportLayers[layer_nr].support_roof;

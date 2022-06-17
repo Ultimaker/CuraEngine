@@ -4,6 +4,7 @@
 #ifndef UTILS_MATH_H
 #define UTILS_MATH_H
 
+#include <cstdint>
 #include <cmath>
 
 
