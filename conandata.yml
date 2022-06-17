@@ -12,7 +12,7 @@ requirements:
 requirements_arcus:
     "5.1.0-beta":
     - "protobuf/3.17.1"
-    - "arcus/5.1.0-beta@ultimaker/stable"
+    - "arcus/[~5.1.0-beta]@ultimaker/stable"
     "5.1.0-cura_9365":
     - "protobuf/3.17.1"
-    - "arcus/5.1.0-CURA-9365@ultimaker/testing"
+    - "arcus/[~5.1.0-cura_9365]@ultimaker/testing"
