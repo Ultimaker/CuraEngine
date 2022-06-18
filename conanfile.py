@@ -20,7 +20,10 @@ class CuraEngineConan(ConanFile):
     build_policy = "missing"
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
-    short_paths = True
+
+    python_requires = "umbase/0.1@ultimaker/testing"
+    python_requires_extend = "umbase.UMBaseConanfile"
+
     options = {
         "enable_arcus": [True, False],
         "enable_openmp": [True, False],
@@ -37,11 +40,6 @@ class CuraEngineConan(ConanFile):
         "url": "auto",
         "revision": "auto"
     }
-
-    @property
-    def _conan_data_version(self):
-        version = tools.Version(self.version)
-        return f"{version.major}.{version.minor}.{version.patch}-{version.prerelease}"
 
     def config_options(self):
         if self.settings.os == "Macos":
@@ -60,35 +58,28 @@ class CuraEngineConan(ConanFile):
 
     def build_requirements(self):
         if self.options.enable_arcus:
-            self.tool_requires("protobuf/3.17.1")
+            for req in self._um_data(self.version)["build_requirements_arcus"]:
+                self.tool_requires(req)
         if self.options.enable_testing:
-            self.test_requires("gtest/[>=1.10.0]")
+            for req in self._um_data(self.version)["build_requirements_testing"]:
+                self.test_requires(req)
 
     def requirements(self):
-        for req in self.conan_data["requirements"][self._conan_data_version]:
+        for req in self._um_data(self.version)["requirements"]:
             self.requires(req)
         if self.options.enable_arcus:
-            for req in self.conan_data["requirements_arcus"][self._conan_data_version]:
+            for req in self._um_data(self.version)["requirements_arcus"]:
                 self.requires(req)
 
     def generate(self):
         cmake = CMakeDeps(self)
         if self.options.enable_arcus:
-            if len(cmake.build_context_activated) == 0:
-                cmake.build_context_activated = ["protobuf"]
-            else:
-                cmake.build_context_activated.append("protobuf")
+            cmake.build_context_activated = ["protobuf"]
             cmake.build_context_suffix = {"protobuf": "_BUILD"}
-            if len(cmake.build_context_activated) == 0:
-                cmake.build_context_build_modules = ["protobuf"]
-            else:
-                cmake.build_context_build_modules.append("protobuf")
+            cmake.build_context_build_modules = ["protobuf"]
 
         if self.options.enable_testing:
-            if len(cmake.build_context_build_modules) == 0:
-                cmake.build_context_activated = ["gtest"]
-            else:
-                cmake.build_context_activated.append("gtest")
+            cmake.build_context_activated = ["gtest"]
         cmake.generate()
 
         tc = CMakeToolchain(self, generator = "Ninja")
@@ -106,6 +97,10 @@ class CuraEngineConan(ConanFile):
         tc.generate()
 
     def layout(self):
+        # TODO: Use the cmake_layout provided by Conan, that requires restructuring the headers and sources,
+        # or if we decided against a cmake_layout, we should at least make things uniform across our projects
+        # and create the layout by defining a function in the UMBaseConanfile.
+        # https://docs.conan.io/en/latest/reference/conanfile/tools/layout.html
         self.folders.source = "."
         try:
             build_type = str(self.settings.build_type)
@@ -127,14 +122,12 @@ class CuraEngineConan(ConanFile):
         self.cpp.package.bindirs = ['bin']
 
     def imports(self):
-        if (self.settings.os == "Windows" or self.settings.os == "Macos") and not self.in_local_cache:
-            self.copy("*.dll", dst=self.build_folder, src="@bindirs")
-            self.copy("*.dylib", dst=self.build_folder, src="@bindirs")
+        self.copy("*.dll", dst=self.build_folder, src="@bindirs")
+        self.copy("*.dylib", dst=self.build_folder, src="@bindirs")
         if self.options.enable_testing:
-            if self.settings.os == "Windows" and not self.in_local_cache:
-                dest = os.path.join(self.build_folder, "tests")
-                self.copy("*.dll", dst=dest, src="@bindirs")
-                self.copy("*.dylib", dst=dest, src="@bindirs")
+            dest = os.path.join(self.build_folder, "tests")
+            self.copy("*.dll", dst=dest, src="@bindirs")
+            self.copy("*.dylib", dst=dest, src="@bindirs")
 
     def build(self):
         cmake = CMake(self)
