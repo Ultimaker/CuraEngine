@@ -1606,6 +1606,24 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
         return - static_cast<coord_t>(line_count) * line_width;
     };
 
+    auto cut_toolpaths = [&](const Polygons tool, Polygons& infill_lines_here, std::vector<VariableWidthLines>& wall_toolpaths_back)
+    {
+        infill_lines_here = tool.intersectionPolyLines(infill_lines_here);
+
+        std::vector<VariableWidthLines> wall_toolpaths_back_new;
+        for (auto& per_density : wall_toolpaths_back)
+        {
+            VariableWidthLines cut_polylines;
+            for (auto& per_wall_index : per_density)
+            {
+                per_wall_index.cutPolyline(tool, &cut_polylines);
+            }
+            wall_toolpaths_back_new.push_back(cut_polylines);
+        }
+        wall_toolpaths_back.clear();
+        wall_toolpaths_back.insert(wall_tool_paths.back().end(), wall_toolpaths_back_new.begin(), wall_toolpaths_back_new.end());
+    };
+
     Polygons sparse_in_outline = part.infill_area_per_combine_per_density[last_idx][0];
 
     // if infill walls are required below the boundaries of skin regions above, partition the infill along the
@@ -1692,13 +1710,12 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                                skip_stitching, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
             infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
 
-            // Fixme: CURA-7848 for libArachne.
             if (density_idx < last_idx)
             {
                 const coord_t cut_offset =
                     get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
                 Polygons tool = infill_below_skin.offset(static_cast<int>(cut_offset));
-                infill_lines_here = tool.intersectionPolyLines(infill_lines_here);
+                cut_toolpaths(tool, infill_lines_here, wall_tool_paths.back());
             }
             infill_lines.add(infill_lines_here);
             // normal processing for the infill that isn't below skin
@@ -1730,12 +1747,11 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            skip_stitching, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
         infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
 
-        // Fixme: CURA-7848 for libArachne.
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
             Polygons tool = sparse_in_outline.offset(static_cast<int>(cut_offset));
-            infill_lines_here = tool.intersectionPolyLines(infill_lines_here);
+            cut_toolpaths(tool, infill_lines_here, wall_tool_paths.back());
         }
         infill_lines.add(infill_lines_here);
         infill_polygons.add(infill_polygons_here);

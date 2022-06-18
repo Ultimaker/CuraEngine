@@ -5,6 +5,7 @@
 
 #include "ExtrusionLine.h"
 #include "linearAlg2D.h"
+#include "polygonUtils.h"
 #include "Simplify.h"
 
 namespace cura
@@ -45,4 +46,73 @@ coord_t ExtrusionLine::getMinimalWidth() const
                             })->w;
 }
 
+void ExtrusionLine::cutPolyline(const Polygons& tool, VariableWidthLines* p_results) const
+{
+    // Rather than roll our own, with all risks that entails, hammer the data in shape until clipper can be used.
+    // Since all other properties should be shared with the ExtrusionLine, it's just a matter of re-applying the weight.
+
+    if (junctions.empty())
+    {
+        return;
+    }
+
+    VariableWidthLines& results = *p_results;
+
+    // Initialize lookup for the weights, and stuff the junctions into a polygon (losing information now stored in the map).
+    std::map<std::pair<int64_t, int64_t>, coord_t> pos_to_weight;
+    Polygon to_clip;
+    for (const auto& junction : junctions)
+    {
+        pos_to_weight[{junction.p.X, junction.p.Y}] = junction.w;
+        to_clip.add(junction.p);
+    }
+    if (is_closed)
+    {
+        to_clip.add(junctions[0].p);
+    }
+
+    // Clip the derived 'polygon'.
+    Polygons before_clip;
+    before_clip.add(to_clip);
+    const Polygons clipped = tool.intersectionPolyLines(before_clip);
+
+    // Add the clipped paths to the results, (re)find correct weights along the process.
+    for (const auto& path : clipped)
+    {
+        // Start a new path in the results.
+        results.emplace_back();
+        auto& current_result = results.back();
+        current_result.inset_idx = inset_idx;
+        current_result.is_odd = is_odd;
+        current_result.is_closed = false;
+
+        // Add current connected path to the results.
+        for (const Point p : path)
+        {
+            const auto& weight_idx = pos_to_weight.find({p.X, p.Y});
+            if (weight_idx != pos_to_weight.end())
+            {
+                // Point was in the original junctions-list, so add the junction back with it's original weight.
+                current_result.emplace_back(p, weight_idx->second, inset_idx);
+                continue;
+            }
+
+            // Point is the result of clipping, so find the 'weighted weigth' it would have on the line segment it originally had, then add that.
+            const auto closest = PolygonUtils::findClosest(p, before_clip);
+            const Point& a = closest.p();
+            const Point& b = before_clip[closest.poly_idx][(closest.point_idx + 1) % before_clip[closest.poly_idx].size()];
+            const auto& weight_a_idx = pos_to_weight.find({a.X, a.Y});
+            const auto& weight_b_idx = pos_to_weight.find({b.X, b.Y});
+            if (weight_a_idx == pos_to_weight.end() || weight_b_idx == pos_to_weight.end())
+            {
+                continue; // TODO?: This actually shouldn't happen, but it seems there may be an edge case that was overlooked.
+            }
+            const coord_t len_pa = vSize(p - a);
+            const coord_t len_ba = vSize(b - a);
+            const coord_t w = ((weight_a_idx->second * len_pa) + (weight_b_idx->second * (len_ba - len_pa))) / len_ba;
+            current_result.emplace_back(p, w, inset_idx);
+        }
+    }
 }
+
+} // end namespace cura
