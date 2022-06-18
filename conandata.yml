@@ -32,7 +32,7 @@ requirements_arcus:
     "5.1.0-cura_9365":
         - "protobuf/3.17.1"
         - "arcus/[5.1.0-cura_9365]@ultimaker/testing"
-build_requirments_arcus:
+build_requirements_arcus:
     "None":
         - "protobuf/3.17.1"
     "5.1.0":
@@ -41,7 +41,7 @@ build_requirments_arcus:
         - "protobuf/3.17.1"
     "5.1.0-cura_9365":
         - "protobuf/3.17.1"
-build_requirments_testing:
+build_requirements_testing:
     "None":
         - "gtest/[>=1.10.0]"
     "5.1.0":
