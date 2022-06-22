@@ -107,7 +107,7 @@ jobs:
                 run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_testing=True --build=missing --update
 
             -   name: Upload the Dependency package(s)
-                run: conan upload "*" -r ultimaker --all -c
+                run: conan upload "*" -r cura --all -c
 
             -   name: Run Unit Test CuraEngine
                 id: run-test
