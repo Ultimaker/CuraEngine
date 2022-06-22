@@ -21,7 +21,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
 
-    python_requires = "umbase/[>=0.1.1]@ultimaker/testing"
+    python_requires = "umbase/0.1.1@ultimaker/testing"
     python_requires_extend = "umbase.UMBaseConanfile"
 
     options = {
