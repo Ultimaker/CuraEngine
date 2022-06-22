@@ -45,7 +45,7 @@
         - "stb/20200203"
     requirements_arcus:
         - "protobuf/3.17.1"
-        - "arcus/[5.1.0-alpha.1]@ultimaker/cura_9365"
+        - "arcus/[5.1.0-alpha]@ultimaker/cura_9365"
     build_requirements_arcus:
         - "protobuf/3.17.1"
     build_requirements_testing:
