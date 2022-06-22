@@ -39,8 +39,14 @@ env:
     CONAN_NON_INTERACTIVE: 1
 
 jobs:
+    conan-recipe-version:
+        uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@CURA-9365_fix_building_cura_main
+        with:
+            project_name: curaengine
+
     testing:
         runs-on: ubuntu-20.04
+        needs: [ conan-recipe-version ]
 
         steps:
             -   name: Checkout CuraEngine
@@ -98,7 +104,7 @@ jobs:
                 run: conan config install https://github.com/Ultimaker/conan-config.git -a "-b CURA-9177_Fix_CI_CD"  # FIXME: Once switched to master
 
             -   name: Install dependencies
-                run: conan install . -o enable_testing=True --build=missing --update
+                run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_testing=True --build=missing --update
 
             -   name: Upload the Dependency package(s)
                 run: conan upload "*" -r ultimaker --all -c
