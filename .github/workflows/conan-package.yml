@@ -22,6 +22,7 @@ on:
             - 'cmake/**'
             - 'tests/**'
             - 'conanfile.py'
+            - 'conandata.yml'
             - 'CMakeLists.txt'
             - '.github/workflows/conan-package.yml'
         branches:
@@ -36,6 +37,7 @@ on:
             - 'cmake/**'
             - 'tests/**'
             - 'conanfile.py'
+            - 'conandata.yml'
             - 'CMakeLists.txt'
             - '.github/workflows/conan-package.yml'
         branches:
