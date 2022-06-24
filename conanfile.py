@@ -139,5 +139,6 @@ class CuraEngineConan(ConanFile):
     def package(self):
         packager = files.AutoPackager(self)
         packager.run()
-
+        if self.settings.os in ["Macos", "Linux"]:
+            self.copy("CuraEngine", src=self.build_folder, dst="bin")
         files.rmdir(self, os.path.join(self.package_folder, "bin", "CMakeFiles"))
