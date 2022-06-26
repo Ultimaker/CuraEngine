@@ -47,7 +47,10 @@ class CuraEngineConan(ConanFile):
 
     def configure(self):
         self.options["boost"].header_only = True
-        self.options["*"].shared = True
+        self.options["clipper"].shared = True
+        if self.options.enable_arcus:
+            self.options["arcus"].shared = True
+            self.options["protobuf"].shared = True
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
