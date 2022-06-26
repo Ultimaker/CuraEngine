@@ -230,7 +230,7 @@ void run_multiple_producers_ordered_consumer(ptrdiff_t first, ptrdiff_t last, P&
     assert(thread_pool);
     assert(max_pending_per_worker > 0);
     const size_t max_pending = max_pending_per_worker * (thread_pool->thread_count() + 1);
-    MultipleProducersOrderedConsumer(first, last, std::forward<P>(producer), std::forward<C>(consumer), max_pending).run(*thread_pool);
+    MultipleProducersOrderedConsumer<P, C>(first, last, std::forward<P>(producer), std::forward<C>(consumer), max_pending).run(*thread_pool);
 }
 
 template<typename Producer, typename Consumer>
