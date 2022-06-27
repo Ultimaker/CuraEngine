@@ -59,21 +59,20 @@ void ExtrusionLine::cutPolyline(const Polygons& tool, VariableWidthLines* p_resu
     VariableWidthLines& results = *p_results;
 
     // Initialize lookup for the weights, and stuff the junctions into a polygon (losing information now stored in the map).
-    std::map<std::pair<int64_t, int64_t>, coord_t> pos_to_weight;
-    Polygon to_clip;
+    std::map<std::pair<coord_t, coord_t>, coord_t> pos_to_weight;
+    Polygons before_clip;
+    before_clip.emplace_back();
     for (const auto& junction : junctions)
     {
         pos_to_weight[{junction.p.X, junction.p.Y}] = junction.w;
-        to_clip.add(junction.p);
+        before_clip.back().add(junction.p);
     }
     if (is_closed)
     {
-        to_clip.add(junctions[0].p);
+        before_clip.back().add(junctions[0].p);
     }
 
     // Clip the derived 'polygon'.
-    Polygons before_clip;
-    before_clip.add(to_clip);
     const Polygons clipped = tool.intersectionPolyLines(before_clip);
 
     // Add the clipped paths to the results, (re)find correct weights along the process.
