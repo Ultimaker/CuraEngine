@@ -1621,7 +1621,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             wall_toolpaths_back_new.push_back(cut_polylines);
         }
         wall_toolpaths_back.clear();
-        wall_toolpaths_back.insert(wall_tool_paths.back().end(), wall_toolpaths_back_new.begin(), wall_toolpaths_back_new.end());
+        wall_toolpaths_back.insert(wall_toolpaths_back.end(), wall_toolpaths_back_new.begin(), wall_toolpaths_back_new.end());
     };
 
     Polygons sparse_in_outline = part.infill_area_per_combine_per_density[last_idx][0];
