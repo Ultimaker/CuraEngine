@@ -41,6 +41,7 @@ class Infill
     size_t wall_line_count; //!< Number of walls to generate at the boundary of the infill region, spaced \ref infill_line_width apart
     const Point infill_origin; //!< origin of the infill pattern
     bool skip_line_stitching; //!< Whether to bypass the line stitching normally performed for polyline type infills
+    bool fill_gaps; //!< Whether to fill gaps in strips of infill that would be too thin to fit the infill lines. If disabled, those areas are left empty.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
     bool skip_some_zags;  //!< (ZigZag) Whether to skip some zags
@@ -66,6 +67,7 @@ public:
         , size_t wall_line_count = 0
         , const Point& infill_origin = Point()
         , bool skip_line_stitching = false
+        , bool fill_gaps = true
         , bool connected_zigzags = false
         , bool use_endpieces = false
         , bool skip_some_zags = false
@@ -88,6 +90,7 @@ public:
     , wall_line_count(wall_line_count)
     , infill_origin(infill_origin)
     , skip_line_stitching(skip_line_stitching)
+    , fill_gaps(fill_gaps)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
     , skip_some_zags(skip_some_zags)
