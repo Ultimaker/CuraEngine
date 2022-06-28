@@ -1694,8 +1694,6 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                                infill_shift, max_resolution, max_deviation, skin_below_wall_count, infill_origin,
                                skip_stitching, fill_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
             infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
-
-            // Fixme: CURA-7848 for libArachne.
             if (density_idx < last_idx)
             {
                 const coord_t cut_offset =
@@ -1732,8 +1730,6 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
                            infill_shift, max_resolution, max_deviation, wall_line_count_here, infill_origin,
                            skip_stitching, fill_gaps, connected_zigzags, use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
         infill_comp.generate(wall_tool_paths.back(), infill_polygons, infill_lines, mesh.settings, mesh.cross_fill_provider, lightning_layer, &mesh);
-
-        // Fixme: CURA-7848 for libArachne.
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
