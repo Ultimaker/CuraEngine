@@ -41,6 +41,14 @@ class CuraEngineConan(ConanFile):
         "revision": "auto"
     }
 
+    _cmake = None
+
+    @property
+    def cmake(self):
+        if self._cmake is None:
+            self._cmake = CMake(self)
+        return self._cmake
+
     def config_options(self):
         if self.settings.os == "Macos":
             self.options.enable_openmp = False
@@ -85,7 +93,7 @@ class CuraEngineConan(ConanFile):
             cmake.build_context_activated = ["gtest"]
         cmake.generate()
 
-        tc = CMakeToolchain(self, generator = "Ninja")
+        tc = CMakeToolchain(self)
 
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
         tc.variables["BUILD_TESTING"] = self.options.enable_testing
@@ -133,15 +141,15 @@ class CuraEngineConan(ConanFile):
             self.copy("*.dylib", dst=dest, src="@bindirs")
 
     def build(self):
-        cmake = CMake(self)
+        cmake = self.cmake
         cmake.configure()
         cmake.build()
-        if self.options.enable_testing:
-            cmake.test()
+
+    def test(self):
+        if not tools.cross_building(self) and self.options.enable_testing:
+            self.cmake.test()
 
     def package(self):
         packager = files.AutoPackager(self)
+        packager.patterns.bin = ["CuraEngine.exe", "CuraEngine"]
         packager.run()
-        if self.settings.os in ["Macos", "Linux"]:
-            self.copy("CuraEngine", src=self.build_folder, dst="bin")
-        files.rmdir(self, os.path.join(self.package_folder, "bin", "CMakeFiles"))
