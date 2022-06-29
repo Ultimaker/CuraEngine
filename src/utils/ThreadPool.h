@@ -300,7 +300,7 @@ class MultipleProducersOrderedConsumer
     ptrdiff_t produce(lock_t& lock)
     {
         ptrdiff_t produced_idx = write_idx++;
-        item_t* slot = &queue[produced_idx % max_pending];
+        item_t* slot = &queue[(produced_idx + max_pending) % max_pending];
         assert(produced_idx < last_idx);
 
         // Unlocks global mutex while producing an item
@@ -319,7 +319,7 @@ class MultipleProducersOrderedConsumer
     void consume_many(lock_t& lock)
     {
         assert(read_idx < write_idx);
-        for (item_t* slot = &queue[read_idx % max_pending]; *slot ; slot = &queue[read_idx % max_pending])
+        for (item_t* slot = &queue[(read_idx + max_pending) % max_pending]; *slot ; slot = &queue[(read_idx + max_pending) % max_pending])
         {
             // Unlocks global mutex while consuming an item
             lock.unlock();
