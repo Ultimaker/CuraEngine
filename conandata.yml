@@ -7,6 +7,7 @@
     requirements_arcus:
         - "protobuf/3.17.1"
         - "arcus/(latest)@ultimaker/stable"
+        - "zlib/1.2.12"
     build_requirements_arcus:
         - "protobuf/3.17.1"
     build_requirements_testing:
@@ -20,6 +21,7 @@
     requirements_arcus:
         - "protobuf/3.17.1"
         - "arcus/5.1.0"
+        - "zlib/1.2.12"
     build_requirements_arcus:
         - "protobuf/3.17.1"
     build_requirements_testing:
@@ -33,6 +35,7 @@
     requirements_arcus:
         - "protobuf/3.17.1"
         - "arcus/(latest)@ultimaker/stable"
+        - "zlib/1.2.12"
     build_requirements_arcus:
         - "protobuf/3.17.1"
     build_requirements_testing:
@@ -46,6 +49,7 @@
     requirements_arcus:
         - "protobuf/3.17.1"
         - "arcus/(latest)@ultimaker/cura_9365"
+        - "zlib/1.2.12"
     build_requirements_arcus:
         - "protobuf/3.17.1"
     build_requirements_testing:
