@@ -153,3 +153,5 @@ class CuraEngineConan(ConanFile):
         packager = files.AutoPackager(self)
         packager.patterns.bin = ["CuraEngine.exe", "CuraEngine"]
         packager.run()
+        self.copy("CuraEngine", src = self.build_folder, dst = "bin")
+        self.copy("CuraEngine.exe", src = self.build_folder, dst = "bin")
