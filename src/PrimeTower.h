@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef PRIME_TOWER_H
@@ -44,6 +44,7 @@ private:
 
 public:
     bool enabled; //!< Whether the prime tower is enabled.
+    bool would_have_actual_tower; //!< Whether there is an actual tower.
     bool multiple_extruders_on_first_layer; //!< Whether multiple extruders are allowed on the first layer of the prime tower (e.g. when a raft is there)
     Polygons outer_poly; //!< The outline of the outermost prime tower.
     Polygons outer_poly_first_layer; //!< The outermost outline, plus optional brim on 'brim for prime tower' is enabled.
