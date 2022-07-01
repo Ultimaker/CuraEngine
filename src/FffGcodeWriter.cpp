@@ -2657,6 +2657,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     constexpr bool use_endpieces = true;
     constexpr coord_t pocket_size = 0;
     constexpr bool connect_polygons = false; // polygons are too distant to connect for sparse support
+    bool need_travel_to_end_of_last_spiral = true;
 
     //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     for(const PathOrderPath<const SupportInfillPart*>& path : island_order_optimizer.paths)
@@ -2722,6 +2723,27 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                    wall_count, infill_origin, skip_stitching, support_connect_zigzags,
                                    use_endpieces, skip_some_zags, zag_skip_count, pocket_size);
                 infill_comp.generate(wall_toolpaths_here, support_polygons, support_lines, infill_extruder.settings, storage.support.cross_fill_provider);
+            }
+
+            if (need_travel_to_end_of_last_spiral && infill_extruder.settings.get<bool>("magic_spiralize"))
+            {
+                if ((!wall_toolpaths.empty() || !support_polygons.empty() || !support_lines.empty()))
+                {
+                    int layer_nr = gcode_layer.getLayerNr();
+                    if(layer_nr > (int)infill_extruder.settings.get<size_t>("bottom_layers"))
+                    {
+                        // bit of subtlety here... support is being used on a spiralized model and to ensure the travel move from the end of the last spiral
+                        // to the start of the support does not go through the model we have to tell the slicer what the current location of the nozzle is
+                        // by adding a travel move to the end vertex of the last spiral. Of course, if the slicer could track the final location on the previous
+                        // layer then this wouldn't be necessary but that's not done due to the multi-threading.
+                        const Polygons* last_wall_outline = storage.spiralize_wall_outlines[layer_nr - 1];
+                        if (last_wall_outline != nullptr)
+                        {
+                            gcode_layer.addTravel((*last_wall_outline)[0][storage.spiralize_seam_vertex_indices[layer_nr - 1]]);
+                            need_travel_to_end_of_last_spiral = false;
+                        }
+                    }
+                }
             }
 
             setExtruder_addPrime(storage, gcode_layer, extruder_nr); // only switch extruder if we're sure we're going to switch

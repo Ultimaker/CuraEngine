@@ -1300,7 +1300,9 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
 
     // once we are into the spiral we always start at the end point of the last layer (if any)
     const Point origin = (last_seam_vertex_idx >= 0 && !is_bottom_layer) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
-    addTravel_simple(origin);
+    // NOTE: this used to use addTravel_simple() but if support is being generated then combed travel is required to avoid
+    // the nozzle crossing the model on its return from printing the support.
+    addTravel(origin);
 
     if (!smooth_contours && last_seam_vertex_idx >= 0) {
         // when not smoothing, we get to the (unchanged) outline for this layer as quickly as possible so that the remainder of the
