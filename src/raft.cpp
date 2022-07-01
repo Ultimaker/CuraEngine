@@ -49,7 +49,11 @@ void Raft::generate(SliceDataStorage& storage)
     }
 
     constexpr bool dont_include_prime_tower = false;
-    const Polygons raw_raft_without_prime{ storage.getLayerOutlines(0, include_support, dont_include_prime_tower).offset(distance, ClipperLib::jtRound) };
+    Polygons raw_raft_without_prime{ storage.getLayerOutlines(0, include_support, dont_include_prime_tower).offset(distance, ClipperLib::jtRound) };
+    if (settings.get<bool>("raft_remove_inside_corners"))
+    {
+        raw_raft_without_prime.makeConvex();
+    }
     storage.primeRaftOutline = global_raft_outlines.difference(raw_raft_without_prime);
     storage.raftOutline = global_raft_outlines.difference(storage.primeRaftOutline);
 
