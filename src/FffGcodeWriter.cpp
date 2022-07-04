@@ -1772,7 +1772,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             else //So walls_generated must be true.
             {
                 std::vector<VariableWidthLines>* start_paths = &wall_tool_paths[rand() % wall_tool_paths.size()];
-                while(start_paths->empty()) //We know for sure (because walls_generated) that one of them is not empty. So randomise until we hit it. Should almost always be very quick.
+                while(start_paths->empty() || (*start_paths)[0].empty()) //We know for sure (because walls_generated) that one of them is not empty. So randomise until we hit it. Should almost always be very quick.
                 {
                     start_paths = &wall_tool_paths[rand() % wall_tool_paths.size()];
                 }
