@@ -1741,7 +1741,16 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
     }
 
     wall_tool_paths.emplace_back(part.infill_wall_toolpaths); //The extra infill walls were generated separately. Add these too.
-    const bool walls_generated = std::any_of(wall_tool_paths.cbegin(), wall_tool_paths.cend(), [](const std::vector<VariableWidthLines>& tp){ return !tp.empty(); });
+    const bool walls_generated =
+        std::any_of
+        (
+            wall_tool_paths.cbegin(),
+            wall_tool_paths.cend(),
+            [](const std::vector<VariableWidthLines>& tp)
+            {
+                return ! (tp.empty() || std::all_of(tp.begin(), tp.end(), [](const VariableWidthLines& vwl) { return vwl.empty(); }));
+            }
+        );
     if(!infill_lines.empty() || !infill_polygons.empty() || walls_generated)
     {
         added_something = true;
@@ -1763,7 +1772,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage, L
             else //So walls_generated must be true.
             {
                 std::vector<VariableWidthLines>* start_paths = &wall_tool_paths[rand() % wall_tool_paths.size()];
-                while(start_paths->empty()) //We know for sure (because walls_generated) that one of them is not empty. So randomise until we hit it. Should almost always be very quick.
+                while(start_paths->empty() || (*start_paths)[0].empty()) //We know for sure (because walls_generated) that one of them is not empty. So randomise until we hit it. Should almost always be very quick.
                 {
                     start_paths = &wall_tool_paths[rand() % wall_tool_paths.size()];
                 }
