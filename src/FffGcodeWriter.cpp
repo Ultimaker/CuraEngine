@@ -754,7 +754,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         }
         raft_outline_paths.emplace_back(storage.raftOutline);
 
-        for (const auto& raft_outline_path : raft_outline_paths)
+        for (const Polygons& raft_outline_path : raft_outline_paths)
         {
             Infill infill_comp(
                 EFillMethod::LINES, zig_zaggify_infill, connect_polygons, raft_outline_path, gcode_layer.configs_storage.raft_base_config.getLineWidth(), line_spacing,
@@ -846,7 +846,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr int zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
 
-        for (const auto& raft_outline_path : raft_outline_paths)
+        for (const Polygons& raft_outline_path : raft_outline_paths)
         {
             Infill infill_comp(
                 EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, infill_outline_width, interface_line_spacing,
@@ -921,7 +921,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr size_t zag_skip_count = 0;
         constexpr coord_t pocket_size = 0;
 
-        for (const auto& raft_outline_path : raft_outline_paths)
+        for (const Polygons& raft_outline_path : raft_outline_paths)
         {
             Infill infill_comp(
                 EFillMethod::ZIG_ZAG, zig_zaggify_infill, connect_polygons, raft_outline_path, infill_outline_width, surface_line_spacing,
