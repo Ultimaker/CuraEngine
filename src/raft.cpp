@@ -21,8 +21,8 @@ void Raft::generate(SliceDataStorage& storage)
     const Settings& settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
     const coord_t distance = settings.get<coord_t>("raft_margin");
     constexpr bool include_support = true;
-    constexpr bool include_prime_tower = true;
-    storage.raftOutline = storage.getLayerOutlines(0, include_support, include_prime_tower).offset(distance, ClipperLib::jtRound);
+    constexpr bool dont_include_prime_tower = false;  // Prime tower raft will be handled separately in 'storage.primeRaftOutline'; see below.
+    storage.raftOutline = storage.getLayerOutlines(0, include_support, dont_include_prime_tower).offset(distance, ClipperLib::jtRound);
     const coord_t shield_line_width_layer0 = settings.get<coord_t>("skirt_brim_line_width");
     if (storage.draft_protection_shield.size() > 0)
     {
@@ -47,6 +47,28 @@ void Raft::generate(SliceDataStorage& storage)
         const coord_t smoothing = settings.get<coord_t>("raft_smoothing");
         storage.raftOutline = storage.raftOutline.offset(smoothing, ClipperLib::jtRound).offset(-smoothing, ClipperLib::jtRound); // remove small holes and smooth inward corners
     }
+
+    if (storage.primeTower.enabled && ! storage.primeTower.would_have_actual_tower)
+    {
+        // Find out if the prime-tower part of the raft still needs to be printed, even if there is no actual tower.
+        // This will only happen if the different raft layers are printed by different extruders.
+        const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+        const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
+        const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr;
+        const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr;
+        if (base_extruder_nr == interface_extruder_nr && base_extruder_nr == surface_extruder_nr)
+        {
+            return;
+        }
+    }
+
+    storage.primeRaftOutline = storage.primeTower.outer_poly_first_layer.offset(distance, ClipperLib::jtRound);
+    if (settings.get<bool>("raft_remove_inside_corners"))
+    {
+        storage.primeRaftOutline = storage.primeRaftOutline.unionPolygons(storage.raftOutline);
+        storage.primeRaftOutline.makeConvex();
+    }
+    storage.primeRaftOutline = storage.primeRaftOutline.difference(storage.raftOutline); // In case of overlaps.
 }
 
 coord_t Raft::getTotalThickness()
