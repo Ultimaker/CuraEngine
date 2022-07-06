@@ -51,7 +51,7 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
                     {
                         Polygons holePoly;
                         holePoly.add(layerParts[part][hole_nr]);
-                        if(maxHoleArea > 0.0 && INT2MM(INT2MM(fabs(holePoly.area()))) < maxHoleArea)
+                        if (maxHoleArea > 0.0 && INT2MM2(std::abs(holePoly.area())) < maxHoleArea)
                         {
                             Polygons holeWithAbove = holePoly.intersection(above);
                             if(!holeWithAbove.empty())
