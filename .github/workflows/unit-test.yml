@@ -110,7 +110,7 @@ jobs:
                 id: run-test
                 run: |
                     cmake --toolchain ./conan/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -S .. -B .
-                    ninja
+                    cmake --build .
                     ctest --output-junit engine_test.xml
                 working-directory: cmake-build-release
 
