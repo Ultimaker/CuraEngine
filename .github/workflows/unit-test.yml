@@ -109,7 +109,7 @@ jobs:
             -   name: Run Unit Test CuraEngine
                 id: run-test
                 run: |
-                    cmake --toolchain -DCMAKE_BUILD_TYPE=Release ./conan/conan_toolchain.cmake -S .. -B .
+                    cmake --toolchain ./conan/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -S .. -B .
                     ninja
                     ctest --output-junit engine_test.xml
                 working-directory: cmake-build-release
