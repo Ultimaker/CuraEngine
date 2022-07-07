@@ -94,7 +94,7 @@ jobs:
                 run: conan config install https://github.com/Ultimaker/conan-config.git
 
             -   name: Install dependencies
-                run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_testing=True --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv
+                run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_testing=True -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv
 
             -   name: Upload the Dependency package(s)
                 run: conan upload "*" -r cura --all -c
@@ -109,7 +109,7 @@ jobs:
             -   name: Run Unit Test CuraEngine
                 id: run-test
                 run: |
-                    cmake --toolchain ./conan/conan_toolchain.cmake -S .. -B .
+                    cmake --toolchain -DCMAKE_BUILD_TYPE=Release ./conan/conan_toolchain.cmake -S .. -B .
                     ninja
                     ctest --output-junit engine_test.xml
                 working-directory: cmake-build-release
