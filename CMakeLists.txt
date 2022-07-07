@@ -24,8 +24,7 @@ if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
 
     find_package(arcus 5.0.0 REQUIRED)
-    find_package(protobuf_BUILD 3.17.1 REQUIRED)  # Used for protoc
-    find_package(protobuf 3.17.1 REQUIRED)  # Used for linking
+    find_package(protobuf 3.17.1 REQUIRED)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 

@@ -84,10 +84,6 @@ class CuraEngineConan(ConanFile):
 
     def generate(self):
         cmake = CMakeDeps(self)
-        if self.options.enable_arcus:
-            cmake.build_context_activated = ["protobuf"]
-            cmake.build_context_suffix = {"protobuf": "_BUILD"}
-            cmake.build_context_build_modules = ["protobuf"]
 
         if self.options.enable_testing:
             cmake.build_context_activated = ["gtest"]
