@@ -775,12 +775,12 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
             if (mid_R > end_R)
             {
                 RUN_ONCE(logError("transition on segment lies outside of segment!\n"));
-                mid_R = end_R;
+                continue;
             }
             if (mid_R < start_R)
             {
                 RUN_ONCE(logError("transition on segment lies outside of segment!\n"));
-                mid_R = start_R;
+                continue;
             }
             coord_t mid_pos = edge_size * (mid_R - start_R) / (end_R - start_R);
             assert(mid_pos >= 0);
