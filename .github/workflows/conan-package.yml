@@ -41,13 +41,13 @@ on:
 
 jobs:
     conan-recipe-version:
-        uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@CURA-9365
+        uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@main
         with:
             project_name: curaengine
 
     conan-package-export:
         needs: [ conan-recipe-version ]
-        uses: ultimaker/cura/.github/workflows/conan-recipe-export.yml@5.1
+        uses: ultimaker/cura/.github/workflows/conan-recipe-export.yml@main
         with:
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             recipe_id_latest: ${{ needs.conan-recipe-version.outputs.recipe_id_latest }}
@@ -60,10 +60,10 @@ jobs:
 
     conan-package-create-macos:
         # FIXME: For release branches: maybe rename the branch to release/**
-        if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == '5.1' || github.ref_name == 'CURA-9365_fix_building_cura_main' )) || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_macos) }}
+        if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_macos) }}
         needs: [ conan-recipe-version, conan-package-export ]
 
-        uses: ultimaker/cura/.github/workflows/conan-package-create.yml@5.1
+        uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: 'macos-10.15'
@@ -74,10 +74,10 @@ jobs:
 
     conan-package-create-windows:
         # FIXME: For release branches: maybe rename the branch to release/**
-        if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == '5.1')) || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_windows) }}
+        if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_windows) }}
         needs: [ conan-recipe-version, conan-package-export ]
 
-        uses: ultimaker/cura/.github/workflows/conan-package-create.yml@5.1
+        uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: 'windows-2022'
@@ -88,10 +88,10 @@ jobs:
 
     conan-package-create-linux:
         # FIXME: For release branches: maybe rename the branch to release/**
-        if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == '5.1')) || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_linux) }}
+        if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_linux) }}
         needs: [ conan-recipe-version, conan-package-export ]
 
-        uses: ultimaker/cura/.github/workflows/conan-package-create.yml@5.1
+        uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: 'ubuntu-20.04'
@@ -104,7 +104,7 @@ jobs:
         if: ${{ always() }}
         needs: [ conan-package-export ]
 
-        uses: ultimaker/cura/.github/workflows/notify.yml@5.1
+        uses: ultimaker/cura/.github/workflows/notify.yml@main
         with:
             success: ${{ contains(join(needs.*.result, ','), 'success') }}
             success_title: "New Conan recipe exported in ${{ github.repository }}"
@@ -115,10 +115,10 @@ jobs:
 
     notify-create:
         # FIXME: For release branches: maybe rename the branch to release/**
-        if: ${{ always() && ((github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == '5.1')) || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_linux)) }}
+        if: ${{ always() && ((github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_linux)) }}
         needs: [ conan-package-create-macos, conan-package-create-windows, conan-package-create-linux ]
 
-        uses: ultimaker/cura/.github/workflows/notify.yml@5.1
+        uses: ultimaker/cura/.github/workflows/notify.yml@main
         with:
             success: ${{ contains(join(needs.*.result, ','), 'success') }}
             success_title: "New binaries created in ${{ github.repository }}"
