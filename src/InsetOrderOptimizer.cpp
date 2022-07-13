@@ -144,14 +144,15 @@ bool InsetOrderOptimizer::addToLayer()
         const bool revert_inset = alternate_walls && (path.vertices->inset_idx % 2);
         const bool revert_layer = alternate_walls && (layer_nr % 2);
         const bool backwards = path.backwards != (revert_inset != revert_layer);
-        
+        const size_t start_index = (backwards != path.backwards) ? path.vertices->size() - (path.start_vertex + 1) : path.start_vertex;
+
         p_end = path.backwards ? path.vertices->back().p : path.vertices->front().p;
         const cura::Point p_start = path.backwards ? path.vertices->front().p : path.vertices->back().p;
         const bool linked_path = p_start != p_end;
 
         gcode_writer.setExtruder_addPrime(storage, gcode_layer, extruder_nr);
         gcode_layer.setIsInside(true); //Going to print walls, which are always inside.
-        gcode_layer.addWall(*path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed, backwards, linked_path);
+        gcode_layer.addWall(*path.vertices, start_index, settings, non_bridge_config, bridge_config, wipe_dist, flow, retract_before, path.is_closed, backwards, linked_path);
         added_something = true;
     }
     return added_something;
