@@ -230,7 +230,7 @@ void run_multiple_producers_ordered_consumer(ptrdiff_t first, ptrdiff_t last, P&
     assert(thread_pool);
     assert(max_pending_per_worker > 0);
     const size_t max_pending = max_pending_per_worker * (thread_pool->thread_count() + 1);
-    MultipleProducersOrderedConsumer(first, last, std::forward<P>(producer), std::forward<C>(consumer), max_pending).run(*thread_pool);
+    MultipleProducersOrderedConsumer<P, C>(first, last, std::forward<P>(producer), std::forward<C>(consumer), max_pending).run(*thread_pool);
 }
 
 template<typename Producer, typename Consumer>
@@ -300,7 +300,7 @@ class MultipleProducersOrderedConsumer
     ptrdiff_t produce(lock_t& lock)
     {
         ptrdiff_t produced_idx = write_idx++;
-        item_t* slot = &queue[produced_idx % max_pending];
+        item_t* slot = &queue[(produced_idx + max_pending) % max_pending];
         assert(produced_idx < last_idx);
 
         // Unlocks global mutex while producing an item
@@ -319,7 +319,7 @@ class MultipleProducersOrderedConsumer
     void consume_many(lock_t& lock)
     {
         assert(read_idx < write_idx);
-        for (item_t* slot = &queue[read_idx % max_pending]; *slot ; slot = &queue[read_idx % max_pending])
+        for (item_t* slot = &queue[(read_idx + max_pending) % max_pending]; *slot ; slot = &queue[(read_idx + max_pending) % max_pending])
         {
             // Unlocks global mutex while consuming an item
             lock.unlock();

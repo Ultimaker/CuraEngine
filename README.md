@@ -3,6 +3,8 @@
 <p align="center">
     <a href="https://github.com/Ultimaker/CuraEngine/actions/workflows/unit-test.yml" alt="Unit Tests">
         <img src="https://github.com/Ultimaker/CuraEngine/actions/workflows/unit-test.yml/badge.svg" /></a>
+    <a href="https://github.com/Ultimaker/CuraEngine/actions/workflows/conan-package.yml" alt="Unit Tests">
+        <img src="https://github.com/Ultimaker/CuraEngine/actions/workflows/conan-package.yml/badge.svg" /></a>
     <a href="https://github.com/Ultimaker/CuraEngine/issues" alt="Open Issues">
         <img src="https://img.shields.io/github/issues/ultimaker/curaengine" /></a>
     <a href="https://github.com/Ultimaker/CuraEngine/issues?q=is%3Aissue+is%3Aclosed" alt="Closed Issues">

@@ -322,7 +322,7 @@ protected:
         {
             return; //Cannot remove edge without shifting a long edge. Don't remove anything.
         }
-        const coord_t intersection_deviation = LinearAlg2D::getDist2FromLine(intersection, before_to, after_from);
+        const coord_t intersection_deviation = LinearAlg2D::getDist2FromLineSegment(before_to, intersection, after_from);
         if(intersection_deviation <= max_deviation * max_deviation) //Intersection point doesn't deviate too much. Use it!
         {
             to_delete[vertex] = true;

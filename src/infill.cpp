@@ -117,7 +117,10 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths, Polygons& resu
                     if(path.polygonLength() >= infill_line_width * 4) //Don't fill gaps that are very small (with paths less than 2 line widths long, 4 back and forth).
                     {
                         gap_filled_areas.add(path);
-                        thin_walls_only.push_back(extrusion);
+                        if(fill_gaps)
+                        {
+                            thin_walls_only.push_back(extrusion);
+                        }
                     }
                 }
             }
