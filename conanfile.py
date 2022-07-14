@@ -21,7 +21,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
 
-    python_requires = "umbase/0.1.1@ultimaker/testing"
+    python_requires = "umbase/0.1.4@ultimaker/testing"
     python_requires_extend = "umbase.UMBaseConanfile"
 
     options = {
@@ -69,17 +69,17 @@ class CuraEngineConan(ConanFile):
 
     def build_requirements(self):
         if self.options.enable_arcus:
-            for req in self._um_data(self.version)["build_requirements_arcus"]:
+            for req in self._um_data(self.version, self.channel)["build_requirements_arcus"]:
                 self.tool_requires(req)
         if self.options.enable_testing:
-            for req in self._um_data(self.version)["build_requirements_testing"]:
+            for req in self._um_data(self.version, self.channel)["build_requirements_testing"]:
                 self.test_requires(req)
 
     def requirements(self):
-        for req in self._um_data(self.version)["requirements"]:
+        for req in self._um_data(self.version, self.channel)["requirements"]:
             self.requires(req)
         if self.options.enable_arcus:
-            for req in self._um_data(self.version)["requirements_arcus"]:
+            for req in self._um_data(self.version, self.channel)["requirements_arcus"]:
                 self.requires(req)
 
     def generate(self):
