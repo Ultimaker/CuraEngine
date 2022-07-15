@@ -25,8 +25,6 @@
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "WallToolPaths.h"
 
-#define OMP_MAX_ACTIVE_LAYERS_PROCESSED 30 // TODO: hardcoded-value for the max number of layers being in the pipeline while writing away and destroying layers in a multi-threaded context
-
 namespace cura
 {
 

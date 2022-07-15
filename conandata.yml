@@ -6,7 +6,7 @@
         - "stb/20200203"
     requirements_arcus:
         - "protobuf/3.17.1"
-        - "arcus/(latest)@ultimaker/stable"
+        - "arcus/(latest)@ultimaker/testing"
         - "zlib/1.2.12"
     build_requirements_arcus:
         - "protobuf/3.17.1"

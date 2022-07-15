@@ -1038,7 +1038,7 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
 
     cura::parallel_for<size_t>(0, layers.size(), [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0](size_t layer_nr)
     {
-        const coord_t xy_offset_local = (layer_nr <= layer_apply_initial_xy_offset) ? xy_offset : xy_offset_0;
+        const coord_t xy_offset_local = (layer_nr <= layer_apply_initial_xy_offset) ? xy_offset_0 : xy_offset;
         if (xy_offset_local != 0)
         {
             layers[layer_nr].polygons = layers[layer_nr].polygons.offset(xy_offset_local, ClipperLib::JoinType::jtRound);
