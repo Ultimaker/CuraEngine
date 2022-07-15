@@ -9,17 +9,30 @@ name: conan-package
 on:
     workflow_dispatch:
         inputs:
+            # FIXME: Not yet implemented
+            conan_id:
+                required: false
+                type: string
+                description: 'The full conan package ID, e.g. "libnest2d/1.2.3@ultimaker/stable"'
+            create_latest_alias:
+                required: true
+                default: false
+                type: boolean
+                description: 'Create latest alias'
             create_binaries_windows:
                 required: true
                 default: false
+                type: boolean
                 description: 'create binaries Windows'
             create_binaries_linux:
                 required: true
                 default: false
+                type: boolean
                 description: 'create binaries Linux'
             create_binaries_macos:
                 required: true
                 default: false
+                type: boolean
                 description: 'create binaries Macos'
 
     push:
@@ -54,13 +67,11 @@ jobs:
             recipe_id_pr: ${{ needs.conan-recipe-version.outputs.recipe_id_pr }}
             runs_on: 'ubuntu-20.04'
             python_version: '3.10.x'
-            conan_config_branch: 'master'
             conan_logging_level: 'info'
         secrets: inherit
 
     conan-package-create-macos:
-        # FIXME: For release branches: maybe rename the branch to release/**
-        if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_macos) }}
+        if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_macos) }}
         needs: [ conan-recipe-version, conan-package-export ]
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
@@ -68,13 +79,11 @@ jobs:
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: 'macos-10.15'
             python_version: '3.10.x'
-            conan_config_branch: 'master'
             conan_logging_level: 'info'
         secrets: inherit
 
     conan-package-create-windows:
-        # FIXME: For release branches: maybe rename the branch to release/**
-        if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_windows) }}
+        if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true' )) || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_windows) }}
         needs: [ conan-recipe-version, conan-package-export ]
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
@@ -82,13 +91,12 @@ jobs:
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: 'windows-2022'
             python_version: '3.10.x'
-            conan_config_branch: 'master'
+            conan_config_branch: ''
             conan_logging_level: 'info'
         secrets: inherit
 
     conan-package-create-linux:
-        # FIXME: For release branches: maybe rename the branch to release/**
-        if: ${{ (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_linux) }}
+        if: ${{ (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_linux) }}
         needs: [ conan-recipe-version, conan-package-export ]
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
@@ -96,13 +104,12 @@ jobs:
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: 'ubuntu-20.04'
             python_version: '3.10.x'
-            conan_config_branch: 'master'
             conan_logging_level: 'info'
         secrets: inherit
 
     notify-export:
         if: ${{ always() }}
-        needs: [  conan-recipe-version, conan-package-export ]
+        needs: [ conan-recipe-version, conan-package-export ]
 
         uses: ultimaker/cura/.github/workflows/notify.yml@main
         with:
@@ -114,9 +121,8 @@ jobs:
         secrets: inherit
 
     notify-create:
-        # FIXME: For release branches: maybe rename the branch to release/**
-        if: ${{ always() && ((github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_linux)) }}
-        needs: [  conan-recipe-version, conan-package-create-macos, conan-package-create-windows, conan-package-create-linux ]
+        if: ${{ always() && ((github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master' || needs.conan-recipe-version.outputs.is_release_branch == 'true')) || (github.event_name == 'workflow_dispatch' && inputs.create_binaries_linux)) }}
+        needs: [ conan-recipe-version, conan-package-create-macos, conan-package-create-windows, conan-package-create-linux ]
 
         uses: ultimaker/cura/.github/workflows/notify.yml@main
         with:
