@@ -6,7 +6,7 @@
         - "stb/20200203"
     requirements_arcus:
         - "protobuf/3.17.1"
-        - "arcus/(latest)@ultimaker/stable"
+        - "arcus/(latest)@ultimaker/testing"
         - "zlib/1.2.12"
     build_requirements_arcus:
         - "protobuf/3.17.1"
@@ -21,6 +21,20 @@
     requirements_arcus:
         - "protobuf/3.17.1"
         - "arcus/5.1.0"
+        - "zlib/1.2.12"
+    build_requirements_arcus:
+        - "protobuf/3.17.1"
+    build_requirements_testing:
+        - "gtest/[>=1.10.0]"
+"5.1.0-beta":
+    requirements:
+        - "clipper/6.4.2"
+        - "boost/1.78.0"
+        - "rapidjson/1.1.0"
+        - "stb/20200203"
+    requirements_arcus:
+        - "protobuf/3.17.1"
+        - "arcus/(latest)@ultimaker/stable"
         - "zlib/1.2.12"
     build_requirements_arcus:
         - "protobuf/3.17.1"
