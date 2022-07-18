@@ -380,6 +380,11 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 
     vd_t vonoroi_diagram;
     construct_voronoi(segments.begin(), segments.end(), &vonoroi_diagram);
+    unsigned long milliseconds_since_epoch =
+      std::chrono::duration_cast<std::chrono::milliseconds>
+      (std::chrono::system_clock::now().time_since_epoch()).count();
+    SVG svg(std::to_string(milliseconds_since_epoch).append(".svg").c_str(), AABB(polys), 1.0);
+    svg.writeVoronoi(vonoroi_diagram, polys);
 
     for (vd_t::cell_type cell : vonoroi_diagram.cells())
     {
@@ -791,7 +796,7 @@ void SkeletalTrapezoidation::generateTransitionMids(ptr_vector_t<std::list<Trans
             }
             auto transitions = edge.data.getTransitions();
             constexpr bool ignore_empty = true;
-            assert((! edge.data.hasTransitions(ignore_empty)) || mid_pos >= transitions->back().pos);
+//            assert((! edge.data.hasTransitions(ignore_empty)) || mid_pos >= transitions->back().pos);
             if (! edge.data.hasTransitions(ignore_empty))
             {
                 edge_transitions.emplace_back(std::make_shared<std::list<TransitionMiddle>>());
