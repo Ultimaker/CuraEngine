@@ -26,7 +26,7 @@ Polygons Simplify::polygon(const Polygons& polygons) const
     Polygons result;
     for(size_t i = 0; i < polygons.size(); ++i)
     {
-        result.add(polygon(polygons[i]));
+        result.addIfNotEmpty(polygon(polygons[i]));
     }
     return result;
 }
@@ -48,7 +48,7 @@ Polygons Simplify::polyline(const Polygons& polylines) const
     Polygons result;
     for(size_t i = 0; i < polylines.size(); ++i)
     {
-        result.add(polyline(polylines[i]));
+        result.addIfNotEmpty(polyline(polylines[i]));
     }
     return result;
 }

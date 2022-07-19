@@ -836,6 +836,27 @@ public:
     {
         std::copy(other.paths.begin(), other.paths.end(), std::back_inserter(paths));
     }
+    void addIfNotEmpty(ConstPolygonRef& poly)
+    {
+        if (! poly.empty())
+        {
+            paths.push_back(*poly.path);
+        }
+    }
+    void addIfNotEmpty(const ConstPolygonRef& poly)
+    {
+        if (! poly.empty())
+        {
+            paths.push_back(*poly.path);
+        }
+    }
+    void addIfNotEmpty(Polygon&& other_poly)
+    {
+        if (! other_poly.empty())
+        {
+            paths.emplace_back(std::move(*other_poly));
+        }
+    }
     /*!
      * Add a 'polygon' consisting of two points
      */

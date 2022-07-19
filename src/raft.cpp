@@ -18,7 +18,7 @@ namespace cura
 void Raft::generate(SliceDataStorage& storage)
 {
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
-    const Settings& settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
+    const Settings& settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings;
     const coord_t distance = settings.get<coord_t>("raft_margin");
     constexpr bool include_support = true;
     constexpr bool dont_include_prime_tower = false;  // Prime tower raft will be handled separately in 'storage.primeRaftOutline'; see below.
@@ -73,16 +73,19 @@ void Raft::generate(SliceDataStorage& storage)
 
 coord_t Raft::getTotalThickness()
 {
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
-    return train.settings.get<coord_t>("raft_base_thickness")
-        + train.settings.get<size_t>("raft_interface_layers") * train.settings.get<coord_t>("raft_interface_thickness")
-        + train.settings.get<size_t>("raft_surface_layers") * train.settings.get<coord_t>("raft_surface_thickness");
+    const Settings& mesh_group_settings =Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
+    const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
+    const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
+    return base_train.settings.get<coord_t>("raft_base_thickness")
+        + interface_train.settings.get<size_t>("raft_interface_layers") * interface_train.settings.get<coord_t>("raft_interface_thickness")
+        + surface_train.settings.get<size_t>("raft_surface_layers") * surface_train.settings.get<coord_t>("raft_surface_thickness");
 }
 
 coord_t Raft::getZdiffBetweenRaftAndLayer1()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+    const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;
@@ -116,12 +119,15 @@ coord_t Raft::getFillerLayerHeight()
 
 size_t Raft::getTotalExtraLayers()
 {
-    const ExtruderTrain& train = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("adhesion_extruder_nr");
-    if (train.settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+    const Settings& mesh_group_settings =Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
+    const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
+    const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
+    if (base_train.settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;
     }
-    return 1 + train.settings.get<size_t>("raft_interface_layers") + train.settings.get<size_t>("raft_surface_layers") + getFillerLayerCount();
+    return 1 + interface_train.settings.get<size_t>("raft_interface_layers") + surface_train.settings.get<size_t>("raft_surface_layers") + getFillerLayerCount();
 }
 
 

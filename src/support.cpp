@@ -500,8 +500,11 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                 break;
             case EPlatformAdhesion::RAFT:
             {
-                const ExtruderTrain& raft_extruder = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
-                adhesion_size = raft_extruder.settings.get<coord_t>("raft_margin");
+                adhesion_size = std::max({
+                    mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings.get<coord_t>("raft_margin"),
+                    mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings.get<coord_t>("raft_margin"),
+                    mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings.get<coord_t>("raft_margin")
+                });
                 break;
             }
             case EPlatformAdhesion::SKIRT:
