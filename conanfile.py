@@ -21,7 +21,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
 
-    python_requires = "umbase/0.1.4@ultimaker/testing"
+    python_requires = "umbase/0.1.5@ultimaker/testing"
     python_requires_extend = "umbase.UMBaseConanfile"
 
     options = {
@@ -68,20 +68,18 @@ class CuraEngineConan(ConanFile):
                 raise ConanInvalidConfiguration("Only versions 5+ are support")
 
     def build_requirements(self):
-        channel = "" if not self.channel else self.channel
         if self.options.enable_arcus:
-            for req in self._um_data(self.version, channel)["build_requirements_arcus"]:
+            for req in self._um_data()["build_requirements_arcus"]:
                 self.tool_requires(req)
         if self.options.enable_testing:
-            for req in self._um_data(self.version, channel)["build_requirements_testing"]:
+            for req in self._um_data()["build_requirements_testing"]:
                 self.test_requires(req)
 
     def requirements(self):
-        channel = "" if not self.channel else self.channel
-        for req in self._um_data(self.version, channel)["requirements"]:
+        for req in self._um_data()["requirements"]:
             self.requires(req)
         if self.options.enable_arcus:
-            for req in self._um_data(self.version, channel)["requirements_arcus"]:
+            for req in self._um_data()["requirements_arcus"]:
                 self.requires(req)
 
     def generate(self):
