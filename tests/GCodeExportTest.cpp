@@ -254,7 +254,7 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     EXPECT_EQ(std::string(";GENERATOR.NAME:Cura_SteamEngine"), token);
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";GENERATOR.VERSION:"), token.substr(0, 19));
-    EXPECT_EQ(std::string("master"), token.substr(19));
+    EXPECT_EQ(std::string("main"), token.substr(19));
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";GENERATOR.BUILD_DATE:"), token.substr(0, 22));
     EXPECT_EQ(Date::getDate().toStringDashed(), token.substr(22));
