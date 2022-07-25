@@ -2,14 +2,15 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <gtest/gtest.h>
+#include <filesystem>
 
-#include "../src/infill.h"
+#include "infill.h"
 #include "ReadTestPolygons.h"
 
 //#define TEST_INFILL_SVG_OUTPUT
 #ifdef TEST_INFILL_SVG_OUTPUT
 #include <cstdlib>
-#include "../src/utils/SVG.h"
+#include "utils/SVG.h"
 #endif //TEST_INFILL_SVG_OUTPUT
 
 namespace cura
@@ -119,12 +120,12 @@ namespace cura
     constexpr coord_t max_deviation = 5;
     const std::vector<std::string> polygon_filenames =
     {
-        "../tests/resources/polygon_concave.txt",
-        "../tests/resources/polygon_concave_hole.txt",
-        "../tests/resources/polygon_square.txt",
-        "../tests/resources/polygon_square_hole.txt",
-        "../tests/resources/polygon_triangle.txt",
-        "../tests/resources/polygon_two_squares.txt",
+          std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave.txt").string(),
+          std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave_hole.txt").string(),
+          std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square.txt").string(),
+          std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square_hole.txt").string(),
+          std::filesystem::path(__FILE__).parent_path().append("resources/polygon_triangle.txt").string(),
+          std::filesystem::path(__FILE__).parent_path().append("resources/polygon_two_squares.txt").string()
     };
 
 #ifdef TEST_INFILL_SVG_OUTPUT
