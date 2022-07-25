@@ -3,21 +3,21 @@
 
 #include <string>
 
-#include <gtest/gtest.h>
-#include <polyclipping/clipper.hpp>
-
-#include "../src/infill.h"
-#include "../src/utils/linearAlg2D.h"
-#include "../src/utils/math.h"
-#include "../src/PathOrderMonotonic.h"
-#include "../src/utils/polygon.h"
+#include "infill.h"
+#include "PathOrderMonotonic.h"
 #include "ReadTestPolygons.h"
+#include "utils/linearAlg2D.h"
+#include "utils/math.h"
+#include "utils/polygon.h"
+#include <gtest/gtest.h>
+#include <filesystem>
+#include <polyclipping/clipper.hpp>
 
 //To diagnose failing tests with visual images, uncomment the following line:
 //#define TEST_PATHS_SVG_OUTPUT
 #ifdef TEST_PATHS_SVG_OUTPUT
 #include <cstdlib>
-#include "../src/utils/SVG.h"
+#include "utils/SVG.h"
 #endif //TEST_PATHS_SVG_OUTPUT
 
 namespace cura
@@ -254,15 +254,15 @@ namespace cura
 
     const std::vector<std::string> polygon_filenames =
     {
-        "resources/polygon_concave.txt",
-        "resources/polygon_concave_hole.txt",
-        "resources/polygon_square.txt",
-        "resources/polygon_square_hole.txt",
-        "resources/polygon_triangle.txt",
-        "resources/polygon_two_squares.txt",
-        "resources/polygon_slant_gap.txt",
-        "resources/polygon_sawtooth.txt",
-        "resources/polygon_letter_y.txt"
+        std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave.txt").string(),
+        std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave_hole.txt").string(),
+        std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square.txt").string(),
+        std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square_hole.txt").string(),
+        std::filesystem::path(__FILE__).parent_path().append("resources/polygon_triangle.txt").string(),
+        std::filesystem::path(__FILE__).parent_path().append("resources/polygon_two_squares.txt").string(),
+        std::filesystem::path(__FILE__).parent_path().append("resources/polygon_slant_gap.txt").string(),
+        std::filesystem::path(__FILE__).parent_path().append("resources/polygon_sawtooth.txt").string(),
+        std::filesystem::path(__FILE__).parent_path().append("resources/polygon_letter_y.txt").string()
     };
     const std::vector<AngleRadians> angle_radians =
     {
