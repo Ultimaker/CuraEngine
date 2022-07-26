@@ -1,15 +1,15 @@
 //Copyright (c) 2019 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <array>
-#include <gtest/gtest.h>
-#include <fstream>
-
 #include "MockSocket.h"
-#include "../../src/Application.h"
-#include "../../src/ExtruderTrain.h"
-#include "../../src/Slice.h"
-#include "../../src/communication/ArcusCommunicationPrivate.h" //The class we're testing.
+#include "Application.h"
+#include "ExtruderTrain.h"
+#include "Slice.h"
+#include "communication/ArcusCommunicationPrivate.h" //The class we're testing.
+#include <gtest/gtest.h>
+#include <array>
+#include <filesystem>
+#include <fstream>
 
 namespace cura
 {
@@ -83,7 +83,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadGlobalSettingsMessage)
 
     cura::proto::SettingList global_settings;
     std::unordered_map<std::string, std::string> raw_settings;
-    loadTestSettings("../tests/test_global_settings.txt", &global_settings, &raw_settings);
+    loadTestSettings(std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string(), &global_settings, &raw_settings);
 
     // The call it's actually all about:
     instance->readGlobalSettingsMessage(global_settings);
@@ -155,13 +155,13 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     // - Load 'global' settings:
     std::unordered_map<std::string, std::string> raw_settings;
-    loadTestSettings("../tests/test_global_settings.txt", &mesh_message, &raw_settings);
+    loadTestSettings(std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string(), &mesh_message, &raw_settings);
 
     // - Create mesh-message-mesh:
     cura::proto::Object* mesh = mesh_message.add_objects();
 
     // - - Read cube vertices from a test-file, then add to message:
-    std::ifstream cube_verts_file("../tests/cube_vertices.txt");
+    std::ifstream cube_verts_file(std::filesystem::path(__FILE__).parent_path().parent_path().append("cube_vertices.txt").string());
     ASSERT_TRUE(cube_verts_file.is_open());
 
     std::vector<float> raw_vertices;
