@@ -1,4 +1,4 @@
-//  Copyright (c)  2021-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "settings/Settings.h" //The class under test.
@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 #include <memory> //For shared_ptr.
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 
@@ -166,7 +167,7 @@ TEST_F(SettingsTest, AddSettingDuration)
 TEST_F(SettingsTest, AddSettingFlowTempGraph)
 {
     settings.add("test_setting", "[[1.50, 10.1],[ 25.1,40.4 ], [26.5,75], [50 , 100.10]]"); // Try various spacing and radixes.
-    const FlowTempGraph flow_temp_graph = settings.get<FlowTempGraph>("test_setting");
+    const auto flow_temp_graph = settings.get<FlowTempGraph>("test_setting");
 
     double stored_temperature = flow_temp_graph.getTemp(30.5, 200.0, true);
     EXPECT_DOUBLE_EQ(75.0 + (100.10 - 75.0) * (30.5 - 26.5) / (50.0 - 26.5), stored_temperature)
@@ -185,7 +186,7 @@ TEST_F(SettingsTest, AddSettingFlowTempGraph)
 TEST_F(SettingsTest, AddSettingFMatrix3x3)
 {
     settings.add("test_setting", "[[1.0, 2.0, 3.3],[ 2 , 3.0 , 1.0],[3.0 ,1.0,2.0 ]]"); // Try various spacing and radixes.
-    FMatrix4x3 float_matrix = settings.get<FMatrix4x3>("test_setting");
+    auto float_matrix = settings.get<FMatrix4x3>("test_setting");
 
     EXPECT_DOUBLE_EQ(1.0, float_matrix.m[0][0]);
     EXPECT_DOUBLE_EQ(2.0, float_matrix.m[1][0]);
@@ -201,7 +202,7 @@ TEST_F(SettingsTest, AddSettingFMatrix3x3)
 TEST_F(SettingsTest, AddSettingVector)
 {
     settings.add("test_setting", "[0, 1, 1,2, 3 , 5,  8,13]");
-    const std::vector<int> vector_int = settings.get<std::vector<int>>("test_setting");
+    const auto vector_int = settings.get<std::vector<int>>("test_setting");
     const std::vector<int> ground_truth = { 0, 1, 1, 2, 3, 5, 8, 13 };
     ASSERT_EQ(ground_truth.size(), vector_int.size());
     for (size_t i = 0; i < ground_truth.size(); i++)
@@ -255,3 +256,4 @@ TEST_F(SettingsTest, LimitToExtruder)
 }
 
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

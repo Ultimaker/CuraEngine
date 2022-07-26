@@ -1,4 +1,4 @@
-//  Copyright (c)  2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/Coord_t.h"
@@ -13,9 +13,9 @@
 #include <cstdlib>
 #endif // TEST_INFILL_SVG_OUTPUT
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
-
 // This test currently always fails because there is a bug in clipper related to doing an intersection between a polygon and a polyline.
 class DISABLED_ClipperTest : public testing::Test
 {
@@ -156,3 +156,4 @@ void DISABLED_ClipperTest::outputSVG(const Paths& outlines, const Paths& polylin
 
 
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

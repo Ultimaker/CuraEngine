@@ -1,4 +1,4 @@
-//  Copyright (c)  2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/PolygonConnector.h" // The class under test.
@@ -7,9 +7,9 @@
 #include <gtest/gtest.h>
 #include <unordered_set>
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
-
 class PolygonConnectorTest : public testing::Test
 {
   public:
@@ -192,5 +192,5 @@ TEST_F(PolygonConnectorTest, connectFourNested)
 
     EXPECT_EQ(output_polygons.size(), 1) << "All four polygons should've gotten connected into 1 single polygon.";
 }
-
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

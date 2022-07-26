@@ -1,21 +1,20 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c) 2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "ExtruderTrain.h"
-#include "sliceDataStorage.h"
 #include "WallsComputation.h"
-#include "settings/types/Ratio.h"
-#include "WallToolPaths.h"
-#include "utils/polygonUtils.h"
-#include "utils/Simplify.h" //We're simplifying the spiralized insets.
 #include "Application.h"
+#include "ExtruderTrain.h"
 #include "Slice.h"
+#include "WallToolPaths.h"
+#include "settings/types/Ratio.h"
+#include "sliceDataStorage.h"
+#include "utils/Simplify.h" //We're simplifying the spiralized insets.
+#include "utils/polygonUtils.h"
 
-namespace cura {
+namespace cura
+{
 
-WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)
-: settings(settings)
-, layer_nr(layer_nr)
+WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr) : settings(settings), layer_nr(layer_nr)
 {
 }
 

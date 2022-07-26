@@ -1,4 +1,4 @@
-//  Copyright (c)  2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/polygon.h" // The class under test.
@@ -8,9 +8,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
-
 class PolygonTest : public testing::Test
 {
   public:
@@ -350,5 +350,5 @@ TEST_F(PolygonTest, convexHullRemoveDuplicatePoints)
     EXPECT_EQ(d[2], Point(10, 10));
     EXPECT_EQ(d[3], Point(0, 10));
 }
-
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

@@ -1,12 +1,12 @@
-//  Copyright (c)  2020-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PathOrderOptimizer.h" //The code under test.
 #include <gtest/gtest.h> //To run the tests.
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
-
 class PathOrderOptimizerTest : public testing::Test
 {
   public:
@@ -70,3 +70,4 @@ TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
 }
 
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

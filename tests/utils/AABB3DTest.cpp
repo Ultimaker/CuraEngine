@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/AABB3D.h"
@@ -8,12 +8,13 @@
 #include <gtest/gtest.h>
 #include <polyclipping/clipper.hpp>
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 inline AABB3D toBox(const coord_t& x, const coord_t& y, const coord_t& z)
 {
     const Point3 pt(x, y, z);
-    return AABB3D(pt, pt);
+    return { pt, pt };
 }
 
 TEST(AABB3DTest, TestConstructEmpty)
@@ -159,3 +160,4 @@ TEST(AABB3DTest, TestFlatten)
     EXPECT_FALSE(flat.contains(Point(-11, 3))) << "The flattened box shouldn't contain this point.";
 }
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

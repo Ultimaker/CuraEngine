@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "communication/ArcusCommunicationPrivate.h" //The class we're testing.
@@ -8,15 +8,16 @@
 #include "Slice.h"
 #include "utils/Coord_t.h"
 #include <array>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 
-constexpr size_t gkTestNumMeshGroups = 1;
-
+constexpr size_t gk_test_num_mesh_groups = 1;
 /*
  * Fixture with an instance of Private that sets up the mock socket
  * correctly.
@@ -26,14 +27,14 @@ class ArcusCommunicationPrivateTest : public testing::Test
   public:
     ArcusCommunication::Private* instance;
 
-    void SetUp()
+    void SetUp() override
     {
         instance = new ArcusCommunication::Private();
         instance->socket = new MockSocket();
-        Application::getInstance().current_slice = new Slice(gkTestNumMeshGroups);
+        Application::getInstance().current_slice = new Slice(gk_test_num_mesh_groups);
     }
 
-    void TearDown()
+    void TearDown() override
     {
         delete instance->socket;
         delete instance;
@@ -175,7 +176,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     std::vector<float> raw_vertices;
 
-    float next;
+    float next{};
     while (cube_verts_file >> next)
     {
         raw_vertices.push_back(next);
@@ -187,7 +188,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     // (NOTE: *Don't* replace the below by strncopy, direct call to constructor, etc. in any way. We need to pass '/0' inside the string.
     // Blame protobuf!)
     const size_t num_str = sizeof(float) * raw_vertices.size();
-    uint8_t* data = reinterpret_cast<uint8_t*>(raw_vertices.data());
+    auto* data = reinterpret_cast<uint8_t*>(raw_vertices.data());
     std::string verts_as_str;
     verts_as_str.assign(num_str, ' ');
     for (size_t i_char = 0; i_char < num_str; ++i_char)
@@ -235,7 +236,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     const size_t num_vertex = raw_vertices.size();
     for (size_t i_coord = 0; i_coord < num_vertex; ++i_coord)
     {
-        coord_t micrometers = static_cast<coord_t>(raw_vertices[i_coord] * 1000.f);
+        auto micrometers = static_cast<coord_t>(raw_vertices[i_coord] * 1000.F);
         raw_min_coords[i_coord % 3] = std::min(micrometers, raw_min_coords[i_coord % 3]);
         raw_max_coords[i_coord % 3] = std::max(micrometers, raw_max_coords[i_coord % 3]);
     }
@@ -264,3 +265,4 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 }
 
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

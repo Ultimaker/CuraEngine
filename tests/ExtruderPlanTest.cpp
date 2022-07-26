@@ -1,13 +1,13 @@
-//  Copyright (c)  2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "LayerPlan.h" //Code under test.
 #include <gtest/gtest.h>
 #include <numeric> //For calculating averages.
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
-
 /*!
  * A fixture containing some sets of GCodePaths to test with.
  */
@@ -345,5 +345,5 @@ TEST_F(ExtruderPlanTest, BackPressureCompensationEmptyPlan)
 
     EXPECT_TRUE(extruder_plan.paths.empty()) << "The paths in the extruder plan should remain empty. Also it shouldn't crash.";
 }
-
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

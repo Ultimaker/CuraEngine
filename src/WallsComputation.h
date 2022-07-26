@@ -1,9 +1,10 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c) 2018-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef WALLS_COMPUTATION_H
 #define WALLS_COMPUTATION_H
 
+#include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 

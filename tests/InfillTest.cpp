@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill.h"
@@ -13,6 +13,7 @@
 #include <cstdlib>
 #endif // TEST_INFILL_SVG_OUTPUT
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 template<typename... Ts>
@@ -291,3 +292,4 @@ TEST_P(InfillTest, TestInfillSanity)
 }
 
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

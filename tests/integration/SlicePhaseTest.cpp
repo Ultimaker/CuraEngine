@@ -1,4 +1,4 @@
-//  Copyright (c)  2020-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Application.h" // To set up a slice with settings.
@@ -22,7 +22,7 @@ class AdaptiveLayer;
  */
 class SlicePhaseTest : public testing::Test
 {
-    void SetUp()
+    void SetUp() override
     {
         // Start the thread pool
         Application::getInstance().startThreadPool();
@@ -62,8 +62,8 @@ TEST_F(SlicePhaseTest, Cube)
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cube_mesh = mesh_group.meshes[0];
 
-    const coord_t layer_thickness = scene.settings.get<coord_t>("layer_height");
-    const coord_t initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
+    const auto layer_thickness = scene.settings.get<coord_t>("layer_height");
+    const auto initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
     constexpr bool variable_layer_height = false;
     constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
     const size_t num_layers = (cube_mesh.getAABB().max.z - initial_layer_thickness) / layer_thickness + 1;
@@ -126,8 +126,8 @@ TEST_F(SlicePhaseTest, Cylinder1000)
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cylinder_mesh = mesh_group.meshes[0];
 
-    const coord_t layer_thickness = scene.settings.get<coord_t>("layer_height");
-    const coord_t initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
+    const auto layer_thickness = scene.settings.get<coord_t>("layer_height");
+    const auto initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
     constexpr bool variable_layer_height = false;
     constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
     const size_t num_layers = (cylinder_mesh.getAABB().max.z - initial_layer_thickness) / layer_thickness + 1;

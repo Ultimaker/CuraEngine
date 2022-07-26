@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "FffProcessor.h"
@@ -9,6 +9,8 @@
 #include "utils/polygon.h" //Create test shapes to send over the socket.
 #include <google/protobuf/message.h>
 #include <gtest/gtest.h>
+#include <memory>
+
 
 namespace cura
 {
@@ -21,7 +23,7 @@ class ArcusCommunicationTest : public testing::Test
 {
   public:
     std::string ip;
-    uint16_t port;
+    [[maybe_unused]] uint16_t port;
     MockSocket* socket;
     ArcusCommunication* ac;
 
@@ -34,7 +36,7 @@ class ArcusCommunicationTest : public testing::Test
 
     Polygons test_shapes; // all above polygons
 
-    void SetUp()
+    void SetUp() override
     {
         ip = "0.0.0.0";
         port = 12345;
@@ -78,7 +80,7 @@ class ArcusCommunicationTest : public testing::Test
         test_shapes.add(test_convex_shape);
     }
 
-    void TearDown()
+    void TearDown() override
     {
         delete ac;
         ac = nullptr;
@@ -125,7 +127,7 @@ TEST_F(ArcusCommunicationTest, SendGCodePrefix)
     ac->flushGCode();
     EXPECT_GT(socket->sent_messages.size(), 0);
     bool found_prefix = false;
-    for (auto message : socket->sent_messages)
+    for (const auto& message : socket->sent_messages)
     {
         if (message->DebugString().find(prefix) != std::string::npos)
         {
@@ -161,7 +163,7 @@ TEST_F(ArcusCommunicationTest, SendProgress)
 
     ac->sendProgress(10);
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
-    proto::Progress* message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
+    auto* message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
     EXPECT_EQ(float(5), message->amount());
 
     ac->sendProgress(50);

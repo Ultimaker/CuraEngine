@@ -12,3 +12,5 @@ CheckOptions:
   - { key: readability-identifier-naming.ParameterCase,           value: lower_case }
   - { key: readability-identifier-naming.VariableCase,            value: lower_case }
   - { key: readability-identifier-naming.ClassConstantCase,       value: UPPER_CASE }
+  - { key: readability-identifier-length.IgnoredVariableNames,    value: 'i|j|k|x|y|z|a|b|aa|bb|ip' }
+  - { key: readability-identifier-length.IgnoredLoopCounterNames, value: 'i|j|k|x|y|z|a|b|aa|bb|ip' }

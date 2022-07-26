@@ -1,4 +1,4 @@
-//  Copyright (c)  2018-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "MockSocket.h"
@@ -6,14 +6,12 @@
 namespace cura
 {
 
-MockSocket::MockSocket()
-{
-}
+MockSocket::MockSocket() = default;
 
-void MockSocket::connect(const std::string&, int)
+void MockSocket::connect(const std::string& address, int port)
 { /* Do nothing. */
 }
-void MockSocket::listen(const std::string&, int)
+void MockSocket::listen(const std::string& address, int port)
 { /* Do nothing. */
 }
 void MockSocket::close()

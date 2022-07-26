@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/AABB.h"
@@ -8,6 +8,7 @@
 
 namespace cura
 {
+// NOLINTBEGIN(*-magic-numbers)
 TEST(AABBTest, TestConstructEmpty)
 {
     AABB empty_box;
@@ -167,4 +168,6 @@ TEST(AABBTest, TestToPolygon)
       << "The polygon from the bounding box should have the same area.";
     EXPECT_EQ(polygon.centerOfMass(), box.getMiddle()) << "The center of mass of an (AA) rectangle is its middle.";
 }
+// NOLINTEND(*-magic-numbers)
+
 } // namespace cura
