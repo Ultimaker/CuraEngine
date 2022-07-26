@@ -39,6 +39,7 @@ class SlicePhaseTest : public testing::Test
         scene.settings.add("minimum_polygon_circumference", "1");
         scene.settings.add("meshfix_maximum_resolution", "0.04");
         scene.settings.add("meshfix_maximum_deviation", "0.02");
+        scene.settings.add("meshfix_maximum_extrusion_area_deviation", "2000");
         scene.settings.add("xy_offset", "0");
         scene.settings.add("xy_offset_layer_0", "0");
         scene.settings.add("support_mesh", "false");
