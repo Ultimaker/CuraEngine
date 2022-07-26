@@ -1,14 +1,14 @@
 //Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "Application.h" //To set up a slice with settings.
+#include "Slice.h" //To set up a scene to slice.
+#include "slicer.h" //Starts the slicing phase that we want to test.
+#include "utils/FMatrix4x3.h" //To load STL files.
+#include "utils/polygon.h" //Creating polygons to compare to sliced layers.
+#include "utils/polygonUtils.h" //Comparing similarity of polygons.
 #include <gtest/gtest.h>
-
-#include "../src/Application.h" //To set up a slice with settings.
-#include "../src/Slice.h" //To set up a scene to slice.
-#include "../src/slicer.h" //Starts the slicing phase that we want to test.
-#include "../src/utils/FMatrix4x3.h" //To load STL files.
-#include "../src/utils/polygon.h" //Creating polygons to compare to sliced layers.
-#include "../src/utils/polygonUtils.h" //Comparing similarity of polygons.
+#include <filesystem>
 
 namespace cura
 {
@@ -55,7 +55,7 @@ TEST_F(SlicePhaseTest, Cube)
 
     const FMatrix4x3 transformation;
     //Path to cube.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
-    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, "integration/resources/cube.stl", transformation, scene.settings));
+    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cube.stl").c_str(), transformation, scene.settings));
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cube_mesh = mesh_group.meshes[0];
 
@@ -115,7 +115,7 @@ TEST_F(SlicePhaseTest, Cylinder1000)
 
     const FMatrix4x3 transformation;
     //Path to cylinder1000.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
-    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, "integration/resources/cylinder1000.stl", transformation, scene.settings));
+    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").c_str(), transformation, scene.settings));
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cylinder_mesh = mesh_group.meshes[0];
 
