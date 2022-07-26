@@ -1,11 +1,10 @@
-//  Copyright (c)  2021-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PathOrderMonotonic.h"
 #include "ReadTestPolygons.h"
 #include "infill.h"
 #include "utils/Coord_t.h"
-#include "utils/linearAlg2D.h"
 #include "utils/math.h"
 #include "utils/polygon.h"
 #include <filesystem>
@@ -55,20 +54,6 @@ bool rangeOverlaps(const std::pair<coord_t, coord_t>& range_b, const std::pair<c
     const coord_t len_total = std::max({ range_b.first, range_b.second, range_a.first, range_a.second })
                             - std::min({ range_b.first, range_b.second, range_a.first, range_a.second });
     return len_total < (len_b + len_a);
-}
-
-coord_t shortestDistance(const PathOrderPath<ConstPolygonPointer>& path_a, const PathOrderPath<ConstPolygonPointer>& path_b)
-{
-    // NOTE: Assume these are more or less lines.
-    const auto point_pair =
-      LinearAlg2D::getClosestConnection(startVertex(path_a), endVertex(path_a), startVertex(path_b), endVertex(path_b));
-    return vSize(point_pair.second - point_pair.first);
-}
-
-coord_t pathLength(const PathOrderPath<ConstPolygonPointer>& path)
-{
-    // NOTE: Assume these are more or less lines.
-    return vSize(endVertex(path) - startVertex(path));
 }
 
 constexpr EFillMethod pattern = EFillMethod::LINES;
@@ -156,7 +141,7 @@ void writeDebugSVG(const std::string& original_filename,
     // Note: SVG writes 'itself' when the object is destroyed.
 }
 #endif // TEST_PATHS_SVG_OUTPUT
-
+// NOLINTBEGIN(*-magic-numbers)
 TEST_P(PathOrderMonotonicTest, SectionsTest)
 {
     const auto params = GetParam();
@@ -168,7 +153,8 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
     const Point& pt_r = polylines.begin()->at(0);
     const Point& pt_s = polylines.begin()->at(1);
     const double angle_from_first_line = std::atan2(pt_s.Y - pt_r.Y, pt_s.X - pt_r.X) + 0.5 * M_PI;
-    const Point monotonic_axis(std::cos(angle_from_first_line) * 1000, std::sin(angle_from_first_line) * 1000);
+    const Point monotonic_axis(static_cast<coord_t>(std::cos(angle_from_first_line)) * 1000,
+                               static_cast<coord_t>(std::sin(angle_from_first_line)) * 1000);
     const Point perpendicular_axis{ turn90CCW(monotonic_axis) };
 
     constexpr coord_t max_adjacent_distance = line_distance + 1;
@@ -253,8 +239,9 @@ const std::vector<std::string> polygon_filenames = {
 const std::vector<AngleRadians> angle_radians = { 0,           0.1, 0.25 * M_PI, 1.0,         0.5 * M_PI, 0.75 * M_PI,       M_PI,
                                                   1.25 * M_PI, 4.0, 1.5 * M_PI,  1.75 * M_PI, 5.0,        (2.0 * M_PI) - 0.1 };
 
-INSTANTIATE_TEST_CASE_P(PathOrderMonotonicTestInstantiation,
-                        PathOrderMonotonicTest,
-                        testing::Combine(testing::ValuesIn(polygon_filenames), testing::ValuesIn(angle_radians)));
+INSTANTIATE_TEST_SUITE_P(PathOrderMonotonicTestInstantiation,
+                         PathOrderMonotonicTest,
+                         testing::Combine(testing::ValuesIn(polygon_filenames), testing::ValuesIn(angle_radians)));
+// NOLINTEND(*-magic-numbers)
 
 } // namespace cura

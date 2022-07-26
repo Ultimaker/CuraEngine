@@ -6,6 +6,7 @@
 #include "utils/Coord_t.h"
 #include <filesystem>
 #include <gtest/gtest.h>
+#include <utility>
 
 // #define TEST_INFILL_SVG_OUTPUT
 #ifdef TEST_INFILL_SVG_OUTPUT
@@ -19,6 +20,7 @@ namespace cura
 template<typename... Ts>
 std::string makeName(const std::string& format_string, Ts... args)
 {
+    // FIXME: once we use spdlog, we can use fmt::format instead, see CURA-7221
     constexpr int buff_size = 1024;
     char buff[buff_size];
     std::snprintf(buff, buff_size, format_string.c_str(), args...);
@@ -43,6 +45,7 @@ coord_t getPatternMultiplier(const EFillMethod& pattern)
     }
 }
 
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 struct InfillParameters
 {
   public:
@@ -57,7 +60,12 @@ struct InfillParameters
     InfillParameters(const EFillMethod& pattern, const bool& zig_zagify, const bool& connect_polygons, const coord_t& line_distance)
       : pattern(pattern), zig_zagify(zig_zagify), connect_polygons(connect_polygons), line_distance(line_distance)
     {
-        name = makeName("InfillParameters_%d_%d_%d_%lld", (int)pattern, (int)zig_zagify, (int)connect_polygons, line_distance);
+        // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-7221.
+        name = makeName("InfillParameters_%d_%d_%d_%lld",
+                        static_cast<int>(pattern),
+                        static_cast<int>(zig_zagify),
+                        static_cast<int>(connect_polygons),
+                        line_distance);
     }
 };
 
@@ -66,7 +74,6 @@ class InfillTestParameters
   public:
     bool valid; // <-- if the file isn't read (or anything else goes wrong with the setup) we can communicate it to the tests
     std::string fail_reason;
-    size_t test_polygon_id;
 
     // Parameters used to generate the infill:
     InfillParameters params;
@@ -80,23 +87,23 @@ class InfillTestParameters
 
     InfillTestParameters()
       : valid(false), fail_reason("Read of file with test polygons failed (see generateInfillTests), can't continue tests."),
-        test_polygon_id(-1), params(InfillParameters(EFillMethod::NONE, false, false, 0)), outline_polygons(Polygons()),
-        result_lines(Polygons()), result_polygons(Polygons()), name("UNNAMED")
+        params(InfillParameters(EFillMethod::NONE, false, false, 0)), name("UNNAMED")
     {
     }
 
     InfillTestParameters(const InfillParameters& params,
                          const size_t& test_polygon_id,
-                         const Polygons& outline_polygons,
-                         const Polygons& result_lines,
-                         const Polygons& result_polygons)
-      : valid(true), fail_reason("__"), test_polygon_id(test_polygon_id), params(params), outline_polygons(outline_polygons),
-        result_lines(result_lines), result_polygons(result_polygons)
+                         Polygons outline_polygons,
+                         Polygons result_lines,
+                         Polygons result_polygons)
+      : valid(true), fail_reason("__"), params(params), outline_polygons(std::move(outline_polygons)),
+        result_lines(std::move(result_lines)), result_polygons(std::move(result_polygons))
     {
+        // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-7221.
         name = makeName("InfillTestParameters_P%d_Z%d_C%d_L%lld__%lld",
-                        (int)params.pattern,
-                        (int)params.zig_zagify,
-                        (int)params.connect_polygons,
+                        static_cast<int>(params.pattern),
+                        static_cast<int>(params.zig_zagify),
+                        static_cast<int>(params.connect_polygons),
                         params.line_distance,
                         test_polygon_id);
     }
@@ -106,6 +113,8 @@ class InfillTestParameters
         return os << params.name << "(" << (params.valid ? std::string("input OK") : params.fail_reason) << ")";
     }
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
+
 
 constexpr coord_t infill_line_width = 350;
 constexpr coord_t infill_overlap = 0;
@@ -201,7 +210,7 @@ std::vector<InfillTestParameters> generateInfillTests()
     std::vector<EFillMethod> methods;
     for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method)
     {
-        const EFillMethod method = static_cast<EFillMethod>(i_method);
+        const auto method = static_cast<EFillMethod>(i_method);
         if (std::find(skip_methods.begin(), skip_methods.end(), method) == skip_methods.end()) // Only use if not in skipped.
         {
             methods.push_back(method);
@@ -238,10 +247,10 @@ class InfillTest : public testing::TestWithParam<InfillTestParameters>
 {
 };
 
-INSTANTIATE_TEST_CASE_P(InfillTestcases,
-                        InfillTest,
-                        testing::ValuesIn(generateInfillTests()),
-                        [](testing::TestParamInfo<InfillTestParameters> info) { return info.param.name; });
+INSTANTIATE_TEST_SUITE_P(InfillTestcases,
+                         InfillTest,
+                         testing::ValuesIn(generateInfillTests()),
+                         [](const testing::TestParamInfo<InfillTestParameters>& info) { return info.param.name; });
 
 TEST_P(InfillTest, TestInfillSanity)
 {
@@ -254,21 +263,23 @@ TEST_P(InfillTest, TestInfillSanity)
     ASSERT_TRUE(params.valid) << params.fail_reason;
     ASSERT_FALSE(params.result_polygons.empty() && params.result_lines.empty()) << "Infill should have been generated.";
 
-    double worst_case_zig_zag_added_area = 0;
+    long double worst_case_zig_zag_added_area = 0;
     if (params.params.zig_zagify || params.params.pattern == EFillMethod::ZIG_ZAG)
     {
         worst_case_zig_zag_added_area = params.outline_polygons.polygonLength() * infill_line_width;
     }
 
-    const double min_available_area = std::abs(params.outline_polygons.offset(-params.params.line_distance / 2).area());
-    const double max_available_area =
-      std::abs(params.outline_polygons.offset(params.params.line_distance / 2).area()) + worst_case_zig_zag_added_area;
-    const double min_expected_infill_area = (min_available_area * infill_line_width) / params.params.line_distance;
-    const double max_expected_infill_area =
+    const double min_available_area = std::abs(params.outline_polygons.offset(static_cast<int>(-params.params.line_distance) / 2).area());
+    const long double max_available_area =
+      std::abs(params.outline_polygons.offset(static_cast<int>(params.params.line_distance) / 2).area()) + worst_case_zig_zag_added_area;
+    const long double min_expected_infill_area =
+      (min_available_area * static_cast<long double>(infill_line_width)) / params.params.line_distance;
+    const long double max_expected_infill_area =
       (max_available_area * infill_line_width) / params.params.line_distance + worst_case_zig_zag_added_area;
 
-    const double out_infill_area = ((params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * infill_line_width)
-                                 / getPatternMultiplier(params.params.pattern);
+    const long double out_infill_area =
+      ((params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * static_cast<long double>(infill_line_width))
+      / getPatternMultiplier(params.params.pattern);
 
     ASSERT_GT((coord_t)max_available_area, (coord_t)out_infill_area) << "Infill area should allways be less than the total area available.";
     ASSERT_GT((coord_t)out_infill_area, (coord_t)min_expected_infill_area)
@@ -284,7 +295,10 @@ TEST_P(InfillTest, TestInfillSanity)
               maximum_error)
       << "Infill (lines) should not be outside target polygon.";
     Polygons result_polygon_lines = params.result_polygons;
-    for (PolygonRef poly : result_polygon_lines) poly.add(poly.front());
+    for (PolygonRef poly : result_polygon_lines)
+    {
+        poly.add(poly.front());
+    }
     ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(result_polygon_lines, restitch).polyLineLength()
                        - result_polygon_lines.polyLineLength()),
               maximum_error)

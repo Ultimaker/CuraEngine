@@ -1,23 +1,25 @@
-//  Copyright (c)  2021-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "gcodeExport.h" //The unit under test.
-#include "Application.h" //To set up a slice with settings.
-#include "RetractionConfig.h" //For extruder switch tests.
-#include "Slice.h" //To set up a slice with settings.
-#include "WipeScriptConfig.h" //For wipe sciprt tests.
-#include "arcus/MockCommunication.h" //To prevent calls to any missing Communication class.
+#include "gcodeExport.h" // The unit under test.
+#include "Application.h" // To set up a slice with settings.
+#include "RetractionConfig.h" // For extruder switch tests.
+#include "Slice.h" // To set up a slice with settings.
+#include "WipeScriptConfig.h" // For wipe script tests.
+#include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
-#include "utils/Date.h" //To check the Griffin header.
+#include "utils/Date.h" // To check the Griffin header.
 #include <gtest/gtest.h>
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 
 /*
  * Fixture that provides a GCodeExport instance in a certain base state.
  */
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class GCodeExportTest : public testing::Test
 {
   public:
@@ -37,7 +39,7 @@ class GCodeExportTest : public testing::Test
      */
     MockCommunication* mock_communication;
 
-    void SetUp()
+    void SetUp() override
     {
         output << std::fixed;
         gcode.output_stream = &output;
@@ -73,13 +75,14 @@ class GCodeExportTest : public testing::Test
         Application::getInstance().communication = mock_communication;
     }
 
-    void TearDown()
+    void TearDown() override
     {
         delete Application::getInstance().current_slice;
         delete Application::getInstance().communication;
         Application::getInstance().communication = nullptr;
     }
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 
 TEST_F(GCodeExportTest, CommentEmpty)
 {
@@ -142,8 +145,8 @@ TEST_F(GCodeExportTest, CommentTimeFloatRoundingError)
 
 TEST_F(GCodeExportTest, CommentTypeAllTypesCovered)
 {
-    for (PrintFeatureType type = PrintFeatureType(0); type < PrintFeatureType::NumPrintFeatureTypes;
-         type = PrintFeatureType(static_cast<size_t>(type) + 1))
+    for (auto type = static_cast<PrintFeatureType>(0); type < PrintFeatureType::NumPrintFeatureTypes;
+         type = static_cast<PrintFeatureType>(static_cast<size_t>(type) + 1))
     {
         gcode.writeTypeComment(type);
         if (type == PrintFeatureType::MoveCombing || type == PrintFeatureType::MoveRetraction)
@@ -184,6 +187,7 @@ TEST_F(GCodeExportTest, CommentLayerCount)
 /*
  * Parameterized test with different numbers of extruders.
  */
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class GriffinHeaderTest : public testing::TestWithParam<size_t>
 {
   public:
@@ -197,7 +201,7 @@ class GriffinHeaderTest : public testing::TestWithParam<size_t>
      */
     std::stringstream output;
 
-    void SetUp()
+    void SetUp() override
     {
         output << std::fixed;
         gcode.output_stream = &output;
@@ -228,11 +232,12 @@ class GriffinHeaderTest : public testing::TestWithParam<size_t>
         Application::getInstance().current_slice = new Slice(0);
     }
 
-    void TearDown()
+    void TearDown() override
     {
         delete Application::getInstance().current_slice;
     }
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 
 TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
 {
@@ -309,7 +314,7 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     EXPECT_EQ(std::string(";END_OF_HEADER"), token);
 }
 
-INSTANTIATE_TEST_CASE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, testing::Values(0, 1, 2, 9));
+INSTANTIATE_TEST_SUITE_P(GriffinHeaderTestInstantiation, GriffinHeaderTest, testing::Values(0, 1, 2, 9));
 
 /*
  * Test the default header generation.
@@ -431,9 +436,10 @@ TEST_F(GCodeExportTest, EVsMmLinear)
     EXPECT_EQ(gcode.mmToE(15.0), 15.0) << "Since the E is linear and the input mm is also linear, the output needs to be the same.";
     EXPECT_EQ(gcode.eToMm(15.0), 15.0) << "Since the E is linear and the output mm is also linear, the output needs to be the same.";
 
-    for (double x = -1000.0; x < 1000.0; x += 16.0)
+    for (int x = -1000; x < 1000; x += 16)
     {
-        EXPECT_DOUBLE_EQ(gcode.mmToE(gcode.eToMm(x)), x) << "Converting back and forth should lead to the same number.";
+        EXPECT_DOUBLE_EQ(gcode.mmToE(gcode.eToMm(static_cast<double>(x))), static_cast<double>(x))
+          << "Converting back and forth should lead to the same number.";
     }
 
     constexpr double mm3_input = 33.0;
@@ -717,5 +723,5 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     std::getline(output, token, '\n');
     EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
 }
-
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

@@ -1,5 +1,14 @@
 ---
-Checks: '*, -llvmlibc-*, -modernize-use-trailing-return-type, -altera-unroll-loops*, -readability-avoid-const-params-in-decls, -fuchsia-default-arguments-calls'
+Checks: >
+  *,
+  -llvmlibc-*,
+  -modernize-use-trailing-return-type,
+  -altera-unroll-loops*,
+  -readability-avoid-const-params-in-decls,
+  -fuchsia-default-arguments-calls,
+  -google-readability-todo,
+  -altera-struct-pack-align,
+  -android-*
 WarningsAsErrors: '-*'
 HeaderFilterRegex: ''
 FormatStyle: none
@@ -12,5 +21,6 @@ CheckOptions:
   - { key: readability-identifier-naming.ParameterCase,           value: lower_case }
   - { key: readability-identifier-naming.VariableCase,            value: lower_case }
   - { key: readability-identifier-naming.ClassConstantCase,       value: UPPER_CASE }
-  - { key: readability-identifier-length.IgnoredVariableNames,    value: 'i|j|k|x|y|z|a|b|aa|bb|ip' }
+  - { key: readability-identifier-length.IgnoredParameterNames,   value: 'i|j|k|x|y|z|a|b|aa|bb|ip|os' }
+  - { key: readability-identifier-length.IgnoredVariableNames,    value: 'i|j|k|x|y|z|a|b|aa|bb|ip|os' }
   - { key: readability-identifier-length.IgnoredLoopCounterNames, value: 'i|j|k|x|y|z|a|b|aa|bb|ip' }

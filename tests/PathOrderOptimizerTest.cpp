@@ -7,6 +7,7 @@
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class PathOrderOptimizerTest : public testing::Test
 {
   public:
@@ -24,7 +25,7 @@ class PathOrderOptimizerTest : public testing::Test
     {
     }
 
-    void SetUp()
+    void SetUp() override
     {
         optimizer = PathOrderOptimizer<ConstPolygonPointer>(Point(0, 0));
 
@@ -34,6 +35,7 @@ class PathOrderOptimizerTest : public testing::Test
         triangle.add(Point(25, 50));
     }
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 
 /*!
  * Test optimizing an empty set of paths.

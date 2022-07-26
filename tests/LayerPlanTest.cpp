@@ -19,6 +19,7 @@ namespace cura
  * This fixture gets the previous location initialised to 0,0. You can
  * optionally fill it with some layer data.
  */
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class LayerPlanTest : public testing::Test
 {
   public:
@@ -57,16 +58,7 @@ class LayerPlanTest : public testing::Test
      */
     Mesh mesh;
 
-    LayerPlanTest()
-      : storage(setUpStorage()), layer_plan(*storage,
-                                            /*layer_nr=*/100,
-                                            /*z=*/10000,
-                                            /*layer_thickness=*/100,
-                                            /*extruder_nr=*/0,
-                                            fan_speed_layer_time_settings,
-                                            /*comb_boundary_offset=*/20,
-                                            /*comb_move_inside_distance=*/10,
-                                            /*travel_avoid_distance=*/5000)
+    LayerPlanTest() : storage(setUpStorage()), layer_plan(*storage, 100, 10000, 100, 0, fan_speed_layer_time_settings, 20, 10, 5000)
     {
     }
 
@@ -207,12 +199,12 @@ class LayerPlanTest : public testing::Test
         retraction_config.retraction_extrusion_window = settings->get<double>("retraction_extrusion_window");
         retraction_config.retraction_count_max = settings->get<size_t>("retraction_count_max");
 
-        SliceDataStorage* result = new SliceDataStorage();
+        auto* result = new SliceDataStorage();
         result->retraction_config_per_extruder[0] = retraction_config;
         return result;
     }
 
-    void SetUp()
+    void SetUp() override
     {
         layer_plan.addTravel_simple(
           Point(0, 0)); // Make sure that it appears as if we have already done things in this layer plan. Just the standard case.
@@ -221,7 +213,7 @@ class LayerPlanTest : public testing::Test
     /*!
      * Cleaning up after a test is hardly necessary but just for neatness.
      */
-    void TearDown()
+    void TearDown() override
     {
         delete storage;
         delete Application::getInstance().current_slice;
@@ -232,9 +224,8 @@ class LayerPlanTest : public testing::Test
 std::vector<std::string> retraction_enable = { "false", "true" };
 std::vector<std::string> hop_enable = { "false", "true" };
 std::vector<std::string> combing = { "off", "all" };
-std::vector<bool> is_long = { false, true }; // Whether or not the travel move is longer than retraction_min_travel.
-std::vector<bool> is_long_combing = { false,
-                                      true }; // Whether or not the total travel distance is longer than retraction_combing_max_distance.
+std::vector<bool> is_long = { false, true }; // Is the travel move longer than retraction_min_travel.
+std::vector<bool> is_long_combing = { false, true }; // Is the total travel distance longer than retraction_combing_max_distance.
 enum AddTravelTestScene
 {
     OPEN, // The travel move goes through open air. There's nothing in the entire layer.
@@ -406,13 +397,7 @@ class AddTravelTest
         layer_plan.comb_boundary_preferred = slice_data; // We don't care about the combing accuracy itself, so just use the same for both.
         if (parameters.combing != "off")
         {
-            layer_plan.comb = new Comb(*storage,
-                                       /*layer_nr=*/100,
-                                       layer_plan.comb_boundary_minimum,
-                                       layer_plan.comb_boundary_preferred,
-                                       /*comb_boundary_offset=*/20,
-                                       /*travel_avoid_distance=*/5000,
-                                       /*comb_move_inside_distance=*/10);
+            layer_plan.comb = new Comb(*storage, 100, layer_plan.comb_boundary_minimum, layer_plan.comb_boundary_preferred, 20, 5000, 10);
         }
         else
         {
@@ -423,6 +408,7 @@ class AddTravelTest
         return layer_plan.addTravel(destination);
     }
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 
 INSTANTIATE_TEST_SUITE_P(AllCombinations,
                          AddTravelTest,

@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ReadTestPolygons.h"
@@ -52,7 +52,8 @@ bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygo
         switch (command)
         {
         case 'v': // read next coordinate
-            coord_t coord_x, coord_y;
+            coord_t coord_x;
+            coord_t coord_y;
             read = std::fscanf(handle, " %lld %lld ", &coord_x, &coord_y);
             if (read == EOF || read <= 0)
             {
@@ -72,7 +73,7 @@ bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygo
             }
             if (command != 'x' && ! next_shape.empty())
             {
-                polygons_out.push_back(Polygons(next_shape)); // copy and add
+                polygons_out.emplace_back(next_shape); // copy and add
                 next_shape.clear();
             }
             break;

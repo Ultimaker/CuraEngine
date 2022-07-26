@@ -11,6 +11,7 @@ namespace cura
 /*!
  * A fixture containing some sets of GCodePaths to test with.
  */
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class ExtruderPlanTestPathCollection
 {
   public:
@@ -68,16 +69,8 @@ class ExtruderPlanTestPathCollection
     GCodePathConfig travel_config;
 
     ExtruderPlanTestPathCollection()
-      : extrusion_config(PrintFeatureType::OuterWall,
-                         /*line_width=*/400,
-                         /*layer_thickness=*/100,
-                         /*flow=*/1.0_r,
-                         GCodePathConfig::SpeedDerivatives(50, 1000, 10)),
-        travel_config(PrintFeatureType::MoveCombing,
-                      /*line_width=*/0,
-                      /*layer_thickness=*/100,
-                      /*flow=*/0.0_r,
-                      GCodePathConfig::SpeedDerivatives(120, 5000, 30))
+      : extrusion_config(PrintFeatureType::OuterWall, 400, 100, 1.0_r, GCodePathConfig::SpeedDerivatives(50, 1000, 10)),
+        travel_config(PrintFeatureType::MoveCombing, 0, 100, 0.0_r, GCodePathConfig::SpeedDerivatives(120, 5000, 30))
     {
         const std::string mesh_id = "test_mesh";
         constexpr Ratio flow_1 = 1.0_r;
@@ -142,6 +135,7 @@ class ExtruderPlanTestPathCollection
         variable_width[5].points = { Point(5000, 0), Point(6000, 0) };
     }
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 
 static ExtruderPlanTestPathCollection path_collection;
 
@@ -185,26 +179,26 @@ class ExtruderPlanPathsParameterizedTest : public testing::TestWithParam<std::ve
      * \param path The path to calculate the flow rate of.
      * \return The flow rate, in cubic millimeters per second.
      */
-    double calculatePathWidth(const GCodePath& path)
+    [[nodiscard]] static double calculatePathWidth(const GCodePath& path)
     {
         return path.getExtrusionMM3perMM() / path.config->getFlowRatio() / path.flow * path.config->getSpeed()
              * path.speed_back_pressure_factor;
     }
 
-    bool shouldCountPath(const GCodePath& path) const
+    [[nodiscard]] static bool shouldCountPath(const GCodePath& path)
     {
-        return path.flow > 0.0 && path.width_factor > 0.0 && path.config->getFlowRatio() > 0.0 && path.config->getLineWidth() > 0.0
+        return path.flow > 0.0 && path.width_factor > 0.0 && path.config->getFlowRatio() > 0.0 && path.config->getLineWidth() > 0
             && ! path.config->isTravelPath() && ! path.config->isBridgePath();
     }
 };
 
-INSTANTIATE_TEST_CASE_P(ExtruderPlanTestInstantiation,
-                        ExtruderPlanPathsParameterizedTest,
-                        testing::Values(path_collection.square,
-                                        path_collection.lines,
-                                        path_collection.decreasing_flow,
-                                        path_collection.decreasing_speed,
-                                        path_collection.variable_width));
+INSTANTIATE_TEST_SUITE_P(ExtruderPlanTestInstantiation,
+                         ExtruderPlanPathsParameterizedTest,
+                         testing::Values(path_collection.square,
+                                         path_collection.lines,
+                                         path_collection.decreasing_flow,
+                                         path_collection.decreasing_speed,
+                                         path_collection.variable_width));
 
 /*!
  * A fixture for general test cases involving extruder plans.
@@ -269,7 +263,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
     extruder_plan.applyBackPressureCompensation(1.0_r);
 
     auto first_extrusion =
-      std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [&](GCodePath& path) { return this->shouldCountPath(path); });
+      std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [&](GCodePath& path) { return shouldCountPath(path); });
     if (first_extrusion == extruder_plan.paths.end()) // Only travel moves in this plan.
     {
         return;
@@ -306,7 +300,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
         }
         original_flows.push_back(calculatePathWidth(path));
     }
-    const double original_average = std::accumulate(original_flows.begin(), original_flows.end(), 0.0) / original_flows.size();
+    const auto original_average = std::accumulate(original_flows.begin(), original_flows.end(), 0.0L) / original_flows.size();
 
     // Apply the back pressure compensation with 50% factor!
     extruder_plan.applyBackPressureCompensation(0.5_r);
@@ -321,7 +315,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
         }
         new_flows.push_back(calculatePathWidth(path));
     }
-    const double new_average = std::accumulate(new_flows.begin(), new_flows.end(), 0.0) / new_flows.size();
+    const auto new_average = std::accumulate(new_flows.begin(), new_flows.end(), 0.0L) / new_flows.size();
     // Note that the new average doesn't necessarily need to be the same average! It is most likely a higher average in real-world
     // scenarios.
 
