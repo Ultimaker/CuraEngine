@@ -1,14 +1,14 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c)  2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <gtest/gtest.h>
 
-#include "../src/Application.h" //To provide settings for the layer plan.
-#include "../src/pathPlanning/Comb.h" //To create a combing path around the layer plan.
-#include "../src/LayerPlan.h" //The code under test.
-#include "../src/RetractionConfig.h" //To provide retraction settings.
-#include "../src/Slice.h" //To provide settings for the layer plan.
-#include "../src/sliceDataStorage.h" //To provide slice data as input for the planning stage.
+#include "Application.h" //To provide settings for the layer plan.
+#include "LayerPlan.h" //The code under test.
+#include "RetractionConfig.h" //To provide retraction settings.
+#include "Slice.h" //To provide settings for the layer plan.
+#include "pathPlanning/Comb.h" //To create a combing path around the layer plan.
+#include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
 
 namespace cura
 {
@@ -182,6 +182,8 @@ public:
         settings->add("wall_line_count", "3");
         settings->add("wall_line_width_x", "0.3");
         settings->add("wall_line_width_0", "0.301");
+        settings->add("travel_avoid_other_parts", "true");
+        settings->add("travel_avoid_supports", "true");
 
         Application::getInstance().current_slice->scene.extruders.emplace_back(0, settings); //Add an extruder train.
 
@@ -404,7 +406,7 @@ public:
     }
 };
 
-INSTANTIATE_TEST_CASE_P(AllCombinations, AddTravelTest, testing::Combine(
+INSTANTIATE_TEST_SUITE_P(AllCombinations, AddTravelTest, testing::Combine(
     testing::ValuesIn(retraction_enable),
     testing::ValuesIn(hop_enable),
     testing::ValuesIn(combing),
