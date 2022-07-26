@@ -1,12 +1,12 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "Application.h" //To set up a slice with settings.
-#include "Slice.h" //To set up a scene to slice.
-#include "slicer.h" //Starts the slicing phase that we want to test.
-#include "utils/FMatrix4x3.h" //To load STL files.
-#include "utils/polygon.h" //Creating polygons to compare to sliced layers.
-#include "utils/polygonUtils.h" //Comparing similarity of polygons.
+#include "Application.h" // To set up a slice with settings.
+#include "Slice.h" // To set up a scene to slice.
+#include "slicer.h" // Starts the slicing phase that we want to test.
+#include "utils/FMatrix4x3.h" // To load STL files.
+#include "utils/polygon.h" // Creating polygons to compare to sliced layers.
+#include "utils/polygonUtils.h" // Comparing similarity of polygons.
 #include <gtest/gtest.h>
 #include <filesystem>
 
@@ -25,10 +25,10 @@ class SlicePhaseTest : public testing::Test
     {
         // Start the thread pool
         Application::getInstance().startThreadPool();
-        //Set up a scene so that we may request settings.
+        // Set up a scene so that we may request settings.
         Application::getInstance().current_slice = new Slice(1);
 
-        //And a few settings that we want to default.
+        // And a few settings that we want to default.
         Scene& scene = Application::getInstance().current_slice->scene;
         scene.settings.add("slicing_tolerance", "middle");
         scene.settings.add("layer_height_0", "0.2");
@@ -55,7 +55,7 @@ TEST_F(SlicePhaseTest, Cube)
     MeshGroup& mesh_group = scene.mesh_groups.back();
 
     const FMatrix4x3 transformation;
-    //Path to cube.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
+    // Path to cube.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
     ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cube.stl").c_str(), transformation, scene.settings));
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cube_mesh = mesh_group.meshes[0];
@@ -69,10 +69,10 @@ TEST_F(SlicePhaseTest, Cube)
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
 
-    //Since a cube has the same slice at all heights, every layer must be the same square.
+    // Since a cube has the same slice at all heights, every layer must be the same square.
     Polygon square;
     square.emplace_back(0, 0);
-    square.emplace_back(10000, 0); //10mm cube.
+    square.emplace_back(10000, 0); // 10mm cube.
     square.emplace_back(10000, 10000);
     square.emplace_back(0, 10000);
 
@@ -87,7 +87,7 @@ TEST_F(SlicePhaseTest, Cube)
             if(sliced_polygon.size() == square.size())
             {
                 int start_corner = -1;
-                for(size_t corner_idx = 0; corner_idx < square.size(); corner_idx++) //Find the starting corner in the sliced layer.
+                for(size_t corner_idx = 0; corner_idx < square.size(); corner_idx++) // Find the starting corner in the sliced layer.
                 {
                     if(square[corner_idx] == sliced_polygon[0])
                     {
@@ -99,7 +99,7 @@ TEST_F(SlicePhaseTest, Cube)
 
                 if(start_corner != -1)
                 {
-                    for(size_t corner_idx = 0; corner_idx < square.size(); corner_idx++) //Check if every subsequent corner is correct.
+                    for(size_t corner_idx = 0; corner_idx < square.size(); corner_idx++) // Check if every subsequent corner is correct.
                     {
                         EXPECT_EQ(square[(corner_idx + start_corner) % square.size()], sliced_polygon[corner_idx]);
                     }
@@ -115,7 +115,7 @@ TEST_F(SlicePhaseTest, Cylinder1000)
     MeshGroup& mesh_group = scene.mesh_groups.back();
 
     const FMatrix4x3 transformation;
-    //Path to cylinder1000.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
+    // Path to cylinder1000.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
     ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").c_str(), transformation, scene.settings));
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cylinder_mesh = mesh_group.meshes[0];
@@ -129,9 +129,9 @@ TEST_F(SlicePhaseTest, Cylinder1000)
 
     ASSERT_EQ(slicer.layers.size(), num_layers) << "The number of layers in the output must equal the requested number of layers.";
 
-    //Since a cylinder has the same slice at all heights, every layer must be the same circle.
-    constexpr size_t num_vertices = 1000; //Create a circle with this number of vertices (first vertex is in the +X direction).
-    constexpr coord_t radius = 10000; //10mm radius.
+    // Since a cylinder has the same slice at all heights, every layer must be the same circle.
+    constexpr size_t num_vertices = 1000; // Create a circle with this number of vertices (first vertex is in the +X direction).
+    constexpr coord_t radius = 10000; // 10mm radius.
     Polygon circle;
     circle.reserve(num_vertices);
     for(size_t i = 0; i < 1000; i++)
@@ -150,11 +150,11 @@ TEST_F(SlicePhaseTest, Cylinder1000)
         if(layer.polygons.size() == 1)
         {
             Polygon sliced_polygon = layer.polygons[0];
-            //Due to the reduction in resolution, the final slice will not have the same vertices as the input.
-            //Let's say that are allowed to be up to 1/500th of the surface area off.
+            // Due to the reduction in resolution, the final slice will not have the same vertices as the input.
+            // Let's say that are allowed to be up to 1/500th of the surface area off.
             EXPECT_LE(PolygonUtils::relativeHammingDistance(layer.polygons, circles), 0.002);
         }
     }
 }
 
-} //namespace cura
+} // namespace cura
