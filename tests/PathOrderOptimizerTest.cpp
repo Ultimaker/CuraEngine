@@ -1,15 +1,15 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c)  2020-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "PathOrderOptimizer.h" //The code under test.
 #include <gtest/gtest.h> //To run the tests.
-#include "../src/PathOrderOptimizer.h" //The code under test.
 
 namespace cura
 {
 
 class PathOrderOptimizerTest : public testing::Test
 {
-public:
+  public:
     /*!
      * A blank optimizer with no polygons added yet. Fresh and virgin.
      */
@@ -20,7 +20,9 @@ public:
      */
     Polygon triangle;
 
-    PathOrderOptimizerTest() : optimizer(Point(0, 0)) {}
+    PathOrderOptimizerTest() : optimizer(Point(0, 0))
+    {
+    }
 
     void SetUp()
     {
@@ -38,7 +40,7 @@ public:
  */
 TEST_F(PathOrderOptimizerTest, OptimizeWhileEmpty)
 {
-    optimizer.optimize(); //Don't crash.
+    optimizer.optimize(); // Don't crash.
     EXPECT_EQ(optimizer.paths.size(), 0) << "Still empty!";
 }
 
@@ -48,14 +50,14 @@ TEST_F(PathOrderOptimizerTest, OptimizeWhileEmpty)
  */
 TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
 {
-    Polygon near = triangle; //Copy, then translate.
+    Polygon near = triangle; // Copy, then translate.
     near.translate(Point(100, 100));
     Polygon middle = triangle;
     middle.translate(Point(500, 500));
     Polygon far = triangle;
     far.translate(Point(1000, 1000));
 
-    //Add them out of order so that it's clear that the optimization changes the order.
+    // Add them out of order so that it's clear that the optimization changes the order.
     optimizer.addPolygon(middle);
     optimizer.addPolygon(far);
     optimizer.addPolygon(near);
@@ -67,4 +69,4 @@ TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
     EXPECT_EQ(optimizer.paths[2].vertices->front(), Point(1000, 1000)) << "Far triangle last.";
 }
 
-}
+} // namespace cura

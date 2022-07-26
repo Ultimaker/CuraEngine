@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c)  2018-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "MockSocket.h"
 
@@ -10,10 +10,18 @@ MockSocket::MockSocket()
 {
 }
 
-void MockSocket::connect(const std::string&, int) { /* Do nothing. */ }
-void MockSocket::listen(const std::string&, int) { /* Do nothing. */ }
-void MockSocket::close() { /* Do nothing. */ }
-void MockSocket::reset() { /* Do nothing. */ }
+void MockSocket::connect(const std::string&, int)
+{ /* Do nothing. */
+}
+void MockSocket::listen(const std::string&, int)
+{ /* Do nothing. */
+}
+void MockSocket::close()
+{ /* Do nothing. */
+}
+void MockSocket::reset()
+{ /* Do nothing. */
+}
 
 void MockSocket::sendMessage(Arcus::MessagePtr message)
 {
@@ -39,4 +47,4 @@ Arcus::MessagePtr MockSocket::popMessageFromSendQueue()
     return result;
 }
 
-} //namespace cura
+} // namespace cura

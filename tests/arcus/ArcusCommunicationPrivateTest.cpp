@@ -1,15 +1,16 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "MockSocket.h"
+#include "communication/ArcusCommunicationPrivate.h" //The class we're testing.
 #include "Application.h"
 #include "ExtruderTrain.h"
+#include "MockSocket.h"
 #include "Slice.h"
-#include "communication/ArcusCommunicationPrivate.h" //The class we're testing.
-#include <gtest/gtest.h>
+#include "utils/Coord_t.h"
 #include <array>
 #include <filesystem>
 #include <fstream>
+#include <gtest/gtest.h>
 
 namespace cura
 {
@@ -22,7 +23,7 @@ constexpr size_t gkTestNumMeshGroups = 1;
  */
 class ArcusCommunicationPrivateTest : public testing::Test
 {
-public:
+  public:
     ArcusCommunication::Private* instance;
 
     void SetUp()
@@ -65,7 +66,7 @@ public:
             const std::string key = line.substr(0, pos);
             const std::string value = line.substr(pos + 1, std::string::npos);
 
-            raw_settings.insert({key, value});
+            raw_settings.insert({ key, value });
 
             cura::proto::Setting* entry = settings.add_settings();
             entry->set_name(key);
@@ -83,7 +84,9 @@ TEST_F(ArcusCommunicationPrivateTest, ReadGlobalSettingsMessage)
 
     cura::proto::SettingList global_settings;
     std::unordered_map<std::string, std::string> raw_settings;
-    loadTestSettings(std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string(), &global_settings, &raw_settings);
+    loadTestSettings(std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string(),
+                     &global_settings,
+                     &raw_settings);
 
     // The call it's actually all about:
     instance->readGlobalSettingsMessage(global_settings);
@@ -98,13 +101,13 @@ TEST_F(ArcusCommunicationPrivateTest, ReadGlobalSettingsMessage)
 
 TEST_F(ArcusCommunicationPrivateTest, ReadSingleExtruderSettingsMessage)
 {
-    google::protobuf::RepeatedPtrField<proto::Extruder> messages; //Construct a message.
+    google::protobuf::RepeatedPtrField<proto::Extruder> messages; // Construct a message.
 
-    //Test with one extruder.
+    // Test with one extruder.
     proto::Extruder* extruder_message = messages.Add();
     extruder_message->set_id(0);
 
-    //Fill the extruder with settings.
+    // Fill the extruder with settings.
     proto::SettingList* extruder_settings = extruder_message->mutable_settings();
     proto::Setting* setting = extruder_settings->add_settings();
     setting->set_name("test_setting");
@@ -112,24 +115,25 @@ TEST_F(ArcusCommunicationPrivateTest, ReadSingleExtruderSettingsMessage)
     setting->set_value(setting_value);
 
     Application::getInstance().current_slice->scene.settings.add("machine_extruder_count", "1");
-    //Run the call that we're testing.
+    // Run the call that we're testing.
     instance->readExtruderSettingsMessage(messages);
 
-    ASSERT_EQ(size_t(1), Application::getInstance().current_slice->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
+    ASSERT_EQ(size_t(1), Application::getInstance().current_slice->scene.extruders.size())
+      << "Reading the extruders must construct the correct amount of extruders in the scene.";
     EXPECT_EQ(setting_value, Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("test_setting"));
 }
 
 TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
 {
-    google::protobuf::RepeatedPtrField<proto::Extruder> messages; //Construct a message.
+    google::protobuf::RepeatedPtrField<proto::Extruder> messages; // Construct a message.
 
-    //Test with two extruders.
-    proto::Extruder* second_extruder = messages.Add(); //Out of order on purpose.
+    // Test with two extruders.
+    proto::Extruder* second_extruder = messages.Add(); // Out of order on purpose.
     second_extruder->set_id(1);
     proto::Extruder* first_extruder = messages.Add();
     first_extruder->set_id(0);
 
-    //Give a different value for each extruder.
+    // Give a different value for each extruder.
     proto::SettingList* first_extruder_settings = first_extruder->mutable_settings();
     proto::Setting* first_setting = first_extruder_settings->add_settings();
     first_setting->set_name("What extruder are you?");
@@ -140,12 +144,15 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
     second_setting->set_value("Second");
 
     Application::getInstance().current_slice->scene.settings.add("machine_extruder_count", "2");
-    //Run the call that we're testing.
+    // Run the call that we're testing.
     instance->readExtruderSettingsMessage(messages);
 
-    ASSERT_EQ(size_t(2), Application::getInstance().current_slice->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
-    EXPECT_EQ(std::string("First"), Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("What extruder are you?"));
-    EXPECT_EQ(std::string("Second"), Application::getInstance().current_slice->scene.extruders[1].settings.get<std::string>("What extruder are you?"));
+    ASSERT_EQ(size_t(2), Application::getInstance().current_slice->scene.extruders.size())
+      << "Reading the extruders must construct the correct amount of extruders in the scene.";
+    EXPECT_EQ(std::string("First"),
+              Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("What extruder are you?"));
+    EXPECT_EQ(std::string("Second"),
+              Application::getInstance().current_slice->scene.extruders[1].settings.get<std::string>("What extruder are you?"));
 }
 
 TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
@@ -155,7 +162,9 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     // - Load 'global' settings:
     std::unordered_map<std::string, std::string> raw_settings;
-    loadTestSettings(std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string(), &mesh_message, &raw_settings);
+    loadTestSettings(std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string(),
+                     &mesh_message,
+                     &raw_settings);
 
     // - Create mesh-message-mesh:
     cura::proto::Object* mesh = mesh_message.add_objects();
@@ -175,7 +184,8 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     ASSERT_EQ(raw_vertices.size() % 3, 0);
     ASSERT_FALSE(raw_vertices.empty());
 
-    // (NOTE: *Don't* replace the below by strncopy, direct call to constructor, etc. in any way. We need to pass '/0' inside the string. Blame protobuf!)
+    // (NOTE: *Don't* replace the below by strncopy, direct call to constructor, etc. in any way. We need to pass '/0' inside the string.
+    // Blame protobuf!)
     const size_t num_str = sizeof(float) * raw_vertices.size();
     uint8_t* data = reinterpret_cast<uint8_t*>(raw_vertices.data());
     std::string verts_as_str;
@@ -188,16 +198,10 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     // - - Add settings to the mesh:
     std::map<std::string, std::string> mesh_settings = {
-        {"extruder_nr", "0"},
-        {"center_object", "1"},
-        {"mesh_position_x", "0"},
-        {"mesh_position_y", "0"},
-        {"mesh_position_z", "0"},
-        {"infill_mesh", "0"},
-        {"cutting_mesh", "0"},
-        {"anti_overhang_mesh", "0"},
+        { "extruder_nr", "0" },     { "center_object", "1" }, { "mesh_position_x", "0" }, { "mesh_position_y", "0" },
+        { "mesh_position_z", "0" }, { "infill_mesh", "0" },   { "cutting_mesh", "0" },    { "anti_overhang_mesh", "0" },
     };
-    for(std::pair<std::string, std::string> key_value : mesh_settings)
+    for (std::pair<std::string, std::string> key_value : mesh_settings)
     {
         cura::proto::Setting* entry = mesh->add_settings();
         entry->set_name(key_value.first);
@@ -216,14 +220,18 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     auto& vertices = meshes[0].vertices;
     ASSERT_FALSE(vertices.empty());
-    ASSERT_EQ(vertices.size(), size_t(8)); //A cube should have 8 unique vertices.
+    ASSERT_EQ(vertices.size(), size_t(8)); // A cube should have 8 unique vertices.
     ASSERT_EQ(meshes[0].faces.size(), size_t(12)); // A cube should have 12 tri-s (2 for each 6 sides of the dice).
 
     // Distances should be the same:
 
     // - First, collect AABBoxes:
-    std::array<coord_t, 3> raw_min_coords = {std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max()};
-    std::array<coord_t, 3> raw_max_coords = {std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min()};
+    std::array<coord_t, 3> raw_min_coords = { std::numeric_limits<coord_t>::max(),
+                                              std::numeric_limits<coord_t>::max(),
+                                              std::numeric_limits<coord_t>::max() };
+    std::array<coord_t, 3> raw_max_coords = { std::numeric_limits<coord_t>::min(),
+                                              std::numeric_limits<coord_t>::min(),
+                                              std::numeric_limits<coord_t>::min() };
     const size_t num_vertex = raw_vertices.size();
     for (size_t i_coord = 0; i_coord < num_vertex; ++i_coord)
     {
@@ -232,8 +240,12 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
         raw_max_coords[i_coord % 3] = std::max(micrometers, raw_max_coords[i_coord % 3]);
     }
 
-    std::array<coord_t, 3> min_coords = {std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max()};
-    std::array<coord_t, 3> max_coords = {std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min()};
+    std::array<coord_t, 3> min_coords = { std::numeric_limits<coord_t>::max(),
+                                          std::numeric_limits<coord_t>::max(),
+                                          std::numeric_limits<coord_t>::max() };
+    std::array<coord_t, 3> max_coords = { std::numeric_limits<coord_t>::min(),
+                                          std::numeric_limits<coord_t>::min(),
+                                          std::numeric_limits<coord_t>::min() };
     for (const auto& vertex : vertices)
     {
         min_coords[0] = std::min(vertex.p.x, min_coords[0]);
@@ -251,4 +263,4 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     }
 }
 
-} //namespace cura
+} // namespace cura

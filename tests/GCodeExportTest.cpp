@@ -1,16 +1,16 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c)  2021-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <gtest/gtest.h>
-
-#include "../src/settings/types/LayerIndex.h"
-#include "../src/utils/Date.h" //To check the Griffin header.
-#include "../src/Application.h" //To set up a slice with settings.
-#include "../src/gcodeExport.h" //The unit under test.
-#include "../src/Slice.h" //To set up a slice with settings.
-#include "../src/RetractionConfig.h" //For extruder switch tests.
-#include "../src/WipeScriptConfig.h" //For wipe sciprt tests.
+#include "gcodeExport.h" //The unit under test.
+#include "Application.h" //To set up a slice with settings.
+#include "RetractionConfig.h" //For extruder switch tests.
+#include "Slice.h" //To set up a slice with settings.
+#include "WipeScriptConfig.h" //For wipe sciprt tests.
 #include "arcus/MockCommunication.h" //To prevent calls to any missing Communication class.
+#include "settings/types/LayerIndex.h"
+#include "utils/Coord_t.h"
+#include "utils/Date.h" //To check the Griffin header.
+#include <gtest/gtest.h>
 
 namespace cura
 {
@@ -20,7 +20,7 @@ namespace cura
  */
 class GCodeExportTest : public testing::Test
 {
-public:
+  public:
     /*
      * An export class to test with.
      */
@@ -42,7 +42,7 @@ public:
         output << std::fixed;
         gcode.output_stream = &output;
 
-        //Since GCodeExport doesn't support copying, we have to reset everything in-place.
+        // Since GCodeExport doesn't support copying, we have to reset everything in-place.
         gcode.currentPosition = Point3(0, 0, MM2INT(20));
         gcode.layer_nr = 0;
         gcode.current_e_value = 0;
@@ -63,11 +63,11 @@ public:
         gcode.current_layer_z = 0;
         gcode.relative_extrusion = false;
 
-        gcode.new_line = "\n"; //Not BFB flavour by default.
+        gcode.new_line = "\n"; // Not BFB flavour by default.
         gcode.machine_name = "Your favourite 3D printer";
         gcode.machine_buildplate_type = "Your favourite build plate";
 
-        //Set up a scene so that we may request settings.
+        // Set up a scene so that we may request settings.
         Application::getInstance().current_slice = new Slice(1);
         mock_communication = new MockCommunication();
         Application::getInstance().communication = mock_communication;
@@ -95,16 +95,19 @@ TEST_F(GCodeExportTest, CommentSimple)
 
 TEST_F(GCodeExportTest, CommentMultiLine)
 {
-    gcode.writeComment("If you catch a chinchilla in Chile\n"
-        "And cut off its beard, willy-nilly\n"
-        "You can honestly say\n"
-        "You made on that day\n"
-        "A Chilean chinchilla's chin chilly");
+    gcode.writeComment(
+      "If you catch a chinchilla in Chile\n"
+      "And cut off its beard, willy-nilly\n"
+      "You can honestly say\n"
+      "You made on that day\n"
+      "A Chilean chinchilla's chin chilly");
     EXPECT_EQ(std::string(";If you catch a chinchilla in Chile\n"
-        ";And cut off its beard, willy-nilly\n"
-        ";You can honestly say\n"
-        ";You made on that day\n"
-        ";A Chilean chinchilla's chin chilly\n"), output.str()) << "Each line must be preceded by a semicolon.";
+                          ";And cut off its beard, willy-nilly\n"
+                          ";You can honestly say\n"
+                          ";You made on that day\n"
+                          ";A Chilean chinchilla's chin chilly\n"),
+              output.str())
+      << "Each line must be preceded by a semicolon.";
 }
 
 TEST_F(GCodeExportTest, CommentMultiple)
@@ -113,8 +116,10 @@ TEST_F(GCodeExportTest, CommentMultiple)
     gcode.writeComment("Very very frightening me");
     gcode.writeComment(" - Galileo (1638)");
     EXPECT_EQ(std::string(";Thunderbolt and lightning\n"
-        ";Very very frightening me\n"
-        "; - Galileo (1638)\n"), output.str()) << "Semicolon before each line, and newline in between.";
+                          ";Very very frightening me\n"
+                          "; - Galileo (1638)\n"),
+              output.str())
+      << "Semicolon before each line, and newline in between.";
 }
 
 TEST_F(GCodeExportTest, CommentTimeZero)
@@ -137,7 +142,8 @@ TEST_F(GCodeExportTest, CommentTimeFloatRoundingError)
 
 TEST_F(GCodeExportTest, CommentTypeAllTypesCovered)
 {
-    for (PrintFeatureType type = PrintFeatureType(0); type < PrintFeatureType::NumPrintFeatureTypes; type = PrintFeatureType(static_cast<size_t>(type) + 1))
+    for (PrintFeatureType type = PrintFeatureType(0); type < PrintFeatureType::NumPrintFeatureTypes;
+         type = PrintFeatureType(static_cast<size_t>(type) + 1))
     {
         gcode.writeTypeComment(type);
         if (type == PrintFeatureType::MoveCombing || type == PrintFeatureType::MoveRetraction)
@@ -152,7 +158,7 @@ TEST_F(GCodeExportTest, CommentTypeAllTypesCovered)
         {
             EXPECT_EQ(std::string(";TYPE:"), output.str().substr(0, 6)) << "Type " << static_cast<size_t>(type) << " is not implemented.";
         }
-        output.str(""); //Reset so that our next measurement is clean again.
+        output.str(""); // Reset so that our next measurement is clean again.
         output << std::fixed;
     }
 }
@@ -180,7 +186,7 @@ TEST_F(GCodeExportTest, CommentLayerCount)
  */
 class GriffinHeaderTest : public testing::TestWithParam<size_t>
 {
-public:
+  public:
     /*
      * An export class to test with.
      */
@@ -196,7 +202,7 @@ public:
         output << std::fixed;
         gcode.output_stream = &output;
 
-        //Since GCodeExport doesn't support copying, we have to reset everything in-place.
+        // Since GCodeExport doesn't support copying, we have to reset everything in-place.
         gcode.currentPosition = Point3(0, 0, MM2INT(20));
         gcode.layer_nr = 0;
         gcode.current_e_value = 0;
@@ -214,11 +220,11 @@ public:
         gcode.fan_number = 0;
         gcode.total_bounding_box = AABB3D();
 
-        gcode.new_line = "\n"; //Not BFB flavour by default.
+        gcode.new_line = "\n"; // Not BFB flavour by default.
         gcode.machine_name = "Your favourite 3D printer";
         gcode.machine_buildplate_type = "Your favourite build plate";
 
-        //Set up a scene so that we may request settings.
+        // Set up a scene so that we may request settings.
         Application::getInstance().current_slice = new Slice(0);
     }
 
@@ -253,7 +259,7 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";GENERATOR.NAME:Cura_SteamEngine"), token);
     std::getline(result, token, '\n');
-    EXPECT_EQ(std::string(";GENERATOR.VERSION:"), token.substr(0, 19));  // FIXME: Add unittest for actual version, see GH #12825
+    EXPECT_EQ(std::string(";GENERATOR.VERSION:"), token.substr(0, 19)); // FIXME: Add unittest for actual version, see GH #12825
     EXPECT_EQ(std::string("main"), token.substr(19));
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";GENERATOR.BUILD_DATE:"), token.substr(0, 22));
@@ -266,27 +272,29 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     {
         std::getline(result, token, '\n');
         EXPECT_EQ(std::string(";EXTRUDER_TRAIN."), token.substr(0, 16));
-        EXPECT_EQ(std::to_string(extruder_nr), token.substr(16, 1)); //TODO: Assumes the extruder nr is 1 digit.
-        EXPECT_EQ(std::string(".INITIAL_TEMPERATURE:"), token.substr(17, 21)); //Actual temperature doesn't matter.
+        EXPECT_EQ(std::to_string(extruder_nr), token.substr(16, 1)); // TODO: Assumes the extruder nr is 1 digit.
+        EXPECT_EQ(std::string(".INITIAL_TEMPERATURE:"), token.substr(17, 21)); // Actual temperature doesn't matter.
         std::getline(result, token, '\n');
         EXPECT_EQ(std::string(";EXTRUDER_TRAIN."), token.substr(0, 16));
-        EXPECT_EQ(std::to_string(extruder_nr), token.substr(16, 1)); //TODO: Assumes the extruder nr is 1 digit.
-        EXPECT_EQ(std::string(".NOZZLE.DIAMETER:0.4"), token.substr(17, 20)); //Nozzle size needs to be equal to the machine_nozzle_size setting.
+        EXPECT_EQ(std::to_string(extruder_nr), token.substr(16, 1)); // TODO: Assumes the extruder nr is 1 digit.
+        EXPECT_EQ(std::string(".NOZZLE.DIAMETER:0.4"),
+                  token.substr(17, 20)); // Nozzle size needs to be equal to the machine_nozzle_size setting.
         std::getline(result, token, '\n');
         EXPECT_EQ(std::string(";EXTRUDER_TRAIN."), token.substr(0, 16));
-        EXPECT_EQ(std::to_string(extruder_nr), token.substr(16, 1)); //TODO: Assumes the extruder nr is 1 digit.
-        EXPECT_EQ(std::string(".NOZZLE.NAME:TestNozzle"), token.substr(17, 23)); //Nozzle name needs to be equal to the machine_nozzle_id setting.
+        EXPECT_EQ(std::to_string(extruder_nr), token.substr(16, 1)); // TODO: Assumes the extruder nr is 1 digit.
+        EXPECT_EQ(std::string(".NOZZLE.NAME:TestNozzle"),
+                  token.substr(17, 23)); // Nozzle name needs to be equal to the machine_nozzle_id setting.
     }
 
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";BUILD_PLATE.TYPE:"), token.substr(0, 18));
     EXPECT_EQ(gcode.machine_buildplate_type, token.substr(18));
     std::getline(result, token, '\n');
-    EXPECT_EQ(std::string(";BUILD_PLATE.INITIAL_TEMPERATURE:"), token.substr(0, 33)); //Actual temperature doesn't matter in this test.
+    EXPECT_EQ(std::string(";BUILD_PLATE.INITIAL_TEMPERATURE:"), token.substr(0, 33)); // Actual temperature doesn't matter in this test.
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";PRINT.GROUPS:0"), token);
     std::getline(result, token, '\n');
-    EXPECT_EQ(std::string(";PRINT.SIZE.MIN.X:"), token.substr(0, 18)); //Actual bounds don't matter in this test.
+    EXPECT_EQ(std::string(";PRINT.SIZE.MIN.X:"), token.substr(0, 18)); // Actual bounds don't matter in this test.
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";PRINT.SIZE.MIN.Y:"), token.substr(0, 18));
     std::getline(result, token, '\n');
@@ -312,7 +320,7 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
-    const std::vector<double> filament_used = {100, 200};
+    const std::vector<double> filament_used = { 100, 200 };
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
         Application::getInstance().current_slice->scene.extruders.emplace_back(extruder_index, nullptr);
@@ -323,7 +331,9 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result, ";FLAVOR:UltiGCode\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(result,
+              ";FLAVOR:UltiGCode\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;"
+              "MAXY:1\n;MAXZ:1\n");
 }
 
 TEST_F(GCodeExportTest, HeaderRepRap)
@@ -335,12 +345,14 @@ TEST_F(GCodeExportTest, HeaderRepRap)
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
-    const std::vector<double> filament_used = {100, 200};
+    const std::vector<double> filament_used = { 100, 200 };
     gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result, ";FLAVOR:RepRap\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: 0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(result,
+              ";FLAVOR:RepRap\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
+              "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
 }
 
 TEST_F(GCodeExportTest, HeaderMarlin)
@@ -352,12 +364,14 @@ TEST_F(GCodeExportTest, HeaderMarlin)
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
-    const std::vector<double> filament_used = {100, 200};
+    const std::vector<double> filament_used = { 100, 200 };
     gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result, ";FLAVOR:Marlin\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: 0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(result,
+              ";FLAVOR:Marlin\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
+              "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
 }
 
 TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
@@ -367,12 +381,14 @@ TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
-    const std::vector<double> filament_used = {100, 200};
+    const std::vector<double> filament_used = { 100, 200 };
     gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
-    EXPECT_EQ(result, ";FLAVOR:Marlin(Volumetric)\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: 0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
+    EXPECT_EQ(result,
+              ";FLAVOR:Marlin(Volumetric)\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: "
+              "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n");
 }
 
 /*
@@ -386,15 +402,20 @@ TEST_F(GCodeExportTest, EVsMmVolumetric)
     gcode.is_volumetric = true;
 
     constexpr double mm3_input = 15.0;
-    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input) << "Since the E is volumetric and the input mm3 is also volumetric, the output needs to be the same.";
+    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input)
+      << "Since the E is volumetric and the input mm3 is also volumetric, the output needs to be the same.";
 
-    EXPECT_EQ(gcode.eToMm(200.0), 200.0 / filament_area) << "Since the E is volumetric but mm is linear, divide by the cross-sectional area of the filament to convert the volume to a length.";
+    EXPECT_EQ(gcode.eToMm(200.0), 200.0 / filament_area) << "Since the E is volumetric but mm is linear, divide by the cross-sectional "
+                                                            "area of the filament to convert the volume to a length.";
 
     constexpr double mm_input = 33.0;
-    EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area) << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert length to volume.";
+    EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area)
+      << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert "
+         "length to volume.";
 
     constexpr double e_input = 100.0;
-    EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input) << "Since the E is volumetric and mm3 is also volumetric, the output needs to be the same.";
+    EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input)
+      << "Since the E is volumetric and mm3 is also volumetric, the output needs to be the same.";
 }
 
 /*
@@ -410,16 +431,19 @@ TEST_F(GCodeExportTest, EVsMmLinear)
     EXPECT_EQ(gcode.mmToE(15.0), 15.0) << "Since the E is linear and the input mm is also linear, the output needs to be the same.";
     EXPECT_EQ(gcode.eToMm(15.0), 15.0) << "Since the E is linear and the output mm is also linear, the output needs to be the same.";
 
-    for(double x = -1000.0; x < 1000.0; x += 16.0)
+    for (double x = -1000.0; x < 1000.0; x += 16.0)
     {
         EXPECT_DOUBLE_EQ(gcode.mmToE(gcode.eToMm(x)), x) << "Converting back and forth should lead to the same number.";
     }
 
     constexpr double mm3_input = 33.0;
-    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area) << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert volume to length.";
+    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area)
+      << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert "
+         "volume to length.";
 
     constexpr double e_input = 100.0;
-    EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input * filament_area) << "Since the input E is linear but the output must be volumetric, we need to multiply by cross-sectional area to convert length to volume.";
+    EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input * filament_area) << "Since the input E is linear but the output must be volumetric, we "
+                                                                    "need to multiply by cross-sectional area to convert length to volume.";
 }
 
 /*
@@ -462,7 +486,7 @@ TEST_F(GCodeExportTest, WriteZHopStartZero)
 TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); //60mm/min.
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
     gcode.current_layer_z = 2000;
     constexpr coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
@@ -472,7 +496,7 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); //60mm/min.
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
     gcode.current_layer_z = 2000;
     constexpr coord_t hop_height = 3000;
     constexpr Velocity speed = 4; // 240 mm/min.
@@ -490,7 +514,7 @@ TEST_F(GCodeExportTest, WriteZHopEndZero)
 TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); //60mm/min.
+    Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
     gcode.current_layer_z = 2000;
     gcode.is_z_hopped = 3000;
     gcode.writeZhopEnd();
@@ -621,7 +645,8 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     gcode.relative_extrusion = false;
     gcode.currentSpeed = 1;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
-    Application::getInstance().current_slice->scene.extruders.emplace_back(0, &Application::getInstance().current_slice->scene.current_mesh_group->settings);
+    Application::getInstance().current_slice->scene.extruders.emplace_back(
+      0, &Application::getInstance().current_slice->scene.current_mesh_group->settings);
     Application::getInstance().current_slice->scene.extruders.back().settings.add("machine_firmware_retract", "false");
 
     WipeScriptConfig config;
@@ -630,9 +655,9 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     config.retraction_config.speed = 2; // 120 mm/min.
     config.retraction_config.primeSpeed = 3; // 180 mm/min.
     config.retraction_config.prime_volume = gcode.extruder_attr[0].filament_area * 4; // 4mm in linear dimensions
-    config.retraction_config.retraction_count_max = 100; //Practically no limit.
+    config.retraction_config.retraction_count_max = 100; // Practically no limit.
     config.retraction_config.retraction_extrusion_window = 1;
-    config.retraction_config.retraction_min_travel_distance = 0; //Don't limit retractions for being too short.
+    config.retraction_config.retraction_min_travel_distance = 0; // Don't limit retractions for being too short.
     config.hop_enable = false;
     config.brush_pos_x = 2000;
     config.repeat_count = 1;
@@ -693,4 +718,4 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
 }
 
-} //namespace cura
+} // namespace cura

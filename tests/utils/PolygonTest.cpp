@@ -1,19 +1,19 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c)  2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <gtest/gtest.h>
+#include "utils/polygon.h" // The class under test.
+#include "utils/Coord_t.h"
+#include "utils/SVG.h" // helper functions
+#include "utils/polygonUtils.h" // helper functions
 #include <gmock/gmock.h>
-
-#include <../src/utils/polygon.h> //The class under test.
-#include <../src/utils/polygonUtils.h> // helper functions
-#include <../src/utils/SVG.h> // helper functions
+#include <gtest/gtest.h>
 
 namespace cura
 {
 
-class PolygonTest: public testing::Test
+class PolygonTest : public testing::Test
 {
-public:
+  public:
     Polygon test_square;
     Polygon pointy_square;
     Polygon triangle;
@@ -22,7 +22,7 @@ public:
     Polygon clockwise_small;
     Polygons clockwise_donut;
     Polygon line;
-    
+
     static constexpr bool visualize = false;
 
     void SetUp()
@@ -124,18 +124,18 @@ TEST_F(PolygonTest, isInsideTest)
 {
     Polygons test_polys;
     PolygonRef poly = test_polys.newPoly();
-    poly.add(Point(82124,98235));
-    poly.add(Point(83179,98691));
-    poly.add(Point(83434,98950));
-    poly.add(Point(82751,99026));
-    poly.add(Point(82528,99019));
-    poly.add(Point(81605,98854));
-    poly.add(Point(80401,98686));
-    poly.add(Point(79191,98595));
-    poly.add(Point(78191,98441));
-    poly.add(Point(78998,98299));
-    poly.add(Point(79747,98179));
-    poly.add(Point(80960,98095));
+    poly.add(Point(82124, 98235));
+    poly.add(Point(83179, 98691));
+    poly.add(Point(83434, 98950));
+    poly.add(Point(82751, 99026));
+    poly.add(Point(82528, 99019));
+    poly.add(Point(81605, 98854));
+    poly.add(Point(80401, 98686));
+    poly.add(Point(79191, 98595));
+    poly.add(Point(78191, 98441));
+    poly.add(Point(78998, 98299));
+    poly.add(Point(79747, 98179));
+    poly.add(Point(80960, 98095));
 
     EXPECT_TRUE(test_polys.inside(Point(78315, 98440))) << "Point should be inside the polygons!";
 }
@@ -151,7 +151,7 @@ TEST_F(PolygonTest, isOnBorderTest)
     EXPECT_TRUE(test_triangle.inside(Point(150, 50), true)) << "Point is on a diagonal side of the triangle.";
 }
 
-TEST_F(PolygonTest, DISABLED_isInsideLineTest) //Disabled because this fails due to a bug in Clipper.
+TEST_F(PolygonTest, DISABLED_isInsideLineTest) // Disabled because this fails due to a bug in Clipper.
 {
     Polygons polys;
     polys.add(line);
@@ -181,7 +181,7 @@ TEST_F(PolygonTest, differenceClockwiseTest)
     const PolygonsPart part = clockwise_donut.splitIntoParts()[0];
 
     const ConstPolygonRef outer = part.outerPolygon();
-    //Apply the shoelace formula to determine surface area. If it's negative, the polygon is counterclockwise.
+    // Apply the shoelace formula to determine surface area. If it's negative, the polygon is counterclockwise.
     coord_t area = 0;
     for (size_t point_index = 0; point_index < outer.size(); point_index++)
     {
@@ -212,7 +212,8 @@ TEST_F(PolygonTest, getEmptyHolesTest)
     ASSERT_EQ(holes[0].size(), clockwise_small.size()) << "Empty hole should have the same amount of vertices as the original polygon.";
     for (size_t point_index = 0; point_index < holes[0].size(); point_index++)
     {
-        EXPECT_EQ(holes[0][point_index], clockwise_small[point_index]) << "Coordinates of the empty hole must be the same as the original polygon.";
+        EXPECT_EQ(holes[0][point_index], clockwise_small[point_index])
+          << "Coordinates of the empty hole must be the same as the original polygon.";
     }
 }
 
@@ -249,7 +250,7 @@ TEST_F(PolygonTest, convexHullStar)
     const int outer_radius = 20;
     const int inner_radius = 10;
     const double angle_step = M_PI * 2.0 / num_points;
-    for (int i = 0; i < num_points; ++ i)
+    for (int i = 0; i < num_points; ++i)
     {
         coord_t x_outer = -std::cos(angle_step * i) * outer_radius;
         coord_t y_outer = -std::sin(angle_step * i) * outer_radius;
@@ -263,7 +264,7 @@ TEST_F(PolygonTest, convexHullStar)
     d_polygons.makeConvex();
 
     EXPECT_EQ(d.size(), num_points);
-    for (int i = 0; i < num_points; ++ i)
+    for (int i = 0; i < num_points; ++i)
     {
         double angle = angle_step * i;
         coord_t x = -std::cos(angle) * outer_radius;
@@ -350,4 +351,4 @@ TEST_F(PolygonTest, convexHullRemoveDuplicatePoints)
     EXPECT_EQ(d[3], Point(0, 10));
 }
 
-}
+} // namespace cura

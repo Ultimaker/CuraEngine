@@ -1,14 +1,14 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "FffProcessor.h"
+#include "MockSocket.h" //To mock out the communication with the front-end.
+#include "communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
+#include "settings/types/LayerIndex.h"
+#include "utils/Coord_t.h"
+#include "utils/polygon.h" //Create test shapes to send over the socket.
 #include <google/protobuf/message.h>
 #include <gtest/gtest.h>
-
-#include "MockSocket.h" //To mock out the communication with the front-end.
-#include "../src/FffProcessor.h"
-#include "../src/communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
-#include "../src/settings/types/LayerIndex.h"
-#include "../src/utils/polygon.h" //Create test shapes to send over the socket.
 
 namespace cura
 {
@@ -19,7 +19,7 @@ namespace cura
  */
 class ArcusCommunicationTest : public testing::Test
 {
-public:
+  public:
     std::string ip;
     uint16_t port;
     MockSocket* socket;
@@ -62,7 +62,7 @@ public:
 
         for (double a = 0; a < 1.0; a += .05)
         {
-            test_circle.add(Point(2050, 2050) + Point(std::cos(a * 2 * M_PI)*500, std::sin(a * 2 * M_PI)*500));
+            test_circle.add(Point(2050, 2050) + Point(std::cos(a * 2 * M_PI) * 500, std::sin(a * 2 * M_PI) * 500));
         }
         test_shapes.add(test_circle);
 
@@ -87,16 +87,17 @@ public:
 
 TEST_F(ArcusCommunicationTest, FlushGCodeTest)
 {
-    //Before there is g-code, no messages should be sent if we were to flush.
+    // Before there is g-code, no messages should be sent if we were to flush.
     ac->flushGCode();
     ASSERT_TRUE(socket->sent_messages.empty());
 
-    //Input some 'g-code' to flush.
-    const std::string test_gcode = "This Fibonacci joke is as bad as the last two you heard combined.\n"
-                                   "It's pretty cool how the Chinese made a language entirely out of tattoos."; //Multi-line to see flushing behaviour.
+    // Input some 'g-code' to flush.
+    const std::string test_gcode =
+      "This Fibonacci joke is as bad as the last two you heard combined.\n"
+      "It's pretty cool how the Chinese made a language entirely out of tattoos."; // Multi-line to see flushing behaviour.
     ac->private_data->gcode_output_stream.write(test_gcode.c_str(), test_gcode.size());
 
-    //Call the function we're testing. This time it should give us a message.
+    // Call the function we're testing. This time it should give us a message.
     ac->flushGCode();
 
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
@@ -148,14 +149,15 @@ TEST_F(ArcusCommunicationTest, SendLayerComplete)
     constexpr coord_t layer_thickness = 30;
     ac->sendLayerComplete(layer_nr, layer_z, layer_thickness);
     const std::shared_ptr<proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
-    EXPECT_EQ(static_cast<google::protobuf::int32>(layer_nr), message->id()) << "getOptimizedLayerById() must return a layer with the correct ID.";
+    EXPECT_EQ(static_cast<google::protobuf::int32>(layer_nr), message->id())
+      << "getOptimizedLayerById() must return a layer with the correct ID.";
     EXPECT_EQ(static_cast<float>(layer_z), message->height());
     EXPECT_EQ(static_cast<float>(layer_thickness), message->thickness());
 }
 
 TEST_F(ArcusCommunicationTest, SendProgress)
 {
-    ac->private_data->object_count = 2; //If there are two objects, all progress should get halved.
+    ac->private_data->object_count = 2; // If there are two objects, all progress should get halved.
 
     ac->sendProgress(10);
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
@@ -168,4 +170,4 @@ TEST_F(ArcusCommunicationTest, SendProgress)
     EXPECT_EQ(float(25), message->amount());
 }
 
-}
+} // namespace cura
