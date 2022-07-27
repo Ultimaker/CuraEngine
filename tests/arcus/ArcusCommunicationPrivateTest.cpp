@@ -85,9 +85,8 @@ TEST_F(ArcusCommunicationPrivateTest, ReadGlobalSettingsMessage)
 
     cura::proto::SettingList global_settings;
     std::unordered_map<std::string, std::string> raw_settings;
-    loadTestSettings(std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string(),
-                     &global_settings,
-                     &raw_settings);
+    const auto settings_res = std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string();
+    loadTestSettings(settings_res, &global_settings, &raw_settings);
 
     // The call it's actually all about:
     instance->readGlobalSettingsMessage(global_settings);
@@ -163,9 +162,8 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     // - Load 'global' settings:
     std::unordered_map<std::string, std::string> raw_settings;
-    loadTestSettings(std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string(),
-                     &mesh_message,
-                     &raw_settings);
+    const auto settings_res = std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string();
+    loadTestSettings(settings_res, &mesh_message, &raw_settings);
 
     // - Create mesh-message-mesh:
     cura::proto::Object* mesh = mesh_message.add_objects();

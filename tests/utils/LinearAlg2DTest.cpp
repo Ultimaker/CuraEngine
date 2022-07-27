@@ -21,8 +21,12 @@ struct GetDist2FromLineSegmentParameters
     coord_t actual_distance2;
     int16_t actual_is_beyond;
 
-    GetDist2FromLineSegmentParameters(Point line_start, Point line_end, Point point, coord_t actual_distance2, int16_t actual_is_beyond)
-        : line_start(line_start), line_end(line_end), point(point), actual_distance2(actual_distance2), actual_is_beyond(actual_is_beyond)
+    GetDist2FromLineSegmentParameters(Point line_start, Point line_end, Point point, coord_t actual_distance2, int16_t actual_is_beyond) :
+        line_start(line_start),
+        line_end(line_end),
+        point(point),
+        actual_distance2(actual_distance2),
+        actual_is_beyond(actual_is_beyond)
     {
     }
 };
@@ -201,8 +205,13 @@ struct GetPointOnLineWithDistParameters
     Point actual_result;
     bool actual_returned;
 
-    GetPointOnLineWithDistParameters(Point p, Point a, Point b, coord_t dist, Point actual_result, bool actual_returned)
-        : p(p), a(a), b(b), dist(dist), actual_result(actual_result), actual_returned(actual_returned)
+    GetPointOnLineWithDistParameters(Point p, Point a, Point b, coord_t dist, Point actual_result, bool actual_returned) :
+        p(p),
+        a(a),
+        b(b),
+        dist(dist),
+        actual_result(actual_result),
+        actual_returned(actual_returned)
     {
     }
 };
@@ -262,8 +271,11 @@ struct RotateAroundParameters
     double angle;
     Point actual_result;
 
-    RotateAroundParameters(Point point, Point origin, double angle, Point actual_result)
-        : point(point), origin(origin), angle(angle), actual_result(actual_result)
+    RotateAroundParameters(Point point, Point origin, double angle, Point actual_result) :
+        point(point),
+        origin(origin),
+        angle(angle),
+        actual_result(actual_result)
     {
     }
 };

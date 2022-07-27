@@ -310,13 +310,9 @@ public:
     Polygon between; // Between the start and end position.
     Polygon between_hole; // Negative polygon between the start and end position (a hole).
 
-    AddTravelTest()
-        : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false",
-                                                                                                            "false",
-                                                                                                            "off",
-                                                                                                            false,
-                                                                                                            false,
-                                                                                                            AddTravelTestScene::OPEN))
+    AddTravelTest() :
+        parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>(
+            "false", "false", "off", false, false, AddTravelTestScene::OPEN))
     {
         around_start_end.add(Point(-100, -100));
         around_start_end.add(Point(500100, -100));

@@ -154,7 +154,8 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     const bool outer_to_inner = false;
     std::vector<const ExtrusionLine*> all_paths;
     for (auto& inset : part.wall_toolpaths)
-        for (auto& line : inset) all_paths.emplace_back(&line);
+        for (auto& line : inset)
+            all_paths.emplace_back(&line);
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order =
         InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
 

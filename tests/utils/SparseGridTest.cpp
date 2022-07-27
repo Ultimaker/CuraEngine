@@ -20,8 +20,10 @@ struct GetNearbyParameters
 
     GetNearbyParameters(const std::vector<Point> registered_points,
                         const std::unordered_set<Point> expected_near,
-                        const std::unordered_set<Point> expected_far)
-        : registered_points(registered_points), expected_near(expected_near), expected_far(expected_far)
+                        const std::unordered_set<Point> expected_far) :
+        registered_points(registered_points),
+        expected_near(expected_near),
+        expected_far(expected_far)
     {
     }
 };
@@ -193,8 +195,10 @@ struct GetNearestParameters
     GetNearestParameters(const std::vector<Point> registered_points,
                          Point* result,
                          const std::function<bool(const typename SparsePointGridInclusive<Point>::Elem&)>& filter =
-                             SparsePointGridInclusive<Point>::no_precondition)
-        : registered_points(registered_points), result(result), filter(filter)
+                             SparsePointGridInclusive<Point>::no_precondition) :
+        registered_points(registered_points),
+        result(result),
+        filter(filter)
     {
     }
 };
@@ -228,18 +232,18 @@ TEST_P(GetNearestTest, GetNearest)
     }
 }
 
-INSTANTIATE_TEST_CASE_P(GetNearestInstantiation,
-                        GetNearestTest,
-                        testing::Values(GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(103, 100), Point(200, 100) }),
-                                                             new Point(103, 100)), // Choose nearest out of 3 points.
-                                        GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(98, 100), Point(106, 100) }),
-                                                             new Point(106, 100),
-                                                             [](const typename SparsePointGridInclusive<Point>::Elem& elem) -> bool
-                                                             { return elem.point.X > 100; }), // With a filter.
-                                        GetNearestParameters(std::vector<Point>(), nullptr), // No points, no answer.
-                                        GetNearestParameters(std::vector<Point>({ Point(100, 100) }),
-                                                             new Point(100, 100)) // Same point as target.
-                                        ));
+INSTANTIATE_TEST_SUITE_P(GetNearestInstantiation,
+                         GetNearestTest,
+                         testing::Values(GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(103, 100), Point(200, 100) }),
+                                                              new Point(103, 100)), // Choose the nearest out of 3 points.
+                                         GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(98, 100), Point(106, 100) }),
+                                                              new Point(106, 100),
+                                                              [](const typename SparsePointGridInclusive<Point>::Elem& elem) -> bool
+                                                              { return elem.point.X > 100; }), // With a filter.
+                                         GetNearestParameters(std::vector<Point>(), nullptr), // No points, no answer.
+                                         GetNearestParameters(std::vector<Point>({ Point(100, 100) }),
+                                                              new Point(100, 100)) // Same point as target.
+                                         ));
 
 TEST_F(GetNearestTest, Equal)
 {
@@ -265,7 +269,7 @@ TEST_F(GetNearestTest, Equal)
     ASSERT_TRUE(result.val == expected1 || result.val == expected2)
         << "getNearest reported the nearest point to be " << result.val << " (distance " << vSize(target - result.val)
         << "), but it should've been " << expected1 << "(distance " << vSize(expected1 - target) << ") or " << expected2 << " (distance "
-        << vSize(expected2 - target) << ").";
+        << vSize(expected2 - target) << ")."; // FIXME: simplify once fmt or we use C++20 is added as a dependency
 }
 
 } // namespace cura

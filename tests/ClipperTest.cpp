@@ -34,7 +34,6 @@ public:
 
     void SetUp() override
     {
-
         {
             all_outlines.emplace_back();
             all_outlines.back().emplace_back();

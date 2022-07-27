@@ -57,8 +57,11 @@ public:
 
     std::string name;
 
-    InfillParameters(const EFillMethod& pattern, const bool& zig_zagify, const bool& connect_polygons, const coord_t& line_distance)
-        : pattern(pattern), zig_zagify(zig_zagify), connect_polygons(connect_polygons), line_distance(line_distance)
+    InfillParameters(const EFillMethod& pattern, const bool& zig_zagify, const bool& connect_polygons, const coord_t& line_distance) :
+        pattern(pattern),
+        zig_zagify(zig_zagify),
+        connect_polygons(connect_polygons),
+        line_distance(line_distance)
     {
         // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-7221.
         name = makeName("InfillParameters_%d_%d_%d_%lld",
@@ -85,9 +88,11 @@ public:
 
     std::string name;
 
-    InfillTestParameters()
-        : valid(false), fail_reason("Read of file with test polygons failed (see generateInfillTests), can't continue tests."),
-          params(InfillParameters(EFillMethod::NONE, false, false, 0)), name("UNNAMED")
+    InfillTestParameters() :
+        valid(false),
+        fail_reason("Read of file with test polygons failed (see generateInfillTests), can't continue tests."),
+        params(InfillParameters(EFillMethod::NONE, false, false, 0)),
+        name("UNNAMED")
     {
     }
 
@@ -95,9 +100,13 @@ public:
                          const size_t& test_polygon_id,
                          Polygons outline_polygons,
                          Polygons result_lines,
-                         Polygons result_polygons)
-        : valid(true), fail_reason("__"), params(params), outline_polygons(std::move(outline_polygons)),
-          result_lines(std::move(result_lines)), result_polygons(std::move(result_polygons))
+                         Polygons result_polygons) :
+        valid(true),
+        fail_reason("__"),
+        params(params),
+        outline_polygons(std::move(outline_polygons)),
+        result_lines(std::move(result_lines)),
+        result_polygons(std::move(result_polygons))
     {
         // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-7221.
         name = makeName("InfillTestParameters_P%d_Z%d_C%d_L%lld__%lld",

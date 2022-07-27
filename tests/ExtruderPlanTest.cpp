@@ -68,9 +68,9 @@ public:
      */
     GCodePathConfig travel_config;
 
-    ExtruderPlanTestPathCollection()
-        : extrusion_config(PrintFeatureType::OuterWall, 400, 100, 1.0_r, GCodePathConfig::SpeedDerivatives(50, 1000, 10)),
-          travel_config(PrintFeatureType::MoveCombing, 0, 100, 0.0_r, GCodePathConfig::SpeedDerivatives(120, 5000, 30))
+    ExtruderPlanTestPathCollection() :
+        extrusion_config(PrintFeatureType::OuterWall, 400, 100, 1.0_r, GCodePathConfig::SpeedDerivatives(50, 1000, 10)),
+        travel_config(PrintFeatureType::MoveCombing, 0, 100, 0.0_r, GCodePathConfig::SpeedDerivatives(120, 5000, 30))
     {
         const std::string mesh_id = "test_mesh";
         constexpr Ratio flow_1 = 1.0_r;
@@ -160,8 +160,8 @@ public:
      */
     static constexpr double error_margin = 0.000001;
 
-    ExtruderPlanPathsParameterizedTest()
-        : extruder_plan(
+    ExtruderPlanPathsParameterizedTest() :
+        extruder_plan(
             /*extruder=*/0,
             /*layer_nr=*/50,
             /*is_initial_layer=*/false,
@@ -213,8 +213,8 @@ public:
      */
     ExtruderPlan extruder_plan;
 
-    ExtruderPlanTest()
-        : extruder_plan(
+    ExtruderPlanTest() :
+        extruder_plan(
             /*extruder=*/0,
             /*layer_nr=*/50,
             /*is_initial_layer=*/false,
