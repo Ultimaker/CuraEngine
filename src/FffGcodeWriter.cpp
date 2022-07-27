@@ -3137,6 +3137,7 @@ void FffGcodeWriter::finalize()
     if (!Application::getInstance().communication->isSequential())
     {
         Application::getInstance().communication->sendGCodePrefix(prefix);
+        Application::getInstance().communication->sendSliceUUID(slice_uuid);
     }
     else
     {
