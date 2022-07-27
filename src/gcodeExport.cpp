@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c) 2021-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <assert.h>
 #include <cmath>
@@ -226,6 +226,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(total_bounding_box.max.x) << new_line;
         prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box.max.y) << new_line;
         prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box.max.z) << new_line;
+        prefix << ";SLICE_UUID:" << slice_uuid_ << new_line;
         prefix << ";END_OF_HEADER" << new_line;
         break;
     default:
@@ -1461,5 +1462,10 @@ void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
     writeComment("WIPE_SCRIPT_END");
 }
 
-}//namespace cura
+void GCodeExport::setSliceUUID(const std::string& slice_uuid)
+{
+    slice_uuid_ = slice_uuid;
+}
+
+} // namespace cura
 

@@ -1,20 +1,21 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c) 2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "FffGcodeWriter.h"
 #include "Application.h"
-#include "bridge.h"
-#include "communication/Communication.h" //To send layer view data.
 #include "ExtruderTrain.h"
-#include "FffGcodeWriter.h"
 #include "FffProcessor.h"
-#include "utils/ThreadPool.h"
-#include "infill.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
+#include "Slice.h"
+#include "WallToolPaths.h"
+#include "bridge.h"
+#include "communication/Communication.h" //To send layer view data.
+#include "infill.h"
 #include "progress/Progress.h"
 #include "raft.h"
-#include "Slice.h"
+#include "utils/Simplify.h" //Removing micro-segments created by offsetting.
+#include "utils/ThreadPool.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
@@ -67,6 +68,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 {
     const size_t start_extruder_nr = getStartExtruder(storage);
     gcode.preSetup(start_extruder_nr);
+    gcode.setSliceUUID(slice_uuid);
 
     Scene& scene = Application::getInstance().current_slice->scene;
     if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
