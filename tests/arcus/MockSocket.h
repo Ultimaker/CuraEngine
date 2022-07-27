@@ -1,4 +1,4 @@
-//  Copyright (c)  2018-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef MOCKSOCKET_H
@@ -16,7 +16,7 @@ namespace cura
  */
 class MockSocket : public Arcus::Socket
 {
-  public:
+public:
     MockSocket();
 
     // These functions are overridden to be no-op.

@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/polygonUtils.h" // The class under test.
@@ -17,14 +17,14 @@ struct MoveInsideParameters
     Point supposed;
 
     MoveInsideParameters(Point close_to, const coord_t distance, Point supposed)
-      : close_to(close_to), distance(distance), supposed(supposed)
+        : close_to(close_to), distance(distance), supposed(supposed)
     {
     }
 };
 
 class MoveInsideTest : public testing::TestWithParam<MoveInsideParameters>
 {
-  public:
+public:
     Polygon test_square;
     Polygon pointy_square;
 
@@ -72,18 +72,18 @@ TEST_P(MoveInsideTest, MoveInside2)
 }
 
 INSTANTIATE_TEST_CASE_P(
-  MoveInsideInstantiation,
-  MoveInsideTest,
-  testing::Values(MoveInsideParameters(Point(110, 110), 28, Point(80, 80)), // Near a corner, moving inside.
-                  MoveInsideParameters(Point(50, 110), 20, Point(50, 80)), // Near an edge, moving inside.
-                  MoveInsideParameters(Point(110, 110), -28, Point(120, 120)), // Near a corner, moving outside.
-                  MoveInsideParameters(Point(50, 110), -20, Point(50, 120)), // Near an edge, moving outside.
-                  MoveInsideParameters(Point(110, 105), 28, Point(80, 80)), // Near a corner but not exactly diagonal.
-                  MoveInsideParameters(Point(100, 50), 20, Point(80, 50)), // Starting on the border.
-                  MoveInsideParameters(Point(80, 50), 20, Point(80, 50)), // Already inside.
-                  MoveInsideParameters(Point(110, 50), 0, Point(100, 50)), // Not keeping any distance from the border.
-                  MoveInsideParameters(Point(110, 50), 100000, Point(-99900, 50)) // A very far move.
-                  ));
+    MoveInsideInstantiation,
+    MoveInsideTest,
+    testing::Values(MoveInsideParameters(Point(110, 110), 28, Point(80, 80)), // Near a corner, moving inside.
+                    MoveInsideParameters(Point(50, 110), 20, Point(50, 80)), // Near an edge, moving inside.
+                    MoveInsideParameters(Point(110, 110), -28, Point(120, 120)), // Near a corner, moving outside.
+                    MoveInsideParameters(Point(50, 110), -20, Point(50, 120)), // Near an edge, moving outside.
+                    MoveInsideParameters(Point(110, 105), 28, Point(80, 80)), // Near a corner but not exactly diagonal.
+                    MoveInsideParameters(Point(100, 50), 20, Point(80, 50)), // Starting on the border.
+                    MoveInsideParameters(Point(80, 50), 20, Point(80, 50)), // Already inside.
+                    MoveInsideParameters(Point(110, 50), 0, Point(100, 50)), // Not keeping any distance from the border.
+                    MoveInsideParameters(Point(110, 50), 100000, Point(-99900, 50)) // A very far move.
+                    ));
 
 TEST_F(MoveInsideTest, cornerEdgeTest)
 {
@@ -96,11 +96,11 @@ TEST_F(MoveInsideTest, cornerEdgeTest)
 
     constexpr coord_t maximum_error = 10;
     ASSERT_TRUE(vSize(result - supposed1) <= maximum_error || vSize(result - supposed2) <= maximum_error)
-      << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << " or " << supposed2
-      << ".\n"
-      << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; vs supposed = " << vSize(cpp.location - supposed1)
-      << " or " << vSize(cpp.location - supposed2) << ".\n"
-      << "\tclosest point = " << cpp.location << " at index " << cpp.point_idx << ".";
+        << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << " or " << supposed2
+        << ".\n"
+        << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; vs supposed = " << vSize(cpp.location - supposed1)
+        << " or " << vSize(cpp.location - supposed2) << ".\n"
+        << "\tclosest point = " << cpp.location << " at index " << cpp.point_idx << ".";
 }
 
 TEST_F(MoveInsideTest, middleTest)
@@ -117,12 +117,12 @@ TEST_F(MoveInsideTest, middleTest)
     constexpr coord_t maximum_error = 10;
     ASSERT_TRUE(vSize(result - supposed1) <= maximum_error || vSize(result - supposed2) <= maximum_error
                 || vSize(result - supposed3) <= maximum_error || vSize(result - supposed4) <= maximum_error)
-      << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << ", " << supposed2
-      << ", " << supposed3 << " or " << supposed4 << ".\n"
-      << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; vs supposed = " << vSize(cpp.location - supposed1)
-      << ", " << vSize(cpp.location - supposed2) << ", " << vSize(cpp.location - supposed3) << " or " << vSize(cpp.location - supposed4)
-      << ".\n"
-      << "\tclosest point = " << cpp.location << " at index " << cpp.point_idx << ".";
+        << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << ", " << supposed2
+        << ", " << supposed3 << " or " << supposed4 << ".\n"
+        << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; vs supposed = " << vSize(cpp.location - supposed1)
+        << ", " << vSize(cpp.location - supposed2) << ", " << vSize(cpp.location - supposed3) << " or " << vSize(cpp.location - supposed4)
+        << ".\n"
+        << "\tclosest point = " << cpp.location << " at index " << cpp.point_idx << ".";
 }
 
 TEST_F(MoveInsideTest, middleTestPenalty)
@@ -132,7 +132,7 @@ TEST_F(MoveInsideTest, middleTestPenalty)
     const Point preferred_dir(120, 60);
     constexpr coord_t distance = 20;
     const ClosestPolygonPoint cpp =
-      PolygonUtils::findClosest(close_to, test_square, [preferred_dir](Point candidate) { return vSize2(candidate - preferred_dir); });
+        PolygonUtils::findClosest(close_to, test_square, [preferred_dir](Point candidate) { return vSize2(candidate - preferred_dir); });
     const Point result = PolygonUtils::moveInside(cpp, distance);
 
     ASSERT_LE(vSize(result - supposed), 10) << close_to << " moved with " << distance << " micron inside to " << result << " rather than "
@@ -155,8 +155,8 @@ TEST_F(MoveInsideTest, cornerEdgeTest2)
 
     constexpr coord_t maximum_error = 10;
     ASSERT_TRUE(vSize(result - supposed1) <= maximum_error || vSize(result - supposed2) <= maximum_error)
-      << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << " or " << supposed2
-      << ".";
+        << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << " or " << supposed2
+        << ".";
 }
 
 TEST_F(MoveInsideTest, pointyCorner)
@@ -226,14 +226,14 @@ struct FindCloseParameters
                         const Point supposed,
                         const coord_t cell_size,
                         std::function<int(Point)>* penalty_function = nullptr)
-      : close_to(close_to), supposed(supposed), cell_size(cell_size), penalty_function(penalty_function)
+        : close_to(close_to), supposed(supposed), cell_size(cell_size), penalty_function(penalty_function)
     {
     }
 };
 
 class FindCloseTest : public testing::TestWithParam<FindCloseParameters>
 {
-  public:
+public:
     Polygon test_square;
 
     void SetUp()
@@ -266,7 +266,7 @@ TEST_P(FindCloseTest, FindClose)
     {
         const Point result = cpp->location;
         ASSERT_LE(vSize(result - parameters.supposed), 10)
-          << "Close to " << parameters.close_to << " we found " << result << " rather than " << parameters.supposed << ".\n";
+            << "Close to " << parameters.close_to << " we found " << result << " rather than " << parameters.supposed << ".\n";
     }
     else
     {
@@ -278,10 +278,10 @@ TEST_P(FindCloseTest, FindClose)
  * Test penalty function to use with findClose.
  */
 std::function<int(Point)> testPenalty(
-  [](Point candidate)
-  {
-      return -vSize2(candidate - Point(50, 100)); // The further from 50, 100, the lower the penalty.
-  });
+    [](Point candidate)
+    {
+        return -vSize2(candidate - Point(50, 100)); // The further from 50, 100, the lower the penalty.
+    });
 
 INSTANTIATE_TEST_CASE_P(FindCloseInstantiation,
                         FindCloseTest,
@@ -292,7 +292,7 @@ INSTANTIATE_TEST_CASE_P(FindCloseInstantiation,
 
 class PolygonUtilsTest : public testing::Test
 {
-  public:
+public:
     Polygons test_squares;
     Polygons test_line;
     Polygons test_line_extra_vertices; // Line that has extra vertices along it that are technically unnecessary.
@@ -372,14 +372,14 @@ struct GetNextParallelIntersectionParameters
                                           const Point line_to,
                                           const bool forward,
                                           const coord_t dist)
-      : predicted(predicted), start_point(start_point), line_to(line_to), forward(forward), dist(dist)
+        : predicted(predicted), start_point(start_point), line_to(line_to), forward(forward), dist(dist)
     {
     }
 };
 
 class GetNextParallelIntersectionTest : public testing::TestWithParam<GetNextParallelIntersectionParameters>
 {
-  public:
+public:
     Polygons test_squares;
 
     GetNextParallelIntersectionTest()
@@ -398,29 +398,29 @@ TEST_P(GetNextParallelIntersectionTest, GetNextParallelIntersection)
     const GetNextParallelIntersectionParameters parameters = GetParam();
     const ClosestPolygonPoint start = PolygonUtils::findClosest(parameters.start_point, test_squares);
     std::optional<ClosestPolygonPoint> computed =
-      PolygonUtils::getNextParallelIntersection(start, parameters.line_to, parameters.dist, parameters.forward);
+        PolygonUtils::getNextParallelIntersection(start, parameters.line_to, parameters.dist, parameters.forward);
 
     ASSERT_EQ(bool(parameters.predicted), bool(computed)) << "An answer was predicted but not computed, or computed but not predicted.";
     if (parameters.predicted)
     {
         ASSERT_LT(vSize(*parameters.predicted - computed->p()), 10)
-          << "Result was " << computed->p() << " while it was predicted to be " << *parameters.predicted << "!";
+            << "Result was " << computed->p() << " while it was predicted to be " << *parameters.predicted << "!";
     }
 }
 
 INSTANTIATE_TEST_CASE_P(
-  GetNextParallelIntersectionInstantiation,
-  GetNextParallelIntersectionTest,
-  testing::Values(GetNextParallelIntersectionParameters(Point(0, 40), Point(20, 100), Point(150, 200), true, 35),
-                  GetNextParallelIntersectionParameters(Point(37, 100), Point(80, 100), Point(150, 200), true, 35),
-                  GetNextParallelIntersectionParameters(Point(70, 100), Point(20, 100), Point(120, 200), false, 35),
-                  GetNextParallelIntersectionParameters(Point(0, 0), Point(50, 100), Point(150, 200), true, 35),
-                  GetNextParallelIntersectionParameters(Point(60, 0), Point(10, 0), Point(-90, -100), true, 35),
-                  GetNextParallelIntersectionParameters(Point(0, 40), Point(10, 0), Point(-90, -100), false, 35),
-                  GetNextParallelIntersectionParameters(Point(0, 75), Point(50, 100), Point(150, 100), true, 25),
-                  GetNextParallelIntersectionParameters(Point(25, 100), Point(50, 100), Point(50, 200), true, 25),
-                  GetNextParallelIntersectionParameters(std::optional<Point>(), Point(100, 100), Point(200, 200), true, 80),
-                  GetNextParallelIntersectionParameters(Point(0, 45), Point(5, 100), Point(105, 200), true, 35)));
+    GetNextParallelIntersectionInstantiation,
+    GetNextParallelIntersectionTest,
+    testing::Values(GetNextParallelIntersectionParameters(Point(0, 40), Point(20, 100), Point(150, 200), true, 35),
+                    GetNextParallelIntersectionParameters(Point(37, 100), Point(80, 100), Point(150, 200), true, 35),
+                    GetNextParallelIntersectionParameters(Point(70, 100), Point(20, 100), Point(120, 200), false, 35),
+                    GetNextParallelIntersectionParameters(Point(0, 0), Point(50, 100), Point(150, 200), true, 35),
+                    GetNextParallelIntersectionParameters(Point(60, 0), Point(10, 0), Point(-90, -100), true, 35),
+                    GetNextParallelIntersectionParameters(Point(0, 40), Point(10, 0), Point(-90, -100), false, 35),
+                    GetNextParallelIntersectionParameters(Point(0, 75), Point(50, 100), Point(150, 100), true, 25),
+                    GetNextParallelIntersectionParameters(Point(25, 100), Point(50, 100), Point(50, 200), true, 25),
+                    GetNextParallelIntersectionParameters(std::optional<Point>(), Point(100, 100), Point(200, 200), true, 80),
+                    GetNextParallelIntersectionParameters(Point(0, 45), Point(5, 100), Point(105, 200), true, 35)));
 
 TEST_F(PolygonUtilsTest, RelativeHammingSquaresOverlap)
 {
@@ -463,8 +463,9 @@ TEST_F(PolygonUtilsTest, RelativeHammingQuarterOverlap)
 TEST_F(PolygonUtilsTest, RelativeHammingLineSquare)
 {
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_squares, test_line), 1.0)
-      << "The difference between the polygons is 100% because the area of the difference encompasses the area of the one polygon that has "
-         "area.";
+        << "The difference between the polygons is 100% because the area of the difference encompasses the area of the one polygon that "
+           "has "
+           "area.";
 }
 
 /*
@@ -496,7 +497,7 @@ TEST_F(PolygonUtilsTest, DISABLED_RelativeHammingLineLineDifferentVerts) // Disa
                                                                          // points inside a line-polygon.
 {
     ASSERT_EQ(PolygonUtils::relativeHammingDistance(test_line, test_line_extra_vertices), 0.0)
-      << "Even though the exact vertices are different, the actual outline is the same.";
+        << "Even though the exact vertices are different, the actual outline is the same.";
 }
 
 } // namespace cura

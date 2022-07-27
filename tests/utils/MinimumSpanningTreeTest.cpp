@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/MinimumSpanningTree.h"
@@ -16,7 +16,7 @@ bool has(const Point& pt, const std::vector<Point>& list)
 
 class MinimumSpanningTreeTest : public ::testing::Test
 {
-  public:
+public:
     void SetUp() override
     {
         pts = {
@@ -113,7 +113,7 @@ TEST_F(MinimumSpanningTreeTest, TestAdjacent)
     for (size_t i_pt = 0; i_pt < len; ++i_pt)
     {
         EXPECT_EQ(expected_node_degree[i_pt], mst.adjacentNodes(pts[i_pt]).size())
-          << "Degree of node #" << i_pt << " (start @0) should be the expected one.";
+            << "Degree of node #" << i_pt << " (start @0) should be the expected one.";
     }
 }
 
@@ -129,7 +129,7 @@ TEST_F(MinimumSpanningTreeTest, TestLeaves)
     for (size_t i_pt = 0; i_pt < len; ++i_pt)
     {
         EXPECT_EQ(should_be_leave[i_pt], has(pts[i_pt], leaves))
-          << "Leaf-'status' of point #" << i_pt << " (start @0) should be the expected one.";
+            << "Leaf-'status' of point #" << i_pt << " (start @0) should be the expected one.";
     }
 }
 } // namespace cura

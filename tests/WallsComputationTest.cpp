@@ -23,7 +23,7 @@ namespace cura
  */
 class WallsComputationTest : public testing::Test
 {
-  public:
+public:
     /*!
      * Settings to slice with. This is linked in the walls_computation fixture.
      */
@@ -130,9 +130,9 @@ TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
 
     // Verify that there is still an inner area, outline and parts.
     EXPECT_EQ(part.inner_area.area(), square_shape.area())
-      << "There are no walls, so the inner area (for infill/skin) needs to be the entire part.";
+        << "There are no walls, so the inner area (for infill/skin) needs to be the entire part.";
     EXPECT_EQ(part.print_outline.area(), square_shape.area())
-      << "There are no walls, so the print outline encompasses the inner area exactly.";
+        << "There are no walls, so the print outline encompasses the inner area exactly.";
     EXPECT_EQ(part.outline.area(), square_shape.area()) << "The outline is not modified.";
     EXPECT_EQ(layer.parts.size(), 1) << "There is still just 1 part.";
 }
@@ -156,7 +156,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     for (auto& inset : part.wall_toolpaths)
         for (auto& line : inset) all_paths.emplace_back(&line);
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order =
-      InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
+        InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
 
     // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";

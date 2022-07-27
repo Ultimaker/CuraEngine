@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/linearAlg2D.h"
@@ -22,7 +22,7 @@ struct GetDist2FromLineSegmentParameters
     int16_t actual_is_beyond;
 
     GetDist2FromLineSegmentParameters(Point line_start, Point line_end, Point point, coord_t actual_distance2, int16_t actual_is_beyond)
-      : line_start(line_start), line_end(line_end), point(point), actual_distance2(actual_distance2), actual_is_beyond(actual_is_beyond)
+        : line_start(line_start), line_end(line_end), point(point), actual_distance2(actual_distance2), actual_is_beyond(actual_is_beyond)
     {
     }
 };
@@ -32,7 +32,7 @@ struct GetDist2FromLineSegmentParameters
  */
 class GetDist2FromLineSegmentTest : public testing::TestWithParam<GetDist2FromLineSegmentParameters>
 {
-  public:
+public:
     /*
      * Maximum allowed distance error in measurements due to rounding, in
      * microns.
@@ -57,47 +57,47 @@ TEST_P(GetDist2FromLineSegmentTest, GetDist2FromLineSegment)
     int16_t supposed_is_beyond = 0;
     const coord_t supposed_distance = LinearAlg2D::getDist2FromLineSegment(line_start, point, line_end, &supposed_is_beyond);
     ASSERT_LE(std::fabs(sqrt(double(supposed_distance)) - sqrt(double(actual_distance2))), maximum_error)
-      << "Line [" << line_start.X << ", " << line_start.Y << "] -- [" << line_end.X << ", " << line_end.Y << "], point [" << point.X << ", "
-      << point.Y << "], squared distance was " << supposed_distance << " rather than " << actual_distance2 << ".";
+        << "Line [" << line_start.X << ", " << line_start.Y << "] -- [" << line_end.X << ", " << line_end.Y << "], point [" << point.X
+        << ", " << point.Y << "], squared distance was " << supposed_distance << " rather than " << actual_distance2 << ".";
     ASSERT_EQ(supposed_is_beyond, actual_is_beyond)
-      << "Line [" << line_start.X << ", " << line_start.Y << "] -- [" << line_end.X << ", " << line_end.Y << "], point [" << point.X << ", "
-      << point.Y << "], check whether it is beyond was " << static_cast<int>(supposed_is_beyond) << " rather than "
-      << static_cast<int>(actual_is_beyond) << ".";
+        << "Line [" << line_start.X << ", " << line_start.Y << "] -- [" << line_end.X << ", " << line_end.Y << "], point [" << point.X
+        << ", " << point.Y << "], check whether it is beyond was " << static_cast<int>(supposed_is_beyond) << " rather than "
+        << static_cast<int>(actual_is_beyond) << ".";
 }
 
 INSTANTIATE_TEST_CASE_P(
-  GetDist2FromLineSegmentInstantiation,
-  GetDist2FromLineSegmentTest,
-  testing::Values(
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(25, 3), 9, 0), // Nearby a horizontal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(25, 0), 0, 0), // On a horizontal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(200, 0), 10000, 1), // Beyond a horizontal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(-100, 0), 10000, -1), // Before a horizontal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(-1, -1), 2, -1), // In a corner near a horizontal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(0, 3), 9, 0), // Perpendicular to a horizontal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(5, 25), 25, 0), // Nearby a vertical line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(0, 25), 0, 0), // On a vertical line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(0, 200), 10000, 1), // Beyond a vertical line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(0, -100), 10000, -1), // Before a vertical line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(-1, -1), 2, -1), // In a corner near a vertical line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(3, 0), 9, 0), // Perpendicular to a vertical line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(30, 20), 50, 0), // Nearby a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(25, 25), 0, 0), // On a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(200, 200), 20000, 1), // Beyond a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(-100, -100), 20000, -1), // Before a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(-3, 0), 9, -1), // In a corner near a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(3, -3), 9, 0), // Perpendicular to a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(20, 30), 320, 0), // Nearby a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(40, 20), 0, 0), // On a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(0, 0), 0, 0), // On one of the vertices of the diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(200, 100), 12500, 1), // Beyond a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(-100, -50), 12500, -1), // Before a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(-3, 0), 9, -1), // In a corner near a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(-2, 4), 20, 0), // Perpendicular to a diagonal line.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(10000, 5000), Point(2000, 3000), 3200000, 0), // Longer distances.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 0), Point(20, 0), 400, 0), // Near a line of length 0.
-    GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 0), Point(0, 0), 0, 0) // On a line of length 0.
-    ));
+    GetDist2FromLineSegmentInstantiation,
+    GetDist2FromLineSegmentTest,
+    testing::Values(
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(25, 3), 9, 0), // Nearby a horizontal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(25, 0), 0, 0), // On a horizontal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(200, 0), 10000, 1), // Beyond a horizontal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(-100, 0), 10000, -1), // Before a horizontal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(-1, -1), 2, -1), // In a corner near a horizontal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 0), Point(0, 3), 9, 0), // Perpendicular to a horizontal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(5, 25), 25, 0), // Nearby a vertical line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(0, 25), 0, 0), // On a vertical line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(0, 200), 10000, 1), // Beyond a vertical line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(0, -100), 10000, -1), // Before a vertical line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(-1, -1), 2, -1), // In a corner near a vertical line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 100), Point(3, 0), 9, 0), // Perpendicular to a vertical line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(30, 20), 50, 0), // Nearby a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(25, 25), 0, 0), // On a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(200, 200), 20000, 1), // Beyond a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(-100, -100), 20000, -1), // Before a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(-3, 0), 9, -1), // In a corner near a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 100), Point(3, -3), 9, 0), // Perpendicular to a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(20, 30), 320, 0), // Nearby a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(40, 20), 0, 0), // On a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(0, 0), 0, 0), // On one of the vertices of the diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(200, 100), 12500, 1), // Beyond a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(-100, -50), 12500, -1), // Before a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(-3, 0), 9, -1), // In a corner near a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(100, 50), Point(-2, 4), 20, 0), // Perpendicular to a diagonal line.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(10000, 5000), Point(2000, 3000), 3200000, 0), // Longer distances.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 0), Point(20, 0), 400, 0), // Near a line of length 0.
+        GetDist2FromLineSegmentParameters(Point(0, 0), Point(0, 0), Point(0, 0), 0, 0) // On a line of length 0.
+        ));
 
 struct GetAngleParameters
 {
@@ -116,7 +116,7 @@ struct GetAngleParameters
  */
 class GetAngleTest : public testing::TestWithParam<GetAngleParameters>
 {
-  public:
+public:
     /*
      * Maximum allowed error in the angle measurement.
      */
@@ -134,22 +134,22 @@ TEST_P(GetAngleTest, GetAngle)
 
     const double supposed_angle = LinearAlg2D::getAngleLeft(a, b, c);
     ASSERT_LE(std::fabs(angle - supposed_angle), maximum_error)
-      << "Corner in " << a << " - " << b << " - " << c << " was computed to have an angle of " << supposed_angle << " instead of " << angle
-      << ".";
+        << "Corner in " << a << " - " << b << " - " << c << " was computed to have an angle of " << supposed_angle << " instead of "
+        << angle << ".";
 }
 
 INSTANTIATE_TEST_CASE_P(
-  GetAngleInstantiation,
-  GetAngleTest,
-  testing::Values(GetAngleParameters(Point(-100, 0), Point(0, 0), Point(100, 1), 180), // Almost straight line.
-                  GetAngleParameters(Point(-100, 0), Point(0, 0), Point(100, 0), 180), // Completely straight line.
-                  GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, -100), 315), //-45 degrees.
-                  GetAngleParameters(Point(-100, 0), Point(0, 0), Point(0, -100), 270), //-90 degrees.
-                  GetAngleParameters(Point(-100, 0), Point(0, 0), Point(0, 100), 90), // Straight angle.
-                  GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, 1), 0), // Almost straight back.
-                  GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, -1), 360), // Almost straight back but the other way around.
-                  GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, 0), 0) // Completely straight back.
-                  ));
+    GetAngleInstantiation,
+    GetAngleTest,
+    testing::Values(GetAngleParameters(Point(-100, 0), Point(0, 0), Point(100, 1), 180), // Almost straight line.
+                    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(100, 0), 180), // Completely straight line.
+                    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, -100), 315), //-45 degrees.
+                    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(0, -100), 270), //-90 degrees.
+                    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(0, 100), 90), // Straight angle.
+                    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, 1), 0), // Almost straight back.
+                    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, -1), 360), // Almost straight back but the other way around.
+                    GetAngleParameters(Point(-100, 0), Point(0, 0), Point(-100, 0), 0) // Completely straight back.
+                    ));
 
 TEST(GetAngleTest, GetAngleLeftAABTest)
 {
@@ -175,8 +175,8 @@ TEST(PointIsLeftOfLineTest, LeftOfLine)
 
     const coord_t supposed = LinearAlg2D::pointIsLeftOfLine(p, a, b);
     ASSERT_TRUE(actual * supposed > 0 || (actual == 0 && supposed == 0))
-      << "Point " << p << " was computed as lying " << ((supposed == 0) ? "on" : ((supposed < 0) ? "left" : "right")) << " the line from "
-      << a << " to " << b << ", instead of " << ((actual == 0) ? "on" : ((actual < 0) ? "left" : "right"));
+        << "Point " << p << " was computed as lying " << ((supposed == 0) ? "on" : ((supposed < 0) ? "left" : "right")) << " the line from "
+        << a << " to " << b << ", instead of " << ((actual == 0) ? "on" : ((actual < 0) ? "left" : "right"));
 }
 
 TEST(PointIsLeftOfLineTest, Sharp)
@@ -188,8 +188,8 @@ TEST(PointIsLeftOfLineTest, Sharp)
 
     const coord_t supposed = LinearAlg2D::pointIsLeftOfLine(p, a, b);
     ASSERT_TRUE(actual * supposed > 0 || (actual == 0 && supposed == 0))
-      << "Point " << p << " was computed as lying " << ((supposed == 0) ? "on" : ((supposed < 0) ? "left" : "right")) << " the line from "
-      << a << " to " << b << ", instead of " << ((actual == 0) ? "on" : ((actual < 0) ? "left" : "right"));
+        << "Point " << p << " was computed as lying " << ((supposed == 0) ? "on" : ((supposed < 0) ? "left" : "right")) << " the line from "
+        << a << " to " << b << ", instead of " << ((actual == 0) ? "on" : ((actual < 0) ? "left" : "right"));
 }
 
 struct GetPointOnLineWithDistParameters
@@ -202,7 +202,7 @@ struct GetPointOnLineWithDistParameters
     bool actual_returned;
 
     GetPointOnLineWithDistParameters(Point p, Point a, Point b, coord_t dist, Point actual_result, bool actual_returned)
-      : p(p), a(a), b(b), dist(dist), actual_result(actual_result), actual_returned(actual_returned)
+        : p(p), a(a), b(b), dist(dist), actual_result(actual_result), actual_returned(actual_returned)
     {
     }
 };
@@ -236,7 +236,7 @@ TEST_P(GetPointOnLineWithDistTest, GetPointOnLineWithDist)
         EXPECT_LT(vSize2(actual_result - supposed_result), 10 * 10) << "Point " << p << " was projected on (" << a << " - " << b << ") to "
                                                                     << supposed_result << " instead of " << actual_result << ".";
         EXPECT_LT(std::abs(supposed_dist - dist), 10)
-          << "Projection distance of " << p << " onto (" << a << " - " << b << ") was " << supposed_dist << " instead of " << dist << ".";
+            << "Projection distance of " << p << " onto (" << a << " - " << b << ") was " << supposed_dist << " instead of " << dist << ".";
     }
     else
     {
@@ -245,15 +245,15 @@ TEST_P(GetPointOnLineWithDistTest, GetPointOnLineWithDist)
 }
 
 INSTANTIATE_TEST_CASE_P(
-  GetPointOnLineWithDistInstantiation,
-  GetPointOnLineWithDistTest,
-  testing::Values(GetPointOnLineWithDistParameters(Point(110, 30), Point(0, 0), Point(100, 0), 50, Point(70, 0), true),
-                  GetPointOnLineWithDistParameters(Point(90, 30), Point(0, 0), Point(100, 0), 50, Point(50, 0), true),
-                  GetPointOnLineWithDistParameters(Point(10, 30), Point(0, 0), Point(100, 0), 50, Point(50, 0), true),
-                  GetPointOnLineWithDistParameters(Point(-10, 30), Point(0, 0), Point(100, 0), 50, Point(30, 0), true),
-                  GetPointOnLineWithDistParameters(Point(50, 30), Point(0, 0), Point(100, 0), 50, Point(10, 0), true),
-                  GetPointOnLineWithDistParameters(Point(210, 30), Point(0, 0), Point(100, 0), 50, Point(70, 0), false),
-                  GetPointOnLineWithDistParameters(Point(110, 130), Point(0, 0), Point(100, 0), 50, Point(70, 0), false)));
+    GetPointOnLineWithDistInstantiation,
+    GetPointOnLineWithDistTest,
+    testing::Values(GetPointOnLineWithDistParameters(Point(110, 30), Point(0, 0), Point(100, 0), 50, Point(70, 0), true),
+                    GetPointOnLineWithDistParameters(Point(90, 30), Point(0, 0), Point(100, 0), 50, Point(50, 0), true),
+                    GetPointOnLineWithDistParameters(Point(10, 30), Point(0, 0), Point(100, 0), 50, Point(50, 0), true),
+                    GetPointOnLineWithDistParameters(Point(-10, 30), Point(0, 0), Point(100, 0), 50, Point(30, 0), true),
+                    GetPointOnLineWithDistParameters(Point(50, 30), Point(0, 0), Point(100, 0), 50, Point(10, 0), true),
+                    GetPointOnLineWithDistParameters(Point(210, 30), Point(0, 0), Point(100, 0), 50, Point(70, 0), false),
+                    GetPointOnLineWithDistParameters(Point(110, 130), Point(0, 0), Point(100, 0), 50, Point(70, 0), false)));
 
 struct RotateAroundParameters
 {
@@ -263,7 +263,7 @@ struct RotateAroundParameters
     Point actual_result;
 
     RotateAroundParameters(Point point, Point origin, double angle, Point actual_result)
-      : point(point), origin(origin), angle(angle), actual_result(actual_result)
+        : point(point), origin(origin), angle(angle), actual_result(actual_result)
     {
     }
 };
@@ -287,8 +287,8 @@ TEST_P(RotateAroundTest, RotateAround)
     const Point3Matrix mat = LinearAlg2D::rotateAround(origin, angle);
     const Point supposed_result = mat.apply(point);
     ASSERT_LT(vSize(supposed_result - actual_result), 2)
-      << "LinearAlg2D::rotateAround failed: Rotating " << point << " around " << origin << " for " << angle << " degrees resulted in "
-      << supposed_result << " instead of expected " << actual_result << ".";
+        << "LinearAlg2D::rotateAround failed: Rotating " << point << " around " << origin << " for " << angle << " degrees resulted in "
+        << supposed_result << " instead of expected " << actual_result << ".";
 }
 
 INSTANTIATE_TEST_CASE_P(RotateAroundInstantiation,

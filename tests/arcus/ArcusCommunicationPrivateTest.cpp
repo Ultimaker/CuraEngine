@@ -24,7 +24,7 @@ constexpr size_t gk_test_num_mesh_groups = 1;
  */
 class ArcusCommunicationPrivateTest : public testing::Test
 {
-  public:
+public:
     ArcusCommunication::Private* instance;
 
     void SetUp() override
@@ -120,7 +120,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadSingleExtruderSettingsMessage)
     instance->readExtruderSettingsMessage(messages);
 
     ASSERT_EQ(size_t(1), Application::getInstance().current_slice->scene.extruders.size())
-      << "Reading the extruders must construct the correct amount of extruders in the scene.";
+        << "Reading the extruders must construct the correct amount of extruders in the scene.";
     EXPECT_EQ(setting_value, Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("test_setting"));
 }
 
@@ -149,7 +149,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
     instance->readExtruderSettingsMessage(messages);
 
     ASSERT_EQ(size_t(2), Application::getInstance().current_slice->scene.extruders.size())
-      << "Reading the extruders must construct the correct amount of extruders in the scene.";
+        << "Reading the extruders must construct the correct amount of extruders in the scene.";
     EXPECT_EQ(std::string("First"),
               Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("What extruder are you?"));
     EXPECT_EQ(std::string("Second"),

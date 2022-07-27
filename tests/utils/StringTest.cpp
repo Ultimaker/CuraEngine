@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/string.h" // The file under test.
@@ -36,22 +36,22 @@ TEST_P(WriteInt2mmTest, WriteInt2mm)
 }
 
 INSTANTIATE_TEST_CASE_P(
-  WriteInt2mmTestInstantiation,
-  WriteInt2mmTest,
-  testing::Values(-10000,
-                  -1000,
-                  -100,
-                  -10,
-                  -1,
-                  0,
-                  1,
-                  10,
-                  100,
-                  1000,
-                  10000,
-                  123456789,
-                  std::numeric_limits<int32_t>::max()
-                    / 1001)); // For max integer test, divide by 1000 since MM2INT multiplies by 1000 which would cause an overflow.
+    WriteInt2mmTestInstantiation,
+    WriteInt2mmTest,
+    testing::Values(-10000,
+                    -1000,
+                    -100,
+                    -10,
+                    -1,
+                    0,
+                    1,
+                    10,
+                    100,
+                    1000,
+                    10000,
+                    123456789,
+                    std::numeric_limits<int32_t>::max()
+                        / 1001)); // For max integer test, divide by 1000 since MM2INT multiplies by 1000 which would cause an overflow.
 
 /*
  * Fixture to allow parameterized tests for writeDoubleToStream.

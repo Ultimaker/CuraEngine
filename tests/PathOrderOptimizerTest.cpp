@@ -10,7 +10,7 @@ namespace cura
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class PathOrderOptimizerTest : public testing::Test
 {
-  public:
+public:
     /*!
      * A blank optimizer with no polygons added yet. Fresh and virgin.
      */

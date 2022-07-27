@@ -19,7 +19,7 @@ namespace cura
 // This test currently always fails because there is a bug in clipper related to doing an intersection between a polygon and a polyline.
 class DISABLED_ClipperTest : public testing::Test
 {
-  public:
+public:
     using Paths = ClipperLib::Paths;
     using Path = ClipperLib::Path;
     using coord_t = ClipperLib::cInt;
@@ -32,7 +32,7 @@ class DISABLED_ClipperTest : public testing::Test
     {
     }
 
-    void SetUp()
+    void SetUp() override
     {
 
         {
@@ -74,7 +74,7 @@ class DISABLED_ClipperTest : public testing::Test
         }
     }
 
-    void TearDown()
+    void TearDown() override
     {
     }
 

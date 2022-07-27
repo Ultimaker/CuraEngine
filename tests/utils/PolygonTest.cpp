@@ -13,7 +13,7 @@ namespace cura
 {
 class PolygonTest : public testing::Test
 {
-  public:
+public:
     Polygon test_square;
     Polygon pointy_square;
     Polygon triangle;
@@ -213,7 +213,7 @@ TEST_F(PolygonTest, getEmptyHolesTest)
     for (size_t point_index = 0; point_index < holes[0].size(); point_index++)
     {
         EXPECT_EQ(holes[0][point_index], clockwise_small[point_index])
-          << "Coordinates of the empty hole must be the same as the original polygon.";
+            << "Coordinates of the empty hole must be the same as the original polygon.";
     }
 }
 

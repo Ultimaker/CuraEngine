@@ -217,7 +217,7 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
                     if (mono_a < mono_b)
                     {
                         EXPECT_FALSE(rangeOverlaps(perp_b_range, perp_a_range))
-                          << "Perpendicular range overlaps for neighboring lines in different sections (next line of A / line in B).";
+                            << "Perpendicular range overlaps for neighboring lines in different sections (next line of A / line in B).";
                     }
                 }
             }

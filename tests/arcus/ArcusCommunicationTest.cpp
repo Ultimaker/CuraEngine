@@ -21,7 +21,7 @@ namespace cura
  */
 class ArcusCommunicationTest : public testing::Test
 {
-  public:
+public:
     std::string ip;
     [[maybe_unused]] uint16_t port;
     MockSocket* socket;
@@ -95,8 +95,8 @@ TEST_F(ArcusCommunicationTest, FlushGCodeTest)
 
     // Input some 'g-code' to flush.
     const std::string test_gcode =
-      "This Fibonacci joke is as bad as the last two you heard combined.\n"
-      "It's pretty cool how the Chinese made a language entirely out of tattoos."; // Multi-line to see flushing behaviour.
+        "This Fibonacci joke is as bad as the last two you heard combined.\n"
+        "It's pretty cool how the Chinese made a language entirely out of tattoos."; // Multi-line to see flushing behaviour.
     ac->private_data->gcode_output_stream.write(test_gcode.c_str(), test_gcode.size());
 
     // Call the function we're testing. This time it should give us a message.
@@ -152,7 +152,7 @@ TEST_F(ArcusCommunicationTest, SendLayerComplete)
     ac->sendLayerComplete(layer_nr, layer_z, layer_thickness);
     const std::shared_ptr<proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
     EXPECT_EQ(static_cast<google::protobuf::int32>(layer_nr), message->id())
-      << "getOptimizedLayerById() must return a layer with the correct ID.";
+        << "getOptimizedLayerById() must return a layer with the correct ID.";
     EXPECT_EQ(static_cast<float>(layer_z), message->height());
     EXPECT_EQ(static_cast<float>(layer_thickness), message->thickness());
 }

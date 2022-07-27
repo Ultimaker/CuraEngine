@@ -22,7 +22,7 @@ namespace cura
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class GCodeExportTest : public testing::Test
 {
-  public:
+public:
     /*
      * An export class to test with.
      */
@@ -99,18 +99,18 @@ TEST_F(GCodeExportTest, CommentSimple)
 TEST_F(GCodeExportTest, CommentMultiLine)
 {
     gcode.writeComment(
-      "If you catch a chinchilla in Chile\n"
-      "And cut off its beard, willy-nilly\n"
-      "You can honestly say\n"
-      "You made on that day\n"
-      "A Chilean chinchilla's chin chilly");
+        "If you catch a chinchilla in Chile\n"
+        "And cut off its beard, willy-nilly\n"
+        "You can honestly say\n"
+        "You made on that day\n"
+        "A Chilean chinchilla's chin chilly");
     EXPECT_EQ(std::string(";If you catch a chinchilla in Chile\n"
                           ";And cut off its beard, willy-nilly\n"
                           ";You can honestly say\n"
                           ";You made on that day\n"
                           ";A Chilean chinchilla's chin chilly\n"),
               output.str())
-      << "Each line must be preceded by a semicolon.";
+        << "Each line must be preceded by a semicolon.";
 }
 
 TEST_F(GCodeExportTest, CommentMultiple)
@@ -122,7 +122,7 @@ TEST_F(GCodeExportTest, CommentMultiple)
                           ";Very very frightening me\n"
                           "; - Galileo (1638)\n"),
               output.str())
-      << "Semicolon before each line, and newline in between.";
+        << "Semicolon before each line, and newline in between.";
 }
 
 TEST_F(GCodeExportTest, CommentTimeZero)
@@ -190,7 +190,7 @@ TEST_F(GCodeExportTest, CommentLayerCount)
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class GriffinHeaderTest : public testing::TestWithParam<size_t>
 {
-  public:
+public:
     /*
      * An export class to test with.
      */
@@ -408,19 +408,19 @@ TEST_F(GCodeExportTest, EVsMmVolumetric)
 
     constexpr double mm3_input = 15.0;
     EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input)
-      << "Since the E is volumetric and the input mm3 is also volumetric, the output needs to be the same.";
+        << "Since the E is volumetric and the input mm3 is also volumetric, the output needs to be the same.";
 
     EXPECT_EQ(gcode.eToMm(200.0), 200.0 / filament_area) << "Since the E is volumetric but mm is linear, divide by the cross-sectional "
                                                             "area of the filament to convert the volume to a length.";
 
     constexpr double mm_input = 33.0;
     EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area)
-      << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert "
-         "length to volume.";
+        << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert "
+           "length to volume.";
 
     constexpr double e_input = 100.0;
     EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input)
-      << "Since the E is volumetric and mm3 is also volumetric, the output needs to be the same.";
+        << "Since the E is volumetric and mm3 is also volumetric, the output needs to be the same.";
 }
 
 /*
@@ -439,13 +439,13 @@ TEST_F(GCodeExportTest, EVsMmLinear)
     for (int x = -1000; x < 1000; x += 16)
     {
         EXPECT_DOUBLE_EQ(gcode.mmToE(gcode.eToMm(static_cast<double>(x))), static_cast<double>(x))
-          << "Converting back and forth should lead to the same number.";
+            << "Converting back and forth should lead to the same number.";
     }
 
     constexpr double mm3_input = 33.0;
     EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area)
-      << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert "
-         "volume to length.";
+        << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert "
+           "volume to length.";
 
     constexpr double e_input = 100.0;
     EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input * filament_area) << "Since the input E is linear but the output must be volumetric, we "
@@ -652,7 +652,7 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     gcode.currentSpeed = 1;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
     Application::getInstance().current_slice->scene.extruders.emplace_back(
-      0, &Application::getInstance().current_slice->scene.current_mesh_group->settings);
+        0, &Application::getInstance().current_slice->scene.current_mesh_group->settings);
     Application::getInstance().current_slice->scene.extruders.back().settings.add("machine_firmware_retract", "false");
 
     WipeScriptConfig config;

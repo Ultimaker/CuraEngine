@@ -14,7 +14,7 @@ namespace cura
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class ExtruderPlanTestPathCollection
 {
-  public:
+public:
     /*!
      * One path with 5 vertices printing a 1000x1000 micron square starting from
      * 0,0.
@@ -69,8 +69,8 @@ class ExtruderPlanTestPathCollection
     GCodePathConfig travel_config;
 
     ExtruderPlanTestPathCollection()
-      : extrusion_config(PrintFeatureType::OuterWall, 400, 100, 1.0_r, GCodePathConfig::SpeedDerivatives(50, 1000, 10)),
-        travel_config(PrintFeatureType::MoveCombing, 0, 100, 0.0_r, GCodePathConfig::SpeedDerivatives(120, 5000, 30))
+        : extrusion_config(PrintFeatureType::OuterWall, 400, 100, 1.0_r, GCodePathConfig::SpeedDerivatives(50, 1000, 10)),
+          travel_config(PrintFeatureType::MoveCombing, 0, 100, 0.0_r, GCodePathConfig::SpeedDerivatives(120, 5000, 30))
     {
         const std::string mesh_id = "test_mesh";
         constexpr Ratio flow_1 = 1.0_r;
@@ -120,12 +120,12 @@ class ExtruderPlanTestPathCollection
         decreasing_speed[4].points = { Point(0, 800), Point(1000, 800) };
 
         variable_width.assign({
-          GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_1),
-          GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.8_r, no_spiralize, speed_1),
-          GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.6_r, no_spiralize, speed_1),
-          GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.4_r, no_spiralize, speed_1),
-          GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.2_r, no_spiralize, speed_1),
-          GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.0_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, width_1, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.8_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.6_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.4_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.2_r, no_spiralize, speed_1),
+            GCodePath(extrusion_config, mesh_id, SpaceFillType::Lines, flow_1, 0.0_r, no_spiralize, speed_1),
         });
         variable_width[0].points = { Point(0, 0), Point(1000, 0) };
         variable_width[1].points = { Point(1000, 0), Point(2000, 0) };
@@ -145,7 +145,7 @@ static ExtruderPlanTestPathCollection path_collection;
  */
 class ExtruderPlanPathsParameterizedTest : public testing::TestWithParam<std::vector<GCodePath>>
 {
-  public:
+public:
     /*!
      * An extruder plan that can be used as a victim for testing.
      */
@@ -161,14 +161,14 @@ class ExtruderPlanPathsParameterizedTest : public testing::TestWithParam<std::ve
     static constexpr double error_margin = 0.000001;
 
     ExtruderPlanPathsParameterizedTest()
-      : extruder_plan(
-        /*extruder=*/0,
-        /*layer_nr=*/50,
-        /*is_initial_layer=*/false,
-        /*is_raft_layer=*/false,
-        /*layer_thickness=*/100,
-        FanSpeedLayerTimeSettings(),
-        RetractionConfig())
+        : extruder_plan(
+            /*extruder=*/0,
+            /*layer_nr=*/50,
+            /*is_initial_layer=*/false,
+            /*is_raft_layer=*/false,
+            /*layer_thickness=*/100,
+            FanSpeedLayerTimeSettings(),
+            RetractionConfig())
     {
     }
 
@@ -207,21 +207,21 @@ INSTANTIATE_TEST_SUITE_P(ExtruderPlanTestInstantiation,
  */
 class ExtruderPlanTest : public testing::Test
 {
-  public:
+public:
     /*!
      * An extruder plan that can be used as a victim for testing.
      */
     ExtruderPlan extruder_plan;
 
     ExtruderPlanTest()
-      : extruder_plan(
-        /*extruder=*/0,
-        /*layer_nr=*/50,
-        /*is_initial_layer=*/false,
-        /*is_raft_layer=*/false,
-        /*layer_thickness=*/100,
-        FanSpeedLayerTimeSettings(),
-        RetractionConfig())
+        : extruder_plan(
+            /*extruder=*/0,
+            /*layer_nr=*/50,
+            /*is_initial_layer=*/false,
+            /*is_raft_layer=*/false,
+            /*layer_thickness=*/100,
+            FanSpeedLayerTimeSettings(),
+            RetractionConfig())
     {
     }
 };
@@ -247,9 +247,9 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
     for (size_t i = 0; i < extruder_plan.paths.size(); ++i)
     {
         EXPECT_NEAR(original_widths[i], extruder_plan.paths[i].width_factor, error_margin)
-          << "The width did not change. Back pressure compensation doesn't adjust line width.";
+            << "The width did not change. Back pressure compensation doesn't adjust line width.";
         EXPECT_NEAR(original_speeds[i], extruder_plan.paths[i].speed_factor, error_margin)
-          << "The speed factor did not change, since the compensation factor was 0.";
+            << "The speed factor did not change, since the compensation factor was 0.";
     }
 }
 
@@ -263,7 +263,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
     extruder_plan.applyBackPressureCompensation(1.0_r);
 
     auto first_extrusion =
-      std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [&](GCodePath& path) { return shouldCountPath(path); });
+        std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [&](GCodePath& path) { return shouldCountPath(path); });
     if (first_extrusion == extruder_plan.paths.end()) // Only travel moves in this plan.
     {
         return;
@@ -279,7 +279,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
         }
         const double flow_mm3_per_sec = calculatePathWidth(path);
         EXPECT_NEAR(flow_mm3_per_sec, first_flow_mm3_per_sec, error_margin)
-          << "Every path must have a flow rate equal to the first, since the flow changes were completely compensated for.";
+            << "Every path must have a flow rate equal to the first, since the flow changes were completely compensated for.";
     }
 }
 
@@ -324,7 +324,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
     for (size_t i = 0; i < new_flows.size(); ++i)
     {
         EXPECT_NEAR((original_flows[i] - original_average) / 2.0, new_flows[i] - new_average, error_margin)
-          << "The differences in flow rate needs to be approximately halved, within margin of rounding errors.";
+            << "The differences in flow rate needs to be approximately halved, within margin of rounding errors.";
     }
 }
 

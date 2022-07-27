@@ -27,7 +27,7 @@ namespace cura
  */
 class SettingsTest : public testing::Test
 {
-  public:
+public:
     Settings settings;
 };
 
@@ -94,7 +94,7 @@ TEST_F(SettingsTest, AddSettingExtruderTrain)
     settings.add("extruder_nr", "1");
     settings.add("test_setting", "-1"); //-1 should let it fall back to the current extruder_nr.
     EXPECT_EQ(&current_slice->scene.extruders[1], &settings.get<ExtruderTrain&>("test_setting"))
-      << "If the extruder is negative, it uses the extruder_nr setting.";
+        << "If the extruder is negative, it uses the extruder_nr setting.";
 }
 
 TEST_F(SettingsTest, AddSettingLayerIndex)
@@ -114,7 +114,7 @@ TEST_F(SettingsTest, AddSettingCoordT)
     settings.add("test_setting",
                  "8589934.592"); // 2^33 microns, so this MUST be a 64-bit integer! (Or at least 33-bit, but those don't exist.)
     EXPECT_EQ(coord_t(8589934592), settings.get<coord_t>("test_setting"))
-      << "Coordinates must be entered in the setting as millimetres, but are converted to micrometres.";
+        << "Coordinates must be entered in the setting as millimetres, but are converted to micrometres.";
 }
 
 TEST_F(SettingsTest, AddSettingAngleRadians)
@@ -124,14 +124,14 @@ TEST_F(SettingsTest, AddSettingAngleRadians)
 
     settings.add("test_setting", "810");
     EXPECT_NEAR(AngleRadians(M_PI / 2.0), settings.get<AngleRadians>("test_setting"), 0.00000001)
-      << "810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.";
+        << "810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.";
 }
 
 TEST_F(SettingsTest, AddSettingAngleDegrees)
 {
     settings.add("test_setting", "4442.4");
     EXPECT_NEAR(AngleDegrees(122.4), settings.get<AngleDegrees>("test_setting"), 0.00000001)
-      << "4320 is divisible by 360, so 4442.4 in clock arithmetic is 122.4 degrees.";
+        << "4320 is divisible by 360, so 4442.4 in clock arithmetic is 122.4 degrees.";
 }
 
 TEST_F(SettingsTest, AddSettingTemperature)
@@ -171,7 +171,7 @@ TEST_F(SettingsTest, AddSettingFlowTempGraph)
 
     double stored_temperature = flow_temp_graph.getTemp(30.5, 200.0, true);
     EXPECT_DOUBLE_EQ(75.0 + (100.10 - 75.0) * (30.5 - 26.5) / (50.0 - 26.5), stored_temperature)
-      << "Interpolate between low and high value.";
+        << "Interpolate between low and high value.";
 
     stored_temperature = flow_temp_graph.getTemp(1, 200.0, true);
     EXPECT_DOUBLE_EQ(10.1, stored_temperature) << "Flow too low - Return lower temperature in the graph.";

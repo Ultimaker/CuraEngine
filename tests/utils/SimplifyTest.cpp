@@ -1,4 +1,4 @@
-//  Copyright (c)  2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/Simplify.h" // The unit under test.
@@ -11,7 +11,7 @@ namespace cura
 
 class SimplifyTest : public testing::Test
 {
-  public:
+public:
     // Settings to use for most of these tests.
     static constexpr coord_t max_resolution = 1000;
     static constexpr coord_t max_deviation = 100;
@@ -124,7 +124,7 @@ TEST_F(SimplifyTest, CircleMaxResolution)
     {
         coord_t segment_length = vSize(circle[point_index % circle.size()] - circle[point_index - 1]);
         EXPECT_GE(segment_length, max_resolution)
-          << "Segment " << (point_index - 1) << " - " << point_index << " is too short! May not be less than the maximum resolution.";
+            << "Segment " << (point_index - 1) << " - " << point_index << " is too short! May not be less than the maximum resolution.";
     }
 }
 
@@ -170,7 +170,7 @@ TEST_F(SimplifyTest, Zigzag)
     simplifier.max_resolution = 9999999;
     Polygon simplified = simplifier.polyline(zigzag);
     EXPECT_EQ(simplified.size(), 2)
-      << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
+        << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
 }
 
 /*!
@@ -206,7 +206,7 @@ TEST_F(SimplifyTest, LimitedLength)
             break; // Things are allowed to be simplified from here.
         }
         EXPECT_EQ(spiral[vertex_spiral], simplified[vertex_simplified])
-          << "Where line segments are longer than max_resolution, vertices should not be altered.";
+            << "Where line segments are longer than max_resolution, vertices should not be altered.";
     }
 }
 
@@ -226,7 +226,7 @@ TEST_F(SimplifyTest, LimitedError)
     constexpr coord_t amplitude_step = 1; // Every 2 vertices, the amplitude increases by this much.
     constexpr coord_t y_step = 100;
     const coord_t amplitude_limit =
-      simplifier.max_deviation * 2; // Increase amplitude up to this point. About half of the vertices should get removed.
+        simplifier.max_deviation * 2; // Increase amplitude up to this point. About half of the vertices should get removed.
     for (coord_t amplitude = 0; amplitude < amplitude_limit; amplitude += amplitude_step)
     {
         increasing_zigzag.add(Point(amplitude, increasing_zigzag.size() * y_step));
@@ -248,7 +248,7 @@ TEST_F(SimplifyTest, LimitedError)
             break; // Things are allowed to be simplified from here.
         }
         EXPECT_EQ(increasing_zigzag[vertex_zigzag], simplified[vertex_simplified])
-          << "Where line segments are deviating more than max_deviation, vertices should not be altered.";
+            << "Where line segments are deviating more than max_deviation, vertices should not be altered.";
     }
 }
 
@@ -272,7 +272,7 @@ TEST_F(SimplifyTest, LongEdgesNotMoved)
     for (size_t i = 1; i < simplified.size(); ++i)
     {
         EXPECT_GE(vSize(simplified[i] - simplified[i - 1]), simplifier.max_resolution)
-          << "There may not be any segment smaller than max resolution.";
+            << "There may not be any segment smaller than max resolution.";
     }
 
     // Verify that all long segments are still present.
@@ -308,11 +308,11 @@ TEST_F(SimplifyTest, LongEdgesButTooMuchDeviation)
 
     // Verify that the polyline is unchanged.
     ASSERT_EQ(polyline.size(), simplified.size())
-      << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
+        << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
     for (size_t i = 0; i < polyline.size(); ++i)
     {
         EXPECT_EQ(polyline[i], simplified[i])
-          << "The position of the vertices may not have been altered since the polyline was not simplified.";
+            << "The position of the vertices may not have been altered since the polyline was not simplified.";
     }
 
     polyline.pop_back();
@@ -322,11 +322,11 @@ TEST_F(SimplifyTest, LongEdgesButTooMuchDeviation)
 
     // Verify that the polyline is again unchanged.
     ASSERT_EQ(polyline.size(), simplified.size())
-      << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
+        << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
     for (size_t i = 0; i < polyline.size(); ++i)
     {
         EXPECT_EQ(polyline[i], simplified[i])
-          << "The position of the vertices may not have been altered since the polyline was not simplified.";
+            << "The position of the vertices may not have been altered since the polyline was not simplified.";
     }
 }
 
@@ -344,7 +344,7 @@ TEST_F(SimplifyTest, Sine)
     Polygon simplified = simplifier.polyline(sine);
 
     EXPECT_EQ(simplified.size(), 2)
-      << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
+        << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
 }
 
 /*!
@@ -400,7 +400,7 @@ TEST_F(SimplifyTest, ToDegenerate)
 
     triangle = simplifier.polygon(triangle);
     EXPECT_EQ(triangle.size(), 3)
-      << "The triangle did not get simplified because that would reduce its vertices to less than 3, making it degenerate.";
+        << "The triangle did not get simplified because that would reduce its vertices to less than 3, making it degenerate.";
 
     // Create a polyline that is shorter than the minimum resolution.
     Polygon segment;
@@ -409,7 +409,7 @@ TEST_F(SimplifyTest, ToDegenerate)
 
     segment = simplifier.polyline(segment);
     EXPECT_EQ(segment.size(), 2)
-      << "The segment did not get simplified because that would reduce its vertices to less than 2, making it degenerate.";
+        << "The segment did not get simplified because that would reduce its vertices to less than 2, making it degenerate.";
 }
 
 } // namespace cura

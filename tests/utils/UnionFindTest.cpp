@@ -1,4 +1,4 @@
-//  Copyright (c)  2019-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/UnionFind.h"
@@ -13,7 +13,7 @@ namespace cura
  */
 class UnionFindTest : public testing::Test
 {
-  public:
+public:
     UnionFind<char> union_find;
 };
 
