@@ -20,7 +20,7 @@ namespace cura
 template<typename... Ts>
 std::string makeName(const std::string& format_string, Ts... args)
 {
-    // FIXME: once we use spdlog, we can use fmt::format instead, see CURA-7221
+    // FIXME: once we use spdlog, we can use fmt::format instead, see CURA-8258
     constexpr int buff_size = 1024;
     char buff[buff_size];
     std::snprintf(buff, buff_size, format_string.c_str(), args...);
