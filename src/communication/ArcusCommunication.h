@@ -1,5 +1,5 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c) 2019-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef ARCUSCOMMUNICATION_H
 #define ARCUSCOMMUNICATION_H
@@ -99,6 +99,12 @@ public:
      * the front-end for its replacement variables.
      */
     void sendGCodePrefix(const std::string& prefix) const override;
+
+    /*
+     * \brief Send the uuid of the generated slice so that it may be processed by
+     * the front-end.
+     */
+    void sendSliceUUID(const std::string& slice_uuid) const override;
 
     /*
      * \brief Indicate to the front-end that a layer is complete and send a

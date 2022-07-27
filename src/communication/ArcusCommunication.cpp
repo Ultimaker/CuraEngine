@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c) 2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifdef ARCUS
 
@@ -369,6 +369,13 @@ void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
 {
     std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
     message->set_data(prefix);
+    private_data->socket->sendMessage(message);
+}
+
+void ArcusCommunication::sendSliceUUID(const std::string& slice_uuid) const
+{
+    std::shared_ptr<proto::SliceUUID> message = std::make_shared<proto::SliceUUID>();
+    message->set_slice_uuid(slice_uuid);
     private_data->socket->sendMessage(message);
 }
 

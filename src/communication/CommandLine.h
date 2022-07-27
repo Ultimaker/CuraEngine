@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c) 2018-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef COMMANDLINE_H
 #define COMMANDLINE_H
@@ -73,6 +73,12 @@ public:
      * \brief Output the g-code header.
      */
     void sendGCodePrefix(const std::string&) const override;
+
+    /*
+     * \brief Send the uuid of the generated slice so that it may be processed by
+     * the front-end.
+     */
+    void sendSliceUUID(const std::string& slice_uuid) const override;
 
     /*
      * \brief Indicate that the layer has been completely sent.

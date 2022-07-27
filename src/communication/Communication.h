@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c) 2018-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
@@ -158,6 +158,12 @@ public:
      * the front-end for its replacement variables.
      */
     virtual void sendGCodePrefix(const std::string& prefix) const = 0;
+
+    /*
+     * \brief Send the uuid of the generated slice so that it may be processed by
+     * the front-end.
+     */
+    virtual void sendSliceUUID(const std::string& slice_uuid) const = 0;
 
     /*
      * \brief Sends a message to indicate that all the slicing is done.
