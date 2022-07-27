@@ -1,11 +1,7 @@
 //Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <list>
-#include <limits> // numeric_limits
-#include <algorithm>
-#include <optional>
-
+#include "FffGcodeWriter.h"
 #include "Application.h"
 #include "bridge.h"
 #include "communication/Communication.h" //To send layer view data.
@@ -22,15 +18,18 @@
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
-#include "utils/Simplify.h" //Removing micro-segments created by offsetting.
-#include "WallToolPaths.h"
+#include <algorithm>
+#include <boost/uuid/random_generator.hpp> //For generating a UUID.
+#include <boost/uuid/uuid_io.hpp> //For generating a UUID.
+#include <limits> // numeric_limits
+#include <list>
+#include <optional>
 
 namespace cura
 {
 
 FffGcodeWriter::FffGcodeWriter()
-: max_object_height(0)
-, layer_plan_buffer(gcode)
+  : max_object_height(0), layer_plan_buffer(gcode), slice_uuid(boost::uuids::to_string(boost::uuids::random_generator()()))
 {
     for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
     { // initialize all as max layer_nr, so that they get updated to the lowest layer on which they are used.

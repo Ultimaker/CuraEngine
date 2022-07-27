@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c) 2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
@@ -73,16 +73,18 @@ private:
     /*!
      * For each extruder on which layer the prime will be planned,
      * or a large negative number if it's already planned outside of \ref FffGcodeWriter::processLayer
-     * 
+     *
      * Depending on whether we need to prime on the first layer, or anywhere in the print,
      * the layer numbers are all zero (or less in case of raft)
      * or they are the first layer at which the extruder is needed
      */
     LayerIndex extruder_prime_layer_nr[MAX_EXTRUDERS];
 
-    std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
+    std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time
+                                                                                       //!< and fan speeds. Configured for each extruder.
 
-public:
+    std::string slice_uuid; //!< The UUID of the current slice.
+  public:
     /*
      * \brief Construct a g-code writer.
      *
@@ -93,9 +95,9 @@ public:
 
     /*!
      * Set the target to write gcode to: to a file.
-     * 
+     *
      * Used when CuraEngine is used as command line tool.
-     * 
+     *
      * \param filename The filename of the file to which to write the gcode.
      */
     bool setTargetFile(const char* filename);
