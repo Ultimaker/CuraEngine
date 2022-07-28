@@ -17,7 +17,7 @@
 namespace cura
 {
 
-constexpr size_t gk_test_num_mesh_groups = 1;
+constexpr size_t GK_TEST_NUM_MESH_GROUPS = 1;
 /*
  * Fixture with an instance of Private that sets up the mock socket
  * correctly.
@@ -31,7 +31,7 @@ public:
     {
         instance = new ArcusCommunication::Private();
         instance->socket = new MockSocket();
-        Application::getInstance().current_slice = new Slice(gk_test_num_mesh_groups);
+        Application::getInstance().current_slice = new Slice(GK_TEST_NUM_MESH_GROUPS);
     }
 
     void TearDown() override
