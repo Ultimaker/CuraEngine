@@ -1,5 +1,5 @@
-//  Copyright (c) 2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PathOrderOptimizer.h" //The code under test.
 #include <gtest/gtest.h> //To run the tests.

@@ -1,5 +1,5 @@
-//  Copyright (c) 2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "FffProcessor.h"
 #include "MockSocket.h" //To mock out the communication with the front-end.
