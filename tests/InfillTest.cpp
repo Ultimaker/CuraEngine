@@ -108,15 +108,15 @@ public:
 // NOLINTEND(misc-non-private-member-variables-in-classes)
 
 
-constexpr coord_t infill_line_width = 350;
-constexpr coord_t infill_overlap = 0;
-constexpr size_t infill_multiplier = 1;
-const AngleDegrees fill_angle = 0.;
-constexpr coord_t z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
-constexpr coord_t shift = 0;
-constexpr coord_t max_resolution = 10;
-constexpr coord_t max_deviation = 5;
-const std::vector<std::string> polygon_filenames = {
+constexpr coord_t INFILL_LINE_WIDTH = 350;
+constexpr coord_t INFILL_OVERLAP = 0;
+constexpr size_t INFILL_MULTIPLIER = 1;
+const AngleDegrees FILL_ANGLE = 0.;
+constexpr coord_t Z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
+constexpr coord_t SHIFT = 0;
+constexpr coord_t MAX_RESOLUTION = 10;
+constexpr coord_t MAX_DEVIATION = 5;
+const std::vector<std::string> POLYGON_FILENAMES = {
     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave.txt").string(),  std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave_hole.txt").string(),
     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square.txt").string(),   std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square_hole.txt").string(),
     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_triangle.txt").string(), std::filesystem::path(__FILE__).parent_path().append("resources/polygon_two_squares.txt").string()
@@ -153,15 +153,15 @@ InfillTestParameters generateInfillToTest(const InfillParameters& params, const 
                   zig_zagify,
                   connect_polygons,
                   outline_polygons,
-                  infill_line_width,
+                  INFILL_LINE_WIDTH,
                   line_distance,
-                  infill_overlap,
-                  infill_multiplier,
-                  fill_angle,
-                  z,
-                  shift,
-                  max_resolution,
-                  max_deviation); // There are some optional parameters, but these will do for now (future improvement?).
+                  INFILL_OVERLAP,
+                  INFILL_MULTIPLIER,
+                  FILL_ANGLE,
+                  Z,
+                  SHIFT,
+                  MAX_RESOLUTION,
+                  MAX_DEVIATION); // There are some optional parameters, but these will do for now (future improvement?).
 
     Settings infill_settings;
     std::vector<VariableWidthLines> result_paths;
@@ -175,13 +175,12 @@ InfillTestParameters generateInfillToTest(const InfillParameters& params, const 
 
 std::vector<InfillTestParameters> generateInfillTests()
 {
-    constexpr bool do_zig_zaggify = true;
     constexpr bool dont_zig_zaggify = false;
     constexpr bool do_connect_polygons = true;
     constexpr bool dont_connect_polygons = false;
 
     std::vector<Polygons> shapes;
-    if (! readTestPolygons(polygon_filenames, shapes))
+    if (! readTestPolygons(POLYGON_FILENAMES, shapes))
     {
         return { InfillTestParameters() }; // return an invalid singleton, that'll trip up the 'file read' assertion in the TEST_P's
     }
@@ -249,22 +248,22 @@ TEST_P(InfillTest, TestInfillSanity)
     long double worst_case_zig_zag_added_area = 0;
     if (params.params.zig_zagify || params.params.pattern == EFillMethod::ZIG_ZAG)
     {
-        worst_case_zig_zag_added_area = params.outline_polygons.polygonLength() * infill_line_width;
+        worst_case_zig_zag_added_area = params.outline_polygons.polygonLength() * INFILL_LINE_WIDTH;
     }
 
     const double min_available_area = std::abs(params.outline_polygons.offset(static_cast<int>(-params.params.line_distance) / 2).area());
     const long double max_available_area = std::abs(params.outline_polygons.offset(static_cast<int>(params.params.line_distance) / 2).area()) + worst_case_zig_zag_added_area;
-    const long double min_expected_infill_area = (min_available_area * static_cast<long double>(infill_line_width)) / params.params.line_distance;
-    const long double max_expected_infill_area = (max_available_area * infill_line_width) / params.params.line_distance + worst_case_zig_zag_added_area;
+    const long double min_expected_infill_area = (min_available_area * static_cast<long double>(INFILL_LINE_WIDTH)) / params.params.line_distance;
+    const long double max_expected_infill_area = (max_available_area * INFILL_LINE_WIDTH) / params.params.line_distance + worst_case_zig_zag_added_area;
 
-    const long double out_infill_area = ((params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * static_cast<long double>(infill_line_width)) / getPatternMultiplier(params.params.pattern);
+    const long double out_infill_area = ((params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * static_cast<long double>(INFILL_LINE_WIDTH)) / getPatternMultiplier(params.params.pattern);
 
     ASSERT_GT((coord_t)max_available_area, (coord_t)out_infill_area) << "Infill area should allways be less than the total area available.";
     ASSERT_GT((coord_t)out_infill_area, (coord_t)min_expected_infill_area) << "Infill area should be greater than the minimum area expected to be covered.";
     ASSERT_LT((coord_t)out_infill_area, (coord_t)max_expected_infill_area) << "Infill area should be less than the maximum area to be covered.";
 
     const coord_t maximum_error = 10_mu; // potential rounding error
-    const Polygons padded_shape_outline = params.outline_polygons.offset(infill_line_width / 2);
+    const Polygons padded_shape_outline = params.outline_polygons.offset(INFILL_LINE_WIDTH / 2);
     constexpr bool restitch = false; // No need to restitch polylines - that would introduce stitching errors.
     ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(params.result_lines, restitch).polyLineLength() - params.result_lines.polyLineLength()), maximum_error) << "Infill (lines) should not be outside target polygon.";
     Polygons result_polygon_lines = params.result_polygons;
