@@ -47,8 +47,8 @@ set(TESTS_HELPERS_SRC ReadTestPolygons.cpp)
 set(TESTS_SRC_ARCUS)
 if (ENABLE_ARCUS)
     list(APPEND TESTS_SRC_ARCUS
-            arcus/ArcusCommunicationTest
-            arcus/ArcusCommunicationPrivateTest)
+            ArcusCommunicationTest
+            ArcusCommunicationPrivateTest)
     list(APPEND TESTS_HELPERS_SRC arcus/MockSocket.cpp)
 endif ()
 
@@ -65,12 +65,9 @@ foreach (test ${TESTS_SRC_BASE})
 endforeach ()
 
 foreach (test ${TESTS_SRC_ARCUS})
-    string(LENGTH ${test} test_len)
-    math(EXPR test_len "${test_len} - 6")
-    string(SUBSTRING ${test} 6 ${test_len} test_name)
-    add_executable(${test_name} main.cpp ${test}.cpp)
-    add_test(NAME ${test_name} COMMAND "${test_name}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(${test_name} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
+    add_executable(${test} main.cpp arcus/${test}.cpp)
+    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
 endforeach ()
 
 foreach (test ${TESTS_SRC_INTEGRATION})
