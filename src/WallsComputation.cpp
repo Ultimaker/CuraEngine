@@ -1,5 +1,5 @@
-//  Copyright (c) 2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "WallsComputation.h"
 #include "Application.h"
@@ -8,8 +8,7 @@
 #include "WallToolPaths.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
-#include "utils/Simplify.h" //We're simplifying the spiralized insets.
-#include "utils/polygonUtils.h"
+#include "utils/Simplify.h" // We're simplifying the spiralized insets.
 
 namespace cura
 {
