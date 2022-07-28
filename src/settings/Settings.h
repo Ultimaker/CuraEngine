@@ -1,22 +1,22 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SETTINGS_SETTINGS_H
 #define SETTINGS_SETTINGS_H
 
-#ifndef VERSION
-#define VERSION "DEV"
+#ifndef CURA_ENGINE_VERSION
+#define CURA_ENGINE_VERSION "main"
 #endif
 
 #define MAX_EXTRUDERS 16
 
-//Maximum number of infill layers that can be combined into a single infill extrusion area.
+// Maximum number of infill layers that can be combined into a single infill extrusion area.
 #define MAX_INFILL_COMBINE 8
 
-#include <vector>
 #include <map>
-#include <unordered_map>
 #include <sstream>
+#include <unordered_map>
+#include <vector>
 
 namespace cura
 {

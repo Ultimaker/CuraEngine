@@ -5,7 +5,6 @@ cmake_policy(SET CMP0091 NEW)  # For MSVC flags, will be ignored on non-Windows 
 cmake_minimum_required(VERSION 3.20)
 project(CuraEngine)
 
-set(CURA_ENGINE_VERSION "main" CACHE STRING "Version name of Cura")
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 option(BUILD_TESTING "Build with unit tests" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
@@ -156,8 +155,8 @@ target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS>
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
+        CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
         PRIVATE
-        VERSION=\"${CURA_ENGINE_VERSION}\"
         $<$<BOOL:${WIN32}>:NOMINMAX>
         $<$<CONFIG:Debug>:ASSERT_INSANE_OUTPUT>
         $<$<CONFIG:Debug>:USE_CPU_TIME>

@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cmath> // sqrt
 #include <fstream> // debug IO
@@ -578,7 +578,7 @@ void Wireframe2gcode::processStartingCode()
         gcode.writeCode(prefix.c_str());
     }
 
-    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
+    gcode.writeComment("Generated with Cura_SteamEngine " CURA_ENGINE_VERSION);
 
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {

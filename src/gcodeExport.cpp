@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <assert.h>
 #include <cmath>
@@ -176,7 +176,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";HEADER_VERSION:0.1" << new_line;
         prefix << ";FLAVOR:" << flavorToString(flavor) << new_line;
         prefix << ";GENERATOR.NAME:Cura_SteamEngine" << new_line;
-        prefix << ";GENERATOR.VERSION:" << VERSION << new_line;
+        prefix << ";GENERATOR.VERSION:" << CURA_ENGINE_VERSION << new_line;
         prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name) << new_line;
 

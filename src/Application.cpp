@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <string>
 #include "Application.h"
@@ -132,7 +132,7 @@ void Application::printHelp() const
 void Application::printLicense() const
 {
     logAlways("\n");
-    logAlways("Cura_SteamEngine version %s\n", VERSION);
+    logAlways("Cura_SteamEngine version %s\n", CURA_ENGINE_VERSION);
     logAlways("Copyright (C) 2022 Ultimaker\n");
     logAlways("\n");
     logAlways("This program is free software: you can redistribute it and/or modify\n");
