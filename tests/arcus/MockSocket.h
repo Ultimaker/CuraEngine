@@ -14,6 +14,7 @@ namespace cura
  * \brief Mocks a socket connection from libArcus such that we can test with it
  * without creating an actual connection.
  */
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class MockSocket : public Arcus::Socket
 {
 public:
@@ -29,13 +30,13 @@ public:
     void sendMessage(Arcus::MessagePtr message) override;
     Arcus::MessagePtr takeNextMessage() override;
 
-    // Helpers to store the sent and received messages.
+    // Helpers to store send and received messages.
     void pushMessageToReceivedQueue(Arcus::MessagePtr message);
     Arcus::MessagePtr popMessageFromSendQueue();
     std::deque<Arcus::MessagePtr> sent_messages;
     std::deque<Arcus::MessagePtr> received_messages;
 };
-
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 } // namespace cura
 
 #endif // MOCKSOCKET_H

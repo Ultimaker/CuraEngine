@@ -120,8 +120,7 @@ TEST_F(TimeEstimateCalculatorTest, AddTime)
 
     calculator.addTime(-7);
     result = calculator.calculate();
-    EXPECT_NEAR(Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON)
-        << "Due to how Duration works, it can never go lower.";
+    EXPECT_NEAR(Duration(5.0), result[static_cast<size_t>(PrintFeatureType::NoneType)], EPSILON) << "Due to how Duration works, it can never go lower.";
 }
 
 TEST_F(TimeEstimateCalculatorTest, StartWithZero)
@@ -240,8 +239,7 @@ TEST_F(TimeEstimateCalculatorTest, ShortLine)
      * Accelerate from 0mm/s up to slightly further than half the line distance.
      * Decelerate from slightly beyond half the line distance down to minimum planner speed.
      */
-    const TimeEstimateCalculator::Position destination(
-        25.0, 0, 0, 0); // 25mm just enough to reach full speed, but it must decelerate to minimum planner speed in that same distance too.
+    const TimeEstimateCalculator::Position destination(25.0, 0, 0, 0); // 25mm just enough to reach full speed, but it must decelerate to minimum planner speed in that same distance too.
     calculator.plan(destination, 50.0, PrintFeatureType::Infill);
 
     // Calculate the intersection point of two position-velocity formulas: One for accelerating and one for decelerating.
@@ -382,15 +380,11 @@ TEST_F(TimeEstimateCalculatorTest, StraightAngleNoJerk)
     const double first_cruise_distance = 1000.0 - first_accelerate_distance - first_decelerate_distance;
     const double second_accelerate_distance = first_accelerate_distance;
     const double second_decelerate_t = (50.0 - MINIMUM_PLANNER_SPEED) / 50.0;
-    const double second_decelerate_distance =
-        0.5 * 50.0 * second_decelerate_t * second_decelerate_t
-        + MINIMUM_PLANNER_SPEED * second_decelerate_t; // This time there is an initial speed: The minimum planner speed.
+    const double second_decelerate_distance = 0.5 * 50.0 * second_decelerate_t * second_decelerate_t + MINIMUM_PLANNER_SPEED * second_decelerate_t; // This time there is an initial speed: The minimum planner speed.
     const double second_cruise_distance = 1000.0 - second_accelerate_distance - second_decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(1.0 + first_cruise_distance / 50.0 + 1.0 + 1.0 + second_cruise_distance / 50.0 + second_decelerate_t),
-                result[static_cast<size_t>(PrintFeatureType::Infill)],
-                EPSILON);
+    EXPECT_NEAR(Duration(1.0 + first_cruise_distance / 50.0 + 1.0 + 1.0 + second_cruise_distance / 50.0 + second_decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
 }
 
 TEST_F(TimeEstimateCalculatorTest, StraightAnglePartialJerk)
@@ -418,32 +412,22 @@ TEST_F(TimeEstimateCalculatorTest, StraightAnglePartialJerk)
 
     const Velocity jerk = um3.get<Velocity>("machine_max_jerk_xy");
     const Velocity acceleration = um3.get<Velocity>("machine_acceleration");
-    const Velocity junction_speed =
-        std::sqrt(jerk * jerk / 4 + jerk * jerk / 4); // Speed at which we move through the junction. Since it's a 90 degree angle, use
-                                                      // Pythagoras. The vector changes exactly with the jerk.
+    const Velocity junction_speed = std::sqrt(jerk * jerk / 4 + jerk * jerk / 4); // Speed at which we move through the junction. Since it's a 90 degree angle, use
+                                                                                  // Pythagoras. The vector changes exactly with the jerk.
     // Distance needed to accelerate: 1/2 at² + vt. Start at the initial jerk.
     const double first_accelerate_t = (50.0 - jerk / 2) / acceleration;
     const double first_accelerate_distance = 0.5 * acceleration * first_accelerate_t * first_accelerate_t + jerk / 2 * first_accelerate_t;
-    const double first_decelerate_t =
-        (50.0 - junction_speed)
-        / acceleration; // We decelerate to half the jerk in order to use the other half for accelerating in the Y direction.
-    const double first_decelerate_distance =
-        0.5 * acceleration * first_decelerate_t * first_decelerate_t + junction_speed * first_decelerate_t;
+    const double first_decelerate_t = (50.0 - junction_speed) / acceleration; // We decelerate to half the jerk in order to use the other half for accelerating in the Y direction.
+    const double first_decelerate_distance = 0.5 * acceleration * first_decelerate_t * first_decelerate_t + junction_speed * first_decelerate_t;
     const double first_cruise_distance = 1000.0 - first_accelerate_distance - first_decelerate_distance;
     const double second_accelerate_t = (50.0 - junction_speed) / acceleration; // Same, but with Y instead of X.
-    const double second_accelerate_distance =
-        0.5 * acceleration * second_accelerate_t * second_accelerate_t + junction_speed * second_accelerate_t;
-    const double second_decelerate_t =
-        (50.0 - MINIMUM_PLANNER_SPEED) / acceleration; // Decelerate without using jerk, because it's the end of the print.
-    const double second_decelerate_distance =
-        0.5 * acceleration * second_decelerate_t * second_decelerate_t + MINIMUM_PLANNER_SPEED * second_decelerate_t;
+    const double second_accelerate_distance = 0.5 * acceleration * second_accelerate_t * second_accelerate_t + junction_speed * second_accelerate_t;
+    const double second_decelerate_t = (50.0 - MINIMUM_PLANNER_SPEED) / acceleration; // Decelerate without using jerk, because it's the end of the print.
+    const double second_decelerate_distance = 0.5 * acceleration * second_decelerate_t * second_decelerate_t + MINIMUM_PLANNER_SPEED * second_decelerate_t;
     const double second_cruise_distance = 1000.0 - second_accelerate_distance - second_decelerate_distance;
 
     const std::vector<Duration> result = calculator.calculate();
-    EXPECT_NEAR(Duration(first_accelerate_t + first_cruise_distance / 50.0 + first_decelerate_t + second_accelerate_t
-                         + second_cruise_distance / 50.0 + second_decelerate_t),
-                result[static_cast<size_t>(PrintFeatureType::Infill)],
-                EPSILON);
+    EXPECT_NEAR(Duration(first_accelerate_t + first_cruise_distance / 50.0 + first_decelerate_t + second_accelerate_t + second_cruise_distance / 50.0 + second_decelerate_t), result[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
 }
 
 } // namespace cura

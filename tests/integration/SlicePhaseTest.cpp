@@ -57,8 +57,7 @@ TEST_F(SlicePhaseTest, Cube)
 
     const FMatrix4x3 transformation;
     // Path to cube.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
-    ASSERT_TRUE(loadMeshIntoMeshGroup(
-        &mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cube.stl").c_str(), transformation, scene.settings));
+    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cube.stl").c_str(), transformation, scene.settings));
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cube_mesh = mesh_group.meshes[0];
 
@@ -97,8 +96,7 @@ TEST_F(SlicePhaseTest, Cube)
                         break;
                     }
                 }
-                EXPECT_NE(start_corner, -1)
-                    << "The first vertex of the sliced polygon must be one of the vertices of the ground truth square.";
+                EXPECT_NE(start_corner, -1) << "The first vertex of the sliced polygon must be one of the vertices of the ground truth square.";
 
                 if (start_corner != -1)
                 {
@@ -119,10 +117,7 @@ TEST_F(SlicePhaseTest, Cylinder1000)
 
     const FMatrix4x3 transformation;
     // Path to cylinder1000.stl is relative to CMAKE_CURRENT_SOURCE_DIR/tests.
-    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group,
-                                      std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").c_str(),
-                                      transformation,
-                                      scene.settings));
+    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cylinder1000.stl").c_str(), transformation, scene.settings));
     EXPECT_EQ(mesh_group.meshes.size(), 1);
     Mesh& cylinder_mesh = mesh_group.meshes[0];
 

@@ -18,9 +18,7 @@ struct GetNearbyParameters
     std::unordered_set<Point> expected_near;
     std::unordered_set<Point> expected_far;
 
-    GetNearbyParameters(const std::vector<Point> registered_points,
-                        const std::unordered_set<Point> expected_near,
-                        const std::unordered_set<Point> expected_far) :
+    GetNearbyParameters(const std::vector<Point> registered_points, const std::unordered_set<Point> expected_near, const std::unordered_set<Point> expected_far) :
         registered_points(registered_points),
         expected_near(expected_near),
         expected_far(expected_far)
@@ -48,30 +46,20 @@ TEST_P(GetNearbyTest, GetNearby)
     // Are all near points reported as near?
     for (const Point point : parameters.expected_near)
     {
-        EXPECT_NE(result.end(),
-                  std::find_if(result.begin(),
-                               result.end(),
-                               [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
-            << "Point " << point << " is near " << target << " (distance " << vSize(point - target)
-            << "), but getNearby didn't find it. Grid size: " << grid_size;
+        EXPECT_NE(result.end(), std::find_if(result.begin(), result.end(), [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
+            << "Point " << point << " is near " << target << " (distance " << vSize(point - target) << "), but getNearby didn't find it. Grid size: " << grid_size;
     }
     // Are all far points NOT reported as near?
     for (const Point point : parameters.expected_far)
     {
-        EXPECT_EQ(result.end(),
-                  std::find_if(result.begin(),
-                               result.end(),
-                               [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
-            << "Point " << point << " is far from " << target << " (distance " << vSize(point - target)
-            << "), but getNearby thought it was near. Grid size: " << grid_size;
+        EXPECT_EQ(result.end(), std::find_if(result.begin(), result.end(), [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
+            << "Point " << point << " is far from " << target << " (distance " << vSize(point - target) << "), but getNearby thought it was near. Grid size: " << grid_size;
     }
 }
 
 INSTANTIATE_TEST_CASE_P(GetNearbyInstantiation,
                         GetNearbyTest,
-                        testing::Values(GetNearbyParameters({ Point(0, 100) },
-                                                            std::unordered_set<Point>(),
-                                                            std::unordered_set<Point>({ Point(0, 100) })), // A far point.
+                        testing::Values(GetNearbyParameters({ Point(0, 100) }, std::unordered_set<Point>(), std::unordered_set<Point>({ Point(0, 100) })), // A far point.
                                         GetNearbyParameters({ Point(95, 100) },
                                                             std::unordered_set<Point>({ Point(95, 100) }),
                                                             std::unordered_set<Point>()), // A near point.
@@ -114,22 +102,14 @@ TEST_F(GetNearbyTest, getNearbyLine2)
     // Are all near points reported as near?
     for (const Point point : near)
     {
-        EXPECT_NE(result.end(),
-                  std::find_if(result.begin(),
-                               result.end(),
-                               [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
-            << "Point " << point << " is near " << target << " (distance " << vSize(point - target)
-            << "), but getNearby didn't find it. Grid size: " << grid_size;
+        EXPECT_NE(result.end(), std::find_if(result.begin(), result.end(), [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
+            << "Point " << point << " is near " << target << " (distance " << vSize(point - target) << "), but getNearby didn't find it. Grid size: " << grid_size;
     }
     // Are all far points NOT reported as near?
     for (const Point point : far)
     {
-        EXPECT_EQ(result.end(),
-                  std::find_if(result.begin(),
-                               result.end(),
-                               [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
-            << "Point " << point << " is far from " << target << " (distance " << vSize(point - target)
-            << "), but getNearby thought it was near. Grid size: " << grid_size;
+        EXPECT_EQ(result.end(), std::find_if(result.begin(), result.end(), [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
+            << "Point " << point << " is far from " << target << " (distance " << vSize(point - target) << "), but getNearby thought it was near. Grid size: " << grid_size;
     }
 }
 
@@ -167,22 +147,14 @@ TEST_F(GetNearbyTest, getNearbyLine)
     // Are all near points reported as near?
     for (const Point point : near)
     {
-        EXPECT_NE(result.end(),
-                  std::find_if(result.begin(),
-                               result.end(),
-                               [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
-            << "Point " << point << " is near " << target << " (distance " << vSize(point - target)
-            << "), but getNearby didn't find it. Grid size: " << grid_size;
+        EXPECT_NE(result.end(), std::find_if(result.begin(), result.end(), [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
+            << "Point " << point << " is near " << target << " (distance " << vSize(point - target) << "), but getNearby didn't find it. Grid size: " << grid_size;
     }
     // Are all far points NOT reported as near?
     for (const Point point : far)
     {
-        EXPECT_EQ(result.end(),
-                  std::find_if(result.begin(),
-                               result.end(),
-                               [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
-            << "Point " << point << " is far from " << target << " (distance " << vSize(point - target)
-            << "), but getNearby thought it was near. Grid size: " << grid_size;
+        EXPECT_EQ(result.end(), std::find_if(result.begin(), result.end(), [&point](const typename SparsePointGridInclusive<Point>::Elem& elem) { return elem.val == point; }))
+            << "Point " << point << " is far from " << target << " (distance " << vSize(point - target) << "), but getNearby thought it was near. Grid size: " << grid_size;
     }
 }
 
@@ -192,10 +164,7 @@ struct GetNearestParameters
     Point* result;
     std::function<bool(const typename SparsePointGridInclusive<Point>::Elem&)> filter;
 
-    GetNearestParameters(const std::vector<Point> registered_points,
-                         Point* result,
-                         const std::function<bool(const typename SparsePointGridInclusive<Point>::Elem&)>& filter =
-                             SparsePointGridInclusive<Point>::no_precondition) :
+    GetNearestParameters(const std::vector<Point> registered_points, Point* result, const std::function<bool(const typename SparsePointGridInclusive<Point>::Elem&)>& filter = SparsePointGridInclusive<Point>::no_precondition) :
         registered_points(registered_points),
         result(result),
         filter(filter)
@@ -222,27 +191,22 @@ TEST_P(GetNearestTest, GetNearest)
     typename SparsePointGridInclusive<Point>::Elem result;
     const bool success = grid.getNearest(target, grid_size, result, parameters.filter);
 
-    ASSERT_EQ(success, parameters.result != nullptr)
-        << "getNearest returned " << success << " but should've returned " << (parameters.result != nullptr) << ".";
+    ASSERT_EQ(success, parameters.result != nullptr) << "getNearest returned " << success << " but should've returned " << (parameters.result != nullptr) << ".";
     if (parameters.result)
     {
-        ASSERT_EQ(result.val, *parameters.result)
-            << "getNearest reported the nearest point to be " << result.val << " (distance " << vSize(target - result.val)
-            << "), but it was " << *parameters.result << " (distance " << vSize(target - *parameters.result) << ").";
+        ASSERT_EQ(result.val, *parameters.result) << "getNearest reported the nearest point to be " << result.val << " (distance " << vSize(target - result.val) << "), but it was " << *parameters.result << " (distance "
+                                                  << vSize(target - *parameters.result) << ").";
     }
 }
 
 INSTANTIATE_TEST_SUITE_P(GetNearestInstantiation,
                          GetNearestTest,
-                         testing::Values(GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(103, 100), Point(200, 100) }),
-                                                              new Point(103, 100)), // Choose the nearest out of 3 points.
+                         testing::Values(GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(103, 100), Point(200, 100) }), new Point(103, 100)), // Choose the nearest out of 3 points.
                                          GetNearestParameters(std::vector<Point>({ Point(95, 100), Point(98, 100), Point(106, 100) }),
                                                               new Point(106, 100),
-                                                              [](const typename SparsePointGridInclusive<Point>::Elem& elem) -> bool
-                                                              { return elem.point.X > 100; }), // With a filter.
+                                                              [](const typename SparsePointGridInclusive<Point>::Elem& elem) -> bool { return elem.point.X > 100; }), // With a filter.
                                          GetNearestParameters(std::vector<Point>(), nullptr), // No points, no answer.
-                                         GetNearestParameters(std::vector<Point>({ Point(100, 100) }),
-                                                              new Point(100, 100)) // Same point as target.
+                                         GetNearestParameters(std::vector<Point>({ Point(100, 100) }), new Point(100, 100)) // Same point as target.
                                          ));
 
 TEST_F(GetNearestTest, Equal)
@@ -266,10 +230,9 @@ TEST_F(GetNearestTest, Equal)
     const bool success = grid.getNearest(target, grid_size, result, SparsePointGridInclusive<Point>::no_precondition);
 
     ASSERT_TRUE(success);
-    ASSERT_TRUE(result.val == expected1 || result.val == expected2)
-        << "getNearest reported the nearest point to be " << result.val << " (distance " << vSize(target - result.val)
-        << "), but it should've been " << expected1 << "(distance " << vSize(expected1 - target) << ") or " << expected2 << " (distance "
-        << vSize(expected2 - target) << ")."; // FIXME: simplify once fmt or we use C++20 is added as a dependency
+    ASSERT_TRUE(result.val == expected1 || result.val == expected2) << "getNearest reported the nearest point to be " << result.val << " (distance " << vSize(target - result.val) << "), but it should've been " << expected1 << "(distance "
+                                                                    << vSize(expected1 - target) << ") or " << expected2 << " (distance " << vSize(expected2 - target)
+                                                                    << ")."; // FIXME: simplify once fmt or we use C++20 is added as a dependency
 }
 
 } // namespace cura

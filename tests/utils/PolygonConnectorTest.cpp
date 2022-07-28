@@ -10,6 +10,8 @@
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
+
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class PolygonConnectorTest : public testing::Test
 {
 public:
@@ -25,7 +27,7 @@ public:
     Polygons connected_polygons;
     std::vector<VariableWidthLines> connected_paths;
 
-    virtual void SetUp()
+    virtual void SetUp() override
     {
         test_square.emplace_back(0, 0);
         test_square.emplace_back(1000, 0);
@@ -46,11 +48,12 @@ public:
         pc = new PolygonConnector(line_width);
     }
 
-    void TearDown()
+    void TearDown() override
     {
         delete pc;
     }
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 
 /*!
  * Test creating a bridge between two squares that are nested in each other at
@@ -63,19 +66,13 @@ TEST_F(PolygonConnectorTest, getBridgeNestedSquares)
     std::vector<Polygon> to_connect({ test_square_around });
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
-    ASSERT_NE(bridge, std::nullopt)
-        << "The two polygons are nested simply, so they are definitely positioned closely enough to bridge. They are also wide enough.";
+    ASSERT_NE(bridge, std::nullopt) << "The two polygons are nested simply, so they are definitely positioned closely enough to bridge. They are also wide enough.";
 
-    EXPECT_EQ(vSize(bridge->a.from_point - bridge->a.to_point), 100)
-        << "The polygons are 100 units spaced out concentrically, so this is the shortest possible bridge.";
+    EXPECT_EQ(vSize(bridge->a.from_point - bridge->a.to_point), 100) << "The polygons are 100 units spaced out concentrically, so this is the shortest possible bridge.";
     EXPECT_EQ(vSize(bridge->b.from_point - bridge->b.to_point), 100) << "The second bridge should also be equally short in this case.";
-    EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a.from_point, bridge->a.to_point, bridge->b.from_point, bridge->b.to_point),
-              100 * 100)
-        << "The bridges should be spaced 1 line width (100 units) apart.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.from_point, bridge->a.from_point, bridge->a.to_point), 0)
-        << "Connection B should be to the right of connection A.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.to_point, bridge->a.from_point, bridge->a.to_point), 0)
-        << "Connection B should be to the right of connection A.";
+    EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a.from_point, bridge->a.to_point, bridge->b.from_point, bridge->b.to_point), 100 * 100) << "The bridges should be spaced 1 line width (100 units) apart.";
+    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.from_point, bridge->a.from_point, bridge->a.to_point), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.to_point, bridge->a.from_point, bridge->a.to_point), 0) << "Connection B should be to the right of connection A.";
 }
 
 /*!
@@ -91,16 +88,11 @@ TEST_F(PolygonConnectorTest, getBridgeAdjacentSquares)
 
     ASSERT_NE(bridge, std::nullopt) << "The two polygons are adjacent, spaced closely enough to bridge and with enough room.";
 
-    EXPECT_EQ(vSize(bridge->a.from_point - bridge->a.to_point), 100)
-        << "The polygons are 100 units spaced apart, so this is the shortest possible bridge.";
+    EXPECT_EQ(vSize(bridge->a.from_point - bridge->a.to_point), 100) << "The polygons are 100 units spaced apart, so this is the shortest possible bridge.";
     EXPECT_EQ(vSize(bridge->b.from_point - bridge->b.to_point), 100) << "The second bridge should also be equally short in this case.";
-    EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a.from_point, bridge->a.to_point, bridge->b.from_point, bridge->b.to_point),
-              100 * 100)
-        << "The bridges should be spaced 1 line width (100 units) apart.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.from_point, bridge->a.from_point, bridge->a.to_point), 0)
-        << "Connection B should be to the right of connection A.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.to_point, bridge->a.from_point, bridge->a.to_point), 0)
-        << "Connection B should be to the right of connection A.";
+    EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a.from_point, bridge->a.to_point, bridge->b.from_point, bridge->b.to_point), 100 * 100) << "The bridges should be spaced 1 line width (100 units) apart.";
+    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.from_point, bridge->a.from_point, bridge->a.to_point), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b.to_point, bridge->a.from_point, bridge->a.to_point), 0) << "Connection B should be to the right of connection A.";
 }
 
 /*!
@@ -119,17 +111,12 @@ TEST_F(PolygonConnectorTest, getBridgeClosest)
 
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
-    ASSERT_NE(bridge, std::nullopt)
-        << "The two polygons are adjacent and spaced closely enough to bridge along their entire side, even with the slant.";
+    ASSERT_NE(bridge, std::nullopt) << "The two polygons are adjacent and spaced closely enough to bridge along their entire side, even with the slant.";
 
-    EXPECT_EQ(bridge->b.from_point, Point(1000, 200))
-        << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
-    EXPECT_EQ(bridge->b.to_point, Point(1100, 200))
-        << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
-    EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a.from_point, bridge->b.from_point, bridge->b.to_point), 0)
-        << "Connection A should be to the left of connection B.";
-    EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a.to_point, bridge->b.from_point, bridge->b.to_point), 0)
-        << "Connection A should be to the left of connection B.";
+    EXPECT_EQ(bridge->b.from_point, Point(1000, 200)) << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
+    EXPECT_EQ(bridge->b.to_point, Point(1100, 200)) << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
+    EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a.from_point, bridge->b.from_point, bridge->b.to_point), 0) << "Connection A should be to the left of connection B.";
+    EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a.to_point, bridge->b.from_point, bridge->b.to_point), 0) << "Connection A should be to the left of connection B.";
 }
 
 /*!
@@ -146,8 +133,7 @@ TEST_F(PolygonConnectorTest, getBridgeTooFar)
 
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
-    EXPECT_EQ(bridge, std::nullopt) << "The two polygons are 200 units apart where they are closest, which is more than 1.5 times the line "
-                                       "width (100), so they can't be connected.";
+    EXPECT_EQ(bridge, std::nullopt) << "The two polygons are 200 units apart where they are closest, which is more than 1.5 times the line width (100), so they can't be connected.";
 }
 
 /*!
@@ -168,8 +154,7 @@ TEST_F(PolygonConnectorTest, getBridgeTooNarrow)
 
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
-    EXPECT_EQ(bridge, std::nullopt) << "Where the two polygons are adjacent is only 80 units wide. This is not enough to create a bridge "
-                                       "with the connecting lines spaced 1 line width (100 units) apart.";
+    EXPECT_EQ(bridge, std::nullopt) << "Where the two polygons are adjacent is only 80 units wide. This is not enough to create a bridge with the connecting lines spaced 1 line width (100 units) apart.";
 }
 
 /*!

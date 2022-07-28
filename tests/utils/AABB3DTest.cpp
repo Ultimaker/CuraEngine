@@ -91,14 +91,12 @@ TEST(AABB3DTest, TestInclude)
 {
     AABB3D box(Point3(2, 2, 2), Point3(5, 10, 3));
 
-    EXPECT_FALSE(box.hit(toBox(1, 1, 1)))
-        << "The unexpanded (via include/point) box should not contain a point in the (future) expanded area.";
+    EXPECT_FALSE(box.hit(toBox(1, 1, 1))) << "The unexpanded (via include/point) box should not contain a point in the (future) expanded area.";
 
     box.include(Point3(0, 0, 0));
 
     EXPECT_TRUE(box.hit(toBox(1, 1, 1))) << "The expanded (via include/point) box should contain a point in the expanded area.";
-    EXPECT_FALSE(box.hit(toBox(6, 9, -1)))
-        << "The unexpanded (via include/other) box should not contain a point in the (future) expanded area.";
+    EXPECT_FALSE(box.hit(toBox(6, 9, -1))) << "The unexpanded (via include/other) box should not contain a point in the (future) expanded area.";
 
     box.include(AABB3D(Point3(7, 9, -2), Point3(8, 10, 0)));
 
@@ -127,8 +125,7 @@ TEST(AABB3DTest, TestOffset)
     box.offset(Point3(-2, -2, -2));
 
     EXPECT_TRUE(box.hit(toBox(1, 1, 1))) << "The expanded (via offset-3D) box should contain a point in the expanded area.";
-    EXPECT_FALSE(box.hit(toBox(6, 9, -1)))
-        << "The unexpanded (via offset-3D) box should not contain a point in the (future) expanded area.";
+    EXPECT_FALSE(box.hit(toBox(6, 9, -1))) << "The unexpanded (via offset-3D) box should not contain a point in the (future) expanded area.";
 
     box.offset(Point(-2, -2));
 

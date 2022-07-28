@@ -5,12 +5,13 @@
 #include "utils/Coord_t.h"
 #include "utils/SVG.h" // helper functions
 #include "utils/polygonUtils.h" // helper functions
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
+
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class PolygonTest : public testing::Test
 {
 public:
@@ -23,9 +24,7 @@ public:
     Polygons clockwise_donut;
     Polygon line;
 
-    static constexpr bool visualize = false;
-
-    void SetUp()
+    void SetUp() override
     {
         test_square.emplace_back(0, 0);
         test_square.emplace_back(100, 0);
@@ -63,7 +62,8 @@ public:
         clockwise_small.emplace_back(50, 50);
         clockwise_small.emplace_back(50, -50);
 
-        Polygons outer, inner;
+        Polygons outer;
+        Polygons inner;
         outer.add(clockwise_large);
         inner.add(clockwise_small);
         clockwise_donut = outer.difference(inner);
@@ -72,6 +72,7 @@ public:
         line.emplace_back(100, 0);
     }
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 
 TEST_F(PolygonTest, polygonOffsetTest)
 {
@@ -212,8 +213,7 @@ TEST_F(PolygonTest, getEmptyHolesTest)
     ASSERT_EQ(holes[0].size(), clockwise_small.size()) << "Empty hole should have the same amount of vertices as the original polygon.";
     for (size_t point_index = 0; point_index < holes[0].size(); point_index++)
     {
-        EXPECT_EQ(holes[0][point_index], clockwise_small[point_index])
-            << "Coordinates of the empty hole must be the same as the original polygon.";
+        EXPECT_EQ(holes[0][point_index], clockwise_small[point_index]) << "Coordinates of the empty hole must be the same as the original polygon.";
     }
 }
 

@@ -63,12 +63,8 @@ public:
         connect_polygons(connect_polygons),
         line_distance(line_distance)
     {
-        // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-7221.
-        name = makeName("InfillParameters_%d_%d_%d_%lld",
-                        static_cast<int>(pattern),
-                        static_cast<int>(zig_zagify),
-                        static_cast<int>(connect_polygons),
-                        line_distance);
+        // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-8258.
+        name = makeName("InfillParameters_%d_%d_%d_%lld", static_cast<int>(pattern), static_cast<int>(zig_zagify), static_cast<int>(connect_polygons), line_distance);
     }
 };
 
@@ -88,19 +84,11 @@ public:
 
     std::string name;
 
-    InfillTestParameters() :
-        valid(false),
-        fail_reason("Read of file with test polygons failed (see generateInfillTests), can't continue tests."),
-        params(InfillParameters(EFillMethod::NONE, false, false, 0)),
-        name("UNNAMED")
+    InfillTestParameters() : valid(false), fail_reason("Read of file with test polygons failed (see generateInfillTests), can't continue tests."), params(InfillParameters(EFillMethod::NONE, false, false, 0)), name("UNNAMED")
     {
     }
 
-    InfillTestParameters(const InfillParameters& params,
-                         const size_t& test_polygon_id,
-                         Polygons outline_polygons,
-                         Polygons result_lines,
-                         Polygons result_polygons) :
+    InfillTestParameters(const InfillParameters& params, const size_t& test_polygon_id, Polygons outline_polygons, Polygons result_lines, Polygons result_polygons) :
         valid(true),
         fail_reason("__"),
         params(params),
@@ -109,12 +97,7 @@ public:
         result_polygons(std::move(result_polygons))
     {
         // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-7221.
-        name = makeName("InfillTestParameters_P%d_Z%d_C%d_L%lld__%lld",
-                        static_cast<int>(params.pattern),
-                        static_cast<int>(params.zig_zagify),
-                        static_cast<int>(params.connect_polygons),
-                        params.line_distance,
-                        test_polygon_id);
+        name = makeName("InfillTestParameters_P%d_Z%d_C%d_L%lld__%lld", static_cast<int>(params.pattern), static_cast<int>(params.zig_zagify), static_cast<int>(params.connect_polygons), params.line_distance, test_polygon_id);
     }
 
     friend std::ostream& operator<<(std::ostream& os, const InfillTestParameters& params)
@@ -134,12 +117,9 @@ constexpr coord_t shift = 0;
 constexpr coord_t max_resolution = 10;
 constexpr coord_t max_deviation = 5;
 const std::vector<std::string> polygon_filenames = {
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave.txt").string(),
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave_hole.txt").string(),
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square.txt").string(),
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square_hole.txt").string(),
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_triangle.txt").string(),
-    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_two_squares.txt").string()
+    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave.txt").string(),  std::filesystem::path(__FILE__).parent_path().append("resources/polygon_concave_hole.txt").string(),
+    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square.txt").string(),   std::filesystem::path(__FILE__).parent_path().append("resources/polygon_square_hole.txt").string(),
+    std::filesystem::path(__FILE__).parent_path().append("resources/polygon_triangle.txt").string(), std::filesystem::path(__FILE__).parent_path().append("resources/polygon_two_squares.txt").string()
 };
 
 #ifdef TEST_INFILL_SVG_OUTPUT
@@ -213,8 +193,7 @@ std::vector<InfillTestParameters> generateInfillTests()
      *  - Gyroid, since it doesn't handle the 100% infill and related cases well
      *  - Concentric and ZigZag, since they now use a method that starts from an extra infill wall, which fail these tests (TODO!)
      */
-    std::vector<EFillMethod> skip_methods = { EFillMethod::CONCENTRIC,  EFillMethod::ZIG_ZAG, EFillMethod::CROSS,    EFillMethod::CROSS_3D,
-                                              EFillMethod::CUBICSUBDIV, EFillMethod::GYROID,  EFillMethod::LIGHTNING };
+    std::vector<EFillMethod> skip_methods = { EFillMethod::CONCENTRIC, EFillMethod::ZIG_ZAG, EFillMethod::CROSS, EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV, EFillMethod::GYROID, EFillMethod::LIGHTNING };
 
     std::vector<EFillMethod> methods;
     for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method)
@@ -236,10 +215,8 @@ std::vector<InfillTestParameters> generateInfillTests()
         {
             for (const coord_t& line_distance : line_distances)
             {
-                parameters_list.push_back(generateInfillToTest(
-                    InfillParameters(method, dont_zig_zaggify, dont_connect_polygons, line_distance), test_polygon_id, polygons));
-                parameters_list.push_back(generateInfillToTest(
-                    InfillParameters(method, dont_zig_zaggify, do_connect_polygons, line_distance), test_polygon_id, polygons));
+                parameters_list.push_back(generateInfillToTest(InfillParameters(method, dont_zig_zaggify, dont_connect_polygons, line_distance), test_polygon_id, polygons));
+                parameters_list.push_back(generateInfillToTest(InfillParameters(method, dont_zig_zaggify, do_connect_polygons, line_distance), test_polygon_id, polygons));
                 // parameters_list.push_back(generateInfillToTest(InfillParameters(method, do_zig_zaggify, dont_connect_polygons,
                 // line_distance), test_polygon_id, polygons)); parameters_list.push_back(generateInfillToTest(InfillParameters(method,
                 // do_zig_zaggify, do_connect_polygons, line_distance), test_polygon_id, polygons));
@@ -256,10 +233,7 @@ class InfillTest : public testing::TestWithParam<InfillTestParameters>
 {
 };
 
-INSTANTIATE_TEST_SUITE_P(InfillTestcases,
-                         InfillTest,
-                         testing::ValuesIn(generateInfillTests()),
-                         [](const testing::TestParamInfo<InfillTestParameters>& info) { return info.param.name; });
+INSTANTIATE_TEST_SUITE_P(InfillTestcases, InfillTest, testing::ValuesIn(generateInfillTests()), [](const testing::TestParamInfo<InfillTestParameters>& info) { return info.param.name; });
 
 TEST_P(InfillTest, TestInfillSanity)
 {
@@ -279,39 +253,26 @@ TEST_P(InfillTest, TestInfillSanity)
     }
 
     const double min_available_area = std::abs(params.outline_polygons.offset(static_cast<int>(-params.params.line_distance) / 2).area());
-    const long double max_available_area =
-        std::abs(params.outline_polygons.offset(static_cast<int>(params.params.line_distance) / 2).area()) + worst_case_zig_zag_added_area;
-    const long double min_expected_infill_area =
-        (min_available_area * static_cast<long double>(infill_line_width)) / params.params.line_distance;
-    const long double max_expected_infill_area =
-        (max_available_area * infill_line_width) / params.params.line_distance + worst_case_zig_zag_added_area;
+    const long double max_available_area = std::abs(params.outline_polygons.offset(static_cast<int>(params.params.line_distance) / 2).area()) + worst_case_zig_zag_added_area;
+    const long double min_expected_infill_area = (min_available_area * static_cast<long double>(infill_line_width)) / params.params.line_distance;
+    const long double max_expected_infill_area = (max_available_area * infill_line_width) / params.params.line_distance + worst_case_zig_zag_added_area;
 
-    const long double out_infill_area =
-        ((params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * static_cast<long double>(infill_line_width))
-        / getPatternMultiplier(params.params.pattern);
+    const long double out_infill_area = ((params.result_polygons.polygonLength() + params.result_lines.polyLineLength()) * static_cast<long double>(infill_line_width)) / getPatternMultiplier(params.params.pattern);
 
     ASSERT_GT((coord_t)max_available_area, (coord_t)out_infill_area) << "Infill area should allways be less than the total area available.";
-    ASSERT_GT((coord_t)out_infill_area, (coord_t)min_expected_infill_area)
-        << "Infill area should be greater than the minimum area expected to be covered.";
-    ASSERT_LT((coord_t)out_infill_area, (coord_t)max_expected_infill_area)
-        << "Infill area should be less than the maximum area to be covered.";
+    ASSERT_GT((coord_t)out_infill_area, (coord_t)min_expected_infill_area) << "Infill area should be greater than the minimum area expected to be covered.";
+    ASSERT_LT((coord_t)out_infill_area, (coord_t)max_expected_infill_area) << "Infill area should be less than the maximum area to be covered.";
 
     const coord_t maximum_error = 10_mu; // potential rounding error
     const Polygons padded_shape_outline = params.outline_polygons.offset(infill_line_width / 2);
     constexpr bool restitch = false; // No need to restitch polylines - that would introduce stitching errors.
-    ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(params.result_lines, restitch).polyLineLength()
-                       - params.result_lines.polyLineLength()),
-              maximum_error)
-        << "Infill (lines) should not be outside target polygon.";
+    ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(params.result_lines, restitch).polyLineLength() - params.result_lines.polyLineLength()), maximum_error) << "Infill (lines) should not be outside target polygon.";
     Polygons result_polygon_lines = params.result_polygons;
     for (PolygonRef poly : result_polygon_lines)
     {
         poly.add(poly.front());
     }
-    ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(result_polygon_lines, restitch).polyLineLength()
-                       - result_polygon_lines.polyLineLength()),
-              maximum_error)
-        << "Infill (lines) should not be outside target polygon.";
+    ASSERT_LE(std::abs(padded_shape_outline.intersectionPolyLines(result_polygon_lines, restitch).polyLineLength() - result_polygon_lines.polyLineLength()), maximum_error) << "Infill (lines) should not be outside target polygon.";
 }
 
 } // namespace cura

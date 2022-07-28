@@ -5,6 +5,7 @@
 #include "utils/IntPoint.h"
 #include <gtest/gtest.h>
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 
@@ -31,27 +32,13 @@ TEST_P(WriteInt2mmTest, WriteInt2mm)
     ASSERT_TRUE(ss.good()) << "The integer " << in << " was printed as '" << str << "' which was a bad string!";
 
     const int out = MM2INT(strtod(str.c_str(), nullptr));
-    ASSERT_EQ(in, out) << "The integer " << in << " was printed as '" << str << "' which was interpreted as " << out << " rather than "
-                       << in << "!";
+    ASSERT_EQ(in, out) << "The integer " << in << " was printed as '" << str << "' which was interpreted as " << out << " rather than " << in << "!";
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     WriteInt2mmTestInstantiation,
     WriteInt2mmTest,
-    testing::Values(-10000,
-                    -1000,
-                    -100,
-                    -10,
-                    -1,
-                    0,
-                    1,
-                    10,
-                    100,
-                    1000,
-                    10000,
-                    123456789,
-                    std::numeric_limits<int32_t>::max()
-                        / 1001)); // For max integer test, divide by 1000 since MM2INT multiplies by 1000 which would cause an overflow.
+    testing::Values(-10000, -1000, -100, -10, -1, 0, 1, 10, 100, 1000, 10000, 123456789, std::numeric_limits<int32_t>::max() / 1001)); // For max integer test, divide by 1000 since MM2INT multiplies by 1000 which would cause an overflow.
 
 /*
  * Fixture to allow parameterized tests for writeDoubleToStream.
@@ -78,26 +65,26 @@ TEST_P(WriteDoubleToStreamTest, WriteDoubleToStream)
     const std::string in_str = in_ss.str();
     const double in_reinterpreted = strtod(in_str.c_str(), nullptr);
 
-    ASSERT_EQ(in_reinterpreted, out) << "The double " << in << " was printed as '" << str << "' which was interpreted as " << out
-                                     << " rather than " << in_reinterpreted << "!";
+    ASSERT_EQ(in_reinterpreted, out) << "The double " << in << " was printed as '" << str << "' which was interpreted as " << out << " rather than " << in_reinterpreted << "!";
 }
 
-INSTANTIATE_TEST_CASE_P(WriteDoubleToStreamTestInstantiation,
-                        WriteDoubleToStreamTest,
-                        testing::Values(-10.000,
-                                        -1.000,
-                                        -0.100,
-                                        -0.010,
-                                        -0.001,
-                                        0.010,
-                                        0.100,
-                                        1.000,
-                                        10.000,
-                                        123456.789,
-                                        0.00000001,
-                                        std::numeric_limits<double>::min(),
-                                        std::numeric_limits<double>::max(),
-                                        std::numeric_limits<double>::lowest(),
-                                        -std::numeric_limits<double>::lowest()));
+INSTANTIATE_TEST_SUITE_P(WriteDoubleToStreamTestInstantiation,
+                         WriteDoubleToStreamTest,
+                         testing::Values(-10.000,
+                                         -1.000,
+                                         -0.100,
+                                         -0.010,
+                                         -0.001,
+                                         0.010,
+                                         0.100,
+                                         1.000,
+                                         10.000,
+                                         123456.789,
+                                         0.00000001,
+                                         std::numeric_limits<double>::min(),
+                                         std::numeric_limits<double>::max(),
+                                         std::numeric_limits<double>::lowest(),
+                                         -std::numeric_limits<double>::lowest()));
 
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

@@ -4,9 +4,9 @@
 #include "utils/MinimumSpanningTree.h"
 #include <algorithm>
 #include <gtest/gtest.h>
-#include <unordered_map>
 #include <vector>
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 bool has(const Point& pt, const std::vector<Point>& list)
@@ -20,8 +20,7 @@ public:
     void SetUp() override
     {
         pts = {
-            Point(-3, -4), Point(3, -4), Point(0, -3), Point(0, 0),   Point(1, 1),   Point(5, 1),
-            Point(-1, 6),  Point(0, 5),  Point(5, 7),  Point(12, 12), Point(12, 13),
+            Point(-3, -4), Point(3, -4), Point(0, -3), Point(0, 0), Point(1, 1), Point(5, 1), Point(-1, 6), Point(0, 5), Point(5, 7), Point(12, 12), Point(12, 13),
         };
         std::vector<Point> pts_set(pts.begin(), pts.end());
         p_mst = new MinimumSpanningTree(pts_set);
@@ -34,7 +33,7 @@ public:
     }
 
     std::vector<Point> pts;
-    MinimumSpanningTree* p_mst; // Needs to be a pointer, beacuse SetUp isn't a constructor and the copy function is deleted.
+    MinimumSpanningTree* p_mst; // Needs to be a pointer, because SetUp isn't a constructor and the copy function is deleted.
 };
 
 TEST(SimpleMinimumSpanningTreeTest, TestConstructEmpty)
@@ -80,7 +79,7 @@ TEST(SimpleMinimumSpanningTreeTest, TestSimpleAdjacent)
     EXPECT_TRUE(has(pt_c, adjacent)) << "Point C should be adjacent to Point D (simple case).";
     EXPECT_FALSE(has(pt_d, adjacent)) << "Point D should not be adjacent to itself (simple case).";
 
-    adjacent = tree.adjacentNodes(Point(5, 5)); // point E, a non-existant node
+    adjacent = tree.adjacentNodes(Point(5, 5)); // point E, a non-existent node
     EXPECT_EQ(adjacent.size(), 0) << "No points should be adjacent to point E.";
     ;
 }
@@ -97,30 +96,29 @@ TEST(SimpleMinimumSpanningTreeTest, TestSimpleLeaves)
     std::vector<Point> leaves = tree.leaves();
     EXPECT_EQ(leaves.size(), 3) << "Three out of four points should be leaves (simple case).";
     EXPECT_TRUE(has(pt_a, leaves)) << "Point A should be one of the leaves (simple case).";
-    EXPECT_TRUE(has(pt_b, leaves)) << "Point B should be one of the leaves  (simple case).";
-    EXPECT_TRUE(has(pt_c, leaves)) << "Point C should be one of the leaves  (simple case).";
+    EXPECT_TRUE(has(pt_b, leaves)) << "Point B should be one of the leaves (simple case).";
+    EXPECT_TRUE(has(pt_c, leaves)) << "Point C should be one of the leaves (simple case).";
     EXPECT_FALSE(has(pt_d, leaves)) << "Point D should not be a leave (simple case).";
 }
 
 TEST_F(MinimumSpanningTreeTest, TestAdjacent)
 {
     static const std::vector<size_t> expected_node_degree = { 1, 1, 3, 2, 3, 1, 1, 3, 2, 2, 1 };
-    // constexpr wont work here (yet) on Win.
+    // constexpr won't work here (yet) on Win.
 
     MinimumSpanningTree& mst = *p_mst;
 
     const size_t len = pts.size();
     for (size_t i_pt = 0; i_pt < len; ++i_pt)
     {
-        EXPECT_EQ(expected_node_degree[i_pt], mst.adjacentNodes(pts[i_pt]).size())
-            << "Degree of node #" << i_pt << " (start @0) should be the expected one.";
+        EXPECT_EQ(expected_node_degree[i_pt], mst.adjacentNodes(pts[i_pt]).size()) << "Degree of node #" << i_pt << " (start @0) should be the expected one.";
     }
 }
 
 TEST_F(MinimumSpanningTreeTest, TestLeaves)
 {
     static const std::vector<bool> should_be_leave({ true, true, false, false, false, true, true, false, false, false, true });
-    // constexpr wont work here (yet) on Win.
+    // constexpr won't work here (yet) on Win.
 
     MinimumSpanningTree& mst = *p_mst;
     const std::vector<Point> leaves = mst.leaves();
@@ -128,8 +126,8 @@ TEST_F(MinimumSpanningTreeTest, TestLeaves)
     const size_t len = pts.size();
     for (size_t i_pt = 0; i_pt < len; ++i_pt)
     {
-        EXPECT_EQ(should_be_leave[i_pt], has(pts[i_pt], leaves))
-            << "Leaf-'status' of point #" << i_pt << " (start @0) should be the expected one.";
+        EXPECT_EQ(should_be_leave[i_pt], has(pts[i_pt], leaves)) << "Leaf-'status' of point #" << i_pt << " (start @0) should be the expected one.";
     }
 }
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

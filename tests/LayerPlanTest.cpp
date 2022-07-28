@@ -206,8 +206,7 @@ public:
 
     void SetUp() override
     {
-        layer_plan.addTravel_simple(
-            Point(0, 0)); // Make sure that it appears as if we have already done things in this layer plan. Just the standard case.
+        layer_plan.addTravel_simple(Point(0, 0)); // Make sure that it appears as if we have already done things in this layer plan. Just the standard case.
     }
 
     /*!
@@ -310,9 +309,7 @@ public:
     Polygon between; // Between the start and end position.
     Polygon between_hole; // Negative polygon between the start and end position (a hole).
 
-    AddTravelTest() :
-        parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>(
-            "false", "false", "off", false, false, AddTravelTestScene::OPEN))
+    AddTravelTest() : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
     {
         around_start_end.add(Point(-100, -100));
         around_start_end.add(Point(500100, -100));
@@ -352,12 +349,8 @@ public:
         settings->add("retraction_enable", parameters.retraction_enable);
         settings->add("retraction_hop_enabled", parameters.hop_enable);
         settings->add("retraction_combing", parameters.combing);
-        settings->add("retraction_min_travel",
-                      parameters.is_long
-                          ? "1"
-                          : "10000"); // If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
-        storage->retraction_config_per_extruder[0].retraction_min_travel_distance =
-            settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
+        settings->add("retraction_min_travel", parameters.is_long ? "1" : "10000"); // If disabled, give it a high minimum travel so we're sure that our travel move is shorter.
+        storage->retraction_config_per_extruder[0].retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel"); // Update the copy that the storage has of this.
         settings->add("retraction_combing_max_distance", parameters.is_long_combing ? "1" : "10000");
 
         Polygons slice_data;
@@ -409,12 +402,7 @@ public:
 
 INSTANTIATE_TEST_SUITE_P(AllCombinations,
                          AddTravelTest,
-                         testing::Combine(testing::ValuesIn(retraction_enable),
-                                          testing::ValuesIn(hop_enable),
-                                          testing::ValuesIn(combing),
-                                          testing::ValuesIn(is_long),
-                                          testing::ValuesIn(is_long_combing),
-                                          testing::ValuesIn(scene)));
+                         testing::Combine(testing::ValuesIn(retraction_enable), testing::ValuesIn(hop_enable), testing::ValuesIn(combing), testing::ValuesIn(is_long), testing::ValuesIn(is_long_combing), testing::ValuesIn(scene)));
 
 /*!
  * Test if there are indeed no retractions if retractions are disabled.
@@ -465,8 +453,7 @@ TEST_P(AddTravelTest, NoCombingRetraction)
 
     if (parameters.retraction_enable == "true" && parameters.combing == "off" && parameters.is_long)
     {
-        EXPECT_TRUE(result.retract)
-            << "If we don't do combing, we should always retract since we aren't even checking if any walls are crossed.";
+        EXPECT_TRUE(result.retract) << "If we don't do combing, we should always retract since we aren't even checking if any walls are crossed.";
     }
 }
 
@@ -509,8 +496,7 @@ TEST_P(AddTravelTest, HopWhenRetracting)
     {
         if (parameters.combing != "off" && parameters.is_long_combing && ! parameters.throughWalls() && ! parameters.throughOutside())
         {
-            EXPECT_FALSE(result.perform_z_hop)
-                << "If combing without hitting any walls, it should not hop, but if the combing move is long it might still retract.";
+            EXPECT_FALSE(result.perform_z_hop) << "If combing without hitting any walls, it should not hop, but if the combing move is long it might still retract.";
         }
         else if (parameters.hop_enable == "true")
         {
@@ -555,8 +541,7 @@ TEST_P(AddTravelTest, NoUnretractBeforeLastTravelMoveIfNoPriorRetraction)
 
     if (! result.retract)
     {
-        EXPECT_FALSE(result.unretract_before_last_travel_move)
-            << "If no retraction has been issued, then there should also be no unretraction before the last travel move.";
+        EXPECT_FALSE(result.unretract_before_last_travel_move) << "If no retraction has been issued, then there should also be no unretraction before the last travel move.";
     }
 }
 

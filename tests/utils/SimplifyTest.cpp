@@ -6,16 +6,18 @@
 #include "utils/polygonUtils.h" // Helper functions for testing deviation.
 #include <gtest/gtest.h>
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class SimplifyTest : public testing::Test
 {
 public:
     // Settings to use for most of these tests.
-    static constexpr coord_t max_resolution = 1000;
-    static constexpr coord_t max_deviation = 100;
-    static constexpr coord_t max_area_deviation = 20000;
+    static constexpr coord_t MAX_RESOLUTION = 1000;
+    static constexpr coord_t MAX_DEVIATION = 100;
+    static constexpr coord_t MAX_AREA_DEVIATION = 20000;
 
     /*!
      * Use this basic simplify instance to easily run tests.
@@ -30,17 +32,17 @@ public:
     Polygon spiral; // A spiral with gradually increasing segment length.
     Polygon zigzag; // Sawtooth zig-zag pattern.
 
-    SimplifyTest() : simplifier(max_resolution, max_deviation, max_area_deviation)
+    SimplifyTest() : simplifier(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION)
     {
     }
 
-    void SetUp()
+    void SetUp() override
     {
-        simplifier = Simplify(max_resolution, max_deviation, max_area_deviation); // Reset in case the test wants to change a parameter.
+        simplifier = Simplify(MAX_RESOLUTION, MAX_DEVIATION, MAX_AREA_DEVIATION); // Reset in case the test wants to change a parameter.
 
         circle.clear();
         coord_t radius = 100000;
-        constexpr double segment_length = max_resolution - 10;
+        constexpr double segment_length = MAX_RESOLUTION - 10;
         constexpr double tau = 6.283185307179586476925286766559; // 2 * pi.
         const double increment = segment_length / radius; // Segments of 990 units.
         for (double angle = 0; angle < tau; angle += increment)
@@ -107,6 +109,7 @@ public:
         }
     }
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 
 /*!
  * Test the maximum resolution being held.
@@ -119,12 +122,10 @@ TEST_F(SimplifyTest, CircleMaxResolution)
     simplifier.max_deviation = 999999; // For this test, the maximum deviation should not be an issue.
     circle = simplifier.polygon(circle);
 
-    for (size_t point_index = 1; point_index + 1 < circle.size();
-         point_index++) // Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
+    for (size_t point_index = 1; point_index + 1 < circle.size(); point_index++) // Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
     {
         coord_t segment_length = vSize(circle[point_index % circle.size()] - circle[point_index - 1]);
-        EXPECT_GE(segment_length, max_resolution)
-            << "Segment " << (point_index - 1) << " - " << point_index << " is too short! May not be less than the maximum resolution.";
+        EXPECT_GE(segment_length, MAX_RESOLUTION) << "Segment " << (point_index - 1) << " - " << point_index << " is too short! May not be less than the maximum resolution.";
     }
 }
 
@@ -169,8 +170,7 @@ TEST_F(SimplifyTest, Zigzag)
 {
     simplifier.max_resolution = 9999999;
     Polygon simplified = simplifier.polyline(zigzag);
-    EXPECT_EQ(simplified.size(), 2)
-        << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
+    EXPECT_EQ(simplified.size(), 2) << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
 }
 
 /*!
@@ -205,8 +205,7 @@ TEST_F(SimplifyTest, LimitedLength)
         {
             break; // Things are allowed to be simplified from here.
         }
-        EXPECT_EQ(spiral[vertex_spiral], simplified[vertex_simplified])
-            << "Where line segments are longer than max_resolution, vertices should not be altered.";
+        EXPECT_EQ(spiral[vertex_spiral], simplified[vertex_simplified]) << "Where line segments are longer than max_resolution, vertices should not be altered.";
     }
 }
 
@@ -225,16 +224,14 @@ TEST_F(SimplifyTest, LimitedError)
     increasing_zigzag.add(Point(0, 0));
     constexpr coord_t amplitude_step = 1; // Every 2 vertices, the amplitude increases by this much.
     constexpr coord_t y_step = 100;
-    const coord_t amplitude_limit =
-        simplifier.max_deviation * 2; // Increase amplitude up to this point. About half of the vertices should get removed.
+    const coord_t amplitude_limit = simplifier.max_deviation * 2; // Increase amplitude up to this point. About half of the vertices should get removed.
     for (coord_t amplitude = 0; amplitude < amplitude_limit; amplitude += amplitude_step)
     {
         increasing_zigzag.add(Point(amplitude, increasing_zigzag.size() * y_step));
         increasing_zigzag.add(Point(0, increasing_zigzag.size() * y_step));
     }
 
-    size_t limit_vertex = 2 * simplifier.max_deviation / amplitude_step
-                        + 2; // 2 vertices per zag. Deviation/step zags. Add 2 since deviation equal to max is allowed.
+    size_t limit_vertex = 2 * simplifier.max_deviation / amplitude_step + 2; // 2 vertices per zag. Deviation/step zags. Add 2 since deviation equal to max is allowed.
 
     Polygon simplified = simplifier.polyline(increasing_zigzag);
 
@@ -247,8 +244,7 @@ TEST_F(SimplifyTest, LimitedError)
         {
             break; // Things are allowed to be simplified from here.
         }
-        EXPECT_EQ(increasing_zigzag[vertex_zigzag], simplified[vertex_simplified])
-            << "Where line segments are deviating more than max_deviation, vertices should not be altered.";
+        EXPECT_EQ(increasing_zigzag[vertex_zigzag], simplified[vertex_simplified]) << "Where line segments are deviating more than max_deviation, vertices should not be altered.";
     }
 }
 
@@ -271,8 +267,7 @@ TEST_F(SimplifyTest, LongEdgesNotMoved)
     // Verify that all small segments are removed.
     for (size_t i = 1; i < simplified.size(); ++i)
     {
-        EXPECT_GE(vSize(simplified[i] - simplified[i - 1]), simplifier.max_resolution)
-            << "There may not be any segment smaller than max resolution.";
+        EXPECT_GE(vSize(simplified[i] - simplified[i - 1]), simplifier.max_resolution) << "There may not be any segment smaller than max resolution.";
     }
 
     // Verify that all long segments are still present.
@@ -307,12 +302,10 @@ TEST_F(SimplifyTest, LongEdgesButTooMuchDeviation)
     Polygon simplified = simplifier.polyline(polyline);
 
     // Verify that the polyline is unchanged.
-    ASSERT_EQ(polyline.size(), simplified.size())
-        << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
+    ASSERT_EQ(polyline.size(), simplified.size()) << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
     for (size_t i = 0; i < polyline.size(); ++i)
     {
-        EXPECT_EQ(polyline[i], simplified[i])
-            << "The position of the vertices may not have been altered since the polyline was not simplified.";
+        EXPECT_EQ(polyline[i], simplified[i]) << "The position of the vertices may not have been altered since the polyline was not simplified.";
     }
 
     polyline.pop_back();
@@ -321,12 +314,10 @@ TEST_F(SimplifyTest, LongEdgesButTooMuchDeviation)
     simplified = simplifier.polyline(polyline);
 
     // Verify that the polyline is again unchanged.
-    ASSERT_EQ(polyline.size(), simplified.size())
-        << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
+    ASSERT_EQ(polyline.size(), simplified.size()) << "The polyline may not have been simplified because that would introduce vertices that deviate too much.";
     for (size_t i = 0; i < polyline.size(); ++i)
     {
-        EXPECT_EQ(polyline[i], simplified[i])
-            << "The position of the vertices may not have been altered since the polyline was not simplified.";
+        EXPECT_EQ(polyline[i], simplified[i]) << "The position of the vertices may not have been altered since the polyline was not simplified.";
     }
 }
 
@@ -343,8 +334,7 @@ TEST_F(SimplifyTest, Sine)
     simplifier.max_resolution = 9999999;
     Polygon simplified = simplifier.polyline(sine);
 
-    EXPECT_EQ(simplified.size(), 2)
-        << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
+    EXPECT_EQ(simplified.size(), 2) << "All zigzagged lines can be erased because they deviate less than the maximum deviation, leaving only the endpoints.";
 }
 
 /*!
@@ -399,8 +389,7 @@ TEST_F(SimplifyTest, ToDegenerate)
     triangle.add(Point(550, 50)); // Deviates by 50, and both adjacent edges are just over 550 long. Could be removed.
 
     triangle = simplifier.polygon(triangle);
-    EXPECT_EQ(triangle.size(), 3)
-        << "The triangle did not get simplified because that would reduce its vertices to less than 3, making it degenerate.";
+    EXPECT_EQ(triangle.size(), 3) << "The triangle did not get simplified because that would reduce its vertices to less than 3, making it degenerate.";
 
     // Create a polyline that is shorter than the minimum resolution.
     Polygon segment;
@@ -408,8 +397,8 @@ TEST_F(SimplifyTest, ToDegenerate)
     segment.add(Point(4, 0)); // Less than 5 micron long, so vertices would always be removed.
 
     segment = simplifier.polyline(segment);
-    EXPECT_EQ(segment.size(), 2)
-        << "The segment did not get simplified because that would reduce its vertices to less than 2, making it degenerate.";
+    EXPECT_EQ(segment.size(), 2) << "The segment did not get simplified because that would reduce its vertices to less than 2, making it degenerate.";
 }
 
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

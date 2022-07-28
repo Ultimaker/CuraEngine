@@ -181,24 +181,18 @@ public:
      */
     [[nodiscard]] static double calculatePathWidth(const GCodePath& path)
     {
-        return path.getExtrusionMM3perMM() / path.config->getFlowRatio() / path.flow * path.config->getSpeed()
-             * path.speed_back_pressure_factor;
+        return path.getExtrusionMM3perMM() / path.config->getFlowRatio() / path.flow * path.config->getSpeed() * path.speed_back_pressure_factor;
     }
 
     [[nodiscard]] static bool shouldCountPath(const GCodePath& path)
     {
-        return path.flow > 0.0 && path.width_factor > 0.0 && path.config->getFlowRatio() > 0.0 && path.config->getLineWidth() > 0
-            && ! path.config->isTravelPath() && ! path.config->isBridgePath();
+        return path.flow > 0.0 && path.width_factor > 0.0 && path.config->getFlowRatio() > 0.0 && path.config->getLineWidth() > 0 && ! path.config->isTravelPath() && ! path.config->isBridgePath();
     }
 };
 
 INSTANTIATE_TEST_SUITE_P(ExtruderPlanTestInstantiation,
                          ExtruderPlanPathsParameterizedTest,
-                         testing::Values(path_collection.square,
-                                         path_collection.lines,
-                                         path_collection.decreasing_flow,
-                                         path_collection.decreasing_speed,
-                                         path_collection.variable_width));
+                         testing::Values(path_collection.square, path_collection.lines, path_collection.decreasing_flow, path_collection.decreasing_speed, path_collection.variable_width));
 
 /*!
  * A fixture for general test cases involving extruder plans.
@@ -246,10 +240,8 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompe
     ASSERT_EQ(extruder_plan.paths.size(), original_widths.size()) << "Number of paths may not have changed.";
     for (size_t i = 0; i < extruder_plan.paths.size(); ++i)
     {
-        EXPECT_NEAR(original_widths[i], extruder_plan.paths[i].width_factor, error_margin)
-            << "The width did not change. Back pressure compensation doesn't adjust line width.";
-        EXPECT_NEAR(original_speeds[i], extruder_plan.paths[i].speed_factor, error_margin)
-            << "The speed factor did not change, since the compensation factor was 0.";
+        EXPECT_NEAR(original_widths[i], extruder_plan.paths[i].width_factor, error_margin) << "The width did not change. Back pressure compensation doesn't adjust line width.";
+        EXPECT_NEAR(original_speeds[i], extruder_plan.paths[i].speed_factor, error_margin) << "The speed factor did not change, since the compensation factor was 0.";
     }
 }
 
@@ -262,8 +254,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
     extruder_plan.paths = GetParam();
     extruder_plan.applyBackPressureCompensation(1.0_r);
 
-    auto first_extrusion =
-        std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [&](GCodePath& path) { return shouldCountPath(path); });
+    auto first_extrusion = std::find_if(extruder_plan.paths.begin(), extruder_plan.paths.end(), [&](GCodePath& path) { return shouldCountPath(path); });
     if (first_extrusion == extruder_plan.paths.end()) // Only travel moves in this plan.
     {
         return;
@@ -278,8 +269,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
             continue; // Ignore travel moves.
         }
         const double flow_mm3_per_sec = calculatePathWidth(path);
-        EXPECT_NEAR(flow_mm3_per_sec, first_flow_mm3_per_sec, error_margin)
-            << "Every path must have a flow rate equal to the first, since the flow changes were completely compensated for.";
+        EXPECT_NEAR(flow_mm3_per_sec, first_flow_mm3_per_sec, error_margin) << "Every path must have a flow rate equal to the first, since the flow changes were completely compensated for.";
     }
 }
 
@@ -323,8 +313,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
     ASSERT_EQ(original_flows.size(), new_flows.size()) << "We need to have the same number of extrusion moves.";
     for (size_t i = 0; i < new_flows.size(); ++i)
     {
-        EXPECT_NEAR((original_flows[i] - original_average) / 2.0, new_flows[i] - new_average, error_margin)
-            << "The differences in flow rate needs to be approximately halved, within margin of rounding errors.";
+        EXPECT_NEAR((original_flows[i] - original_average) / 2.0, new_flows[i] - new_average, error_margin) << "The differences in flow rate needs to be approximately halved, within margin of rounding errors.";
     }
 }
 

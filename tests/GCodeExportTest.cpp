@@ -98,12 +98,11 @@ TEST_F(GCodeExportTest, CommentSimple)
 
 TEST_F(GCodeExportTest, CommentMultiLine)
 {
-    gcode.writeComment(
-        "If you catch a chinchilla in Chile\n"
-        "And cut off its beard, willy-nilly\n"
-        "You can honestly say\n"
-        "You made on that day\n"
-        "A Chilean chinchilla's chin chilly");
+    gcode.writeComment("If you catch a chinchilla in Chile\n"
+                       "And cut off its beard, willy-nilly\n"
+                       "You can honestly say\n"
+                       "You made on that day\n"
+                       "A Chilean chinchilla's chin chilly");
     EXPECT_EQ(std::string(";If you catch a chinchilla in Chile\n"
                           ";And cut off its beard, willy-nilly\n"
                           ";You can honestly say\n"
@@ -145,8 +144,7 @@ TEST_F(GCodeExportTest, CommentTimeFloatRoundingError)
 
 TEST_F(GCodeExportTest, CommentTypeAllTypesCovered)
 {
-    for (auto type = static_cast<PrintFeatureType>(0); type < PrintFeatureType::NumPrintFeatureTypes;
-         type = static_cast<PrintFeatureType>(static_cast<size_t>(type) + 1))
+    for (auto type = static_cast<PrintFeatureType>(0); type < PrintFeatureType::NumPrintFeatureTypes; type = static_cast<PrintFeatureType>(static_cast<size_t>(type) + 1))
     {
         gcode.writeTypeComment(type);
         if (type == PrintFeatureType::MoveCombing || type == PrintFeatureType::MoveRetraction)
@@ -282,13 +280,11 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
         std::getline(result, token, '\n');
         EXPECT_EQ(std::string(";EXTRUDER_TRAIN."), token.substr(0, 16));
         EXPECT_EQ(std::to_string(extruder_nr), token.substr(16, 1)); // TODO: Assumes the extruder nr is 1 digit.
-        EXPECT_EQ(std::string(".NOZZLE.DIAMETER:0.4"),
-                  token.substr(17, 20)); // Nozzle size needs to be equal to the machine_nozzle_size setting.
+        EXPECT_EQ(std::string(".NOZZLE.DIAMETER:0.4"), token.substr(17, 20)); // Nozzle size needs to be equal to the machine_nozzle_size setting.
         std::getline(result, token, '\n');
         EXPECT_EQ(std::string(";EXTRUDER_TRAIN."), token.substr(0, 16));
         EXPECT_EQ(std::to_string(extruder_nr), token.substr(16, 1)); // TODO: Assumes the extruder nr is 1 digit.
-        EXPECT_EQ(std::string(".NOZZLE.NAME:TestNozzle"),
-                  token.substr(17, 23)); // Nozzle name needs to be equal to the machine_nozzle_id setting.
+        EXPECT_EQ(std::string(".NOZZLE.NAME:TestNozzle"), token.substr(17, 23)); // Nozzle name needs to be equal to the machine_nozzle_id setting.
     }
 
     std::getline(result, token, '\n');
@@ -407,20 +403,17 @@ TEST_F(GCodeExportTest, EVsMmVolumetric)
     gcode.is_volumetric = true;
 
     constexpr double mm3_input = 15.0;
-    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input)
-        << "Since the E is volumetric and the input mm3 is also volumetric, the output needs to be the same.";
+    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input) << "Since the E is volumetric and the input mm3 is also volumetric, the output needs to be the same.";
 
     EXPECT_EQ(gcode.eToMm(200.0), 200.0 / filament_area) << "Since the E is volumetric but mm is linear, divide by the cross-sectional "
                                                             "area of the filament to convert the volume to a length.";
 
     constexpr double mm_input = 33.0;
-    EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area)
-        << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert "
-           "length to volume.";
+    EXPECT_EQ(gcode.mmToE(mm_input), mm_input * filament_area) << "Since the input mm is linear but the E output must be volumetric, we need to multiply by the cross-sectional area to convert "
+                                                                  "length to volume.";
 
     constexpr double e_input = 100.0;
-    EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input)
-        << "Since the E is volumetric and mm3 is also volumetric, the output needs to be the same.";
+    EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input) << "Since the E is volumetric and mm3 is also volumetric, the output needs to be the same.";
 }
 
 /*
@@ -438,14 +431,12 @@ TEST_F(GCodeExportTest, EVsMmLinear)
 
     for (int x = -1000; x < 1000; x += 16)
     {
-        EXPECT_DOUBLE_EQ(gcode.mmToE(gcode.eToMm(static_cast<double>(x))), static_cast<double>(x))
-            << "Converting back and forth should lead to the same number.";
+        EXPECT_DOUBLE_EQ(gcode.mmToE(gcode.eToMm(static_cast<double>(x))), static_cast<double>(x)) << "Converting back and forth should lead to the same number.";
     }
 
     constexpr double mm3_input = 33.0;
-    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area)
-        << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert "
-           "volume to length.";
+    EXPECT_EQ(gcode.mm3ToE(mm3_input), mm3_input / filament_area) << "Since the input mm3 is volumetric but the E output must be linear, we need to divide by the cross-sectional area to convert "
+                                                                     "volume to length.";
 
     constexpr double e_input = 100.0;
     EXPECT_EQ(gcode.eToMm3(e_input, 0), e_input * filament_area) << "Since the input E is linear but the output must be volumetric, we "
@@ -651,8 +642,7 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     gcode.relative_extrusion = false;
     gcode.currentSpeed = 1;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
-    Application::getInstance().current_slice->scene.extruders.emplace_back(
-        0, &Application::getInstance().current_slice->scene.current_mesh_group->settings);
+    Application::getInstance().current_slice->scene.extruders.emplace_back(0, &Application::getInstance().current_slice->scene.current_mesh_group->settings);
     Application::getInstance().current_slice->scene.extruders.back().settings.add("machine_firmware_retract", "false");
 
     WipeScriptConfig config;

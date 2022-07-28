@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 
-
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 
@@ -94,9 +94,9 @@ TEST_F(ArcusCommunicationTest, FlushGCodeTest)
     ASSERT_TRUE(socket->sent_messages.empty());
 
     // Input some 'g-code' to flush.
-    const std::string test_gcode =
-        "This Fibonacci joke is as bad as the last two you heard combined.\n"
-        "It's pretty cool how the Chinese made a language entirely out of tattoos."; // Multi-line to see flushing behaviour.
+    // Multi-line to see flushing behaviour.
+    const std::string test_gcode = "This Fibonacci joke is as bad as the last two you heard combined.\n"
+                                   "It's pretty cool how the Chinese made a language entirely out of tattoos.";
     ac->private_data->gcode_output_stream.write(test_gcode.c_str(), test_gcode.size());
 
     // Call the function we're testing. This time it should give us a message.
@@ -151,8 +151,7 @@ TEST_F(ArcusCommunicationTest, SendLayerComplete)
     constexpr coord_t layer_thickness = 30;
     ac->sendLayerComplete(layer_nr, layer_z, layer_thickness);
     const std::shared_ptr<proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
-    EXPECT_EQ(static_cast<google::protobuf::int32>(layer_nr), message->id())
-        << "getOptimizedLayerById() must return a layer with the correct ID.";
+    EXPECT_EQ(static_cast<google::protobuf::int32>(layer_nr), message->id()) << "getOptimizedLayerById() must return a layer with the correct ID.";
     EXPECT_EQ(static_cast<float>(layer_z), message->height());
     EXPECT_EQ(static_cast<float>(layer_thickness), message->thickness());
 }
@@ -173,3 +172,4 @@ TEST_F(ArcusCommunicationTest, SendProgress)
 }
 
 } // namespace cura
+// NOLINTEND(*-magic-numbers)

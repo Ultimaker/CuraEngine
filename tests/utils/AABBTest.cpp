@@ -40,21 +40,13 @@ TEST(AABBTest, TestConstructPolygons)
     EXPECT_FALSE(polygons_box_a.contains(Point(0, 0))) << "Box constructed from empty polygon shouldn't contain anything.";
 
     Polygons polygons;
-    polygons.add(Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ -10, -10 },
-                                            ClipperLib::IntPoint{ 10, -10 },
-                                            ClipperLib::IntPoint{ -5, -5 },
-                                            ClipperLib::IntPoint{ -10, 10 } })));
-    polygons.add(Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ 11, 11 },
-                                            ClipperLib::IntPoint{ -11, 11 },
-                                            ClipperLib::IntPoint{ 4, 4 },
-                                            ClipperLib::IntPoint{ 11, -11 } })));
-    polygons.add(Polygon(ClipperLib::Path(
-        { ClipperLib::IntPoint{ 2, 2 }, ClipperLib::IntPoint{ 2, 3 }, ClipperLib::IntPoint{ 3, 3 }, ClipperLib::IntPoint{ 3, 2 } })));
+    polygons.add(Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ -10, -10 }, ClipperLib::IntPoint{ 10, -10 }, ClipperLib::IntPoint{ -5, -5 }, ClipperLib::IntPoint{ -10, 10 } })));
+    polygons.add(Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ 11, 11 }, ClipperLib::IntPoint{ -11, 11 }, ClipperLib::IntPoint{ 4, 4 }, ClipperLib::IntPoint{ 11, -11 } })));
+    polygons.add(Polygon(ClipperLib::Path({ ClipperLib::IntPoint{ 2, 2 }, ClipperLib::IntPoint{ 2, 3 }, ClipperLib::IntPoint{ 3, 3 }, ClipperLib::IntPoint{ 3, 2 } })));
 
     AABB polygons_box_b(polygons);
 
-    EXPECT_TRUE(polygons_box_b.contains(Point(0, 0)))
-        << "Polygon box should contain origin, even though origin is outside of the original polygons.";
+    EXPECT_TRUE(polygons_box_b.contains(Point(0, 0))) << "Polygon box should contain origin, even though origin is outside of the original polygons.";
     EXPECT_TRUE(polygons_box_b.contains(Point(-7, -7))) << "Polygon box should contain point that was inside of the original polygons.";
     EXPECT_FALSE(polygons_box_b.contains(Point(12, 12))) << "Polygon box should not contain point outside of the AABB of the polygon.";
 }
@@ -122,14 +114,12 @@ TEST(AABBTest, TestInclude)
 {
     AABB box(Point(2, 2), Point(5, 10));
 
-    EXPECT_FALSE(box.contains(Point(1, 1)))
-        << "The unexpanded (via include/point) box should not contain a point in the (future) expanded area.";
+    EXPECT_FALSE(box.contains(Point(1, 1))) << "The unexpanded (via include/point) box should not contain a point in the (future) expanded area.";
 
     box.include(Point(0, 0));
 
     EXPECT_TRUE(box.contains(Point(1, 1))) << "The expanded (via include/point) box should contain a point in the expanded area.";
-    EXPECT_FALSE(box.contains(Point(6, 9)))
-        << "The unexpanded (via include/other) box should not contain a point in the (future) expanded area.";
+    EXPECT_FALSE(box.contains(Point(6, 9))) << "The unexpanded (via include/other) box should not contain a point in the (future) expanded area.";
 
     box.include(AABB(Point(7, 9), Point(8, 10)));
 
@@ -166,8 +156,7 @@ TEST(AABBTest, TestToPolygon)
 
     Polygon polygon = box.toPolygon();
 
-    EXPECT_EQ(polygon.area(), (box.max.X - box.min.X) * (box.max.Y - box.min.Y))
-        << "The polygon from the bounding box should have the same area.";
+    EXPECT_EQ(polygon.area(), (box.max.X - box.min.X) * (box.max.Y - box.min.Y)) << "The polygon from the bounding box should have the same area.";
     EXPECT_EQ(polygon.centerOfMass(), box.getMiddle()) << "The center of mass of an (AA) rectangle is its middle.";
 }
 // NOLINTEND(*-magic-numbers)

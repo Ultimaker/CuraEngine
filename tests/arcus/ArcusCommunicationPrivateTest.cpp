@@ -118,8 +118,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadSingleExtruderSettingsMessage)
     // Run the call that we're testing.
     instance->readExtruderSettingsMessage(messages);
 
-    ASSERT_EQ(size_t(1), Application::getInstance().current_slice->scene.extruders.size())
-        << "Reading the extruders must construct the correct amount of extruders in the scene.";
+    ASSERT_EQ(size_t(1), Application::getInstance().current_slice->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
     EXPECT_EQ(setting_value, Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("test_setting"));
 }
 
@@ -147,12 +146,9 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
     // Run the call that we're testing.
     instance->readExtruderSettingsMessage(messages);
 
-    ASSERT_EQ(size_t(2), Application::getInstance().current_slice->scene.extruders.size())
-        << "Reading the extruders must construct the correct amount of extruders in the scene.";
-    EXPECT_EQ(std::string("First"),
-              Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("What extruder are you?"));
-    EXPECT_EQ(std::string("Second"),
-              Application::getInstance().current_slice->scene.extruders[1].settings.get<std::string>("What extruder are you?"));
+    ASSERT_EQ(size_t(2), Application::getInstance().current_slice->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
+    EXPECT_EQ(std::string("First"), Application::getInstance().current_slice->scene.extruders[0].settings.get<std::string>("What extruder are you?"));
+    EXPECT_EQ(std::string("Second"), Application::getInstance().current_slice->scene.extruders[1].settings.get<std::string>("What extruder are you?"));
 }
 
 TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
@@ -197,8 +193,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     // - - Add settings to the mesh:
     std::map<std::string, std::string> mesh_settings = {
-        { "extruder_nr", "0" },     { "center_object", "1" }, { "mesh_position_x", "0" }, { "mesh_position_y", "0" },
-        { "mesh_position_z", "0" }, { "infill_mesh", "0" },   { "cutting_mesh", "0" },    { "anti_overhang_mesh", "0" },
+        { "extruder_nr", "0" }, { "center_object", "1" }, { "mesh_position_x", "0" }, { "mesh_position_y", "0" }, { "mesh_position_z", "0" }, { "infill_mesh", "0" }, { "cutting_mesh", "0" }, { "anti_overhang_mesh", "0" },
     };
     for (std::pair<std::string, std::string> key_value : mesh_settings)
     {
@@ -225,12 +220,8 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     // Distances should be the same:
 
     // - First, collect AABBoxes:
-    std::array<coord_t, 3> raw_min_coords = { std::numeric_limits<coord_t>::max(),
-                                              std::numeric_limits<coord_t>::max(),
-                                              std::numeric_limits<coord_t>::max() };
-    std::array<coord_t, 3> raw_max_coords = { std::numeric_limits<coord_t>::min(),
-                                              std::numeric_limits<coord_t>::min(),
-                                              std::numeric_limits<coord_t>::min() };
+    std::array<coord_t, 3> raw_min_coords = { std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max() };
+    std::array<coord_t, 3> raw_max_coords = { std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min() };
     const size_t num_vertex = raw_vertices.size();
     for (size_t i_coord = 0; i_coord < num_vertex; ++i_coord)
     {
@@ -239,12 +230,8 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
         raw_max_coords[i_coord % 3] = std::max(micrometers, raw_max_coords[i_coord % 3]);
     }
 
-    std::array<coord_t, 3> min_coords = { std::numeric_limits<coord_t>::max(),
-                                          std::numeric_limits<coord_t>::max(),
-                                          std::numeric_limits<coord_t>::max() };
-    std::array<coord_t, 3> max_coords = { std::numeric_limits<coord_t>::min(),
-                                          std::numeric_limits<coord_t>::min(),
-                                          std::numeric_limits<coord_t>::min() };
+    std::array<coord_t, 3> min_coords = { std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max() };
+    std::array<coord_t, 3> max_coords = { std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min() };
     for (const auto& vertex : vertices)
     {
         min_coords[0] = std::min(vertex.p.x, min_coords[0]);
