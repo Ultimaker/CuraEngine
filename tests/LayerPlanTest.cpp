@@ -294,9 +294,7 @@ struct AddTravelParameters
  * 5. Long travel move (combing).
  * 6. Scene.
  */
-class AddTravelTest
-    : public LayerPlanTest
-    , public testing::WithParamInterface<std::tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>>
+class AddTravelTest : public LayerPlanTest, public testing::WithParamInterface<std::tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>>
 {
 public:
     // Parameters to test with.

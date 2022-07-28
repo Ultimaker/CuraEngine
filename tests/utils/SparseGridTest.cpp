@@ -18,10 +18,10 @@ struct GetNearbyParameters
     std::unordered_set<Point> expected_near;
     std::unordered_set<Point> expected_far;
 
-    GetNearbyParameters(const std::vector<Point> registered_points, const std::unordered_set<Point> expected_near, const std::unordered_set<Point> expected_far) :
-        registered_points(registered_points),
-        expected_near(expected_near),
-        expected_far(expected_far)
+    GetNearbyParameters(const std::vector<Point> registered_points, const std::unordered_set<Point> expected_near, const std::unordered_set<Point> expected_far)
+        : registered_points(registered_points)
+        , expected_near(expected_near)
+        , expected_far(expected_far)
     {
     }
 };
@@ -164,10 +164,10 @@ struct GetNearestParameters
     Point* result;
     std::function<bool(const typename SparsePointGridInclusive<Point>::Elem&)> filter;
 
-    GetNearestParameters(const std::vector<Point> registered_points, Point* result, const std::function<bool(const typename SparsePointGridInclusive<Point>::Elem&)>& filter = SparsePointGridInclusive<Point>::no_precondition) :
-        registered_points(registered_points),
-        result(result),
-        filter(filter)
+    GetNearestParameters(const std::vector<Point> registered_points, Point* result, const std::function<bool(const typename SparsePointGridInclusive<Point>::Elem&)>& filter = SparsePointGridInclusive<Point>::no_precondition)
+        : registered_points(registered_points)
+        , result(result)
+        , filter(filter)
     {
     }
 };

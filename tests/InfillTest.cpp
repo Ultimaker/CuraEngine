@@ -57,11 +57,11 @@ public:
 
     std::string name;
 
-    InfillParameters(const EFillMethod& pattern, const bool& zig_zagify, const bool& connect_polygons, const coord_t& line_distance) :
-        pattern(pattern),
-        zig_zagify(zig_zagify),
-        connect_polygons(connect_polygons),
-        line_distance(line_distance)
+    InfillParameters(const EFillMethod& pattern, const bool& zig_zagify, const bool& connect_polygons, const coord_t& line_distance)
+        : pattern(pattern)
+        , zig_zagify(zig_zagify)
+        , connect_polygons(connect_polygons)
+        , line_distance(line_distance)
     {
         // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-8258.
         name = makeName("InfillParameters_%d_%d_%d_%lld", static_cast<int>(pattern), static_cast<int>(zig_zagify), static_cast<int>(connect_polygons), line_distance);
@@ -88,13 +88,13 @@ public:
     {
     }
 
-    InfillTestParameters(const InfillParameters& params, const size_t& test_polygon_id, Polygons outline_polygons, Polygons result_lines, Polygons result_polygons) :
-        valid(true),
-        fail_reason("__"),
-        params(params),
-        outline_polygons(std::move(outline_polygons)),
-        result_lines(std::move(result_lines)),
-        result_polygons(std::move(result_polygons))
+    InfillTestParameters(const InfillParameters& params, const size_t& test_polygon_id, Polygons outline_polygons, Polygons result_lines, Polygons result_polygons)
+        : valid(true)
+        , fail_reason("__")
+        , params(params)
+        , outline_polygons(std::move(outline_polygons))
+        , result_lines(std::move(result_lines))
+        , result_polygons(std::move(result_polygons))
     {
         // FIXME: Once we are using spdlog as logger, we'll also use fmt::format() here, see CURA-7221.
         name = makeName("InfillTestParameters_P%d_Z%d_C%d_L%lld__%lld", static_cast<int>(params.pattern), static_cast<int>(params.zig_zagify), static_cast<int>(params.connect_polygons), params.line_distance, test_polygon_id);

@@ -216,11 +216,11 @@ struct FindCloseParameters
     coord_t cell_size;
     std::function<int(Point)>* penalty_function;
 
-    FindCloseParameters(const Point close_to, const Point supposed, const coord_t cell_size, std::function<int(Point)>* penalty_function = nullptr) :
-        close_to(close_to),
-        supposed(supposed),
-        cell_size(cell_size),
-        penalty_function(penalty_function)
+    FindCloseParameters(const Point close_to, const Point supposed, const coord_t cell_size, std::function<int(Point)>* penalty_function = nullptr)
+        : close_to(close_to)
+        , supposed(supposed)
+        , cell_size(cell_size)
+        , penalty_function(penalty_function)
     {
     }
 };
@@ -363,12 +363,12 @@ struct GetNextParallelIntersectionParameters
     bool forward;
     coord_t dist;
 
-    GetNextParallelIntersectionParameters(const std::optional<Point> predicted, const Point start_point, const Point line_to, const bool forward, const coord_t dist) :
-        predicted(predicted),
-        start_point(start_point),
-        line_to(line_to),
-        forward(forward),
-        dist(dist)
+    GetNextParallelIntersectionParameters(const std::optional<Point> predicted, const Point start_point, const Point line_to, const bool forward, const coord_t dist)
+        : predicted(predicted)
+        , start_point(start_point)
+        , line_to(line_to)
+        , forward(forward)
+        , dist(dist)
     {
     }
 };

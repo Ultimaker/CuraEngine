@@ -20,12 +20,12 @@ struct GetDist2FromLineSegmentParameters
     coord_t actual_distance2;
     int16_t actual_is_beyond;
 
-    GetDist2FromLineSegmentParameters(Point line_start, Point line_end, Point point, coord_t actual_distance2, int16_t actual_is_beyond) :
-        line_start(line_start),
-        line_end(line_end),
-        point(point),
-        actual_distance2(actual_distance2),
-        actual_is_beyond(actual_is_beyond)
+    GetDist2FromLineSegmentParameters(Point line_start, Point line_end, Point point, coord_t actual_distance2, int16_t actual_is_beyond)
+        : line_start(line_start)
+        , line_end(line_end)
+        , point(point)
+        , actual_distance2(actual_distance2)
+        , actual_is_beyond(actual_is_beyond)
     {
     }
 };
@@ -289,13 +289,13 @@ TEST_P(RotateAroundTest, RotateAround)
                                                          << actual_result << ".";
 }
 
-INSTANTIATE_TEST_CASE_P(RotateAroundInstantiation,
-                        RotateAroundTest,
-                        testing::Values(RotateAroundParameters(Point(25, 30), Point(10, 17), 90, Point(-3, 32)), // 90 degrees rotation.
-                                        RotateAroundParameters(Point(25, 30), Point(10, 17), -90, Point(23, 2)), //-90 degrees rotation.
-                                        RotateAroundParameters(Point(-67, 14), Point(50, 50), 0, Point(-67, 14)), // No rotation at all.
-                                        RotateAroundParameters(Point(-67, 14), Point(50, 50), 12, Point(-57, -9)) // 12 degrees rotation. Actually ends up at [-57, -9.5]!
-                                        ));
+INSTANTIATE_TEST_SUITE_P(RotateAroundInstantiation,
+                         RotateAroundTest,
+                         testing::Values(RotateAroundParameters(Point(25, 30), Point(10, 17), 90, Point(-3, 32)), // 90 degrees rotation.
+                                         RotateAroundParameters(Point(25, 30), Point(10, 17), -90, Point(23, 2)), //-90 degrees rotation.
+                                         RotateAroundParameters(Point(-67, 14), Point(50, 50), 0, Point(-67, 14)), // No rotation at all.
+                                         RotateAroundParameters(Point(-67, 14), Point(50, 50), 12, Point(-57, -9)) // 12 degrees rotation. Actually ends up at [-57, -9.5]!
+                                         ));
 
 } // namespace cura
 // NOLINTEND(*-magic-numbers)
