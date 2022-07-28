@@ -91,6 +91,7 @@ class CuraEngineConan(ConanFile):
 
         tc = CMakeToolchain(self)
 
+        tc.variables["CURA_ENGINE_VERSION"] = self.version
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
         tc.variables["BUILD_TESTING"] = self.options.enable_testing
         tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp
