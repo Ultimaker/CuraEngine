@@ -81,7 +81,6 @@ TEST(SimpleMinimumSpanningTreeTest, TestSimpleAdjacent)
 
     adjacent = tree.adjacentNodes(Point(5, 5)); // point E, a non-existent node
     EXPECT_EQ(adjacent.size(), 0) << "No points should be adjacent to point E.";
-    ;
 }
 
 TEST(SimpleMinimumSpanningTreeTest, TestSimpleLeaves)
