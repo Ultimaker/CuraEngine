@@ -170,7 +170,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 
     std::vector<float> raw_vertices;
 
-    float next{};
+    float next;
     while (cube_verts_file >> next)
     {
         raw_vertices.push_back(next);
