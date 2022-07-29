@@ -307,6 +307,8 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";PRINT.SIZE.MAX.Z:"), token.substr(0, 18));
     std::getline(result, token, '\n');
+    EXPECT_EQ(std::string(";SLICE_UUID:"), token.substr(0, 18));
+    std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";END_OF_HEADER"), token);
 }
 
