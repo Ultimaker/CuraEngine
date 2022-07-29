@@ -385,7 +385,15 @@ public:
         layer_plan.comb_boundary_preferred = slice_data; // We don't care about the combing accuracy itself, so just use the same for both.
         if (parameters.combing != "off")
         {
-            layer_plan.comb = new Comb(*storage, 100, layer_plan.comb_boundary_minimum, layer_plan.comb_boundary_preferred, 20, 5000, 10);
+            layer_plan.comb = new Comb(
+                *storage,
+                100, // layer_nr
+                layer_plan.comb_boundary_minimum,
+                layer_plan.comb_boundary_preferred,
+                20, // comb_boundary_offset
+                5000, // travel_avoid_distance
+                10 // comb_move_inside_distance
+            );
         }
         else
         {
