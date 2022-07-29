@@ -23,7 +23,6 @@ class ArcusCommunicationTest : public testing::Test
 {
 public:
     std::string ip;
-    [[maybe_unused]] uint16_t port;
     MockSocket* socket;
     ArcusCommunication* ac;
 
@@ -39,7 +38,6 @@ public:
     void SetUp() override
     {
         ip = "0.0.0.0";
-        port = 12345;
         socket = new MockSocket();
         ac = new ArcusCommunication();
         ac->setSocketMock(socket);
