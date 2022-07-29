@@ -24,13 +24,14 @@
 #include "utils/orderOptimizer.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "WallToolPaths.h"
+#include <boost/uuid/random_generator.hpp> //For generating a UUID.
+#include <boost/uuid/uuid_io.hpp> //For generating a UUID.
 
 namespace cura
 {
 
 FffGcodeWriter::FffGcodeWriter()
-: max_object_height(0)
-, layer_plan_buffer(gcode)
+  : max_object_height(0), layer_plan_buffer(gcode), slice_uuid(boost::uuids::to_string(boost::uuids::random_generator()()))
 {
     for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
     { // initialize all as max layer_nr, so that they get updated to the lowest layer on which they are used.
@@ -68,6 +69,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 {
     const size_t start_extruder_nr = getStartExtruder(storage);
     gcode.preSetup(start_extruder_nr);
+    gcode.setSliceUUID(slice_uuid);
 
     Scene& scene = Application::getInstance().current_slice->scene;
     if (scene.current_mesh_group == scene.mesh_groups.begin()) //First mesh group.
@@ -3136,6 +3138,7 @@ void FffGcodeWriter::finalize()
     if (!Application::getInstance().communication->isSequential())
     {
         Application::getInstance().communication->sendGCodePrefix(prefix);
+        Application::getInstance().communication->sendSliceUUID(slice_uuid);
     }
     else
     {

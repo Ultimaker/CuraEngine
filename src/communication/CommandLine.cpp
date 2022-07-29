@@ -1,5 +1,5 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+//  Copyright (c) 2020-2022 Ultimaker B.V.
+//  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring> //For strtok and strcopy.
 #include <fstream> //To check if files exist.
@@ -48,12 +48,17 @@ bool CommandLine::hasSlice() const
 
 bool CommandLine::isSequential() const
 {
-    return true; //We have to receive the g-code in sequential order. Start g-code before the rest and so on.
+    return true; // We have to receive the g-code in sequential order. Start g-code before the rest and so on.
 }
 
 void CommandLine::sendGCodePrefix(const std::string&) const
 {
-    //TODO: Right now this is done directly in the g-code writer. For consistency it should be moved here?
+    // TODO: Right now this is done directly in the g-code writer. For consistency it should be moved here?
+}
+
+void CommandLine::sendSliceUUID(const std::string& slice_uuid) const
+{
+    // pass
 }
 
 void CommandLine::sendPrintTimeMaterialEstimates() const
