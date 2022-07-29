@@ -1,5 +1,5 @@
-//  Copyright (c) 2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef MOCKCOMMUNICATION_H
 #define MOCKCOMMUNICATION_H
@@ -17,7 +17,7 @@ namespace cura
  */
 class MockCommunication : public Communication
 {
-  public:
+public:
     MOCK_CONST_METHOD0(hasSlice, bool());
     MOCK_CONST_METHOD0(isSequential, bool());
     MOCK_CONST_METHOD1(sendProgress, void(const float& progress));
