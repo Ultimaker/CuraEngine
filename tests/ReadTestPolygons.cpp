@@ -62,9 +62,9 @@ bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygo
             next_path.emplace_back(coord_x, coord_y);
             break;
         case 'x': // close 'next' loop
-                  // fallthrough
+            [[fallthrough]];
         case '&': // finalize 'next' polygon (which may also close a loop)
-                  // fallthrough
+            [[fallthrough]];
         case '#': // end of file
             if (! next_path.empty())
             {
