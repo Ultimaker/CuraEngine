@@ -140,7 +140,7 @@ message GCodePrefix {
 }
 
 message SliceUUID {
-    string slice_uuid = 1; //The UUID of the slice.
+    string slice_uuid = 1; //An ID to link the slice in the printer to a statistical data point in the anonymous slice data.
 }
 
 message SlicingFinished {
