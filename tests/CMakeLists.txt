@@ -55,7 +55,7 @@ endif ()
 add_library(test_helpers ${TESTS_HELPERS_SRC})
 target_link_libraries(test_helpers PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
 if (ENABLE_ARCUS)
-    target_link_libraries(test_helpers PUBLIC arcus::libarcus protobuf::libprotobuf)
+    target_link_libraries(test_helpers PUBLIC arcus::arcus protobuf::libprotobuf)
 endif ()
 
 foreach (test ${TESTS_SRC_BASE})
