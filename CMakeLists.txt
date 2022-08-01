@@ -193,7 +193,7 @@ if(ENABLE_OPENMP)
 endif()
 
 if(ENABLE_ARCUS)
-    target_link_libraries(_CuraEngine PRIVATE arcus::libarcus protobuf::libprotobuf)
+    target_link_libraries(_CuraEngine PRIVATE arcus::arcus protobuf::libprotobuf)
 endif()
 
 find_package(clipper 6.4.2 REQUIRED)
