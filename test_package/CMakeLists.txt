@@ -1,11 +1,21 @@
 # Copyright (c) 2022 Ultimaker B.V.
 # CuraEngine is released under the terms of the AGPLv3 or higher.
 
-message(STATUS "Building tests...")
-find_package(GTest 1.10.1 CONFIG REQUIRED)
-include(GoogleTest)
+cmake_policy(SET CMP0091 NEW)  # For MSVC flags, will be ignored on non-Windows OS's
+cmake_minimum_required(VERSION 3.20)
+project(PackageTest)
 
-target_link_libraries(_CuraEngine PUBLIC GTest::gtest GTest::gmock)
+message(STATUS "Building tests...")
+enable_testing()
+
+set(BUILD_TESTING "ON")
+option(ENABLE_ARCUS "Enable support for ARCUS" ON)
+    message(STATUS "Testing with Arcus enabled")
+    find_package(arcus REQUIRED)
+    find_package(protobuf 3.17.1 REQUIRED)
+find_package(GTest 1.12.1 REQUIRED)
+find_package(curaengine REQUIRED)
+include(GoogleTest)
 
 set(TESTS_SRC_BASE
         ClipperTest
@@ -53,6 +63,8 @@ if (ENABLE_ARCUS)
 endif ()
 
 add_library(test_helpers ${TESTS_HELPERS_SRC})
+target_compile_definitions(test_helpers PUBLIC $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS> $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>)
+target_include_directories(test_helpers PUBLIC "../src")
 target_link_libraries(test_helpers PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
 if (ENABLE_ARCUS)
     target_link_libraries(test_helpers PUBLIC arcus::arcus protobuf::libprotobuf)
@@ -67,6 +79,7 @@ endforeach ()
 foreach (test ${TESTS_SRC_ARCUS})
     add_executable(${test} main.cpp arcus/${test}.cpp)
     add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_include_directories(${test} PUBLIC "${CMAKE_BINARY_DIR}")
     target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
 endforeach ()
 

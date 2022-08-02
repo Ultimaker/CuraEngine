@@ -6,7 +6,6 @@ cmake_minimum_required(VERSION 3.20)
 project(CuraEngine)
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
-option(BUILD_TESTING "Build with unit tests" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
@@ -22,13 +21,13 @@ include(cmake/StandardProjectSettings.cmake)
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
 
-    find_package(arcus 5.0.0 REQUIRED)
+    find_package(arcus REQUIRED)
     find_package(protobuf 3.17.1 REQUIRED)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
 ### Compiling CuraEngine ###
-# First compile all of CuraEngine as library, allowing this to be re-used for tests.
+# First compile all of CuraEngine as library.
 
 set(engine_SRCS # Except main.cpp.
         src/Application.cpp
@@ -153,7 +152,6 @@ target_include_directories(_CuraEngine
         )
 target_compile_definitions(_CuraEngine
         PUBLIC
-        $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS>
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
         PRIVATE
@@ -224,12 +222,6 @@ endif (NOT WIN32)
 # Create the executable
 target_link_libraries(CuraEngine PRIVATE _CuraEngine)
 target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
-
-# Compiling the test environment.
-if (BUILD_TESTING)
-    enable_testing()
-    add_subdirectory(tests)
-endif()
 
 # Installing CuraEngine.
 include(GNUInstallDirs)

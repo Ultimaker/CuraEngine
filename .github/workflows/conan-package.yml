@@ -39,7 +39,7 @@ on:
         paths:
             - 'src/**'
             - 'cmake/**'
-            - 'tests/**'
+            - 'test_package/**'
             - 'conanfile.py'
             - 'conandata.yml'
             - 'CMakeLists.txt'
