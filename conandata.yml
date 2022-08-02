@@ -1,7 +1,7 @@
 "None":
     requirements:
         - "clipper/6.4.2"
-        - "boost/1.78.0"
+        - "boost/1.79.0"
         - "rapidjson/1.1.0"
         - "stb/20200203"
     requirements_arcus:
@@ -57,7 +57,7 @@
 "5.2.0-alpha":
     requirements:
         - "clipper/6.4.2"
-        - "boost/1.78.0"
+        - "boost/1.79.0"
         - "rapidjson/1.1.0"
         - "stb/20200203"
     requirements_arcus:
