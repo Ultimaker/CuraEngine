@@ -10,6 +10,8 @@
         - "zlib/1.2.12"
     build_requirements_arcus:
         - "protobuf/3.17.1"
+    build_requirements_testing:
+        - "gtest/1.12.1"
 "5.1.0":
     requirements:
         - "clipper/6.4.2"
@@ -64,3 +66,5 @@
         - "zlib/1.2.12"
     build_requirements_arcus:
         - "protobuf/3.17.1"
+    build_requirements_testing:
+        - "gtest/1.12.1"

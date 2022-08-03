@@ -15,6 +15,7 @@ callgrind/*
 
 ## Building result.
 build/*
+tests/build/
 test_package/build/
 debug_build/*
 release_build/*

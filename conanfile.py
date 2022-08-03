@@ -71,6 +71,9 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_arcus:
             for req in self._um_data()["build_requirements_arcus"]:
                 self.tool_requires(req)
+        if self.options.enable_testing:
+            for req in self._um_data()["build_requirements_testing"]:
+                self.test_requires(req)
 
     def requirements(self):
         for req in self._um_data()["requirements"]:
@@ -81,12 +84,16 @@ class CuraEngineConan(ConanFile):
 
     def generate(self):
         cmake = CMakeDeps(self)
+
+        if self.options.enable_testing:
+            cmake.build_context_activated = ["gtest"]
         cmake.generate()
 
         tc = CMakeToolchain(self)
 
         tc.variables["CURA_ENGINE_VERSION"] = self.version
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
+        tc.variables["BUILD_TESTING"] = self.options.enable_testing
         tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp
         tc.variables["ALLOW_IN_SOURCE_BUILD"] = True
 
@@ -125,11 +132,24 @@ class CuraEngineConan(ConanFile):
     def imports(self):
         self.copy("*.dll", dst=self.build_folder, src="@bindirs")
         self.copy("*.dylib", dst=self.build_folder, src="@bindirs")
+        if self.options.enable_testing:
+            dest = os.path.join(self.build_folder, "tests")
+            self.copy("*.dll", dst=dest, src="@bindirs")
+            self.copy("*.dylib", dst=dest, src="@bindirs")
 
     def build(self):
         cmake = self.cmake
         cmake.configure()
         cmake.build()
+
+    def test(self):
+        if not tools.cross_building(self) and self.options.enable_testing:
+            self.cmake.test()
+
+            import os
+            for program in [f for f in os.listdir("./tests/.") if f.replace(".exe", "").endswith("Test")]:
+                prefix_path = "" if self.settings.os == "Windows" else "./"
+                self.run(f"{prefix_path}tests/{program}", env = "conanrun")
 
     def package(self):
         packager = files.AutoPackager(self)

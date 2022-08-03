@@ -12,7 +12,6 @@ class CuraEngineTestConan(ConanFile):
     python_requires_extend = "umbase.UMBaseConanfile"
 
     def requirements(self):
-        # NOTE: Also put what would otherwise be 'build_requirements' here, since this is a test package.
         for req in self._um_data()["requirements"]:
             self.requires(req)
 
@@ -36,13 +35,11 @@ class CuraEngineTestConan(ConanFile):
 
     def imports(self):
         self.copy("*.lib", dst=".", src="@bindirs")
-        self.copy("*.pb.h", dst=".", src="@bindirs")
+        #self.copy("*.pb.h", dst=".", src="@bindirs")  # Needs to be in if test_package is extended to arcus use, but that would also defy the minimalist 'only test if it can build and run' that 'test_package' is supposed to have.
         if self.settings.os == "Windows" and not tools.cross_building(self, skip_x64_x86 = True):
             self.copy("*.dll", dst=".", src="@bindirs")
 
     def test(self):
         if not tools.cross_building(self):
-            import os
-            for program in [f for f in os.listdir(".") if f.replace(".exe", "").endswith("Test")]:
-                prefix_path = "" if self.settings.os == "Windows" else "./"
-                self.run(f"{prefix_path}{program}", env = "conanrun")
+            (prefix, postfix) = ("", ".exe") if self.settings.os == "Windows" else ("./", "")
+            self.run(f"{prefix}PackageTest{postfix}", env = "conanrun")

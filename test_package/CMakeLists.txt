@@ -5,98 +5,10 @@ cmake_policy(SET CMP0091 NEW)  # For MSVC flags, will be ignored on non-Windows 
 cmake_minimum_required(VERSION 3.20)
 project(PackageTest)
 
-message(STATUS "Building tests...")
-enable_testing()
+message(STATUS "Building package-test...")
 
-set(BUILD_TESTING "ON")
-option(ENABLE_ARCUS "Enable support for ARCUS" ON)
-    message(STATUS "Testing with Arcus enabled")
-    find_package(arcus REQUIRED)
-    find_package(protobuf 3.17.1 REQUIRED)
-find_package(GTest 1.12.1 REQUIRED)
 find_package(curaengine REQUIRED)
-include(GoogleTest)
 
-set(TESTS_SRC_BASE
-        ClipperTest
-        ExtruderPlanTest
-        GCodeExportTest
-        InfillTest
-        LayerPlanTest
-        PathOrderOptimizerTest
-        PathOrderMonotonicTest
-        TimeEstimateCalculatorTest
-        WallsComputationTest
-        )
-
-set(TESTS_SRC_INTEGRATION
-        SlicePhaseTest
-        )
-
-set(TESTS_SRC_SETTINGS
-        SettingsTest
-        )
-
-set(TESTS_SRC_UTILS
-        AABBTest
-        AABB3DTest
-        IntPointTest
-        LinearAlg2DTest
-        MinimumSpanningTreeTest
-        PolygonConnectorTest
-        PolygonTest
-        PolygonUtilsTest
-        SimplifyTest
-        SparseGridTest
-        StringTest
-        UnionFindTest
-        )
-
-set(TESTS_HELPERS_SRC ReadTestPolygons.cpp)
-
-set(TESTS_SRC_ARCUS)
-if (ENABLE_ARCUS)
-    list(APPEND TESTS_SRC_ARCUS
-            ArcusCommunicationTest
-            ArcusCommunicationPrivateTest)
-    list(APPEND TESTS_HELPERS_SRC arcus/MockSocket.cpp)
-endif ()
-
-add_library(test_helpers ${TESTS_HELPERS_SRC})
-target_compile_definitions(test_helpers PUBLIC $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS> $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>)
-target_include_directories(test_helpers PUBLIC "../include")
-target_link_libraries(test_helpers PRIVATE _CuraEngine GTest::gtest GTest::gmock clipper::clipper)
-if (ENABLE_ARCUS)
-    target_link_libraries(test_helpers PUBLIC arcus::arcus protobuf::libprotobuf)
-endif ()
-
-foreach (test ${TESTS_SRC_BASE})
-    add_executable(${test} main.cpp ${test}.cpp)
-    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
-endforeach ()
-
-foreach (test ${TESTS_SRC_ARCUS})
-    add_executable(${test} main.cpp arcus/${test}.cpp)
-    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_include_directories(${test} PUBLIC "${CMAKE_BINARY_DIR}")
-    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
-endforeach ()
-
-foreach (test ${TESTS_SRC_INTEGRATION})
-    add_executable(${test} main.cpp integration/${test}.cpp)
-    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
-endforeach ()
-
-foreach (test ${TESTS_SRC_SETTINGS})
-    add_executable(${test} main.cpp settings/${test}.cpp)
-    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
-endforeach ()
-
-foreach (test ${TESTS_SRC_UTILS})
-    add_executable(${test} main.cpp utils/${test}.cpp)
-    add_test(NAME ${test} COMMAND "${test}" WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(${test} PRIVATE _CuraEngine test_helpers GTest::gtest GTest::gmock clipper::clipper)
-endforeach ()
+add_executable(PackageTest package_test.cpp)
+target_include_directories(PackageTest PUBLIC "../include")
+target_link_libraries(PackageTest PRIVATE _CuraEngine clipper::clipper)

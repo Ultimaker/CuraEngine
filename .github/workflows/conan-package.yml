@@ -37,8 +37,10 @@ on:
 
     push:
         paths:
+            - 'include/**'
             - 'src/**'
             - 'cmake/**'
+            - 'tests/**'
             - 'test_package/**'
             - 'conanfile.py'
             - 'conandata.yml'

@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.20)
 project(CuraEngine)
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
+option(BUILD_TESTING "Build with unit tests" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
@@ -222,6 +223,12 @@ endif (NOT WIN32)
 # Create the executable
 target_link_libraries(CuraEngine PRIVATE _CuraEngine)
 target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
+
+# Compiling the test environment.
+if (BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # Installing CuraEngine.
 include(GNUInstallDirs)
