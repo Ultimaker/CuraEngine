@@ -1,6 +1,6 @@
 "None":
     requirements:
-        - "curaengine/5.1.90@ultimaker/testing"
+        - "curaengine/(latest)@ultimaker/testing"
 "5.1.0":
     requirements:
         - "curaengine/5.1.0"
