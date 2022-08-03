@@ -5,6 +5,7 @@ from conans import tools
 
 
 class CuraEngineTestConan(ConanFile):
+    build_policy = "missing"
     settings = "os", "compiler", "build_type", "arch"
 
     python_requires = "umbase/0.1.5@ultimaker/testing"

@@ -27,10 +27,12 @@ class CuraEngineConan(ConanFile):
     options = {
         "enable_arcus": [True, False],
         "enable_openmp": [True, False],
+        "enable_testing": [True, False],
     }
     default_options = {
         "enable_arcus": True,
         "enable_openmp": True,
+        "enable_testing": False,
     }
     scm = {
         "type": "git",
