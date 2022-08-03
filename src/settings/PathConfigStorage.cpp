@@ -1,14 +1,14 @@
 //Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "PathConfigStorage.h"
-#include "Settings.h" // MAX_INFILL_COMBINE
-#include "../Application.h"
-#include "../ExtruderTrain.h"
-#include "../raft.h"
-#include "../Slice.h"
-#include "../sliceDataStorage.h" // SliceDataStorage
-#include "../settings/EnumSettings.h" //For EPlatformAdhesion.
+#include "settings/PathConfigStorage.h"
+#include "settings/Settings.h" // MAX_INFILL_COMBINE
+#include "Application.h"
+#include "ExtruderTrain.h"
+#include "raft.h"
+#include "Slice.h"
+#include "sliceDataStorage.h" // SliceDataStorage
+#include "settings/EnumSettings.h" //For EPlatformAdhesion.
 
 namespace cura
 {

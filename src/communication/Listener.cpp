@@ -5,8 +5,8 @@
 
 #include <Arcus/Error.h> //To process error codes.
 
-#include "Listener.h"
-#include "../utils/logoutput.h"
+#include "communication/Listener.h"
+#include "utils/logoutput.h"
 
 namespace cura
 {

@@ -1,12 +1,12 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stack>
 #include <optional>
 
-#include "linearAlg2D.h"
-#include "logoutput.h"
-#include "VoronoiUtils.h"
+#include "utils/linearAlg2D.h"
+#include "utils/logoutput.h"
+#include "utils/VoronoiUtils.h"
 
 namespace cura 
 {

@@ -1,13 +1,13 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cassert>
 
-#include "Progress.h"
-#include "../Application.h" //To get the communication channel to send progress through.
-#include "../communication/Communication.h" //To send progress through the communication channel.
-#include "../utils/gettime.h"
-#include "../utils/logoutput.h"
+#include "progress/Progress.h"
+#include "Application.h" //To get the communication channel to send progress through.
+#include "communication/Communication.h" //To send progress through the communication channel.
+#include "utils/gettime.h"
+#include "utils/logoutput.h"
 
 namespace cura {
     

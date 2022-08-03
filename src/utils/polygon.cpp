@@ -1,17 +1,17 @@
 //Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "polygon.h"
+#include "utils/polygon.h"
 
 #include <numeric>
 #include <unordered_set>
 
-#include "linearAlg2D.h" // pointLiesOnTheRightOfLine
-#include "Simplify.h"
+#include "utils/linearAlg2D.h" // pointLiesOnTheRightOfLine
+#include "utils/Simplify.h"
 
-#include "ListPolyIt.h"
+#include "utils/ListPolyIt.h"
 
-#include "PolylineStitcher.h"
+#include "utils/PolylineStitcher.h"
 
 namespace cura
 {

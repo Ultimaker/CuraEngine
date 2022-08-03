@@ -1,10 +1,10 @@
 //Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "PolygonConnector.h"
+#include "utils/PolygonConnector.h"
 
-#include "linearAlg2D.h"
-#include "AABB.h"
+#include "utils/linearAlg2D.h"
+#include "utils/AABB.h"
 
 namespace cura 
 {

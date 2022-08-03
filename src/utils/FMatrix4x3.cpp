@@ -1,11 +1,11 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "FMatrix4x3.h" //The definitions we're implementing.
+#include "utils/FMatrix4x3.h" //The definitions we're implementing.
 
-#include "floatpoint.h" //This matrix gets applied to floating point coordinates.
-#include "IntPoint.h" //Conversion directly into integer-based coordinates.
-#include "../settings/types/Ratio.h" //Scale factor.
+#include "utils/floatpoint.h" //This matrix gets applied to floating point coordinates.
+#include "utils/IntPoint.h" //Conversion directly into integer-based coordinates.
+#include "settings/types/Ratio.h" //Scale factor.
 
 namespace cura
 {

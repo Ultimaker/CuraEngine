@@ -1,8 +1,8 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "FlowTempGraph.h"
-#include "../utils/logoutput.h"
+#include "settings/FlowTempGraph.h"
+#include "utils/logoutput.h"
 
 namespace cura
 {

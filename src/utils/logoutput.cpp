@@ -1,11 +1,11 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <mutex>
 
-#include "logoutput.h"
+#include "utils/logoutput.h"
 
 namespace cura {
 

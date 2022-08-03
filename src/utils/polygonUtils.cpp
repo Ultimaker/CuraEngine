@@ -1,4 +1,4 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <array>
@@ -6,15 +6,15 @@
 #include <sstream>
 #include <unordered_set>
 
-#include "linearAlg2D.h"
-#include "polygonUtils.h"
-#include "SparsePointGridInclusive.h"
-#include "../utils/logoutput.h"
-#include "../infill.h"
+#include "utils/linearAlg2D.h"
+#include "utils/polygonUtils.h"
+#include "utils/SparsePointGridInclusive.h"
+#include "utils/logoutput.h"
+#include "infill.h"
 
 #ifdef DEBUG
-#include "AABB.h"
-#include "SVG.h"
+#include "utils/AABB.h"
+#include "utils/SVG.h"
 #endif
 
 namespace cura

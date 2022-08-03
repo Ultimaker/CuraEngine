@@ -109,7 +109,7 @@ class CuraEngineConan(ConanFile):
         self.folders.build = f"cmake-build-{build_type.lower()}"
         self.folders.generators = os.path.join(self.folders.build, "conan")
 
-        self.cpp.source.includedirs = ["src"]  # TODO: Seperate headers and cpp
+        self.cpp.source.includedirs = ["include", "src"]
 
         self.cpp.build.libdirs = ["."]
         self.cpp.build.bindirs = ["."]

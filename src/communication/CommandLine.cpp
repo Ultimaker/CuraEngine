@@ -1,4 +1,4 @@
-//  Copyright (c) 2020-2022 Ultimaker B.V.
+//  Copyright (c) 2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <cstring> //For strtok and strcopy.
@@ -10,14 +10,14 @@
 #include <rapidjson/filereadstream.h>
 #include <unordered_set>
 
-#include "CommandLine.h"
-#include "../Application.h" //To get the extruders for material estimates.
-#include "../ExtruderTrain.h"
-#include "../FffProcessor.h" //To start a slice and get time estimates.
-#include "../Slice.h"
-#include "../utils/getpath.h"
-#include "../utils/FMatrix4x3.h" //For the mesh_rotation_matrix setting.
-#include "../utils/logoutput.h"
+#include "communication/CommandLine.h"
+#include "Application.h" //To get the extruders for material estimates.
+#include "ExtruderTrain.h"
+#include "FffProcessor.h" //To start a slice and get time estimates.
+#include "Slice.h"
+#include "utils/getpath.h"
+#include "utils/FMatrix4x3.h" //For the mesh_rotation_matrix setting.
+#include "utils/logoutput.h"
 
 namespace cura
 {

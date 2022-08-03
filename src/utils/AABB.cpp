@@ -1,10 +1,10 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <limits>
-#include "AABB.h"
-#include "polygon.h" //To create the AABB of a polygon.
-#include "linearAlg2D.h"
+#include "utils/AABB.h"
+#include "utils/polygon.h" //To create the AABB of a polygon.
+#include "utils/linearAlg2D.h"
 
 namespace cura
 {

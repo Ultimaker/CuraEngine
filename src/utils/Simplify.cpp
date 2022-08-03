@@ -4,7 +4,7 @@
 #include <limits>
 #include <queue> //Priority queue to prioritise removing unimportant vertices.
 
-#include "Simplify.h"
+#include "utils/Simplify.h"
 
 namespace cura
 {
