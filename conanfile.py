@@ -65,7 +65,7 @@ class CuraEngineConan(ConanFile):
             tools.check_min_cppstd(self, 17)
         if self.version:
             if tools.Version(self.version) <= tools.Version("4"):
-                raise ConanInvalidConfiguration("Only versions 5+ are support")
+                raise ConanInvalidConfiguration("only versions 5+ are supported")
 
     def build_requirements(self):
         if self.options.enable_arcus:
