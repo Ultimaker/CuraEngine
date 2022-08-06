@@ -143,7 +143,6 @@ set(engine_SRCS # Except main.cpp.
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
 use_threads(_CuraEngine)
-enable_lto(_CuraEngine)
 
 target_include_directories(_CuraEngine
         PUBLIC
