@@ -1,29 +1,28 @@
-#Copyright (c) 2022 Ultimaker B.V.
-#CuraEngine is released under the terms of the AGPLv3 or higher.
+# Copyright (c) 2022 Ultimaker B.V.
+# CuraEngine is released under the terms of the AGPLv3 or higher.
 
 cmake_policy(SET CMP0091 NEW)  # For MSVC flags, will be ignored on non-Windows OS's
 cmake_minimum_required(VERSION 3.20)
 project(CuraEngine)
+include(cmake/StandardProjectSettings.cmake)
+AssureOutOfSourceBuilds()
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
-option(BUILD_TESTING "Build with unit tests" OFF)
+option(ENABLE_TESTING "Build with unit tests" OFF)
+option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
-option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
-option(EXTENSIVE_WARNINGS "Compile with all warnings" OFF)
 
-if(NOT APPLE)
+if (NOT APPLE)
     option(ENABLE_OPENMP "Use OpenMP for parallel code" ON)
-endif()
-
-include(cmake/StandardProjectSettings.cmake)
+endif ()
 
 # Create Protobuf files if Arcus is used
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
 
     find_package(arcus REQUIRED)
-    find_package(protobuf 3.17.1 REQUIRED)
+    find_package(protobuf REQUIRED)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
@@ -149,6 +148,7 @@ target_include_directories(_CuraEngine
         PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
         )
 target_compile_definitions(_CuraEngine
@@ -164,12 +164,12 @@ target_compile_definitions(_CuraEngine
         $<$<CONFIG:RelWithDebInfo>:USE_CPU_TIME>
         $<$<CONFIG:RelWithDebInfo>:DEBUG>
         )
-if(MSVC)
+if (MSVC)
     target_compile_options(_CuraEngine
             PRIVATE
             $<$<AND:$<BOOL:${ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS}>,$<CONFIG:Release>>:/fp:fast>
             )
-else()
+else ()
     target_compile_options(_CuraEngine
             PRIVATE
             $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
@@ -177,32 +177,33 @@ else()
             $<$<AND:$<BOOL:${ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS}>,$<CONFIG:Release>>:-Ofast>
             $<$<AND:$<BOOL:${ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS}>,$<CONFIG:Release>>:-funroll-loops>
             )
-endif()
+endif ()
 
-set_project_standards(_CuraEngine)
 enable_sanitizers(_CuraEngine)
 
-if(${EXTENSIVE_WARNINGS})
+if (${EXTENSIVE_WARNINGS})
     set_project_warnings(_CuraEngine)
-endif()
+endif ()
 
-if(ENABLE_OPENMP)
+if (ENABLE_OPENMP)
     find_package(OpenMP REQUIRED)
     target_link_libraries(_CuraEngine PUBLIC OpenMP::OpenMP_CXX)
-endif()
+endif ()
 
-if(ENABLE_ARCUS)
+if (ENABLE_ARCUS)
     target_link_libraries(_CuraEngine PRIVATE arcus::arcus protobuf::libprotobuf)
-endif()
+endif ()
 
-find_package(clipper 6.4.2 REQUIRED)
-find_package(rapidjson 1.1.0 REQUIRED)
-find_package(stb 20200203 REQUIRED)
-find_package(Boost 1.78.0 REQUIRED)
+find_package(clipper REQUIRED)
+find_package(rapidjson REQUIRED)
+find_package(stb REQUIRED)
+find_package(Boost REQUIRED)
 
 target_link_libraries(_CuraEngine PRIVATE clipper::clipper rapidjson::rapidjson stb::stb boost::boost)
 
-if (WIN32)
+if (NOT WIN32)
+    add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
+else ()
     message(STATUS "Using windres")
     set(RES_FILES "CuraEngine.rc")
     ENABLE_LANGUAGE(RC)
@@ -212,11 +213,6 @@ if (WIN32)
                 "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>"
                 )
     endif ()
-endif (WIN32)
-
-if (NOT WIN32)
-    add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
-else ()
     add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
 endif (NOT WIN32)
 
@@ -225,11 +221,7 @@ target_link_libraries(CuraEngine PRIVATE _CuraEngine)
 target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
 
 # Compiling the test environment.
-if (BUILD_TESTING)
+if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(tests)
-endif()
-
-# Installing CuraEngine.
-include(GNUInstallDirs)
-install(TARGETS CuraEngine DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif ()

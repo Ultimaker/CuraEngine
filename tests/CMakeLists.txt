@@ -1,18 +1,9 @@
 # Copyright (c) 2022 Ultimaker B.V.
 # CuraEngine is released under the terms of the AGPLv3 or higher.
 
-cmake_policy(SET CMP0091 NEW)  # For MSVC flags, will be ignored on non-Windows OS's
-cmake_minimum_required(VERSION 3.20)
-
 message(STATUS "Building tests...")
 
-if (ENABLE_ARCUS)
-    message(STATUS "Testing with Arcus enabled")
-    find_package(arcus REQUIRED)
-    find_package(protobuf 3.17.1 REQUIRED)
-endif ()
-find_package(GTest 1.12.1 REQUIRED)
-#find_package(curaengine REQUIRED)
+find_package(GTest REQUIRED)
 include(GoogleTest)
 
 set(TESTS_SRC_BASE
