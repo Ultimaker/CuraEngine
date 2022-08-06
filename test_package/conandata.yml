@@ -1,9 +1,0 @@
-"None":
-    requirements:
-        - "curaengine/(latest)@ultimaker/testing"
-"5.1.0":
-    requirements:
-        - "curaengine/5.1.0"
-"5.2.0":
-    requirements:
-        - "curaengine/5.2.0"
