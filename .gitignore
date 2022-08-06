@@ -14,26 +14,24 @@ output/*
 callgrind/*
 
 ## Building result.
-build/*
+build/
 tests/build/
 test_package/build/
 debug_build/*
 release_build/*
-cmake-build-*
 cmake-build-*
 libs/stb
 *.pyc
 *.exe
 *.a
 *.o
-CuraEngine
 _bin
 _obj
 x64/*
 out/*
 
 ## CMake files
-cmake_install.cmake         
+cmake_install.cmake
 CMakeCache.txt
 CMakeFiles/
 CPackSourceConfig.cmake
@@ -47,8 +45,8 @@ CuraEngine.sln
 Makefile
 
 ## IDE project files.
-CuraEngine.layout
-CuraEngine.cbp
+*.layout
+*.cbp
 *kdev*
 *.kate-swp
 nbproject/*
@@ -75,3 +73,4 @@ conan.lock
 conanbuildinfo.txt
 conaninfo.txt
 graph_info.json
+build/*
