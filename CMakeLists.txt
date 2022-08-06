@@ -119,7 +119,6 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ExtrusionSegment.cpp
         src/utils/FMatrix4x3.cpp
         src/utils/gettime.cpp
-        src/utils/getpath.cpp
         src/utils/LinearAlg2D.cpp
         src/utils/ListPolyIt.cpp
         src/utils/logoutput.cpp

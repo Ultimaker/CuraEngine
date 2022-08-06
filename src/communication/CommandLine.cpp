@@ -1,10 +1,11 @@
-//  Copyright (c) 2022 Ultimaker B.V.
-//  CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <cstring> //For strtok and strcopy.
 #include <fstream> //To check if files exist.
 #include <errno.h> // error number when trying to read file
 #include <numeric> //For std::accumulate.
+#include <filesystem>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/error/en.h> //Loading JSON documents to get settings from them.
 #include <rapidjson/filereadstream.h>
@@ -15,7 +16,6 @@
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice and get time estimates.
 #include "Slice.h"
-#include "utils/getpath.h"
 #include "utils/FMatrix4x3.h" //For the mesh_rotation_matrix setting.
 #include "utils/logoutput.h"
 
@@ -337,7 +337,7 @@ int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
     }
 
     std::unordered_set<std::string> search_directories = defaultSearchDirectories(); //For finding the inheriting JSON files.
-    std::string directory = getPathName(json_filename);
+    std::string directory = std::filesystem::path(json_filename).parent_path().string();
     search_directories.emplace(directory);
 
     return loadJSON(json_document, search_directories, settings);
