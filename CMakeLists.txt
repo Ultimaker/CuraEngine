@@ -155,6 +155,7 @@ target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
+        $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
         $<$<BOOL:${WIN32}>:NOMINMAX>
         $<$<CONFIG:Debug>:ASSERT_INSANE_OUTPUT>
@@ -199,7 +200,11 @@ find_package(rapidjson REQUIRED)
 find_package(stb REQUIRED)
 find_package(Boost REQUIRED)
 
-target_link_libraries(_CuraEngine PRIVATE clipper::clipper rapidjson::rapidjson stb::stb boost::boost)
+if (ENABLE_TESTING)
+    find_package(GTest REQUIRED)
+endif ()
+
+target_link_libraries(_CuraEngine PRIVATE clipper::clipper rapidjson::rapidjson stb::stb boost::boost $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
     add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
