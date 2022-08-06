@@ -2,6 +2,7 @@
 #  CuraEngine is released under the terms of the AGPLv3 or higher
 
 import os
+
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
 from conan.tools import files
@@ -55,7 +56,7 @@ class CuraEngineConan(ConanFile):
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
-            tools.check_min_cppstd(self, 17)
+            tools.check_min_cppstd(self, 20)
         if self.version:
             if tools.Version(self.version) <= tools.Version("4"):
                 raise ConanInvalidConfiguration("only versions 5+ are supported")
