@@ -1,3 +1,6 @@
+//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <stdio.h>
 #include <string.h>
 
@@ -11,8 +14,8 @@
 #include <arpa/inet.h>
 #endif
 
-#include "socket.h"
-#include "logoutput.h"
+#include "utils/socket.h"
+#include "utils/logoutput.h"
 
 namespace cura
 {

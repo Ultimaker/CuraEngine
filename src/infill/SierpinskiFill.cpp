@@ -1,20 +1,20 @@
 //Copyright (c) 2017 Tim Kuipers
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "SierpinskiFill.h"
+#include "infill/SierpinskiFill.h"
 
 #include <algorithm> // swap
 #include <assert.h>
 #include <functional> // function
 #include <iterator> // next, prev
 
-#include "ImageBasedDensityProvider.h"
-#include "UniformDensityProvider.h"
-#include "../utils/AABB3D.h"
-#include "../utils/logoutput.h"
-#include "../utils/polygon.h"
-#include "../utils/SVG.h"
+#include "infill/ImageBasedDensityProvider.h"
+#include "infill/UniformDensityProvider.h"
+#include "utils/AABB3D.h"
+#include "utils/logoutput.h"
+#include "utils/polygon.h"
+#include "utils/SVG.h"
 
 namespace cura {
 

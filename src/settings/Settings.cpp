@@ -8,22 +8,22 @@
 #include <regex> // regex parsing for temp flow graph
 #include <string> //Parsing strings (stod, stoul).
 
-#include "EnumSettings.h"
-#include "FlowTempGraph.h"
-#include "Settings.h"
-#include "types/Angle.h"
-#include "types/Duration.h" //For duration and time settings.
-#include "types/LayerIndex.h" //For layer index settings.
-#include "types/Ratio.h" //For ratio settings and percentages.
-#include "types/Temperature.h" //For temperature settings.
-#include "types/Velocity.h" //For velocity settings.
-#include "../Application.h" //To get the extruders.
-#include "../ExtruderTrain.h"
-#include "../Slice.h"
-#include "../utils/FMatrix4x3.h"
-#include "../utils/logoutput.h"
-#include "../utils/string.h" //For Escaped.
-#include "../BeadingStrategy/BeadingStrategyFactory.h"
+#include "settings/EnumSettings.h"
+#include "settings/FlowTempGraph.h"
+#include "settings/Settings.h"
+#include "settings/types/Angle.h"
+#include "settings/types/Duration.h" //For duration and time settings.
+#include "settings/types/LayerIndex.h" //For layer index settings.
+#include "settings/types/Ratio.h" //For ratio settings and percentages.
+#include "settings/types/Temperature.h" //For temperature settings.
+#include "settings/types/Velocity.h" //For velocity settings.
+#include "Application.h" //To get the extruders.
+#include "ExtruderTrain.h"
+#include "Slice.h"
+#include "utils/FMatrix4x3.h"
+#include "utils/logoutput.h"
+#include "utils/string.h" //For Escaped.
+#include "BeadingStrategy/BeadingStrategyFactory.h"
 
 namespace cura
 {

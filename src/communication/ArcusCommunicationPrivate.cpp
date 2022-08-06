@@ -1,16 +1,16 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifdef ARCUS
 
-#include "ArcusCommunicationPrivate.h"
-#include "../Application.h"
-#include "../ExtruderTrain.h"
-#include "../Slice.h"
-#include "../settings/types/LayerIndex.h"
-#include "../utils/floatpoint.h" //To accept vertices (which are provided in floating point).
-#include "../utils/FMatrix4x3.h" //To convert vertices to integer-points.
-#include "../utils/logoutput.h"
+#include "communication/ArcusCommunicationPrivate.h"
+#include "Application.h"
+#include "ExtruderTrain.h"
+#include "Slice.h"
+#include "settings/types/LayerIndex.h"
+#include "utils/floatpoint.h" //To accept vertices (which are provided in floating point).
+#include "utils/FMatrix4x3.h" //To convert vertices to integer-points.
+#include "utils/logoutput.h"
 
 namespace cura
 {

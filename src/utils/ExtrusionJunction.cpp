@@ -1,7 +1,7 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "ExtrusionJunction.h"
+#include "utils/ExtrusionJunction.h"
 
 namespace cura
 {

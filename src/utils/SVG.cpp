@@ -4,11 +4,11 @@
 
 #include <sstream>
 
-#include "floatpoint.h"
-#include "logoutput.h"
-#include "polygon.h"
-#include "SVG.h"
-#include "ExtrusionLine.h"
+#include "utils/floatpoint.h"
+#include "utils/logoutput.h"
+#include "utils/polygon.h"
+#include "utils/SVG.h"
+#include "utils/ExtrusionLine.h"
 
 namespace cura {
 

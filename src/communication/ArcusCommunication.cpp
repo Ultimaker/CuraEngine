@@ -7,19 +7,19 @@
 #include <thread> //To sleep while waiting for the connection.
 #include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
-#include "ArcusCommunication.h"
-#include "ArcusCommunicationPrivate.h" //Our PIMPL.
-#include "Listener.h" //To listen to the Arcus socket.
-#include "SliceDataStruct.h" //To store sliced layer data.
-#include "../Application.h" //To get and set the current slice command.
-#include "../ExtruderTrain.h"
-#include "../FffProcessor.h" //To start a slice.
-#include "../PrintFeature.h"
-#include "../Slice.h" //To process slices.
-#include "../settings/types/LayerIndex.h" //To point to layers.
-#include "../settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
-#include "../utils/logoutput.h"
-#include "../utils/polygon.h"
+#include "communication/ArcusCommunication.h"
+#include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
+#include "communication/Listener.h" //To listen to the Arcus socket.
+#include "communication/SliceDataStruct.h" //To store sliced layer data.
+#include "Application.h" //To get and set the current slice command.
+#include "ExtruderTrain.h"
+#include "FffProcessor.h" //To start a slice.
+#include "PrintFeature.h"
+#include "Slice.h" //To process slices.
+#include "settings/types/LayerIndex.h" //To point to layers.
+#include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "utils/logoutput.h"
+#include "utils/polygon.h"
 
 namespace cura
 {

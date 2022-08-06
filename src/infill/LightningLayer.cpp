@@ -1,16 +1,16 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "LightningLayer.h" //The class we're implementing.
+#include "infill/LightningLayer.h" //The class we're implementing.
 
 #include <iterator> // advance
 
-#include "LightningDistanceField.h"
-#include "LightningTreeNode.h"
-#include "../sliceDataStorage.h"
-#include "../utils/linearAlg2D.h"
-#include "../utils/SVG.h"
-#include "../utils/SparsePointGridInclusive.h"
+#include "infill/LightningDistanceField.h"
+#include "infill/LightningTreeNode.h"
+#include "sliceDataStorage.h"
+#include "utils/linearAlg2D.h"
+#include "utils/SVG.h"
+#include "utils/SparsePointGridInclusive.h"
 
 using namespace cura;
 

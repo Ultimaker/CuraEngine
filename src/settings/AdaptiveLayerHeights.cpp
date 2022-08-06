@@ -1,4 +1,4 @@
-//Copyright (C) 2021 Ultimaker B.V.
+//Copyright (C) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <iterator>
@@ -6,12 +6,12 @@
 #include <cmath>
 #include <limits>
 
-#include "AdaptiveLayerHeights.h"
-#include "EnumSettings.h"
-#include "types/Angle.h"
-#include "../Application.h"
-#include "../Slice.h"
-#include "../utils/floatpoint.h"
+#include "settings/AdaptiveLayerHeights.h"
+#include "settings/EnumSettings.h"
+#include "settings/types/Angle.h"
+#include "Application.h"
+#include "Slice.h"
+#include "utils/floatpoint.h"
 
 namespace cura
 {
