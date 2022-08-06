@@ -165,20 +165,6 @@ target_compile_definitions(_CuraEngine
         $<$<CONFIG:RelWithDebInfo>:USE_CPU_TIME>
         $<$<CONFIG:RelWithDebInfo>:DEBUG>
         )
-if (MSVC)
-    target_compile_options(_CuraEngine
-            PRIVATE
-            $<$<AND:$<BOOL:${ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS}>,$<CONFIG:Release>>:/fp:fast>
-            )
-else ()
-    target_compile_options(_CuraEngine
-            PRIVATE
-            $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
-            $<$<CONFIG:RelWithDebInfo>:-fno-omit-frame-pointer>
-            $<$<AND:$<BOOL:${ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS}>,$<CONFIG:Release>>:-Ofast>
-            $<$<AND:$<BOOL:${ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS}>,$<CONFIG:Release>>:-funroll-loops>
-            )
-endif ()
 
 enable_sanitizers(_CuraEngine)
 
