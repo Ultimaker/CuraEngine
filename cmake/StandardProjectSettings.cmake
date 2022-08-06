@@ -4,6 +4,18 @@ include(GNUInstallDirs) # Standard install dirs
 message(STATUS "Generating compile commands to ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+function(enable_lto project_name)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT supported OUTPUT error)
+
+    if (supported)
+        message(STATUS "IPO / LTO enabled")
+        set_property(TARGET ${project_name} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    else ()
+        message(STATUS "IPO / LTO not supported: <${error}>")
+    endif ()
+endfunction()
+
 # Ultimaker uniform Thread linking method
 function(use_threads project_name)
     message(STATUS "Enabling threading support for ${project_name}")
