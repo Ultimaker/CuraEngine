@@ -95,7 +95,7 @@ protected:
 
     /*!
      * Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons.
-     * First link up polygon ends that are within 2 microns.
+     * First link up polygon ends that are within 2 INT_PER_MM units.
      *
      * Clears all open polylines which are used up in the process
      *

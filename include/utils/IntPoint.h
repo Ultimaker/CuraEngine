@@ -5,7 +5,7 @@
 #define UTILS_INT_POINT_H
 
 /**
-The integer point classes are used as soon as possible and represent microns in 2D or 3D space.
+The integer point classes are used as soon as possible and represent in 2D or 3D space with INT_PER_MM units.
 Integer points are used to avoid floating point rounding errors, and because ClipperLib uses them.
 */
 #define INLINE static inline

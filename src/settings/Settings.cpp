@@ -120,7 +120,7 @@ LayerIndex Settings::get<LayerIndex>(const std::string& key) const
 template<>
 coord_t Settings::get<coord_t>(const std::string& key) const
 {
-    return MM2INT(get<double>(key)); // The settings are all in millimetres, but we need to interpret them as microns.
+    return MM2INT(get<double>(key)); // The settings are all in millimetres, but we need to interpret them as INT_PER_MM units.
 }
 
 template<>

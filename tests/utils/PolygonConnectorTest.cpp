@@ -21,7 +21,7 @@ public:
     Polygon test_triangle;
     Polygon test_circle;
     Polygon test_convex_shape;
-    Polygons test_shapes; // All above polygons! As well as an inset of 100 microns of them.
+    Polygons test_shapes; // All above polygons! As well as an inset of 100 INT_PER_MM units of them.
 
     PolygonConnector* pc;
     Polygons connected_polygons;
