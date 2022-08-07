@@ -3,22 +3,24 @@
 
 
 // Code smell: Order of the includes is important here, probably due to some forward declarations which might be masking some undefined behaviours
-#include "TreeSupport.h"
+// clang-format off
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "sliceDataStorage.h"
+#include "TreeSupport.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Angle.h" //Creating the correct branch angles.
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
-#include "utils/IntPoint.h" //To normalize vectors.
-#include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
-#include "utils/Simplify.h" //Reduce the resolution of small branches.
 #include "utils/ThreadPool.h"
+#include "utils/IntPoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide and PI.
+#include "utils/MinimumSpanningTree.h" //For connecting the correct nodes together to form an efficient tree.
 #include "utils/polygon.h" //For splitting polygons into parts.
 #include "utils/polygonUtils.h" //For moveInside.
+#include "utils/Simplify.h" //Reduce the resolution of small branches.
+// clang-format on
 
 #include <atomic>
 #include <mutex>
