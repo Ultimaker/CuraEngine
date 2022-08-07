@@ -112,7 +112,7 @@ TEST_F(SettingsTest, AddSettingCoordT)
 {
     settings.add("test_setting",
                  "8589934.592"); // 2^33 microns, so this MUST be a 64-bit integer! (Or at least 33-bit, but those don't exist.)
-    EXPECT_EQ(coord_t(8589934592), settings.get<coord_t>("test_setting")) << "Coordinates must be entered in the setting as millimetres, but are converted to micrometres.";
+    EXPECT_EQ(8589934.592_mm, settings.get<coord_t>("test_setting")) << "Coordinates must be entered in the setting as millimetres, but are converted to micrometres.";
 }
 
 TEST_F(SettingsTest, AddSettingAngleRadians)

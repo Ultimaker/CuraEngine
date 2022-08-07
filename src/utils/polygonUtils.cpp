@@ -722,7 +722,7 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
         return;
     }
 
-    int equilibirum_limit = MM2INT(0.1); // hard coded value
+    int equilibirum_limit = 100; // hard coded value
     for (int loop_counter = 0; loop_counter < equilibirum_limit; loop_counter++)
     {
         unsigned int pos1_before = poly1_result.point_idx;
@@ -1437,7 +1437,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
 
     // Points too close to line segments should be moved a little away from those line segments, but less than epsilon,
     //   so at least half-epsilon distance between points can still be guaranteed.
-    constexpr coord_t grid_size = 2000;
+    constexpr coord_t grid_size = 2_mm;
     auto query_grid = PolygonUtils::createLocToLineGrid(thiss, grid_size);
 
     const coord_t move_dist = half_epsilon - 2;

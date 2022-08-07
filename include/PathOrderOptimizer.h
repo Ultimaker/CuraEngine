@@ -579,7 +579,7 @@ protected:
 
         if(combing_grid == nullptr)
         {
-            constexpr coord_t grid_size = 2000; //2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
+            constexpr coord_t grid_size = 2_mm; // 2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
             combing_grid = PolygonUtils::createLocToLineGrid(*combing_boundary, grid_size);
         }
 

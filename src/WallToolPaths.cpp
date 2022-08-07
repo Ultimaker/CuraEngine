@@ -51,7 +51,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     const coord_t allowed_distance = settings.get<coord_t>("meshfix_maximum_deviation");
     const coord_t epsilon_offset = (allowed_distance / 2) - 1;
     const AngleRadians transitioning_angle = settings.get<AngleRadians>("wall_transition_angle");
-    constexpr coord_t discretization_step_size = MM2INT(0.8);
+    constexpr coord_t discretization_step_size = 0.8_mm;
 
     // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
     // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?

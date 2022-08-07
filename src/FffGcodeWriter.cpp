@@ -667,7 +667,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
-    gcode.setZ(max_object_height + MM2INT(5));
+    gcode.setZ(max_object_height + 5_mm);
 
     Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
@@ -1830,7 +1830,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
         // Originally an area of 0.4*0.4*2 (2 line width squares) was found to be a good threshold for removal.
         // However we found that this doesn't scale well with polygons with larger circumference (https://github.com/Ultimaker/Cura/issues/3992).
         // Given that the original test worked for approximately 2x2cm models, this scaling by circumference should make it work for any size.
-        constexpr double minimum_small_area_factor = 0.4 * 0.4 / 40000;
+        // Note that the result is in mm^2, but circumference is in INT_PER_MM, this is why the denominator get the _mm unit.
+        constexpr double minimum_small_area_factor = 0.4 * 0.4 / 40_mm;
         const double minimum_small_area = minimum_small_area_factor * circumference;
 
         // This is only for density infill, because after generating the infill might appear unnecessary infill on walls

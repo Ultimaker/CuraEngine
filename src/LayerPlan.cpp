@@ -201,7 +201,7 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
     {
         if (layer_nr < 0)
         {
-            comb_boundary = storage.raftOutline.offset(MM2INT(0.1));
+            comb_boundary = storage.raftOutline.offset(0.1_mm);
         }
         else
         {
@@ -328,7 +328,7 @@ void LayerPlan::setMesh(const std::string mesh_id)
 
 void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part)
 {
-    constexpr coord_t max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
+    constexpr coord_t max_dist2 = 2.0_mm * 2.0_mm; // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boundary of a part to inside the part
     Point p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
     if (PolygonUtils::moveInside(comb_boundary_preferred, p, distance, max_dist2) != NO_INDEX)
@@ -632,7 +632,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons,
     }
 }
 
-static constexpr float max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
+static constexpr float max_non_bridge_line_volume = 100_mm; // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
 void LayerPlan::addWallLine(const Point& p0,
                             const Point& p1,
@@ -645,8 +645,8 @@ void LayerPlan::addWallLine(const Point& p0,
                             Ratio speed_factor,
                             double distance_to_bridge_start)
 {
-    const coord_t min_line_len = 5; // we ignore lines less than 5um long
-    const double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
+    const coord_t min_line_len = 5_mu; // we ignore lines less than 5um long
+    const double acceleration_segment_len = 1_mm; // accelerate using segments of this length
     const double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     const bool spiralize = false;
 
@@ -1150,11 +1150,11 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons,
                     dist = overlap;
                 }
             }
-            dist += 100; // ensure boundary is slightly outside all skin/infill lines
+            dist += 0.1_mm; // ensure boundary is slightly outside all skin/infill lines
         }
         boundary.add(comb_boundary_minimum.offset(dist));
         // simplify boundary to cut down processing time
-        boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
+        boundary = Simplify(0.1_mm, 0.1_mm, 0).polygon(boundary);
     }
     constexpr bool detect_loops = true;
     PathOrderOptimizer<ConstPolygonPointer> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction);
@@ -1980,12 +1980,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (extruder_plan_idx == extruder_plans.size() - 1 || ! extruder.settings.get<bool>("machine_extruder_end_pos_abs"))
             { // only move the head if it's the last extruder plan; otherwise it's already at the switching bay area
                 // or do it anyway when we switch extruder in-place
-                gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
+                gcode.setZ(gcode.getPositionZ() + 3.0_mm);
                 gcode.writeTravel(gcode.getPositionXY(), configs_storage.travel_config_per_extruder[extruder_nr].getSpeed());
 
                 const Point current_pos = gcode.getPositionXY();
                 const Point machine_middle = storage.machine_size.flatten().getMiddle();
-                const Point toward_middle_of_bed = current_pos - normal(current_pos - machine_middle, MM2INT(20.0));
+                const Point toward_middle_of_bed = current_pos - normal(current_pos - machine_middle, 20.0_mm);
                 gcode.writeTravel(toward_middle_of_bed, configs_storage.travel_config_per_extruder[extruder_nr].getSpeed());
             }
             gcode.writeDelay(extruder_plan.extraTime);
@@ -2050,7 +2050,7 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
         return false;
     }
 
-    coord_t coasting_min_dist_considered = MM2INT(0.1); // hardcoded setting for when to not perform coasting
+    coord_t coasting_min_dist_considered = 0.1_mm; // hardcoded setting for when to not perform coasting
 
     const double extrude_speed = path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor() * path.speed_factor * path.speed_back_pressure_factor;
 

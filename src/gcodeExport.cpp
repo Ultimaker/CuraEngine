@@ -35,7 +35,7 @@ std::string transliterate(const std::string& text)
     return stream.str();
 }
 
-GCodeExport::GCodeExport() : output_stream(&std::cout), currentPosition(0, 0, MM2INT(20)), layer_nr(0), relative_extrusion(false)
+GCodeExport::GCodeExport() : output_stream(&std::cout), currentPosition(0, 0, 20_mm), layer_nr(0), relative_extrusion(false)
 {
     *output_stream << std::fixed;
 
@@ -714,11 +714,11 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(currentPosition != no_point3);
     assert(Point3(x, y, z) != no_point3);
-    assert((Point3(x, y, z) - currentPosition).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
+    assert((Point3(x, y, z) - currentPosition).vSize() < 1000_mm); // no crazy positions (this code should not be compiled for release)
 #endif // ASSERT_INSANE_OUTPUT
 
     const PrintFeatureType travel_move_type = extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
-    const int display_width = extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1);
+    const int display_width = extruder_attr[current_extruder].retraction_e_amount_current ? 0.2_mm : 0.1_mm;
     const double layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<double>("layer_height");
     Application::getInstance().communication->sendLineTo(travel_move_type, Point(x, y), display_width, layer_height, speed);
 
@@ -737,7 +737,7 @@ void GCodeExport::writeExtrusion(const coord_t x, const coord_t y, const coord_t
     assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(currentPosition != no_point3);
     assert(Point3(x, y, z) != no_point3);
-    assert((Point3(x, y, z) - currentPosition).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
+    assert((Point3(x, y, z) - currentPosition).vSize() < 1000_mm); // no crazy positions (this code should not be compiled for release)
     assert(extrusion_mm3_per_mm >= 0.0);
 #endif // ASSERT_INSANE_OUTPUT
 #ifdef DEBUG

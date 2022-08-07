@@ -1274,7 +1274,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     //     Polygons overhang =  basic_overhang.unionPolygons(support_extension);
     //         presumably the computation above is slower than the one below
 
-    Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
+    Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 0.1_mm); // +0.1mm for easier joining with support from layer above
     Polygons full_overhang = overhang_extented.intersection(supportLayer_supportee);
     return std::make_pair(basic_overhang, full_overhang);
 }

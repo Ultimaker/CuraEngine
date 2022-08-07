@@ -551,19 +551,20 @@ public:
      * \param smallest_line_segment_squared maximal squared length of removed line segments
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
-    void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
+    void simplify(const coord_t smallest_line_segment_squared = 100_mu2, const coord_t allowed_error_distance_squared = 25_mu2);
 
     /*!
      * See simplify(.)
      */
-    void simplifyPolyline(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25);
+    void simplifyPolyline(const coord_t smallest_line_segment_squared = 100_mu2, const coord_t allowed_error_distance_squared = 25_mu2);
+
 protected:
     /*!
      * Private implementation for both simplify and simplifyPolygons.
      * 
      * Made private to avoid accidental use of the wrong function.
      */
-    void _simplify(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25, bool processing_polylines = false);
+    void _simplify(const coord_t smallest_line_segment_squared = 100_mu2, const coord_t allowed_error_distance_squared = 25_mu2, bool processing_polylines = false);
 
 public:
     void pop_back()

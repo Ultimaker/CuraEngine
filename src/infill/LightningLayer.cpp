@@ -173,7 +173,7 @@ void LightningLayer::reconnectRoots
     const coord_t wall_supporting_radius
 )
 {
-    constexpr coord_t tree_connecting_ignore_offset = 100;
+    constexpr coord_t tree_connecting_ignore_offset = 100_mu;
 
     SparseLightningTreeNodeGrid tree_node_locator(locator_cell_size);
     fillLocator(tree_node_locator);

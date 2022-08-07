@@ -73,9 +73,9 @@ TEST_F(SlicePhaseTest, Cube)
     // Since a cube has the same slice at all heights, every layer must be the same square.
     Polygon square;
     square.emplace_back(0, 0);
-    square.emplace_back(10000, 0); // 10mm cube.
-    square.emplace_back(10000, 10000);
-    square.emplace_back(0, 10000);
+    square.emplace_back(10_mm, 0); // 10mm cube.
+    square.emplace_back(10_mm, 10_mm);
+    square.emplace_back(0, 10_mm);
 
     for (size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
     {
@@ -132,7 +132,7 @@ TEST_F(SlicePhaseTest, Cylinder1000)
 
     // Since a cylinder has the same slice at all heights, every layer must be the same circle.
     constexpr size_t num_vertices = 1000; // Create a circle with this number of vertices (first vertex is in the +X direction).
-    constexpr coord_t radius = 10000; // 10mm radius.
+    constexpr coord_t radius = 10_mm; // 10mm radius.
     Polygon circle;
     circle.reserve(num_vertices);
     for (size_t i = 0; i < 1000; i++)
@@ -152,8 +152,10 @@ TEST_F(SlicePhaseTest, Cylinder1000)
         {
             Polygon sliced_polygon = layer.polygons[0];
             // Due to the reduction in resolution, the final slice will not have the same vertices as the input.
-            // Let's say that are allowed to be up to 1/500th of the surface area off.
-            EXPECT_LE(PolygonUtils::relativeHammingDistance(layer.polygons, circles), 0.002);
+            // Let's say that are allowed to be up to 1/500th of the surface area off when coord_t(1) = 1_mu.
+            // One one hand, increasing the integer resolution reduces the area error quadratically, but simplifying
+            // the polygon is scale invariant, so it's not a direct ^2 relationship. The 1.5 bellow is empirical:
+            EXPECT_LE(PolygonUtils::relativeHammingDistance(layer.polygons, circles), 0.002 * std::pow(1e3 / INT_PER_MM, 1.3));
         }
     }
 }

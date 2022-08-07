@@ -145,13 +145,13 @@ TEST_F(ArcusCommunicationTest, SendFinishedSlicingTest)
 TEST_F(ArcusCommunicationTest, SendLayerComplete)
 {
     const LayerIndex layer_nr = 10;
-    constexpr coord_t layer_z = 20;
-    constexpr coord_t layer_thickness = 30;
+    constexpr coord_t layer_z = 20_mu;
+    constexpr coord_t layer_thickness = 30_mu;
     ac->sendLayerComplete(layer_nr, layer_z, layer_thickness);
     const std::shared_ptr<proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
     EXPECT_EQ(static_cast<google::protobuf::int32>(layer_nr), message->id()) << "getOptimizedLayerById() must return a layer with the correct ID.";
-    EXPECT_EQ(static_cast<float>(layer_z), message->height());
-    EXPECT_EQ(static_cast<float>(layer_thickness), message->thickness());
+    EXPECT_EQ(coord_to_mm(layer_z) * 1e3f, message->height()); // TODO: Protocol is stuck to microns
+    EXPECT_EQ(coord_to_mm(layer_thickness) * 1e3f, message->thickness());
 }
 
 TEST_F(ArcusCommunicationTest, SendProgress)

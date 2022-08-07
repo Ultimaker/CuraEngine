@@ -940,7 +940,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
 
-    const unsigned int layer_skip = 500 / layer_height + 1;
+    const unsigned int layer_skip = 0.5_mm / layer_height + 1;
 
     Polygons& draft_shield = storage.draft_protection_shield;
     for (unsigned int layer_nr = 0; layer_nr < storage.print_layer_count && layer_nr < draft_shield_layers; layer_nr += layer_skip)

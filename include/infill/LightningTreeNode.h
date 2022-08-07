@@ -15,7 +15,7 @@
 namespace cura
 {
 
-constexpr coord_t locator_cell_size = 4000;
+constexpr coord_t locator_cell_size = 4_mm;
 
 class LightningTreeNode;
 

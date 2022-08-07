@@ -666,7 +666,7 @@ void SkeletalTrapezoidation::filterNoncentralRegions()
             spdlog::warn("Encountered an uninitialized bead at the boundary!");
         }
         assert(edge.to->data.bead_count >= 0 || edge.to->data.distance_to_boundary == 0);
-        constexpr coord_t max_dist = 400;
+        constexpr coord_t max_dist = 400_mu;
         filterNoncentralRegions(&edge, edge.to->data.bead_count, 0, max_dist);
     }
 }

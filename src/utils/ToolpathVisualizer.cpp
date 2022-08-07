@@ -105,7 +105,7 @@ void ToolpathVisualizer::widths(const std::vector<ExtrusionSegment>& all_segment
             ExtrusionSegment ss = all_segments[segment_idx];
 //             ss.from.w *= w;
 //             ss.to.w *= w;
-            for (ExtrusionSegment s : ss.discretize(MM2INT(0.1)))
+            for (ExtrusionSegment s : ss.discretize(0.1_mm))
             {
                 coord_t avg_w = (s.from.w + s.to.w) / 2;
                 Point3 clr;

@@ -77,7 +77,7 @@ bool Polygons::empty() const
 
 Polygons Polygons::approxConvexHull(int extra_outset)
 {
-    constexpr int overshoot = MM2INT(100); //10cm (hard-coded value).
+    constexpr coord_t overshoot = 100_mm; // 10cm (hard-coded value).
 
     Polygons convex_hull;
     //Perform the offset for each polygon one at a time.
@@ -269,7 +269,7 @@ unsigned int Polygons::findInside(Point p, bool border_result)
 Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitch, const coord_t max_stitch_distance) const
 {
     Polygons split_polylines = polylines.splitPolylinesIntoSegments();
-    
+
     ClipperLib::PolyTree result;
     ClipperLib::Clipper clipper(clipper_init);
     clipper.AddPaths(split_polylines.paths, ClipperLib::ptSubject, false);
@@ -277,7 +277,7 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitc
     clipper.Execute(ClipperLib::ctIntersection, result);
     Polygons ret;
     ClipperLib::OpenPathsFromPolyTree(result, ret.paths);
-    
+
     if (restitch)
     {
         Polygons result_lines, result_polygons;
@@ -943,8 +943,8 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             Point a = p1 + normal(v10, a1_size);
             Point b = p1 + normal(v12, a1_size);
 #ifdef ASSERT_INSANE_OUTPUT
-            assert(vSize(a) < 4000000);
-            assert(vSize(b) < 4000000);
+            assert(vSize(a) < 4000_mm);
+            assert(vSize(b) < 4000_mm);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
             ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
             ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
@@ -968,7 +968,7 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             if (success)
             { // if not success then assume a is negligibly close to 0, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
-                assert(vSize(a) < 4000000);
+                assert(vSize(a) < 4000_mm);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
                 ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
             }
@@ -988,7 +988,7 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             if (success)
             { // if not success then assume b is negligibly close to 2, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
-                assert(vSize(b) < 4000000);
+                assert(vSize(b) < 4000_mm);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
                 ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
             }
@@ -1101,9 +1101,7 @@ Polygons Polygons::smooth_outward(const AngleDegrees max_angle, int shortcut_len
 }
 
 
-
-
-void ConstPolygonRef::splitPolylineIntoSegments(Polygons& result) const 
+void ConstPolygonRef::splitPolylineIntoSegments(Polygons& result) const
 {
     Point last = front();
     for (size_t idx = 1; idx < size(); idx++)
@@ -1114,7 +1112,7 @@ void ConstPolygonRef::splitPolylineIntoSegments(Polygons& result) const
     }
 }
 
-Polygons ConstPolygonRef::splitPolylineIntoSegments() const 
+Polygons ConstPolygonRef::splitPolylineIntoSegments() const
 {
     Polygons ret;
     splitPolylineIntoSegments(ret);
@@ -1127,7 +1125,7 @@ void ConstPolygonRef::splitPolygonIntoSegments(Polygons& result) const
     result.addLine(back(), front());
 }
 
-Polygons ConstPolygonRef::splitPolygonIntoSegments() const 
+Polygons ConstPolygonRef::splitPolygonIntoSegments() const
 {
     Polygons ret;
     splitPolygonIntoSegments(ret);
