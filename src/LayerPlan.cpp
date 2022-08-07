@@ -527,7 +527,7 @@ GCodePath& LayerPlan::addTravel_simple(Point p, GCodePath* path)
 void LayerPlan::planPrime(const float& prime_blob_wipe_length)
 {
     forceNewPathStart();
-    GCodePath& prime_travel = addTravel_simple(getLastPlannedPositionOrStartingPosition() + Point(0, MM2INT(prime_blob_wipe_length)));
+    GCodePath& prime_travel = addTravel_simple(getLastPlannedPositionOrStartingPosition() + Point(0, mm_to_coord(prime_blob_wipe_length)));
     prime_travel.retract = false;
     prime_travel.perform_z_hop = false;
     prime_travel.perform_prime = true;
@@ -1555,7 +1555,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
             double length = vSizeMM(p0 - p1);
             if (is_extrusion_path)
             {
-                material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
+                material_estimate += length * coord_to_mm2(layer_thickness * path.config->getLineWidth());
             }
             double thisTime = length / (path.config->getSpeed() * path.speed_factor);
             *path_time_estimate += thisTime;
@@ -2038,6 +2038,7 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
     ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
     const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr];
     const double coasting_volume = extruder.settings.get<double>("coasting_volume");
+    const double coasting_min_volume = extruder.settings.get<double>("coasting_min_volume");
     if (coasting_volume <= 0)
     {
         return false;
@@ -2053,9 +2054,9 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
 
     const double extrude_speed = path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor() * path.speed_factor * path.speed_back_pressure_factor;
 
-    const coord_t coasting_dist = MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
-    const double coasting_min_volume = extruder.settings.get<double>("coasting_min_volume");
-    const coord_t coasting_min_dist = MM2INT(MM2_2INT(coasting_min_volume + coasting_volume) / layer_thickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
+    const double extrusion_invsection = 1. / coord_to_mm2(layer_thickness * path.config->getLineWidth());
+    const coord_t coasting_dist = mm_to_coord(coasting_volume * extrusion_invsection);
+    const coord_t coasting_min_dist = mm_to_coord((coasting_min_volume + coasting_volume) * extrusion_invsection);
     //           /\ the minimal distance when coasting will coast the full coasting volume instead of linearly less with linearly smaller paths
 
     std::vector<coord_t> accumulated_dist_per_point; // the first accumulated dist is that of the last point! (that of the last point is always zero...)

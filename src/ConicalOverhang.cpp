@@ -14,8 +14,8 @@ namespace cura
 void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
 {
     const AngleRadians angle = mesh.settings.get<AngleRadians>("conical_overhang_angle");
-    const double maxHoleArea = mesh.settings.get<double>("conical_overhang_hole_size");
     const double tan_angle = tan(angle);  // the XY-component of the angle
+    const coord_t maxHoleArea = mm2_to_coord(mesh.settings.get<double>("conical_overhang_hole_size"));
     const coord_t layer_thickness = mesh.settings.get<coord_t>("layer_height");
     coord_t max_dist_from_lower_layer = tan_angle * layer_thickness; // max dist which can be bridged
 
@@ -51,7 +51,7 @@ void ConicalOverhang::apply(Slicer* slicer, const Mesh& mesh)
                     {
                         Polygons holePoly;
                         holePoly.add(layerParts[part][hole_nr]);
-                        if (maxHoleArea > 0.0 && INT2MM2(std::abs(holePoly.area())) < maxHoleArea)
+                        if (maxHoleArea > 0.0 && std::abs(holePoly.area()) < maxHoleArea)
                         {
                             Polygons holeWithAbove = holePoly.intersection(above);
                             if(!holeWithAbove.empty())

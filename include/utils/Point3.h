@@ -102,9 +102,9 @@ public:
     
     double vSizeMM() const
     {
-        double fx = INT2MM(x);
-        double fy = INT2MM(y);
-        double fz = INT2MM(z);
+        double fx = coord_to_mm(x);
+        double fy = coord_to_mm(y);
+        double fz = coord_to_mm(z);
         return sqrt(fx*fx+fy*fy+fz*fz);
     }
 

@@ -1,9 +1,9 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "settings/types/LayerIndex.h"
-#include "utils/IntPoint.h" // INT2MM
 #include "GCodePathConfig.h"
+#include "settings/types/LayerIndex.h"
+#include "utils/IntPoint.h" // coord_to_mm
 
 namespace cura 
 {
@@ -99,7 +99,7 @@ Ratio GCodePathConfig::getFlowRatio() const
 
 double GCodePathConfig::calculateExtrusion() const
 {
-    return INT2MM(line_width) * INT2MM(layer_thickness) * double(flow);
+    return coord_to_mm2(line_width * layer_thickness) * double(flow);
 }
 
 

@@ -504,7 +504,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode) : gcode(gco
     flowConnection = scene_settings.get<Ratio>("wireframe_flow_connection");
     flowFlat = scene_settings.get<Ratio>("wireframe_flow_flat");
 
-    const double line_area = M_PI * square(INT2MM(line_width) / 2.0);
+    const double line_area = M_PI * square(coord_to_mm(line_width) / 2.0);
     extrusion_mm3_per_mm_connection = line_area * flowConnection;
     extrusion_mm3_per_mm_flat = line_area * flowFlat;
 
@@ -610,7 +610,7 @@ void Wireframe2gcode::processStartingCode()
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
-        tmp << "M227 S" << (scene_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (scene_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
+        tmp << "M227 S" << coord_to_mm(scene_settings.get<coord_t>("retraction_amount") * 2560) << " P" << coord_to_mm(scene_settings.get<coord_t>("retraction_amount") * 2560);
         gcode.writeLine(tmp.str().c_str());
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
@@ -649,7 +649,7 @@ void Wireframe2gcode::processSkirt()
             Point vertex = (*path.vertices)[(vertex_index + path.start_vertex + 1) % path.vertices->size()];
             gcode.writeExtrusion(vertex,
                                  scene_settings.get<Velocity>("skirt_brim_speed"),
-                                 scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * INT2MM(initial_layer_thickness),
+                                 scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * coord_to_mm(initial_layer_thickness),
                                  PrintFeatureType::SkirtBrim);
         }
     }

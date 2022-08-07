@@ -107,8 +107,8 @@ INLINE coord_t vSize(const Point& p0)
 
 INLINE double vSizeMM(const Point& p0)
 {
-    double fx = INT2MM(p0.X);
-    double fy = INT2MM(p0.Y);
+    double fx = coord_to_mm(p0.X);
+    double fy = coord_to_mm(p0.Y);
     return sqrt(fx*fx+fy*fy);
 }
 

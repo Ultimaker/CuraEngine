@@ -75,9 +75,9 @@ void ToolpathVisualizer::width_legend(const Polygons& input, coord_t nozzle_size
     all_segments_plus.emplace_back(legend_segment); // colored
     
     Point legend_text_offset(nozzle_size, 0);
-    svg.writeText(legend_top.p + legend_text_offset, to_string(INT2MM(legend_top.w)));
-    svg.writeText(legend_btm.p + legend_text_offset, to_string(INT2MM(legend_btm.w)));
-    svg.writeText(legend_mid.p + legend_text_offset, to_string(INT2MM(legend_mid.w)));
+    svg.writeText(legend_top.p + legend_text_offset, to_string(coord_to_mm(legend_top.w)));
+    svg.writeText(legend_btm.p + legend_text_offset, to_string(coord_to_mm(legend_btm.w)));
+    svg.writeText(legend_mid.p + legend_text_offset, to_string(coord_to_mm(legend_mid.w)));
     svg.writeLine(legend_top.p, legend_top.p + legend_text_offset);
     svg.writeLine(legend_btm.p, legend_btm.p + legend_text_offset);
     svg.writeLine(legend_mid.p, legend_mid.p + legend_text_offset);

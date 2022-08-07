@@ -31,14 +31,14 @@ TEST_P(WriteInt2mmTest, WriteInt2mm)
     const std::string str = ss.str();
     ASSERT_TRUE(ss.good()) << "The integer " << in << " was printed as '" << str << "' which was a bad string!";
 
-    const int out = MM2INT(strtod(str.c_str(), nullptr));
+    const int out = mm_to_coord(strtod(str.c_str(), nullptr));
     ASSERT_EQ(in, out) << "The integer " << in << " was printed as '" << str << "' which was interpreted as " << out << " rather than " << in << "!";
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    WriteInt2mmTestInstantiation,
-    WriteInt2mmTest,
-    testing::Values(-10000, -1000, -100, -10, -1, 0, 1, 10, 100, 1000, 10000, 123456789, std::numeric_limits<int32_t>::max() / 1001)); // For max integer test, divide by 1000 since MM2INT multiplies by 1000 which would cause an overflow.
+INSTANTIATE_TEST_SUITE_P(WriteInt2mmTestInstantiation,
+                         WriteInt2mmTest,
+                         testing::Values(-10000, -1000, -100, -10, -1, 0, 1, 10, 100, 1000, 10000, 123456789, std::numeric_limits<int32_t>::max() / 1001)); // For max integer test, divide by 1000 since mm_to_coord multiplies by 1000 which
+                                                                                                                                                            // would cause an overflow.
 
 /*
  * Fixture to allow parameterized tests for writeDoubleToStream.

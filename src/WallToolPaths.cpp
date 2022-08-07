@@ -16,8 +16,7 @@
 namespace cura
 {
 
-WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count, const coord_t wall_0_inset,
-                             const Settings& settings)
+WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead_width, const size_t inset_count, const coord_t wall_0_inset, const Settings& settings)
     : outline(outline)
     , bead_width_0(nominal_bead_width)
     , bead_width_x(nominal_bead_width)
@@ -26,14 +25,13 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t nominal_bead
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
     , min_bead_width(settings.get<coord_t>("min_bead_width"))
-    , small_area_length(INT2MM(static_cast<double>(nominal_bead_width) / 2))
+    , small_area_length(coord_to_mm(nominal_bead_width) / 2.0)
     , toolpaths_generated(false)
     , settings(settings)
 {
 }
 
-WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x,
-                             const size_t inset_count, const coord_t wall_0_inset, const Settings& settings)
+WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0, const coord_t bead_width_x, const size_t inset_count, const coord_t wall_0_inset, const Settings& settings)
     : outline(outline)
     , bead_width_0(bead_width_0)
     , bead_width_x(bead_width_x)
@@ -42,7 +40,7 @@ WallToolPaths::WallToolPaths(const Polygons& outline, const coord_t bead_width_0
     , print_thin_walls(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size(settings.get<coord_t>("min_feature_size"))
     , min_bead_width(settings.get<coord_t>("min_bead_width"))
-    , small_area_length(INT2MM(static_cast<double>(bead_width_0) / 2))
+    , small_area_length(coord_to_mm(bead_width_0) / 2.0)
     , toolpaths_generated(false)
     , settings(settings)
 {

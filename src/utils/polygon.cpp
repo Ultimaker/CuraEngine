@@ -532,7 +532,7 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
         for(auto it = paths.begin(); it < new_end; it++)
         {
             // All polygons smaller than target are removed by replacing them with a polygon from the back of the vector
-            if(std::abs(INT2MM2(ClipperLib::Area(*it))) < min_area_size)
+            if (std::abs(coord_to_mm2(ClipperLib::Area(*it))) < min_area_size)
             {
                 new_end--;
                 *it = std::move(*new_end);
@@ -545,7 +545,7 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
         // For each polygon, computes the signed area, move small outlines at the end of the vector and keep references on small holes
         std::vector<PolygonRef> small_holes;
         for(auto it = paths.begin(); it < new_end; it++) {
-            double area = INT2MM2(ClipperLib::Area(*it));
+            double area = coord_to_mm2(ClipperLib::Area(*it));
             if (std::abs(area) < min_area_size)
             {
                 if(area >= 0)
@@ -765,7 +765,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
         const Point p0_2 = p0_2_it.p();
         const Point v02_2 = p0_2 - p2_2;
         const int64_t v02_2_size = vSize(v02_2);
-        float progress = std::min(1.0, INT2MM(shortcut_length - v02_size) / INT2MM(v02_2_size - v02_size)); // account for rounding error when v02_2_size is approx equal to v02_size
+        float progress = std::min(1.0, coord_to_mm(shortcut_length - v02_size) / coord_to_mm(v02_2_size - v02_size)); // account for rounding error when v02_2_size is approx equal to v02_size
         assert(progress >= 0.0f && progress <= 1.0f && "shortcut length must be between last length and new length");
         const Point new_p0 = p0_it.p() + (p0_2 - p0_it.p()) * progress;
         p0_it = ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
@@ -1045,7 +1045,7 @@ void ConstPolygonRef::smooth_outward(const AngleDegrees min_angle, int shortcut_
 
         const Point v10 = p0 - p1;
         const Point v12 = p2 - p1;
-        float cos_angle = INT2MM(INT2MM(dot(v10, v12))) / vSizeMM(v10) / vSizeMM(v12);
+        float cos_angle = coord_to_mm2(dot(v10, v12)) / (vSizeMM(v10) * vSizeMM(v12));
         bool is_left_angle = LinearAlg2D::pointIsLeftOfLine(p1, p0, p2) > 0;
         if (cos_angle > cos_min_angle && is_left_angle)
         {

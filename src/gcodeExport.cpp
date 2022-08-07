@@ -215,12 +215,12 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             total_bounding_box.min = Point3(0, 0, 0);
             total_bounding_box.max = Point3(10, 10, 10);
         }
-        prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box.min.x) << new_line;
-        prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box.min.y) << new_line;
-        prefix << ";PRINT.SIZE.MIN.Z:" << INT2MM(total_bounding_box.min.z) << new_line;
-        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(total_bounding_box.max.x) << new_line;
-        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box.max.y) << new_line;
-        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box.max.z) << new_line;
+        prefix << ";PRINT.SIZE.MIN.X:" << coord_to_mm(total_bounding_box.min.x) << new_line;
+        prefix << ";PRINT.SIZE.MIN.Y:" << coord_to_mm(total_bounding_box.min.y) << new_line;
+        prefix << ";PRINT.SIZE.MIN.Z:" << coord_to_mm(total_bounding_box.min.z) << new_line;
+        prefix << ";PRINT.SIZE.MAX.X:" << coord_to_mm(total_bounding_box.max.x) << new_line;
+        prefix << ";PRINT.SIZE.MAX.Y:" << coord_to_mm(total_bounding_box.max.y) << new_line;
+        prefix << ";PRINT.SIZE.MAX.Z:" << coord_to_mm(total_bounding_box.max.z) << new_line;
         prefix << ";SLICE_UUID:" << slice_uuid_ << new_line;
         prefix << ";END_OF_HEADER" << new_line;
         break;
@@ -262,12 +262,12 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << new_line;
             prefix << ";Layer height: " << Application::getInstance().current_slice->scene.current_mesh_group->settings.get<double>("layer_height") << new_line;
         }
-        prefix << ";MINX:" << INT2MM(total_bounding_box.min.x) << new_line;
-        prefix << ";MINY:" << INT2MM(total_bounding_box.min.y) << new_line;
-        prefix << ";MINZ:" << INT2MM(total_bounding_box.min.z) << new_line;
-        prefix << ";MAXX:" << INT2MM(total_bounding_box.max.x) << new_line;
-        prefix << ";MAXY:" << INT2MM(total_bounding_box.max.y) << new_line;
-        prefix << ";MAXZ:" << INT2MM(total_bounding_box.max.z) << new_line;
+        prefix << ";MINX:" << coord_to_mm(total_bounding_box.min.x) << new_line;
+        prefix << ";MINY:" << coord_to_mm(total_bounding_box.min.y) << new_line;
+        prefix << ";MINZ:" << coord_to_mm(total_bounding_box.min.z) << new_line;
+        prefix << ";MAXX:" << coord_to_mm(total_bounding_box.max.x) << new_line;
+        prefix << ";MAXY:" << coord_to_mm(total_bounding_box.max.y) << new_line;
+        prefix << ";MAXZ:" << coord_to_mm(total_bounding_box.max.z) << new_line;
     }
 
     return prefix.str();
@@ -375,7 +375,7 @@ int GCodeExport::getExtruderNr() const
 
 void GCodeExport::setFilamentDiameter(const size_t extruder, const coord_t diameter)
 {
-    const double r = INT2MM(diameter) / 2.0;
+    const double r = coord_to_mm(diameter) / 2.0;
     const double area = M_PI * r * r;
     extruder_attr[extruder].filament_area = area;
 }
@@ -700,7 +700,7 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
     *output_stream << " F" << PrecisionedDouble{ 1, fspeed } << new_line;
 
     currentPosition = Point3(x, y, z);
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed, feature);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(coord_to_mm(currentPosition.x), coord_to_mm(currentPosition.y), coord_to_mm(currentPosition.z), eToMm(current_e_value)), speed, feature);
 }
 
 void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed)
@@ -822,7 +822,7 @@ void GCodeExport::writeFXYZE(const Velocity& speed, const coord_t x, const coord
 
     currentPosition = Point3(x, y, z);
     current_e_value = e;
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(e)), speed, feature);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(coord_to_mm(x), coord_to_mm(y), coord_to_mm(z), eToMm(e)), speed, feature);
 }
 
 void GCodeExport::writeUnretractionAndPrime()
@@ -844,7 +844,7 @@ void GCodeExport::writeUnretractionAndPrime()
                                << new_line;
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             }
-            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), 25.0, PrintFeatureType::MoveRetraction);
+            estimateCalculator.plan(TimeEstimateCalculator::Position(coord_to_mm(currentPosition.x), coord_to_mm(currentPosition.y), coord_to_mm(currentPosition.z), eToMm(current_e_value)), 25.0, PrintFeatureType::MoveRetraction);
         }
         else
         {
@@ -852,7 +852,7 @@ void GCodeExport::writeUnretractionAndPrime()
             const double output_e = (relative_extrusion) ? extruder_attr[current_extruder].retraction_e_amount_current + prime_volume_e : current_e_value;
             *output_stream << "G1 F" << PrecisionedDouble{ 1, extruder_attr[current_extruder].last_retraction_prime_speed * 60 } << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{ 5, output_e } << new_line;
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
-            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
+            estimateCalculator.plan(TimeEstimateCalculator::Position(coord_to_mm(currentPosition.x), coord_to_mm(currentPosition.y), coord_to_mm(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
         }
     }
     else if (prime_volume != 0.0)
@@ -861,7 +861,7 @@ void GCodeExport::writeUnretractionAndPrime()
         *output_stream << "G1 F" << PrecisionedDouble{ 1, extruder_attr[current_extruder].last_retraction_prime_speed * 60 } << " " << extruder_attr[current_extruder].extruderCharacter;
         *output_stream << PrecisionedDouble{ 5, output_e } << new_line;
         currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::NoneType);
+        estimateCalculator.plan(TimeEstimateCalculator::Position(coord_to_mm(currentPosition.x), coord_to_mm(currentPosition.y), coord_to_mm(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::NoneType);
     }
     extruder_attr[current_extruder].prime_volume = 0.0;
 
@@ -940,7 +940,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         }
         *output_stream << new_line;
         // Assume default UM2 retraction settings.
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value + retraction_diff_e_amount)),
+        estimateCalculator.plan(TimeEstimateCalculator::Position(coord_to_mm(currentPosition.x), coord_to_mm(currentPosition.y), coord_to_mm(currentPosition.z), eToMm(current_e_value + retraction_diff_e_amount)),
                                 25,
                                 PrintFeatureType::MoveRetraction); // TODO: hardcoded values!
     }
@@ -951,7 +951,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         const double output_e = (relative_extrusion) ? retraction_diff_e_amount : current_e_value;
         *output_stream << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " " << extr_attr.extruderCharacter << PrecisionedDouble{ 5, output_e } << new_line;
         currentSpeed = speed;
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
+        estimateCalculator.plan(TimeEstimateCalculator::Position(coord_to_mm(currentPosition.x), coord_to_mm(currentPosition.y), coord_to_mm(currentPosition.z), eToMm(current_e_value)), currentSpeed, PrintFeatureType::MoveRetraction);
         extr_attr.last_retraction_prime_speed = config.primeSpeed;
     }
 

@@ -634,7 +634,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
-        tmp << "M227 S" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
+        tmp << "M227 S" << coord_to_mm(mesh_group_settings.get<coord_t>("retraction_amount") * 2560) << " P" << coord_to_mm(mesh_group_settings.get<coord_t>("retraction_amount") * 2560);
         gcode.writeLine(tmp.str().c_str());
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
@@ -2040,7 +2040,7 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
 
         constexpr bool remove_small_holes_from_infill_below_skin = true;
         constexpr double min_area_multiplier = 25;
-        const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
+        const double min_area = coord_to_mm2(infill_line_width * infill_line_width) * min_area_multiplier;
         infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
 
         // there is infill below skin, is there also infill that isn't below skin?

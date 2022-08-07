@@ -394,14 +394,14 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const Color color, const 
     {
         writeLine(Point(x, aabb.min.Y), Point(x, aabb.max.Y), color, stroke_width);
         std::stringstream ss;
-        ss << INT2MM(x);
+        ss << coord_to_mm(x);
         writeText(Point(x, aabb.min.Y + (aabb.max.Y - aabb.min.Y) * dist_from_edge), ss.str(), color, font_size);
     }
     for (coord_t y = min_y; y < aabb.max.Y; y += grid_size)
     {
         writeLine(Point(aabb.min.X, y), Point(aabb.max.Y, y), color, stroke_width);
         std::stringstream ss;
-        ss << INT2MM(y);
+        ss << coord_to_mm(y);
         writeText(Point(aabb.min.X + (aabb.max.X - aabb.min.X) * dist_from_edge, y), ss.str(), color, font_size);
     }
 }
