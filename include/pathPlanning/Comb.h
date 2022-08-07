@@ -122,8 +122,9 @@ private:
     const coord_t offset_from_inside_to_outside; //!< The sum of the offsets for the inside and outside boundary Comb::offset_from_outlines and Comb::offset_from_outlines_outside
     const coord_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
     static const coord_t max_moveOutside_distance2 = std::numeric_limits<coord_t>::max(); //!< Any point which is not inside should be considered outside.
-    static constexpr coord_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
-    static constexpr coord_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
+    static constexpr coord_t offset_dist_to_get_from_on_the_polygon_to_outside = 4 * INT_EPSILON; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
+    static constexpr coord_t offset_extra_start_end = 100_mu; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
+    // FIXME: ^ Magic constant (how is it derived? should it scale with units?)
 
     Polygons boundary_inside_minimum; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_minimum)
     Polygons boundary_inside_optimal; //!< The boundary within which to comb. (Will be reordered by the partsView_inside_optimal)

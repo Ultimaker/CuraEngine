@@ -90,6 +90,9 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
     }
 }
 
+// Holes are removed when their area is smaller than the squared line width multiplied by this constant:
+static constexpr coord_t brim_area_minimum_hole_size_multiplier = 100;
+
 coord_t SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_t& primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
 {
     const Settings& adhesion_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").settings;
@@ -105,7 +108,7 @@ coord_t SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, s
         for (unsigned int n = 0; n < outer_skirt_brim_line.size(); n++)
         {
             double area = outer_skirt_brim_line[n].area();
-            if (area < 0 && area > -primary_extruder_skirt_brim_line_width * primary_extruder_skirt_brim_line_width * 100)
+            if (area < 0 && area > -primary_extruder_skirt_brim_line_width * primary_extruder_skirt_brim_line_width * brim_area_minimum_hole_size_multiplier)
             {
                 outer_skirt_brim_line.remove(n--);
             }
@@ -239,8 +242,6 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
 
 void SkirtBrim::generateSupportBrim(SliceDataStorage& storage, const bool merge_with_model_skirtbrim)
 {
-    constexpr coord_t brim_area_minimum_hole_size_multiplier = 100;
-
     Scene& scene = Application::getInstance().current_slice->scene;
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t brim_line_width = support_infill_extruder.settings.get<coord_t>("skirt_brim_line_width") * support_infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");

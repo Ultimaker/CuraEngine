@@ -1956,7 +1956,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
 
 bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Polygons& infill_not_below_skin, const LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const SliceLayerPart& part, coord_t infill_line_width)
 {
-    constexpr coord_t tiny_infill_offset = 20;
+    constexpr coord_t tiny_infill_offset = 2 * INT_EPSILON;
     const auto skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
     Polygons skin_above_combined; // skin regions on the layers above combined with small gaps between
 
@@ -2230,7 +2230,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
             // considered to be
             const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
-            Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
+            Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(INT_EPSILON + overhang_width - half_outer_wall_width)).offset(INT_EPSILON);
             gcode_layer.setOverhangMask(overhang_region);
         }
     }

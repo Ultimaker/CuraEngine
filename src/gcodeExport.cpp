@@ -213,7 +213,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         {
             // Put some small default in there.
             total_bounding_box.min = Point3(0, 0, 0);
-            total_bounding_box.max = Point3(10, 10, 10);
+            total_bounding_box.max = Point3(INT_EPSILON, INT_EPSILON, INT_EPSILON);
         }
         prefix << ";PRINT.SIZE.MIN.X:" << coord_to_mm(total_bounding_box.min.x) << new_line;
         prefix << ";PRINT.SIZE.MIN.Y:" << coord_to_mm(total_bounding_box.min.y) << new_line;

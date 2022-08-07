@@ -59,7 +59,11 @@ class ListPolyIt;
 typedef std::list<Point> ListPolygon; //!< A polygon represented by a linked list instead of a vector
 typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
 
-const static int clipper_init = (0);
+// Allowed deviation for round joint while offsetting (this reduces the number of segment, http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/Properties/ArcTolerance.htm)
+static constexpr double clipper_arc_tolerance = INT_EPSILON;
+// How far a miter can be offseted before being truncated, relative to the offset size (http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/Properties/MiterLimit.htm)
+static constexpr double clipper_miter_limit = 1.2;
+static constexpr int clipper_init = 0;
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
 
 class ConstPolygonPointer;
@@ -162,7 +166,7 @@ public:
         return ClipperLib::Orientation(*path);
     }
 
-    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = clipper_miter_limit) const;
 
     coord_t polygonLength() const
     {
@@ -1004,16 +1008,15 @@ public:
         return ret;
     }
 
-    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = clipper_miter_limit) const;
 
     Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter) const
     {
         Polygons ret;
-        double miterLimit = 1.2;
         ClipperLib::EndType end_type = (joinType == ClipperLib::jtMiter)? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
-        ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
+        ClipperLib::ClipperOffset clipper(clipper_miter_limit, clipper_arc_tolerance);
         clipper.AddPaths(paths, joinType, end_type);
-        clipper.MiterLimit = miterLimit;
+        clipper.MiterLimit = clipper_miter_limit;
         clipper.Execute(ret.paths, distance);
         return ret;
     }

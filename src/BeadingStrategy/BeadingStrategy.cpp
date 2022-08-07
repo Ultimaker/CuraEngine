@@ -38,7 +38,7 @@ coord_t BeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 {
     if (lower_bead_count == 0)
     {
-        return 10;
+        return INT_EPSILON;
     }
     return default_transition_length;
 }

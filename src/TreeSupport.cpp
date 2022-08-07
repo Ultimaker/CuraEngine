@@ -179,7 +179,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                                            floor_layer.add(support_layer.intersection(storage.getLayerOutlines(sample_layer, no_support, no_prime_tower)));
                                        }
                                        floor_layer = floor_layer.unionPolygons();
-                                       support_layer = support_layer.difference(floor_layer.offset(10)); // Subtract the support floor from the normal support.
+                                       support_layer = support_layer.difference(floor_layer.offset(INT_EPSILON)); // Subtract the support floor from the normal support.
                                    }
 
                                    std::vector<PolygonsPart> support_layer_parts = support_layer.splitIntoParts();
@@ -323,10 +323,9 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                     }();
 
                     // Avoid collisions.
-                    constexpr size_t rounding_compensation = 100;
-                    const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + rounding_compensation;
+                    const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + INT_PRECISION_COMP;
                     const Polygons avoidance = group_index == 0 ? volumes_.getAvoidance(branch_radius_node, layer_nr - 1) : volumes_.getCollision(branch_radius_node, layer_nr - 1);
-                    PolygonUtils::moveOutside(avoidance, next_position, radius_sample_resolution + rounding_compensation, maximum_move_between_samples * maximum_move_between_samples);
+                    PolygonUtils::moveOutside(avoidance, next_position, radius_sample_resolution + INT_PRECISION_COMP, maximum_move_between_samples * maximum_move_between_samples);
 
                     Node* neighbour = nodes_per_part[group_index][neighbours[0]];
                     size_t new_distance_to_top = std::max(node.distance_to_top, neighbour->distance_to_top) + 1;
@@ -434,10 +433,9 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
                 }();
 
                 // Avoid collisions.
-                constexpr size_t rounding_compensation = 100;
-                const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + rounding_compensation;
+                const coord_t maximum_move_between_samples = maximum_move_distance + radius_sample_resolution + INT_PRECISION_COMP;
                 const Polygons avoidance = group_index == 0 ? volumes_.getAvoidance(branch_radius_node, layer_nr - 1) : volumes_.getCollision(branch_radius_node, layer_nr - 1);
-                PolygonUtils::moveOutside(avoidance, next_layer_vertex, radius_sample_resolution + rounding_compensation, maximum_move_between_samples * maximum_move_between_samples);
+                PolygonUtils::moveOutside(avoidance, next_layer_vertex, radius_sample_resolution + INT_PRECISION_COMP, maximum_move_between_samples * maximum_move_between_samples);
 
                 const bool to_buildplate = ! volumes_.getAvoidance(branch_radius_node, layer_nr - 1).inside(next_layer_vertex);
                 Node* next_node = new Node(next_layer_vertex, node.distance_to_top + 1, node.skin_direction, node.support_roof_layers_below - 1, to_buildplate, p_node);

@@ -63,8 +63,8 @@ class SkeletalTrapezoidation
     coord_t transition_filter_dist; //!< Filter transition mids (i.e. anchors) closer together than this
     coord_t allowed_filter_deviation; //!< The allowed line width deviation induced by filtering
     coord_t beading_propagation_transition_dist; //!< When there are different beadings propagated from below and from above, use this transitioning distance
-    static constexpr coord_t central_filter_dist = 20; //!< Filter areas marked as 'central' smaller than this
-    static constexpr coord_t snap_dist = 20; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
+    static constexpr coord_t central_filter_dist = 2 * INT_EPSILON; //!< Filter areas marked as 'central' smaller than this
+    static constexpr coord_t snap_dist = 2 * INT_EPSILON; //!< Generic arithmatic inaccuracy. Only used to determine whether a transition really needs to insert an extra edge.
 
     /*!
      * The strategy to use to fill a certain shape with lines.

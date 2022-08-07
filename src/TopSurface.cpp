@@ -85,7 +85,22 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     }
     Polygons ironed_areas = areas.offset(ironing_inset);
 
-    Infill infill_generator(pattern, zig_zaggify_infill, connect_polygons, ironed_areas, line_width, line_spacing, infill_overlap, infill_multiplier, direction, layer.z - 10, shift, max_resolution, max_deviation, wall_line_count, infill_origin, skip_line_stitching);
+    Infill infill_generator(pattern,
+                            zig_zaggify_infill,
+                            connect_polygons,
+                            ironed_areas,
+                            line_width,
+                            line_spacing,
+                            infill_overlap,
+                            infill_multiplier,
+                            direction,
+                            layer.z - INT_EPSILON,
+                            shift,
+                            max_resolution,
+                            max_deviation,
+                            wall_line_count,
+                            infill_origin,
+                            skip_line_stitching);
     std::vector<VariableWidthLines> ironing_paths;
     Polygons ironing_polygons;
     Polygons ironing_lines;

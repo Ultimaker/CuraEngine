@@ -25,8 +25,8 @@
 namespace cura
 {
 
-constexpr int MINIMUM_LINE_LENGTH = 5; // in uM. Generated lines shorter than this may be discarded
-constexpr int MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_LENGTH;
+constexpr coord_t MINIMUM_LINE_LENGTH = 5_mu; // in uM. Generated lines shorter than this may be discarded
+constexpr coord_t MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_LENGTH;
 
 ExtruderPlan::ExtruderPlan(const size_t extruder,
                            const LayerIndex layer_nr,
@@ -1336,7 +1336,7 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
         // outline wall has the correct direction - although this creates a little step, the end result is generally better because when the first
         // outline wall has the wrong direction (due to it starting from the finish point of the last layer) the visual effect is very noticeable
         Point join_first_wall_at = LinearAlg2D::getClosestOnLineSegment(origin, wall[seam_vertex_idx % wall.size()], wall[(seam_vertex_idx + 1) % wall.size()]);
-        if (vSize(join_first_wall_at - origin) > 10)
+        if (vSize2(join_first_wall_at - origin) > INT_EPSILON * INT_EPSILON)
         {
             constexpr Ratio flow = 1.0_r;
             addExtrusionMove(join_first_wall_at, config, SpaceFillType::Polygons, flow, width_factor, spiralize);

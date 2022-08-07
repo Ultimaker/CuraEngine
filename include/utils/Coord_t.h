@@ -24,6 +24,11 @@ static constexpr coord_t INT_PER_MM = ipow(10, INT10POW_PER_MM);
 static constexpr coord_t INT_PER_MM2 = INT_PER_MM * INT_PER_MM;
 static constexpr coord_t INT_PER_MM3 = INT_PER_MM2 * INT_PER_MM;
 
+// Minimum distance for snapping, tolerance for arcs, etc.
+static constexpr coord_t INT_EPSILON = 10;
+// The lenght of unit vectors for normal() and rotation computation, such that the rounding errors are negligible.
+static constexpr coord_t INT_PRECISION_COMP = 10000;
+
 constexpr double coord_to_mm(coord_t n)
 {
     return static_cast<double>(n) / INT_PER_MM;

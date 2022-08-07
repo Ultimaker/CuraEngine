@@ -21,8 +21,8 @@
 namespace cura
 {
 
-constexpr int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance between two line segments regarded as connected
-constexpr int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
+constexpr coord_t largest_neglected_gap_first_phase = INT_EPSILON; //!< distance between two line segments regarded as connected
+constexpr coord_t largest_neglected_gap_second_phase = 2 * INT_EPSILON; //!< distance between two line segments regarded as connected
 constexpr int max_stitch1 = 10.0_mm; //!< maximal distance stitched between open polylines to form polygons
 
 void SlicerLayer::makeBasicPolygonLoops(Polygons& open_polylines)

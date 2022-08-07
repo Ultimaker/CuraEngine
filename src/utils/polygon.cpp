@@ -86,7 +86,7 @@ Polygons Polygons::approxConvexHull(int extra_outset)
     for (const ClipperLib::Path& path : paths)
     {
         Polygons offset_result;
-        ClipperLib::ClipperOffset offsetter(1.2, 10.0);
+        ClipperLib::ClipperOffset offsetter(clipper_miter_limit, clipper_arc_tolerance);
         offsetter.AddPath(path, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
         offsetter.Execute(offset_result.paths, overshoot);
         convex_hull.add(offset_result);
@@ -281,7 +281,7 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitc
     if (restitch)
     {
         Polygons result_lines, result_polygons;
-        const coord_t snap_distance = 10_mu;
+        const coord_t snap_distance = clipper_arc_tolerance;
         PolylineStitcher<Polygons, Polygon, Point>::stitch(ret, result_lines, result_polygons, max_stitch_distance, snap_distance);
         ret = result_lines;
         // if polylines got stitched into polygons, split them back up into a polyline again, because the result only admits polylines
@@ -344,7 +344,7 @@ Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double m
         return *this;
     }
     Polygons ret;
-    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    ClipperLib::ClipperOffset clipper(miter_limit, clipper_arc_tolerance);
     clipper.AddPaths(unionPolygons().paths, join_type, ClipperLib::etClosedPolygon);
     clipper.MiterLimit = miter_limit;
     clipper.Execute(ret.paths, distance);
@@ -360,7 +360,7 @@ Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, d
         return ret;
     }
     Polygons ret;
-    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    ClipperLib::ClipperOffset clipper(miter_limit, clipper_arc_tolerance);
     clipper.AddPath(*path, join_type, ClipperLib::etClosedPolygon);
     clipper.MiterLimit = miter_limit;
     clipper.Execute(ret.paths, distance);
@@ -918,8 +918,8 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
     //  |
     //  0
     // ideally a1_size == b1_size
-    if (vSize2(v02) <= shortcut_length * (shortcut_length + 10) // v02 is approximately shortcut length
-        || (cos_angle > 0.9999 && LinearAlg2D::getDist2FromLine(p2, p0, p1) < 20 * 20)) // p1 is degenerate
+    if (vSize2(v02) <= shortcut_length * (shortcut_length + INT_EPSILON) // v02 is approximately shortcut length
+        || (cos_angle > 0.9999 && LinearAlg2D::getDist2FromLine(p2, p0, p1) < 2 * INT_EPSILON * 2 * INT_EPSILON)) // p1 is degenerate
     {
         // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
         p1_it.remove();
@@ -1026,7 +1026,7 @@ void ConstPolygonRef::smooth_outward(const AngleDegrees min_angle, int shortcut_
         do
         {
             ListPolyIt next = p1_it.next();
-            if (vSize2(p1_it.p() - next.p()) < 10 * 10)
+            if (vSize2(p1_it.p() - next.p()) < INT_EPSILON * INT_EPSILON)
             {
                 p1_it.remove();
             }

@@ -678,7 +678,7 @@ bool SkeletalTrapezoidation::filterNoncentralRegions(edge_t* to_edge, coord_t be
     edge_t* next_edge = to_edge->next;
     for (; next_edge && next_edge != to_edge->twin; next_edge = next_edge->twin->next)
     {
-        if (next_edge->to->data.distance_to_boundary >= r || shorterThen(next_edge->to->p - next_edge->from->p, 10))
+        if (next_edge->to->data.distance_to_boundary >= r || shorterThen(next_edge->to->p - next_edge->from->p, INT_EPSILON))
         {
             break; // Only walk upward
         }
@@ -1710,7 +1710,8 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
 
         // Robustness against odd segments which might lie just slightly outside of the range due to rounding errors
         // not sure if this is really needed (TODO)
-        if (junction_idx + 1 < num_junctions && beading->toolpath_locations[junction_idx + 1] <= start_R + 5 && beading->total_thickness < start_R + 5)
+        constexpr coord_t epsilon = INT_EPSILON / 2;
+        if (junction_idx + 1 < num_junctions && beading->toolpath_locations[junction_idx + 1] <= start_R + epsilon && beading->total_thickness < start_R + epsilon)
         {
             junction_idx++;
         }
@@ -1724,7 +1725,7 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
                 break;
             }
             Point junction(a + ab * (bead_R - start_R) / (end_R - start_R));
-            if (bead_R > start_R - 5)
+            if (bead_R > start_R - epsilon)
             { // Snap to start node if it is really close, in order to be able to see 3-way intersection later on more robustly
                 junction = a;
             }
@@ -1739,7 +1740,7 @@ std::shared_ptr<SkeletalTrapezoidationJoint::BeadingPropagation> SkeletalTrapezo
     {
         if (node->data.bead_count == -1)
         { // This bug is due to too small central edges
-            constexpr coord_t nearby_dist = 100; // TODO
+            constexpr coord_t nearby_dist = 100_mu; // //FIXME: < Magic constant (how is it derived? should it scale with units?)
             auto nearest_beading = getNearestBeading(node, nearby_dist);
             if (nearest_beading)
             {
@@ -1836,13 +1837,13 @@ void SkeletalTrapezoidation::addToolpathSegment(const ExtrusionJunction& from, c
     {
         force_new_path = true;
     }
-    if (! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - from.p, 10) && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - from.w) < 10
+    if (! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - from.p, INT_EPSILON) && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - from.w) < INT_EPSILON
         && ! from_is_3way // force new path at 3way intersection
     )
     {
         generated_toolpaths[inset_idx].back().junctions.push_back(to);
     }
-    else if (! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - to.p, 10) && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - to.w) < 10
+    else if (! force_new_path && shorterThen(generated_toolpaths[inset_idx].back().junctions.back().p - to.p, INT_EPSILON) && std::abs(generated_toolpaths[inset_idx].back().junctions.back().w - to.w) < INT_EPSILON
              && ! to_is_3way // force new path at 3way intersection
     )
     {
@@ -1956,11 +1957,11 @@ void SkeletalTrapezoidation::connectJunctions(ptr_vector_t<LineJunctions>& edge_
                 const bool from_is_odd = quad_start->to->data.bead_count > 0 && quad_start->to->data.bead_count % 2 == 1 // quad contains single bead segment
                                       && quad_start->to->data.transition_ratio == 0 // We're not in a transition
                                       && junction_rev_idx == segment_count - 1 // Is single bead segment
-                                      && shorterThen(from.p - quad_start->to->p, 5);
+                                      && shorterThen(from.p - quad_start->to->p, INT_EPSILON / 2);
                 const bool to_is_odd = quad_end->from->data.bead_count > 0 && quad_end->from->data.bead_count % 2 == 1 // quad contains single bead segment
                                     && quad_end->from->data.transition_ratio == 0 // We're not in a transition
                                     && junction_rev_idx == segment_count - 1 // Is single bead segment
-                                    && shorterThen(to.p - quad_end->from->p, 5);
+                                    && shorterThen(to.p - quad_end->from->p, INT_EPSILON / 2);
                 const bool is_odd_segment = from_is_odd && to_is_odd;
 
                 if (is_odd_segment && passed_odd_edges.count(quad_start->next->twin) > 0) // Only generate toolpath for odd segments once

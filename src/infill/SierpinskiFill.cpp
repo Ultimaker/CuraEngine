@@ -754,7 +754,7 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
     const coord_t period = vSize(last_triangle->straight_corner - last_triangle->a);
     ret.add(get_edge_crossing_location(period, last_triangle->getToEdge()));
 
-    if (pocket_size > 10)
+    if (pocket_size > INT_EPSILON)
     {
         // round off corners by half square root 2 of the pocket size so that the whole hole will be sqrt_pocket_size wide
         // \      /     \      /
