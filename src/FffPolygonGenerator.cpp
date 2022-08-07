@@ -1,52 +1,53 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
+#include <atomic>
+#include <fstream> // ifstream.good()
 #include <map> // multimap (ordered map allowing duplicate keys)
 #include <numeric>
-#include <fstream> // ifstream.good()
-#include <atomic>
 
+#include <spdlog/spdlog.h>
+
+// Code smell: Order of the includes is important here, probably due to some forward declarations which might be masking some undefined behaviours
 #include "Application.h"
 #include "ConicalOverhang.h"
 #include "ExtruderTrain.h"
 #include "FffPolygonGenerator.h"
-#include "infill.h"
-#include "layerPart.h"
 #include "MeshGroup.h"
 #include "Mold.h"
-#include "multiVolumes.h"
 #include "PrintFeature.h"
-#include "raft.h"
-#include "skin.h"
 #include "SkirtBrim.h"
 #include "Slice.h"
-#include "sliceDataStorage.h"
-#include "slicer.h"
-#include "support.h"
 #include "TopSurface.h"
 #include "TreeSupport.h"
 #include "WallsComputation.h"
+#include "infill.h"
 #include "infill/DensityProvider.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/LightningGenerator.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
+#include "layerPart.h"
+#include "multiVolumes.h"
 #include "progress/Progress.h"
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
 #include "progress/ProgressStageEstimator.h"
+#include "raft.h"
 #include "settings/AdaptiveLayerHeights.h"
 #include "settings/types/Angle.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/algorithm.h"
-#include "utils/ThreadPool.h"
-#include "utils/gettime.h"
-#include "utils/logoutput.h"
-#include "utils/math.h"
+#include "skin.h"
+#include "sliceDataStorage.h"
+#include "slicer.h"
+#include "support.h"
 #include "utils/Simplify.h"
-
+#include "utils/ThreadPool.h"
+#include "utils/algorithm.h"
+#include "utils/gettime.h"
+#include "utils/math.h"
 
 namespace cura
 {
@@ -54,7 +55,7 @@ namespace cura
 
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    if (!sliceModel(meshgroup, timeKeeper, storage))
+    if (! sliceModel(meshgroup, timeKeeper, storage))
     {
         return false;
     }
@@ -67,19 +68,19 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
 size_t FffPolygonGenerator::getDraftShieldLayerCount(const size_t total_layers) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    if (!mesh_group_settings.get<bool>("draft_shield_enabled"))
+    if (! mesh_group_settings.get<bool>("draft_shield_enabled"))
     {
         return 0;
     }
     switch (mesh_group_settings.get<DraftShieldHeightLimitation>("draft_shield_height_limitation"))
     {
-        case DraftShieldHeightLimitation::FULL:
-            return total_layers;
-        case DraftShieldHeightLimitation::LIMITED:
-            return std::max((coord_t)0, (mesh_group_settings.get<coord_t>("draft_shield_height") - mesh_group_settings.get<coord_t>("layer_height_0")) / mesh_group_settings.get<coord_t>("layer_height") + 1);
-        default:
-            logWarning("A draft shield height limitation option was added without implementing the new option in getDraftShieldLayerCount.");
-            return total_layers;
+    case DraftShieldHeightLimitation::FULL:
+        return total_layers;
+    case DraftShieldHeightLimitation::LIMITED:
+        return std::max((coord_t)0, (mesh_group_settings.get<coord_t>("draft_shield_height") - mesh_group_settings.get<coord_t>("layer_height_0")) / mesh_group_settings.get<coord_t>("layer_height") + 1);
+    default:
+        spdlog::warn("A draft shield height limitation option was added without implementing the new option in getDraftShieldLayerCount.");
+        return total_layers;
     }
 }
 
@@ -91,26 +92,26 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.model_max = meshgroup->max();
     storage.model_size = storage.model_max - storage.model_min;
 
-    log("Slicing model...\n");
+    spdlog::info("Slicing model...");
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
     // regular layers
-    int slice_layer_count = 0; //Use signed int because we need to subtract the initial layer in a calculation temporarily.
+    int slice_layer_count = 0; // Use signed int because we need to subtract the initial layer in a calculation temporarily.
 
     // Initial layer height of 0 is not allowed. Negative layer height is nonsense.
     coord_t initial_layer_thickness = mesh_group_settings.get<coord_t>("layer_height_0");
     if (initial_layer_thickness <= 0)
     {
-        logError("Initial layer height %i is disallowed.\n", initial_layer_thickness);
+        spdlog::error("Initial layer height {} is disallowed.", initial_layer_thickness);
         return false;
     }
 
     // Layer height of 0 is not allowed. Negative layer height is nonsense.
     const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
-    if(layer_thickness <= 0)
+    if (layer_thickness <= 0)
     {
-        logError("Layer height %i is disallowed.\n", layer_thickness);
+        spdlog::error("Layer height {} is disallowed.\n", layer_thickness);
         return false;
     }
 
@@ -124,61 +125,60 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         const coord_t variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
         const coord_t variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
         const coord_t adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
-        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation,
-                                                          variable_layer_height_variation_step, adaptive_threshold);
+        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold);
 
         // Get the amount of layers
         slice_layer_count = adaptive_layer_heights->getLayerCount();
     }
     else
     {
-        //Find highest layer count according to each mesh's settings.
-        for(const Mesh& mesh : meshgroup->meshes)
+        // Find highest layer count according to each mesh's settings.
+        for (const Mesh& mesh : meshgroup->meshes)
         {
-            if ( ! mesh.isPrinted())
+            if (! mesh.isPrinted())
             {
                 continue;
             }
             const coord_t mesh_height = mesh.max().z;
-            switch(mesh.settings.get<SlicingTolerance>("slicing_tolerance"))
+            switch (mesh.settings.get<SlicingTolerance>("slicing_tolerance"))
             {
-                case SlicingTolerance::MIDDLE:
-                    if(storage.model_max.z < initial_layer_thickness)
-                    {
-                        slice_layer_count = std::max(slice_layer_count, (mesh_height > initial_layer_thickness / 2) ? 1 : 0); //One layer if higher than half initial layer height.
-                    }
-                    else
-                    {
-                        slice_layer_count = std::max(slice_layer_count, static_cast<int>(round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
-                    }
-                    break;
-                case SlicingTolerance::EXCLUSIVE:
+            case SlicingTolerance::MIDDLE:
+                if (storage.model_max.z < initial_layer_thickness)
                 {
-                    int new_slice_layer_count = 0;
-                    if(mesh_height >= initial_layer_thickness) //If less than the initial layer thickness, leave it at 0.
-                    {
-                        new_slice_layer_count = static_cast<int>(floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
-                    }
-                    if(new_slice_layer_count > 0) // If there is at least one layer already, then...
-                    {
-                        new_slice_layer_count += 1; // ... need one extra, since we clear the top layer after the repeated intersections with the layer above.
-                    }
-                    slice_layer_count = std::max(slice_layer_count, new_slice_layer_count);
-                    break;
+                    slice_layer_count = std::max(slice_layer_count, (mesh_height > initial_layer_thickness / 2) ? 1 : 0); // One layer if higher than half initial layer height.
                 }
-                case SlicingTolerance::INCLUSIVE:
-                    if(mesh_height < initial_layer_thickness)
-                    {
-                        slice_layer_count = std::max(slice_layer_count, (mesh_height > 0) ? 1 : 0); //If less than the initial layer height, it always has 1 layer unless the height is truly zero.
-                    }
-                    else
-                    {
-                        slice_layer_count = std::max(slice_layer_count, static_cast<int>(ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
-                    }
-                    break;
-                default:
-                    logError("Unknown slicing tolerance. Did you forget to add a case here?");
-                    return false;
+                else
+                {
+                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                }
+                break;
+            case SlicingTolerance::EXCLUSIVE:
+            {
+                int new_slice_layer_count = 0;
+                if (mesh_height >= initial_layer_thickness) // If less than the initial layer thickness, leave it at 0.
+                {
+                    new_slice_layer_count = static_cast<int>(floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
+                }
+                if (new_slice_layer_count > 0) // If there is at least one layer already, then...
+                {
+                    new_slice_layer_count += 1; // ... need one extra, since we clear the top layer after the repeated intersections with the layer above.
+                }
+                slice_layer_count = std::max(slice_layer_count, new_slice_layer_count);
+                break;
+            }
+            case SlicingTolerance::INCLUSIVE:
+                if (mesh_height < initial_layer_thickness)
+                {
+                    slice_layer_count = std::max(slice_layer_count, (mesh_height > 0) ? 1 : 0); // If less than the initial layer height, it always has 1 layer unless the height is truly zero.
+                }
+                else
+                {
+                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                }
+                break;
+            default:
+                spdlog::error("Unknown slicing tolerance. Did you forget to add a case here?");
+                return false;
             }
         }
     }
@@ -190,7 +190,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
 
     std::vector<Slicer*> slicerList;
-    for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
+    for (unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         // Check if adaptive layers is populated to prevent accessing a method on NULL
         std::vector<AdaptiveLayer>* adaptive_layer_height_values = {};
@@ -225,7 +225,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
     {
         Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
-        if (mesh.settings.get<bool>("conical_overhang_enabled") && !mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (mesh.settings.get<bool>("conical_overhang_enabled") && ! mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             ConicalOverhang::apply(slicerList[mesh_idx], mesh);
         }
@@ -247,7 +247,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
-        if (!mesh.settings.get<bool>("anti_overhang_mesh") && !mesh.settings.get<bool>("infill_mesh") && !mesh.settings.get<bool>("cutting_mesh"))
+        if (! mesh.settings.get<bool>("anti_overhang_mesh") && ! mesh.settings.get<bool>("infill_mesh") && ! mesh.settings.get<bool>("cutting_mesh"))
         {
             storage.print_layer_count = std::max(storage.print_layer_count, slicer->layers.size());
         }
@@ -266,7 +266,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         // only create layer parts for normal meshes
         const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh.settings, slicer);
-        if (!is_support_modifier)
+        if (! is_support_modifier)
         {
             createLayerParts(meshStorage, slicer);
         }
@@ -274,7 +274,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         // Do not add and process support _modifier_ meshes further, and ONLY skip support _modifiers_. They have been
         // processed in AreaSupport::handleSupportModifierMesh(), but other helper meshes such as infill meshes are
         // processed in a later stage, except for support mesh itself, so an exception is made for that.
-        if(is_support_modifier && !mesh.settings.get<bool>("support_mesh"))
+        if (is_support_modifier && ! mesh.settings.get<bool>("support_mesh"))
         {
             storage.meshes.pop_back();
             continue;
@@ -311,10 +311,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             if (has_raft)
             {
                 const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-                layer.printZ +=
-                    Raft::getTotalThickness()
-                    + train.settings.get<coord_t>("raft_airgap")
-                    - train.settings.get<coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
+                layer.printZ += Raft::getTotalThickness() + train.settings.get<coord_t>("raft_airgap") - train.settings.get<coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
 
                 if (layer_nr == 0)
                 {
@@ -337,7 +334,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     unsigned int slice_layer_count = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        if (!mesh.settings.get<bool>("infill_mesh") && !mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (! mesh.settings.get<bool>("infill_mesh") && ! mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             slice_layer_count = std::max<unsigned int>(slice_layer_count, mesh.layers.size());
         }
@@ -371,7 +368,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    if (isEmptyLayer(storage, 0) && !isEmptyLayer(storage, 1))
+    if (isEmptyLayer(storage, 0) && ! isEmptyLayer(storage, 1))
     {
         // the first layer is empty, the second is not empty, so remove the empty first layer as support isn't going to be generated under it.
         // Do this irrespective of the value of remove_empty_first_layers as that setting is hidden when support is enabled and so cannot be relied upon
@@ -379,9 +376,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         removeEmptyFirstLayers(storage, storage.print_layer_count); // changes storage.print_layer_count!
     }
 
-    log("Layer count: %i\n", storage.print_layer_count);
+    spdlog::info("Layer count: {}", storage.print_layer_count);
 
-    //layerparts2HTML(storage, "output/output.html");
+    // layerparts2HTML(storage, "output/output.html");
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
 
@@ -401,7 +398,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     if (storage.print_layer_count == 0)
     {
-        log("Stopping process because there are no non-empty layers.\n");
+        spdlog::warn("Stopping process because there are no non-empty layers.");
         return;
     }
 
@@ -412,28 +409,28 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     storage.primeTower.generatePaths(storage);
     storage.primeTower.subtractFromSupport(storage);
 
-    logDebug("Processing ooze shield\n");
+    spdlog::debug("Processing ooze shield");
     processOozeShield(storage);
 
-    logDebug("Processing draft shield\n");
+    spdlog::debug("Processing draft shield");
     processDraftShield(storage);
 
     // This catches a special case in which the models are in the air, and then
     // the adhesion mustn't be calculated.
-    if (!isEmptyLayer(storage, 0) || storage.primeTower.enabled)
+    if (! isEmptyLayer(storage, 0) || storage.primeTower.enabled)
     {
-        log("Processing platform adhesion\n");
+        spdlog::debug("Processing platform adhesion");
         processPlatformAdhesion(storage);
     }
 
-    logDebug("Meshes post-processing\n");
+    spdlog::debug("Meshes post-processing");
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         processDerivedWallsSkinInfill(mesh);
     }
 
-    logDebug("Processing gradual support\n");
+    spdlog::debug("Processing gradual support");
     // generate gradual support
     AreaSupport::generateSupportInfillFeatures(storage);
 }
@@ -450,7 +447,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
 
     // TODO: make progress more accurate!!
     // note: estimated time for     insets : skins = 22.953 : 48.858
-    std::vector<double> walls_vs_skin_timing({22.953, 48.858});
+    std::vector<double> walls_vs_skin_timing({ 22.953, 48.858 });
     ProgressStageEstimator* mesh_inset_skin_progress_estimator = new ProgressStageEstimator(walls_vs_skin_timing);
 
     inset_skin_progress_estimate.nextStage(mesh_inset_skin_progress_estimator); // the stage of this function call
@@ -461,14 +458,14 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     struct
     {
         ProgressStageEstimator& progress_estimator;
-        std::mutex mutex {};
+        std::mutex mutex{};
         std::atomic<size_t> processed_layer_count = 0;
 
         void operator++(int)
         {
             std::unique_lock<std::mutex> lock(mutex, std::try_to_lock);
-            if(lock)
-            {   // progress estimation is done only in one thread so that no two threads message progress at the same time
+            if (lock)
+            { // progress estimation is done only in one thread so that no two threads message progress at the same time
                 size_t processed_layer_count_ = processed_layer_count.fetch_add(1, std::memory_order_relaxed);
                 double progress = progress_estimator.progress(processed_layer_count_);
                 Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
@@ -482,21 +479,23 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
         {
             processed_layer_count.store(0, std::memory_order_relaxed);
         }
-    } guarded_progress = {inset_skin_progress_estimate};
+    } guarded_progress = { inset_skin_progress_estimate };
 
     // walls
-    cura::parallel_for<size_t>(0, mesh_layer_count, [&](size_t layer_number)
-    {
-        logDebug("Processing insets for layer %i of %i\n", layer_number, mesh.layers.size());
-        processWalls(mesh, layer_number);
-        guarded_progress++;
-    });
+    cura::parallel_for<size_t>(0,
+                               mesh_layer_count,
+                               [&](size_t layer_number)
+                               {
+                                   spdlog::debug("Processing insets for layer {} of {}", layer_number, mesh.layers.size());
+                                   processWalls(mesh, layer_number);
+                                   guarded_progress++;
+                               });
 
     ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(mesh_layer_count);
     mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
 
     bool process_infill = mesh.settings.get<coord_t>("infill_line_distance") > 0;
-    if (!process_infill)
+    if (! process_infill)
     { // do process infill anyway if it's modified by modifier meshes
         const Scene& scene = Application::getInstance().current_slice->scene;
         for (size_t other_mesh_order_idx = mesh_order_idx + 1; other_mesh_order_idx < mesh_order.size(); ++other_mesh_order_idx)
@@ -525,15 +524,17 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     }
 
     guarded_progress.reset();
-    cura::parallel_for<size_t>(0, mesh_layer_count, [&](size_t layer_number)
-    {
-        logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh.layers.size());
-        if (!magic_spiralize || layer_number < mesh_max_initial_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
-        {
-            processSkinsAndInfill(mesh, layer_number, process_infill);
-        }
-        guarded_progress++;
-    });
+    cura::parallel_for<size_t>(0,
+                               mesh_layer_count,
+                               [&](size_t layer_number)
+                               {
+                                   spdlog::debug("Processing skins and infill layer {} of {}", layer_number, mesh.layers.size());
+                                   if (! magic_spiralize || layer_number < mesh_max_initial_bottom_layer_count) // Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+                                   {
+                                       processSkinsAndInfill(mesh, layer_number, process_infill);
+                                   }
+                                   guarded_progress++;
+                               });
 }
 
 void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const size_t mesh_order_idx, const std::vector<size_t>& mesh_order)
@@ -585,7 +586,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                 {
                     for (SliceLayerPart& part : layer.parts)
                     { // limit the outline of each part of this infill mesh to the infill of parts of the other mesh with lower infill mesh order
-                        if (!part.boundaryBox.hit(other_part.boundaryBox))
+                        if (! part.boundaryBox.hit(other_part.boundaryBox))
                         { // early out
                             continue;
                         }
@@ -616,7 +617,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                     Polygons cut_lines = own_infill_area.intersectionPolyLines(layer.openPolyLines);
                     new_polylines.add(cut_lines);
                     // NOTE: closed polygons will be represented as polylines, which will be closed automatically in the PathOrderOptimizer
-                    if ( ! own_infill_area.empty())
+                    if (! own_infill_area.empty())
                     {
                         other_part.infill_area_own = own_infill_area.difference(layer.openPolyLines.offsetPolyLine(surface_line_width / 2));
                     }
@@ -637,27 +638,25 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             layer.openPolyLines = new_polylines;
         }
 
-        if (layer.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0) )
+        if (layer.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0))
         {
             mesh.layer_nr_max_filled_layer = layer_idx; // last set by the highest non-empty layer
         }
     }
-
 }
 
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 {
     if (mesh.settings.get<bool>("infill_support_enabled"))
-    {// create gradual infill areas
+    { // create gradual infill areas
         SkinInfillAreaComputation::generateInfillSupport(mesh);
     }
 
     // create gradual infill areas
     SkinInfillAreaComputation::generateGradualInfill(mesh);
 
-    //SubDivCube Pre-compute Octree
-    if (mesh.settings.get<coord_t>("infill_line_distance") > 0
-        && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
+    // SubDivCube Pre-compute Octree
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
     {
         const Point3 mesh_middle = mesh.bounding_box.getMiddle();
         const Point infill_origin(mesh_middle.x + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y + mesh.settings.get<coord_t>("infill_offset_y"));
@@ -665,22 +664,19 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
 
     // Pre-compute Cross Fractal
-    if (mesh.settings.get<coord_t>("infill_line_distance") > 0
-        && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS
-            || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D)
-    )
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D))
     {
         const std::string cross_subdivision_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
         std::ifstream cross_fs(cross_subdivision_spec_image_file.c_str());
-        if (!cross_subdivision_spec_image_file.empty() && cross_fs.good())
+        if (! cross_subdivision_spec_image_file.empty() && cross_fs.good())
         {
             mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"), cross_subdivision_spec_image_file);
         }
         else
         {
-            if (!cross_subdivision_spec_image_file.empty() && cross_subdivision_spec_image_file != " ")
+            if (! cross_subdivision_spec_image_file.empty() && cross_subdivision_spec_image_file != " ")
             {
-                logError("Cannot find density image \'%s\'.", cross_subdivision_spec_image_file.c_str());
+                spdlog::error("Cannot find density image: {}.", cross_subdivision_spec_image_file);
             }
             mesh.cross_fill_provider = new SierpinskiFillProvider(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
         }
@@ -721,7 +717,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const unsigned
     if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-        if (!support_layer.support_infill_parts.empty() || !support_layer.support_bottom.empty() || !support_layer.support_roof.empty())
+        if (! support_layer.support_infill_parts.empty() || ! support_layer.support_bottom.empty() || ! support_layer.support_roof.empty())
         {
             return false;
         }
@@ -756,7 +752,8 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
         if (isEmptyLayer(storage, layer_idx))
         {
             n_empty_first_layers++;
-        } else
+        }
+        else
         {
             break;
         }
@@ -764,7 +761,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
 
     if (n_empty_first_layers > 0)
     {
-        log("Removing %d layers because they are empty\n", n_empty_first_layers);
+        spdlog::info("Removing {} layers because they are empty", n_empty_first_layers);
         const coord_t layer_height = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<coord_t>("layer_height");
         for (SliceMeshStorage& mesh : storage.meshes)
         {
@@ -808,7 +805,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, const La
     SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, process_infill);
     skin_infill_area_computation.generateSkinsAndInfill();
 
-    if (mesh.settings.get<bool>("ironing_enabled") && (!mesh.settings.get<bool>("ironing_only_highest_layer") || mesh.layer_nr_max_filled_layer == layer_nr))
+    if (mesh.settings.get<bool>("ironing_enabled") && (! mesh.settings.get<bool>("ironing_only_highest_layer") || mesh.layer_nr_max_filled_layer == layer_nr))
     {
         // Generate the top surface to iron over.
         mesh.layers[layer_nr].top_surface.setAreasFromMeshAndLayerNumber(mesh, layer_nr);
@@ -822,14 +819,14 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
     const int raft_layers = Raft::getTotalExtraLayers();
-    max_print_height_per_extruder.resize(extruder_count, -(raft_layers + 1)); //Initialize all as -1 (or lower in case of raft).
+    max_print_height_per_extruder.resize(extruder_count, -(raft_layers + 1)); // Initialize all as -1 (or lower in case of raft).
     { // compute max_object_height_per_extruder
-        //Height of the meshes themselves.
+        // Height of the meshes themselves.
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             if (mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh"))
             {
-                continue; //Special type of mesh that doesn't get printed.
+                continue; // Special type of mesh that doesn't get printed.
             }
             for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
             {
@@ -844,45 +841,39 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             }
         }
 
-        //Height of where the support reaches.
+        // Height of where the support reaches.
         Scene& scene = Application::getInstance().current_slice->scene;
         const Settings& mesh_group_settings = scene.current_mesh_group->settings;
         const size_t support_infill_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr; // TODO: Support extruder should be configurable per object.
-        max_print_height_per_extruder[support_infill_extruder_nr] =
-            std::max(max_print_height_per_extruder[support_infill_extruder_nr],
-                     storage.support.layer_nr_max_filled_layer);
+        max_print_height_per_extruder[support_infill_extruder_nr] = std::max(max_print_height_per_extruder[support_infill_extruder_nr], storage.support.layer_nr_max_filled_layer);
         const size_t support_roof_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr; // TODO: Support roof extruder should be configurable per object.
-        max_print_height_per_extruder[support_roof_extruder_nr] =
-            std::max(max_print_height_per_extruder[support_roof_extruder_nr],
-                     storage.support.layer_nr_max_filled_layer);
-        const size_t support_bottom_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr; //TODO: Support bottom extruder should be configurable per object.
-        max_print_height_per_extruder[support_bottom_extruder_nr] =
-            std::max(max_print_height_per_extruder[support_bottom_extruder_nr],
-                     storage.support.layer_nr_max_filled_layer);
+        max_print_height_per_extruder[support_roof_extruder_nr] = std::max(max_print_height_per_extruder[support_roof_extruder_nr], storage.support.layer_nr_max_filled_layer);
+        const size_t support_bottom_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr; // TODO: Support bottom extruder should be configurable per object.
+        max_print_height_per_extruder[support_bottom_extruder_nr] = std::max(max_print_height_per_extruder[support_bottom_extruder_nr], storage.support.layer_nr_max_filled_layer);
 
-        //Height of where the platform adhesion reaches.
+        // Height of where the platform adhesion reaches.
         const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
-        switch(adhesion_type)
+        switch (adhesion_type)
         {
-            case EPlatformAdhesion::SKIRT:
-            case EPlatformAdhesion::BRIM:
-            {
-                const size_t skirt_brim_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr;
-                max_print_height_per_extruder[skirt_brim_extruder_nr] = std::max(0, max_print_height_per_extruder[skirt_brim_extruder_nr]); //Includes layer 0.
-                break;
-            }
-            case EPlatformAdhesion::RAFT:
-            {
-                const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
-                max_print_height_per_extruder[base_extruder_nr] = std::max(-raft_layers, max_print_height_per_extruder[base_extruder_nr]); //Includes the lowest raft layer.
-                const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr;
-                max_print_height_per_extruder[interface_extruder_nr] = std::max(-raft_layers + 1, max_print_height_per_extruder[interface_extruder_nr]); //Includes the second-lowest raft layer.
-                const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr;
-                max_print_height_per_extruder[surface_extruder_nr] = std::max(-1, max_print_height_per_extruder[surface_extruder_nr]); //Includes up to the first layer below the model (so -1).
-                break;
-            }
-            default:
-                break; //No adhesion, so no maximum necessary.
+        case EPlatformAdhesion::SKIRT:
+        case EPlatformAdhesion::BRIM:
+        {
+            const size_t skirt_brim_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr;
+            max_print_height_per_extruder[skirt_brim_extruder_nr] = std::max(0, max_print_height_per_extruder[skirt_brim_extruder_nr]); // Includes layer 0.
+            break;
+        }
+        case EPlatformAdhesion::RAFT:
+        {
+            const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
+            max_print_height_per_extruder[base_extruder_nr] = std::max(-raft_layers, max_print_height_per_extruder[base_extruder_nr]); // Includes the lowest raft layer.
+            const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr;
+            max_print_height_per_extruder[interface_extruder_nr] = std::max(-raft_layers + 1, max_print_height_per_extruder[interface_extruder_nr]); // Includes the second-lowest raft layer.
+            const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr;
+            max_print_height_per_extruder[surface_extruder_nr] = std::max(-1, max_print_height_per_extruder[surface_extruder_nr]); // Includes up to the first layer below the model (so -1).
+            break;
+        }
+        default:
+            break; // No adhesion, so no maximum necessary.
         }
     }
 
@@ -902,7 +893,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    if (!mesh_group_settings.get<bool>("ooze_shield_enabled"))
+    if (! mesh_group_settings.get<bool>("ooze_shield_enabled"))
     {
         return;
     }
@@ -960,10 +951,10 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
     const coord_t draft_shield_dist = mesh_group_settings.get<coord_t>("draft_shield_dist");
     storage.draft_protection_shield = draft_shield.approxConvexHull(draft_shield_dist);
 
-    //Extra offset has rounded joints, so simplify again.
-    coord_t maximum_resolution = 0; //Draft shield is printed with every extruder, so resolve with the max() or min() of them to meet the requirements of all extruders.
+    // Extra offset has rounded joints, so simplify again.
+    coord_t maximum_resolution = 0; // Draft shield is printed with every extruder, so resolve with the max() or min() of them to meet the requirements of all extruders.
     coord_t maximum_deviation = std::numeric_limits<coord_t>::max();
-    for(const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
+    for (const ExtruderTrain& extruder : Application::getInstance().current_slice->scene.extruders)
     {
         maximum_resolution = std::max(maximum_resolution, extruder.settings.get<coord_t>("meshfix_maximum_resolution"));
         maximum_deviation = std::min(maximum_deviation, extruder.settings.get<coord_t>("meshfix_maximum_deviation"));
@@ -995,7 +986,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"), dont_allow_helpers);
     }
 
-    switch(adhesion_type)
+    switch (adhesion_type)
     {
     case EPlatformAdhesion::SKIRT:
         // Already done, because of prime-tower-brim & ordering, see above.
@@ -1038,7 +1029,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     const coord_t avg_dist_between_points = mesh.settings.get<coord_t>("magic_fuzzy_skin_point_dist");
     const coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     const coord_t range_random_point_dist = avg_dist_between_points / 2;
-    unsigned int start_layer_nr = (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)? 1 : 0; // don't make fuzzy skin on first layer if there's a brim    
+    unsigned int start_layer_nr = (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM) ? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
 
     auto hole_area = Polygons();
     std::function<bool(const bool&, const ExtrusionJunction&)> accumulate_is_in_hole = [](const bool& prev_result, const ExtrusionJunction& junction) { return false; };
@@ -1063,8 +1054,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                 if (apply_outside_only)
                 {
                     hole_area = part.print_outline.getOutsidePolygons().offset(-line_width);
-                    accumulate_is_in_hole =
-                        [&hole_area](const bool& prev_result, const ExtrusionJunction& junction) { return prev_result || hole_area.inside(junction.p); };
+                    accumulate_is_in_hole = [&hole_area](const bool& prev_result, const ExtrusionJunction& junction) { return prev_result || hole_area.inside(junction.p); };
                 }
                 for (auto& line : toolpath)
                 {
@@ -1143,4 +1133,4 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 }
 
 
-}//namespace cura
+} // namespace cura

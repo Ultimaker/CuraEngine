@@ -1,12 +1,11 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef LIMITED_BEADING_STRATEGY_H
 #define LIMITED_BEADING_STRATEGY_H
 
-#include "BeadingStrategy.h"
-#include "../utils/logoutput.h"
 #include "../utils/macros.h"
+#include "BeadingStrategy.h"
 
 namespace cura
 {
@@ -29,17 +28,17 @@ class LimitedBeadingStrategy : public BeadingStrategy
 {
 public:
     LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategyPtr parent);
-    
+
     virtual ~LimitedBeadingStrategy() override = default;
-    
+
     Beading compute(coord_t thickness, coord_t bead_count) const override;
     coord_t getOptimalThickness(coord_t bead_count) const override;
     coord_t getTransitionThickness(coord_t lower_bead_count) const override;
     coord_t getOptimalBeadCount(coord_t thickness) const override;
     virtual std::string toString() const override;
-    
+
     coord_t getTransitioningLength(coord_t lower_bead_count) const override;
-    
+
     float getTransitionAnchorPos(coord_t lower_bead_count) const override;
 
 protected:

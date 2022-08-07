@@ -4,6 +4,8 @@
         - "boost/1.79.0"
         - "rapidjson/1.1.0"
         - "stb/20200203"
+        - "spdlog/1.10.0"
+        - "fmt/9.0.0"
     requirements_arcus:
         - "protobuf/3.17.1"
         - "arcus/(latest)@ultimaker/testing"
@@ -60,6 +62,8 @@
         - "boost/1.79.0"
         - "rapidjson/1.1.0"
         - "stb/20200203"
+        - "spdlog/1.10.0"
+        - "fmt/9.0.0"
     requirements_arcus:
         - "protobuf/3.17.1"
         - "arcus/(latest)@ultimaker/testing"
