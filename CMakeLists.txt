@@ -122,7 +122,6 @@ set(engine_SRCS # Except main.cpp.
         src/utils/getpath.cpp
         src/utils/LinearAlg2D.cpp
         src/utils/ListPolyIt.cpp
-        src/utils/logoutput.cpp
         src/utils/MinimumSpanningTree.cpp
         src/utils/Point3.cpp
         src/utils/PolygonConnector.cpp
@@ -185,12 +184,14 @@ find_package(clipper REQUIRED)
 find_package(rapidjson REQUIRED)
 find_package(stb REQUIRED)
 find_package(Boost REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
 endif ()
 
-target_link_libraries(_CuraEngine PRIVATE clipper::clipper rapidjson::rapidjson stb::stb boost::boost $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
+target_link_libraries(_CuraEngine PUBLIC spdlog::spdlog PRIVATE fmt::fmt clipper::clipper rapidjson::rapidjson stb::stb boost::boost $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
     add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
