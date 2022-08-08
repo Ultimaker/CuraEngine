@@ -88,7 +88,6 @@ class ThreadPool
 /// `std::make_signed_t` fails for non integral types in a way that doesn't allows SFINAE fallbacks. This alias solves that.
 template<typename T> using make_signed_if_integral_t = typename std::enable_if_t<std::is_integral_v<T>, std::make_signed<T>>::type;
 
-using std::distance;
 /// Overloads `std::distance()` to work on integral types
 template<typename Int, typename Signed=make_signed_if_integral_t<Int>>
 inline Signed distance(const Int& first, const Int& last)

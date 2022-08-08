@@ -1,22 +1,22 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_STRING_H
 #define UTILS_STRING_H
 
-#include <ctype.h>
 #include <cstdio> // sprintf
+#include <ctype.h>
 #include <sstream> // ostringstream
 
-#include "logoutput.h"
+#include <spdlog/spdlog.h>
 
 namespace cura
 {
-    
-//c++11 no longer supplies a strcasecmp, so define our own version.
+
+// c++11 no longer supplies a strcasecmp, so define our own version.
 static inline int stringcasecompare(const char* a, const char* b)
 {
-    while(*a && *b)
+    while (*a && *b)
     {
         if (tolower(*a) != tolower(*b))
             return tolower(*a) - tolower(*b);
@@ -28,11 +28,11 @@ static inline int stringcasecompare(const char* a, const char* b)
 
 /*!
  * Efficient conversion of micron integer type to millimeter string.
- * 
+ *
  * The integer type is half the size of the normal integer type because of implementation details.
  * However, half the integer type should suffice, because we made the basic coord_t twice as big as necessary
  * so as to support multiplication within the same integer type.
- * 
+ *
  * \param coord The micron unit to convert
  * \param ss The output stream to write the string to
  */
@@ -44,11 +44,11 @@ static inline void writeInt2mm(const int32_t coord, std::ostream& ss)
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {
-        logError("Cannot write %ld to buffer of size %i", coord, buffer_size);
+        spdlog::error("Cannot write {} to buffer of size {}", coord, buffer_size);
     }
     if (char_count < 0)
     {
-        logError("Encoding error while writing %ld", coord);
+        spdlog::error("Encoding error while writing {}", coord);
     }
 #endif // DEBUG
     int end_pos = char_count; // the first character not to write any more
@@ -103,7 +103,7 @@ struct MMtoStream
 {
     int64_t value; //!< The coord in micron
 
-    friend inline std::ostream& operator<< (std::ostream& out, const MMtoStream precision_and_input)
+    friend inline std::ostream& operator<<(std::ostream& out, const MMtoStream precision_and_input)
     {
         writeInt2mm(precision_and_input.value, out);
         return out;
@@ -112,11 +112,11 @@ struct MMtoStream
 
 /*!
  * Efficient writing of a double to a stringstream
- * 
+ *
  * writes with \p precision digits after the decimal dot, but removes trailing zeros
- * 
+ *
  * \warning only works with precision up to 9 and input up to 10^14
- * 
+ *
  * \param precision The number of (non-zero) digits after the decimal dot
  * \param coord double to output
  * \param ss The output stream to write the string to
@@ -131,11 +131,11 @@ static inline void writeDoubleToStream(const unsigned int precision, const doubl
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {
-        logError("Cannot write %f to buffer of size %i", coord, buffer_size);
+        spdlog::error("Cannot write {} to buffer of size {}", coord, buffer_size);
     }
     if (char_count < 0)
     {
-        logError("Encoding error while writing %f", coord);
+        spdlog::error("Encoding error while writing {}", coord);
     }
 #endif // DEBUG
     if (char_count <= 0)
@@ -169,7 +169,7 @@ struct PrecisionedDouble
     unsigned int precision; //!< Number of digits after the decimal mark with which to convert to string
     double value; //!< The double value
 
-    friend inline std::ostream& operator<< (std::ostream& out, const PrecisionedDouble precision_and_input)
+    friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble precision_and_input)
     {
         writeDoubleToStream(precision_and_input.precision, precision_and_input.value, out);
         return out;
@@ -182,7 +182,7 @@ struct PrecisionedDouble
 struct Escaped
 {
     const char* str;
-    
+
     /*!
      * Streaming function which replaces escape sequences with extra slashes
      */
@@ -192,24 +192,47 @@ struct Escaped
         {
             switch (*char_p)
             {
-                case '\a':  os << "\\a"; break;
-                case '\b':  os << "\\b"; break;
-                case '\f':  os << "\\f"; break;
-                case '\n':  os << "\\n"; break;
-                case '\r':  os << "\\r"; break;
-                case '\t':  os << "\\t"; break;
-                case '\v':  os << "\\v"; break;
-                case '\\':  os << "\\\\"; break;
-                case '\'':  os << "\\'"; break;
-                case '\"':  os << "\\\""; break;
-                case '\?':  os << "\\\?"; break;
-                default: os << *char_p;
+            case '\a':
+                os << "\\a";
+                break;
+            case '\b':
+                os << "\\b";
+                break;
+            case '\f':
+                os << "\\f";
+                break;
+            case '\n':
+                os << "\\n";
+                break;
+            case '\r':
+                os << "\\r";
+                break;
+            case '\t':
+                os << "\\t";
+                break;
+            case '\v':
+                os << "\\v";
+                break;
+            case '\\':
+                os << "\\\\";
+                break;
+            case '\'':
+                os << "\\'";
+                break;
+            case '\"':
+                os << "\\\"";
+                break;
+            case '\?':
+                os << "\\\?";
+                break;
+            default:
+                os << *char_p;
             }
         }
         return os;
     }
 };
 
-}//namespace cura
+} // namespace cura
 
-#endif//UTILS_STRING_H
+#endif // UTILS_STRING_H

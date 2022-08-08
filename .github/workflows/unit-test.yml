@@ -118,7 +118,7 @@ jobs:
             -   name: Run Unit Test CuraEngine
                 id: run-test
                 run: ctest --output-junit engine_test.xml
-                working-directory: cmake-build-release
+                working-directory: build/Release
 
             -   name: Publish Unit Test Results
                 id: test-results

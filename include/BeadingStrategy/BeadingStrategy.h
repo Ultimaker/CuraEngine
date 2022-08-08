@@ -1,26 +1,25 @@
-// Copyright (c) 2021 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef BEADING_STRATEGY_H
 #define BEADING_STRATEGY_H
 
 #include <memory>
 
-#include "../utils/IntPoint.h"
-#include "../utils/logoutput.h"
 #include "../settings/types/Angle.h"
 #include "../settings/types/Ratio.h" //For the wall transition threshold.
+#include "../utils/IntPoint.h"
 
 namespace cura
 {
 
 /*!
  * Mostly virtual base class template.
- * 
+ *
  * Strategy for covering a given (constant) horizontal model thickness with a number of beads.
- * 
+ *
  * The beads may have different widths.
- * 
+ *
  * TODO: extend with printing order?
  */
 class BeadingStrategy
@@ -37,24 +36,19 @@ public:
         coord_t left_over; //! The distance not covered by any bead; gap area.
     };
 
-    BeadingStrategy
-    (
-        coord_t optimal_width,
-        Ratio wall_split_middle_threshold,
-        Ratio wall_add_middle_threshold,
-        coord_t default_transition_length,
-        float transitioning_angle = pi_div(3)
-    );
+    BeadingStrategy(coord_t optimal_width, Ratio wall_split_middle_threshold, Ratio wall_add_middle_threshold, coord_t default_transition_length, float transitioning_angle = pi_div(3));
 
     BeadingStrategy(const BeadingStrategy& other);
 
-    virtual ~BeadingStrategy() {}
+    virtual ~BeadingStrategy()
+    {
+    }
 
     /*!
      * Retrieve the bead widths with which to cover a given thickness.
-     * 
+     *
      * Requirement: Given a constant \p bead_count the output of each bead width must change gradually along with the \p thickness.
-     * 
+     *
      * \note The \p bead_count might be different from the \ref BeadingStrategy::optimal_bead_count
      */
     virtual Beading compute(coord_t thickness, coord_t bead_count) const = 0;
@@ -76,14 +70,14 @@ public:
 
     /*!
      * The length of the transitioning region along the marked / significant regions of the skeleton.
-     * 
+     *
      * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps with some incline defined by their length.
      */
     virtual coord_t getTransitioningLength(coord_t lower_bead_count) const;
 
     /*!
      * The fraction of the transition length to put between the lower end of the transition and the point where the unsmoothed bead count jumps.
-     * 
+     *
      * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps which could be positioned relative to the jump location.
      */
     virtual float getTransitionAnchorPos(coord_t lower_bead_count) const;
@@ -91,11 +85,11 @@ public:
     /*!
      * Get the locations in a bead count region where \ref BeadingStrategy::compute exhibits a bend in the widths.
      * Ordered from lower thickness to higher.
-     * 
+     *
      * This is used to insert extra support bones into the skeleton, so that the resulting beads in long trapezoids don't linearly change between the two ends.
      */
     virtual std::vector<coord_t> getNonlinearThicknesses(coord_t lower_bead_count) const;
-    
+
     virtual std::string toString() const;
 
     coord_t getOptimalWidth() const;
