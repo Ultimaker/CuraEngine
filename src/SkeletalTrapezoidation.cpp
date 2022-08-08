@@ -1059,7 +1059,7 @@ void SkeletalTrapezoidation::generateTransitionEnds(edge_t& edge, coord_t mid_po
 #ifdef DEBUG
         if (! generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends))
         {
-            spdlog::warn("There must have been at least one direction in which the bead count is increasing enough for the transition to happen!"));
+            spdlog::warn("There must have been at least one direction in which the bead count is increasing enough for the transition to happen!");
         }
 #else
         generateTransitionEnd(edge, start_pos, end_pos, transition_half_length, mid_rest, end_rest, lower_bead_count, edge_transition_ends);
