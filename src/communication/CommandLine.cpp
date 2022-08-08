@@ -3,15 +3,14 @@
 
 #include <cstring> //For strtok and strcopy.
 #include <errno.h> // error number when trying to read file
+#include <filesystem>
 #include <fstream> //To check if files exist.
 #include <numeric> //For std::accumulate.
-#include <filesystem>
-#include <rapidjson/rapidjson.h>
+#include <unordered_set>
+
 #include <rapidjson/error/en.h> //Loading JSON documents to get settings from them.
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/rapidjson.h>
-#include <unordered_set>
-
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get the extruders for material estimates.
@@ -358,7 +357,7 @@ int CommandLine::loadJSON(const std::string& json_filename, Settings& settings)
         return 2;
     }
 
-    std::unordered_set<std::string> search_directories = defaultSearchDirectories(); //For finding the inheriting JSON files.
+    std::unordered_set<std::string> search_directories = defaultSearchDirectories(); // For finding the inheriting JSON files.
     std::string directory = std::filesystem::path(json_filename).parent_path().string();
     search_directories.emplace(directory);
 
