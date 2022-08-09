@@ -395,9 +395,10 @@ Polygons SkinInfillAreaComputation::generateNoAirAbove(SliceLayerPart& part, siz
  *
  * this function may only read the skin and infill from the *current* layer.
  */
-    Polygons SkinInfillAreaComputation::generateNoAirBelow(SliceLayerPart& part, int flooring_layer_count)
+    Polygons SkinInfillAreaComputation::generateNoAirBelow(SliceLayerPart& part)
     {
-        if (layer_nr < flooring_layer_count)
+        constexpr int flooring_layer_count = 1;
+        if (layer_nr < 1)
         {
             return {};
         }
@@ -647,7 +648,7 @@ void SkinInfillAreaComputation::generateTopAndBottomMostSkinSurfaces(SliceLayerP
         Polygons no_air_above = generateNoAirAbove(part, 1);
         skin_part.top_most_surface_fill = skin_part.outline.difference(no_air_above);
 
-        Polygons no_air_below = generateNoAirBelow(part, 1);
+        Polygons no_air_below = generateNoAirBelow(part);
         skin_part.bottom_most_surface_fill = skin_part.skin_fill.difference(no_air_below);
     }
 }
