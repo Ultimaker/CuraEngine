@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <limits> // numeric_limits
 #include <list>
+#include <numbers>
 #include <optional>
 
 #include <boost/uuid/random_generator.hpp> //For generating a UUID.
@@ -216,7 +217,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
             // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
             float a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
 
-            if (a <= 0 || a >= M_PI)
+            if (a <= 0 || a >= std::numbers::pi)
             {
                 // the vertex was not on the left of the vector so move the seam vertex on
                 seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
@@ -2226,7 +2227,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             // the supported region is made up of those areas that really are supported by either model or support on the layer below
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
             // considered to be
-            const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
+            const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / std::numbers::pi));
             Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
             gcode_layer.setOverhangMask(overhang_region);
         }

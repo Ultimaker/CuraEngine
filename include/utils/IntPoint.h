@@ -16,6 +16,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <functional> // for hash function object
 #include <iostream> // auto-serialization / auto-toString()
 #include <limits>
+#include <numbers>
 #include <stdint.h>
 
 #include "Point3.h" //For applying Point3Matrices.
@@ -141,7 +142,7 @@ INLINE coord_t cross(const Point& p0, const Point& p1)
 
 INLINE int angle(const Point& p)
 {
-    double angle = std::atan2(p.X, p.Y) / M_PI * 180.0;
+    double angle = std::atan2(p.X, p.Y) / std::numbers::pi * 180.0;
     if (angle < 0.0) angle += 360.0;
     return angle;
 }
@@ -186,7 +187,7 @@ public:
 
     PointMatrix(double rotation)
     {
-        rotation = rotation / 180 * M_PI;
+        rotation = rotation / 180 * std::numbers::pi;
         matrix[0] = cos(rotation);
         matrix[1] = -sin(rotation);
         matrix[2] = -matrix[1];

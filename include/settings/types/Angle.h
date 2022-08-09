@@ -5,9 +5,9 @@
 #define ANGLE_H
 
 #include <cmath> //For fmod.
-#include "../../utils/math.h" //For M_PI.
+#include <numbers>
 
-#define TAU (2.0 * M_PI)
+static constexpr double TAU = (2.0 * std::numbers::pi);
 
 namespace cura
 {

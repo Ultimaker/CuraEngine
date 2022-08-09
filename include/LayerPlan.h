@@ -26,6 +26,7 @@ namespace cura
 class Comb;
 struct FanSpeedLayerTimeSettings;
 template<typename>
+struct PathOrderPath;
 class LightningLayer;
 
 /*!

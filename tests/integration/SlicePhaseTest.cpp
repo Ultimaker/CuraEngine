@@ -1,6 +1,8 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <numbers>
+
 #include "Application.h" // To set up a slice with settings.
 #include "Slice.h" // To set up a scene to slice.
 #include "slicer.h" // Starts the slicing phase that we want to test.
@@ -137,8 +139,8 @@ TEST_F(SlicePhaseTest, Cylinder1000)
     circle.reserve(num_vertices);
     for (size_t i = 0; i < 1000; i++)
     {
-        const coord_t x = std::cos(M_PI * 2 / num_vertices * i) * radius;
-        const coord_t y = std::sin(M_PI * 2 / num_vertices * i) * radius;
+        const coord_t x = std::cos(std::numbers::pi * 2 / num_vertices * i) * radius;
+        const coord_t y = std::sin(std::numbers::pi * 2 / num_vertices * i) * radius;
         circle.emplace_back(x, y);
     }
     Polygons circles;

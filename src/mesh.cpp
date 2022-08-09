@@ -1,6 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <numbers>
 #include <spdlog/spdlog.h>
 
 #include "mesh.h"
@@ -221,7 +222,7 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
         double det = n * n0.cross(n1);
         double angle = std::atan2(det, dot);
         if (angle < 0)
-            angle += 2 * M_PI; // 0 <= angle < 2* M_PI
+            angle += 2 * std::numbers::pi; // 0 <= angle < 2* std::numbers::pi
 
         if (angle == 0)
         {

@@ -1,6 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <numbers>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
@@ -11,7 +12,6 @@
 #include "infill/SubDivCube.h" // For the destructor
 #include "raft.h"
 #include "sliceDataStorage.h"
-#include "utils/math.h" //For PI.
 
 
 namespace cura
@@ -568,7 +568,7 @@ Polygon SliceDataStorage::getMachineBorder(bool adhesion_offset) const
         constexpr unsigned int circle_resolution = 50;
         for (unsigned int i = 0; i < circle_resolution; i++)
         {
-            const double angle = M_PI * 2 * i / circle_resolution;
+            const double angle = std::numbers::pi * 2 * i / circle_resolution;
             border.emplace_back(machine_size.getMiddle().x + std::cos(angle) * width / 2, machine_size.getMiddle().y + std::sin(angle) * depth / 2);
         }
         break;

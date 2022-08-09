@@ -5,6 +5,7 @@
 #define BEADING_STRATEGY_H
 
 #include <memory>
+#include <numbers>
 
 #include "../settings/types/Angle.h"
 #include "../settings/types/Ratio.h" //For the wall transition threshold.
@@ -36,7 +37,7 @@ public:
         coord_t left_over; //! The distance not covered by any bead; gap area.
     };
 
-    BeadingStrategy(coord_t optimal_width, Ratio wall_split_middle_threshold, Ratio wall_add_middle_threshold, coord_t default_transition_length, float transitioning_angle = pi_div(3));
+    BeadingStrategy(coord_t optimal_width, Ratio wall_split_middle_threshold, Ratio wall_add_middle_threshold, coord_t default_transition_length, float transitioning_angle = std::numbers::pi / 3.);
 
     BeadingStrategy(const BeadingStrategy& other);
 

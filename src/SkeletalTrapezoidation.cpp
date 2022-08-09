@@ -7,6 +7,7 @@
 
 #include "settings/types/Ratio.h"
 #include <functional>
+#include <numbers>
 #include <queue>
 #include <sstream>
 #include <stack>
@@ -196,7 +197,7 @@ std::vector<Point> SkeletalTrapezoidation::discretize(const vd_t::edge_type& vd_
         coord_t end_x = projected_x(end);
 
         // Part of the edge will be bound to the markings on the endpoints of the edge. Calculate how far that is.
-        float bound = 0.5 / tan((M_PI - transitioning_angle) * 0.5);
+        float bound = 0.5 / tan((std::numbers::pi - transitioning_angle) * 0.5);
         coord_t marking_start_x = -d * bound;
         coord_t marking_end_x = d * bound;
         Point marking_start = middle + x_axis_dir * marking_start_x / x_axis_length;
@@ -2007,7 +2008,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             constexpr coord_t n_segments = 6;
             for (coord_t segment = 0; segment < n_segments; segment++)
             {
-                float a = 2.0 * M_PI / n_segments * segment;
+                float a = 2.0 * std::numbers::pi / n_segments * segment;
                 line.junctions.emplace_back(node.p + Point(r * cos(a), r * sin(a)), width, inset_index);
             }
         }
