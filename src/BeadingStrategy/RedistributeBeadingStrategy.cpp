@@ -3,6 +3,8 @@
 
 #include "BeadingStrategy/RedistributeBeadingStrategy.h"
 
+#include <fmt/format.h>
+
 #include <algorithm>
 #include <numeric>
 
@@ -65,7 +67,7 @@ float RedistributeBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_cou
 
 std::string RedistributeBeadingStrategy::toString() const
 {
-    return BeadingStrategy::toString() + parent->toString();
+    return fmt::format("redistributed+{}", parent->toString());
 }
 
 BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
