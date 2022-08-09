@@ -14,7 +14,9 @@
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
 #include "communication/Communication.h" //To write g-code output.
+#include "gcodeExport.h" //To access gcodeExport members
 #include "progress/Progress.h"
+#include "settings/types/LayerIndex.h"
 #include "utils/math.h"
 #include "weaveDataStorage.h"
 

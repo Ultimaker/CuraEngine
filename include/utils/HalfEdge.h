@@ -7,9 +7,6 @@
 #include <forward_list>
 #include <optional>
 
-#include "../utils/IntPoint.h"
-#include "Coord_t.h"
-
 namespace cura
 {
 

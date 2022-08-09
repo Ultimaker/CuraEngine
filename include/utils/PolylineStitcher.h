@@ -8,7 +8,6 @@
 #include "SparsePointGrid.h"
 #include "PolygonsPointIndex.h"
 
-#include "SymmetricPair.h"
 #include <unordered_set>
 #include <cassert>
 

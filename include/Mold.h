@@ -4,6 +4,8 @@
 #ifndef MOLD_H
 #define MOLD_H
 
+#include <vector>
+
 namespace cura
 {
 

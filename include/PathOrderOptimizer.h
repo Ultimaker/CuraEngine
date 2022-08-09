@@ -7,12 +7,12 @@
 
 #include <unordered_set>
 
-#include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
 #include "PathOrderPath.h"
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "settings/EnumSettings.h" //To get the seam settings.
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
+#include "utils/SparsePointGridInclusive.h" // For SparsePointGridInclusive
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
 #include "utils/polygonUtils.h"
 #include "utils/Simplify.h"

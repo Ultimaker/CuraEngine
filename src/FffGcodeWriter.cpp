@@ -13,14 +13,14 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
-#include "FffProcessor.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
+#include "PathOrderOptimizer.h"
 #include "Slice.h"
-#include "WallToolPaths.h"
 #include "bridge.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "infill.h"
+#include "infill/LightningGenerator.h"
 #include "progress/Progress.h"
 #include "raft.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.

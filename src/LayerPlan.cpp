@@ -8,11 +8,14 @@
 
 #include "Application.h" //To communicate layer view data.
 #include "ExtruderTrain.h"
+#include "FanSpeedLayerTime.h"
 #include "LayerPlan.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
+#include "PathOrderOptimizer.h"
 #include "Slice.h"
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h"
+#include "gcodeExport.h"
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
 #include "raft.h" // getTotalExtraLayers

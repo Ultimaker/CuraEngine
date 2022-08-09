@@ -5,8 +5,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include "utils/macros.h"
-
 namespace cura
 {
 

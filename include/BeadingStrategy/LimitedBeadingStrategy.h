@@ -4,7 +4,6 @@
 #ifndef LIMITED_BEADING_STRATEGY_H
 #define LIMITED_BEADING_STRATEGY_H
 
-#include "../utils/macros.h"
 #include "BeadingStrategy.h"
 
 namespace cura

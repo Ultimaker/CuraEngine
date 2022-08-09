@@ -6,8 +6,7 @@
 
 #include <optional>
 
-#include "settings/ZSeamConfig.h" //To get the seam settings.
-#include "utils/polygonUtils.h"
+#include "utils/polygon.h"
 
 namespace cura
 {

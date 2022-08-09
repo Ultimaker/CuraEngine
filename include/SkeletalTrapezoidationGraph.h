@@ -6,7 +6,9 @@
 
 #include <optional>
 
+#include "utils/HalfEdge.h"
 #include "utils/HalfEdgeGraph.h"
+#include "utils/HalfEdgeNode.h"
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 

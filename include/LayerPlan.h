@@ -10,27 +10,23 @@
     #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
 #endif
 
-#include "FanSpeedLayerTime.h"
-#include "gcodeExport.h"
-#include "PathOrderOptimizer.h"
-#include "SpaceFillType.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
-#include "pathPlanning/TimeMaterialEstimates.h"
 #include "settings/PathConfigStorage.h"
+#include "settings/ZSeamConfig.h"
 #include "settings/types/LayerIndex.h"
+#include "sliceDataStorage.h"
 #include "utils/polygon.h"
 
-#include "InsetOrderOptimizer.h"
 #include "utils/ExtrusionJunction.h"
 
 namespace cura 
 {
 
 class Comb;
-class LayerPlan; // forward declaration so that ExtruderPlan can be a friend
-class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a friend
-class SliceDataStorage;
+struct FanSpeedLayerTimeSettings;
+template<typename>
+class LightningLayer;
 
 /*!
  * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.

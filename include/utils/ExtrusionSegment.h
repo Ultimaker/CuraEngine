@@ -7,9 +7,7 @@
 
 #include <utility>
 
-#include "IntPoint.h"
 #include "polygon.h"
-#include "polygonUtils.h"
 #include "ExtrusionJunction.h"
 
 namespace cura

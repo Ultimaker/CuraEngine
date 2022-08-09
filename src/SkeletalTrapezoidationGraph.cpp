@@ -8,7 +8,6 @@
 #include <spdlog/spdlog.h>
 
 #include "utils/linearAlg2D.h"
-#include "utils/macros.h"
 
 namespace cura
 {

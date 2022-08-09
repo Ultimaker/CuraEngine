@@ -16,7 +16,6 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
-#include "utils/IntPoint.h"
 #include "utils/NoCopy.h"
 #include "utils/polygon.h"
 #include "WipeScriptConfig.h"

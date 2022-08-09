@@ -10,7 +10,6 @@
 #include "Slice.h"
 #include "settings/AdaptiveLayerHeights.h"
 #include "settings/EnumSettings.h"
-#include "settings/types/LayerIndex.h"
 #include "slicer.h"
 #include "utils/Simplify.h"
 #include "utils/SparsePointGridInclusive.h"

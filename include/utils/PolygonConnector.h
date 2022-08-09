@@ -7,12 +7,12 @@
 #ifdef BUILD_TESTS
     #include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #endif
+#include <optional>
 #include <vector>
 
 #include "IntPoint.h"
-#include "polygon.h"
-#include "polygonUtils.h"
 #include "linearAlg2D.h"
+#include "utils/ExtrusionLine.h"
 
 namespace cura 
 {

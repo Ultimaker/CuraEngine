@@ -4,8 +4,6 @@
 #include <algorithm>
 
 #include "utils/ExtrusionLine.h"
-#include "utils/linearAlg2D.h"
-#include "utils/Simplify.h"
 
 namespace cura
 {

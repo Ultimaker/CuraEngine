@@ -2,7 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "SupportInfillPart.h"
-#include "support.h"
 
 using namespace cura;
 

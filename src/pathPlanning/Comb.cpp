@@ -11,11 +11,9 @@
 #include "pathPlanning/LinePolygonsCrossings.h"
 #include "Application.h"
 #include "ExtruderTrain.h"
-#include "Slice.h"
 #include "utils/linearAlg2D.h"
 #include "utils/PolygonsPointIndex.h"
 #include "sliceDataStorage.h"
-#include "utils/SVG.h"
 
 namespace cura {
 

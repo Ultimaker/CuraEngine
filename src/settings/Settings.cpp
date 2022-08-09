@@ -11,7 +11,6 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get the extruders.
-#include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "settings/EnumSettings.h"

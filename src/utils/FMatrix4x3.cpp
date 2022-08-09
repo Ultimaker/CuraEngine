@@ -4,7 +4,6 @@
 #include "utils/FMatrix4x3.h" //The definitions we're implementing.
 
 #include "utils/floatpoint.h" //This matrix gets applied to floating point coordinates.
-#include "utils/IntPoint.h" //Conversion directly into integer-based coordinates.
 #include "settings/types/Ratio.h" //Scale factor.
 
 namespace cura

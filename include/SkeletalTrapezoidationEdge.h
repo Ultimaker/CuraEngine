@@ -5,6 +5,7 @@
 #define SKELETAL_TRAPEZOIDATION_EDGE_H
 
 #include <memory> // smart pointers
+#include <cassert>
 #include <list>
 #include <vector>
 

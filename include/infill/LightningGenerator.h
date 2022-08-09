@@ -6,7 +6,6 @@
 
 #include "LightningLayer.h"
 
-#include "../utils/polygonUtils.h"
 
 #include <functional>
 #include <memory>

@@ -10,8 +10,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "infill/ImageBasedDensityProvider.h"
-#include "infill/UniformDensityProvider.h"
+#include "infill/DensityProvider.h"
 #include "utils/AABB3D.h"
 #include "utils/SVG.h"
 #include "utils/polygon.h"

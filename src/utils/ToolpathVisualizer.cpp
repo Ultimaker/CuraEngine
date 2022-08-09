@@ -1,6 +1,7 @@
 //Copyright (c) 2022 Ultimaker B.V.
 
 #include "utils/ToolpathVisualizer.h"
+#include "utils/polygonUtils.h"
 
 #include <sstream>
 

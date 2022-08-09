@@ -7,7 +7,6 @@
 #include <unordered_set>
 
 #include "utils/linearAlg2D.h" // pointLiesOnTheRightOfLine
-#include "utils/Simplify.h"
 
 #include "utils/ListPolyIt.h"
 

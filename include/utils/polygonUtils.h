@@ -10,7 +10,6 @@
 #include <memory> // unique_ptr
 
 #include "polygon.h"
-#include "SparsePointGridInclusive.h"
 #include "SparseLineGrid.h"
 #include "PolygonsPointIndex.h"
 

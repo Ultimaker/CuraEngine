@@ -10,6 +10,7 @@
 
 #include "PathOrder.h"
 #include "PathOrderPath.h"
+#include "utils/SparsePointGridInclusive.h" // For SparsePointGridInclusive
 
 namespace cura
 {

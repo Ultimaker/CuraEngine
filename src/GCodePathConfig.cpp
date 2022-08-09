@@ -2,7 +2,6 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "settings/types/LayerIndex.h"
-#include "utils/IntPoint.h" // INT2MM
 #include "GCodePathConfig.h"
 
 namespace cura 

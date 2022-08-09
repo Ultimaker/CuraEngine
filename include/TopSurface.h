@@ -13,6 +13,7 @@ class GCodePathConfig;
 class FffGcodeWriter;
 class LayerPlan;
 class SliceMeshStorage;
+class SliceDataStorage;
 
 class TopSurface
 {
