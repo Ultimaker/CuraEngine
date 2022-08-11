@@ -30,11 +30,13 @@ class CuraEngineConan(ConanFile):
         "enable_arcus": [True, False],
         "enable_openmp": [True, False],
         "enable_testing": [True, False],
+        "enable_extensive_warnings": [True, False]
     }
     default_options = {
         "enable_arcus": True,
         "enable_openmp": True,
         "enable_testing": False,
+        "enable_extensive_warnings": True,
     }
     scm = {
         "type": "git",
@@ -84,6 +86,7 @@ class CuraEngineConan(ConanFile):
         tc.variables["CURA_ENGINE_VERSION"] = self.version
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
         tc.variables["ENABLE_TESTING"] = self.options.enable_testing
+        tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         if self.settings.os != "Macos":
             tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp
 
