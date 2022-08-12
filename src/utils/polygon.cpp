@@ -86,7 +86,7 @@ Polygons Polygons::approxConvexHull(int extra_outset)
     for (const ClipperLib::Path& path : paths)
     {
         Polygons offset_result;
-        ClipperLib::ClipperOffset offsetter(clipper_miter_limit, clipper_arc_tolerance);
+        ClipperLib::ClipperOffset offsetter(clipper_miter_limit, ConstPolygonRef::calcArcTolerance(overshoot));
         offsetter.AddPath(path, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
         offsetter.Execute(offset_result.paths, overshoot);
         convex_hull.add(offset_result);
@@ -281,7 +281,7 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitc
     if (restitch)
     {
         Polygons result_lines, result_polygons;
-        const coord_t snap_distance = clipper_arc_tolerance;
+        const coord_t snap_distance = INT_EPSILON;
         PolylineStitcher<Polygons, Polygon, Point>::stitch(ret, result_lines, result_polygons, max_stitch_distance, snap_distance);
         ret = result_lines;
         // if polylines got stitched into polygons, split them back up into a polyline again, because the result only admits polylines
@@ -344,25 +344,30 @@ Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double m
         return *this;
     }
     Polygons ret;
-    ClipperLib::ClipperOffset clipper(miter_limit, clipper_arc_tolerance);
+    ClipperLib::ClipperOffset clipper(miter_limit, ConstPolygonRef::calcArcTolerance(distance));
     clipper.AddPaths(unionPolygons().paths, join_type, ClipperLib::etClosedPolygon);
-    clipper.MiterLimit = miter_limit;
+    assert(clipper.MiterLimit == miter_limit);
     clipper.Execute(ret.paths, distance);
     return ret;
 }
 
+double ConstPolygonRef::calcArcTolerance(int offset)
+{
+    constexpr double min_tol = std::max<double>(5_mu, INT_EPSILON);
+    return std::max(min_tol, std::abs(static_cast<double>(offset)) * 1e-2);
+}
+
 Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
+    Polygons ret;
     if (distance == 0)
     {
-        Polygons ret;
         ret.add(*this);
         return ret;
     }
-    Polygons ret;
-    ClipperLib::ClipperOffset clipper(miter_limit, clipper_arc_tolerance);
+    ClipperLib::ClipperOffset clipper(miter_limit, calcArcTolerance(distance));
     clipper.AddPath(*path, join_type, ClipperLib::etClosedPolygon);
-    clipper.MiterLimit = miter_limit;
+    assert(clipper.MiterLimit == miter_limit);
     clipper.Execute(ret.paths, distance);
     return ret;
 }

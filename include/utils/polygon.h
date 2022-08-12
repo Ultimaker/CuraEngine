@@ -59,8 +59,6 @@ class ListPolyIt;
 typedef std::list<Point> ListPolygon; //!< A polygon represented by a linked list instead of a vector
 typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
 
-// Allowed deviation for round joint while offsetting (this reduces the number of segment, http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/Properties/ArcTolerance.htm)
-static constexpr double clipper_arc_tolerance = INT_EPSILON;
 // How far a miter can be offseted before being truncated, relative to the offset size (http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/Properties/MiterLimit.htm)
 static constexpr double clipper_miter_limit = 1.2;
 static constexpr int clipper_init = 0;
@@ -398,6 +396,11 @@ private:
      * \param[in,out] backward_is_too_far Whether trying another step backward is blocked by the shortcut length condition. Updated for the next iteration.
      */
     static void smooth_outward_step(const Point p1, const int64_t shortcut_length2, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far);
+
+
+    /// Allowed deviation for round joints while offsetting (this reduces the number of segment
+    /// @see http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/Properties/ArcTolerance.htm
+    static double calcArcTolerance(int offset);
 };
 
 
@@ -1014,7 +1017,7 @@ public:
     {
         Polygons ret;
         ClipperLib::EndType end_type = (joinType == ClipperLib::jtMiter)? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
-        ClipperLib::ClipperOffset clipper(clipper_miter_limit, clipper_arc_tolerance);
+        ClipperLib::ClipperOffset clipper(clipper_miter_limit, ConstPolygonRef::calcArcTolerance(distance));
         clipper.AddPaths(paths, joinType, end_type);
         clipper.MiterLimit = clipper_miter_limit;
         clipper.Execute(ret.paths, distance);
