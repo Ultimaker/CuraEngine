@@ -191,8 +191,6 @@ void SkirtBrim::generate()
     
     
     // TODO list:
-    
-    // remove prime tower from shields OR fix disallowed areas in frontend!
 
     // robustness against when things are empty (brim lines, layer outlines, etc)
     

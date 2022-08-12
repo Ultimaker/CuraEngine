@@ -933,6 +933,23 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     {
         storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);
     }
+    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    {
+        coord_t max_line_width = 0;
+        { // compute max_line_width
+            const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+            const auto& extruders = Application::getInstance().current_slice->scene.extruders;
+            for (int extruder_nr = 0; extruder_nr < int(extruders.size()); extruder_nr++)
+            {
+                if ( ! extruder_is_used[extruder_nr]) continue;
+                max_line_width = std::max(max_line_width, extruders[extruder_nr].settings.get<coord_t>("skirt_brim_line_width"));
+            }
+        }
+        for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
+        {
+            storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].difference(storage.primeTower.outer_poly.offset(max_line_width / 2));
+        }
+    }
 }
 
 void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
@@ -967,6 +984,20 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         maximum_deviation = std::min(maximum_deviation, extruder.settings.get<coord_t>("meshfix_maximum_deviation"));
     }
     storage.draft_protection_shield = Simplify(maximum_resolution, maximum_deviation, 0).polygon(storage.draft_protection_shield);
+    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    {
+        coord_t max_line_width = 0;
+        { // compute max_line_width
+            const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+            const auto& extruders = Application::getInstance().current_slice->scene.extruders;
+            for (int extruder_nr = 0; extruder_nr < int(extruders.size()); extruder_nr++)
+            {
+                if ( ! extruder_is_used[extruder_nr]) continue;
+                max_line_width = std::max(max_line_width, extruders[extruder_nr].settings.get<coord_t>("skirt_brim_line_width"));
+            }
+        }
+        storage.draft_protection_shield = storage.draft_protection_shield.difference(storage.primeTower.outer_poly.offset(max_line_width / 2));
+    }
 }
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
