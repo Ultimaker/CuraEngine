@@ -81,7 +81,7 @@ void SkirtBrim::generate(SliceDataStorage& storage)
     std::vector<Polygons> allowed_areas = Polygons::offsetSimultaneously(starting_outlines, max_dists, 750);
     for (Polygons& poly : allowed_areas)
     {
-        poly.simplify(100, 100);
+        poly = Simplify(100, 10, 0).polygon(poly);
     }
     if (false)
     {
