@@ -360,19 +360,25 @@ size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
-    const ExtruderTrain& skirt_brim_extruder = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
+    const int skirt_brim_extruder_nr = mesh_group_settings.get<int>("skirt_brim_extruder_nr");
+    const ExtruderTrain* skirt_brim_extruder = (skirt_brim_extruder_nr < 0)? nullptr : &mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
 
     size_t start_extruder_nr;
-    if (adhesion_type == EPlatformAdhesion::SKIRT && (skirt_brim_extruder.settings.get<int>("skirt_line_count") > 0 || skirt_brim_extruder.settings.get<coord_t>("skirt_brim_minimal_length") > 0))
+    if (adhesion_type == EPlatformAdhesion::SKIRT
+        && skirt_brim_extruder
+        && (skirt_brim_extruder->settings.get<int>("skirt_line_count") > 0 || skirt_brim_extruder->settings.get<coord_t>("skirt_brim_minimal_length") > 0))
     {
-        start_extruder_nr = skirt_brim_extruder.extruder_nr;
+        start_extruder_nr = skirt_brim_extruder->extruder_nr;
     }
     else if ((adhesion_type == EPlatformAdhesion::BRIM || mesh_group_settings.get<bool>("prime_tower_brim_enable"))
-             && (skirt_brim_extruder.settings.get<int>("brim_line_count") > 0 || skirt_brim_extruder.settings.get<coord_t>("skirt_brim_minimal_length") > 0))
+        && skirt_brim_extruder
+        && (skirt_brim_extruder->settings.get<int>("brim_line_count") > 0 || skirt_brim_extruder->settings.get<coord_t>("skirt_brim_minimal_length") > 0))
     {
-        start_extruder_nr = skirt_brim_extruder.extruder_nr;
+        start_extruder_nr = skirt_brim_extruder->extruder_nr;
     }
-    else if (adhesion_type == EPlatformAdhesion::RAFT)
+    else if (adhesion_type == EPlatformAdhesion::RAFT
+        && skirt_brim_extruder
+    )
     {
         start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
     }
