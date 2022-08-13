@@ -1,7 +1,7 @@
 //Copyright (c) 2021 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "VoxelUtils.h"
+#include "utils/VoxelUtils.h"
 #include "utils/polygonUtils.h"
 
 namespace cura 
