@@ -52,6 +52,8 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         self.options["boost"].header_only = True
         self.options["clipper"].shared = True
+        self.options["fmt"].shared = True
+        self.options["spdlog"].shared = True
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
             self.options["protobuf"].shared = True
