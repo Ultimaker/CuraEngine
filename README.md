@@ -38,7 +38,7 @@ http://www.gnu.org/licenses/agpl.html
 
 Please check our [Wiki page](https://github.com/Ultimaker/CuraEngine/wiki/Building-CuraEngine-From-Source) for details on how to install CuraEngine.
 
-### Dependencies
+## Dependencies
 
 Please check our [Wiki page](https://github.com/Ultimaker/CuraEngine/wiki/Dependencies) for details on CuraEngines dependencies.
 
