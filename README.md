@@ -40,30 +40,7 @@ Please check our [Wiki page](https://github.com/Ultimaker/CuraEngine/wiki/Buildi
 
 ### Dependencies
 
-![Dependency graph](docs/assets/deps.png)
-
-#### Runtime dependencies
-- arcus
-- boost
-- clipper
-- llvm-openmp
-- protobuf
-- rapidjson
-- stb
-- zlib
-
-#### Build dependencies
-- [Python](https://www.python.org/)
-- [Cmake](https://cmake.org/)
-- [Ninja (optional)](https://ninja-build.org/)
-- [GNU-GCC](https://gcc.gnu.org/)
-- [Visual Studio](https://visualstudio.microsoft.com/vs/)
-- [xcode command line tools](https://developer.apple.com/xcode/)
-
-#### IDE
-
-If you're using [CLion](https://www.jetbrains.com/clion/) as an IDE be sure to checkout the Conan plugin
-[Conan CLion plugin](https://docs.conan.io/en/latest/integrations/ide/clion.html)
+Please check our [Wiki page](https://github.com/Ultimaker/CuraEngine/wiki/Dependencies) for details on how to install CuraEngine.
 
 ## Running
 
