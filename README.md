@@ -6,17 +6,17 @@
     <a href="https://github.com/Ultimaker/CuraEngine/actions/workflows/conan-package.yml" alt="Unit Tests">
         <img src="https://github.com/Ultimaker/CuraEngine/actions/workflows/conan-package.yml/badge.svg" /></a>
     <a href="https://github.com/Ultimaker/CuraEngine/issues" alt="Open Issues">
-        <img src="https://img.shields.io/github/issues/ultimaker/curaengine" /></a>
+        <img src="https://img.shields.io/github/issues/Ultimaker/CuraEngine" /></a>
     <a href="https://github.com/Ultimaker/CuraEngine/issues?q=is%3Aissue+is%3Aclosed" alt="Closed Issues">
-        <img src="https://img.shields.io/github/issues-closed/ultimaker/curaengine?color=g" /></a>
+        <img src="https://img.shields.io/github/issues-closed/ultimaker/CuraEngine?color=g" /></a>
     <a href="https://github.com/Ultimaker/CuraEngine/pulls" alt="Pull Requests">
-        <img src="https://img.shields.io/github/issues-pr/ultimaker/curaengine" /></a>
+        <img src="https://img.shields.io/github/issues-pr/Ultimaker/CuraEngine" /></a>
     <a href="https://github.com/Ultimaker/CuraEngine/graphs/contributors" alt="Contributors">
-        <img src="https://img.shields.io/github/contributors/ultimaker/curaengine" /></a>
+        <img src="https://img.shields.io/github/contributors/Ultimaker/CuraEngine" /></a>
     <a href="https://github.com/Ultimaker/CuraEngine" alt="Repo Size">
-        <img src="https://img.shields.io/github/repo-size/ultimaker/curaengine?style=flat" /></a>
+        <img src="https://img.shields.io/github/repo-size/Ultimaker/CuraEngine?style=flat" /></a>
     <a href="https://github.com/Ultimaker/CuraEngine/blob/master/LICENSE" alt="License">
-        <img src="https://img.shields.io/github/license/ultimaker/curaengine?style=flat" /></a>
+        <img src="https://img.shields.io/github/license/Ultimaker/CuraEngine?style=flat" /></a>
 </p>
 
 CuraEngine is a C++ console application for 3D printing GCode generation. It has been made as a better and faster
