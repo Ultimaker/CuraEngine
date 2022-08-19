@@ -9,7 +9,7 @@ from conan.tools import files
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conans import tools
 
-required_conan_version = ">=1.47.0"
+required_conan_version = ">=1.48.0"
 
 
 class CuraEngineConan(ConanFile):
