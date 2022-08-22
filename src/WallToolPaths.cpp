@@ -74,8 +74,17 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     }
 
     const coord_t wall_transition_length = settings.get<coord_t>("wall_transition_length");
-    const Ratio wall_split_middle_threshold = settings.get<Ratio>("wall_split_middle_threshold");  // For an uneven nr. of lines: When to split the middle wall into two.
-    const Ratio wall_add_middle_threshold = settings.get<Ratio>("wall_add_middle_threshold");      // For an even nr. of lines: When to add a new middle in between the innermost two walls.
+
+    // When to split the middle wall into two:
+    const double min_even_wall_line_width = static_cast<double>(settings.get<int>("min_even_wall_line_width"));
+    const double wall_line_width_0 = static_cast<double>(settings.get<int>("wall_line_width_0"));
+    const Ratio wall_split_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * (2.0 * min_even_wall_line_width - wall_line_width_0) / wall_line_width_0));
+
+    // When to add a new middle in between the innermost two walls:
+    const double min_odd_wall_line_width = static_cast<double>(settings.get<int>("min_odd_wall_line_width"));
+    const double wall_line_width_x = static_cast<double>(settings.get<int>("wall_line_width_x"));    
+    const Ratio wall_add_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * min_odd_wall_line_width / wall_line_width_x));
+
     const int wall_distribution_count = settings.get<int>("wall_distribution_count");
     const size_t max_bead_count = (inset_count < std::numeric_limits<coord_t>::max() / 2) ? 2 * inset_count : std::numeric_limits<coord_t>::max();
     const auto beading_strat = BeadingStrategyFactory::makeStrategy

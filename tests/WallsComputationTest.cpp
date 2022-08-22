@@ -85,8 +85,6 @@ public:
         settings.add("wall_transition_filter_distance", "1");
         settings.add("wall_transition_filter_deviation", ".2");
         settings.add("wall_transition_length", "1");
-        settings.add("wall_split_middle_threshold", "50");
-        settings.add("wall_add_middle_threshold", "50");
         settings.add("wall_x_extruder_nr", "0");
         settings.add("wall_distribution_count", "2");
     }
