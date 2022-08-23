@@ -17,6 +17,11 @@
 <br>
 <br>
 
+<img
+    src = 'CuraEngine.ico'
+    width = 200
+/>
+
 # CuraEngine
 
 
