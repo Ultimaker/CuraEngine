@@ -45,6 +45,7 @@ public:
     Polygons roofing_fill; //!< The inner infill which has air directly above
     Polygons top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
     Polygons bottom_most_surface_fill; //!< The inner infill of the bottommost bottom layer which has air directly below.
+    bool is_narrow_skin;
 };
 
 /*!

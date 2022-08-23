@@ -2373,7 +2373,7 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage,
         return;
     }
 
-    const EFillMethod pattern = mesh.settings.get<EFillMethod>("roofing_pattern");
+    const EFillMethod pattern = skin_part.is_narrow_skin ? EFillMethod::CONCENTRIC : mesh.settings.get<EFillMethod>("roofing_pattern");
     AngleDegrees roofing_angle = 45;
     if (mesh.roofing_angles.size() > 0)
     {
@@ -2552,6 +2552,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage,
         }
     }
     const bool monotonic = mesh.settings.get<bool>("skin_monotonic");
+    pattern = skin_part.is_narrow_skin ? EFillMethod::CONCENTRIC : pattern;
     processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, monotonic, added_something, fan_speed);
 }
 

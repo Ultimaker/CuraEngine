@@ -140,23 +140,34 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     calculateBottomSkin(part, bottom_skin);
     calculateTopSkin(part, top_skin);
 
-    applySkinExpansion(part.inner_area, top_skin, bottom_skin);
+    Polygons narrow_skin;
+    applySkinExpansion(part.inner_area, top_skin, bottom_skin, narrow_skin);
 
     //Now combine the resized top skin and bottom skin.
     Polygons skin = top_skin.unionPolygons(bottom_skin);
 
     skin.removeSmallAreas(MIN_AREA_SIZE);
 
-    if (process_infill)
-    { // process infill when infill density > 0
-        // or when other infill meshes want to modify this infill
-        generateInfill(part, skin);
-    }
-
     for (PolygonsPart& skin_area_part : skin.splitIntoParts())
     {
         part.skin_parts.emplace_back();
         part.skin_parts.back().outline = skin_area_part;
+        part.skin_parts.back().is_narrow_skin = false;
+    }
+
+    for (PolygonsPart& skin_area_part : narrow_skin.splitIntoParts())
+    {
+        part.skin_parts.emplace_back();
+        part.skin_parts.back().outline = skin_area_part;
+        part.skin_parts.back().is_narrow_skin = true;
+    }
+
+    skin = skin.unionPolygons(narrow_skin);
+
+    if (process_infill)
+    { // process infill when infill density > 0
+        // or when other infill meshes want to modify this infill
+        generateInfill(part, skin);
     }
 }
 
@@ -226,7 +237,7 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Pol
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin)
+void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin, Polygons& narrow_skin)
 {
     const coord_t min_width = mesh.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
 
@@ -265,15 +276,23 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     // Remove thin pieces of support for Skin Removal Width.
     if(bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance != 0))
     {
-        downskin = downskin.offset(-bottom_skin_preshrink / 2, ClipperLib::jtRound).offset(bottom_skin_preshrink / 2, ClipperLib::jtRound);
+        Polygons before_shrink = downskin;
+        downskin = downskin.offset(-bottom_skin_preshrink / 2, ClipperLib::jtMiter).offset(bottom_skin_preshrink / 2, ClipperLib::jtMiter);
+        narrow_skin = narrow_skin.unionPolygons(before_shrink.difference(downskin));
         should_bottom_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
     if(top_skin_preshrink > 0 || (min_width == 0 && top_skin_expand_distance != 0))
     {
-        upskin = upskin.offset(-top_skin_preshrink / 2, ClipperLib::jtRound).offset(top_skin_preshrink / 2, ClipperLib::jtRound);
+        Polygons before_shrink = upskin;
+        upskin = upskin.offset(-top_skin_preshrink / 2, ClipperLib::jtMiter).offset(top_skin_preshrink / 2, ClipperLib::jtMiter);
+        narrow_skin = narrow_skin.unionPolygons(before_shrink.difference(upskin));
         should_top_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
 
+    if (should_bottom_be_clipped || should_top_be_clipped)
+    {
+        narrow_skin = narrow_skin.intersection(original_outline);
+    }
     if(should_bottom_be_clipped)
     {
         downskin = downskin.intersection(original_outline);

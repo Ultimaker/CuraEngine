@@ -117,7 +117,7 @@ protected:
      * \param[in,out] upskin The top skin areas to grow
      * \param[in,out] downskin The bottom skin areas to grow
      */
-    void applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin);
+    void applySkinExpansion(const Polygons& original_outline, Polygons& upskin, Polygons& downskin, Polygons& narrow_skin);
 
     /*!
      * Generate infill of a given part
