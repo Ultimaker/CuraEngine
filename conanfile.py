@@ -132,4 +132,5 @@ class CuraEngineConan(ConanFile):
 
     def package_info(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
-        self.user_info.curaengine = os.path.join(self.package_folder, "bin", f"CuraEngine{ext}")
+        pack_folder = "" if self.package_folder is None else self.package_folder
+        self.user_info.curaengine = os.path.join(pack_folder, "bin", f"CuraEngine{ext}")
