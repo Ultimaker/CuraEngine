@@ -105,6 +105,7 @@ TreeModelVolumes::TreeModelVolumes(const SliceDataStorage& storage, const coord_
         cura::parallel_for<LayerIndex>(0, LayerIndex(anti_overhang_.size()), 1, [&](const LayerIndex layer_idx) { layer_outlines_[idx].second[layer_idx] = layer_outlines_[idx].second[layer_idx].unionPolygons(); });
     }
     radius_0 = config.getRadius(0);
+    support_has_no_rest_preference=config.support_has_no_rest_preference;
 }
 
 
@@ -198,11 +199,16 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
     // ### Calculate the relevant avoidances in parallel as far as possible
     {
         std::future<void> placeable_waiter;
+        std::future<void>  avoidance_waiter;
+
         if (support_rests_on_model)
         {
             placeable_waiter = calculatePlaceables(relevant_avoidance_radiis_to_model);
         }
-        std::future<void> avoidance_waiter = calculateAvoidance(relevant_avoidance_radiis);
+        if(!support_has_no_rest_preference){
+            avoidance_waiter = calculateAvoidance(relevant_avoidance_radiis);
+        }
+
         std::future<void> wall_restriction_waiter = calculateWallRestrictions(relevant_avoidance_radiis);
         if (support_rests_on_model)
         {
@@ -210,7 +216,10 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
             std::future<void> avoidance_model_waiter = calculateAvoidanceToModel(relevant_avoidance_radiis_to_model);
             avoidance_model_waiter.wait();
         }
-        avoidance_waiter.wait();
+        if(!support_has_no_rest_preference)
+        {
+            avoidance_waiter.wait();
+        }
         wall_restriction_waiter.wait();
     }
     auto t_end = std::chrono::high_resolution_clock::now();
@@ -284,6 +293,7 @@ const Polygons& TreeModelVolumes::getCollisionHolefree(coord_t radius, LayerInde
 
 const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist)
 {
+
     if (layer_idx == 0) // What on the layer directly above buildplate do i have to avoid to reach the buildplate ...
     {
         return getCollision(radius, layer_idx, min_xy_dist);
@@ -606,7 +616,7 @@ void TreeModelVolumes::calculateCollision(std::deque<RadiusLayerPair> keys)
                     {
                         above = above.unionPolygons(); // just to be sure the area is correctly unioned as otherwise difference may behave unexpectedly.
                     }
-                    Polygons placeable = data[key].difference(above);
+                    Polygons placeable = data[key].unionPolygons().difference(above);
                     data_placeable[RadiusLayerPair(radius, layer_idx + 1)] = data_placeable[RadiusLayerPair(radius, layer_idx + 1)].unionPolygons(placeable);
                 }
             }
@@ -720,7 +730,7 @@ Polygons TreeModelVolumes::safeOffset(const Polygons& me, coord_t distance, Clip
 
 std::future<void> TreeModelVolumes::calculateAvoidance(std::deque<RadiusLayerPair> keys)
 {
-    // For every RadiusLayer pair there are 3 avoidances that have to be calculate, calculated in the same paralell_for loop for better paralellisation.
+    // For every RadiusLayer pair there are 3 avoidances that have to be calculate, calculated in the same paralell_for loop for better parallelization.
     const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
     std::future<void> ret = cura::parallel_for_nowait<size_t>(0, keys.size() * 3, 1,
         [&, keys, all_types](const size_t iter_idx)
@@ -758,7 +768,6 @@ std::future<void> TreeModelVolumes::calculateAvoidance(std::deque<RadiusLayerPai
             start_layer = std::max(start_layer, LayerIndex(1)); // Ensure StartLayer is at least 1 as if no avoidance was calculated getMaxCalculatedLayer returns -1
             std::vector<std::pair<RadiusLayerPair, Polygons>> data(max_required_layer + 1, std::pair<RadiusLayerPair, Polygons>(RadiusLayerPair(radius, -1), Polygons()));
 
-
             latest_avoidance = getAvoidance(radius, start_layer - 1, type, false, true); // minDist as the delta was already added, also avoidance for layer 0 will return the collision.
 
             // ### main loop doing the calculation
@@ -774,6 +783,7 @@ std::future<void> TreeModelVolumes::calculateAvoidance(std::deque<RadiusLayerPai
                 {
                     col = getCollision(radius, layer, true);
                 }
+
                 latest_avoidance = safeOffset(latest_avoidance, -offset_speed, ClipperLib::jtRound, -max_step_move, col);
                 latest_avoidance.simplify(min_maximum_resolution_, min_maximum_deviation_);
                 data[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance);
@@ -830,8 +840,7 @@ std::future<void> TreeModelVolumes::calculatePlaceables(std::deque<RadiusLayerPa
             key.second = layer;
             Polygons placeable = getPlaceableAreas(0, layer);
             placeable.simplify(min_maximum_resolution_, min_maximum_deviation_); // it is faster to do this here in each thread than once in calculateCollision.
-            placeable = placeable.offset(-radius);
-
+            placeable = placeable.offset(-(radius+(current_min_xy_dist+current_min_xy_dist_delta))).unionPolygons();//todo comment
             data[layer] = std::pair<RadiusLayerPair, Polygons>(key, placeable);
         }
 

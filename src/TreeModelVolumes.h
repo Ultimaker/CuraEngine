@@ -333,6 +333,7 @@ class TreeModelVolumes
     /*!
      * \brief The progress of the precalculate function for communicating it to the progress bar.
      */
+
     coord_t precalculation_progress = 0;
     /*!
      * \brief The progress multiplier of all values added progress bar.
@@ -372,6 +373,10 @@ class TreeModelVolumes
      */
     coord_t radius_0;
 
+    /*!
+     * \brief Does the main model require regular avoidance, or only avoidance to model.
+     */
+    bool support_has_no_rest_preference;
 
     /*!
      * \brief Caches for the collision, avoidance and areas on the model where support can be placed safely
