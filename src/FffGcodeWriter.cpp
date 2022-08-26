@@ -1194,10 +1194,12 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         }
     }
 
+    const auto brim_zseam_config = ZSeamConfig(EZSeamType::SKIRT_BRIM);
+
     if (! first_skirt_brim.empty())
     {
         gcode_layer.addTravel(first_skirt_brim.back().closestPointTo(start_close_to));
-        gcode_layer.addPolygonsByOptimizer(first_skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+        gcode_layer.addPolygonsByOptimizer(first_skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config);
     }
 
     if (skirt_brim.empty())
@@ -1208,7 +1210,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     if (train.settings.get<bool>("brim_outside_only"))
     {
         gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
-        gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+        gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config);
     }
     else
     {
@@ -1229,7 +1231,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         if (! outer_brim.empty())
         {
             gcode_layer.addTravel(outer_brim.back().closestPointTo(start_close_to));
-            gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr]);
+            gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config);
         }
 
         if (! inner_brim.empty())
@@ -1240,7 +1242,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             const float flow_ratio = 1.0;
             const bool always_retract = false;
             const bool reverse_order = true;
-            gcode_layer.addPolygonsByOptimizer(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], ZSeamConfig(), wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_order);
+            gcode_layer.addPolygonsByOptimizer(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_order);
         }
     }
 }
