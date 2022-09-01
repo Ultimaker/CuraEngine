@@ -22,6 +22,7 @@ on:
         tags:
             - '[0-9]+.[0-9]+.[0-9]+'
     pull_request:
+        types: [opened, reopened, synchronize]
         paths:
             - 'include/**'
             - 'src/**'
@@ -39,6 +40,21 @@ on:
             - '[0-9]+.[0-9]+'
         tags:
             - '[0-9]+.[0-9]+.[0-9]+'
+    pull_request_target:
+        types: [opened, reopened, synchronize]
+        paths:
+            - 'include/**'
+            - 'src/**'
+            - 'cmake/**'
+            - 'tests/**'
+            - 'test_package/**'
+            - 'conanfile.py'
+            - 'conandata.yml'
+            - 'CMakeLists.txt'
+            - '.github/workflows/unit-test.yml'
+            - '.github/worflows/requirements-conan-package.txt'
+        branches:
+            - main
 
 env:
     CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
@@ -48,12 +64,17 @@ env:
     CONAN_LOG_RUN_TO_OUTPUT: 1
     CONAN_LOGGING_LEVEL: info
     CONAN_NON_INTERACTIVE: 1
+    
+permissions:
+    contents: read
+    pull-requests: read
 
 jobs:
     conan-recipe-version:
         uses: ultimaker/cura/.github/workflows/conan-recipe-version.yml@main
         with:
             project_name: curaengine
+            is_external_pr: ${{ github.event == 'pull_request_target' }}
 
     testing:
         runs-on: ubuntu-20.04
