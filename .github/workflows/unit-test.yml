@@ -22,6 +22,7 @@ on:
         tags:
             - '[0-9]+.[0-9]+.[0-9]+'
     pull_request:
+        types: [opened, reopened, synchronize]
         paths:
             - 'include/**'
             - 'src/**'
@@ -40,6 +41,7 @@ on:
         tags:
             - '[0-9]+.[0-9]+.[0-9]+'
     pull_request_target:
+        types: [opened, reopened, synchronize]
         paths:
             - 'include/**'
             - 'src/**'
@@ -63,7 +65,7 @@ env:
     
 permissions:
     contents: read
-    pull-requests: write
+    pull-requests: read
 
 jobs:
     conan-recipe-version:
