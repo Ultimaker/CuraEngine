@@ -51,8 +51,6 @@ on:
             - 'CMakeLists.txt'
             - '.github/workflows/unit-test.yml'
             - '.github/worflows/requirements-conan-package.txt'
-        branches:
-            - main
 
 env:
     CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
