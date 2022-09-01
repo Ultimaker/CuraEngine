@@ -63,7 +63,7 @@ env:
     
 permissions:
     contents: read
-    pull-requests: write
+    pull-requests: read
 
 jobs:
     conan-recipe-version:
