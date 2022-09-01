@@ -60,10 +60,6 @@ env:
     CONAN_LOG_RUN_TO_OUTPUT: 1
     CONAN_LOGGING_LEVEL: info
     CONAN_NON_INTERACTIVE: 1
-    
-permissions:
-    contents: read
-    pull-requests: write
 
 jobs:
     conan-recipe-version:
