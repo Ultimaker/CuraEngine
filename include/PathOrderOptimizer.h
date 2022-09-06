@@ -429,9 +429,6 @@ protected:
             simple_poly = Polygon(*path.converted); //Restore the original. We have to output a vertex as the seam position, so there needs to be a vertex.
         }
 
-        // Paths, other than polygons, can be either clockwise or counterclockwise. Make sure this is detected.
-        const bool clockwise = simple_poly.orientation();
-
         const Point focus_fixed_point = (seam_config.type == EZSeamType::USER_SPECIFIED)
             ? seam_config.pos
             : Point(0, std::sqrt(std::numeric_limits<coord_t>::max())); //Use sqrt, so the squared size can be used when comparing distances.
@@ -455,7 +452,7 @@ protected:
                 ? getDirectDistance(here, target_pos)
                 : getCombingDistance(here, target_pos);
             const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : static_cast<float>(distance) / 1000000;
-            const float corner_angle = (clockwise ? LinearAlg2D::getAngleLeft(previous, here, next) : LinearAlg2D::getAngleLeft(next, here, previous)) / M_PI - 1; //Between -1 and 1.
+            const float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) / M_PI - 1; //Between -1 and 1.
 
             float score;
             const float corner_shift = seam_config.type != EZSeamType::USER_SPECIFIED ? 10000 : 0; //Allow up to 20mm shifting of the seam to find a good location. For SHARPEST_CORNER, this shift is the only factor. For USER_SPECIFIED, don't allow shifting.
