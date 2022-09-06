@@ -4,7 +4,7 @@
 cmake_policy(SET CMP0091 NEW)  # For MSVC flags, will be ignored on non-Windows OS's
 cmake_minimum_required(VERSION 3.20)
 project(CuraEngine)
-find_package(umbase REQUIRED)  # imports the cmake module https://github.com/Ultimaker/conan-ultimaker-index/recipes/umbase
+find_package(standardprojectsettings REQUIRED)  # imports the cmake module https://github.com/Ultimaker/conan-ultimaker-index/recipes/standardprojectsettings
 AssureOutOfSourceBuilds()
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
