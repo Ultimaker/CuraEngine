@@ -1,16 +1,16 @@
 #  Copyright (c) 2022 Ultimaker B.V.
 #  CuraEngine is released under the terms of the AGPLv3 or higher
 
-import os
+from os import path
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
-from conan.tools import files
+from conan.tools.files import AutoPackager, copy, mkdir
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
 
-required_conan_version = ">=1.48.0"
+required_conan_version = ">=1.50.0"
 
 
 class CuraEngineConan(ConanFile):
@@ -24,7 +24,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
 
-    python_requires = "umbase/0.1.5@ultimaker/testing"
+    python_requires = "umbase/[>=0.1.7]@ultimaker/stable"
     python_requires_extend = "umbase.UMBaseConanfile"
 
     options = {
@@ -37,7 +37,7 @@ class CuraEngineConan(ConanFile):
         "enable_arcus": True,
         "enable_openmp": True,
         "enable_testing": False,
-        "enable_extensive_warnings": True,
+        "enable_extensive_warnings": False,
     }
     scm = {
         "type": "git",
@@ -67,6 +67,7 @@ class CuraEngineConan(ConanFile):
                 raise ConanInvalidConfiguration("only versions 5+ are supported")
 
     def build_requirements(self):
+        self.tool_requires("umbase/[>=0.1.7]@ultimaker/stable")
         if self.options.enable_arcus:
             for req in self._um_data()["build_requirements_arcus"]:
                 self.tool_requires(req)
@@ -94,19 +95,23 @@ class CuraEngineConan(ConanFile):
             tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp
         tc.generate()
 
+        for dep in self.dependencies.values():
+            copy(self, "*.dylib", dep.cpp_info.libdirs[0], self.build_folder)
+            copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
+            copy(self, "*.dll", dep.cpp_info.bindirs[0], self.build_folder)
+            if self.options.enable_testing:
+                test_path = path.join(self.build_folder,  "tests")
+                if not path.exists(test_path):
+                    mkdir(self, test_path)
+                copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
+                copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
+                copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder,  "tests"))
+
     def layout(self):
         cmake_layout(self)
 
         self.cpp.build.includedirs = ["."]  # To package the generated headers
         self.cpp.package.libs = ["_CuraEngine"]
-
-    def imports(self):
-        self.copy("*.dll", dst=self.build_folder, src="@bindirs")
-        self.copy("*.dylib", dst=self.build_folder, src="@bindirs")
-        if self.options.enable_testing:
-            dest = os.path.join(self.build_folder, "tests")
-            self.copy("*.dll", dst=dest, src="@bindirs")
-            self.copy("*.dylib", dst=dest, src="@bindirs")
 
     def build(self):
         cmake = CMake(self)
@@ -114,13 +119,14 @@ class CuraEngineConan(ConanFile):
         cmake.build()
 
     def package(self):
-        packager = files.AutoPackager(self)
+        packager = AutoPackager(self)
         packager.run()
-        self.copy("CuraEngine", src = self.build_folder, dst = "bin")
-        self.copy("CuraEngine.exe", src = self.build_folder, dst = "bin")
+        copy(self, "CuraEngine*", src = self.build_folder, dst = path.join(self.package_folder, "bin"))
+        copy(self, "LICENSE*", src = self.source_folder, dst = path.join(self.package_folder, "license"))
 
     def package_info(self):
         ext = ".exe" if self.settings.os == "Windows" else ""
-        pack_folder = "" if self.package_folder is None else self.package_folder
-        self.user_info.curaengine = os.path.join(pack_folder, "bin", f"CuraEngine{ext}")
-        self.conf_info.define("user.curaengine:curaengine", os.path.join(pack_folder, "bin", f"CuraEngine{ext}"))
+        if self.in_local_cache:
+            self.conf_info.define("user.curaengine:curaengine", path.join(self.package_folder, "bin", f"CuraEngine{ext}"))
+        else:
+            self.conf_info.define("user.curaengine:curaengine", path.join(self.build_folder, f"CuraEngine{ext}"))
