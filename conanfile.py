@@ -71,7 +71,6 @@ class CuraEngineConan(ConanFile):
                 raise ConanInvalidConfiguration("only versions 5+ are supported")
 
     def build_requirements(self):
-        self.tool_requires("umbase/[>=0.1.7]@ultimaker/stable")
         if self.options.enable_arcus:
             for req in self._um_data()["build_requirements_arcus"]:
                 self.tool_requires(req)
@@ -80,6 +79,7 @@ class CuraEngineConan(ConanFile):
                 self.test_requires(req)
 
     def requirements(self):
+        self.requires("umbase/[>=0.1.7]@ultimaker/stable")
         for req in self._um_data()["requirements"]:
             self.requires(req)
         if self.options.enable_arcus:
