@@ -46,6 +46,10 @@ class CuraEngineConan(ConanFile):
         "revision": "auto"
     }
 
+    def set_version(self):
+        if self.version is None:
+            self.version = self._umdefault_version()
+
     def config_options(self):
         if self.settings.os == "Macos":
             del self.options.enable_openmp
