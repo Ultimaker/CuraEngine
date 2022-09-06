@@ -91,12 +91,6 @@ class CuraEngineConan(ConanFile):
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         if self.settings.os != "Macos":
             tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp
-
-        # Don't use Visual Studio as the CMAKE_GENERATOR
-        if self.settings.compiler == "Visual Studio":
-            tc.blocks["generic_system"].values["generator_platform"] = None
-            tc.blocks["generic_system"].values["toolset"] = None
-
         tc.generate()
 
     def layout(self):
