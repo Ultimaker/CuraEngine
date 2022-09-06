@@ -7,7 +7,8 @@ from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
 from conan.tools import files
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
-from conans import tools
+from conan.tools.build import check_min_cppstd
+from conan.tools.scm import Version
 
 required_conan_version = ">=1.48.0"
 
@@ -60,9 +61,9 @@ class CuraEngineConan(ConanFile):
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
-            tools.check_min_cppstd(self, 20)
+            check_min_cppstd(self, 20)
         if self.version:
-            if tools.Version(self.version) <= tools.Version("4"):
+            if Version(self.version) <= Version("4"):
                 raise ConanInvalidConfiguration("only versions 5+ are supported")
 
     def build_requirements(self):
@@ -112,12 +113,6 @@ class CuraEngineConan(ConanFile):
         cmake.configure()
         cmake.build()
 
-    def test(self):
-        if not tools.cross_building(self) and self.options.enable_testing:
-            for program in [f for f in os.listdir("./tests/.") if f.replace(".exe", "").endswith("Test")]:
-                prefix_path = "" if self.settings.os == "Windows" else "./"
-                self.run(f"{prefix_path}tests/{program}", env = "conanrun")
-
     def package(self):
         packager = files.AutoPackager(self)
         packager.run()
@@ -128,3 +123,4 @@ class CuraEngineConan(ConanFile):
         ext = ".exe" if self.settings.os == "Windows" else ""
         pack_folder = "" if self.package_folder is None else self.package_folder
         self.user_info.curaengine = os.path.join(pack_folder, "bin", f"CuraEngine{ext}")
+        self.conf_info.define("user.curaengine:curaengine", os.path.join(pack_folder, "bin", f"CuraEngine{ext}"))
