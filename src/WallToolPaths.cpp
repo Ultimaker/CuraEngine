@@ -120,9 +120,9 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     
     removeSmallLines(toolpaths);
 
-    separateOutInnerContour();
-    
     simplifyToolPaths(toolpaths, settings);
+
+    separateOutInnerContour();
 
     removeEmptyToolPaths(toolpaths);
     assert(std::is_sorted(toolpaths.cbegin(), toolpaths.cend(),
