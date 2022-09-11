@@ -5,7 +5,6 @@
 
 #include "Application.h" //To flush g-code through the communication channel.
 #include "ExtruderTrain.h"
-#include "FffProcessor.h"
 #include "LayerPlan.h"
 #include "LayerPlanBuffer.h"
 #include "Slice.h"

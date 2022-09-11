@@ -7,11 +7,11 @@
 #include <assert.h>
 #include <functional> // function
 #include <iterator> // next, prev
+#include <numbers>
 
 #include <spdlog/spdlog.h>
 
-#include "infill/ImageBasedDensityProvider.h"
-#include "infill/UniformDensityProvider.h"
+#include "infill/DensityProvider.h"
 #include "utils/AABB3D.h"
 #include "utils/SVG.h"
 #include "utils/polygon.h"
@@ -761,7 +761,7 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
         //  \    /  ==>  \____/
         //   \  /}\       ^^^^--pocket_size / 2
         //    \/} / pocket_size_side
-        coord_t pocket_size_side = pocket_size * sqrt2 / 2;
+        coord_t pocket_size_side = pocket_size * std::numbers::sqrt2 / 2;
 
         Polygon pocketed;
         pocketed.reserve(ret.size() * 3 / 2);

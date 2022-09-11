@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <numbers>
 
 #include "settings/AdaptiveLayerHeights.h"
 #include "settings/EnumSettings.h"
@@ -227,7 +228,7 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
             // prevent flat surfaces from influencing the algorithm
             if (z_angle == 0)
             {
-                z_angle = M_PI;
+                z_angle = std::numbers::pi;
             }
 
             face_min_z_values.push_back(MM2INT(min_z));

@@ -8,12 +8,15 @@
 
 #include "RetractionConfig.h"
 #include "settings/types/Angle.h" //For the nozzle expansion angle setting.
+#include "settings/types/Duration.h"
+#include "settings/types/Ratio.h"
 #include "utils/NoCopy.h"
 
 namespace cura
 {
 
 class Weaver;
+class GCodeExport;
 
 /*!
  * Export class for exporting wireframe print gcode / weaver gcode / wireprint gcode.

@@ -9,11 +9,6 @@
 #include <cassert>
 
 
-
-#include "HalfEdge.h"
-#include "HalfEdgeNode.h"
-#include "SVG.h"
-
 namespace cura
 {
     using namespace cura;

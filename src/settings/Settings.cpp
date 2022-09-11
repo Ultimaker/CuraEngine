@@ -3,6 +3,7 @@
 
 #include <cctype>
 #include <fstream>
+#include <numbers>
 #include <regex> // regex parsing for temp flow graph
 #include <sstream> // ostringstream
 #include <stdio.h>
@@ -11,7 +12,6 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get the extruders.
-#include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "settings/EnumSettings.h"
@@ -126,7 +126,7 @@ coord_t Settings::get<coord_t>(const std::string& key) const
 template<>
 AngleRadians Settings::get<AngleRadians>(const std::string& key) const
 {
-    return get<double>(key) * M_PI / 180; // The settings are all in degrees, but we need to interpret them as radians.
+    return get<double>(key) * std::numbers::pi / 180; // The settings are all in degrees, but we need to interpret them as radians.
 }
 
 template<>

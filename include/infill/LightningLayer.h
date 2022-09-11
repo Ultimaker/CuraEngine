@@ -5,7 +5,7 @@
 #define LIGHTNING_LAYER_H
 
 #include "../utils/polygonUtils.h"
-#include "../utils/SquareGrid.h"
+#include "../utils/SparsePointGridInclusive.h"
 
 #include <memory>
 #include <vector>

@@ -1,6 +1,8 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <numbers>
+
 #include "settings/Settings.h" //The class under test.
 #include "Application.h" //To test extruder train settings.
 #include "ExtruderTrain.h"
@@ -14,7 +16,6 @@
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"
 #include "utils/FMatrix4x3.h" //Testing matrix transformation settings.
-#include <cmath> //For M_PI.
 #include <gtest/gtest.h>
 #include <memory> //For shared_ptr.
 

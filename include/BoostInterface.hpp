@@ -9,7 +9,6 @@
 
 #include "utils/IntPoint.h"
 #include "utils/PolygonsSegmentIndex.h"
-#include "utils/polygon.h"
 
 
 using CSegment = cura::PolygonsSegmentIndex;

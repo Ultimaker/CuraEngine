@@ -1,6 +1,8 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <numbers>
+
 #include "PathOrderMonotonic.h"
 #include "ReadTestPolygons.h"
 #include "infill.h"
@@ -136,7 +138,7 @@ TEST_P(PathOrderMonotonicTest, SectionsTest)
 
     const Point& pt_r = polylines.begin()->at(0);
     const Point& pt_s = polylines.begin()->at(1);
-    const double angle_from_first_line = std::atan2(pt_s.Y - pt_r.Y, pt_s.X - pt_r.X) + 0.5 * M_PI;
+    const double angle_from_first_line = std::atan2(pt_s.Y - pt_r.Y, pt_s.X - pt_r.X) + 0.5 * std::numbers::pi;
     const Point monotonic_axis(static_cast<coord_t>(std::cos(angle_from_first_line)) * 1000, static_cast<coord_t>(std::sin(angle_from_first_line)) * 1000);
     const Point perpendicular_axis{ turn90CCW(monotonic_axis) };
 
@@ -212,7 +214,9 @@ const std::vector<std::string> polygon_filenames = {
     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_slant_gap.txt").string(), std::filesystem::path(__FILE__).parent_path().append("resources/polygon_sawtooth.txt").string(),
     std::filesystem::path(__FILE__).parent_path().append("resources/polygon_letter_y.txt").string()
 };
-const std::vector<AngleRadians> angle_radians = { 0, 0.1, 0.25 * M_PI, 1.0, 0.5 * M_PI, 0.75 * M_PI, M_PI, 1.25 * M_PI, 4.0, 1.5 * M_PI, 1.75 * M_PI, 5.0, (2.0 * M_PI) - 0.1 };
+const std::vector<AngleRadians> angle_radians = {
+    0, 0.1, 0.25 * std::numbers::pi, 1.0, 0.5 * std::numbers::pi, 0.75 * std::numbers::pi, std::numbers::pi, 1.25 * std::numbers::pi, 4.0, 1.5 * std::numbers::pi, 1.75 * std::numbers::pi, 5.0, (2.0 * std::numbers::pi) - 0.1
+};
 
 INSTANTIATE_TEST_SUITE_P(PathOrderMonotonicTestInstantiation, PathOrderMonotonicTest, testing::Combine(testing::ValuesIn(polygon_filenames), testing::ValuesIn(angle_radians)));
 // NOLINTEND(*-magic-numbers)

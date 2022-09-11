@@ -1,8 +1,8 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <cmath> // sqrt
 #include <fstream> // debug IO
+#include <numbers>
 
 #include <spdlog/spdlog.h>
 
@@ -14,7 +14,9 @@
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
 #include "communication/Communication.h" //To write g-code output.
+#include "gcodeExport.h" //To access gcodeExport members
 #include "progress/Progress.h"
+#include "settings/types/LayerIndex.h"
 #include "utils/math.h"
 #include "weaveDataStorage.h"
 
@@ -504,7 +506,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode) : gcode(gco
     flowConnection = scene_settings.get<Ratio>("wireframe_flow_connection");
     flowFlat = scene_settings.get<Ratio>("wireframe_flow_flat");
 
-    const double line_area = M_PI * square(INT2MM(line_width) / 2.0);
+    const double line_area = std::numbers::pi * square(INT2MM(line_width) / 2.0);
     extrusion_mm3_per_mm_connection = line_area * flowConnection;
     extrusion_mm3_per_mm_flat = line_area * flowFlat;
 

@@ -6,7 +6,6 @@
 
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
-#include "utils/floatpoint.h"
 #include "utils/FMatrix4x3.h"
 
 namespace cura

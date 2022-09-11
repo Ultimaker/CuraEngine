@@ -1,15 +1,15 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <numbers>
+
+#include "Mold.h"
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "Mold.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "sliceDataStorage.h"
 #include "slicer.h"
 #include "settings/types/Ratio.h"
-#include "utils/IntPoint.h"
 
 namespace cura
 {
@@ -70,7 +70,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             const AngleDegrees angle = mesh.settings.get<AngleDegrees>("mold_angle");
             const coord_t roof_height = mesh.settings.get<coord_t>("mold_roof_height");
 
-            const coord_t inset = tan(angle / 180 * M_PI) * layer_height;
+            const coord_t inset = tan(angle / 180 * std::numbers::pi) * layer_height;
             const size_t roof_layer_count = roof_height / layer_height;
 
 

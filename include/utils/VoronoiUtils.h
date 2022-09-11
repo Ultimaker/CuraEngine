@@ -10,7 +10,6 @@
 
 #include <boost/polygon/voronoi.hpp>
 
-#include "SVG.h"
 #include "PolygonsSegmentIndex.h"
 
 

@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <cmath>
 #include <iomanip>
+#include <numbers>
 #include <stdarg.h>
 
 #include <spdlog/spdlog.h>
@@ -376,7 +377,7 @@ int GCodeExport::getExtruderNr() const
 void GCodeExport::setFilamentDiameter(const size_t extruder, const coord_t diameter)
 {
     const double r = INT2MM(diameter) / 2.0;
-    const double area = M_PI * r * r;
+    const double area = std::numbers::pi * r * r;
     extruder_attr[extruder].filament_area = area;
 }
 

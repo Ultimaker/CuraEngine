@@ -7,9 +7,6 @@
 
 #include "infill/LightningDistanceField.h"
 #include "infill/LightningTreeNode.h"
-#include "sliceDataStorage.h"
-#include "utils/linearAlg2D.h"
-#include "utils/SVG.h"
 #include "utils/SparsePointGridInclusive.h"
 
 using namespace cura;

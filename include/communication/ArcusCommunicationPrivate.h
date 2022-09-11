@@ -8,6 +8,7 @@
 #include <sstream> //For ostringstream.
 
 #include "ArcusCommunication.h" //We're adding a subclass to this.
+#include "Cura.pb.h" //To create Protobuf messages for Cura's front-end.
 #include "SliceDataStruct.h"
 
 namespace cura

@@ -7,7 +7,7 @@
 
 #include "sliceDataStorage.h"
 #include "settings/types/Angle.h" //For the infill angle.
-#include "utils/math.h"
+#include "utils/math.h" // For square
 #include "utils/polygonUtils.h"
 
 #define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 //1 / sqrt(2)

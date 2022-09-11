@@ -5,11 +5,10 @@
 #ifndef UTILS_EXTRUSION_SEGMENT_H
 #define UTILS_EXTRUSION_SEGMENT_H
 
+#include <numbers>
 #include <utility>
 
-#include "IntPoint.h"
 #include "polygon.h"
-#include "polygonUtils.h"
 #include "ExtrusionJunction.h"
 
 namespace cura
@@ -23,7 +22,7 @@ namespace cura
  */
 class ExtrusionSegment
 {
-    static constexpr float a_step = 15 / 180.0 * M_PI; //!< In the calculation of the area covered by this line, the angle between line segments of the round endcaps.
+    static constexpr float a_step = 15 / 180.0 * std::numbers::pi; //!< In the calculation of the area covered by this line, the angle between line segments of the round endcaps.
 public:
     ExtrusionJunction from;
     ExtrusionJunction to;
@@ -53,7 +52,7 @@ public:
      * Converts this segment to an outline of the area that the segment covers.
      * \return The area that would be covered by this extrusion segment.
      */
-    Polygons toPolygons(); 
+    Polygons toPolygons();
 
     /*!
      * Converts this segment to an outline of the area that the segment covers.

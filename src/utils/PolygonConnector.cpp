@@ -3,8 +3,6 @@
 
 #include "utils/PolygonConnector.h"
 
-#include "utils/linearAlg2D.h"
-#include "utils/AABB.h"
 
 namespace cura 
 {

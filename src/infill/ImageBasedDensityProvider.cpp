@@ -7,7 +7,6 @@
 #include <stb_image.h>
 
 #include "infill/ImageBasedDensityProvider.h"
-#include "infill/SierpinskiFill.h"
 #include "utils/AABB3D.h"
 
 namespace cura

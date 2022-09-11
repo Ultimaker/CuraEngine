@@ -1,11 +1,11 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <numbers>
+
 #include "utils/ExtrusionSegment.h"
 
 #include <spdlog/spdlog.h>
-
-#include "utils/macros.h"
 
 namespace cura
 {
@@ -32,11 +32,11 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
     float alpha = std::acos(delta_r / vec_length_fixed); // Angle between the slope along the edge of the polygon (due to varying line width) and the centerline.
     if (to.w > from.w)
     {
-        alpha = M_PI - alpha;
+        alpha = std::numbers::pi - alpha;
     }
-    assert(alpha > -M_PI - 0.0001);
-    assert(alpha < M_PI + 0.0001);
-    if (alpha <= -M_PI || alpha >= M_PI)
+    assert(alpha > -std::numbers::pi - 0.0001);
+    assert(alpha < std::numbers::pi + 0.0001);
+    if (alpha <= -std::numbers::pi || alpha >= std::numbers::pi)
     {
         spdlog::warn("Line joint slope is out of bounds (should be between -pi and +pi): {}", alpha);
     }
@@ -44,22 +44,22 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
     float dir = std::atan(vec.Y / static_cast<float>(vec.X));
     if (vec.X < 0)
     {
-        dir += M_PI;
+        dir += std::numbers::pi;
     }
 
     // Draw the endcap on the "from" vertex's end.
     {
         poly.emplace_back(from.p + Point(from.w / 2 * cos(alpha + dir), from.w / 2 * sin(alpha + dir)));
 
-        float start_a = 2 * M_PI;
+        float start_a = 2 * std::numbers::pi;
         while (start_a > alpha + dir)
         {
             start_a -= a_step;
         }
         start_a += a_step;
 
-        float end_a = -2 * M_PI;
-        while (end_a < 2 * M_PI - alpha + dir)
+        float end_a = -2 * std::numbers::pi;
+        while (end_a < 2 * std::numbers::pi - alpha + dir)
         {
             end_a += a_step;
         }
@@ -69,14 +69,14 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
         {
             poly.emplace_back(from.p + Point(from.w / 2 * cos(a), from.w / 2 * sin(a)));
         }
-        poly.emplace_back(from.p + Point(from.w / 2 * cos(2 * M_PI - alpha + dir), from.w / 2 * sin(2 * M_PI - alpha + dir)));
+        poly.emplace_back(from.p + Point(from.w / 2 * cos(2 * std::numbers::pi - alpha + dir), from.w / 2 * sin(2 * std::numbers::pi - alpha + dir)));
     }
 
     // Draw the endcap on the "to" vertex's end.
     {
-        poly.emplace_back(to.p + Point(to.w / 2 * cos(2 * M_PI - alpha + dir), to.w / 2 * sin(2 * M_PI - alpha + dir))); // Also draws the main diagonal from the "from" vertex to the "to" vertex!
+        poly.emplace_back(to.p + Point(to.w / 2 * cos(2 * std::numbers::pi - alpha + dir), to.w / 2 * sin(2 * std::numbers::pi - alpha + dir))); // Also draws the main diagonal from the "from" vertex to the "to" vertex!
 
-        float start_a = 2 * M_PI;
+        float start_a = 2 * std::numbers::pi;
         while (start_a > alpha + dir)
         {
             start_a -= a_step;
@@ -88,8 +88,8 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
             start_a += a_step;
         }
 
-        float end_a = -2 * M_PI;
-        while (end_a < 2 * M_PI - alpha + dir)
+        float end_a = -2 * std::numbers::pi;
+        while (end_a < 2 * std::numbers::pi - alpha + dir)
             end_a += a_step;
         if (reduced)
         {
@@ -97,7 +97,7 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
         }
         else
         {
-            end_a -= 2 * M_PI;
+            end_a -= 2 * std::numbers::pi;
         }
 
         // Draw the endcap.

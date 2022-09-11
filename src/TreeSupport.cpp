@@ -5,14 +5,12 @@
 // Code smell: Order of the includes is important here, probably due to some forward declarations which might be masking some undefined behaviours
 // clang-format off
 #include "Application.h" //To get settings.
-#include "ExtruderTrain.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
 #include "TreeSupport.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Angle.h" //Creating the correct branch angles.
-#include "settings/types/Ratio.h"
 #include "utils/ThreadPool.h"
 #include "utils/IntPoint.h" //To normalize vectors.
 #include "utils/math.h" //For round_up_divide and PI.
@@ -24,8 +22,8 @@
 
 #include <atomic>
 #include <mutex>
+#include <numbers>
 
-#define SQRT_2 1.4142135623730950488 // Square root of 2.
 #define CIRCLE_RESOLUTION 10 // The number of vertices in each circle.
 
 // The various stages of the process can be weighted differently in the progress bar.
@@ -88,7 +86,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const coord_t branch_radius = mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2;
     const size_t wall_count = mesh_group_settings.get<size_t>("support_wall_count");
     Polygon branch_circle = PolygonUtils::makeCircle(Point(0, 0), branch_radius, TAU / CIRCLE_RESOLUTION); // Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
-    const coord_t circle_side_length = 2 * branch_radius * sin(M_PI / CIRCLE_RESOLUTION); // Side length of a regular polygon.
+    const coord_t circle_side_length = 2 * branch_radius * sin(std::numbers::pi / CIRCLE_RESOLUTION); // Side length of a regular polygon.
     const coord_t z_distance_bottom = mesh_group_settings.get<coord_t>("support_bottom_distance");
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom, layer_height) > 0 ? round_up_divide(z_distance_bottom, layer_height) : 1;
@@ -488,7 +486,7 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
     // We want to create the grid pattern at an angle, so compute the bounding
     // box required to cover that angle.
     // Rotation of 22 degrees provides better support of diagonal lines.
-    constexpr double rotate_angle = 22.0 / 180.0 * M_PI;
+    constexpr double rotate_angle = 22.0 / 180.0 * std::numbers::pi;
     const Point bounding_box_size = bounding_box.max - bounding_box.min;
 
     // Store center of AABB so we can relocate the generated points

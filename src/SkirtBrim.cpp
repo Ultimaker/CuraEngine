@@ -9,7 +9,6 @@
 #include "Slice.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
-#include "support.h"
 #include "utils/Simplify.h" //Simplifying the brim/skirt at every inset.
 
 namespace cura

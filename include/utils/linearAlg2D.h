@@ -5,6 +5,7 @@
 #define UTILS_LINEAR_ALG_2D_H
 
 #include "IntPoint.h"
+#include "utils/math.h"
 
 namespace cura
 {

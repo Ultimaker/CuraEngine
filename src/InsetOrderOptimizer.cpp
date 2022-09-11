@@ -2,10 +2,9 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "InsetOrderOptimizer.h"
-#include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
 #include "LayerPlan.h"
-#include "WallToolPaths.h"
+#include "PathOrderOptimizer.h"
 
 #include <iterator>
 

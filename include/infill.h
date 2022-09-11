@@ -4,7 +4,6 @@
 #ifndef INFILL_H
 #define INFILL_H
 
-#include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
 #include "settings/types/Angle.h"
@@ -18,6 +17,7 @@ namespace cura
 class AABB;
 class SierpinskiFillProvider;
 class SliceMeshStorage;
+class LightningLayer;
 
 class Infill 
 {

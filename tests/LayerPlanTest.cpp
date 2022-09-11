@@ -3,6 +3,7 @@
 
 #include "LayerPlan.h" //The code under test.
 #include "Application.h" //To provide settings for the layer plan.
+#include "FanSpeedLayerTime.h"
 #include "RetractionConfig.h" //To provide retraction settings.
 #include "Slice.h" //To provide settings for the layer plan.
 #include "pathPlanning/Comb.h" //To create a combing path around the layer plan.

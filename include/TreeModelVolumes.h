@@ -9,12 +9,12 @@
 #include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
 #include "utils/polygon.h" //For polygon parameters.
+#include "utils/polygonUtils.h" // Constains std::hash<std::pair<>>
 
 namespace cura
 {
 
 class SliceDataStorage;
-class LayerIndex;
 class Settings;
 
 /*!

@@ -7,7 +7,6 @@
 
 #include "ExtruderTrain.h"
 #include "sliceDataStorage.h"
-#include "utils/linearAlg2D.h"
 #include "utils/SparsePointGridInclusive.h"
 
 /* Possible future tasks/optimizations,etc.:

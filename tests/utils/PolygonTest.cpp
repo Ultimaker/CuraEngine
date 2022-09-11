@@ -1,6 +1,8 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <numbers>
+
 #include "utils/polygon.h" // The class under test.
 #include "utils/Coord_t.h"
 #include "utils/SVG.h" // helper functions
@@ -249,7 +251,7 @@ TEST_F(PolygonTest, convexHullStar)
     const int num_points = 10;
     const int outer_radius = 20;
     const int inner_radius = 10;
-    const double angle_step = M_PI * 2.0 / num_points;
+    const double angle_step = std::numbers::pi * 2.0 / num_points;
     for (int i = 0; i < num_points; ++i)
     {
         coord_t x_outer = -std::cos(angle_step * i) * outer_radius;

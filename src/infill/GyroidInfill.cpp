@@ -1,6 +1,8 @@
 //Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include <numbers>
+
 #include "infill/GyroidInfill.h"
 #include "utils/AABB.h"
 #include "utils/linearAlg2D.h"
@@ -30,7 +32,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
         step = pitch / num_steps;
     }
     pitch = step * num_steps; // recalculate to avoid precision errors
-    const double z_rads = 2 * M_PI * z / pitch;
+    const double z_rads = 2 * std::numbers::pi * z / pitch;
     const double cos_z = std::cos(z_rads);
     const double sin_z = std::sin(z_rads);
     std::vector<coord_t> odd_line_coords;
@@ -42,19 +44,19 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
     if (std::abs(sin_z) <= std::abs(cos_z))
     {
         // "vertical" lines
-        const double phase_offset = ((cos_z < 0) ? M_PI : 0) + M_PI;
+        const double phase_offset = ((cos_z < 0) ? std::numbers::pi : 0) + std::numbers::pi;
         for (coord_t y = 0; y < pitch; y += step)
         {
-            const double y_rads = 2 * M_PI * y / pitch;
+            const double y_rads = 2 * std::numbers::pi * y / pitch;
             const double a = cos_z;
             const double b = std::sin(y_rads + phase_offset);
             const double odd_c = sin_z * std::cos(y_rads + phase_offset);
-            const double even_c = sin_z * std::cos(y_rads + phase_offset + M_PI);
+            const double even_c = sin_z * std::cos(y_rads + phase_offset + std::numbers::pi);
             const double h = std::sqrt(a * a + b * b);
-            const double odd_x_rads = ((h != 0) ? std::asin(odd_c / h) + std::asin(b / h) : 0) - M_PI/2;
-            const double even_x_rads = ((h != 0) ? std::asin(even_c / h) + std::asin(b / h) : 0) - M_PI/2;
-            odd_line_coords.push_back(odd_x_rads / M_PI * pitch);
-            even_line_coords.push_back(even_x_rads / M_PI * pitch);
+            const double odd_x_rads = ((h != 0) ? std::asin(odd_c / h) + std::asin(b / h) : 0) - std::numbers::pi / 2;
+            const double even_x_rads = ((h != 0) ? std::asin(even_c / h) + std::asin(b / h) : 0) - std::numbers::pi / 2;
+            odd_line_coords.push_back(odd_x_rads / std::numbers::pi * pitch);
+            even_line_coords.push_back(even_x_rads / std::numbers::pi * pitch);
         }
         const unsigned num_coords = odd_line_coords.size();
         unsigned num_columns = 0;
@@ -134,19 +136,19 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
     else
     {
         // "horizontal" lines
-        const double phase_offset = (sin_z < 0) ? M_PI : 0;
+        const double phase_offset = (sin_z < 0) ? std::numbers::pi : 0;
         for (coord_t x = 0; x < pitch; x += step)
         {
-            const double x_rads = 2 * M_PI * x / pitch;
+            const double x_rads = 2 * std::numbers::pi * x / pitch;
             const double a = sin_z;
             const double b = std::cos(x_rads + phase_offset);
-            const double odd_c = cos_z * std::sin(x_rads + phase_offset + M_PI);
+            const double odd_c = cos_z * std::sin(x_rads + phase_offset + std::numbers::pi);
             const double even_c = cos_z * std::sin(x_rads + phase_offset);
             const double h = std::sqrt(a * a + b * b);
-            const double odd_y_rads = ((h != 0) ? std::asin(odd_c / h) + std::asin(b / h) : 0) + M_PI/2;
-            const double even_y_rads = ((h != 0) ? std::asin(even_c / h) + std::asin(b / h) : 0) + M_PI/2;
-            odd_line_coords.push_back(odd_y_rads / M_PI * pitch);
-            even_line_coords.push_back(even_y_rads / M_PI * pitch);
+            const double odd_y_rads = ((h != 0) ? std::asin(odd_c / h) + std::asin(b / h) : 0) + std::numbers::pi / 2;
+            const double even_y_rads = ((h != 0) ? std::asin(even_c / h) + std::asin(b / h) : 0) + std::numbers::pi / 2;
+            odd_line_coords.push_back(odd_y_rads / std::numbers::pi * pitch);
+            even_line_coords.push_back(even_y_rads / std::numbers::pi * pitch);
         }
         const unsigned num_coords = odd_line_coords.size();
         unsigned num_rows = 0;

@@ -5,10 +5,7 @@
 #define WEAVE_DATA_STORAGE_H
 
 #include "utils/NoCopy.h"
-#include "utils/IntPoint.h"
 #include "utils/polygon.h"
-#include "mesh.h"
-#include "LayerPlan.h"
 #include "MeshGroup.h"
 
 

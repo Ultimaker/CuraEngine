@@ -14,7 +14,10 @@
 #include "progress/Progress.h"
 #include "settings/AdaptiveLayerHeights.h"
 #include "settings/types/Angle.h"
+#include "settings/types/LayerIndex.h"
+#include "settings/types/Velocity.h"
 #include "slicer.h"
+#include "utils/polygonUtils.h"
 
 namespace cura
 {

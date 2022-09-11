@@ -7,16 +7,8 @@
 #include <cstdint>
 #include <cmath>
 
-
-//c++11 no longer defines M_PI, so add our own constant.
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
 namespace cura
 {
-
-static constexpr float sqrt2 = 1.41421356237;
 
 template<typename T> inline T square(const T& a) { return a * a; }
 
@@ -48,17 +40,6 @@ inline uint64_t round_up_divide(const uint64_t dividend, const uint64_t divisor)
     return (dividend + divisor - 1) / divisor;
 }
 
-template<typename T>
-constexpr T pi_div(const T div)
-{
-    return  static_cast<T>(M_PI) / div;
-}
-
-template<typename T>
-constexpr T pi_mul(const T mul)
-{
-    return  static_cast<T>(M_PI) / mul;
-}
 
 }//namespace cura
 #endif // UTILS_MATH_H

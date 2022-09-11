@@ -12,9 +12,7 @@
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "infill.h"
-#include "infill/ImageBasedDensityProvider.h"
 #include "infill/SierpinskiFillProvider.h"
-#include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/Angle.h" //To compute overhang distance from the angle.

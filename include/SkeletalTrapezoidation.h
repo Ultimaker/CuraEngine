@@ -10,7 +10,6 @@
 #include <unordered_map>
 #include <utility> // pair
 
-#include "utils/HalfEdgeGraph.h"
 #include "utils/polygon.h"
 #include "utils/PolygonsSegmentIndex.h"
 #include "utils/ExtrusionJunction.h"

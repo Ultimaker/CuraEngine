@@ -4,6 +4,7 @@
 #include "utils/linearAlg2D.h"
 #include <cstdint>
 #include <gtest/gtest.h>
+#include <numbers>
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -132,7 +133,7 @@ TEST_P(GetAngleTest, GetAngle)
     const Point b = parameters.b;
     const Point c = parameters.c;
     const double angle_degrees = parameters.angle;
-    const double angle = angle_degrees * M_PI / 180.0;
+    const double angle = angle_degrees * std::numbers::pi / 180.0;
 
     const double supposed_angle = LinearAlg2D::getAngleLeft(a, b, c);
     ASSERT_LE(std::fabs(angle - supposed_angle), maximum_error) << "Corner in " << a << " - " << b << " - " << c << " was computed to have an angle of " << supposed_angle << " instead of " << angle << ".";

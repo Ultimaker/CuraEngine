@@ -7,6 +7,7 @@
 #include <list>
 
 #include "Preheat.h"
+#include "settings/Settings.h" // MAX_EXTRUDERS
 #include "settings/types/Duration.h"
 
 namespace cura 
@@ -14,6 +15,7 @@ namespace cura
 
 class ExtruderPlan;
 class LayerPlan;
+class GCodeExport;
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.

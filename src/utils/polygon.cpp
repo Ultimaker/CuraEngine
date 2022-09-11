@@ -3,11 +3,11 @@
 
 #include "utils/polygon.h"
 
+#include <numbers>
 #include <numeric>
 #include <unordered_set>
 
 #include "utils/linearAlg2D.h" // pointLiesOnTheRightOfLine
-#include "utils/Simplify.h"
 
 #include "utils/ListPolyIt.h"
 
@@ -416,11 +416,14 @@ void PolygonRef::removeColinearEdges(const AngleRadians max_deviation_angle)
                 const Point& next = rpath[(point_idx + 1) % pathlen];
 
                 float angle = LinearAlg2D::getAngleLeft(prev, pt, next);  // [0 : 2 * pi]
-                if (angle >= M_PI) {angle -= M_PI;}  // map [pi : 2 * pi] to [0 : pi]
+                if (angle >= std::numbers::pi)
+                {
+                    angle -= std::numbers::pi;
+                } // map [pi : 2 * pi] to [0 : pi]
 
                 // Check if the angle is within limits for the point to 'make sense', given the maximum deviation.
                 // If the angle indicates near-parallel segments ignore the point 'pt'
-                if (angle > max_deviation_angle && angle < M_PI - max_deviation_angle)
+                if (angle > max_deviation_angle && angle < std::numbers::pi - max_deviation_angle)
                 {
                     new_path.push_back(pt);
                 }
@@ -1016,7 +1019,7 @@ void ConstPolygonRef::smooth_outward(const AngleDegrees min_angle, int shortcut_
 //         0
 
     int shortcut_length2 = shortcut_length * shortcut_length;
-    float cos_min_angle = cos(min_angle / 180 * M_PI);
+    float cos_min_angle = cos(min_angle / 180 * std::numbers::pi);
 
     ListPolygon poly;
     ListPolyIt::convertPolygonToList(*this, poly);

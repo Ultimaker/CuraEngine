@@ -6,6 +6,7 @@
 #include "sliceDataStorage.h"
 #include "TopSurface.h"
 #include "ExtruderTrain.h"
+#include "InsetOrderOptimizer.h"
 
 namespace cura
 {

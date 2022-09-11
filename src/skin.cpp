@@ -4,7 +4,6 @@
 #include <cmath> // std::ceil
 
 #include "Application.h" //To get settings.
-#include "Slice.h"
 #include "ExtruderTrain.h"
 #include "skin.h"
 #include "infill.h"
@@ -13,8 +12,6 @@
 #include "settings/types/Angle.h" //For the infill support angle.
 #include "settings/types/Ratio.h"
 #include "utils/math.h"
-#include "utils/polygonUtils.h"
-#include "WallToolPaths.h"
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 

@@ -1,13 +1,13 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <numbers>
 #include <spdlog/spdlog.h>
 
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "utils/AABB3D.h"
-#include "utils/math.h"
 #include "utils/polygon.h"
 
 namespace cura
@@ -75,7 +75,7 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
         aabb_size *= 2;
         depth += 2;
     }
-    const float half_sqrt2 = .5 * sqrt2;
+    const float half_sqrt2 = .5 * std::numbers::sqrt2;
     if (depth > 0 && aabb_size * half_sqrt2 >= max_side_length)
     {
         aabb_size *= half_sqrt2;

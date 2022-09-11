@@ -3,6 +3,7 @@
 
 #include <algorithm> //For std::sort.
 #include <functional>
+#include <numbers>
 #include <unordered_set>
 
 #include <spdlog/spdlog.h>
@@ -10,19 +11,15 @@
 #include "WallToolPaths.h"
 #include "infill.h"
 #include "infill/GyroidInfill.h"
-#include "infill/ImageBasedDensityProvider.h"
-#include "infill/LightningGenerator.h"
+#include "infill/LightningLayer.h"
 #include "infill/NoZigZagConnectorProcessor.h"
-#include "infill/SierpinskiFill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
-#include "infill/UniformDensityProvider.h"
 #include "sliceDataStorage.h"
 #include "utils/PolygonConnector.h"
 #include "utils/PolylineStitcher.h"
 #include "utils/Simplify.h"
 #include "utils/UnionFind.h"
-#include "utils/polygonUtils.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -499,7 +496,7 @@ coord_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_r
 {
     if (infill_origin.X != 0 || infill_origin.Y != 0)
     {
-        const double rotation_rads = infill_rotation * M_PI / 180;
+        const double rotation_rads = infill_rotation * std::numbers::pi / 180;
         return infill_origin.X * std::cos(rotation_rads) - infill_origin.Y * std::sin(rotation_rads);
     }
     return 0;
