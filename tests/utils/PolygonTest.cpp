@@ -79,22 +79,17 @@ public:
     }
     void twoPolygonsAreEqual(Polygons& polygon1, Polygons& polygon2) const
     {
-        // check there are the same number of polygons
-        ASSERT_EQ(polygon1.size(), polygon2.size()) << "The Polygons (vector) does not contain the same number of Polygon";
+        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b) { return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), [](const Point& p1, const Point& p2) { return p1 < p2; }); };
+        std::sort(polygon1.begin(), polygon1.end(), poly_cmp);
+        std::sort(polygon2.begin(), polygon2.end(), poly_cmp);
 
-        // check each polygon is matching
-        for (auto pi = size_t{ 0 }; pi < polygon1.size(); ++pi)
-        {
-            // check poly is the same length
-            ASSERT_EQ(polygon1[pi].size(), polygon2[pi].size()) << "At pi = " << pi << ", the Polygon do not match";
+        std::vector<ClipperLib::Path> difference;
+        std::set_difference(polygon1.begin(), polygon1.end(), polygon2.begin(), polygon2.end(), std::back_inserter(difference), poly_cmp);
+        ASSERT_TRUE(difference.empty()) << "Paths in polygon1 not found in polygon2:" << difference;
 
-            const auto& p1 = polygon1[pi];
-            const auto& p2 = polygon2[pi];
-            for (auto li = size_t{ 0 }; li < p1.size(); ++li)
-            {
-                EXPECT_EQ(p1[li], p2[li]) << "In the polygon at index = " << pi << ", the Polygon coordinates do not match at index = " << li;
-            }
-        }
+        difference.clear();
+        std::set_difference(polygon2.begin(), polygon2.end(), polygon1.begin(), polygon1.end(), std::back_inserter(difference), poly_cmp);
+        ASSERT_TRUE(difference.empty()) << "Paths in polygon2 not found in polygon1:" << difference;
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
