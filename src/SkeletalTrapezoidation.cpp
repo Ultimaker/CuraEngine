@@ -378,7 +378,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
 
 bool SkeletalTrapezoidation::detectMissingVoronoiVertex(const vd_t& voronoi_diagram, std::vector<Point>& points, const std::vector<SkeletalTrapezoidation::Segment>& segments)
 {
-    for (VoronoiUtils::vd_t::cell_type cell : voronoi_diagram.cells())
+    for (vd_t::cell_type cell : voronoi_diagram.cells())
     {
         if (!cell.incident_edge())
         {
@@ -437,6 +437,52 @@ bool SkeletalTrapezoidation::detectMissingVoronoiVertex(const vd_t& voronoi_diag
     return false;
 }
 
+bool SkeletalTrapezoidation::isVoronoiDiagramPlanarAngle(const vd_t& voronoi_diagram)
+{
+    for (const vd_t::vertex_type& vertex : voronoi_diagram.vertices())
+    {
+        std::vector<const vd_t::edge_type*> edges;
+        const vd_t::edge_type* edge = vertex.incident_edge();
+
+        do
+        {
+            // NOTE: Currently, it's not known if these degenaracies can also affect parabolic segments. They're not processed at the moment.
+            if (edge->is_finite() && edge->is_linear())
+            {
+                edges.emplace_back(edge);
+            }
+
+            edge = edge->rot_next();
+        } while (edge != vertex.incident_edge());
+
+        // Checking for CCW make sense for three and more edges.
+        if (edges.size() > 2)
+        {
+            for (auto edge_it = edges.begin(); edge_it != edges.end(); ++edge_it)
+            {
+                const vd_t::edge_type* prev_edge = edge_it == edges.begin() ? edges.back() : *std::prev(edge_it);
+                const vd_t::edge_type* curr_edge = *edge_it;
+                const vd_t::edge_type* next_edge = std::next(edge_it) == edges.end() ? edges.front() : *std::next(edge_it);
+
+                const bool isCCW =
+                    LinearAlg2D::isInsideCorner
+                    (
+                        VoronoiUtils::p(prev_edge->vertex0()),
+                        VoronoiUtils::p(prev_edge->vertex1()),
+                        VoronoiUtils::p(curr_edge->vertex1()),
+                        VoronoiUtils::p(next_edge->vertex1())
+                    );
+                if (! isCCW)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 {
     vd_edge_to_he_edge.clear();
@@ -459,12 +505,21 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 
     // Try to detect cases when some Voronoi vertex is missing.
     // When any Voronoi vertex is missing, rotate input polygon and try again.
-    constexpr double fix_angle = M_PI / 6;
+    constexpr double fix_angle = 0.5;  // Choose an off-kilter (non-Pi/non-Tau based) angle to counteract rotational symmetry.
     const bool has_missing_voronoi_vertex = detectMissingVoronoiVertex(voronoi_diagram, points, segments);
+    const bool is_voronoi_planar = isVoronoiDiagramPlanarAngle(voronoi_diagram);
+    const bool is_voronoi_misconstructed = has_missing_voronoi_vertex || ! is_voronoi_planar;
     std::unordered_map<Point, Point> vertex_mapping;  // NOTE: Should maybe add a functor to specify specialized hash as 3rd template parameter.
-    if (has_missing_voronoi_vertex)
+    if (is_voronoi_misconstructed)
     {
-        spdlog::debug("Detected missing Voronoi vertex, input polygons will be rotated back and forth.");
+        if (has_missing_voronoi_vertex)
+        {
+            spdlog::debug("Detected missing Voronoi vertex, input polygons will be rotated back and forth.");
+        }
+        if (! is_voronoi_planar)
+        {
+            spdlog::debug("Detected non-planar Voronoi diagram, input polygons will be rotated back and forth.");
+        }
 
         Polygons polys_copy = polys;
         const auto rot_matrix = LinearAlg2D::rotateAround(Point(0, 0), fix_angle);
@@ -498,9 +553,14 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         voronoi_diagram.clear();
         construct_voronoi(segments.begin(), segments.end(), &voronoi_diagram);
         assert(!detectMissingVoronoiVertex(voronoi_diagram, points, segments));
+        assert(isVoronoiDiagramPlanarAngle(voronoi_diagram));
         if (detectMissingVoronoiVertex(voronoi_diagram, points, segments))
         {
             spdlog::error("Detected missing Voronoi vertex even after the rotation of input.");
+        }
+        if (! isVoronoiDiagramPlanarAngle(voronoi_diagram))
+        {
+            spdlog::error("Detected non-planar Voronoi diagram even after the rotation of input.");
         }
     }
 
@@ -557,7 +617,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         prev_edge->to->data.distance_to_boundary = 0;
     }
 
-    if (has_missing_voronoi_vertex)
+    if (is_voronoi_misconstructed)
     {
         const auto inv_rot_matrix = LinearAlg2D::rotateAround(Point(0, 0), -fix_angle);
         for (node_t& node : graph.nodes)
