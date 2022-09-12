@@ -138,6 +138,8 @@ protected:
         {}
     };
 
+    bool detectMissingVoronoiVertex(const vd_t& voronoi_diagram, std::vector<Point>& points, const std::vector<SkeletalTrapezoidation::Segment>& segments);
+
     /*!
      * Compute the skeletal trapezoidation decomposition of the input shape.
      * 

@@ -376,6 +376,67 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
     constructFromPolygons(polys);
 }
 
+bool SkeletalTrapezoidation::detectMissingVoronoiVertex(const vd_t& voronoi_diagram, std::vector<Point>& points, const std::vector<SkeletalTrapezoidation::Segment>& segments)
+{
+    for (VoronoiUtils::vd_t::cell_type cell : voronoi_diagram.cells())
+    {
+        if (!cell.incident_edge())
+        {
+            continue; // There is no spoon
+        }
+
+        if (cell.contains_segment())
+        {
+            const SkeletalTrapezoidation::Segment& source_segment = VoronoiUtils::getSourceSegment(cell, points, segments);
+            const Point from = source_segment.from();
+            const Point to = source_segment.to();
+
+            // Find starting edge
+            // Find end edge
+            bool seen_possible_start = false;
+            bool after_start = false;
+            bool ending_edge_is_set_before_start = false;
+            VoronoiUtils::vd_t::edge_type* starting_vd_edge = nullptr;
+            VoronoiUtils::vd_t::edge_type* ending_vd_edge = nullptr;
+            VoronoiUtils::vd_t::edge_type* edge = cell.incident_edge();
+            do
+            {
+                if (edge->is_infinite())
+                {
+                    continue;
+                }
+
+                const Point& v0 = VoronoiUtils::p(edge->vertex0());
+                const Point& v1 = VoronoiUtils::p(edge->vertex1());
+
+                assert(!(v0 == to && v1 == from));
+                if (v0 == to && !after_start)
+                { // Use the last edge which starts in source_segment.to
+                    starting_vd_edge = edge;
+                    seen_possible_start = true;
+                }
+                else if (seen_possible_start)
+                {
+                    after_start = true;
+                }
+
+                if (v1 == from && (!ending_vd_edge || ending_edge_is_set_before_start))
+                {
+                    ending_edge_is_set_before_start = !after_start;
+                    ending_vd_edge = edge;
+                }
+            } while (edge = edge->next(), edge != cell.incident_edge());
+
+            if (!starting_vd_edge || !ending_vd_edge || starting_vd_edge == ending_vd_edge)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 {
     vd_edge_to_he_edge.clear();
@@ -393,10 +454,57 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         }
     }
 
-    vd_t vonoroi_diagram;
-    construct_voronoi(segments.begin(), segments.end(), &vonoroi_diagram);
+    vd_t voronoi_diagram;
+    construct_voronoi(segments.begin(), segments.end(), &voronoi_diagram);
 
-    for (vd_t::cell_type cell : vonoroi_diagram.cells())
+    // Try to detect cases when some Voronoi vertex is missing.
+    // When any Voronoi vertex is missing, rotate input polygon and try again.
+    constexpr double fix_angle = M_PI / 6;
+    const bool has_missing_voronoi_vertex = detectMissingVoronoiVertex(voronoi_diagram, points, segments);
+    std::unordered_map<Point, Point> vertex_mapping;  // NOTE: Should maybe add a functor to specify specialized hash as 3rd template parameter.
+    if (has_missing_voronoi_vertex)
+    {
+        spdlog::debug("Detected missing Voronoi vertex, input polygons will be rotated back and forth.");
+
+        Polygons polys_copy = polys;
+        const auto rot_matrix = LinearAlg2D::rotateAround(Point(0, 0), fix_angle);
+        for (auto& poly : polys_copy)
+        {
+            for (auto& pt : poly)
+            {
+                pt = rot_matrix.apply(pt);
+            }
+        }
+
+        assert(polys_copy.size() == polys.size());
+        for (size_t poly_idx = 0; poly_idx < polys.size(); ++poly_idx)
+        {
+            assert(polys_copy[poly_idx].size() == polys[poly_idx].size());
+            for (size_t point_idx = 0; point_idx < polys[poly_idx].size(); ++point_idx)
+            {
+                vertex_mapping.insert({ polys[poly_idx][point_idx], polys_copy[poly_idx][point_idx] });
+            }
+        }
+
+        segments.clear();
+        for (size_t poly_idx = 0; poly_idx < polys_copy.size(); poly_idx++)
+        {
+            for (size_t point_idx = 0; point_idx < polys_copy[poly_idx].size(); point_idx++)
+            {
+                segments.emplace_back(&polys_copy, poly_idx, point_idx);
+            }
+        }
+
+        voronoi_diagram.clear();
+        construct_voronoi(segments.begin(), segments.end(), &voronoi_diagram);
+        assert(!detectMissingVoronoiVertex(voronoi_diagram, points, segments));
+        if (detectMissingVoronoiVertex(voronoi_diagram, points, segments))
+        {
+            spdlog::error("Detected missing Voronoi vertex even after the rotation of input.");
+        }
+    }
+
+    for (vd_t::cell_type cell : voronoi_diagram.cells())
     {
         if (! cell.incident_edge())
         { // There is no spoon
@@ -447,6 +555,23 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 
         transferEdge(VoronoiUtils::p(ending_vonoroi_edge->vertex0()), end_source_point, *ending_vonoroi_edge, prev_edge, start_source_point, end_source_point, points, segments);
         prev_edge->to->data.distance_to_boundary = 0;
+    }
+
+    if (has_missing_voronoi_vertex)
+    {
+        const auto inv_rot_matrix = LinearAlg2D::rotateAround(Point(0, 0), -fix_angle);
+        for (node_t& node : graph.nodes)
+        {
+            // If a mapping exists between a rotated point and an original point, use this mapping. Otherwise, rotate a point in the opposite direction.
+            if (auto node_it = vertex_mapping.find(node.p); node_it != vertex_mapping.end())
+            {
+                node.p = node_it->second;
+            }
+            else
+            {
+                node.p = inv_rot_matrix.apply(node.p);
+            }
+        }
     }
 
     separatePointyQuadEndNodes();
