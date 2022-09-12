@@ -8,6 +8,7 @@
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
 #include "support.h" //For precomputeCrossInfillTree
+#include "utils/Simplify.h"
 #include "utils/logoutput.h"
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/polygonUtils.h" //For moveInside.
@@ -17,8 +18,8 @@
 #include <stdio.h>
 #include <string>
 #include <thread>
+#include <utils/ThreadPool.h>
 #include <utils/algorithm.h>
-
 
 namespace cura
 {
@@ -124,12 +125,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     for (std::pair<TreeSupportSettings, std::vector<size_t>> processing : grouped_meshes)
     {
         // process each combination of meshes
-        std::vector<std::set<SupportElement*>> move_bounds(storage.support.supportLayers.size()); // value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in drawAreas
+        std::vector<std::set<TreeSupportElement*>> move_bounds(storage.support.supportLayers.size()); // value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in drawAreas
         log("Processing support tree mesh group %lld of %lld containing %lld meshes.\n", counter + 1, grouped_meshes.size(), grouped_meshes[counter].second.size());
         std::vector<Polygons> exclude(storage.support.supportLayers.size());
         auto t_start = std::chrono::high_resolution_clock::now();
         // get all already existing support areas and exclude them
-        cura::parallel_for<LayerIndex>(LayerIndex(0), LayerIndex(storage.support.supportLayers.size()), LayerIndex(1),
+        cura::parallel_for<coord_t>(LayerIndex(0), LayerIndex(storage.support.supportLayers.size()),
             [&](const LayerIndex layer_idx)
             {
             Polygons exlude_at_layer;
@@ -239,11 +240,11 @@ std::vector<TreeSupport::LineInformation> TreeSupport::convertLinesToInternal(Po
         LineInformation res_line;
         for (Point p : line)
         {
-            if (!config.support_has_no_rest_preference && !volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST_SAFE, false, !xy_overrides).inside(p, true))
+            if (config.support_rest_preference == RestPreference::BUILDPLATE && !volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST_SAFE, false, !xy_overrides).inside(p, true))
             {
                 res_line.emplace_back(p, LineStatus::TO_BP_SAFE);
             }
-            else if (!config.support_has_no_rest_preference && !volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST, false, !xy_overrides).inside(p, true))
+            else if (config.support_rest_preference == RestPreference::BUILDPLATE && !volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST, false, !xy_overrides).inside(p, true))
             {
                 res_line.emplace_back(p, LineStatus::TO_BP);
             }
@@ -538,19 +539,20 @@ Polygons TreeSupport::toPolylines(const Polygons& poly) const
 
 Polygons TreeSupport::toPolylines(const std::vector<VariableWidthLines> toolpaths) const
 {
-
     Polygons result;
-    for(VariableWidthLines lines:toolpaths){
-        for(ExtrusionLine line:lines){
+    for (VariableWidthLines lines : toolpaths)
+    {
+        for (ExtrusionLine line : lines)
+        {
             Polygon result_line;
-            for(ExtrusionJunction junction:line){
+            for (ExtrusionJunction junction : line)
+            {
                 result_line.add(junction.p);
             }
             result.add(result_line);
         }
     }
     return result;
-
 }
 
 
@@ -662,16 +664,8 @@ SierpinskiFillProvider* TreeSupport::generateCrossFillProvider(const SliceMeshSt
 }
 
 
-void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<SupportElement*>>& move_bounds, SliceDataStorage& storage)
+void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
 {
-    Polygon base_circle;
-    const int base_radius = 10;
-    for (unsigned int i = 0; i < SUPPORT_TREE_CIRCLE_RESOLUTION; i++)
-    {
-        const AngleRadians angle = static_cast<double>(i) / SUPPORT_TREE_CIRCLE_RESOLUTION * TAU;
-        base_circle.emplace_back(coord_t(cos(angle) * base_radius), coord_t(sin(angle) * base_radius));
-    }
-
     TreeSupportSettings mesh_config(mesh.settings);
 
     const size_t z_distance_delta = mesh_config.z_distance_top_layers + 1; // To ensure z_distance_top_layers are left empty between the overhang (zeroth empty layer), the support has to be added z_distance_top_layers+1 layers below
@@ -695,7 +689,7 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
     const coord_t max_overhang_speed = (support_overhang_angle < TAU / 4) ? (coord_t)(tan(support_overhang_angle) * mesh_config.layer_height) : std::numeric_limits<coord_t>::max();
     const size_t max_overhang_insert_lag = std::max((size_t)round_up_divide(mesh_config.xy_distance, max_overhang_speed / 2), 2 * mesh_config.z_distance_top_layers); // cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point may cause extra material and time cost.  Could also be an user setting or differently calculated. Idea is that if an overhang does not turn valid in double the amount of layers a slope of support angle would take to travel xy_distance, nothing reasonable will come from it. The 2*z_distance_delta is only a catch for when the support angle is very high.
     const bool support_tree_limit_branch_reach = mesh.settings.get<bool>("support_tree_limit_branch_reach");
-    const coord_t support_tree_branch_reach_limit = support_tree_limit_branch_reach?mesh.settings.get<coord_t>("support_tree_branch_reach_limit"):0;
+    const coord_t support_tree_branch_reach_limit = support_tree_limit_branch_reach ? mesh.settings.get<coord_t>("support_tree_branch_reach_limit") : 0;
 
     SierpinskiFillProvider* cross_fill_provider = generateCrossFillProvider(mesh, support_tree_branch_distance, mesh_config.support_line_width);
     if (mesh.overhang_areas.size() <= z_distance_delta)
@@ -705,10 +699,9 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
     std::vector<std::unordered_set<Point>> already_inserted(mesh.overhang_areas.size() - z_distance_delta);
 
     std::mutex critical_sections;
-    cura::parallel_for<LayerIndex>(1, mesh.overhang_areas.size() - z_distance_delta, 1,
+    cura::parallel_for<coord_t>(1, mesh.overhang_areas.size() - z_distance_delta,
         [&](const LayerIndex layer_idx)
         {
-
         if (mesh.overhang_areas[layer_idx + z_distance_delta].empty())
         {
             return; // This is a continue if imagined in a loop context
@@ -733,7 +726,7 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
                 return;
             }
             Polygon circle;
-            for (Point corner : base_circle)
+            for (Point corner : TreeSupportBaseCircle::getBaseCircle())
             {
                 circle.add(p.first + corner);
             }
@@ -744,7 +737,7 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
                 {
                     // normalize the point a bit to also catch points which are so close that inserting it would achieve nothing
                     already_inserted[insert_layer].emplace(p.first / ((mesh_config.min_radius + 1) / 10));
-                    SupportElement* elem = new SupportElement(dtt, insert_layer, p.first, to_bp, gracious, !xy_overrides, dont_move_until, roof, safe_radius, force_tip_to_roof, skip_ovalisation,support_tree_limit_branch_reach,support_tree_branch_reach_limit);
+                    TreeSupportElement* elem = new TreeSupportElement(dtt, insert_layer, p.first, to_bp, gracious, !xy_overrides, dont_move_until, roof, safe_radius, force_tip_to_roof, skip_ovalisation, support_tree_limit_branch_reach, support_tree_branch_reach_limit);
                     elem->area = new Polygons(area);
                     move_bounds[insert_layer].emplace(elem);
                 }
@@ -760,9 +753,9 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
                 std::function<bool(std::pair<Point, LineStatus>)> evaluateRoofWillGenerate = [&](std::pair<Point, LineStatus> p)
                 {
                     Polygon roof_circle;
-                    for (Point corner : base_circle)
+                    for (Point corner : TreeSupportBaseCircle::getBaseCircle())
                     {
-                        roof_circle.add(p.first + corner * std::max(mesh_config.min_radius/base_radius,coord_t(1)));
+                        roof_circle.add(p.first + corner * std::max(mesh_config.min_radius / TreeSupportBaseCircle::base_radius, coord_t(1)));
                     }
                     Polygons area = roof_circle.offset(0);
                     return !generateLines(area, true, insert_layer_idx - dtt_roof_tip).empty();
@@ -797,9 +790,9 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
                     for (std::pair<Point, TreeSupport::LineStatus> p : line)
                     {
                         Polygon roof_circle;
-                        for (Point corner : base_circle)
+                        for (Point corner : TreeSupportBaseCircle::getBaseCircle())
                         {
-                            roof_circle.add(p.first + corner * std::max(mesh_config.min_radius/base_radius,coord_t(1)));
+                            roof_circle.add(p.first + corner * std::max(mesh_config.min_radius / TreeSupportBaseCircle::base_radius, coord_t(1)));
                         }
                         added_roofs.add(roof_circle);
                     }
@@ -958,6 +951,7 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
 
             if (overhang_lines.empty())
             {
+                // if no roof was generated the tip position is determined here.
                 Polygons polylines = ensureMaximumDistancePolyline(generateLines(overhang_outset, dtt_roof != 0, layer_idx - layer_generation_dtt), dtt_roof == 0 ? mesh_config.min_radius / 2 : connect_length, 1); // support_line_width to form a line here as otherwise most will be unsupported. Technically this violates branch distance, but not only is this the only reasonable choice, but it ensures consistant behaviour as some infill patterns generate each line segment as its own polyline part causing a similar line forming behaviour. This is not doen when a roof is above as the roof will support the model and the trees only need to support the roof
 
 
@@ -1044,12 +1038,12 @@ Polygons TreeSupport::safeOffsetInc(const Polygons& me, coord_t distance, const 
         // ensure that if many offsets are done the performance does not suffer extremely by the new vertices of jtRound.
         if (i % 10 == 7)
         {
-            ret.simplify(15);
+            ret = config.simplifier.polygon(ret);
         }
     }
     ret = ret.offset(distance - steps * step_size, ClipperLib::jtRound); // offset the remainder
 
-    ret.simplify(15);
+    ret = config.simplifier.polygon(ret);
 
     if (do_final_difference)
     {
@@ -1059,14 +1053,15 @@ Polygons TreeSupport::safeOffsetInc(const Polygons& me, coord_t distance, const 
 }
 
 
-void TreeSupport::mergeHelper(std::map<SupportElement, AABB>& reduced_aabb, std::map<SupportElement, AABB>& input_aabb, const std::unordered_map<SupportElement, Polygons>& to_bp_areas, const std::unordered_map<SupportElement, Polygons>& to_model_areas, const std::map<SupportElement, Polygons>& influence_areas, std::unordered_map<SupportElement, Polygons>& insert_bp_areas, std::unordered_map<SupportElement, Polygons>& insert_model_areas, std::unordered_map<SupportElement, Polygons>& insert_influence, std::vector<SupportElement>& erase, const LayerIndex layer_idx)
+void TreeSupport::mergeHelper(std::map<TreeSupportElement, AABB>& reduced_aabb, std::map<TreeSupportElement, AABB>& input_aabb, const std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas, const std::unordered_map<TreeSupportElement, Polygons>& to_model_areas, const std::map<TreeSupportElement, Polygons>& influence_areas, std::unordered_map<TreeSupportElement, Polygons>& insert_bp_areas, std::unordered_map<TreeSupportElement, Polygons>& insert_model_areas, std::unordered_map<TreeSupportElement, Polygons>& insert_influence, std::vector<TreeSupportElement>& erase, const LayerIndex layer_idx)
 {
     const bool first_merge_iteration = reduced_aabb.empty(); // If this is the first iteration, all elements in input have to be merged with each other
-    for (std::map<SupportElement, AABB>::iterator influence_iter = input_aabb.begin(); influence_iter != input_aabb.end(); influence_iter++)
+    const std::function<coord_t(size_t, double)> getRadiusFunction = [&](const size_t distance_to_top, const double buildplate_radius_increases) { return config.getRadius(distance_to_top, buildplate_radius_increases); };
+    for (std::map<TreeSupportElement, AABB>::iterator influence_iter = input_aabb.begin(); influence_iter != input_aabb.end(); influence_iter++)
     {
         bool merged = false;
         AABB influence_aabb = influence_iter->second;
-        for (std::map<SupportElement, AABB>::iterator reduced_check_iter = reduced_aabb.begin(); reduced_check_iter != reduced_aabb.end(); reduced_check_iter++)
+        for (std::map<TreeSupportElement, AABB>::iterator reduced_check_iter = reduced_aabb.begin(); reduced_check_iter != reduced_aabb.end(); reduced_check_iter++)
         {
             // As every area has to be checked for overlaps with other areas, some fast heuristic is needed to abort early if clearly possible
             // This is so performance critical that using a map lookup instead of the direct access of the cached AABBs can have a surprisingly large performance impact
@@ -1081,7 +1076,7 @@ void TreeSupport::mergeHelper(std::map<SupportElement, AABB>& reduced_aabb, std:
                 bool merging_gracious_and_non_gracious = reduced_check_iter->first.to_model_gracious != influence_iter->first.to_model_gracious; // we do not want to merge a gracious with a non gracious area as bad placement could negatively impact the dependability of the whole subtree
                 bool merging_to_bp = reduced_check_iter->first.to_buildplate && influence_iter->first.to_buildplate;
                 bool merging_min_and_regular_xy = reduced_check_iter->first.use_min_xy_dist != influence_iter->first.use_min_xy_dist; // could cause some issues with the increase of one area, as it is assumed that if the smaller is increased by the delta to the larger it is engulfed by it already. But because a different collision may be removed from the in drawArea generated circles, this assumption could be wrong.
-                bool merging_different_range_limits=reduced_check_iter->first.influence_area_limit_active && influence_iter->first.influence_area_limit_active && influence_iter->first.influence_area_limit_range!=reduced_check_iter->first.influence_area_limit_range;
+                bool merging_different_range_limits = reduced_check_iter->first.influence_area_limit_active && influence_iter->first.influence_area_limit_active && influence_iter->first.influence_area_limit_range != reduced_check_iter->first.influence_area_limit_range;
                 coord_t increased_to_model_radius = 0;
                 size_t larger_to_model_dtt = 0;
 
@@ -1130,8 +1125,8 @@ void TreeSupport::mergeHelper(std::map<SupportElement, AABB>& reduced_aabb, std:
                 }
 
                 const bool red_bigger = config.getCollisionRadius(reduced_check_iter->first) > config.getCollisionRadius(influence_iter->first);
-                std::pair<SupportElement, Polygons> smaller_rad = red_bigger ? std::pair<SupportElement, Polygons>(influence_iter->first, relevant_infl) : std::pair<SupportElement, Polygons>(reduced_check_iter->first, relevant_redu);
-                std::pair<SupportElement, Polygons> bigger_rad = red_bigger ? std::pair<SupportElement, Polygons>(reduced_check_iter->first, relevant_redu) : std::pair<SupportElement, Polygons>(influence_iter->first, relevant_infl);
+                std::pair<TreeSupportElement, Polygons> smaller_rad = red_bigger ? std::pair<TreeSupportElement, Polygons>(influence_iter->first, relevant_infl) : std::pair<TreeSupportElement, Polygons>(reduced_check_iter->first, relevant_redu);
+                std::pair<TreeSupportElement, Polygons> bigger_rad = red_bigger ? std::pair<TreeSupportElement, Polygons>(reduced_check_iter->first, relevant_redu) : std::pair<TreeSupportElement, Polygons>(influence_iter->first, relevant_infl);
                 const coord_t real_radius_delta = std::abs(config.getRadius(bigger_rad.first) - config.getRadius(smaller_rad.first));
                 const coord_t smaller_collision_radius = config.getCollisionRadius(smaller_rad.first);
 
@@ -1175,7 +1170,7 @@ void TreeSupport::mergeHelper(std::map<SupportElement, AABB>& reduced_aabb, std:
                         increased_to_model_radius = std::max(reduced_check_iter->first.increased_to_model_radius, influence_iter->first.increased_to_model_radius);
                     }
 
-                    SupportElement key(reduced_check_iter->first, influence_iter->first, layer_idx - 1, new_pos, increased_to_model_radius, config);
+                    TreeSupportElement key(reduced_check_iter->first, influence_iter->first, layer_idx - 1, new_pos, increased_to_model_radius, getRadiusFunction, config.diameter_scale_bp_radius, config.branch_radius, config.diameter_angle_scale_factor);
 
                     Polygons intersect_influence;
                     Polygons infl_small = insert_influence.count(smaller_rad.first) ? insert_influence[smaller_rad.first] : (influence_areas.count(smaller_rad.first) ? influence_areas.at(smaller_rad.first) : Polygons());
@@ -1187,7 +1182,7 @@ void TreeSupport::mergeHelper(std::map<SupportElement, AABB>& reduced_aabb, std:
                     Polygons intersect_to_model;
                     if (merging_to_bp && config.support_rests_on_model)
                     {
-                        if (key.to_model_gracious||key.influence_area_limit_active)
+                        if (key.to_model_gracious || key.influence_area_limit_active)
                         {
                             Polygons to_model_small = insert_model_areas.count(smaller_rad.first) ? insert_model_areas[smaller_rad.first] : (to_model_areas.count(smaller_rad.first) ? to_model_areas.at(smaller_rad.first) : Polygons());
                             Polygons to_model_big = insert_model_areas.count(bigger_rad.first) ? insert_model_areas[bigger_rad.first] : (to_model_areas.count(bigger_rad.first) ? to_model_areas.at(bigger_rad.first) : Polygons());
@@ -1237,7 +1232,7 @@ void TreeSupport::mergeHelper(std::map<SupportElement, AABB>& reduced_aabb, std:
 }
 
 
-void TreeSupport::mergeInfluenceAreas(std::unordered_map<SupportElement, Polygons>& to_bp_areas, std::unordered_map<SupportElement, Polygons>& to_model_areas, std::map<SupportElement, Polygons>& influence_areas, LayerIndex layer_idx)
+void TreeSupport::mergeInfluenceAreas(std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas, std::unordered_map<TreeSupportElement, Polygons>& to_model_areas, std::map<TreeSupportElement, Polygons>& influence_areas, LayerIndex layer_idx)
 {
     /*
      * Idea behind this is that the calculation of merges can be accelerated a bit using divide and conquer:
@@ -1265,8 +1260,8 @@ void TreeSupport::mergeInfluenceAreas(std::unordered_map<SupportElement, Polygon
     // To achieve that every element in a bucket is already correctly merged with other elements in this bucket
     // an extra empty bucket is created for each bucket, and the elements are merged into the empty one.
     // Each thread will then process two buckets by merging all elements in the second bucket into the first one as mergeHelper will disable not trying to merge elements from the same bucket in this case.
-    std::vector<std::map<SupportElement, Polygons>> buckets_area(2 * bucket_count);
-    std::vector<std::map<SupportElement, AABB>> buckets_aabb(2 * bucket_count);
+    std::vector<std::map<TreeSupportElement, Polygons>> buckets_area(2 * bucket_count);
+    std::vector<std::map<TreeSupportElement, AABB>> buckets_aabb(2 * bucket_count);
 
 
     size_t position = 0, counter = 0;
@@ -1275,7 +1270,7 @@ void TreeSupport::mergeInfluenceAreas(std::unordered_map<SupportElement, Polygon
 
     // split the data in x parts to be able to divide and conquer
     // the first "over_elements" of buckets gets elements_per_step+1 elements
-    for (std::map<SupportElement, Polygons>::iterator iter = influence_areas.begin(); iter != influence_areas.end(); iter++)
+    for (std::map<TreeSupportElement, Polygons>::iterator iter = influence_areas.begin(); iter != influence_areas.end(); iter++)
     {
         buckets_area[position * 2 + 1].emplace(iter->first, iter->second); // only use every second bucket beginning with 1 as this makes the parallel call later easier as we assume everything in a bucket i%2==0 is already processed
         counter++;
@@ -1288,10 +1283,12 @@ void TreeSupport::mergeInfluenceAreas(std::unordered_map<SupportElement, Polygon
 
     // precalculate the AABBs from the influence areas.
 
-    cura::parallel_for<size_t>(1, buckets_area.size(), 2,
-        [&](const size_t idx) // +=2 as in the beginning only uneven buckets will be filled
+    cura::parallel_for<size_t>(0, buckets_area.size() / 2,
+        [&](size_t idx) // +=2 as in the beginning only uneven buckets will be filled
         {
-        for (const std::pair<SupportElement, Polygons>& input_pair : buckets_area[idx])
+        idx = idx * 2 + 1; // this is eqivalent to a parallel for(size_t idx=1;idx<buckets_area.size(),idx+=2)
+
+        for (const std::pair<TreeSupportElement, Polygons>& input_pair : buckets_area[idx])
         {
             AABB outer_support_wall_aabb = AABB(input_pair.second);
             outer_support_wall_aabb.expand(config.getRadius(input_pair.first));
@@ -1302,15 +1299,15 @@ void TreeSupport::mergeInfluenceAreas(std::unordered_map<SupportElement, Polygon
     while (buckets_area.size() > 1)
     {
         // Some temporary storage, of elements that have to be inserted or removed from the background storage. Only one per two buckets required
-        std::vector<std::unordered_map<SupportElement, Polygons>> insert_main(buckets_area.size() / 2);
-        std::vector<std::unordered_map<SupportElement, Polygons>> insert_secondary(buckets_area.size() / 2);
-        std::vector<std::unordered_map<SupportElement, Polygons>> insert_influence(buckets_area.size() / 2);
-        std::vector<std::vector<SupportElement>> erase(buckets_area.size() / 2);
+        std::vector<std::unordered_map<TreeSupportElement, Polygons>> insert_main(buckets_area.size() / 2);
+        std::vector<std::unordered_map<TreeSupportElement, Polygons>> insert_secondary(buckets_area.size() / 2);
+        std::vector<std::unordered_map<TreeSupportElement, Polygons>> insert_influence(buckets_area.size() / 2);
+        std::vector<std::vector<TreeSupportElement>> erase(buckets_area.size() / 2);
 
-
-        cura::parallel_for<size_t>(0, (coord_t)buckets_area.size() - 1, 2,
-            [&](const size_t bucket_pair_idx)
+        cura::parallel_for<size_t>(0, (coord_t)buckets_area.size() / 2,
+            [&](size_t bucket_pair_idx)
             {
+            bucket_pair_idx *= 2; // this is eqivalent to a parallel for(size_t idx=0;idx<buckets_area.size()-1,idx+=2)
             // Merge bucket_count adjacent to each other, merging uneven bucket numbers into even buckets
             mergeHelper(buckets_aabb[bucket_pair_idx], buckets_aabb[bucket_pair_idx + 1], to_bp_areas, to_model_areas, influence_areas, insert_main[bucket_pair_idx / 2], insert_secondary[bucket_pair_idx / 2], insert_influence[bucket_pair_idx / 2], erase[bucket_pair_idx / 2], layer_idx);
             buckets_area[bucket_pair_idx + 1].clear(); // clear now irrelevant max_bucket_count, and delete them later
@@ -1319,40 +1316,40 @@ void TreeSupport::mergeInfluenceAreas(std::unordered_map<SupportElement, Polygon
 
         for (coord_t i = 0; i < (coord_t)buckets_area.size() - 1; i = i + 2)
         {
-            for (SupportElement& del : erase[i / 2])
+            for (TreeSupportElement& del : erase[i / 2])
             {
                 to_bp_areas.erase(del);
                 to_model_areas.erase(del);
                 influence_areas.erase(del);
             }
 
-            for (const std::pair<SupportElement, Polygons>& tup : insert_main[i / 2])
+            for (const std::pair<TreeSupportElement, Polygons>& tup : insert_main[i / 2])
             {
                 to_bp_areas.emplace(tup);
             }
 
-            for (const std::pair<SupportElement, Polygons>& tup : insert_secondary[i / 2])
+            for (const std::pair<TreeSupportElement, Polygons>& tup : insert_secondary[i / 2])
             {
                 to_model_areas.emplace(tup);
             }
-            for (const std::pair<SupportElement, Polygons>& tup : insert_influence[i / 2])
+            for (const std::pair<TreeSupportElement, Polygons>& tup : insert_influence[i / 2])
             {
                 influence_areas.emplace(tup);
             }
         }
 
-        auto position_rem = std::remove_if(buckets_area.begin(), buckets_area.end(), [&](const std::map<SupportElement, Polygons> x) mutable { return x.empty(); });
+        auto position_rem = std::remove_if(buckets_area.begin(), buckets_area.end(), [&](const std::map<TreeSupportElement, Polygons> x) mutable { return x.empty(); });
         buckets_area.erase(position_rem, buckets_area.end());
 
-        auto position_aabb = std::remove_if(buckets_aabb.begin(), buckets_aabb.end(), [&](const std::map<SupportElement, AABB> x) mutable { return x.empty(); });
+        auto position_aabb = std::remove_if(buckets_aabb.begin(), buckets_aabb.end(), [&](const std::map<TreeSupportElement, AABB> x) mutable { return x.empty(); });
         buckets_aabb.erase(position_aabb, buckets_aabb.end());
     }
 }
 
 
-std::optional<TreeSupport::SupportElement> TreeSupport::increaseSingleArea(AreaIncreaseSettings settings, LayerIndex layer_idx, SupportElement* parent, const Polygons& relevant_offset, Polygons& to_bp_data, Polygons& to_model_data, Polygons& increased, const coord_t overspeed, const bool mergelayer)
+std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(AreaIncreaseSettings settings, LayerIndex layer_idx, TreeSupportElement* parent, const Polygons& relevant_offset, Polygons& to_bp_data, Polygons& to_model_data, Polygons& increased, const coord_t overspeed, const bool mergelayer)
 {
-    SupportElement current_elem(parent); // also increases DTT by one
+    TreeSupportElement current_elem(parent); // also increases DTT by one
     Polygons check_layer_data;
     if (settings.increase_radius)
     {
@@ -1371,7 +1368,7 @@ std::optional<TreeSupport::SupportElement> TreeSupport::increaseSingleArea(AreaI
         }
         if (settings.no_error && settings.move)
         {
-            increased.simplify(25); // as ClipperLib::jtRound has to be used for offsets this simplify is VERY important for performance.
+            increased = config.simplifier.polygon(increased); // as ClipperLib::jtRound has to be used for offsets this simplify is VERY important for performance.
         }
     }
     else // if no movement is done the areas keep parent area as no move == offset(0)
@@ -1379,7 +1376,7 @@ std::optional<TreeSupport::SupportElement> TreeSupport::increaseSingleArea(AreaI
         increased = *parent->area;
     }
 
-    if ((mergelayer || current_elem.to_buildplate) && !config.support_has_no_rest_preference)
+    if ((mergelayer || current_elem.to_buildplate) && config.support_rest_preference == RestPreference::BUILDPLATE)
     {
         to_bp_data = safeUnion(increased.difference(volumes_.getAvoidance(radius, layer_idx - 1, settings.type, false, settings.use_min_distance)));
         if (!current_elem.to_buildplate && to_bp_data.area() > 1) // mostly happening in the tip, but with merges one should check every time, just to be sure.
@@ -1500,48 +1497,54 @@ std::optional<TreeSupport::SupportElement> TreeSupport::increaseSingleArea(AreaI
         }
     }
 
-    if(current_elem.influence_area_limit_active&&!current_elem.use_min_xy_dist&&check_layer_data.area() > 1){
-        const coord_t max_radius_increase = std::max(coord_t((config.branch_radius - config.min_radius)/ config.tip_layers), coord_t((config.branch_radius * config.diameter_angle_scale_factor)+config.branch_radius * (std::max(config.diameter_scale_bp_radius - config.diameter_angle_scale_factor, 0.0))));
-        bool limit_range_validated=false;
-        while(!limit_range_validated){
-            if(current_elem.to_buildplate){
-                Polygons limited_to_bp=to_bp_data.intersection((current_elem.influence_area_limit_area));
-                if(limited_to_bp.area()>1){
-                    to_bp_data=limited_to_bp;
-                    to_model_data=to_model_data.intersection((current_elem.influence_area_limit_area));
-                    limit_range_validated=true;
+    if (current_elem.influence_area_limit_active && !current_elem.use_min_xy_dist && check_layer_data.area() > 1)
+    {
+        const coord_t max_radius_increase = std::max(coord_t((config.branch_radius - config.min_radius) / config.tip_layers), coord_t((config.branch_radius * config.diameter_angle_scale_factor) + config.branch_radius * (std::max(config.diameter_scale_bp_radius - config.diameter_angle_scale_factor, 0.0))));
+        bool limit_range_validated = false;
+        while (!limit_range_validated)
+        {
+            if (current_elem.to_buildplate)
+            {
+                Polygons limited_to_bp = to_bp_data.intersection((current_elem.influence_area_limit_area));
+                if (limited_to_bp.area() > 1)
+                {
+                    to_bp_data = limited_to_bp;
+                    to_model_data = to_model_data.intersection((current_elem.influence_area_limit_area));
+                    limit_range_validated = true;
                 }
             }
-            else{
-                Polygons limited_to_model_data=to_model_data.intersection((current_elem.influence_area_limit_area));
-                if(limited_to_model_data.area()>1){
-                    to_bp_data=to_bp_data.intersection((current_elem.influence_area_limit_area));
-                    to_model_data=limited_to_model_data;
-                    limit_range_validated=true;
+            else
+            {
+                Polygons limited_to_model_data = to_model_data.intersection((current_elem.influence_area_limit_area));
+                if (limited_to_model_data.area() > 1)
+                {
+                    to_bp_data = to_bp_data.intersection((current_elem.influence_area_limit_area));
+                    to_model_data = limited_to_model_data;
+                    limit_range_validated = true;
                 }
             }
-            if(!limit_range_validated){
-                const coord_t reach_increase=std::max(current_elem.influence_area_limit_range/4,(config.maximum_move_distance + max_radius_increase));
-                current_elem.influence_area_limit_range+=reach_increase;
+            if (!limit_range_validated)
+            {
+                const coord_t reach_increase = std::max(current_elem.influence_area_limit_range / 4, (config.maximum_move_distance + max_radius_increase));
+                current_elem.influence_area_limit_range += reach_increase;
                 current_elem.RecreateInfluenceLimitArea();
             }
         }
-
     }
 
-    return check_layer_data.area() > 1 ? std::optional<SupportElement>(current_elem) : std::optional<SupportElement>();
+    return check_layer_data.area() > 1 ? std::optional<TreeSupportElement>(current_elem) : std::optional<TreeSupportElement>();
 }
 
 
-void TreeSupport::increaseAreas(std::unordered_map<SupportElement, Polygons>& to_bp_areas, std::unordered_map<SupportElement, Polygons>& to_model_areas, std::map<SupportElement, Polygons>& influence_areas, std::vector<SupportElement*>& bypass_merge_areas, const std::vector<SupportElement*>& last_layer, const LayerIndex layer_idx, const bool mergelayer)
+void TreeSupport::increaseAreas(std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas, std::unordered_map<TreeSupportElement, Polygons>& to_model_areas, std::map<TreeSupportElement, Polygons>& influence_areas, std::vector<TreeSupportElement*>& bypass_merge_areas, const std::vector<TreeSupportElement*>& last_layer, const LayerIndex layer_idx, const bool mergelayer)
 {
     std::mutex critical_sections;
-    cura::parallel_for<size_t>(0, last_layer.size(), 1,
+    cura::parallel_for<size_t>(0, last_layer.size(),
         [&](const size_t idx)
         {
-        SupportElement* parent = last_layer[idx];
+        TreeSupportElement* parent = last_layer[idx];
 
-        SupportElement elem(parent); // also increases dtt
+        TreeSupportElement elem(parent); // also increases dtt
 
         Polygons wall_restriction = volumes_.getWallRestriction(config.getCollisionRadius(*parent), layer_idx, parent->use_min_xy_dist); // Abstract representation of the model outline. If an influence area would move through it, it could teleport through a wall.
 
@@ -1701,7 +1704,7 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement, Polygons>& to
                     }
                 }
             }
-            std::optional<SupportElement> result;
+            std::optional<TreeSupportElement> result;
             if (!settings.no_error) // ERROR CASE
             {
                 // if the area becomes for whatever reason something that clipper sees as a line, offset would stop working, so ensure that even if if wrongly would be a line, it still actually has an area that can be increased
@@ -1761,7 +1764,7 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement, Polygons>& to
                 if (bypass_merge)
                 {
                     Polygons* new_area = new Polygons(max_influence_area);
-                    SupportElement* next = new SupportElement(elem, new_area);
+                    TreeSupportElement* next = new TreeSupportElement(elem, new_area);
                     bypass_merge_areas.emplace_back(next);
                 }
                 else
@@ -1786,7 +1789,7 @@ void TreeSupport::increaseAreas(std::unordered_map<SupportElement, Polygons>& to
 }
 
 
-void TreeSupport::createLayerPathing(std::vector<std::set<SupportElement*>>& move_bounds)
+void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds)
 {
     const double data_size_inverse = 1 / double(move_bounds.size());
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES;
@@ -1815,13 +1818,13 @@ void TreeSupport::createLayerPathing(std::vector<std::set<SupportElement*>>& mov
             merge_every_x_layers = 1;
         }
 
-        std::map<SupportElement, Polygons> influence_areas; // Over this map will be iterated when merging, as such it has to be ordered to ensure deterministic results.
-        std::unordered_map<SupportElement, Polygons> to_bp_areas, to_model_areas; // The area of these SupportElement is not set, to avoid to much allocation and deallocation on the heap
-        std::vector<SupportElement*> bypass_merge_areas; // Different to the other maps of SupportElements as these here have the area already set, as they are already to be inserted into move_bounds.
+        std::map<TreeSupportElement, Polygons> influence_areas; // Over this map will be iterated when merging, as such it has to be ordered to ensure deterministic results.
+        std::unordered_map<TreeSupportElement, Polygons> to_bp_areas, to_model_areas; // The area of these SupportElement is not set, to avoid to much allocation and deallocation on the heap
+        std::vector<TreeSupportElement*> bypass_merge_areas; // Different to the other maps of SupportElements as these here have the area already set, as they are already to be inserted into move_bounds.
 
         auto ta = std::chrono::high_resolution_clock::now();
 
-        std::vector<SupportElement*> last_layer;
+        std::vector<TreeSupportElement*> last_layer;
         last_layer.insert(last_layer.begin(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
 
         // ### Increase the influence areas by the allowed movement distance
@@ -1850,11 +1853,11 @@ void TreeSupport::createLayerPathing(std::vector<std::set<SupportElement*>>& mov
         new_element = !move_bounds[layer_idx - 1].empty();
 
         // Save calculated elements to output, and allocate Polygons on heap, as they will not be changed again.
-        for (std::pair<SupportElement, Polygons> tup : influence_areas)
+        for (std::pair<TreeSupportElement, Polygons> tup : influence_areas)
         {
-            const SupportElement elem = tup.first;
+            const TreeSupportElement elem = tup.first;
             Polygons* new_area = new Polygons(safeUnion(tup.second));
-            SupportElement* next = new SupportElement(elem, new_area);
+            TreeSupportElement* next = new TreeSupportElement(elem, new_area);
             move_bounds[layer_idx - 1].emplace(next);
 
             if (new_area->area() < 1)
@@ -1864,7 +1867,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<SupportElement*>>& mov
         }
 
         // Place already fully constructed elements in the output.
-        for (SupportElement* elem : bypass_merge_areas)
+        for (TreeSupportElement* elem : bypass_merge_areas)
         {
             if (elem->area->area() < 1)
             {
@@ -1881,7 +1884,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<SupportElement*>>& mov
 }
 
 
-void TreeSupport::setPointsOnAreas(const SupportElement* elem)
+void TreeSupport::setPointsOnAreas(const TreeSupportElement* elem)
 {
     // Based on the branch center point of the current layer, the point on the next (further up) layer is calculated.
 
@@ -1891,7 +1894,7 @@ void TreeSupport::setPointsOnAreas(const SupportElement* elem)
         return;
     }
 
-    for (SupportElement* next_elem : elem->parents)
+    for (TreeSupportElement* next_elem : elem->parents)
     {
         if (next_elem->result_on_layer != Point(-1, -1)) // if the value was set somewhere else it it kept. This happens when a branch tries not to move after being unable to create a roof.
         {
@@ -1909,17 +1912,17 @@ void TreeSupport::setPointsOnAreas(const SupportElement* elem)
     }
 }
 
-bool TreeSupport::setToModelContact(std::vector<std::set<SupportElement*>>& move_bounds, SupportElement* first_elem, const LayerIndex layer_idx)
+bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& move_bounds, TreeSupportElement* first_elem, const LayerIndex layer_idx)
 {
     if (first_elem->to_model_gracious)
     {
-        SupportElement* check = first_elem;
+        TreeSupportElement* check = first_elem;
 
-        std::vector<SupportElement*> checked;
+        std::vector<TreeSupportElement*> checked;
         LayerIndex last_successfull_layer = layer_idx;
         bool set = false;
 
-        if(config.support_has_no_rest_preference && layer_idx == 0)
+        if (config.support_rest_preference != RestPreference::BUILDPLATE && layer_idx == 0)
         {
             set = true;
         }
@@ -1929,7 +1932,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<SupportElement*>>& move
         // check for every layer upwards, up to the point where this influence area was created (either by initial insert or merge) if the branch could be placed on it, and highest up layer index.
         for (LayerIndex layer_check = layer_idx; check->next_height >= layer_check; layer_check++)
         {
-            Polygons check_valid_place_area =check->area->intersection(volumes_.getPlaceableAreas(config.getCollisionRadius(*check), layer_check));
+            Polygons check_valid_place_area = check->area->intersection(volumes_.getPlaceableAreas(config.getCollisionRadius(*check), layer_check));
 
             if (!check_valid_place_area.empty())
             {
@@ -2005,11 +2008,11 @@ bool TreeSupport::setToModelContact(std::vector<std::set<SupportElement*>>& move
 }
 
 
-void TreeSupport::createNodesFromArea(std::vector<std::set<SupportElement*>>& move_bounds)
+void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>& move_bounds)
 {
     // Initialize points on layer 0, with a "random" point in the influence area. Point is chosen based on an inaccurate estimate where the branches will split into two, but every point inside the influence area would produce a valid result.
-    std::unordered_set<SupportElement*> remove;
-    for (SupportElement* init : move_bounds[0])
+    std::unordered_set<TreeSupportElement*> remove;
+    for (TreeSupportElement* init : move_bounds[0])
     {
         Point p = init->next_position;
         if (!(init->area->inside(p, true)))
@@ -2020,15 +2023,16 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<SupportElement*>>& mo
 
         setPointsOnAreas(init); // also set the parent nodes, as these will be required for the first iteration of the loop below
 
-        if(config.support_has_no_rest_preference){
-            if(setToModelContact(move_bounds,init,0))
+        if (config.support_rest_preference != RestPreference::BUILDPLATE)
+        {
+            if (setToModelContact(move_bounds, init, 0))
             {
                 remove.emplace(init);
             }
         }
     }
 
-    for (SupportElement* del : remove)
+    for (TreeSupportElement* del : remove)
     {
         move_bounds[0].erase(del);
         delete del->area;
@@ -2038,7 +2042,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<SupportElement*>>& mo
 
     for (LayerIndex layer_idx = 1; layer_idx < LayerIndex(move_bounds.size()); layer_idx++)
     {
-        for (SupportElement* elem : move_bounds[layer_idx])
+        for (TreeSupportElement* elem : move_bounds[layer_idx])
         {
             bool removed = false;
             if (elem->result_on_layer == Point(-1, -1)) // check if the resulting center point is not yet set
@@ -2051,7 +2055,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<SupportElement*>>& mo
                     }
                     remove.emplace(elem); // we dont need to remove yet the parents as they will have a lower dtt and also no result_on_layer set
                     removed = true;
-                    for (SupportElement* parent : elem->parents)
+                    for (TreeSupportElement* parent : elem->parents)
                     {
                         parent->result_on_layer = Point(-1, -1); // When the roof was not able to generate downwards enough, the top elements may have not moved, and have result_on_layer already set. As this branch needs to be removed => all parents result_on_layer have to be invalidated.
                     }
@@ -2075,7 +2079,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<SupportElement*>>& mo
         }
 
         // delete all not needed support elements
-        for (SupportElement* del : remove)
+        for (TreeSupportElement* del : remove)
         {
             move_bounds[layer_idx].erase(del);
             delete del->area;
@@ -2085,28 +2089,32 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<SupportElement*>>& mo
     }
 }
 
-void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, SupportElement*>>& linear_data, std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons, const std::map<SupportElement*, SupportElement*>& inverse_tree_order)
+void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data, std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons, const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order)
 {
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC;
     constexpr int progress_report_steps = 10;
     Polygon branch_circle; // Pre-generate a circle with correct diameter so that we don't have to recompute those (co)sines every time.
-    for (unsigned int i = 0; i < SUPPORT_TREE_CIRCLE_RESOLUTION; i++)
+
     {
-        const AngleRadians angle = static_cast<double>(i) / SUPPORT_TREE_CIRCLE_RESOLUTION * TAU;
-        branch_circle.emplace_back(coord_t(cos(angle) * config.branch_radius), coord_t(sin(angle) * config.branch_radius));
+        Polygon base_circle = TreeSupportBaseCircle::getBaseCircle();
+        for (Point vertex : base_circle)
+        {
+            vertex = Point(vertex.X * config.branch_radius / TreeSupportBaseCircle::base_radius, vertex.Y * config.branch_radius / TreeSupportBaseCircle::base_radius);
+            branch_circle.add(vertex);
+        }
     }
 
     std::vector<Polygons> linear_inserts(linear_data.size());
     const size_t progress_inserts_check_interval = linear_data.size() / progress_report_steps;
 
     std::mutex critical_sections;
-    cura::parallel_for<size_t>(0, linear_data.size(), 1,
+    cura::parallel_for<size_t>(0, linear_data.size(),
         [&](const size_t idx)
         {
-        SupportElement* elem = linear_data[idx].second;
+        TreeSupportElement* elem = linear_data[idx].second;
         coord_t radius = config.getRadius(*elem);
         bool parent_uses_min = false;
-        SupportElement* child_elem = inverse_tree_order.count(elem) ? inverse_tree_order.at(elem) : nullptr;
+        TreeSupportElement* child_elem = inverse_tree_order.count(elem) ? inverse_tree_order.at(elem) : nullptr;
 
         // Calculate multiple ovalized circles, to connect with every parent and child. Also generate regular circle for the current layer. Merge all these into one area.
         std::vector<std::pair<Point, coord_t>> movement_directions{ std::pair<Point, coord_t>(Point(0, 0), radius) };
@@ -2117,7 +2125,7 @@ void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, SupportE
                 Point movement = (child_elem->result_on_layer - elem->result_on_layer);
                 movement_directions.emplace_back(movement, radius);
             }
-            for (SupportElement* parent : elem->parents)
+            for (TreeSupportElement* parent : elem->parents)
             {
                 Point movement = (parent->result_on_layer - elem->result_on_layer);
                 movement_directions.emplace_back(movement, std::max(config.getRadius(parent), config.support_line_width));
@@ -2222,7 +2230,7 @@ void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, SupportE
     }
 }
 
-void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons)
+void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons)
 {
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS;
     const coord_t max_radius_change_per_layer = 1 + config.support_line_width / 2; // this is the upper limit a radius may change per layer. +1 to avoid rounding errors
@@ -2230,17 +2238,17 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<SupportElemen
     // smooth upwards
     for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(layer_tree_polygons.size()) - 1; layer_idx++)
     {
-        std::vector<std::pair<SupportElement*, Polygons>> processing;
+        std::vector<std::pair<TreeSupportElement*, Polygons>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
-        std::vector<std::vector<std::pair<SupportElement*, Polygons>>> update_next(processing.size()); // with this a lock can be avoided
-        cura::parallel_for<size_t>(0, processing.size(), 1,
+        std::vector<std::vector<std::pair<TreeSupportElement*, Polygons>>> update_next(processing.size()); // with this a lock can be avoided
+        cura::parallel_for<size_t>(0, processing.size(),
             [&](const size_t processing_idx)
             {
-            std::pair<SupportElement*, Polygons> data_pair = processing[processing_idx];
+            std::pair<TreeSupportElement*, Polygons> data_pair = processing[processing_idx];
 
             coord_t max_outer_wall_distance = 0;
             bool do_something = false;
-            for (SupportElement* parent : data_pair.first->parents)
+            for (TreeSupportElement* parent : data_pair.first->parents)
             {
                 if (config.getRadius(*parent) != config.getCollisionRadius(*parent))
                 {
@@ -2252,19 +2260,19 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<SupportElemen
             if (do_something)
             {
                 Polygons max_allowed_area = data_pair.second.offset(max_outer_wall_distance);
-                for (SupportElement* parent : data_pair.first->parents)
+                for (TreeSupportElement* parent : data_pair.first->parents)
                 {
                     if (config.getRadius(*parent) != config.getCollisionRadius(*parent))
                     {
-                        update_next[processing_idx].emplace_back(std::pair<SupportElement*, Polygons>(parent, layer_tree_polygons[layer_idx + 1][parent].intersection(max_allowed_area)));
+                        update_next[processing_idx].emplace_back(std::pair<TreeSupportElement*, Polygons>(parent, layer_tree_polygons[layer_idx + 1][parent].intersection(max_allowed_area)));
                     }
                 }
             }
         });
 
-        for (std::vector<std::pair<SupportElement*, Polygons>> data_vector : update_next)
+        for (std::vector<std::pair<TreeSupportElement*, Polygons>> data_vector : update_next)
         {
-            for (std::pair<SupportElement*, Polygons> data_pair : data_vector)
+            for (std::pair<TreeSupportElement*, Polygons> data_pair : data_vector)
             {
                 layer_tree_polygons[layer_idx + 1][data_pair.first] = data_pair.second;
             }
@@ -2275,22 +2283,22 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<SupportElemen
     Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL); // It is just assumed that both smoothing loops together are one third of the time spent in this function. This was guessed. As the whole function is only 10%, and the smoothing is hard to predict a progress report in the loop may be not useful.
 
     // smooth downwards
-    std::unordered_set<SupportElement*> updated_last_iteration;
+    std::unordered_set<TreeSupportElement*> updated_last_iteration;
     for (LayerIndex layer_idx = layer_tree_polygons.size() - 2; layer_idx >= 0; layer_idx--)
     {
-        std::vector<std::pair<SupportElement*, Polygons>> processing;
+        std::vector<std::pair<TreeSupportElement*, Polygons>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
-        std::vector<std::pair<SupportElement*, Polygons>> update_next(processing.size(), std::pair<SupportElement*, Polygons>(nullptr, Polygons())); // with this a lock can be avoided
+        std::vector<std::pair<TreeSupportElement*, Polygons>> update_next(processing.size(), std::pair<TreeSupportElement*, Polygons>(nullptr, Polygons())); // with this a lock can be avoided
 
-        cura::parallel_for<size_t>(0, processing.size(), 1,
+        cura::parallel_for<size_t>(0, processing.size(),
             [&](const size_t processing_idx)
             {
-            std::pair<SupportElement*, Polygons> data_pair = processing[processing_idx];
+            std::pair<TreeSupportElement*, Polygons> data_pair = processing[processing_idx];
             bool do_something = false;
             Polygons max_allowed_area;
             for (size_t idx = 0; idx < data_pair.first->parents.size(); idx++)
             {
-                SupportElement* parent = data_pair.first->parents[idx];
+                TreeSupportElement* parent = data_pair.first->parents[idx];
                 coord_t max_outer_line_increase = max_radius_change_per_layer;
                 Polygons result = layer_tree_polygons[layer_idx + 1][parent].offset(max_outer_line_increase);
                 Point direction = data_pair.first->result_on_layer - parent->result_on_layer;
@@ -2311,13 +2319,13 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<SupportElemen
                 Polygons result = max_allowed_area.unionPolygons().intersection(data_pair.second);
                 if (result.area() < data_pair.second.area())
                 {
-                    update_next[processing_idx] = std::pair<SupportElement*, Polygons>(data_pair.first, result);
+                    update_next[processing_idx] = std::pair<TreeSupportElement*, Polygons>(data_pair.first, result);
                 }
             }
         });
 
         updated_last_iteration.clear();
-        for (std::pair<cura::TreeSupport::SupportElement*, Polygons> data_pair : update_next)
+        for (std::pair<TreeSupportElement*, Polygons> data_pair : update_next)
         {
             if (data_pair.first != nullptr)
             {
@@ -2332,12 +2340,12 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<SupportElemen
 }
 
 
-void TreeSupport::dropNonGraciousAreas(std::vector<std::unordered_map<SupportElement*, Polygons>>& layer_tree_polygons, const std::vector<std::pair<LayerIndex, SupportElement*>>& linear_data, std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas, const std::map<SupportElement*, SupportElement*>& inverse_tree_order)
+void TreeSupport::dropNonGraciousAreas(std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons, const std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data, std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas, const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order)
 {
-    cura::parallel_for<size_t>(0, linear_data.size(), 1,
+    cura::parallel_for<size_t>(0, linear_data.size(),
         [&](const size_t idx)
         {
-        SupportElement* elem = linear_data[idx].second;
+        TreeSupportElement* elem = linear_data[idx].second;
         bool non_gracious_model_contact = !elem->to_model_gracious && !inverse_tree_order.count(elem); // if a element has no child, it connects to whatever is below as no support further down for it will exist.
 
         if (non_gracious_model_contact)
@@ -2362,11 +2370,10 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
 
     // Iterate over the generated circles in parallel and clean them up. Also add support floor.
     std::mutex critical_sections;
-    cura::parallel_for<LayerIndex>(0, static_cast<coord_t>(support_layer_storage.size()), 1,
+    cura::parallel_for<coord_t>(0, support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
         {
-        support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons().smooth(50); // Most of the time in this function is this union call. Can take 300+ ms when a lot of areas are to be unioned.
-        support_layer_storage[layer_idx].simplify(std::min(coord_t(30), config.maximum_resolution), std::min(coord_t(10), config.maximum_deviation)); // simplify a bit, to ensure the output does not contain outrageous amounts of vertices. Should not be necessary, just a precaution.
+        support_layer_storage[layer_idx] = config.simplifier.polygon(support_layer_storage[layer_idx].unionPolygons().smooth(50)); // Most of the time in this function is this union call. Can take 300+ ms when a lot of areas are to be unioned. Also simplify a bit, to ensure the output does not contain outrageous amounts of vertices. Should not be necessary, just a precaution.
         // Subtract support lines of the branches from the roof
         storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.unionPolygons(support_roof_storage[layer_idx]);
         if (!storage.support.supportLayers[layer_idx].support_roof.empty() && support_layer_storage[layer_idx].intersection(storage.support.supportLayers[layer_idx].support_roof).area() > 1)
@@ -2446,23 +2453,23 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
     });
 }
 
-void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds, SliceDataStorage& storage)
+void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
 {
     std::vector<Polygons> support_layer_storage(move_bounds.size());
     std::vector<Polygons> support_roof_storage(move_bounds.size());
-    std::map<SupportElement*, SupportElement*> inverese_tree_order; // in the tree structure only the parents can be accessed. Inverse this to be able to access the children.
-    std::vector<std::pair<LayerIndex, SupportElement*>> linear_data; // All SupportElements are put into a layer independent storage to improve parallelization. Was added at a point in time where this function had performance issues.
-                                                                     // These were fixed by creating less initial points, but i do not see a good reason to remove a working performance optimization.
+    std::map<TreeSupportElement*, TreeSupportElement*> inverese_tree_order; // in the tree structure only the parents can be accessed. Inverse this to be able to access the children.
+    std::vector<std::pair<LayerIndex, TreeSupportElement*>> linear_data; // All SupportElements are put into a layer independent storage to improve parallelization. Was added at a point in time where this function had performance issues.
+                                                                         // These were fixed by creating less initial points, but i do not see a good reason to remove a working performance optimization.
     for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(move_bounds.size()); layer_idx++)
     {
-        for (SupportElement* elem : move_bounds[layer_idx])
+        for (TreeSupportElement* elem : move_bounds[layer_idx])
         {
             if ((layer_idx > 0 && ((!inverese_tree_order.count(elem) && elem->target_height == layer_idx) || (inverese_tree_order.count(elem) && inverese_tree_order[elem]->result_on_layer == Point(-1, -1))))) // we either come from nowhere at the final layer or we had invalid parents 2. should never happen but just to be sure
             {
                 continue;
             }
 
-            for (SupportElement* par : elem->parents)
+            for (TreeSupportElement* par : elem->parents)
             {
                 if (par->result_on_layer == Point(-1, -1))
                 {
@@ -2474,7 +2481,7 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
         }
     }
 
-    std::vector<std::unordered_map<SupportElement*, Polygons>> layer_tree_polygons(move_bounds.size()); // reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Polygons>>.
+    std::vector<std::unordered_map<TreeSupportElement*, Polygons>> layer_tree_polygons(move_bounds.size()); // reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Polygons>>.
     auto t_start = std::chrono::high_resolution_clock::now();
     // Generate the circles that will be the branches.
     generateBranchAreas(linear_data, layer_tree_polygons, inverese_tree_order);
@@ -2495,10 +2502,37 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
         }
     }
 
+    // ensure all branch areas added as roof actually cause a roofline to generate. Else disble turning the branch to roof going down
+    cura::parallel_for<size_t>(0, layer_tree_polygons.size(),
+        [&](const size_t layer_idx)
+        {
+        for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
+        {
+            if (data_pair.first->missing_roof_layers > data_pair.first->distance_to_top && generateSupportInfillLines(data_pair.second, true, layer_idx, config.support_roof_line_distance, nullptr).empty())
+            {
+                std::vector<TreeSupportElement*> to_disable_roofs;
+                to_disable_roofs.emplace_back(data_pair.first);
+                while (!to_disable_roofs.empty())
+                {
+                    std::vector<TreeSupportElement*> to_disable_roofs_next;
+                    for (TreeSupportElement* elem : to_disable_roofs)
+                    {
+                        elem->missing_roof_layers = 0;
+                        if (data_pair.first->missing_roof_layers > data_pair.first->distance_to_top + 1)
+                        {
+                            to_disable_roofs_next.emplace_back(inverese_tree_order[elem]);
+                        }
+                    }
+                    to_disable_roofs = to_disable_roofs_next;
+                }
+            }
+        }
+    });
+
     // single threaded combining all support areas to the right layers. ONLY COPYS DATA!
     for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(layer_tree_polygons.size()); layer_idx++)
     {
-        for (std::pair<SupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
+        for (std::pair<TreeSupportElement*, Polygons> data_pair : layer_tree_polygons[layer_idx])
         {
             if (data_pair.first->missing_roof_layers > data_pair.first->distance_to_top)
             {
@@ -2511,6 +2545,7 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
         }
     }
 
+
     finalizeInterfaceAndSupportAreas(support_layer_storage, support_roof_storage, storage);
     auto t_end = std::chrono::high_resolution_clock::now();
 
@@ -2521,7 +2556,6 @@ void TreeSupport::drawAreas(std::vector<std::set<SupportElement*>>& move_bounds,
 
     log("Time used for drawing subfuctions: generateBranchAreas: %.3lf ms smoothBranchAreas: %.3lf ms dropNonGraciousAreas: %.3lf ms finalizeInterfaceAndSupportAreas %.3lf ms\n", dur_gen_tips, dur_smooth, dur_drop, dur_finalize);
 }
-
 
 
 } // namespace cura
