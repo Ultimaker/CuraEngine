@@ -1,6 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <cmath>
 #include <optional>
 #include <stack>
 
@@ -17,6 +18,16 @@ Point VoronoiUtils::p(const vd_t::vertex_type* node)
     const double x = node->x();
     const double y = node->y();
     return Point(x + 0.5 - (x < 0), y + 0.5 - (y < 0)); // Round to nearest integer coordinates.
+}
+
+bool VoronoiUtils::isFinite(const vd_t::vertex_type* const v)
+{
+    return v != nullptr && std::isfinite(v->x()) && std::isfinite(v->y());
+}
+
+bool VoronoiUtils::hasFiniteEndpoints(const vd_t::edge_type* const edge)
+{
+    return isFinite(edge->vertex0()) && isFinite(edge->vertex1());
 }
 
 bool VoronoiUtils::isSourcePoint(Point p, const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments, coord_t snap_dist)

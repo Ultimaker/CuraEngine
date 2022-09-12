@@ -378,6 +378,16 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
 
 bool SkeletalTrapezoidation::detectMissingVoronoiVertex(const vd_t& voronoi_diagram, std::vector<Point>& points, const std::vector<SkeletalTrapezoidation::Segment>& segments)
 {
+    // Defensive programming: Handle any points at infinity, for supposedly 'finite' edges, as missing as well.
+    for (const auto& edge : voronoi_diagram.edges())
+    {
+        if (edge.is_finite() && ! VoronoiUtils::hasFiniteEndpoints(&edge))
+        {
+            return true;
+        }
+    }
+
+    // Now for the actual mising vertices:
     for (vd_t::cell_type cell : voronoi_diagram.cells())
     {
         if (!cell.incident_edge())
@@ -401,7 +411,7 @@ bool SkeletalTrapezoidation::detectMissingVoronoiVertex(const vd_t& voronoi_diag
             VoronoiUtils::vd_t::edge_type* edge = cell.incident_edge();
             do
             {
-                if (edge->is_infinite())
+                if (edge->is_infinite() || ! VoronoiUtils::hasFiniteEndpoints(edge))
                 {
                     continue;
                 }
@@ -447,7 +457,7 @@ bool SkeletalTrapezoidation::isVoronoiDiagramPlanarAngle(const vd_t& voronoi_dia
         do
         {
             // NOTE: Currently, it's not known if these degenaracies can also affect parabolic segments. They're not processed at the moment.
-            if (edge->is_finite() && edge->is_linear())
+            if (edge->is_finite() && edge->is_linear() && VoronoiUtils::hasFiniteEndpoints(edge))
             {
                 edges.emplace_back(edge);
             }
