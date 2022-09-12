@@ -1886,7 +1886,8 @@ void SkeletalTrapezoidation::generateJunctions(ptr_vector_t<BeadingPropagation>&
         for (junction_idx = (std::max(size_t(1), beading->toolpath_locations.size()) - 1) / 2; junction_idx < num_junctions; junction_idx--)
         {
             coord_t bead_R = beading->toolpath_locations[junction_idx];
-            if (bead_R <= start_R)
+            // Adding a small epsilon (+1) to resolve an edge-case caused by rounding errors. (Would result in missing middle line.)
+            if (bead_R <= start_R + 1)
             { // Junction coinciding with start node is used in this function call
                 break;
             }
