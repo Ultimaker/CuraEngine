@@ -474,7 +474,7 @@ bool SkeletalTrapezoidation::isVoronoiDiagramPlanarAngle(const vd_t& voronoi_dia
                 const vd_t::edge_type* curr_edge = *edge_it;
                 const vd_t::edge_type* next_edge = std::next(edge_it) == edges.end() ? edges.front() : *std::next(edge_it);
 
-                const bool isCCW =
+                const bool isClockwise =
                     LinearAlg2D::isInsideCorner
                     (
                         VoronoiUtils::p(prev_edge->vertex0()),
@@ -482,7 +482,7 @@ bool SkeletalTrapezoidation::isVoronoiDiagramPlanarAngle(const vd_t& voronoi_dia
                         VoronoiUtils::p(curr_edge->vertex1()),
                         VoronoiUtils::p(next_edge->vertex1())
                     );
-                if (! isCCW)
+                if (isClockwise)
                 {
                     return false;
                 }
