@@ -44,6 +44,7 @@ PrimeTower::PrimeTower()
     enabled = scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
+    would_have_actual_tower = enabled;  // Assume so for now.
 
     extruder_count = scene.extruders.size();
     extruder_order.resize(extruder_count);
@@ -92,8 +93,8 @@ void PrimeTower::generateGroundpoly()
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
-    enabled &= storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
-    if (enabled)
+    would_have_actual_tower = storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
+    if (would_have_actual_tower && enabled)
     {
         generatePaths_denseInfill();
         generateStartLocations();
@@ -168,7 +169,7 @@ void PrimeTower::generateStartLocations()
 
 void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder, const size_t new_extruder) const
 {
-    if (!enabled)
+    if (! (enabled && would_have_actual_tower))
     {
         return;
     }
@@ -178,7 +179,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     }
 
     const LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
+    if (layer_nr < 0 || layer_nr > storage.max_print_height_second_to_last_extruder + 1)
     {
         return;
     }

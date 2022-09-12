@@ -6,11 +6,13 @@
 
 #include "utils/NoCopy.h"
 #include <cstddef> //For size_t.
+#include <cassert>
 
 namespace cura
 {
 class Communication;
 class Slice;
+class ThreadPool;
 
 /*!
  * A singleton class that serves as the starting point for all slicing.
@@ -31,14 +33,19 @@ public:
      * can assume that it is safe to access this without checking whether it is
      * initialised.
      */
-    Communication* communication;
+    Communication* communication = nullptr;
 
     /*
      * \brief The slice that is currently ongoing.
      *
      * If no slice has started yet, this will be a nullptr.
      */
-    Slice* current_slice;
+    Slice* current_slice = nullptr;
+
+    /*!
+     * \brief ThreadPool with lifetime tied to Application
+     */
+    ThreadPool* thread_pool = nullptr;
 
     /*!
      * Gets the instance of this application class.
@@ -67,6 +74,18 @@ public:
      * \param argv The arguments provided to the application.
      */
     void run(const size_t argc, char** argv);
+
+    /*!
+     * \brief Start the global thread pool.
+     *
+     * If `nworkers` <= 0 and there is no pre-existing thread pool, a thread
+     * pool with hardware_concurrency() workers is initialized.
+     * The thread pool is restarted when the number of thread differs from
+     * previous invocations.
+     *
+     * \param nworkers The number of workers (including the main thread) that are ran.
+     */
+    void startThreadPool(int nworkers=0);
 
 protected:
 #ifdef ARCUS

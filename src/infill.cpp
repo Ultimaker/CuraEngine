@@ -16,11 +16,12 @@
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
 #include "sliceDataStorage.h"
-#include "utils/PolygonConnector.h"
-#include "utils/PolylineStitcher.h"
-#include "utils/UnionFind.h"
 #include "utils/logoutput.h"
+#include "utils/PolygonConnector.h"
 #include "utils/polygonUtils.h"
+#include "utils/PolylineStitcher.h"
+#include "utils/Simplify.h"
+#include "utils/UnionFind.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate
@@ -116,7 +117,10 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths, Polygons& resu
                     if(path.polygonLength() >= infill_line_width * 4) //Don't fill gaps that are very small (with paths less than 2 line widths long, 4 back and forth).
                     {
                         gap_filled_areas.add(path);
-                        thin_walls_only.push_back(extrusion);
+                        if(fill_gaps)
+                        {
+                            thin_walls_only.push_back(extrusion);
+                        }
                     }
                 }
             }
@@ -130,9 +134,9 @@ void Infill::generate(std::vector<VariableWidthLines>& toolpaths, Polygons& resu
         // Now do the actual inset, to make place for the extra 'zig-zagify' lines:
         inner_contour = inner_contour.difference(gap_filled_areas).offset(-infill_line_width / 2);
     }
-    inner_contour.simplify(max_resolution, max_deviation);
+    inner_contour = Simplify(max_resolution, max_deviation, 0).polygon(inner_contour);
 
-    if (infill_multiplier > 1)
+    if(infill_multiplier > 1)
     {
         bool zig_zaggify_real = zig_zaggify;
         if (infill_multiplier % 2 == 0)
@@ -250,7 +254,8 @@ void Infill::_generate(std::vector<VariableWidthLines>& toolpaths, Polygons& res
         connectLines(result_lines);
     }
 
-    result_polygons.simplify(max_resolution, max_deviation);
+    Simplify simplifier(max_resolution, max_deviation, 0);
+    result_polygons = simplifier.polygon(result_polygons);
 
     if(!skip_line_stitching && (zig_zaggify ||
         pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::GYROID || pattern == EFillMethod::ZIG_ZAG))
@@ -259,7 +264,7 @@ void Infill::_generate(std::vector<VariableWidthLines>& toolpaths, Polygons& res
         PolylineStitcher<Polygons, Polygon, Point>::stitch(result_lines, stitched_lines, result_polygons, infill_line_width);
         result_lines = stitched_lines;
     }
-    result_lines.simplifyPolylines(max_resolution, max_deviation);
+    result_lines = simplifier.polyline(result_lines);
 }
 
 void Infill::multiplyInfill(Polygons& result_polygons, Polygons& result_lines)
@@ -353,12 +358,13 @@ void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths
     const coord_t min_area = infill_line_width * infill_line_width;
 
     Polygons current_inset = inner_contour;
+    Simplify simplifier(settings);
     while(true)
     {
         //If line_distance is 0, start from the same contour as the previous line, except where the previous line closed up the shape.
         //So we add the whole nominal line width first (to allow lines to be closer together than 1 line width if the line distance is smaller) and then subtract line_distance.
         current_inset = current_inset.offset(infill_line_width - line_distance);
-        current_inset.simplify(); //Many insets lead to increasingly detailed shapes. Simplify to speed up processing.
+        current_inset = simplifier.polygon(current_inset); //Many insets lead to increasingly detailed shapes. Simplify to speed up processing.
         if(current_inset.area() < min_area) //So small that it's inconsequential. Stop here.
         {
             break;

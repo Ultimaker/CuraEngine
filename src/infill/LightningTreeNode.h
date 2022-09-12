@@ -11,7 +11,6 @@
 
 #include "../utils/polygonUtils.h"
 #include "../utils/polygon.h"
-#include "../utils/LazyInitialization.h"
 
 namespace cura
 {
