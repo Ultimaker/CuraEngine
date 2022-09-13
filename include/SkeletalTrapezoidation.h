@@ -138,7 +138,7 @@ protected:
         {}
     };
 
-    bool detectMissingVoronoiVertex(const vd_t& voronoi_diagram, std::vector<Point>& points, const std::vector<SkeletalTrapezoidation::Segment>& segments);
+    bool detectVoronoiErrors(const vd_t& voronoi_diagram, std::vector<Point>& points, const std::vector<SkeletalTrapezoidation::Segment>& segments);
     bool isVoronoiDiagramPlanarAngle(const vd_t& voronoi_diagram);
 
     /*!
