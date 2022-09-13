@@ -520,6 +520,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     const bool is_voronoi_planar = isVoronoiDiagramPlanarAngle(voronoi_diagram);
     const bool is_voronoi_misconstructed = has_missing_voronoi_vertex || ! is_voronoi_planar;
     std::unordered_map<Point, Point> vertex_mapping;  // NOTE: Should maybe add a functor to specify specialized hash as 3rd template parameter.
+    Polygons polys_copy = polys; // ATTN!: Don't move inside the scope below, 'segments' and 'vertex_mapping' above both can reference points out of it!
     if (is_voronoi_misconstructed)
     {
         if (has_missing_voronoi_vertex)
@@ -531,7 +532,6 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
             spdlog::debug("Detected non-planar Voronoi diagram, input polygons will be rotated back and forth.");
         }
 
-        Polygons polys_copy = polys;
         const auto rot_matrix = LinearAlg2D::rotateAround(Point(0, 0), fix_angle);
         for (auto& poly : polys_copy)
         {
