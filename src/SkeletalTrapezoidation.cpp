@@ -449,7 +449,7 @@ bool SkeletalTrapezoidation::detectVoronoiErrors(const vd_t& voronoi_diagram, st
 
             } while (edge = edge->next(), edge != cell.incident_edge());
 
-            if ((count >= 2 && total_angle > 0.0 && !has_infinite)
+            if (count >= 2 && total_angle > 0.0 && !has_infinite)
             {
                 spdlog::debug("Detected non-planar Voronoi diagram, input polygons will be rotated back and forth.");
                 return true;
@@ -464,9 +464,6 @@ bool SkeletalTrapezoidation::detectVoronoiErrors(const vd_t& voronoi_diagram, st
     }
 
     return false;
-}
-
-{
 }
 
 void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
