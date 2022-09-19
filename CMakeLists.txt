@@ -180,7 +180,7 @@ if (ENABLE_ARCUS)
 endif ()
 
 find_package(clipper REQUIRED)
-find_package(rapidjson REQUIRED)
+find_package(RapidJSON REQUIRED)
 find_package(stb REQUIRED)
 find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
