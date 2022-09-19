@@ -198,7 +198,7 @@ target_link_libraries(_CuraEngine
         range-v3::range-v3
         fmt::fmt
         clipper::clipper
-        rapidjson::rapidjson
+        rapidjson
         stb::stb
         boost::boost
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
