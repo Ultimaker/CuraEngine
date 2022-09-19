@@ -19,9 +19,6 @@
 namespace cura
 {
 
-static constexpr bool diagonal = true;
-static constexpr bool straight = false;
-
 static constexpr float allowed_length_error = .01;
 
 static constexpr bool deep_debug_checking = false;

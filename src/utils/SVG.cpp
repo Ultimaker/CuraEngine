@@ -195,7 +195,7 @@ void SVG::writePoints(ConstPolygonRef poly, const bool write_coords, const float
 
 void SVG::writePoints(const Polygons& polygons, const bool write_coords, const float size, const ColorObject color) const
 {
-    for (const ConstPolygonRef& poly : polygons)
+    for (const ConstPolygonRef poly : polygons)
     {
         writePoints(poly, write_coords, size, color);
     }

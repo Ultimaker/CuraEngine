@@ -406,7 +406,7 @@ void LightningTreeNode::removeJunctionOverlap(Polygons& result_lines, const coor
         PolygonRef polyline = *poly_it;
         if (polyline.size() <= 1)
         {
-            polyline = std::move(result_lines.back());
+            polyline = result_lines.back();
             result_lines.pop_back();
             continue;
         }
@@ -433,7 +433,7 @@ void LightningTreeNode::removeJunctionOverlap(Polygons& result_lines, const coor
 
         if (polyline.size() <= 1)
         {
-            polyline = std::move(result_lines.back());
+            polyline = result_lines.back();
             result_lines.pop_back();
         }
         else

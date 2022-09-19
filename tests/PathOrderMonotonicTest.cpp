@@ -59,7 +59,6 @@ constexpr EFillMethod pattern = EFillMethod::LINES;
 constexpr bool zig_zagify = false;
 constexpr bool connect_polygons = false;
 constexpr coord_t line_distance = 350;
-constexpr coord_t outline_offset = 0;
 constexpr coord_t infill_line_width = 350;
 constexpr coord_t infill_overlap = 0;
 constexpr size_t infill_multiplier = 1;

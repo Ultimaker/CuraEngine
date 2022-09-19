@@ -64,6 +64,7 @@ LocToLineGrid& Comb::getModelBoundaryLocToLine(const ExtruderTrain& train)
 Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Polygons& comb_boundary_inside_minimum, const Polygons& comb_boundary_inside_optimal, coord_t comb_boundary_offset, coord_t travel_avoid_distance, coord_t move_inside_distance)
 : storage(storage)
 , layer_nr(layer_nr)
+, travel_avoid_distance(travel_avoid_distance)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
 , max_moveInside_distance2(offset_from_outlines * offset_from_outlines)
 , offset_from_inside_to_outside(offset_from_outlines + travel_avoid_distance)
@@ -75,7 +76,6 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 , inside_loc_to_line_minimum(PolygonUtils::createLocToLineGrid(boundary_inside_minimum, comb_boundary_offset))
 , inside_loc_to_line_optimal(PolygonUtils::createLocToLineGrid(boundary_inside_optimal, comb_boundary_offset))
 , move_inside_distance(move_inside_distance)
-, travel_avoid_distance(travel_avoid_distance)
 {
 }
 

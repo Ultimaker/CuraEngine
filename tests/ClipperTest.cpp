@@ -135,7 +135,7 @@ TEST_F(DISABLED_ClipperTest, PolylinesTest2)
 }
 
 
-void DISABLED_ClipperTest::outputSVG(const Paths& outlines, const Paths& polylines, const Paths& intersected, const char* filename)
+void DISABLED_ClipperTest::outputSVG([[maybe_unused]] const Paths& outlines, [[maybe_unused]] const Paths& polylines, [[maybe_unused]] const Paths& intersected, [[maybe_unused]] const char* filename)
 {
 #ifdef TEST_INFILL_SVG_OUTPUT
     Polygons outs;

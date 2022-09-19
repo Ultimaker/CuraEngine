@@ -115,7 +115,6 @@ private:
     coord_t min_feature_size; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
     coord_t min_bead_width;  //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
     double small_area_length; //<! The length of the small features which are to be filtered out, this is squared into a surface
-    coord_t transition_length; //<! The transitioning length when the amount of extrusion lines changes
     bool toolpaths_generated; //<! Are the toolpaths generated
     std::vector<VariableWidthLines> toolpaths; //<! The generated toolpaths binned by inset_idx.
     Polygons inner_contour;  //<! The inner contour of the generated toolpaths

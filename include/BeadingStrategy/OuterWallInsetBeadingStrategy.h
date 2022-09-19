@@ -24,9 +24,9 @@ namespace cura
         coord_t getTransitionThickness(coord_t lower_bead_count) const override;
         coord_t getOptimalBeadCount(coord_t thickness) const override;
         coord_t getTransitioningLength(coord_t lower_bead_count) const override;
-        
-        virtual std::string toString() const;
-        
+
+        virtual std::string toString() const override;
+
     private:
         BeadingStrategyPtr parent;
         coord_t outer_wall_offset;

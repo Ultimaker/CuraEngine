@@ -17,7 +17,7 @@ struct Velocity
     /*
      * \brief Default constructor setting velocity to 0.
      */
-    constexpr Velocity() : value(0.0) {};
+    constexpr Velocity() = default;
 
     /*
      * \brief Casts a double to a Velocity instance.
@@ -75,7 +75,7 @@ struct Velocity
     /*
      * \brief The actual temperature, as a double.
      */
-    double value = 0;
+    double value{};
 };
 
 using Acceleration = Velocity; //Use the same logic for acceleration variables.

@@ -40,6 +40,13 @@ class FffGcodeWriter : public NoCopy
 private:
     coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
 
+    /*!
+     * The class holding the current state of the gcode being written.
+     *
+     * It holds information such as the last written position etc.
+     */
+    GCodeExport gcode;
+
     /*
      * Buffer for all layer plans (of type LayerPlan)
      * 
@@ -47,13 +54,6 @@ private:
      * Another reason is to perform Auto Temperature.
      */
     LayerPlanBuffer layer_plan_buffer; 
-
-    /*!
-     * The class holding the current state of the gcode being written.
-     * 
-     * It holds information such as the last written position etc.
-     */
-    GCodeExport gcode;
 
     /*!
      * The gcode file to write to when using CuraEngine as command line tool.

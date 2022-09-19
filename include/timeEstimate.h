@@ -4,6 +4,7 @@
 #ifndef TIME_ESTIMATE_H
 #define TIME_ESTIMATE_H
 
+#include <array>
 #include <stdint.h>
 #include <vector>
 #include <unordered_map>
@@ -36,35 +37,35 @@ public:
     class Position
     {
     public:
-        Position() {for(unsigned int n=0;n<NUM_AXIS;n++) axis[n] = 0;}
+        Position() = default;
         Position(double x, double y, double z, double e) {axis[0] = x;axis[1] = y;axis[2] = z;axis[3] = e;}
-        double axis[NUM_AXIS];
-        
+        std::array<double, NUM_AXIS> axis{};
+
         double& operator[](const int n) { return axis[n]; }
     };
 
     class Block
     {
     public:
-        bool recalculate_flag;
-        
-        double accelerate_until;
-        double decelerate_after;
-        Velocity initial_feedrate;
-        Velocity final_feedrate;
+        bool recalculate_flag{};
 
-        Velocity entry_speed;
-        Velocity max_entry_speed;
-        bool nominal_length_flag;
-        
-        Velocity nominal_feedrate;
-        double maxTravel;
-        double distance;
-        Acceleration acceleration;
-        Position delta;
-        Position absDelta;
+        double accelerate_until{};
+        double decelerate_after{};
+        Velocity initial_feedrate{};
+        Velocity final_feedrate{};
 
-        PrintFeatureType feature;
+        Velocity entry_speed{};
+        Velocity max_entry_speed{};
+        bool nominal_length_flag{};
+
+        Velocity nominal_feedrate{};
+        double maxTravel{};
+        double distance{};
+        Acceleration acceleration{};
+        Position delta{};
+        Position absDelta{};
+
+        PrintFeatureType feature{ PrintFeatureType::NoneType };
     };
 
 private:

@@ -127,7 +127,7 @@ bool SquareGrid::processAxisAlignedTriangle
 {
     Point a = from;
     Point b = to;
-    if ((a.X < b.X == a.Y < b.Y) != to_the_right)
+    if (((a.X < b.X) == (a.Y < b.Y)) != to_the_right)
     {
         std::swap(a, b);
     }

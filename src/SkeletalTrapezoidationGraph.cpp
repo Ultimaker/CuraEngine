@@ -328,7 +328,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
     }
 }
 
-void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point start_source_point, Point end_source_point, bool is_next_to_start_or_end)
+void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point start_source_point, Point end_source_point)
 {
     Point p = LinearAlg2D::getClosestOnLine(prev_edge->to->p, start_source_point, end_source_point);
     coord_t dist = vSize(prev_edge->to->p - p);

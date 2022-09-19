@@ -1034,7 +1034,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     unsigned int start_layer_nr = (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM) ? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
 
     auto hole_area = Polygons();
-    std::function<bool(const bool&, const ExtrusionJunction&)> accumulate_is_in_hole = [](const bool& prev_result, const ExtrusionJunction& junction) { return false; };
+    std::function<bool(const bool&, const ExtrusionJunction&)> accumulate_is_in_hole = [](const bool& /* prev_result */, const ExtrusionJunction& /* junction */) { return false; };
 
     for (unsigned int layer_nr = start_layer_nr; layer_nr < mesh.layers.size(); layer_nr++)
     {

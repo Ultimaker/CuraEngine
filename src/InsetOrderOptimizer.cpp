@@ -45,8 +45,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
     , z_seam_config(z_seam_config)
     , paths(paths)
     , layer_nr(gcode_layer.getLayerNr())
-    , added_something(false)
-    , retraction_region_calculated(false)
 {
 }
 
@@ -227,7 +225,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
             grid.insert(LineLoc{ junction, line });
         }
     }
-    for (const std::pair<SquareGrid::GridPoint, LineLoc>& pair : grid)
+    for (const auto& pair : grid)
     {
         const LineLoc& lineloc_here = pair.second;
         const ExtrusionLine* here = lineloc_here.line;

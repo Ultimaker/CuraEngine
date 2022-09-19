@@ -23,7 +23,6 @@ namespace cura
 {
 
 PrimeTower::PrimeTower()
-: wipe_from_middle(false)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
 
@@ -230,7 +229,7 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
     const Polygons outside_polygon = outer_poly.getOutsidePolygons();
     AABB outside_polygon_boundary_box(outside_polygon);
-    for(size_t layer = 0; layer <= (size_t)storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
+    for (size_t layer = 0; layer <= static_cast<size_t>(storage.max_print_height_second_to_last_extruder) + 1 && layer < storage.support.supportLayers.size(); layer++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer];
         // take the differences of the support infill parts and the prime tower area

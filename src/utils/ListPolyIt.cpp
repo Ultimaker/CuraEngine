@@ -15,7 +15,7 @@ namespace cura
 
 void ListPolyIt::convertPolygonsToLists(const Polygons& polys, ListPolygons& result)
 {
-    for (ConstPolygonRef poly : polys)
+    for (const auto& poly : polys)
     {
         result.emplace_back();
         convertPolygonToList(poly, result.back());
