@@ -17,7 +17,8 @@ callgrind/*
 build/*
 debug_build/*
 release_build/*
-cmake-build-debug/*
+cmake-build-*
+cmake-build-*
 libs/stb
 *.pyc
 *.exe
@@ -63,3 +64,6 @@ documentation/latex/*
 ## Test results.
 tests/output.xml
 callgrind.out.*
+
+CMakeUserPresets.json
+/conan_imports_manifest.txt

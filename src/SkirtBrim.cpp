@@ -6,9 +6,10 @@
 #include "SkirtBrim.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"
+#include "utils/logoutput.h"
+#include "utils/Simplify.h" //Simplifying the brim/skirt at every inset.
 #include "support.h"
 #include "settings/types/Ratio.h"
-#include "utils/logoutput.h"
 
 namespace cura 
 {
@@ -80,8 +81,8 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
     first_layer_outline = first_layer_outline.offset(join_distance).offset(-join_distance); // merge adjacent models into single polygon
     constexpr coord_t smallest_line_length = 200;
     constexpr coord_t largest_error_of_removed_point = 50;
-    first_layer_outline.simplify(smallest_line_length, largest_error_of_removed_point); // simplify for faster processing of the brim lines
-    if (first_layer_outline.size() == 0)
+    first_layer_outline = Simplify(smallest_line_length, largest_error_of_removed_point, 0).polygon(first_layer_outline);
+    if(first_layer_outline.size() == 0)
     {
         logError("Couldn't generate skirt / brim! No polygons on first layer.\n");
     }

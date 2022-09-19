@@ -16,8 +16,9 @@
 #include "pathPlanning/CombPaths.h"
 #include "settings/types/Ratio.h"
 #include "utils/logoutput.h"
-#include "utils/polygonUtils.h"
 #include "utils/linearAlg2D.h"
+#include "utils/polygonUtils.h"
+#include "utils/Simplify.h"
 #include "WipeScriptConfig.h"
 
 namespace cura {
@@ -195,14 +196,22 @@ Polygons LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 {
                     continue;
                 }
-                const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
-                const coord_t inner_walls_offset = boundary_type == CombBoundary::MINIMUM
-                                                       ? 0
-                                                       : mesh.settings.get<coord_t>("wall_line_width_x")
-                                                             * (mesh.settings.get<size_t>("wall_line_count") - 1)
-                                                             / 4;
-                const coord_t offset = -10 - mesh.settings.get<coord_t>("wall_line_width_0") - inner_walls_offset;
+                coord_t offset;
+                switch(boundary_type)
+                {
+                    case CombBoundary::MINIMUM:
+                        offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - 0.1 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                        break;
+                    case CombBoundary::PREFERRED:
+                        offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                        break;
+                    default:
+                        offset = 0;
+                        logWarning("Unknown combing boundary type. Did you forget to configure the comb offset for a new boundary type?");
+                        break;
+                }
 
+                const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
                 for (const SliceLayerPart& part : layer.parts)
                 {
                     if (combing_mode == CombingMode::ALL) // Add the increased outline offset (skin, infill and part of the inner walls)
@@ -515,6 +524,10 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig& config, SpaceFi
     GCodePath* path = getLatestPathWithConfig(config, space_fill_type, flow, width_factor, spiralize, speed_factor);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
+    if(!static_cast<bool>(first_extrusion_acc_jerk))
+    {
+        first_extrusion_acc_jerk = std::make_pair(path->config->getAcceleration(), path->config->getJerk());
+    }
     last_planned_position = p;
 }
 
@@ -1100,7 +1113,7 @@ void LayerPlan::addLinesByOptimizer
         }
         boundary.add(comb_boundary_minimum.offset(dist));
         // simplify boundary to cut down processing time
-        boundary.simplify(MM2INT(0.1), MM2INT(0.1));
+        boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
     }
     constexpr bool detect_loops = true;
     PathOrderOptimizer<ConstPolygonPointer> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction);
@@ -1293,7 +1306,7 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
         // when not smoothing, we get to the (unchanged) outline for this layer as quickly as possible so that the remainder of the
         // outline wall has the correct direction - although this creates a little step, the end result is generally better because when the first
         // outline wall has the wrong direction (due to it starting from the finish point of the last layer) the visual effect is very noticeable
-        Point join_first_wall_at = LinearAlg2D::getClosestOnLineSegment(origin, wall[seam_vertex_idx], wall[(seam_vertex_idx + 1) % wall.size()]);
+        Point join_first_wall_at = LinearAlg2D::getClosestOnLineSegment(origin, wall[seam_vertex_idx % wall.size()], wall[(seam_vertex_idx + 1) % wall.size()]);
         if (vSize(join_first_wall_at - origin) > 10)
         {
             constexpr Ratio flow = 1.0_r;
@@ -1634,7 +1647,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
     size_t extruder_nr = gcode.getExtruderNr();
     const bool acceleration_enabled = mesh_group_settings.get<bool>("acceleration_enabled");
+    const bool acceleration_travel_enabled = mesh_group_settings.get<bool>("acceleration_travel_enabled");
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
+    const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
     std::string current_mesh = "NONMESH";
 
     for(size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
@@ -1730,11 +1745,39 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 continue;
             }
 
+            //In some cases we want to find the next non-travel move.
+            size_t next_extrusion_idx = path_idx + 1;
+            if((acceleration_enabled && !acceleration_travel_enabled) || (jerk_enabled && !jerk_travel_enabled))
+            {
+                while(next_extrusion_idx < paths.size() && paths[next_extrusion_idx].config->isTravelPath())
+                {
+                    ++next_extrusion_idx;
+                }
+            }
+
             if (acceleration_enabled)
             {
                 if (path.config->isTravelPath())
                 {
-                    gcode.writeTravelAcceleration(path.config->getAcceleration());
+                    if(acceleration_travel_enabled)
+                    {
+                        gcode.writeTravelAcceleration(path.config->getAcceleration());
+                    }
+                    else
+                    {
+                        //Use the acceleration of the first non-travel move *after* the travel.
+                        if(next_extrusion_idx >= paths.size()) //Only travel moves for the remainder of the layer.
+                        {
+                            if(static_cast<bool>(next_layer_acc_jerk))
+                            {
+                                gcode.writeTravelAcceleration(next_layer_acc_jerk->first);
+                            } //If the next layer has no extruded move, just keep the old acceleration. Should be very rare to have an empty layer.
+                        }
+                        else
+                        {
+                            gcode.writeTravelAcceleration(paths[next_extrusion_idx].config->getAcceleration());
+                        }
+                    }
                 }
                 else
                 {
@@ -1743,7 +1786,25 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
             if (jerk_enabled)
             {
-                gcode.writeJerk(path.config->getJerk());
+                if(jerk_travel_enabled)
+                {
+                    gcode.writeJerk(path.config->getJerk());
+                }
+                else
+                {
+                    //Use the jerk of the first non-travel move *after* the travel.
+                    if(next_extrusion_idx >= paths.size()) //Only travel moves for the remainder of the layer.
+                    {
+                        if(static_cast<bool>(next_layer_acc_jerk))
+                        {
+                            gcode.writeJerk(next_layer_acc_jerk->second);
+                        } //If the next layer has no extruded move, just keep the old jerk. Should be very rare to have an empty layer.
+                    }
+                    else
+                    {
+                        gcode.writeJerk(paths[next_extrusion_idx].config->getJerk());
+                    }
+                }
             }
 
             if (path.retract)
@@ -1909,6 +1970,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         extruder_plan.handleAllRemainingInserts(gcode);
     } // extruder plans /\  .
     
+    communication->sendLayerComplete(layer_nr, z, layer_thickness);
     gcode.updateTotalPrintTime();
 }
 

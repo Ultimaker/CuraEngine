@@ -4,6 +4,7 @@
 #ifndef UTILS_MATH_H
 #define UTILS_MATH_H
 
+#include <cstdint>
 #include <cmath>
 
 
@@ -19,10 +20,16 @@ static constexpr float sqrt2 = 1.41421356237;
 
 template<typename T> inline T square(const T& a) { return a * a; }
 
-inline uint64_t round_divide_signed(const int64_t dividend, const int64_t divisor) //!< Return dividend divided by divisor rounded to the nearest integer
+inline int64_t round_divide_signed(const int64_t dividend, const int64_t divisor) //!< Return dividend divided by divisor rounded to the nearest integer
 {
-    const uint64_t abs_div = std::abs(divisor);
-    return (dividend * divisor > 0 ? 1 : -1) * ((std::abs(dividend) + abs_div / 2) / abs_div);
+    if((dividend < 0) ^ (divisor < 0)) //Either the numerator or the denominator is negative, so the result must be negative.
+    {
+        return (dividend - divisor / 2) / divisor; //Flip the .5 offset to do proper rounding in the negatives too.
+    }
+    else
+    {
+        return (dividend + divisor / 2) / divisor;
+    }
 }
 inline uint64_t ceil_divide_signed(const int64_t dividend, const int64_t divisor) //!< Return dividend divided by divisor rounded up towards positive infinity.
 {

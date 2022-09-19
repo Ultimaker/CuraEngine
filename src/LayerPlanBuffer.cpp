@@ -107,6 +107,9 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
             path.retract = true;
         }
     }
+
+    //If not using travel-specific jerk and acceleration, the layer plan needs to know the jerk/acc of the first extrusion move of the next layer.
+    prev_layer->next_layer_acc_jerk = newest_layer->first_extrusion_acc_jerk;
 }
 
 void LayerPlanBuffer::processFanSpeedLayerTime()

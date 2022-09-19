@@ -5,9 +5,6 @@
 #define UTILS_ALGORITHM_H
 
 #include <algorithm>
-#include <atomic>
-#include <functional>
-#include <future>
 #include <numeric>
 #include <vector>
 
@@ -44,62 +41,6 @@ std::vector<size_t> order(const std::vector<T> &in)
 
     return order;
 }
-
-
-/* An implementation of parallel for nowait.
- * There are still a lot of compilers that claim to be fully C++17 compatible, but don't implement the Parallel Execution TS of the accompanying standard library.
- * This means that we mostly have to fall back to the things that C++11/14 provide when it comes to threading/parallelism/etc.
- *
- * Ensure your capture is correct if you leave scope before waiting on the returned future!
- *
- * \param from The index starts here (inclusive).
- * \param to The index ends here (not inclusive).
- * \param increment Add this to the index each time.
- * \param body The loop-body, as a closure. Receives the index on invocation.
- * \return A future to wait on.
- */
-template<typename T>
-std::future<void> parallel_for_nowait(T from, T to, T increment, const std::function<void(const T)>& body)
-{
-
-    // Sanity tests.
-    assert((increment > 0 && from <= to) || (increment < 0 && from >= to) );
-
-    const std::function<void()> starter = [=](){
-
-        // Run all tasks.
-        std::vector<std::future<void>> scope_guard;
-        for (T index = from; index < to; index += increment)
-        {
-            scope_guard.push_back(std::async(std::launch::async, body, index));
-        }
-
-        for (std::future<void>& loop_iteration : scope_guard)
-        {
-            loop_iteration.wait();
-        }
-
-    };
-
-    auto ret = std::async(std::launch::async, starter);
-    return ret;
-}
-
-/* An implementation of parallel for.
- * There are still a lot of compilers that claim to be fully C++17 compatible, but don't implement the Parallel Execution TS of the accompanying standard library.
- * This means that we mostly have to fall back to the things that C++11/14 provide when it comes to threading/parallelism/etc.
- *
- * \param from The index starts here (inclusive).
- * \param to The index ends here (not inclusive).
- * \param increment Add this to the index each time.
- * \param body The loop-body, as a closure. Receives the index on invocation.
- */
-template<typename T>
-void parallel_for(T from, T to, T increment, const std::function<void(const T)>& body)
-{
-    parallel_for_nowait<T>(from,to,increment,body).wait();
-}
-
 
 
 } // namespace cura

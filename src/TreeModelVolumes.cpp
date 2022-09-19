@@ -1,10 +1,12 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "TreeModelVolumes.h"
 #include "TreeSupport.h"
+#include "TreeSupportEnums.h"
 #include "progress/Progress.h"
 #include "sliceDataStorage.h"
+#include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 #include "utils/logoutput.h"
 namespace cura
@@ -14,8 +16,12 @@ TreeModelVolumes::TreeModelVolumes(const SliceDataStorage& storage, const coord_
 {
     anti_overhang_ = std::vector<Polygons>(storage.support.supportLayers.size(), Polygons());
     std::unordered_map<size_t, size_t> mesh_to_layeroutline_idx;
-    min_maximum_deviation_ = std::numeric_limits<coord_t>::max();
-    min_maximum_resolution_ = std::numeric_limits<coord_t>::max();
+
+
+    coord_t min_maximum_resolution_ = std::numeric_limits<coord_t>::max();
+    coord_t min_maximum_deviation_ = std::numeric_limits<coord_t>::max();
+    coord_t min_maximum_area_deviation_ = std::numeric_limits<coord_t>::max();
+
     support_rests_on_model = false;
     for (size_t mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
@@ -41,17 +47,18 @@ TreeModelVolumes::TreeModelVolumes(const SliceDataStorage& storage, const coord_
         support_rests_on_model |= data_pair.first.get<ESupportType>("support_type") == ESupportType::EVERYWHERE;
         min_maximum_deviation_ = std::min(min_maximum_deviation_, data_pair.first.get<coord_t>("meshfix_maximum_deviation"));
         min_maximum_resolution_ = std::min(min_maximum_resolution_, data_pair.first.get<coord_t>("meshfix_maximum_resolution"));
+        min_maximum_area_deviation_ = std::min(min_maximum_area_deviation_, data_pair.first.get<coord_t>("meshfix_maximum_extrusion_area_deviation"));
     }
 
     min_maximum_deviation_ = std::min(coord_t(SUPPORT_TREE_MAX_DEVIATION), min_maximum_deviation_);
     current_outline_idx = mesh_to_layeroutline_idx[current_mesh_idx];
-    TreeSupport::TreeSupportSettings config(layer_outlines_[current_outline_idx].first);
+    TreeSupportSettings config(layer_outlines_[current_outline_idx].first);
 
     if (config.support_overrides == SupportDistPriority::Z_OVERRIDES_XY)
     {
         current_min_xy_dist = config.xy_min_distance;
 
-        if (TreeSupport::TreeSupportSettings::has_to_rely_on_min_xy_dist_only)
+        if (TreeSupportSettings::has_to_rely_on_min_xy_dist_only)
         {
             current_min_xy_dist = std::max(current_min_xy_dist, coord_t(100));
         }
@@ -69,7 +76,7 @@ TreeModelVolumes::TreeModelVolumes(const SliceDataStorage& storage, const coord_
     {
         SliceMeshStorage mesh = storage.meshes[mesh_idx];
 
-        cura::parallel_for<LayerIndex>(0, LayerIndex(layer_outlines_[mesh_to_layeroutline_idx[mesh_idx]].second.size()), 1,
+        cura::parallel_for<coord_t>(0, LayerIndex(layer_outlines_[mesh_to_layeroutline_idx[mesh_idx]].second.size()), // todo LayerIndex
             [&](const LayerIndex layer_idx)
             {
             if (mesh.layer_nr_max_filled_layer < layer_idx)
@@ -80,7 +87,7 @@ TreeModelVolumes::TreeModelVolumes(const SliceDataStorage& storage, const coord_
             layer_outlines_[mesh_to_layeroutline_idx[mesh_idx]].second[layer_idx].add(outline);
         });
     }
-    cura::parallel_for<LayerIndex>(0, LayerIndex(anti_overhang_.size()), 1,
+    cura::parallel_for<coord_t>(0, LayerIndex(anti_overhang_.size()), // todo LayerIndex
         [&](const LayerIndex layer_idx)
         {
         if (layer_idx < coord_t(additional_excluded_areas.size()))
@@ -102,9 +109,11 @@ TreeModelVolumes::TreeModelVolumes(const SliceDataStorage& storage, const coord_
 
     for (size_t idx = 0; idx < layer_outlines_.size(); idx++)
     {
-        cura::parallel_for<LayerIndex>(0, LayerIndex(anti_overhang_.size()), 1, [&](const LayerIndex layer_idx) { layer_outlines_[idx].second[layer_idx] = layer_outlines_[idx].second[layer_idx].unionPolygons(); });
+        cura::parallel_for<coord_t>(0, anti_overhang_.size(), [&](const LayerIndex layer_idx) { layer_outlines_[idx].second[layer_idx] = layer_outlines_[idx].second[layer_idx].unionPolygons(); }); // todo LayerIndex
     }
     radius_0 = config.getRadius(0);
+    support_rest_preference = config.support_rest_preference;
+    simplifier = Simplify(min_maximum_resolution_, min_maximum_deviation_, min_maximum_area_deviation_);
 }
 
 
@@ -114,7 +123,7 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
     precalculated = true;
 
     // Get the config corresponding to one mesh that is in the current group. Which one has to be irrelevant. Not the prettiest way to do this, but it ensures some calculations that may be a bit more complex like inital layer diameter are only done in once.
-    TreeSupport::TreeSupportSettings config(layer_outlines_[current_outline_idx].first);
+    TreeSupportSettings config(layer_outlines_[current_outline_idx].first);
 
     // calculate which radius each layer in the tip may have.
     std::unordered_set<coord_t> possible_tip_radiis;
@@ -198,20 +207,29 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
     // ### Calculate the relevant avoidances in parallel as far as possible
     {
         std::future<void> placeable_waiter;
+        std::future<void> avoidance_waiter;
+
         if (support_rests_on_model)
         {
-            placeable_waiter = calculatePlaceables(relevant_avoidance_radiis_to_model);
+            calculatePlaceables(relevant_avoidance_radiis_to_model);
         }
-        std::future<void> avoidance_waiter = calculateAvoidance(relevant_avoidance_radiis);
-        std::future<void> wall_restriction_waiter = calculateWallRestrictions(relevant_avoidance_radiis);
+        if (support_rest_preference == RestPreference::BUILDPLATE)
+        {
+            calculateAvoidance(relevant_avoidance_radiis);
+        }
+
+        calculateWallRestrictions(relevant_avoidance_radiis);
         if (support_rests_on_model)
         {
-            placeable_waiter.wait();
-            std::future<void> avoidance_model_waiter = calculateAvoidanceToModel(relevant_avoidance_radiis_to_model);
-            avoidance_model_waiter.wait();
+            // If nowait ensure here the following is calculated: calculatePlaceables todo
+            calculateAvoidanceToModel(relevant_avoidance_radiis_to_model);
+            // If nowait ensure here the following is calculated: calculateAvoidanceToModel todo
         }
-        avoidance_waiter.wait();
-        wall_restriction_waiter.wait();
+        if (support_rest_preference == RestPreference::BUILDPLATE)
+        {
+            // If nowait ensure here the following is calculated: calculateAvoidance todo
+        }
+        // If nowait ensure here the following is calculated: calculateWallRestrictions todo
     }
     auto t_end = std::chrono::high_resolution_clock::now();
     auto dur_col = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_coll - t_start).count();
@@ -497,7 +515,7 @@ coord_t TreeModelVolumes::getRadiusNextCeil(coord_t radius, bool min_xy_dist) co
 
 bool TreeModelVolumes::checkSettingsEquality(const Settings& me, const Settings& other) const
 {
-    return TreeSupport::TreeSupportSettings(me) == TreeSupport::TreeSupportSettings(other);
+    return TreeSupportSettings(me) == TreeSupportSettings(other);
 }
 
 
@@ -521,8 +539,8 @@ Polygons TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, 
     }
     coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     coord_t maximum_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
-    total.simplify(maximum_resolution, maximum_deviation);
-    return total;
+    coord_t maximum_area_deviation = mesh.settings.get<coord_t>("meshfix_maximum_extrusion_area_deviation");
+    return Simplify(maximum_resolution, maximum_deviation, maximum_area_deviation).polygon(total);
 }
 
 LayerIndex TreeModelVolumes::getMaxCalculatedLayer(coord_t radius, const std::unordered_map<RadiusLayerPair, Polygons>& map) const
@@ -547,7 +565,7 @@ LayerIndex TreeModelVolumes::getMaxCalculatedLayer(coord_t radius, const std::un
 
 void TreeModelVolumes::calculateCollision(std::deque<RadiusLayerPair> keys)
 {
-    cura::parallel_for<size_t>(0, keys.size(), 1,
+    cura::parallel_for<size_t>(0, keys.size(),
         [&](const size_t i)
         {
         coord_t radius = keys[i].first;
@@ -614,7 +632,7 @@ void TreeModelVolumes::calculateCollision(std::deque<RadiusLayerPair> keys)
                     {
                         above = above.unionPolygons(); // just to be sure the area is correctly unioned as otherwise difference may behave unexpectedly.
                     }
-                    Polygons placeable = data[key].difference(above);
+                    Polygons placeable = data[key].unionPolygons().difference(above);
                     data_placeable[RadiusLayerPair(radius, layer_idx + 1)] = data_placeable[RadiusLayerPair(radius, layer_idx + 1)].unionPolygons(placeable);
                 }
             }
@@ -644,14 +662,14 @@ void TreeModelVolumes::calculateCollision(std::deque<RadiusLayerPair> keys)
 
             for (auto pair : data)
             {
-                pair.second.simplify(min_maximum_resolution_, min_maximum_deviation_);
+                pair.second = simplifier.polygon(pair.second);
                 data_outer[pair.first] = data_outer[pair.first].unionPolygons(pair.second);
             }
             if (radius == 0)
             {
                 for (auto pair : data_placeable)
                 {
-                    pair.second.simplify(min_maximum_resolution_, min_maximum_deviation_);
+                    pair.second = simplifier.polygon(pair.second);
                     data_placeable_outer[pair.first] = data_placeable_outer[pair.first].unionPolygons(pair.second);
                 }
             }
@@ -688,7 +706,7 @@ void TreeModelVolumes::calculateCollisionHolefree(std::deque<RadiusLayerPair> ke
         max_layer = std::max(max_layer, keys[i].second);
     }
 
-    cura::parallel_for<LayerIndex>(0, max_layer + 1, 1,
+    cura::parallel_for<coord_t>(0, max_layer + 1, // todo LayerIndex
         [&](const LayerIndex layer_idx)
         {
         std::unordered_map<RadiusLayerPair, Polygons> data;
@@ -698,7 +716,7 @@ void TreeModelVolumes::calculateCollisionHolefree(std::deque<RadiusLayerPair> ke
             coord_t radius = key.first;
             coord_t increase_radius_ceil = ceilRadius(increase_until_radius, false) - ceilRadius(radius, true);
             Polygons col = getCollision(increase_until_radius, layer_idx, false).offset(5 - increase_radius_ceil, ClipperLib::jtRound).unionPolygons(); // this union is important as otherwise holes(in form of lines that will increase to holes in a later step) can get unioned onto the area.
-            col.simplify(min_maximum_resolution_, min_maximum_deviation_);
+            col = simplifier.polygon(col);
             data[RadiusLayerPair(radius, layer_idx)] = col;
         }
 
@@ -726,11 +744,11 @@ Polygons TreeModelVolumes::safeOffset(const Polygons& me, coord_t distance, Clip
     return ret.unionPolygons(collision);
 }
 
-std::future<void> TreeModelVolumes::calculateAvoidance(std::deque<RadiusLayerPair> keys)
+void TreeModelVolumes::calculateAvoidance(std::deque<RadiusLayerPair> keys)
 {
-    // For every RadiusLayer pair there are 3 avoidances that have to be calculate, calculated in the same paralell_for loop for better paralellisation.
+    // For every RadiusLayer pair there are 3 avoidances that have to be calculate, calculated in the same paralell_for loop for better parallelization.
     const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
-    std::future<void> ret = cura::parallel_for_nowait<size_t>(0, keys.size() * 3, 1,
+    cura::parallel_for<size_t>(0, keys.size() * 3, // todo:In a perfect world this would be a parallel for nowait, but as currently (5.0,5.1) cura changes its parallelization so often reimplementing a non blocking parallel for each version is too much work, so until things have settled this will stay as a normal parallel for
         [&, keys, all_types](const size_t iter_idx)
         {
         size_t key_idx = iter_idx / 3;
@@ -766,7 +784,6 @@ std::future<void> TreeModelVolumes::calculateAvoidance(std::deque<RadiusLayerPai
             start_layer = std::max(start_layer, LayerIndex(1)); // Ensure StartLayer is at least 1 as if no avoidance was calculated getMaxCalculatedLayer returns -1
             std::vector<std::pair<RadiusLayerPair, Polygons>> data(max_required_layer + 1, std::pair<RadiusLayerPair, Polygons>(RadiusLayerPair(radius, -1), Polygons()));
 
-
             latest_avoidance = getAvoidance(radius, start_layer - 1, type, false, true); // minDist as the delta was already added, also avoidance for layer 0 will return the collision.
 
             // ### main loop doing the calculation
@@ -782,8 +799,9 @@ std::future<void> TreeModelVolumes::calculateAvoidance(std::deque<RadiusLayerPai
                 {
                     col = getCollision(radius, layer, true);
                 }
+
                 latest_avoidance = safeOffset(latest_avoidance, -offset_speed, ClipperLib::jtRound, -max_step_move, col);
-                latest_avoidance.simplify(min_maximum_resolution_, min_maximum_deviation_);
+                latest_avoidance = simplifier.polygon(latest_avoidance);
                 data[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance);
             }
 
@@ -803,12 +821,11 @@ std::future<void> TreeModelVolumes::calculateAvoidance(std::deque<RadiusLayerPai
             }
         }
     });
-    return ret;
 }
 
-std::future<void> TreeModelVolumes::calculatePlaceables(std::deque<RadiusLayerPair> keys)
+void TreeModelVolumes::calculatePlaceables(std::deque<RadiusLayerPair> keys)
 {
-    std::future<void> ret = cura::parallel_for_nowait<size_t>(0, keys.size(), 1,
+    cura::parallel_for<size_t>(0, keys.size(), // todo:In a perfect world this would be a parallel for nowait, but as currently (5.0,5.1) cura changes its parallelization so often reimplementing a non blocking parallel for each version is too much work, so until things have settled this will stay as a normal parallel for
         [&, keys](const size_t key_idx)
         {
         const coord_t radius = keys[key_idx].first;
@@ -837,9 +854,8 @@ std::future<void> TreeModelVolumes::calculatePlaceables(std::deque<RadiusLayerPa
         {
             key.second = layer;
             Polygons placeable = getPlaceableAreas(0, layer);
-            placeable.simplify(min_maximum_resolution_, min_maximum_deviation_); // it is faster to do this here in each thread than once in calculateCollision.
-            placeable = placeable.offset(-radius);
-
+            placeable = simplifier.polygon(placeable); // it is faster to do this here in each thread than once in calculateCollision.
+            placeable = placeable.offset(-(radius + (current_min_xy_dist + current_min_xy_dist_delta))).unionPolygons(); // todo comment
             data[layer] = std::pair<RadiusLayerPair, Polygons>(key, placeable);
         }
 
@@ -858,15 +874,14 @@ std::future<void> TreeModelVolumes::calculatePlaceables(std::deque<RadiusLayerPa
             placeable_areas_cache_.insert(data.begin(), data.end());
         }
     });
-    return ret;
 }
 
 
-std::future<void> TreeModelVolumes::calculateAvoidanceToModel(std::deque<RadiusLayerPair> keys)
+void TreeModelVolumes::calculateAvoidanceToModel(std::deque<RadiusLayerPair> keys)
 {
     // For every RadiusLayer pair there are 3 avoidances that have to be calculated, calculated in the same parallel_for loop for better parallelization.
     const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
-    std::future<void> ret = cura::parallel_for_nowait<size_t>(0, keys.size() * 3, 1,
+    cura::parallel_for<size_t>(0, keys.size() * 3, // todo:In a perfect world this would be a parallel for nowait, but as currently (5.0,5.1) cura changes its parallelization so often reimplementing a non blocking parallel for each version is too much work, so until things have settled this will stay as a normal parallel for
         [&, keys, all_types](const size_t iter_idx)
         {
         size_t key_idx = iter_idx / 3;
@@ -919,8 +934,7 @@ std::future<void> TreeModelVolumes::calculateAvoidanceToModel(std::deque<RadiusL
             }
 
             latest_avoidance = safeOffset(latest_avoidance, -offset_speed, ClipperLib::jtRound, -max_step_move, col).difference(getPlaceableAreas(radius, layer));
-
-            latest_avoidance.simplify(min_maximum_resolution_, min_maximum_deviation_);
+            latest_avoidance = simplifier.polygon(latest_avoidance);
             data[layer] = std::pair<RadiusLayerPair, Polygons>(key, latest_avoidance);
         }
 
@@ -939,12 +953,10 @@ std::future<void> TreeModelVolumes::calculateAvoidanceToModel(std::deque<RadiusL
             (slow ? avoidance_cache_to_model_slow_ : holefree ? avoidance_cache_hole_to_model_ : avoidance_cache_to_model_).insert(data.begin(), data.end());
         }
     });
-
-    return ret;
 }
 
 
-std::future<void> TreeModelVolumes::calculateWallRestrictions(std::deque<RadiusLayerPair> keys)
+void TreeModelVolumes::calculateWallRestrictions(std::deque<RadiusLayerPair> keys)
 {
     // Wall restrictions are mainly important when they represent actual walls that are printed, and not "just" the configured z_distance, because technically valid placement is no excuse for moving through a wall.
     // As they exist to prevent accidentially moving though a wall at high speed between layers like thie (x = wall,i = influence area,o= empty space,d = blocked area because of z distance) Assume maximum movement distance is two characters and maximum safe movement distance of one character
@@ -981,7 +993,7 @@ std::future<void> TreeModelVolumes::calculateWallRestrictions(std::deque<RadiusL
      *  layer z-1: ixiiiiiiiiiii
      */
 
-    std::future<void> ret = cura::parallel_for_nowait<size_t>(0, keys.size(), 1,
+    cura::parallel_for<size_t>(0, keys.size(), // todo:In a perfect world this would be a parallel for nowait, but as currently (5.0,5.1) cura changes its parallelization so often reimplementing a non blocking parallel for each version is too much work, so until things have settled this will stay as a normal parallel for
         [&, keys](const size_t key_idx)
         {
         coord_t radius = keys[key_idx].first;
@@ -1003,13 +1015,11 @@ std::future<void> TreeModelVolumes::calculateWallRestrictions(std::deque<RadiusL
         {
             key.second = layer_idx;
             LayerIndex layer_idx_below = layer_idx - 1;
-            Polygons wall_restriction = getCollision(0, layer_idx, false).intersection(getCollision(radius, layer_idx_below, true)); // radius contains current_min_xy_dist_delta already if required
-            wall_restriction.simplify(min_maximum_resolution_, min_maximum_deviation_);
+            Polygons wall_restriction = simplifier.polygon(getCollision(0, layer_idx, false).intersection(getCollision(radius, layer_idx_below, true))); // radius contains current_min_xy_dist_delta already if required
             data.emplace(key, wall_restriction);
             if (current_min_xy_dist_delta > 0)
             {
-                Polygons wall_restriction_min = getCollision(0, layer_idx, true).intersection(getCollision(radius, layer_idx_below, true));
-                wall_restriction_min.simplify(min_maximum_resolution_, min_maximum_deviation_);
+                Polygons wall_restriction_min = simplifier.polygon(getCollision(0, layer_idx, true).intersection(getCollision(radius, layer_idx_below, true)));
                 data_min.emplace(key, wall_restriction_min);
             }
         }
@@ -1024,7 +1034,6 @@ std::future<void> TreeModelVolumes::calculateWallRestrictions(std::deque<RadiusL
             wall_restrictions_cache_min_.insert(data_min.begin(), data_min.end());
         }
     });
-    return ret;
 }
 
 coord_t TreeModelVolumes::ceilRadius(coord_t radius) const
@@ -1105,4 +1114,4 @@ Polygons TreeModelVolumes::calculateMachineBorderCollision(Polygon machine_borde
     return machine_volume_border;
 }
 
-}
+} // namespace cura

@@ -9,9 +9,11 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "TreeSupportSettings.h"
 #include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
 #include "sliceDataStorage.h"
+#include "utils/Simplify.h"
 #include "utils/polygon.h" //For polygon parameters.
 
 namespace cura
@@ -28,12 +30,6 @@ class TreeModelVolumes
     TreeModelVolumes(const TreeModelVolumes&) = delete;
     TreeModelVolumes& operator=(const TreeModelVolumes&) = delete;
 
-    enum class AvoidanceType
-    {
-        SLOW,
-        FAST_SAFE,
-        FAST
-    };
 
     /*!
      * \brief Precalculate avoidances and collisions up to this layer.
@@ -197,9 +193,8 @@ class TreeModelVolumes
      * The result is a 2D area that would cause nodes of radius \p radius to
      * collide with the model. Result is saved in the cache.
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
-     * \return A future that has to be waited on
      */
-    [[nodiscard]] std::future<void> calculateAvoidance(std::deque<RadiusLayerPair> keys);
+    void calculateAvoidance(std::deque<RadiusLayerPair> keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model.
@@ -210,7 +205,7 @@ class TreeModelVolumes
      */
     void calculateAvoidance(RadiusLayerPair key)
     {
-        calculateAvoidance(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) }).wait();
+        calculateAvoidance(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) });
     }
 
     /*!
@@ -220,7 +215,7 @@ class TreeModelVolumes
      */
     void calculatePlaceables(RadiusLayerPair key)
     {
-        calculatePlaceables(std::deque<RadiusLayerPair>{ key }).wait();
+        calculatePlaceables(std::deque<RadiusLayerPair>{ key });
     }
 
     /*!
@@ -228,9 +223,8 @@ class TreeModelVolumes
      * Result is saved in the cache.
      * \param keys RadiusLayerPair of the requested areas. The radius will be calculated up to the provided layer.
      *
-     * \return A future that has to be waited on
      */
-    [[nodiscard]] std::future<void> calculatePlaceables(std::deque<RadiusLayerPair> keys);
+    void calculatePlaceables(std::deque<RadiusLayerPair> keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a single layer.
@@ -239,9 +233,8 @@ class TreeModelVolumes
      * collide with the model in a not wanted way. Result is saved in the cache.
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
      *
-     * \return A future that has to be waited on
      */
-    [[nodiscard]] std::future<void> calculateAvoidanceToModel(std::deque<RadiusLayerPair> keys);
+    void calculateAvoidanceToModel(std::deque<RadiusLayerPair> keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a single layer.
@@ -252,7 +245,7 @@ class TreeModelVolumes
      */
     void calculateAvoidanceToModel(RadiusLayerPair key)
     {
-        calculateAvoidanceToModel(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) }).wait();
+        calculateAvoidanceToModel(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) });
     }
     /*!
      * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed object).
@@ -263,7 +256,7 @@ class TreeModelVolumes
      *
      * \return A future that has to be waited on
      */
-    [[nodiscard]] std::future<void> calculateWallRestrictions(std::deque<RadiusLayerPair> keys);
+    void calculateWallRestrictions(std::deque<RadiusLayerPair> keys);
 
     /*!
      * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed object).
@@ -272,7 +265,7 @@ class TreeModelVolumes
      */
     void calculateWallRestrictions(RadiusLayerPair key)
     {
-        calculateWallRestrictions(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) }).wait();
+        calculateWallRestrictions(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) });
     }
 
     /*!
@@ -302,14 +295,7 @@ class TreeModelVolumes
      * move in consecutive layers if it does not have to avoid the model
      */
     coord_t max_move_slow_;
-    /*!
-     * \brief The smallest maximum resolution for simplify
-     */
-    coord_t min_maximum_resolution_;
-    /*!
-     * \brief The smallest maximum deviation for simplify
-     */
-    coord_t min_maximum_deviation_;
+
     /*!
      * \brief Whether the precalculate was called, meaning every required value should be cached.
      */
@@ -333,6 +319,7 @@ class TreeModelVolumes
     /*!
      * \brief The progress of the precalculate function for communicating it to the progress bar.
      */
+
     coord_t precalculation_progress = 0;
     /*!
      * \brief The progress multiplier of all values added progress bar.
@@ -372,6 +359,10 @@ class TreeModelVolumes
      */
     coord_t radius_0;
 
+    /*!
+     * \brief Does the main model require regular avoidance, or only avoidance to model.
+     */
+    RestPreference support_rest_preference;
 
     /*!
      * \brief Caches for the collision, avoidance and areas on the model where support can be placed safely
@@ -423,6 +414,8 @@ class TreeModelVolumes
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_min_ = std::make_unique<std::mutex>();
 
     std::unique_ptr<std::mutex> critical_progress = std::make_unique<std::mutex>();
+
+    Simplify simplifier=Simplify(0,0,0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
 };
 
 }
