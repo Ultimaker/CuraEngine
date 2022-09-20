@@ -2012,6 +2012,13 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
             delete checked[layer - layer_idx];
         }
 
+        //If resting on the buildplate keep bp location
+        if (config.support_rest_preference != RestPreference::BUILDPLATE && last_successfull_layer == 0)
+        {
+            return false;
+        }
+
+
         // Guess a point inside the influence area, in which the branch will be placed in.
         Point best = checked[last_successfull_layer - layer_idx]->next_position;
 
