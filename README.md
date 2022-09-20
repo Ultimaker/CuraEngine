@@ -164,6 +164,33 @@ Both Overlap (This causes filament be extruded twice at the same location (Once 
 
 </details>
 
+<details>
+<summary>Tree Support Limit Branch Reach and Tree Support Optimal Branch Range (5.1 ALPHA Exclusive)</summary>
+
+Limit how far each branch should travel from the point it supports. This can make the support more sturdy, but will increase the amount of branches. Branches can violate this value to reach their destination.
+
+
+Tree Support Limit Branch Reach Disabled:  
+![Tree Support Limit Branch Reach Disabled](https://raw.githubusercontent.com/gist/ThomasRahm/770a93576a7e4f68aa21d94545a474d2/raw/ae56605b53a3313d5384372e253d5d567aad8e5e/Limit%20Branch%20Reach%20No.png)
+Tree Support Limit Branch Reach Enabled with a small distance:  
+![Tree Support Limit Branch Reach Enabled with a small distance](https://raw.githubusercontent.com/gist/ThomasRahm/770a93576a7e4f68aa21d94545a474d2/raw/ae56605b53a3313d5384372e253d5d567aad8e5e/Limit%20Branch%20Reach%20Yes.png)
+
+</details>
+
+<details>
+<summary>Tree Support Rest Preference (5.1 ALPHA Exclusive)</summary>
+
+The preferred placement of the support structures. Note that the buildplate is assumed to be also a flat surface <sup>(If not i think you have bigger issues than this setting)!</sup>  
+Only visible when the support can rest on the model.
+
+
+Buildplate:  
+![Buildplate](https://raw.githubusercontent.com/gist/ThomasRahm/770a93576a7e4f68aa21d94545a474d2/raw/ae56605b53a3313d5384372e253d5d567aad8e5e/Rest%20Preference%20Buildplate.png)
+On any flat surface:  
+![On any flat surface](https://raw.githubusercontent.com/gist/ThomasRahm/770a93576a7e4f68aa21d94545a474d2/raw/ae56605b53a3313d5384372e253d5d567aad8e5e/Rest%20Preference%20Flat.png)
+
+</details>
+
 `Tree Support Branch Diameter` and `Tree Support Branch Diameter Angle` behave like in the current tree support implementation, but `Tree Support Branch Diameter Angle` is ignored when a diameter increase would invalidate a branch, as a small branch has a higher chance of supporting the model than no branch at all.
 
 # What does it do better:
