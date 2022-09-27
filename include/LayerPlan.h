@@ -178,7 +178,6 @@ protected:
     Ratio extrudeSpeedFactor; //!< The factor by which to alter the extrusion move speed
 
     double extraTime; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
-    double totalPrintTime; //!< The total naive time estimate for this extruder plan
 
     double fan_speed; //!< The fan speed to be used during this extruder plan
 
