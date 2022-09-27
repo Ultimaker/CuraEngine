@@ -4,8 +4,10 @@
 #ifndef UTILS_STRING_H
 #define UTILS_STRING_H
 
+#include <array>
 #include <cassert>
 #include <ostream>
+#include <span>
 
 #include "Coord_t.h"
 #include "math.h"
@@ -26,9 +28,6 @@ static inline int stringcasecompare(const char* a, const char* b)
     return *a - *b;
 }
 
-//! Same representation as std::string_view, but allows mutation of the buffer
-using mut_char_range_t = std::pair<char*, char*>;
-
 /*!
  * \brief Format a fixed point unsigned integer as a decimal ascii string.
  * \tparam fixed_precision log10 of the fixed point scaling factor
@@ -37,8 +36,8 @@ using mut_char_range_t = std::pair<char*, char*>;
  * \param value The unsigned value to format
  * \return A pair of char*, delimiting the result range in the buffer
  */
-template<unsigned fixed_precision, unsigned out_precision>
-static inline mut_char_range_t format_unsigned_decimal_fixed_point(char* const buffer_end, size_t value)
+template<unsigned fixed_precision, unsigned out_precision, size_t buffer_length>
+static inline std::span<char> format_unsigned_decimal_fixed_point(std::array<char, buffer_length>& buffer, size_t value)
 {
     // Rounding to the required precision
     if constexpr (fixed_precision > out_precision)
@@ -50,7 +49,7 @@ static inline mut_char_range_t format_unsigned_decimal_fixed_point(char* const b
     {
         // Writes pairs of digit backward in the buffer. This is heavily inspired by the fmt library.
         size_t quotient = value;
-        char* begin = buffer_end;
+        auto begin = buffer.end();
         while (quotient >= 10)
         {
             const char* twodigits = &"0001020304050607080910111213141516171819"
@@ -60,11 +59,13 @@ static inline mut_char_range_t format_unsigned_decimal_fixed_point(char* const b
                                      "8081828384858687888990919293949596979899"[(quotient % 100) * 2];
             quotient /= 100;
             begin -= 2;
+            assert(begin >= buffer.begin());
             begin[0] = twodigits[0];
             begin[1] = twodigits[1];
         }
         if (quotient > 0)
         { // Odd number of digits
+            assert(begin > buffer.begin());
             *--begin = '0' + static_cast<char>(quotient);
         }
         else if (*begin == '0')
@@ -74,8 +75,8 @@ static inline mut_char_range_t format_unsigned_decimal_fixed_point(char* const b
         assert(*begin != '0');
 
         // Trims zeros at the right of the fractional part
-        char* const first_integral_place = buffer_end - out_precision;
-        char* end = buffer_end;
+        const auto first_integral_place = buffer.end() - out_precision;
+        auto end = buffer.end();
         while (end > first_integral_place)
         {
             if (*(end - 1) != '0')
@@ -92,6 +93,7 @@ static inline mut_char_range_t format_unsigned_decimal_fixed_point(char* const b
             if (begin < first_integral_place)
             {
                 // We also have an integral part: move it one char to the left to make room for the '.'
+                assert(begin > buffer.begin());
                 *std::copy(begin, first_integral_place, begin - 1) = '.';
                 --begin;
             }
@@ -101,6 +103,7 @@ static inline mut_char_range_t format_unsigned_decimal_fixed_point(char* const b
                 std::fill(first_integral_place, begin, '0');
                 // In theory, a leading zero before the decimal point should not required by Gcode, however omitting it crashes PrusaSlicer viewer.
                 begin = first_integral_place - 2;
+                assert(begin >= buffer.begin());
                 begin[0] = '0';
                 begin[1] = '.';
             }
@@ -111,9 +114,10 @@ static inline mut_char_range_t format_unsigned_decimal_fixed_point(char* const b
     }
     else
     {
-        char* const begin = buffer_end - 1;
+        static_assert(buffer_length >= 1);
+        char* const begin = buffer.end() - 1;
         *begin = '0';
-        return { begin, buffer_end };
+        return { begin, buffer.end() };
     }
 }
 
@@ -125,15 +129,17 @@ static inline mut_char_range_t format_unsigned_decimal_fixed_point(char* const b
  * \param value The unsigned value to format
  * \return A pair of char*, delimiting the result range in the buffer
  */
-template<unsigned fixed_precision, unsigned out_precision>
-static inline mut_char_range_t format_signed_decimal_fixed_point(char* const buffer_end, ptrdiff_t value)
+template<unsigned fixed_precision, unsigned out_precision, size_t buffer_length>
+static inline std::span<char> format_signed_decimal_fixed_point(std::array<char, buffer_length>& buffer, ptrdiff_t value)
 {
     bool is_neg = value < 0;
     auto abs_value = static_cast<size_t>(is_neg ? -value : value);
-    auto result = format_unsigned_decimal_fixed_point<fixed_precision, out_precision>(buffer_end, abs_value);
+    auto result = format_unsigned_decimal_fixed_point<fixed_precision, out_precision>(buffer, abs_value);
     if (is_neg)
     {
-        *--result.first = '-';
+        auto begin = --result.begin();
+        *begin = '-';
+        return { begin, result.end() };
     }
     return result;
 }
@@ -151,9 +157,9 @@ struct MMtoStream
         // +1 because digits10 is log_10(max) rounded down
         // +1 for the sign
         // +1 for the decimal separator
-        char buffer[buffer_size];
-        auto res = format_signed_decimal_fixed_point<INT10POW_PER_MM, INT10POW_PER_MM>(buffer + buffer_size, precision_and_input.value);
-        out.write(res.first, res.second - res.first);
+        std::array<char, buffer_size> buffer;
+        auto res = format_signed_decimal_fixed_point<INT10POW_PER_MM, INT10POW_PER_MM>(buffer, precision_and_input.value);
+        out.write(&res.front(), res.size());
         return out;
     }
 };
@@ -172,14 +178,14 @@ struct PrecisionedDouble
     friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble input)
     {
         constexpr size_t buffer_size = std::numeric_limits<coord_t>::digits10 + 3;
-        char buffer[buffer_size];
+        std::array<char, buffer_size> buffer;
 
         constexpr size_t factor = ipow(size_t{ 10 }, precision);
         double scaled_value = input.value * factor;
         assert(std::abs(scaled_value) < static_cast<double>(std::numeric_limits<coord_t>::max()));
         coord_t fixed_point = std::llround(scaled_value);
-        auto res = format_signed_decimal_fixed_point<precision, precision>(buffer + buffer_size, fixed_point);
-        out.write(res.first, res.second - res.first);
+        auto res = format_signed_decimal_fixed_point<precision, precision>(buffer, fixed_point);
+        out.write(&res.front(), res.size());
         return out;
     }
 };
