@@ -53,6 +53,10 @@ constexpr coord_t mm3_to_coord(double n)
 {
     return static_cast<coord_t>(n * INT_PER_MM3 + (n >= 0. ? 0.5 : -0.5));
 }
+constexpr coord_t mu2_to_coord(double n)
+{
+    return static_cast<coord_t>(n * (INT_PER_MM2 / 1000000.) + (n >= 0. ? 0.5 : -0.5));
+}
 
 constexpr coord_t operator"" _mm(long double n)
 {
