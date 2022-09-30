@@ -1,3 +1,20 @@
+"5.2.0":
+    requirements:
+        - "clipper/6.4.2"
+        - "boost/1.79.0"
+        - "rapidjson/1.1.0"
+        - "stb/20200203"
+        - "spdlog/1.10.0"
+        - "fmt/9.0.0"
+        - "range-v3/0.12.0"
+    requirements_arcus:
+        - "protobuf/3.21.4"
+        - "arcus/(latest)@ultimaker/testing"
+        - "zlib/1.2.12"
+    build_requirements_arcus:
+        - "protobuf/3.21.4"
+    build_requirements_testing:
+        - "gtest/1.12.1"
 "5.2.0-alpha":
     requirements:
         - "clipper/6.4.2"
