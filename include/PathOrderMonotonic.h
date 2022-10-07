@@ -168,9 +168,24 @@ public:
                     starting_lines.insert(*polyline_it); //This is a starting point then.
                 }
                 const std::vector<Path*> overlapping_lines = getOverlappingLines(polyline_it, perpendicular, polylines);
-                for(Path* overlapping_line : overlapping_lines)
+                if(overlapping_lines.size() == 1) //If we're not a string of polylines, but adjacent to only one other polyline, create a sequence of polylines.
                 {
-                    starting_lines.insert(overlapping_line);
+                    connections[*polyline_it] = overlapping_lines[0];
+                    if(connected_lines.find(overlapping_lines[0]) != connected_lines.end()) //This line was already connected to.
+                    {
+                        starting_lines.insert(overlapping_lines[0]); //Multiple lines connect to it, so we must be able to start there.
+                    }
+                    else
+                    {
+                        connected_lines.insert(overlapping_lines[0]);
+                    }
+                }
+                else //Either 0 (the for loop terminates immediately) or multiple overlapping lines. For multiple lines we need to mark all of them a starting position.
+                {
+                    for(Path* overlapping_line : overlapping_lines)
+                    {
+                        starting_lines.insert(overlapping_line);
+                    }
                 }
             }
         }
