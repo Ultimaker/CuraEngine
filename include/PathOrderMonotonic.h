@@ -130,7 +130,8 @@ public:
 
         for(auto polyline_it = polylines.begin(); polyline_it != polylines.end(); polyline_it++)
         {
-            if(connections.find(*polyline_it) != connections.end()) //Already connected this one through a polyline.
+            //Skip already visited lines
+            if(connections.find(*polyline_it) != connections.end() && starting_lines.find(*polyline_it) != starting_lines.end())
             {
                 continue;
             }
