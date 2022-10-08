@@ -2125,7 +2125,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
             last_seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr - 1];
         }
     }
-    const bool is_bottom_layer = (layer_nr == mesh.settings.get<LayerIndex>("bottom_layers"));
+    const bool is_bottom_layer = (layer_nr == mesh.settings.get<LayerIndex>("initial_bottom_layers"));
     const bool is_top_layer = ((size_t)layer_nr == (storage.spiralize_wall_outlines.size() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr);
     const int seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr]; // use pre-computed seam vertex index for current layer
     // output a wall slice that is interpolated between the last and current walls
@@ -2981,7 +2981,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 if ((! wall_toolpaths.empty() || ! support_polygons.empty() || ! support_lines.empty()))
                 {
                     int layer_nr = gcode_layer.getLayerNr();
-                    if (layer_nr > (int)infill_extruder.settings.get<size_t>("bottom_layers"))
+                    if (layer_nr > (int)infill_extruder.settings.get<size_t>("initial_bottom_layers"))
                     {
                         // bit of subtlety here... support is being used on a spiralized model and to ensure the travel move from the end of the last spiral
                         // to the start of the support does not go through the model we have to tell the slicer what the current location of the nozzle is
