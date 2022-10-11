@@ -1454,70 +1454,64 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
 void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
 {
     double totalTime = travelTime + extrudeTime;
-    double coolMinExtrudeTime = 0;
-    double slowestExtrudeTime = 0;
-    double slowestPathSpeed = paths[0].config->getSpeed();
+    double total_extrude_time_at_minimum_speed = 0;
+    double total_extrude_time_at_slowest_speed = 0;
 
-    for (GCodePath path : paths)
+    double slowestPathSpeed = DBL_MAX;
+    for (GCodePath& path : paths)
     {
-        coolMinExtrudeTime += path.estimates.extrude_time_at_minimum_speed;
-        slowestExtrudeTime += path.estimates.extrude_time_at_slowest_speed;
+        total_extrude_time_at_minimum_speed += path.estimates.extrude_time_at_minimum_speed;
+        total_extrude_time_at_slowest_speed += path.estimates.extrude_time_at_slowest_speed;
         slowestPathSpeed = std::min(path.config->getSpeed().value * path.speed_factor, slowestPathSpeed);
     }
 
-    if (totalTime < minTime && extrudeTime > 0.0)
+    if (totalTime < minTime - 0.01 && extrudeTime > 0.0)
     {
-        double minExtrudeTime = minTime - travelTime;  // minExtrudeTime     --> minimum time that should be spent on extruding
-        if (minExtrudeTime >= coolMinExtrudeTime) // even at cool min speed extrusion is not taken enough time
+        double minExtrudeTime = minTime - travelTime;
+        if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
         {
-            spdlog::info("CURA7271: staying at coolMinSpeed");
+            // Even at cool min speed extrusion is not taken enough time. So speed is set to cool min speed.
             for (GCodePath& path : paths)
             {
                 if (path.isTravelPath())
                     continue;
                 path.speed_factor = minimalSpeed / (path.config->getSpeed() * path.speed_factor);
-                // this speed factor needs now to be saved to the path.config (or something alternative)
                 path.estimates.extrude_time /= path.speed_factor;
             }
             // Update stored naive time estimates
-            estimates.extrude_time = coolMinExtrudeTime;
-
-            if (minTime - coolMinExtrudeTime - travelTime > 0.1)
+            estimates.extrude_time = total_extrude_time_at_minimum_speed;
+            if (minTime - total_extrude_time_at_minimum_speed - travelTime > 0.1)
             {
-                extraTime = minTime - coolMinExtrudeTime - travelTime;
+                extraTime = minTime - total_extrude_time_at_minimum_speed - travelTime;
             }
         }
-        else if (minExtrudeTime >= slowestExtrudeTime && abs(coolMinExtrudeTime - slowestExtrudeTime) >= 0.01) // slowing down to slowest path speed is not sufficient
+        else if (minExtrudeTime >= total_extrude_time_at_slowest_speed && abs(total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed) >= 0.01)
         {
-            // linear interpolate between slowestExtrudeTime and coolMinExtrudeTime
-            double factor = (coolMinExtrudeTime - minExtrudeTime) / (coolMinExtrudeTime - slowestExtrudeTime);
-            spdlog::info("CURA7271: slowing down to coolMinSpeed, with factor: {:.2f}", factor);
-
+            // Slowing down to the slowest path speed is not sufficient, need to slow down further to the minimum speed.
+            // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
+            double factor = (total_extrude_time_at_minimum_speed - minExtrudeTime) / (total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed);
             double target_speed = minimalSpeed * (1-factor) + slowestPathSpeed * factor;
             for (GCodePath& path : paths)
             {
                 if (path.isTravelPath())
                     continue;
                 path.speed_factor = target_speed / (path.config->getSpeed() * path.speed_factor);
-                // this speed factor needs now to be saved to the path.config (or something alternative)
                 path.estimates.extrude_time /= path.speed_factor;
             }
             // Update stored naive time estimates
             estimates.extrude_time = minExtrudeTime;
         }
-        else if (abs(slowestExtrudeTime - extrudeTime) >= 0.01) // FIXME
+        else
         {
-            // linear interpolate between extrudeTime and slowestExtrudeTime
-            double factor = (slowestExtrudeTime - minExtrudeTime) / (slowestExtrudeTime - extrudeTime);
-            spdlog::info("CURA7271: slowing down to slowestSpeed, with factor: {:.2f}", factor);
-
+            // Slowing down to the slowest_speed is sufficient to respect the minimum layer time.
+            // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
+            double factor = (total_extrude_time_at_slowest_speed - minExtrudeTime) / (total_extrude_time_at_slowest_speed - extrudeTime);
             for (GCodePath& path : paths)
             {
                 if (path.isTravelPath())
                     continue;
                 double target_speed = slowestPathSpeed * (1-factor) + (path.config->getSpeed() * path.speed_factor) * factor;
                 path.speed_factor = target_speed / (path.config->getSpeed() * path.speed_factor);
-                // this speed factor needs now to be saved to the path.config (or something alternative)
                 path.estimates.extrude_time /= path.speed_factor;
             }
             // Update stored naive time estimates
@@ -1531,9 +1525,11 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
     TimeMaterialEstimates ret;
     Point p0 = starting_position;
 
-    double slowest_path_speed = paths[0].config->getSpeed().value;
     double min_path_speed = fan_speed_layer_time_settings.cool_min_speed;
 
+    //TODO: This slowest_path_speed is causing warnings for empty layers and looks a bit uckly to me anyway.
+    //      Maybe it can also be returned, because it is now calculated again in the forceMinimalLayerTime function.
+    double slowest_path_speed = DBL_MAX;
     for (GCodePath& path : paths)
     {
         slowest_path_speed = std::min(slowest_path_speed, path.config->getSpeed().value * path.speed_factor);
@@ -1545,7 +1541,9 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
         bool is_extrusion_path = false;
         double* path_time_estimate;
         double& material_estimate = path.estimates.material;
-        // initialize path estimates at zero
+
+        //TODO: I don't understand why it is needed to initialize these path estimates at zero. But if I don't do it,
+        //      weird values are returned for non extruding paths.
         path.estimates.extrude_time_at_minimum_speed = 0;
         path.estimates.extrude_time_at_slowest_speed = 0;
 

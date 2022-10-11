@@ -17,8 +17,8 @@ class TimeMaterialEstimates
     friend class ExtruderPlan; // cause there the naive estimates are calculated
 private:
     double extrude_time; //!< Time in seconds occupied by extrusion
-    double extrude_time_at_slowest_speed;
-    double extrude_time_at_minimum_speed;
+    double extrude_time_at_slowest_speed; //!< Time in seconds occupied by extrusion assuming paths are printed at slowest path speed
+    double extrude_time_at_minimum_speed; //!< Time in seconds occupied by extrusion assuming paths are printed at minimum path speed
     double unretracted_travel_time; //!< Time in seconds occupied by non-retracted travel (non-extrusion)
     double retracted_travel_time; //!< Time in seconds occupied by retracted travel (non-extrusion)
     double material; //!< Material used (in mm^3)
