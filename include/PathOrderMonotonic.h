@@ -411,6 +411,8 @@ protected:
         const coord_t my_end   = dot((*polyline_it)->converted->back(),  perpendicular);
         const coord_t my_farthest = std::max(my_start, my_end);
         const coord_t my_closest  = std::min(my_start, my_end);
+        const coord_t my_farthest_padded = my_farthest + max_adjacent_projected_distance;
+        const coord_t my_closest_padded  = my_closest  - max_adjacent_projected_distance;
 
         std::vector<Path*> overlapping_lines;
         for(auto overlapping_line = polyline_it + 1; overlapping_line != polylines.end(); overlapping_line++)
@@ -437,9 +439,9 @@ protected:
             - We are a smaller line, they completely overlap us. Both my_start and my_end are between their_start and their_end. (Caught with the first 2 conditions already.)
             - We are a bigger line, and completely overlap them. Both their_start and their_end are between my_start and my_end.
             - Lines are exactly equal. Start and end are the same. (Caught with the previous condition too.)*/
-            if(    (my_closest    >= their_closest && my_closest     <= their_farthest)
-                || (my_farthest   >= their_closest && my_farthest    <= their_farthest)
-                || (their_closest >= my_closest    && their_farthest <= my_farthest))
+            if(    (my_closest_padded  >= their_closest     && my_closest_padded  <= their_farthest)
+                || (my_farthest_padded >= their_closest     && my_farthest_padded <= their_farthest)
+                || (their_closest      >= my_closest_padded && their_farthest     <= my_farthest_padded))
             {
                 overlapping_lines.push_back(*overlapping_line);
             }
