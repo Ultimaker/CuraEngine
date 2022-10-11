@@ -1564,7 +1564,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         else if (minExtrudeTime >= slowestExtrudeTime && abs(coolMinExtrudeTime - slowestExtrudeTime) >= 0.01) // slowing down to slowest path speed is not sufficient
         {
             // linear interpolate between slowestExtrudeTime and coolMinExtrudeTime
-            double factor = (coolMinExtrudeTime - minExtrudeTime) / std::max(slowestExtrudeTime - coolMinExtrudeTime, 0.01);
+            double factor = (coolMinExtrudeTime - minExtrudeTime) / (coolMinExtrudeTime - slowestExtrudeTime);
             if (factor < 0 || factor > 1) {
                 std::cout << "factor outside range2: " << factor << std::endl;
                 std::cout << "coolMinExtrudeTime minExtrudeTime slowestExtrudeTime" << " " << coolMinExtrudeTime << " " << minExtrudeTime << " " << slowestExtrudeTime << std::endl;
@@ -1588,7 +1588,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         else if (abs(slowestExtrudeTime - extrudeTime) >= 0.01) // FIXME
         {
             // linear interpolate between extrudeTime and slowestExtrudeTime
-            double factor = (slowestExtrudeTime - minExtrudeTime) / std::max(extrudeTime - slowestExtrudeTime, 0.01);
+            double factor = (slowestExtrudeTime - minExtrudeTime) / (slowestExtrudeTime - extrudeTime);
             if (factor < 0 || factor > 1) {
                 std::cout << "factor outside range3: " << factor << std::endl;
                 std::cout << "coolMinExtrudeTime minExtrudeTime slowestExtrudeTime extrudeTime" << " " << coolMinExtrudeTime << " " << minExtrudeTime << " " << slowestExtrudeTime  << " " << extrudeTime << std::endl;
@@ -1628,14 +1628,16 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
         slowest_path_speed = std::min(slowest_path_speed, path.config->getSpeed().value * path.speed_factor);
     }
 
-    std::cout << "slowest_path_speed: " << slowest_path_speed << std::endl;
-
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
     for (GCodePath& path : paths)
     {
         bool is_extrusion_path = false;
         double* path_time_estimate;
         double& material_estimate = path.estimates.material;
+        // initialize path estimates at zero
+        path.estimates.extrude_time_at_minimum_speed = 0;
+        path.estimates.extrude_time_at_slowest_speed = 0;
+
         if (! path.isTravelPath())
         {
             is_extrusion_path = true;
@@ -1671,24 +1673,11 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
             double length = vSizeMM(p0 - p1);
             if (is_extrusion_path)
             {
-                // TODO these are returning a massive values
-                if (path.estimates.extrude_time_at_slowest_speed > 1000 )
-                {
-                    std::cout << "old_slow_speed:                                " << path.estimates.extrude_time_at_slowest_speed << std::endl;
-                }
-
                 if (length > 0)
                 {
                     path.estimates.extrude_time_at_minimum_speed += length / min_path_speed;
                     path.estimates.extrude_time_at_slowest_speed += length / slowest_path_speed;
                 }
-
-                if (path.estimates.extrude_time_at_slowest_speed > 1000 )
-                {
-                    std::cout << "length: " << length << "  slowest_path_speed: " << slowest_path_speed  << "  min_path_speed: " << min_path_speed << std::endl;
-                    std::cout << "path.estimates.extrude_time_at_slowest_speed:  " << path.estimates.extrude_time_at_slowest_speed << std::endl;
-                }
-
                 material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
             }
             double thisTime = length / (path.config->getSpeed() * path.speed_factor);
