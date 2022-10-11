@@ -101,7 +101,7 @@ public:
         SparsePointGridInclusive<Path*> line_bucket_grid(MM2INT(2)); //Grid size of 2mm.
         for(Path* polyline : polylines)
         {
-            if(!polyline->converted->empty())
+            if(! polyline->converted->empty())
             {
                 line_bucket_grid.insert(polyline->converted->front(), polyline);
                 line_bucket_grid.insert(polyline->converted->back(), polyline);
@@ -168,7 +168,7 @@ public:
                 if(overlapping_lines.size() == 1) //If we're not a string of polylines, but adjacent to only one other polyline, create a sequence of polylines.
                 {
                     connections[*polyline_it] = overlapping_lines[0];
-                    if(connected_lines.find(overlapping_lines[0]) != connected_lines.end()) //This line was already connected to.
+                    if(connected_lines.contains(overlapping_lines[0])) //This line was already connected to.
                     {
                         starting_lines.insert(overlapping_lines[0]); //Multiple lines connect to it, so we must be able to start there.
                     }
