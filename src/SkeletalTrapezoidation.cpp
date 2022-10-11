@@ -4,6 +4,7 @@
 #include "SkeletalTrapezoidation.h"
 
 #include <spdlog/spdlog.h>
+#include <range/v3/view/drop_last.hpp>
 
 #include "settings/types/Ratio.h"
 #include <functional>
@@ -1321,21 +1322,19 @@ bool SkeletalTrapezoidation::isEndOfCentral(const edge_t& edge_to) const
 
 void SkeletalTrapezoidation::generateExtraRibs()
 {
-    auto end_edge_it = --graph.edges.end(); // Don't check newly introduced edges
-    for (auto edge_it = graph.edges.begin(); std::prev(edge_it) != end_edge_it; ++edge_it)
+    for (auto edge : graph.edges | ranges::views::drop_last(1))
     {
-        edge_t& edge = *edge_it;
-
         if (! edge.data.isCentral() || shorterThen(edge.to->p - edge.from->p, discretization_step_size) || edge.from->data.distance_to_boundary >= edge.to->data.distance_to_boundary)
         {
             continue;
         }
 
-
         std::vector<coord_t> rib_thicknesses = beading_strategy.getNonlinearThicknesses(edge.from->data.bead_count);
 
         if (rib_thicknesses.empty())
+        {
             continue;
+        }
 
         // Preload some variables before [edge] gets changed
         node_t* from = edge.from;
