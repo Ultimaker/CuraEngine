@@ -44,7 +44,6 @@ ExtruderPlan::ExtruderPlan(const size_t extruder,
     , layer_thickness(layer_thickness)
     , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
     , retraction_config(retraction_config)
-    , extrudeSpeedFactor(1.0)
     , extraTime(0.0)
 {
 }
@@ -67,16 +66,6 @@ void ExtruderPlan::handleAllRemainingInserts(GCodeExport& gcode)
         insert.write(gcode);
         inserts.pop_front();
     }
-}
-
-void ExtruderPlan::setExtrudeSpeedFactor(const Ratio speed_factor)
-{
-    extrudeSpeedFactor = speed_factor;
-}
-
-double ExtruderPlan::getExtrudeSpeedFactor()
-{
-    return extrudeSpeedFactor;
 }
 
 void ExtruderPlan::setFanSpeed(double _fan_speed)
@@ -1476,7 +1465,6 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         slowestPathSpeed = std::min(path.config->getSpeed().value * path.speed_factor, slowestPathSpeed);
     }
 
-
     if (totalTime < minTime && extrudeTime > 0.0)
     {
         double minExtrudeTime = minTime - travelTime;  // minExtrudeTime     --> minimum time that should be spent on extruding
@@ -1909,11 +1897,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             // for some movements such as prime tower purge, the speed may get changed by this factor
             speed *= path.speed_factor;
 
-            // Apply the extrusion speed factor if it's an extrusion move.
-            if (! path.config->isTravelPath())
-            {
-                speed *= extruder_plan.getExtrudeSpeedFactor();
-            }
             // This seems to be the best location to place this, but still not ideal.
             if (path.mesh_id != current_mesh)
             {
@@ -2096,7 +2079,7 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
 
     coord_t coasting_min_dist_considered = MM2INT(0.1); // hardcoded setting for when to not perform coasting
 
-    const double extrude_speed = path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor() * path.speed_factor * path.speed_back_pressure_factor;
+    const double extrude_speed = path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
 
     const coord_t coasting_dist = MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     const double coasting_min_volume = extruder.settings.get<double>("coasting_min_volume");
@@ -2184,7 +2167,7 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
     for (size_t point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
         const Ratio coasting_speed_modifier = extruder.settings.get<Ratio>("coasting_speed");
-        const Velocity speed = Velocity(coasting_speed_modifier * path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor());
+        const Velocity speed = Velocity(coasting_speed_modifier * path.config->getSpeed());
         gcode.writeTravel(path.points[point_idx], speed);
     }
     return true;
