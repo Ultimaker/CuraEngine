@@ -127,7 +127,7 @@ public:
 
         for(auto polyline_it = polylines.begin(); polyline_it != polylines.end(); polyline_it++)
         {
-            if(connections.find(*polyline_it) != connections.end()) //Already connected this one through a polyline.
+            if(connections.contains(*polyline_it)) //Already connected this one through a polyline.
             {
                 continue;
             }
@@ -160,7 +160,7 @@ public:
             }
             else //Not a string of polylines, but simply adjacent line segments.
             {
-                if(connected_lines.find(*polyline_it) == connected_lines.end()) //Nothing connects to this line yet.
+                if(! connected_lines.contains(*polyline_it)) //Nothing connects to this line yet.
                 {
                     starting_lines.insert(*polyline_it); //This is a starting point then.
                 }
