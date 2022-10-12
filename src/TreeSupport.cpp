@@ -598,8 +598,8 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
 
 TreeSupport::Node* TreeSupport::insertDroppedNode(std::vector<Node*>& nodes_layer, Node* p_node)
 {
-    const std::function<bool(Node*)> node_ptr_eq{ [&p_node](Node* p_other) { return p_node->position == p_other->position; } };
-    std::vector<Node*>::iterator conflicting_node_it = std::find_if(nodes_layer.begin(), nodes_layer.end(), node_ptr_eq);
+    auto node_ptr_eq{ [&p_node](Node* p_other) { return p_node->position == p_other->position; } };
+    auto conflicting_node_it = std::find_if(nodes_layer.begin(), nodes_layer.end(), node_ptr_eq);
     if (conflicting_node_it == nodes_layer.end()) // No conflict.
     {
         nodes_layer.emplace_back(p_node);
