@@ -1980,8 +1980,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (extruder_plan_idx == extruder_plans.size() - 1 || ! extruder.settings.get<bool>("machine_extruder_end_pos_abs"))
             { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area
                 // or do it anyway when we switch extruder in-place
-                gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
-                gcode.writeTravel(gcode.getPositionXY(), configs_storage.travel_config_per_extruder[extruder_nr].getSpeed());
+                gcode.writeZhopStart(MM2INT(3.0));
             }
             gcode.writeDelay(extruder_plan.extraTime);
         }
