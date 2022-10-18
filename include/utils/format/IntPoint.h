@@ -4,16 +4,14 @@
 #ifndef CURAENGINE_UTILS_FORMAT_H
 #define CURAENGINE_UTILS_FORMAT_H
 
+#include "utils/IntPoint.h"
+
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-namespace ClipperLib
-{
-class IntPoint; // Forward declaration
-}
 
 template<>
-struct [[maybe_unused]] fmt::formatter<ClipperLib::IntPoint>
+struct [[maybe_unused]] fmt::formatter<cura::Point>
 {
     constexpr auto parse(fmt::format_parse_context& ctx) -> decltype(ctx.begin())
     {
@@ -35,7 +33,7 @@ struct [[maybe_unused]] fmt::formatter<ClipperLib::IntPoint>
      * \endcode
      **/
     template<typename FormatContext>
-    auto format(const ClipperLib::IntPoint& point, FormatContext& ctx) const -> decltype(ctx.out())
+    auto format(const cura::Point& point, FormatContext& ctx) const -> decltype(ctx.out())
     {
         return fmt::format_to(ctx.out(), "[{}, {}]", point.X, point.Y);
     }
