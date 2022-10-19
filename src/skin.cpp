@@ -305,6 +305,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
 void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 {
     const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+    const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
 
     for(SkinPart& skin_part : part.skin_parts)
     {
@@ -349,6 +350,27 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
                 skin_part.inset_paths.clear();
                 regenerateRoofingFillAndInnerInfill(part, skin_part);
             }
+        }
+
+        if (!skin_part.roofing_fill.empty() && skin_part.skin_fill.empty()) // There is no skin_fill on this layer skin_overlap offset only needs to be applied to the roofing_fill
+        {
+            skin_part.roofing_fill = skin_part.roofing_fill.offset(skin_overlap);
+        }
+        else if (skin_part.roofing_fill.empty() && !skin_part.skin_fill.empty()) // There is no roofing_fill on this layer skin_overlap offset only needs to be applied to the skin_fill
+        {
+            skin_part.skin_fill = skin_part.skin_fill.offset(skin_overlap);
+        }
+        else if (!skin_part.skin_fill.empty() && !skin_part.roofing_fill.empty())
+        {
+            // Find the intersection of roofing and skin offset (skin_overlap_mm) areas.
+            Polygons skin_overlap_area = skin_part.skin_fill.offset(skin_overlap).difference(skin_part.skin_fill); // skin_overlap offset area around the skin
+            Polygons roofing_overlap_area = skin_part.roofing_fill.offset(skin_overlap).difference(skin_part.roofing_fill); // skin_overlap offset area around the roofing
+            Polygons skin_roofing_overlap_intersection = skin_overlap_area.intersection(roofing_overlap_area);
+
+            // If we offset to both the roofing_fill and skin_fill, when adjacent they would have a doubled offset area. Since they would both offset towards each other.
+            // We only apply the intersecting offset areas to skin_fill.
+            skin_part.roofing_fill = skin_part.roofing_fill.unionPolygons(roofing_overlap_area.difference(skin_roofing_overlap_intersection));
+            skin_part.skin_fill = skin_part.skin_fill.unionPolygons(skin_roofing_overlap_intersection);
         }
     }
 }
