@@ -151,7 +151,7 @@ protected:
      * \param part Where to get the SkinParts to get the outline info from
      * \param roofing_layer_count The number of layers above the layer which we are looking into
      */
-    Polygons generateNoAirAbove(SliceLayerPart& part, size_t roofing_layer_count);
+    Polygons generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count);
 
     /*!
      * Helper function to calculate and return the areas which are 'directly' above air.
