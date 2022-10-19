@@ -2383,7 +2383,7 @@ void FffGcodeWriter::processRoofing(const SliceDataStorage& storage,
     }
 
     const Ratio skin_density = 1.0;
-    const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
+    const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
     const bool monotonic = mesh.settings.get<bool>("roofing_monotonic");
     processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.roofing_fill, mesh_config.roofing_config, pattern, roofing_angle, skin_overlap, skin_density, monotonic, added_something);
 }
