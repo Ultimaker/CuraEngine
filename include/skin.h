@@ -159,7 +159,7 @@ protected:
      * \param part Where to get the SkinParts to get the outline info from
      * \param flooring_layer_count The number of layers below the layer which we are looking into
      */
-    Polygons generateNoAirBelow(SliceLayerPart& part, size_t flooring_layer_count);
+    Polygons generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
 
     /*!
      * Helper function to recalculate the roofing fill and inner infill in roofing layers where the 
