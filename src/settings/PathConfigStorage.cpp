@@ -1,14 +1,14 @@
 //Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "PathConfigStorage.h"
-#include "Settings.h" // MAX_INFILL_COMBINE
-#include "../Application.h"
-#include "../ExtruderTrain.h"
-#include "../raft.h"
-#include "../Slice.h"
-#include "../sliceDataStorage.h" // SliceDataStorage
-#include "../settings/EnumSettings.h" //For EPlatformAdhesion.
+#include "settings/PathConfigStorage.h"
+#include "settings/Settings.h" // MAX_INFILL_COMBINE
+#include "Application.h"
+#include "ExtruderTrain.h"
+#include "raft.h"
+#include "Slice.h"
+#include "sliceDataStorage.h" // SliceDataStorage
+#include "settings/EnumSettings.h" //For EPlatformAdhesion.
 
 namespace cura
 {
@@ -36,14 +36,14 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     PrintFeatureType::OuterWall
     , mesh.settings.get<coord_t>("wall_line_width_0") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr]
     , layer_thickness
-    , mesh.settings.get<Ratio>("wall_0_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
+    , mesh.settings.get<Ratio>("wall_0_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("wall_0_material_flow_layer_0") : Ratio(1.0))
     , GCodePathConfig::SpeedDerivatives{mesh.settings.get<Velocity>("speed_wall_0"), mesh.settings.get<Acceleration>("acceleration_wall_0"), mesh.settings.get<Velocity>("jerk_wall_0")}
 )
 , insetX_config(
     PrintFeatureType::InnerWall
     , mesh.settings.get<coord_t>("wall_line_width_x") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr]
     , layer_thickness
-    , mesh.settings.get<Ratio>("wall_x_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
+    , mesh.settings.get<Ratio>("wall_x_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("wall_x_material_flow_layer_0") : Ratio(1.0))
     , GCodePathConfig::SpeedDerivatives{mesh.settings.get<Velocity>("speed_wall_x"), mesh.settings.get<Acceleration>("acceleration_wall_x"), mesh.settings.get<Velocity>("jerk_wall_x")}
 )
 , bridge_inset0_config(
@@ -68,7 +68,7 @@ PathConfigStorage::MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh
     PrintFeatureType::Skin
     , mesh.settings.get<coord_t>("skin_line_width") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr]
     , layer_thickness
-    , mesh.settings.get<Ratio>("skin_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio(1.0))
+    , mesh.settings.get<Ratio>("skin_material_flow") * ((layer_nr == 0) ? mesh.settings.get<Ratio>("skin_material_flow_layer_0") : Ratio(1.0))
     , GCodePathConfig::SpeedDerivatives{mesh.settings.get<Velocity>("speed_topbottom"), mesh.settings.get<Acceleration>("acceleration_topbottom"), mesh.settings.get<Velocity>("jerk_topbottom")}
 )
 , bridge_skin_config( // use bridge skin flow, speed and fan

@@ -1,13 +1,13 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "ListPolyIt.h"
+#include "utils/ListPolyIt.h"
 
 #include <cmath> // isfinite
 #include <sstream> // ostream
 
-#include "AABB.h" // for debug output svg html
-#include "SVG.h"
+#include "utils/AABB.h" // for debug output svg html
+#include "utils/SVG.h"
 
 namespace cura 
 {

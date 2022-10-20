@@ -1,10 +1,10 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "GyroidInfill.h"
-#include "../utils/AABB.h"
-#include "../utils/linearAlg2D.h"
-#include "../utils/polygon.h"
+#include "infill/GyroidInfill.h"
+#include "utils/AABB.h"
+#include "utils/linearAlg2D.h"
+#include "utils/polygon.h"
 
 namespace cura {
 

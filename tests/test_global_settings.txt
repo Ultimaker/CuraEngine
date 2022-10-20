@@ -348,7 +348,6 @@ machine_max_jerk_xy=20.0
 max_feedrate_z_override=0
 nozzle_disallowed_areas=[]
 xy_offset_layer_0=0
-machine_buildplate_type=glass
 z_seam_type=sharpest_corner
 jerk_prime_tower=15
 extruder_prime_pos_y=0

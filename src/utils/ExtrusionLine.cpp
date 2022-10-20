@@ -1,11 +1,11 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
 
-#include "ExtrusionLine.h"
-#include "linearAlg2D.h"
-#include "Simplify.h"
+#include "utils/ExtrusionLine.h"
+#include "utils/linearAlg2D.h"
+#include "utils/Simplify.h"
 
 namespace cura
 {

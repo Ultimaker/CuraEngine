@@ -168,7 +168,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     for(size_t n = 0; n < NUM_AXIS; n++)
     {
         block.delta[n] = newPos[n] - currentPosition[n];
-        block.absDelta[n] = fabs(block.delta[n]);
+        block.absDelta[n] = std::abs(block.delta[n]);
         block.maxTravel = std::max(block.maxTravel, block.absDelta[n]);
     }
     if (block.maxTravel <= 0)
@@ -192,7 +192,7 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     for(size_t n = 0; n < NUM_AXIS; n++)
     {
         current_feedrate[n] = (block.delta[n] * feedrate) / block.distance;
-        current_abs_feedrate[n] = fabs(current_feedrate[n]);
+        current_abs_feedrate[n] = std::abs(current_feedrate[n]);
         if (current_abs_feedrate[n] > max_feedrate[n])
         {
             feedrate_factor = std::min(feedrate_factor, Ratio(max_feedrate[n] / current_abs_feedrate[n]));
@@ -239,14 +239,16 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         if (xy_jerk > max_xy_jerk)
         {
             vmax_junction_factor = Ratio(max_xy_jerk / xy_jerk);
-        } 
-        if (fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]) > max_z_jerk)
+        }
+        const double z_jerk = std::abs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]);
+        if (z_jerk > max_z_jerk)
         {
-            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_z_jerk / fabs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS])));
-        } 
-        if (fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]) > max_e_jerk)
+            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_z_jerk / z_jerk));
+        }
+        const double e_jerk = std::abs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]);
+        if (e_jerk > max_e_jerk)
         {
-            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_e_jerk / fabs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS])));
+            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_e_jerk / e_jerk));
         }
         vmax_junction = std::min(previous_nominal_feedrate, vmax_junction * vmax_junction_factor); // Limit speed to max previous speed
     }

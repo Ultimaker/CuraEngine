@@ -1,22 +1,26 @@
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
 #include <stdio.h>
 #include <string.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
 #else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 
-#include "socket.h"
-#include "logoutput.h"
+#include <spdlog/spdlog.h>
+
+#include "utils/socket.h"
 
 namespace cura
 {
-    
+
 #ifdef _WIN32
 bool wsaStartupDone = false;
 #endif
@@ -26,11 +30,11 @@ ClientSocket::ClientSocket()
     sockfd = -1;
 
 #ifdef _WIN32
-    if (!wsaStartupDone)
+    if (! wsaStartupDone)
     {
         WSADATA wsaData;
         memset(&wsaData, 0, sizeof(WSADATA));
-        //WSAStartup needs to be called on windows before sockets can be used. Request version 1.1, which is supported on windows 98 and higher.
+        // WSAStartup needs to be called on windows before sockets can be used. Request version 1.1, which is supported on windows 98 and higher.
         WSAStartup(MAKEWORD(1, 1), &wsaData);
         wsaStartupDone = true;
     }
@@ -41,8 +45,8 @@ void ClientSocket::connectTo(std::string host, int port)
 {
     struct sockaddr_in serv_addr;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    
-    memset(&serv_addr, '0', sizeof(serv_addr)); 
+
+    memset(&serv_addr, '0', sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = inet_addr(host.c_str());
@@ -76,7 +80,7 @@ void ClientSocket::sendAll(const void* data, int length)
     if (sockfd == -1)
         return;
     const char* ptr = static_cast<const char*>(data);
-    while(length > 0)
+    while (length > 0)
     {
         int n = send(sockfd, ptr, length, 0);
         if (n <= 0)
@@ -108,7 +112,7 @@ void ClientSocket::recvAll(void* data, int length)
     if (sockfd == -1)
         return;
     char* ptr = static_cast<char*>(data);
-    while(length > 0)
+    while (length > 0)
     {
         int n = recv(sockfd, ptr, length, 0);
         if (n == 0)
@@ -118,7 +122,7 @@ void ClientSocket::recvAll(void* data, int length)
         }
         if (n < 0)
         {
-            cura::logError("ClientSocket::recvAll error...");
+            spdlog::error("ClientSocket::recvAll error...");
             close();
             return;
         }
@@ -139,4 +143,4 @@ void ClientSocket::close()
     sockfd = -1;
 }
 
-}//namespace cura
+} // namespace cura

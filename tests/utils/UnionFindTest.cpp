@@ -1,9 +1,8 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "utils/UnionFind.h"
 #include <gtest/gtest.h>
-
-#include "../src/utils/UnionFind.h"
 
 namespace cura
 {
@@ -91,7 +90,7 @@ TEST_F(UnionFindTest, UniteSets)
 
     union_find.unite(a, b);
     union_find.unite(c, d);
-    //At this point we have two sets of two.
+    // At this point we have two sets of two.
 
     a = union_find.find('A');
     b = union_find.find('B');
@@ -111,4 +110,4 @@ TEST_F(UnionFindTest, UniteSets)
     ASSERT_EQ(b, c) << "A+B and C+D must now be in the same set.";
 }
 
-}
+} // namespace cura
