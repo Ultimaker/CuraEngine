@@ -5,9 +5,11 @@ name: unit-test
 on:
     push:
         paths:
+            - 'include/**'
             - 'src/**'
             - 'cmake/**'
             - 'tests/**'
+            - 'test_package/**'
             - 'conanfile.py'
             - 'conandata.yml'
             - 'CMakeLists.txt'
@@ -20,10 +22,13 @@ on:
         tags:
             - '[0-9]+.[0-9]+.[0-9]+'
     pull_request:
+        types: [opened, reopened, synchronize]
         paths:
+            - 'include/**'
             - 'src/**'
             - 'cmake/**'
             - 'tests/**'
+            - 'test_package/**'
             - 'conanfile.py'
             - 'conandata.yml'
             - 'CMakeLists.txt'
@@ -104,15 +109,17 @@ jobs:
                 run: |
                     . ./activate_github_actions_runenv.sh
                     . ./activate_github_actions_buildenv.sh
-                working-directory: cmake-build-release/conan
+                working-directory: build/generators
+
+            -   name: Build CuraEngine and tests
+                run: |
+                    cmake --preset release
+                    cmake --build --preset release
 
             -   name: Run Unit Test CuraEngine
                 id: run-test
-                run: |
-                    cmake --toolchain ./conan/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -S .. -B .
-                    cmake --build .
-                    ctest --output-junit engine_test.xml
-                working-directory: cmake-build-release
+                run: ctest --output-junit engine_test.xml
+                working-directory: build/Release
 
             -   name: Publish Unit Test Results
                 id: test-results

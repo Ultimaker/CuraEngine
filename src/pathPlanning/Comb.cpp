@@ -1,21 +1,21 @@
-//Copyright (c) 2021 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "Comb.h"
+#include "pathPlanning/Comb.h"
 
 #include <algorithm>
 #include <functional> // function
 #include <unordered_set>
 
-#include "CombPaths.h"
-#include "LinePolygonsCrossings.h"
-#include "../Application.h"
-#include "../ExtruderTrain.h"
-#include "../Slice.h"
-#include "../utils/linearAlg2D.h"
-#include "../utils/PolygonsPointIndex.h"
-#include "../sliceDataStorage.h"
-#include "../utils/SVG.h"
+#include "pathPlanning/CombPaths.h"
+#include "pathPlanning/LinePolygonsCrossings.h"
+#include "Application.h"
+#include "ExtruderTrain.h"
+#include "Slice.h"
+#include "utils/linearAlg2D.h"
+#include "utils/PolygonsPointIndex.h"
+#include "sliceDataStorage.h"
+#include "utils/SVG.h"
 
 namespace cura {
 

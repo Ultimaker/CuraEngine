@@ -429,9 +429,6 @@ protected:
             simple_poly = Polygon(*path.converted); //Restore the original. We have to output a vertex as the seam position, so there needs to be a vertex.
         }
 
-        // Paths, other than polygons, can be either clockwise or counterclockwise. Make sure this is detected.
-        const bool clockwise = simple_poly.orientation();
-
         const Point focus_fixed_point = (seam_config.type == EZSeamType::USER_SPECIFIED)
             ? seam_config.pos
             : Point(0, std::sqrt(std::numeric_limits<coord_t>::max())); //Use sqrt, so the squared size can be used when comparing distances.
@@ -455,7 +452,9 @@ protected:
                 ? getDirectDistance(here, target_pos)
                 : getCombingDistance(here, target_pos);
             const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : static_cast<float>(distance) / 1000000;
-            const float corner_angle = (clockwise ? LinearAlg2D::getAngleLeft(previous, here, next) : LinearAlg2D::getAngleLeft(next, here, previous)) / M_PI - 1; //Between -1 and 1.
+            const float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) / M_PI - 1; //Between -1 and 1.
+            // angles < 0 are concave (left turning)
+            // angles > 0 are convex (right turning)
 
             float score;
             const float corner_shift = seam_config.type != EZSeamType::USER_SPECIFIED ? 10000 : 0; //Allow up to 20mm shifting of the seam to find a good location. For SHARPEST_CORNER, this shift is the only factor. For USER_SPECIFIED, don't allow shifting.
@@ -464,28 +463,28 @@ protected:
             default:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
                 score = score_distance;
-                if(corner_angle > 0) //Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
-                {
-                    score -= (corner_angle + 1.0) * corner_shift;
-                }
-                break;
-            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                score = score_distance;
-                if(corner_angle < 0) //Indeed a convex corner?
+                if(corner_angle < 0) //Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
                 {
                     score -= (-corner_angle + 1.0) * corner_shift;
                 }
                 break;
+            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+                score = score_distance;
+                if(corner_angle > 0) //Indeed a convex corner?
+                {
+                    score -= (corner_angle + 1.0) * corner_shift;
+                }
+                break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-                score = score_distance - fabs(corner_angle) * corner_shift; //Still give sharper corners more advantage.
+                score = score_distance - std::abs(corner_angle) * corner_shift; //Still give sharper corners more advantage.
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
                 score = score_distance; //No advantage for sharper corners.
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED: //Give sharper corners some advantage, but sharper concave corners even more.
                 {
-                    float score_corner = fabs(corner_angle) * corner_shift;
-                    if(corner_angle > 0) //Concave corner.
+                    float score_corner = std::abs(corner_angle) * corner_shift;
+                    if(corner_angle < 0) //Concave corner.
                     {
                         score_corner *= 2;
                     }
@@ -496,15 +495,15 @@ protected:
 
             if(seam_config.type == EZSeamType::USER_SPECIFIED) //If user-specified, the seam always needs to be the closest vertex that applies within the filter of the CornerPrefType. Give it a big penalty otherwise.
             {
-                if((seam_config.corner_pref == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER && corner_angle <= 0)
-                || (seam_config.corner_pref == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER && corner_angle >= 0))
+                if((seam_config.corner_pref == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER && corner_angle >= 0)
+                || (seam_config.corner_pref == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER && corner_angle <= 0))
                 {
                     score += 1000; //1 meter penalty.
                 }
             }
 
             constexpr float EPSILON = 25.0;
-            if (fabs(best_score - score) <= EPSILON)
+            if (seam_config.type != EZSeamType::SKIRT_BRIM && fabs(best_score - score) <= EPSILON)
             {
                 // add breaker for two candidate starting location with similar score
                 // if we don't do this then we (can) get an un-even seam

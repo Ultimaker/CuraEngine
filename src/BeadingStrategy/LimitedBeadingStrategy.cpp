@@ -1,9 +1,11 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#include "BeadingStrategy/LimitedBeadingStrategy.h"
 
 #include <cassert>
 
-#include "LimitedBeadingStrategy.h"
+#include <spdlog/spdlog.h>
 
 namespace cura
 {
@@ -23,14 +25,11 @@ float LimitedBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) c
     return parent->getTransitionAnchorPos(lower_bead_count);
 }
 
-LimitedBeadingStrategy::LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategyPtr parent)
-    : BeadingStrategy(*parent)
-    , max_bead_count(max_bead_count)
-    , parent(std::move(parent))
+LimitedBeadingStrategy::LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategyPtr parent) : BeadingStrategy(*parent), max_bead_count(max_bead_count), parent(std::move(parent))
 {
     if (max_bead_count % 2 == 1)
     {
-        RUN_ONCE(logWarning("LimitedBeadingStrategy with odd bead count is odd indeed!\n"));
+        RUN_ONCE(spdlog::warn("LimitedBeadingStrategy with odd bead count is odd indeed!"));
     }
 }
 
@@ -51,9 +50,9 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
         return ret;
     }
     assert(bead_count == max_bead_count + 1);
-    if(bead_count != max_bead_count + 1)
+    if (bead_count != max_bead_count + 1)
     {
-        RUN_ONCE(logWarning("Too many beads! %i != %i", bead_count, max_bead_count + 1));
+        RUN_ONCE(spdlog::warn("Too many beads! {} != {}", bead_count, max_bead_count + 1));
     }
 
     coord_t optimal_thickness = parent->getOptimalThickness(max_bead_count);
@@ -61,7 +60,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
     bead_count = ret.toolpath_locations.size();
     ret.left_over += thickness - ret.total_thickness;
     ret.total_thickness = thickness;
-    
+
     // Enforce symmetry
     if (bead_count % 2 == 1)
     {
@@ -73,14 +72,14 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
         ret.toolpath_locations[bead_count - 1 - bead_idx] = thickness - ret.toolpath_locations[bead_idx];
     }
 
-    //Create a "fake" inner wall with 0 width to indicate the edge of the walled area.
-    //This wall can then be used by other structures to e.g. fill the infill area adjacent to the variable-width walls.
+    // Create a "fake" inner wall with 0 width to indicate the edge of the walled area.
+    // This wall can then be used by other structures to e.g. fill the infill area adjacent to the variable-width walls.
     coord_t innermost_toolpath_location = ret.toolpath_locations[max_bead_count / 2 - 1];
     coord_t innermost_toolpath_width = ret.bead_widths[max_bead_count / 2 - 1];
     ret.toolpath_locations.insert(ret.toolpath_locations.begin() + max_bead_count / 2, innermost_toolpath_location + innermost_toolpath_width / 2);
     ret.bead_widths.insert(ret.bead_widths.begin() + max_bead_count / 2, 0);
 
-    //Symmetry on both sides. Symmetry is guaranteed since this code is stopped early if the bead_count <= max_bead_count, and never reaches this point then.
+    // Symmetry on both sides. Symmetry is guaranteed since this code is stopped early if the bead_count <= max_bead_count, and never reaches this point then.
     const size_t opposite_bead = bead_count - (max_bead_count / 2 - 1);
     innermost_toolpath_location = ret.toolpath_locations[opposite_bead];
     innermost_toolpath_width = ret.bead_widths[opposite_bead];
@@ -123,10 +122,11 @@ coord_t LimitedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
     {
         if (thickness < parent->getOptimalThickness(max_bead_count + 1) - 10)
             return max_bead_count;
-        else 
+        else
             return max_bead_count + 1;
     }
-    else return max_bead_count + 1;
+    else
+        return max_bead_count + 1;
 }
 
 } // namespace cura

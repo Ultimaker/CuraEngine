@@ -1,21 +1,22 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <stack>
 #include <optional>
+#include <stack>
 
-#include "linearAlg2D.h"
-#include "logoutput.h"
-#include "VoronoiUtils.h"
+#include <spdlog/spdlog.h>
 
-namespace cura 
+#include "utils/VoronoiUtils.h"
+#include "utils/linearAlg2D.h"
+
+namespace cura
 {
 
 Point VoronoiUtils::p(const vd_t::vertex_type* node)
 {
     const double x = node->x();
     const double y = node->y();
-    return Point(x + 0.5 - (x < 0), y + 0.5 - (y < 0)); //Round to nearest integer coordinates.
+    return Point(x + 0.5 - (x < 0), y + 0.5 - (y < 0)); // Round to nearest integer coordinates.
 }
 
 bool VoronoiUtils::isSourcePoint(Point p, const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments, coord_t snap_dist)
@@ -47,26 +48,26 @@ coord_t VoronoiUtils::getDistance(Point p, const vd_t::cell_type& cell, const st
 Point VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_point());
-    if(!cell.contains_point())
+    if (! cell.contains_point())
     {
-        logWarning("Voronoi cell doesn't contain a source point!");
+        spdlog::warn("Voronoi cell doesn't contain a source point!");
     }
     switch (cell.source_category())
     {
-        case boost::polygon::SOURCE_CATEGORY_SINGLE_POINT:
-            return points[cell.source_index()];
-            break;
-        case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
-            assert(cell.source_index() - points.size() < segments.size());
-            return segments[cell.source_index() - points.size()].to();
-            break;
-        case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
-            assert(cell.source_index() - points.size() < segments.size());
-            return segments[cell.source_index() - points.size()].from();
-            break;
-        default:
-            assert(false && "getSourcePoint should only be called on point cells!\n");
-            break;
+    case boost::polygon::SOURCE_CATEGORY_SINGLE_POINT:
+        return points[cell.source_index()];
+        break;
+    case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
+        assert(cell.source_index() - points.size() < segments.size());
+        return segments[cell.source_index() - points.size()].to();
+        break;
+    case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
+        assert(cell.source_index() - points.size() < segments.size());
+        return segments[cell.source_index() - points.size()].from();
+        break;
+    default:
+        assert(false && "getSourcePoint should only be called on point cells!\n");
+        break;
     }
     return points[cell.source_index()];
 }
@@ -74,30 +75,30 @@ Point VoronoiUtils::getSourcePoint(const vd_t::cell_type& cell, const std::vecto
 PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_point());
-    if(!cell.contains_point())
+    if (! cell.contains_point())
     {
-        logWarning("Voronoi cell doesn't contain a source point!");
+        spdlog::warn("Voronoi cell doesn't contain a source point!");
     }
     assert(cell.source_category() != boost::polygon::SOURCE_CATEGORY_SINGLE_POINT);
     switch (cell.source_category())
     {
-        case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
-        {
-            assert(cell.source_index() - points.size() < segments.size());
-            PolygonsPointIndex ret = segments[cell.source_index() - points.size()];
-            ++ret;
-            return ret;
-            break;
-        }
-        case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
-        {
-            assert(cell.source_index() - points.size() < segments.size());
-            return segments[cell.source_index() - points.size()];
-            break;
-        }
-        default:
-            assert(false && "getSourcePoint should only be called on point cells!\n");
-            break;
+    case boost::polygon::SOURCE_CATEGORY_SEGMENT_START_POINT:
+    {
+        assert(cell.source_index() - points.size() < segments.size());
+        PolygonsPointIndex ret = segments[cell.source_index() - points.size()];
+        ++ret;
+        return ret;
+        break;
+    }
+    case boost::polygon::SOURCE_CATEGORY_SEGMENT_END_POINT:
+    {
+        assert(cell.source_index() - points.size() < segments.size());
+        return segments[cell.source_index() - points.size()];
+        break;
+    }
+    default:
+        assert(false && "getSourcePoint should only be called on point cells!\n");
+        break;
     }
     PolygonsPointIndex ret = segments[cell.source_index() - points.size()];
     return ++ret;
@@ -106,9 +107,9 @@ PolygonsPointIndex VoronoiUtils::getSourcePointIndex(const vd_t::cell_type& cell
 const VoronoiUtils::Segment& VoronoiUtils::getSourceSegment(const vd_t::cell_type& cell, const std::vector<Point>& points, const std::vector<Segment>& segments)
 {
     assert(cell.contains_segment());
-    if(!cell.contains_segment())
+    if (! cell.contains_segment())
     {
-        logWarning("Voronoi cell doesn't contain a source segment!");
+        spdlog::warn("Voronoi cell doesn't contain a source segment!");
     }
     return segments[cell.source_index() - points.size()];
 }
@@ -128,24 +129,24 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
     const coord_t sx = dot(as, ab) / ab_size;
     const coord_t ex = dot(ae, ab) / ab_size;
     const coord_t sxex = ex - sx;
-    
+
     const Point ap = p - a;
     const coord_t px = dot(ap, ab) / ab_size;
-    
+
     const Point pxx = LinearAlg2D::getClosestOnLine(p, a, b);
     const Point ppxx = pxx - p;
     const coord_t d = vSize(ppxx);
     const PointMatrix rot = PointMatrix(turn90CCW(ppxx));
-    
+
     if (d == 0)
     {
         discretized.emplace_back(s);
         discretized.emplace_back(e);
         return discretized;
     }
-    
+
     const float marking_bound = atan(transitioning_angle * 0.5);
-    coord_t msx = - marking_bound * d; // projected marking_start
+    coord_t msx = -marking_bound * d; // projected marking_start
     coord_t mex = marking_bound * d; // projected marking_end
     const coord_t marking_start_end_h = msx * msx / (2 * d) + d / 2;
     Point marking_start = rot.unapply(Point(msx, marking_start_end_h)) + pxx;
@@ -156,27 +157,29 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
         std::swap(marking_start, marking_end);
         std::swap(msx, mex);
     }
-    
+
     bool add_marking_start = msx * dir > (sx - px) * dir && msx * dir < (ex - px) * dir;
     bool add_marking_end = mex * dir > (sx - px) * dir && mex * dir < (ex - px) * dir;
 
     const Point apex = rot.unapply(Point(0, d / 2)) + pxx;
-    bool add_apex = (sx - px) * dir < 0 && (ex - px) * dir > 0;
+    // Only at the apex point if the projected start and end points
+    // are more than 10 microns away from the projected apex
+    bool add_apex = (sx - px) * dir < -10 && (ex - px) * dir > 10;
 
-    assert(!(add_marking_start && add_marking_end) || add_apex);
-    if(add_marking_start && add_marking_end && !add_apex)
+    assert(! (add_marking_start && add_marking_end) || add_apex);
+    if (add_marking_start && add_marking_end && ! add_apex)
     {
-        logWarning("Failing to discretize parabola! Must add an apex or one of the endpoints.");
+        spdlog::warn("Failing to discretize parabola! Must add an apex or one of the endpoints.");
     }
-    
+
     const coord_t step_count = static_cast<coord_t>(static_cast<float>(std::abs(ex - sx)) / approximate_step_size + 0.5);
-    
+
     discretized.emplace_back(s);
     for (coord_t step = 1; step < step_count; step++)
     {
         const coord_t x = sx + sxex * step / step_count - px;
         const coord_t y = x * x / (2 * d) + d / 2;
-        
+
         if (add_marking_start && msx * dir < x * dir)
         {
             discretized.emplace_back(marking_start);
@@ -185,7 +188,7 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
         if (add_apex && x * dir > 0)
         {
             discretized.emplace_back(apex);
-            add_apex = false; // only add the apex just before the 
+            add_apex = false; // only add the apex just before the
         }
         if (add_marking_end && mex * dir < x * dir)
         {
@@ -267,7 +270,7 @@ void VoronoiUtils::discretize(const Point& point, const Segment& segment, const 
 
     // Adjust max_dist parameter in the transformed space.
     const coord_t max_dist_transformed = max_dist * max_dist * segment_length2;
-    while (!point_stack.empty()) 
+    while (! point_stack.empty())
     {
         const Point new_(point_stack.top(), parabolaY(point_stack.top(), rot_x, rot_y));
         const Point new_vec = new_ - cur;
@@ -317,4 +320,4 @@ double VoronoiUtils::getPointProjection(const Point& point, const Segment& segme
     return static_cast<double>(vec_dot) / sqr_segment_length;
 }
 
-}//namespace cura
+} // namespace cura

@@ -166,7 +166,7 @@ int bridgeAngle(const Settings& settings, const Polygons& skin_outline, const Sl
         //Skip internal holes
         if (!islands[n].orientation())
             continue;
-        double area = fabs(islands[n].area());
+        double area = std::abs(islands[n].area());
         if (area > area1)
         {
             if (area1 > area2)

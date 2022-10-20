@@ -1,21 +1,21 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "utils/Coord_t.h"
+#include <cmath>
 #include <gtest/gtest.h>
-
 #include <polyclipping/clipper.hpp>
-#include <math.h>
 
 // #define TEST_INFILL_SVG_OUTPUT
 #ifdef TEST_INFILL_SVG_OUTPUT
-#include "../src/utils/polygon.h"
+#include "utils/SVG.h"
+#include "utils/polygon.h"
 #include <cstdlib>
-#include "../src/utils/SVG.h"
-#endif //TEST_INFILL_SVG_OUTPUT
+#endif // TEST_INFILL_SVG_OUTPUT
 
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
-
 // This test currently always fails because there is a bug in clipper related to doing an intersection between a polygon and a polyline.
 class DISABLED_ClipperTest : public testing::Test
 {
@@ -32,9 +32,8 @@ public:
     {
     }
 
-    void SetUp()
+    void SetUp() override
     {
-        
         {
             all_outlines.emplace_back();
             all_outlines.back().emplace_back();
@@ -43,15 +42,15 @@ public:
             outline.emplace_back(500, 500);
             outline.emplace_back(500, 400);
             outline.emplace_back(1100, 400);
-            
+
             all_polylines.emplace_back();
             all_polylines.back().emplace_back();
             Path& polyline = all_polylines.back().back();
             polyline.emplace_back(1075, 425);
-            polyline.emplace_back(672, 425 );
-            polyline.emplace_back(651, 425 );
-            polyline.emplace_back(595, 424 );
-            polyline.emplace_back(617, 437 );
+            polyline.emplace_back(672, 425);
+            polyline.emplace_back(651, 425);
+            polyline.emplace_back(595, 424);
+            polyline.emplace_back(617, 437);
         }
         {
             all_outlines.emplace_back();
@@ -61,7 +60,7 @@ public:
             outline.emplace_back(300, 1100);
             outline.emplace_back(200, 1000);
             outline.emplace_back(1000, 1000);
-            
+
             all_polylines.emplace_back();
             all_polylines.back().emplace_back();
             Path& polyline = all_polylines.back().back();
@@ -74,13 +73,16 @@ public:
         }
     }
 
-    void TearDown()
+    void TearDown() override
     {
     }
-    
+
     static Paths intersectPolylines(const Paths& outlines, const Paths& polylines);
 
-    static coord_t sq(coord_t i) { return i*i; };
+    static coord_t sq(coord_t i)
+    {
+        return i * i;
+    };
 
     static coord_t calculateLength(const Paths& polylines);
 
@@ -132,8 +134,7 @@ TEST_F(DISABLED_ClipperTest, PolylinesTest2)
     ASSERT_EQ(calculateLength(intersected), calculateLength(all_polylines[1]));
 }
 
-    
-    
+
 void DISABLED_ClipperTest::outputSVG(const Paths& outlines, const Paths& polylines, const Paths& intersected, const char* filename)
 {
 #ifdef TEST_INFILL_SVG_OUTPUT
@@ -150,7 +151,8 @@ void DISABLED_ClipperTest::outputSVG(const Paths& outlines, const Paths& polylin
     svg.nextLayer();
     svg.writePolylines(lines, SVG::Color::GREEN);
 #endif // TEST_INFILL_SVG_OUTPUT
-}    
+}
 
 
-} //namespace cura
+} // namespace cura
+// NOLINTEND(*-magic-numbers)

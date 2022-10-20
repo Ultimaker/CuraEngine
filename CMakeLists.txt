@@ -1,35 +1,33 @@
-#Copyright (c) 2022 Ultimaker B.V.
-#CuraEngine is released under the terms of the AGPLv3 or higher.
+# Copyright (c) 2022 Ultimaker B.V.
+# CuraEngine is released under the terms of the AGPLv3 or higher.
 
 cmake_policy(SET CMP0091 NEW)  # For MSVC flags, will be ignored on non-Windows OS's
 cmake_minimum_required(VERSION 3.20)
 project(CuraEngine)
+find_package(standardprojectsettings REQUIRED)  # imports the cmake module https://github.com/Ultimaker/conan-ultimaker-index/recipes/standardprojectsettings
+AssureOutOfSourceBuilds()
 
-set(CURA_ENGINE_VERSION "main" CACHE STRING "Version name of Cura")
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
-option(BUILD_TESTING "Build with unit tests" OFF)
+option(ENABLE_TESTING "Build with unit tests" OFF)
+option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
-option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
-option(EXTENSIVE_WARNINGS "Compile with all warnings" OFF)
 
-if(NOT APPLE)
+if (NOT APPLE)
     option(ENABLE_OPENMP "Use OpenMP for parallel code" ON)
-endif()
-
-include(cmake/StandardProjectSettings.cmake)
+endif ()
 
 # Create Protobuf files if Arcus is used
 if (ENABLE_ARCUS)
     message(STATUS "Building with Arcus")
 
-    find_package(arcus 5.0.0 REQUIRED)
-    find_package(protobuf 3.17.1 REQUIRED)
+    find_package(arcus REQUIRED)
+    find_package(protobuf REQUIRED)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
 ### Compiling CuraEngine ###
-# First compile all of CuraEngine as library, allowing this to be re-used for tests.
+# First compile all of CuraEngine as library.
 
 set(engine_SRCS # Except main.cpp.
         src/Application.cpp
@@ -121,10 +119,8 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ExtrusionSegment.cpp
         src/utils/FMatrix4x3.cpp
         src/utils/gettime.cpp
-        src/utils/getpath.cpp
         src/utils/LinearAlg2D.cpp
         src/utils/ListPolyIt.cpp
-        src/utils/logoutput.cpp
         src/utils/MinimumSpanningTree.cpp
         src/utils/Point3.cpp
         src/utils/PolygonConnector.cpp
@@ -148,16 +144,17 @@ use_threads(_CuraEngine)
 
 target_include_directories(_CuraEngine
         PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Include Cura.pb.h
         )
 target_compile_definitions(_CuraEngine
         PUBLIC
-        $<$<BOOL:${BUILD_TESTING}>:BUILD_TESTS>
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
+        CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
+        $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
-        VERSION=\"${CURA_ENGINE_VERSION}\"
         $<$<BOOL:${WIN32}>:NOMINMAX>
         $<$<CONFIG:Debug>:ASSERT_INSANE_OUTPUT>
         $<$<CONFIG:Debug>:USE_CPU_TIME>
@@ -166,45 +163,49 @@ target_compile_definitions(_CuraEngine
         $<$<CONFIG:RelWithDebInfo>:USE_CPU_TIME>
         $<$<CONFIG:RelWithDebInfo>:DEBUG>
         )
-if(MSVC)
-    target_compile_options(_CuraEngine
-            PRIVATE
-            $<$<AND:$<BOOL:${ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS}>,$<CONFIG:Release>>:/fp:fast>
-            )
-else()
-    target_compile_options(_CuraEngine
-            PRIVATE
-            $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
-            $<$<CONFIG:RelWithDebInfo>:-fno-omit-frame-pointer>
-            $<$<AND:$<BOOL:${ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS}>,$<CONFIG:Release>>:-Ofast>
-            $<$<AND:$<BOOL:${ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS}>,$<CONFIG:Release>>:-funroll-loops>
-            )
-endif()
 
-set_project_standards(_CuraEngine)
 enable_sanitizers(_CuraEngine)
 
-if(${EXTENSIVE_WARNINGS})
+if (${EXTENSIVE_WARNINGS})
     set_project_warnings(_CuraEngine)
-endif()
+endif ()
 
-if(ENABLE_OPENMP)
+if (ENABLE_OPENMP)
     find_package(OpenMP REQUIRED)
     target_link_libraries(_CuraEngine PUBLIC OpenMP::OpenMP_CXX)
-endif()
+endif ()
 
-if(ENABLE_ARCUS)
-    target_link_libraries(_CuraEngine PRIVATE arcus::libarcus protobuf::libprotobuf)
-endif()
+if (ENABLE_ARCUS)
+    target_link_libraries(_CuraEngine PRIVATE arcus::arcus protobuf::libprotobuf)
+endif ()
 
-find_package(clipper 6.4.2 REQUIRED)
-find_package(rapidjson 1.1.0 REQUIRED)
-find_package(stb 20200203 REQUIRED)
-find_package(Boost 1.78.0 REQUIRED)
+find_package(clipper REQUIRED)
+find_package(RapidJSON REQUIRED)
+find_package(stb REQUIRED)
+find_package(Boost REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
+find_package(range-v3 REQUIRED)
 
-target_link_libraries(_CuraEngine PRIVATE clipper::clipper rapidjson::rapidjson stb::stb boost::boost)
+if (ENABLE_TESTING)
+    find_package(GTest REQUIRED)
+endif ()
 
-if (WIN32)
+target_link_libraries(_CuraEngine
+        PUBLIC
+        spdlog::spdlog
+        PRIVATE
+        range-v3::range-v3
+        fmt::fmt
+        clipper::clipper
+        rapidjson
+        stb::stb
+        boost::boost
+        $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
+
+if (NOT WIN32)
+    add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
+else ()
     message(STATUS "Using windres")
     set(RES_FILES "CuraEngine.rc")
     ENABLE_LANGUAGE(RC)
@@ -214,11 +215,6 @@ if (WIN32)
                 "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>"
                 )
     endif ()
-endif (WIN32)
-
-if (NOT WIN32)
-    add_executable(CuraEngine src/main.cpp) # Then compile main.cpp as separate executable, and link the library to it.
-else ()
     add_executable(CuraEngine src/main.cpp ${RES_FILES}) # ..., but don't forget the glitter!
 endif (NOT WIN32)
 
@@ -227,11 +223,7 @@ target_link_libraries(CuraEngine PRIVATE _CuraEngine)
 target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\")
 
 # Compiling the test environment.
-if (BUILD_TESTING)
+if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(tests)
-endif()
-
-# Installing CuraEngine.
-include(GNUInstallDirs)
-install(TARGETS CuraEngine DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif ()

@@ -1,18 +1,19 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <cassert>
 
-#include "Progress.h"
-#include "../Application.h" //To get the communication channel to send progress through.
-#include "../communication/Communication.h" //To send progress through the communication channel.
-#include "../utils/gettime.h"
-#include "../utils/logoutput.h"
+#include <spdlog/spdlog.h>
 
-namespace cura {
-    
-double Progress::times [] = 
-{ 
+#include "Application.h" //To get the communication channel to send progress through.
+#include "communication/Communication.h" //To send progress through the communication channel.
+#include "progress/Progress.h"
+#include "utils/gettime.h"
+
+namespace cura
+{
+
+double Progress::times[] = {
     0.0,    // START   = 0, 
     5.269,  // SLICING = 1, 
     1.533,  // PARTS   = 2, 
@@ -59,7 +60,7 @@ void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int
     float percentage = calcOverallProgress(stage, float(progress_in_stage) / float(progress_in_stage_max));
     Application::getInstance().communication->sendProgress(percentage);
 
-    logProgress(names[(int)stage].c_str(), progress_in_stage, progress_in_stage_max, percentage);
+    // logProgress(names[(int)stage].c_str(), progress_in_stage, progress_in_stage_max, percentage); FIXME: use different sink
 }
 
 void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keeper)
@@ -68,7 +69,7 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
     {
         if ((int)stage > 0)
         {
-            log("Progress: %s accomplished in %5.3fs\n", names[(int)stage - 1].c_str(), time_keeper->restart());
+            spdlog::info("Progress: {} accomplished in {:3}s", names[(int)stage - 1], time_keeper->restart());
         }
         else
         {
@@ -77,7 +78,7 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
         
         if ((int)stage < (int)Stage::FINISH)
         {
-            log("Starting %s...\n", names[(int)stage].c_str());
+            spdlog::info("Starting {}...", names[(int)stage]);
         }
     }
 }

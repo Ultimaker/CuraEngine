@@ -65,7 +65,12 @@ enum class EZSeamType
     RANDOM,
     SHORTEST,
     USER_SPECIFIED,
-    SHARPEST_CORNER
+    SHARPEST_CORNER,
+
+    /* The 'Skirt/brim' type behaves like shortest, except it doesn't try to do tie-breaking for similar locations to
+     * the last attempt, as that gives a different result when the seams are next to each other instead of on top.
+     */
+    SKIRT_BRIM
 };
 
 enum class EZSeamCornerPrefType

@@ -1,13 +1,13 @@
-//Copyright (c) 2020 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "linearAlg2D.h"
+#include "utils/linearAlg2D.h"
 
 #include <cmath> // atan2
 #include <cassert>
 #include <algorithm> // swap
 
-#include "IntPoint.h" // dot
+#include "utils/IntPoint.h" // dot
 
 namespace cura 
 {
@@ -285,7 +285,7 @@ coord_t LinearAlg2D::getDistFromLine(const Point& p, const Point& a, const Point
     {
         return vSize(vap);
     }
-    const coord_t area_times_two = abs((p.X - b.X) * (p.Y - a.Y) + (a.X - p.X) * (p.Y - b.Y)); // Shoelace formula, factored
+    const coord_t area_times_two = std::abs((p.X - b.X) * (p.Y - a.Y) + (a.X - p.X) * (p.Y - b.Y)); // Shoelace formula, factored
     const coord_t px_size = area_times_two / ab_size;
     return px_size;
 }

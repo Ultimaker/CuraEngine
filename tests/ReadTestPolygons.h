@@ -1,13 +1,12 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef READ_TEST_POLYGONS_H
 #define READ_TEST_POLYGONS_H
 
+#include "utils/polygon.h"
 #include <string>
 #include <vector>
-
-#include "../src/utils/polygon.h"
 
 /* A reader for a very simple 2D polygon format, usefull for tests.
  * It's currently uesd to read all the './tests/resources/polygon_*.txt' files.
@@ -35,8 +34,8 @@ v 50000 50000
 
 namespace cura
 {
-    bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Polygons>& polygons_out);
-    bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygons_out);
-}
+bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Polygons>& polygons_out);
+bool readTestPolygons(const std::string& filename, std::vector<Polygons>& polygons_out);
+} // namespace cura
 
 #endif // READ_TEST_POLYGONS_H

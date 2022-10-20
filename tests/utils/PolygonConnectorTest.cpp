@@ -1,37 +1,39 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "utils/PolygonConnector.h" // The class under test.
+#include "utils/Coord_t.h"
+#include "utils/polygon.h" // To create polygons to test with.
 #include <gtest/gtest.h>
 #include <unordered_set>
 
-#include <../src/utils/polygon.h> //To create polygons to test with.
-#include <../src/utils/PolygonConnector.h> //The class under test.
-
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class PolygonConnectorTest : public testing::Test
 {
 public:
     Polygon test_square;
-    Polygon test_square_around; //Larger, around the first square.
-    Polygon test_square_adjacent; //Next to the first square.
+    Polygon test_square_around; // Larger, around the first square.
+    Polygon test_square_adjacent; // Next to the first square.
     Polygon test_triangle;
     Polygon test_circle;
     Polygon test_convex_shape;
-    Polygons test_shapes; //All above polygons! As well as an inset of 100 microns of them.
+    Polygons test_shapes; // All above polygons! As well as an inset of 100 microns of them.
 
     PolygonConnector* pc;
     Polygons connected_polygons;
     std::vector<VariableWidthLines> connected_paths;
 
-    virtual void SetUp()
+    virtual void SetUp() override
     {
         test_square.emplace_back(0, 0);
         test_square.emplace_back(1000, 0);
         test_square.emplace_back(1000, 1000);
         test_square.emplace_back(0, 1000);
-    
+
         test_square_around.emplace_back(1100, 1100);
         test_square_around.emplace_back(-100, 1100);
         test_square_around.emplace_back(-100, -100);
@@ -46,12 +48,12 @@ public:
         pc = new PolygonConnector(line_width);
     }
 
-    void TearDown()
+    void TearDown() override
     {
         delete pc;
     }
-
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 
 /*!
  * Test creating a bridge between two squares that are nested in each other at
@@ -61,7 +63,7 @@ public:
  */
 TEST_F(PolygonConnectorTest, getBridgeNestedSquares)
 {
-    std::vector<Polygon> to_connect({test_square_around});
+    std::vector<Polygon> to_connect({ test_square_around });
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
     ASSERT_NE(bridge, std::nullopt) << "The two polygons are nested simply, so they are definitely positioned closely enough to bridge. They are also wide enough.";
@@ -81,7 +83,7 @@ TEST_F(PolygonConnectorTest, getBridgeNestedSquares)
  */
 TEST_F(PolygonConnectorTest, getBridgeAdjacentSquares)
 {
-    std::vector<Polygon> to_connect({test_square_adjacent});
+    std::vector<Polygon> to_connect({ test_square_adjacent });
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
     ASSERT_NE(bridge, std::nullopt) << "The two polygons are adjacent, spaced closely enough to bridge and with enough room.";
@@ -99,12 +101,13 @@ TEST_F(PolygonConnectorTest, getBridgeAdjacentSquares)
  */
 TEST_F(PolygonConnectorTest, getBridgeClosest)
 {
-    Polygon adjacent_slanted; //A polygon that's adjacent to the first square, but tilted such that the vertex at [1100,200] is definitely the closest.
+    Polygon adjacent_slanted; // A polygon that's adjacent to the first square, but tilted such that the vertex at [1100,200] is definitely
+                              // the closest.
     adjacent_slanted.emplace_back(1100, 200);
     adjacent_slanted.emplace_back(2100, 200);
     adjacent_slanted.emplace_back(2140, 1200);
     adjacent_slanted.emplace_back(1140, 1200);
-    std::vector<Polygon> to_connect({adjacent_slanted});
+    std::vector<Polygon> to_connect({ adjacent_slanted });
 
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
@@ -121,12 +124,12 @@ TEST_F(PolygonConnectorTest, getBridgeClosest)
  */
 TEST_F(PolygonConnectorTest, getBridgeTooFar)
 {
-    Polygon too_far; //More than 1.5 line width away.
+    Polygon too_far; // More than 1.5 line width away.
     too_far.emplace_back(1200, 0);
     too_far.emplace_back(2200, 0);
     too_far.emplace_back(2200, 1000);
     too_far.emplace_back(1200, 1000);
-    std::vector<Polygon> to_connect({too_far});
+    std::vector<Polygon> to_connect({ too_far });
 
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
@@ -145,9 +148,9 @@ TEST_F(PolygonConnectorTest, getBridgeTooNarrow)
     Polygon too_narrow;
     too_narrow.emplace_back(1100, 400);
     too_narrow.emplace_back(2100, 400);
-    too_narrow.emplace_back(2100, 480); //Less than 100 units wide.
+    too_narrow.emplace_back(2100, 480); // Less than 100 units wide.
     too_narrow.emplace_back(1100, 480);
-    std::vector<Polygon> to_connect({too_narrow});
+    std::vector<Polygon> to_connect({ too_narrow });
 
     std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
@@ -162,10 +165,10 @@ TEST_F(PolygonConnectorTest, getBridgeTooNarrow)
 TEST_F(PolygonConnectorTest, connectFourNested)
 {
     Polygons connecting;
-    connecting.add(test_square_around); //1200-wide square.
-    connecting.add(test_square); //1000-wide square.
-    connecting.add(test_square.offset(-100)); //800-wide square.
-    connecting.add(test_square.offset(-200)); //600-wide square.
+    connecting.add(test_square_around); // 1200-wide square.
+    connecting.add(test_square); // 1000-wide square.
+    connecting.add(test_square.offset(-100)); // 800-wide square.
+    connecting.add(test_square.offset(-200)); // 600-wide square.
 
     pc->add(connecting);
     Polygons output_polygons;
@@ -174,5 +177,5 @@ TEST_F(PolygonConnectorTest, connectFourNested)
 
     EXPECT_EQ(output_polygons.size(), 1) << "All four polygons should've gotten connected into 1 single polygon.";
 }
-
-}
+} // namespace cura
+// NOLINTEND(*-magic-numbers)

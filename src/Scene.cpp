@@ -1,22 +1,21 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#include <spdlog/spdlog.h>
 
 #include "Application.h"
 #include "FffProcessor.h" //To start a slice.
 #include "Scene.h"
-#include "sliceDataStorage.h"
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
 #include "communication/Communication.h" //To flush g-code and layer view when we're done.
 #include "progress/Progress.h"
-#include "utils/logoutput.h"
+#include "sliceDataStorage.h"
 
 namespace cura
 {
 
-Scene::Scene(const size_t num_mesh_groups)
-: mesh_groups(num_mesh_groups)
-, current_mesh_group(mesh_groups.begin())
+Scene::Scene(const size_t num_mesh_groups) : mesh_groups(num_mesh_groups), current_mesh_group(mesh_groups.begin())
 {
     for (MeshGroup& mesh_group : mesh_groups)
     {
@@ -27,9 +26,9 @@ Scene::Scene(const size_t num_mesh_groups)
 const std::string Scene::getAllSettingsString() const
 {
     std::stringstream output;
-    output << settings.getAllSettingsString(); //Global settings.
+    output << settings.getAllSettingsString(); // Global settings.
 
-    //Per-extruder settings.
+    // Per-extruder settings.
     for (size_t extruder_nr = 0; extruder_nr < extruders.size(); extruder_nr++)
     {
         output << " -e" << extruder_nr << extruders[extruder_nr].settings.getAllSettingsString();
@@ -46,11 +45,11 @@ const std::string Scene::getAllSettingsString() const
             output << " --next";
         }
 
-        //Per-mesh-group settings.
+        // Per-mesh-group settings.
         const MeshGroup& mesh_group = mesh_groups[mesh_group_index];
         output << mesh_group.settings.getAllSettingsString();
 
-        //Per-object settings.
+        // Per-object settings.
         for (size_t mesh_index = 0; mesh_index < mesh_group.meshes.size(); mesh_index++)
         {
             const Mesh& mesh = mesh_group.meshes[mesh_index];
@@ -72,7 +71,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     bool empty = true;
     for (Mesh& mesh : mesh_group.meshes)
     {
-        if (!mesh.settings.get<bool>("infill_mesh") && !mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (! mesh.settings.get<bool>("infill_mesh") && ! mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             empty = false;
             break;
@@ -81,31 +80,31 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     if (empty)
     {
         Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
-        log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
+        spdlog::info("Total time elapsed {:3}s.", time_keeper_total.restart());
         return;
     }
 
     if (mesh_group.settings.get<bool>("wireframe_enabled"))
     {
-        log("Starting Neith Weaver...\n");
+        spdlog::info("Starting Neith Weaver...");
 
         Weaver weaver;
         weaver.weave(&mesh_group);
-        
-        log("Starting Neith Gcode generation...\n");
+
+        spdlog::info("Starting Neith Gcode generation...");
         Wireframe2gcode gcoder(weaver, fff_processor->gcode_writer.gcode);
         gcoder.writeGCode();
-        log("Finished Neith Gcode generation...\n");
+        spdlog::info("Finished Neith Gcode generation...");
     }
-    else //Normal operation (not wireframe).
+    else // Normal operation (not wireframe).
     {
         SliceDataStorage storage;
 
-        if (!fff_processor->polygon_generator.generateAreas(storage, &mesh_group, fff_processor->time_keeper))
+        if (! fff_processor->polygon_generator.generateAreas(storage, &mesh_group, fff_processor->time_keeper))
         {
             return;
         }
-        
+
         Progress::messageProgressStage(Progress::Stage::EXPORT, &fff_processor->time_keeper);
         fff_processor->gcode_writer.writeGCode(storage, fff_processor->time_keeper);
     }
@@ -113,7 +112,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
     Application::getInstance().communication->flushGCode();
     Application::getInstance().communication->sendOptimizedLayerData();
-    log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
+    spdlog::info("Total time elapsed {:3}s.\n", time_keeper_total.restart());
 }
 
-} //namespace cura
+} // namespace cura

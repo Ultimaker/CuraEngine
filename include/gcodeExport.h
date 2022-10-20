@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
@@ -99,17 +99,15 @@ private:
         , currentTemperature(0)
         , waited_for_temperature(false)
         , initial_temp(0)
-        , retraction_e_amount_current(0.0)
-        , retraction_e_amount_at_e_start(0.0)
-        , prime_volume(0.0)
-        , last_retraction_prime_speed(0.0)
-        , fan_number(0)
-        { }
+        , retraction_e_amount_current(0.0), retraction_e_amount_at_e_start(0.0),
+            prime_volume(0.0), last_retraction_prime_speed(0.0), fan_number(0)
+        {
+        }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
     bool use_extruder_offset_to_offset_coords;
     std::string machine_name;
-    std::string machine_buildplate_type;
+    std::string slice_uuid_; //!< The UUID of the current slice.
 
     std::ostream* output_stream;
     std::string new_line;
@@ -218,14 +216,19 @@ public:
 
     /*!
      * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
-     * 
+     *
      * \param extruder_is_used For each extruder whether it is used in the print
      * \param print_time The total print time in seconds of the whole gcode (if known)
      * \param filament_used The total mm^3 filament used for each extruder or a vector of the wrong size of unknown
      * \param mat_ids The material GUIDs for each material.
      * \return The string representing the file header
      */
-    std::string getFileHeader(const std::vector<bool>& extruder_is_used, const Duration* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<std::string>& mat_ids = std::vector<std::string>());
+    std::string getFileHeader(const std::vector<bool>& extruder_is_used,
+                              const Duration* print_time = nullptr,
+                              const std::vector<double>& filament_used = std::vector<double>(),
+                              const std::vector<std::string>& mat_ids = std::vector<std::string>());
+
+    void setSliceUUID(const std::string& slice_uuid);
 
     void setLayerNr(unsigned int layer_nr);
 
@@ -234,7 +237,7 @@ public:
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
     Point getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const;
-    
+
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor() const;
     

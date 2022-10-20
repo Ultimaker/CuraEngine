@@ -139,5 +139,9 @@ message GCodePrefix {
     bytes data = 2; //Header string to be prepended before the rest of the g-code sent from the engine.
 }
 
+message SliceUUID {
+    string slice_uuid = 1; //An ID to link the slice in the printer to a statistical data point in the anonymous slice data.
+}
+
 message SlicingFinished {
 }
