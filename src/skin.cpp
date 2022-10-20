@@ -306,7 +306,7 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 {
     for(SkinPart& skin_part : part.skin_parts)
     {
-        regenerateRoofingFillAndInnerInfill(part, skin_part);
+        generateRoofingFillAndInnerInfill(part, skin_part);
     }
 }
 
@@ -382,7 +382,7 @@ Polygons SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::regenerateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part)
+void SkinInfillAreaComputation::generateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part)
 {
     const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
     const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");

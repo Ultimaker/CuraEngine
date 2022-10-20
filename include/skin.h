@@ -169,7 +169,7 @@ protected:
      * \param skin_part The part where the skin outline information (input) is stored and
      * where the inner infill and roofing infill areas (output) is stored.
      */
-    void regenerateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part);
+    void generateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part);
 
 protected:
     LayerIndex layer_nr; //!< The index of the layer for which to generate the skins and infill.
