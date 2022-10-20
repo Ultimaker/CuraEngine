@@ -307,44 +307,6 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
     for(SkinPart& skin_part : part.skin_parts)
     {
         regenerateRoofingFillAndInnerInfill(part, skin_part);
-
-        // Insets are NOT generated for any layer if the top/bottom pattern is concentric.
-        // In this case, we still want to generate insets for the roofing layers based on the extra skin wall count,
-        // if the roofing pattern is not concentric.
-        if (!skin_part.roofing_fill.empty()
-            && layer_nr > 0
-            && mesh.settings.get<EFillMethod>("roofing_pattern") != EFillMethod::CONCENTRIC
-            && mesh.settings.get<EFillMethod>("top_bottom_pattern") == EFillMethod::CONCENTRIC)
-        {
-            regenerateRoofingFillAndInnerInfill(part, skin_part);
-
-            const bool concentric_skinfill_pattern =
-                   mesh.settings.get<EFillMethod>("roofing_pattern") == EFillMethod::CONCENTRIC
-                && mesh.settings.get<EFillMethod>("top_bottom_pattern") != EFillMethod::CONCENTRIC;
-
-            // If the pattern is concentric, ONLY use insets.
-            // In this case, we still want to generate skinfill for the roofing layers,
-            // but only if the roofing pattern is not concentric.
-            if(!skin_part.roofing_fill.empty() && layer_nr > 0)
-            {
-                // Regenerate the filled_area_above, and recalculate the inner and roofing infills,
-                // taking into account the extra skin wall count (only for the roofing layers).
-                if(!concentric_skinfill_pattern)
-                {
-                    regenerateRoofingFillAndInnerInfill(part, skin_part);
-                }
-            }
-            // On the contrary, unwanted insets are generated for roofing layers because of the non-concentric top/bottom pattern.
-            // In such cases we want to clear the skin insets first and then regenerate the proper roofing fill and inner infill
-            // in the concentric roofing_pattern.
-            else if(!skin_part.roofing_fill.empty() && skin_part.skin_fill.empty() && layer_nr > 0 && concentric_skinfill_pattern)
-            {
-                // Clear the skin insets for the roofing layers and regenerate the roofing fill and inner infill without taking into
-                // account the Extra Skin Wall Count.
-                skin_part.inset_paths.clear();
-                regenerateRoofingFillAndInnerInfill(part, skin_part);
-            }
-        }
     }
 }
 
