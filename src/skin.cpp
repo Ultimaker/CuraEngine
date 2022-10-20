@@ -362,10 +362,10 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
         }
         else if (!skin_part.skin_fill.empty() && !skin_part.roofing_fill.empty())
         {
-            // Find the intersection of roofing and skin offset (skin_overlap_mm) areas.
             skin_part.skin_fill = skin_part.skin_fill.offset(skin_overlap);
-            skin_part.roofing_fill =
- skin_part.roofing_fill.offset(skin_overlap).difference(skin_part.skin_fill);
+            // If we offset to both the roofing_fill and skin_fill, when adjacent they would have a doubled offset area. Since they would both offset towards each other.
+            // To avoid the doubled offset area, the overlapping areas are removed from the roofing_fill.
+            skin_part.roofing_fill = skin_part.roofing_fill.offset(skin_overlap).difference(skin_part.skin_fill);
         }
     }
 }
