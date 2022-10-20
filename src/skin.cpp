@@ -89,9 +89,9 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
 
     for (SliceLayerPart& part : layer->parts)
     {
-        generateRoofing(part);
+        generateRoofingFillAndSkinFill(part);
 
-        generateTopAndBottomMostSkinSurfaces(part);
+        generateTopAndBottomMostSkinFill(part);
     }
 }
 
@@ -301,7 +301,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part, const Polyg
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
+void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& part)
 {
     for(SkinPart& skin_part : part.skin_parts)
     {
@@ -592,7 +592,7 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
  * this function may only read/write the skin and infill from the *current* layer.
  */
 
-void SkinInfillAreaComputation::generateTopAndBottomMostSkinSurfaces(SliceLayerPart &part) {
+void SkinInfillAreaComputation::generateTopAndBottomMostSkinFill(SliceLayerPart &part) {
 
     for (SkinPart& skin_part : part.skin_parts) {
         Polygons filled_area_above = generateFilledAreaAbove(part, 1);

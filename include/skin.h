@@ -133,7 +133,7 @@ protected:
      * 
      * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing areas
      */
-    void generateRoofing(SliceLayerPart& part);
+    void generateRoofingFillAndSkinFill(SliceLayerPart& part);
 
     /*!
      * Remove the areas which are directly under air in the top-most surface and directly above air in bottom-most
@@ -143,7 +143,7 @@ protected:
      * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the top and bottom-most
      * infill areas
      */
-    void generateTopAndBottomMostSkinSurfaces(SliceLayerPart& part);
+    void generateTopAndBottomMostSkinFill(SliceLayerPart& part);
 
     /*!
      * Helper function to calculate and return the areas which are 'directly' under air.
