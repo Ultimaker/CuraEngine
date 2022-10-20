@@ -40,7 +40,6 @@ class SkinPart
 {
 public:
     PolygonsPart outline;           //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both roofing and non-roofing.
-    std::vector<VariableWidthLines> inset_paths;       //!< The insets represented as variable line-width paths. The insets are also known as perimeters or the walls. Binned by inset_idx.
     Polygons skin_fill; //!< The part of the skin which is not roofing.
     Polygons roofing_fill; //!< The inner infill which has air directly above
     Polygons top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.

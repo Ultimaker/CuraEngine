@@ -2420,8 +2420,8 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage,
     // generate skin_polygons and skin_lines
     const GCodePathConfig* skin_config = &mesh_config.skin_config;
     Ratio skin_density = 1.0;
-    coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
-    const coord_t more_skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.insetX_config.getLineWidth() / 2)); // force a minimum amount of skin_overlap
+    const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
+    coord_t extra_skin_overlap = 0;
     const bool bridge_settings_enabled = mesh.settings.get<bool>("bridge_settings_enabled");
     const bool bridge_enable_more_layers = bridge_settings_enabled && mesh.settings.get<bool>("bridge_enable_more_layers");
     const Ratio support_threshold = bridge_settings_enabled ? mesh.settings.get<Ratio>("bridge_skin_support_threshold") : 0.0_r;
@@ -2487,7 +2487,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage,
             if (bridge_settings_enabled)
             {
                 skin_config = config;
-                skin_overlap = more_skin_overlap;
+                extra_skin_overlap = std::max(skin_overlap, (coord_t)(mesh_config.insetX_config.getLineWidth() / 2)) - skin_overlap; // Skin overlap offset is applied in skin.cpp only extra overlap is applied here
                 skin_density = density;
             }
             return true;
@@ -2554,7 +2554,7 @@ void FffGcodeWriter::processTopBottom(const SliceDataStorage& storage,
         }
     }
     const bool monotonic = mesh.settings.get<bool>("skin_monotonic");
-    processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, skin_overlap, skin_density, monotonic, added_something, fan_speed);
+    processSkinPrintFeature(storage, gcode_layer, mesh, mesh_config, extruder_nr, skin_part.skin_fill, *skin_config, pattern, skin_angle, extra_skin_overlap, skin_density, monotonic, added_something, fan_speed);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(const SliceDataStorage& storage,
