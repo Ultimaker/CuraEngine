@@ -8,7 +8,7 @@
 #include "sliceDataStorage.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
-#include "utils/logoutput.h"
+#include <spdlog/spdlog.h>
 namespace cura
 {
 
@@ -185,7 +185,6 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
     std::deque<RadiusLayerPair> relevant_collision_radiis;
     relevant_collision_radiis.insert(relevant_collision_radiis.end(), radius_until_layer.begin(), radius_until_layer.end()); // Now that required_avoidance_limit contains the maximum of ild and regular required radius just copy.
 
-
     // ### Calculate the relevant collisions
     calculateCollision(relevant_collision_radiis);
 
@@ -193,6 +192,7 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
     std::deque<RadiusLayerPair> relevant_hole_collision_radiis;
     for (RadiusLayerPair key : relevant_avoidance_radiis)
     {
+        spdlog::debug("Calculating avoidance of radius {} up to layer {}",key.first,key.second);
         if (key.first < increase_until_radius + current_min_xy_dist_delta)
         {
             relevant_hole_collision_radiis.emplace_back(key);
@@ -235,7 +235,7 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
     auto dur_col = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_coll - t_start).count();
     auto dur_avo = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_coll).count();
 
-    log("Precalculating collision took %.3lf ms. Precalculating avoidance took %.3lf ms.\n", dur_col, dur_avo);
+    spdlog::info("Precalculating collision took {} ms. Precalculating avoidance took {} ms.", dur_col, dur_avo);
 }
 
 const Polygons& TreeModelVolumes::getCollision(coord_t radius, LayerIndex layer_idx, bool min_xy_dist)
@@ -264,7 +264,7 @@ const Polygons& TreeModelVolumes::getCollision(coord_t radius, LayerIndex layer_
     }
     if (precalculated)
     {
-        logWarning("Had to calculate collision at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+        spdlog::warn("Had to calculate collision at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
     }
     calculateCollision(key);
     return getCollision(orig_radius, layer_idx, min_xy_dist);
@@ -294,11 +294,12 @@ const Polygons& TreeModelVolumes::getCollisionHolefree(coord_t radius, LayerInde
     }
     if (precalculated)
     {
-        logWarning("Had to calculate collision holefree at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+        spdlog::warn("Had to calculate collision holefree at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
     }
     calculateCollisionHolefree(key);
     return getCollisionHolefree(orig_radius, layer_idx, min_xy_dist);
 }
+
 
 const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist)
 {
@@ -358,7 +359,7 @@ const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_
     }
     else
     {
-        logError("Invalid Avoidance Request\n");
+        spdlog::error("Invalid Avoidance Request");
     }
 
 
@@ -374,7 +375,7 @@ const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_
         }
         if (precalculated)
         {
-            logWarning("Had to calculate Avoidance to model at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            spdlog::warn("Had to calculate Avoidance to model at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
         }
         calculateAvoidanceToModel(key);
     }
@@ -390,7 +391,7 @@ const Polygons& TreeModelVolumes::getAvoidance(coord_t radius, LayerIndex layer_
         }
         if (precalculated)
         {
-            logWarning("Had to calculate Avoidance at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            spdlog::warn("Had to calculate Avoidance at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
         }
         calculateAvoidance(key);
     }
@@ -414,7 +415,7 @@ const Polygons& TreeModelVolumes::getPlaceableAreas(coord_t radius, LayerIndex l
     }
     if (precalculated)
     {
-        logWarning("Had to calculate Placeable Areas at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", radius, layer_idx);
+        spdlog::warn("Had to calculate Placeable Areas at radius {} and layer {}, but precalculate was called. Performance may suffer!", radius, layer_idx);
     }
     if (radius != 0)
     {
@@ -466,7 +467,7 @@ const Polygons& TreeModelVolumes::getWallRestriction(coord_t radius, LayerIndex 
         }
         if (precalculated)
         {
-            logWarning("Had to calculate Wall restricions at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            spdlog::warn("Had to calculate Wall restricions at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
         }
     }
     else
@@ -481,7 +482,7 @@ const Polygons& TreeModelVolumes::getWallRestriction(coord_t radius, LayerIndex 
         }
         if (precalculated)
         {
-            logWarning("Had to calculate Wall restricions at radius %lld and layer %lld, but precalculate was called. Performance may suffer!\n", key.first, key.second);
+            spdlog::warn("Had to calculate Wall restricions at radius {} and layer {}, but precalculate was called. Performance may suffer!", key.first, key.second);
         }
     }
     calculateWallRestrictions(key);
@@ -770,7 +771,7 @@ void TreeModelVolumes::calculateAvoidance(std::deque<RadiusLayerPair> keys)
             }
             if (start_layer > max_required_layer)
             {
-                logDebug("Requested calculation for value already calculated ?\n");
+                spdlog::debug("Requested calculation for value already calculated ?");
                 return;
             }
             start_layer = std::max(start_layer, LayerIndex(1)); // Ensure StartLayer is at least 1 as if no avoidance was calculated getMaxCalculatedLayer returns -1
@@ -832,7 +833,7 @@ void TreeModelVolumes::calculatePlaceables(std::deque<RadiusLayerPair> keys)
         }
         if (start_layer > max_required_layer)
         {
-            logDebug("Requested calculation for value already calculated ?\n");
+            spdlog::debug("Requested calculation for value already calculated ?");
             return;
         }
 
@@ -904,7 +905,7 @@ void TreeModelVolumes::calculateAvoidanceToModel(std::deque<RadiusLayerPair> key
         }
         if (start_layer > max_required_layer)
         {
-            logDebug("Requested calculation for value already calculated ?\n");
+            spdlog::debug("Requested calculation for value already calculated ?");
             return;
         }
         start_layer = std::max(start_layer, LayerIndex(1));

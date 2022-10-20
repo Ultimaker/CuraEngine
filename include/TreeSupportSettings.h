@@ -30,6 +30,7 @@ struct TreeSupportSettings
           layer_height(mesh_group_settings.get<coord_t>("layer_height")),
           branch_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
           min_radius(mesh_group_settings.get<coord_t>("support_tree_tip_diameter") / 2), // The actual radius is 50 microns larger as the resulting branches will be increased by 50 microns to avoid rounding errors effectively increasing the xydistance
+          max_radius(mesh_group_settings.get<coord_t>("support_tree_max_diameter")/2),
           maximum_move_distance((angle < TAU / 4) ? (coord_t)(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max()),
           maximum_move_distance_slow((angle_slow < TAU / 4) ? (coord_t)(tan(angle_slow) * layer_height) : std::numeric_limits<coord_t>::max()),
           support_bottom_layers(mesh_group_settings.get<bool>("support_bottom_enable") ? round_divide(mesh_group_settings.get<coord_t>("support_bottom_height"), layer_height) : 0),
@@ -40,9 +41,7 @@ struct TreeSupportSettings
           increase_radius_until_radius(mesh_group_settings.get<coord_t>("support_tree_branch_diameter") / 2),
           increase_radius_until_dtt(increase_radius_until_radius <= branch_radius ? tip_layers * (increase_radius_until_radius / branch_radius) : (increase_radius_until_radius - branch_radius) / (branch_radius * diameter_angle_scale_factor)),
           support_rests_on_model(mesh_group_settings.get<ESupportType>("support_type") == ESupportType::EVERYWHERE),
-          // support_rest_preference(support_rests_on_model? RestPreference::BUILDPLATE : mesh_group_settings.get<bool>("support_tree_no_rest_preference")?RestPreference::GRACEFUL:RestPreference::BUILDPLATE),
           support_rest_preference((support_rests_on_model && mesh_group_settings.get<std::string>("support_tree_rest_preference") == "graceful") ? RestPreference::GRACEFUL : RestPreference::BUILDPLATE),
-
           xy_distance(mesh_group_settings.get<coord_t>("support_xy_distance")),
           bp_radius(mesh_group_settings.get<coord_t>("support_tree_bp_diameter") / 2),
           diameter_scale_bp_radius(std::min(sin(0.7) * layer_height / branch_radius, 1.0 / (branch_radius / (support_line_width / 2.0)))), // Either 40° or as much as possible so that 2 lines will overlap by at least 50%, whichever is smaller.
@@ -141,9 +140,13 @@ struct TreeSupportSettings
      */
     coord_t branch_radius;
     /*!
-     * \brief smallest allowed radius, required to ensure that even at DTT 0 every circle will still be printed
+     * \brief The smallest allowed radius, required to ensure that even at DTT 0 every circle will still be printed.
      */
     coord_t min_radius;
+    /*!
+     * \brief The largest allowed radius.
+     */
+    coord_t max_radius;
     /*!
      * \brief How far an influence area may move outward every layer at most.
      */
@@ -315,7 +318,7 @@ struct TreeSupportSettings
                support_bottom_offset == other.support_bottom_offset && support_wall_count == other.support_wall_count && support_pattern == other.support_pattern && roof_pattern == other.roof_pattern && // can not be set on a per-mesh basis currently, so code to enable processing different roof patterns in the same iteration seems useless.
                support_roof_angles == other.support_roof_angles && support_infill_angles == other.support_infill_angles && increase_radius_until_radius == other.increase_radius_until_radius && support_bottom_layers == other.support_bottom_layers && layer_height == other.layer_height && z_distance_top_layers == other.z_distance_top_layers && maximum_deviation == other.maximum_deviation && // Infill generation depends on deviation and resolution.
                maximum_resolution == other.maximum_resolution && support_roof_line_distance == other.support_roof_line_distance && skip_some_zags == other.skip_some_zags && zag_skip_count == other.zag_skip_count && connect_zigzags == other.connect_zigzags && interface_preference == other.interface_preference && min_feature_size == other.min_feature_size // interface_preference should be identical to ensure the tree will correctly interact with the roof.
-               && support_rest_preference == other.support_rest_preference
+               && support_rest_preference == other.support_rest_preference && max_radius == other.max_radius
                // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for interface-preference. Not all of these may be required to be identical, but as I am not sure, better safe than sorry
                && (interface_preference == InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT || interface_preference == InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE
                    || (settings.get<bool>("fill_outline_gaps") == other.settings.get<bool>("fill_outline_gaps") && settings.get<coord_t>("min_bead_width") == other.settings.get<coord_t>("min_bead_width") && settings.get<AngleRadians>("wall_transition_angle") == other.settings.get<AngleRadians>("wall_transition_angle") && settings.get<coord_t>("wall_transition_length") == other.settings.get<coord_t>("wall_transition_length") && settings.get<Ratio>("wall_split_middle_threshold") == other.settings.get<Ratio>("wall_split_middle_threshold") && settings.get<Ratio>("wall_add_middle_threshold") == other.settings.get<Ratio>("wall_add_middle_threshold") && settings.get<int>("wall_distribution_count") == other.settings.get<int>("wall_distribution_count") && settings.get<coord_t>("wall_transition_filter_distance") == other.settings.get<coord_t>("wall_transition_filter_distance") && settings.get<coord_t>("wall_transition_filter_deviation") == other.settings.get<coord_t>("wall_transition_filter_deviation") && settings.get<coord_t>("wall_line_width_x") == other.settings.get<coord_t>("wall_line_width_x")
@@ -341,11 +344,12 @@ struct TreeSupportSettings
      */
     [[nodiscard]] inline coord_t getRadius(size_t distance_to_top, const double buildplate_radius_increases = 0) const
     {
-        return (distance_to_top <= tip_layers ? min_radius + (branch_radius - min_radius) * distance_to_top / tip_layers : // tip
+        coord_t uncapped_radius= (distance_to_top <= tip_layers ? min_radius + (branch_radius - min_radius) * distance_to_top / tip_layers : // tip
                        branch_radius + // base
                            branch_radius * (distance_to_top - tip_layers) * diameter_angle_scale_factor)
                + // gradual increase
                branch_radius * buildplate_radius_increases * (std::max(diameter_scale_bp_radius - diameter_angle_scale_factor, 0.0));
+        return std::min(uncapped_radius,max_radius);
     }
 
     /*!
@@ -376,7 +380,7 @@ struct TreeSupportSettings
     [[nodiscard]] inline coord_t recommendedMinRadius(LayerIndex layer_idx) const
     {
         double scale = (layer_start_bp_radius - layer_idx) * diameter_scale_bp_radius;
-        return scale > 0 ? branch_radius + branch_radius * scale : 0;
+        return scale > 0 ? std::min(coord_t(branch_radius + branch_radius * scale),max_radius) : 0;
     }
 
     /*!

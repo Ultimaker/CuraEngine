@@ -48,7 +48,7 @@ namespace cura
 
 class TreeSupport
 {
-  public:
+public:
     /*!
      * \brief Creates an instance of the tree support generator.
      *
@@ -66,7 +66,7 @@ class TreeSupport
     void generateSupportAreas(SliceDataStorage& storage);
 
 
-  private:
+private:
     enum class LineStatus
     {
         INVALID,

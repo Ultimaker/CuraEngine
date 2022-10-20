@@ -9,12 +9,12 @@
 #include "settings/EnumSettings.h"
 #include "support.h" //For precomputeCrossInfillTree
 #include "utils/Simplify.h"
-#include "utils/logoutput.h"
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/polygonUtils.h" //For moveInside.
 #include <chrono>
 #include <fstream>
 #include <optional>
+#include <spdlog/spdlog.h>
 #include <stdio.h>
 #include <string>
 #include <thread>
@@ -126,7 +126,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     {
         // process each combination of meshes
         std::vector<std::set<TreeSupportElement*>> move_bounds(storage.support.supportLayers.size()); // value is the area where support may be placed. As this is calculated in CreateLayerPathing it is saved and reused in drawAreas
-        log("Processing support tree mesh group %lld of %lld containing %lld meshes.\n", counter + 1, grouped_meshes.size(), grouped_meshes[counter].second.size());
+        spdlog::info("Processing support tree mesh group {} of {} containing {} meshes.", counter + 1, grouped_meshes.size(), grouped_meshes[counter].second.size());
         std::vector<Polygons> exclude(storage.support.supportLayers.size());
         auto t_start = std::chrono::high_resolution_clock::now();
         // get all already existing support areas and exclude them
@@ -176,7 +176,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         auto dur_place = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_place - t_path).count();
         auto dur_draw = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_place).count();
         auto dur_total = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_start).count();
-        log("Total time used creating Tree support for the currently grouped meshes: %.3lf ms. Different subtasks:\nCalculating Avoidance: %.3lf ms Creating inital influence areas: %.3lf ms Influence area creation: %.3lf ms Placement of Points in InfluenceAreas: %.3lf ms Drawing result as support %.3lf ms\n", dur_total, dur_pre_gen, dur_gen, dur_path, dur_place, dur_draw);
+        spdlog::info("Total time used creating Tree support for the currently grouped meshes: {} ms. Different subtasks:\nCalculating Avoidance: {} ms Creating inital influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as support {} ms", dur_total, dur_pre_gen, dur_gen, dur_path, dur_place, dur_draw);
 
         for (auto& layer : move_bounds)
         {
@@ -497,7 +497,7 @@ Polygons TreeSupport::ensureMaximumDistancePolyline(const Polygons& input, coord
                         if (current_point == next_point.location)
                         {
                             // In case a fixpoint is encountered, better aggressively overcompensate so the code does not become stuck here...
-                            logWarning("Tree Support: Encountered a fixpoint in getNextPointWithDistance. This is expected to happen if the distance (currently %lld) is smaller than 100\n", next_distance);
+                            spdlog::warn("Tree Support: Encountered a fixpoint in getNextPointWithDistance. This is expected to happen if the distance (currently {}) is smaller than 100", next_distance);
                             if (next_distance > 2 * current_distance)
                             {
                                 // This case should never happen, but better safe than sorry.
@@ -609,7 +609,7 @@ Polygons TreeSupport::safeUnion(const Polygons first, const Polygons second) con
     exampleInner.add(Point(120419,83580));//F
     example.add(exampleInner);
     for(int i=0;i<10;i++){
-         log("Iteration %d Example area: %f\n",i,example.area());
+         spdlog::info("Iteration {} Example area: {}",i,example.area());
          example=example.unionPolygons();
     }
 */
@@ -621,7 +621,7 @@ Polygons TreeSupport::safeUnion(const Polygons first, const Polygons second) con
 
     if (result.empty() && !was_empty) // error occurred
     {
-        logDebug("Caught an area destroying union, enlarging areas a bit.\n");
+        spdlog::debug("Caught an area destroying union, enlarging areas a bit.");
         return toPolylines(first).offsetPolyLine(2).unionPolygons(toPolylines(second).offsetPolyLine(2)); // just take the few lines we have, and offset them a tiny bit. Needs to be offsetPolylines, as offset may aleady have problems with the area.
     }
 
@@ -639,7 +639,7 @@ SierpinskiFillProvider* TreeSupport::generateCrossFillProvider(const SliceMeshSt
         AABB3D aabb;
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
-            logWarning("Tree support tried to generate a CrossFillProvider for a non model mesh.\n");
+            spdlog::warn("Tree support tried to generate a CrossFillProvider for a non model mesh.");
             return nullptr;
         }
 
@@ -685,6 +685,7 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
     const coord_t roof_outset = mesh.settings.get<coord_t>("support_roof_offset");
     const coord_t extra_outset = std::max(coord_t(0), mesh_config.min_radius - mesh_config.support_line_width) + (xy_overrides ? 0 : mesh_config.support_line_width / 2); // extra support offset to compensate for larger tip radiis. Also outset a bit more when z overwrites xy, because supporting something with a part of a support line is better than not supporting it at all.
     const bool force_tip_to_roof = (mesh_config.min_radius * mesh_config.min_radius * M_PI > minimum_roof_area * (1000 * 1000)) && roof_enabled;
+    const double tip_roof_size=force_tip_to_roof?mesh_config.min_radius * mesh_config.min_radius * M_PI:0;
     const double support_overhang_angle = mesh.settings.get<AngleRadians>("support_angle");
     const coord_t max_overhang_speed = (support_overhang_angle < TAU / 4) ? (coord_t)(tan(support_overhang_angle) * mesh_config.layer_height) : std::numeric_limits<coord_t>::max();
     const size_t max_overhang_insert_lag = std::max((size_t)round_up_divide(mesh_config.xy_distance, max_overhang_speed / 2), 2 * mesh_config.z_distance_top_layers); // cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point may cause extra material and time cost.  Could also be an user setting or differently calculated. Idea is that if an overhang does not turn valid in double the amount of layers a slope of support angle would take to travel xy_distance, nothing reasonable will come from it. The 2*z_distance_delta is only a catch for when the support angle is very high.
@@ -722,7 +723,7 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
             bool safe_radius = p.second == LineStatus::TO_BP_SAFE || p.second == LineStatus::TO_MODEL_GRACIOUS_SAFE;
             if (!mesh_config.support_rests_on_model && !to_bp)
             {
-                logWarning("Tried to add an invalid support point\n");
+                spdlog::warn("Tried to add an invalid support point");
                 return;
             }
             Polygon circle;
@@ -890,6 +891,7 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
         {
             const bool roof_allowed_for_this_part = overhang_pair.second;
             Polygons overhang_outset = overhang_pair.first;
+            const bool roof_area_to_small_use_tip_roof_instead=roof_allowed_for_this_part&&tip_roof_size>=overhang_outset.area();
             const size_t min_support_points = std::max(coord_t(1), std::min(coord_t(3), overhang_outset.polygonLength() / connect_length));
             std::vector<LineInformation> overhang_lines;
             Polygons last_overhang = overhang_outset;
@@ -901,7 +903,7 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
             // Main problem is that some patterns change each layer, so just calculating points and checking if they are still valid an layer below is not useful, as the pattern may be different one layer below.
             // Same with calculating which points are now no longer being generated as result from a decreasing roof, as there is no guarantee that a line will be above these points.
             // Implementing a separate roof support behavior for each pattern harms maintainability as it very well could be >100 LOC
-            if (roof_allowed_for_this_part)
+            if (roof_allowed_for_this_part&&!roof_area_to_small_use_tip_roof_instead)
             {
                 for (dtt_roof = 0; dtt_roof < support_roof_layers && layer_idx - dtt_roof >= 1; dtt_roof++)
                 {
@@ -999,7 +1001,7 @@ Polygons TreeSupport::safeOffsetInc(const Polygons& me, coord_t distance, const 
     }
     if (safe_step_size < 0 || last_step_offset_without_check < 0)
     {
-        logError("Offset increase got invalid parameter!\n");
+        spdlog::error("Offset increase got invalid parameter!");
         return (do_final_difference ? ret.difference(collision) : ret).unionPolygons();
     }
 
@@ -1022,7 +1024,7 @@ Polygons TreeSupport::safeOffsetInc(const Polygons& me, coord_t distance, const 
         step_size = distance / min_amount_offset;
         if (step_size >= safe_step_size)
         {
-            // effectivly reduce last_step_offset_without_check
+            // effectively reduce last_step_offset_without_check
             step_size = safe_step_size;
             steps = min_amount_offset;
         }
@@ -1382,7 +1384,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(AreaIncreaseSe
         if (!current_elem.to_buildplate && to_bp_data.area() > 1) // mostly happening in the tip, but with merges one should check every time, just to be sure.
         {
             current_elem.to_buildplate = true; // sometimes nodes that can reach the buildplate are marked as cant reach, tainting subtrees. This corrects it.
-            logDebug("Corrected taint leading to a wrong to model value on layer %lld targeting %lld with radius %lld\n", layer_idx - 1, current_elem.target_height, radius);
+            spdlog::debug("Corrected taint leading to a wrong to model value on layer {} targeting {} with radius {}", layer_idx - 1, current_elem.target_height, radius);
         }
     }
     if (config.support_rests_on_model)
@@ -1397,7 +1399,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(AreaIncreaseSe
             if (mergelayer && to_model_data.area() >= 1)
             {
                 current_elem.to_model_gracious = true;
-                logDebug("Corrected taint leading to a wrong non gracious value on layer %lld targeting %lld with radius %lld\n", layer_idx - 1, current_elem.target_height, radius);
+                spdlog::debug("Corrected taint leading to a wrong non gracious value on layer {} targeting {} with radius {}", layer_idx - 1, current_elem.target_height, radius);
             }
             else
             {
@@ -1492,7 +1494,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(AreaIncreaseSe
             check_layer_data = current_elem.to_buildplate ? to_bp_data : to_model_data;
             if (check_layer_data.area() < 1)
             {
-                logError("Lost area by doing catch up from %lld to radius %lld\n", ceil_radius_before, volumes_.ceilRadius(config.getCollisionRadius(current_elem), settings.use_min_distance));
+                spdlog::error("Lost area by doing catch up from {} to radius {}", ceil_radius_before, volumes_.ceilRadius(config.getCollisionRadius(current_elem), settings.use_min_distance));
             }
         }
     }
@@ -1711,10 +1713,12 @@ void TreeSupport::increaseAreas(std::unordered_map<TreeSupportElement, Polygons>
                 Polygons lines_offset = toPolylines(*parent->area).offsetPolyLine(5);
                 Polygons base_error_area = parent->area->unionPolygons(lines_offset);
                 result = increaseSingleArea(settings, layer_idx, parent, base_error_area, to_bp_data, to_model_data, inc_wo_collision, (config.maximum_move_distance + extra_speed) * 1.5, mergelayer);
-                logError("Influence area could not be increased! Data about the Influence area: "
-                         "Radius: %lld at layer: %d NextTarget: %lld Distance to top: %lld Elephant foot increases %llf  use_min_xy_dist %d to buildplate %d gracious %d safe %d until move %d \n "
-                         "Parent %lld: Radius: %lld at layer: %d NextTarget: %lld Distance to top: %lld Elephant foot increases %llf  use_min_xy_dist %d to buildplate %d gracious %d safe %d until move %d\n",
-                    radius, layer_idx - 1, elem.next_height, elem.distance_to_top, elem.buildplate_radius_increases, elem.use_min_xy_dist, elem.to_buildplate, elem.to_model_gracious, elem.can_use_safe_radius, elem.dont_move_until, parent, config.getCollisionRadius(*parent), layer_idx, parent->next_height, parent->distance_to_top, parent->buildplate_radius_increases, parent->use_min_xy_dist, parent->to_buildplate, parent->to_model_gracious, parent->can_use_safe_radius, parent->dont_move_until);
+
+                spdlog::error("Influence area could not be increased! Data about the Influence area: "
+                         "Radius: {} at layer: {} NextTarget: {} Distance to top: {} Elephant foot increases {}  use_min_xy_dist {} to buildplate {} gracious {} safe {} until move {} \n "
+                         "Parent {}: Radius: {} at layer: {} NextTarget: {} Distance to top: {} Elephant foot increases {}  use_min_xy_dist {} to buildplate {} gracious {} safe {} until move {}",
+                    radius, layer_idx - 1, elem.next_height, elem.distance_to_top, elem.buildplate_radius_increases, elem.use_min_xy_dist, elem.to_buildplate, elem.to_model_gracious, elem.can_use_safe_radius, elem.dont_move_until, fmt::ptr(parent), config.getCollisionRadius(*parent), layer_idx, parent->next_height, parent->distance_to_top, parent->buildplate_radius_increases, parent->use_min_xy_dist, parent->to_buildplate, parent->to_model_gracious, parent->can_use_safe_radius, parent->dont_move_until);
+
             }
             else
             {
@@ -1745,13 +1749,13 @@ void TreeSupport::increaseAreas(std::unordered_map<TreeSupportElement, Polygons>
                 }
                 if (!settings.no_error)
                 {
-                    logError("Trying to keep area by moving faster than intended: Success \n");
+                    spdlog::error("Trying to keep area by moving faster than intended: Success ");
                 }
                 break;
             }
             else if (!settings.no_error)
             {
-                logError("Trying to keep area by moving faster than intended: FAILURE! WRONG BRANCHES LIKLY! \n");
+                spdlog::error("Trying to keep area by moving faster than intended: FAILURE! WRONG BRANCHES LIKLY! ");
             }
         }
 
@@ -1852,6 +1856,8 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
 
         new_element = !move_bounds[layer_idx - 1].empty();
 
+
+
         // Save calculated elements to output, and allocate Polygons on heap, as they will not be changed again.
         for (std::pair<TreeSupportElement, Polygons> tup : influence_areas)
         {
@@ -1862,7 +1868,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
 
             if (new_area->area() < 1)
             {
-                logError("Insert Error of Influence area on layer %lld. Origin of %lld areas. Was to bp %d\n", layer_idx - 1, elem.parents.size(), elem.to_buildplate);
+                spdlog::error("Insert Error of Influence area on layer {}. Origin of {} areas. Was to bp {}", layer_idx - 1, elem.parents.size(), elem.to_buildplate);
             }
         }
 
@@ -1871,7 +1877,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
         {
             if (elem->area->area() < 1)
             {
-                logError("Insert Error of Influence area bypass on layer %lld.\n", layer_idx - 1);
+                spdlog::error("Insert Error of Influence area bypass on layer {}.", layer_idx - 1);
             }
             move_bounds[layer_idx - 1].emplace(elem);
         }
@@ -1880,7 +1886,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
         Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
     }
 
-    log("Time spent with creating influence areas' subtasks: Increasing areas %lld ms merging areas: %lld ms\n", dur_inc.count() / 1000000, dur_merge.count() / 1000000);
+    spdlog::info("Time spent with creating influence areas' subtasks: Increasing areas {} ms merging areas: {} ms", dur_inc.count() / 1000000, dur_merge.count() / 1000000);
 }
 
 
@@ -1890,7 +1896,7 @@ void TreeSupport::setPointsOnAreas(const TreeSupportElement* elem)
 
     if (elem->result_on_layer == Point(-1, -1))
     {
-        logError("Uninitialized support element\n");
+        spdlog::error("Uninitialized support element");
         return;
     }
 
@@ -1956,7 +1962,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
         {
             if (SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL)
             {
-                logWarning("No valid placement found for to model gracious element on layer %lld: REMOVING BRANCH\n", layer_idx);
+                spdlog::warn("No valid placement found for to model gracious element on layer {}: REMOVING BRANCH", layer_idx);
                 for (LayerIndex layer = layer_idx; layer <= first_elem->next_height; layer++)
                 {
                     move_bounds[layer].erase(checked[layer - layer_idx]);
@@ -1967,7 +1973,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
             }
             else
             {
-                logWarning("No valid placement found for to model gracious element on layer %lld\n", layer_idx);
+                spdlog::warn("No valid placement found for to model gracious element on layer {}", layer_idx);
                 first_elem->to_model_gracious = false;
                 return setToModelContact(move_bounds, first_elem, layer_idx);
             }
@@ -1980,7 +1986,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
             delete checked[layer - layer_idx];
         }
 
-        //If resting on the buildplate keep bp location
+        // If resting on the buildplate keep bp location
         if (config.support_rest_preference != RestPreference::BUILDPLATE && last_successfull_layer == 0)
         {
             return false;
@@ -1996,7 +2002,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
         }
 
         checked[last_successfull_layer - layer_idx]->result_on_layer = best;
-        logDebug("Added gracious Support On Model Point (%lld,%lld). The current layer is %lld\n", best.X, best.Y, last_successfull_layer);
+        spdlog::debug("Added gracious Support On Model Point ({},{}). The current layer is {}", best.X, best.Y, last_successfull_layer);
 
         return last_successfull_layer != layer_idx;
     }
@@ -2009,7 +2015,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
         }
         first_elem->result_on_layer = best;
         first_elem->to_model_gracious = false;
-        logDebug("Added NON gracious Support On Model Point (%lld,%lld). The current layer is %lld\n", best.X, best.Y, layer_idx);
+        spdlog::debug("Added NON gracious Support On Model Point ({},{}). The current layer is {}", best.X, best.Y, layer_idx);
         return false;
     }
 }
@@ -2058,7 +2064,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>
                 {
                     if (elem->to_buildplate)
                     {
-                        logError("Uninitialized Influence area targeting (%lld,%lld) at target_height: %lld layer: %lld\n", elem->target_position.X, elem->target_position.Y, elem->target_height, layer_idx);
+                        spdlog::error("Uninitialized Influence area targeting ({},{}) at target_height: {} layer: {}", elem->target_position.X, elem->target_position.Y, elem->target_height, layer_idx);
                     }
                     remove.emplace(elem); // we dont need to remove yet the parents as they will have a lower dtt and also no result_on_layer set
                     removed = true;
@@ -2353,7 +2359,7 @@ void TreeSupport::dropNonGraciousAreas(std::vector<std::unordered_map<TreeSuppor
         [&](const size_t idx)
         {
         TreeSupportElement* elem = linear_data[idx].second;
-        bool non_gracious_model_contact = !elem->to_model_gracious && !inverse_tree_order.count(elem); // if a element has no child, it connects to whatever is below as no support further down for it will exist.
+        bool non_gracious_model_contact = !elem->to_model_gracious && !inverse_tree_order.count(elem); // if an element has no child, it connects to whatever is below as no support further down for it will exist.
 
         if (non_gracious_model_contact)
         {
@@ -2464,14 +2470,14 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
 {
     std::vector<Polygons> support_layer_storage(move_bounds.size());
     std::vector<Polygons> support_roof_storage(move_bounds.size());
-    std::map<TreeSupportElement*, TreeSupportElement*> inverese_tree_order; // in the tree structure only the parents can be accessed. Inverse this to be able to access the children.
+    std::map<TreeSupportElement*, TreeSupportElement*> inverse_tree_order; // in the tree structure only the parents can be accessed. Inverse this to be able to access the children.
     std::vector<std::pair<LayerIndex, TreeSupportElement*>> linear_data; // All SupportElements are put into a layer independent storage to improve parallelization. Was added at a point in time where this function had performance issues.
                                                                          // These were fixed by creating less initial points, but i do not see a good reason to remove a working performance optimization.
     for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(move_bounds.size()); layer_idx++)
     {
         for (TreeSupportElement* elem : move_bounds[layer_idx])
         {
-            if ((layer_idx > 0 && ((!inverese_tree_order.count(elem) && elem->target_height == layer_idx) || (inverese_tree_order.count(elem) && inverese_tree_order[elem]->result_on_layer == Point(-1, -1))))) // we either come from nowhere at the final layer or we had invalid parents 2. should never happen but just to be sure
+            if ((layer_idx > 0 && ((!inverse_tree_order.count(elem) && elem->target_height == layer_idx) || (inverse_tree_order.count(elem) && inverse_tree_order[elem]->result_on_layer == Point(-1, -1))))) // we either come from nowhere at the final layer or we had invalid parents 2. should never happen but just to be sure
             {
                 continue;
             }
@@ -2482,7 +2488,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
                 {
                     continue;
                 }
-                inverese_tree_order.emplace(par, elem);
+                inverse_tree_order.emplace(par, elem);
             }
             linear_data.emplace_back(layer_idx, elem);
         }
@@ -2491,15 +2497,16 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     std::vector<std::unordered_map<TreeSupportElement*, Polygons>> layer_tree_polygons(move_bounds.size()); // reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Polygons>>.
     auto t_start = std::chrono::high_resolution_clock::now();
     // Generate the circles that will be the branches.
-    generateBranchAreas(linear_data, layer_tree_polygons, inverese_tree_order);
+    generateBranchAreas(linear_data, layer_tree_polygons, inverse_tree_order);
     auto t_generate = std::chrono::high_resolution_clock::now();
-    // In some edgecases a branch may go though a hole, where the regular radius does not fit. This can result in an apparent jump in branch radius. As such this cases need to be caught and smoothed out.
+    // In some edge-cases a branch may go through a hole, where the regular radius does not fit. This can result in an apparent jump in branch radius. As such this cases need to be caught and smoothed out.
     smoothBranchAreas(layer_tree_polygons);
     auto t_smooth = std::chrono::high_resolution_clock::now();
     // drop down all trees that connect non gracefully with the model
     std::vector<std::vector<std::pair<LayerIndex, Polygons>>> dropped_down_areas(linear_data.size());
-    dropNonGraciousAreas(layer_tree_polygons, linear_data, dropped_down_areas, inverese_tree_order);
+    dropNonGraciousAreas(layer_tree_polygons, linear_data, dropped_down_areas, inverse_tree_order);
     auto t_drop = std::chrono::high_resolution_clock::now();
+
     // single threaded combining all dropped down support areas to the right layers. ONLY COPYS DATA!
     for (coord_t i = 0; i < static_cast<coord_t>(dropped_down_areas.size()); i++)
     {
@@ -2509,7 +2516,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         }
     }
 
-    // ensure all branch areas added as roof actually cause a roofline to generate. Else disble turning the branch to roof going down
+    // ensure all branch areas added as roof actually cause a roofline to generate. Else disable turning the branch to roof going down
     cura::parallel_for<size_t>(0, layer_tree_polygons.size(),
         [&](const size_t layer_idx)
         {
@@ -2527,7 +2534,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
                         elem->missing_roof_layers = 0;
                         if (data_pair.first->missing_roof_layers > data_pair.first->distance_to_top + 1)
                         {
-                            to_disable_roofs_next.emplace_back(inverese_tree_order[elem]);
+                            to_disable_roofs_next.emplace_back(inverse_tree_order[elem]);
                         }
                     }
                     to_disable_roofs = to_disable_roofs_next;
@@ -2561,7 +2568,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     auto dur_drop = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_drop - t_smooth).count();
     auto dur_finalize = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_drop).count();
 
-    log("Time used for drawing subfuctions: generateBranchAreas: %.3lf ms smoothBranchAreas: %.3lf ms dropNonGraciousAreas: %.3lf ms finalizeInterfaceAndSupportAreas %.3lf ms\n", dur_gen_tips, dur_smooth, dur_drop, dur_finalize);
+    spdlog::info("Time used for drawing subfuctions: generateBranchAreas: {} ms smoothBranchAreas: {} ms dropNonGraciousAreas: {} ms finalizeInterfaceAndSupportAreas {} ms", dur_gen_tips, dur_smooth, dur_drop, dur_finalize);
 }
 
 
