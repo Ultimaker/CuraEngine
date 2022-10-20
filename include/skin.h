@@ -161,16 +161,6 @@ protected:
      */
     Polygons generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
 
-    /*!
-     * Helper function to recalculate the roofing fill and inner infill in roofing layers where the 
-     * insets have to be changed.
-     *
-     * \param part Where to get the SkinParts to get the outline info from
-     * \param skin_part The part where the skin outline information (input) is stored and
-     * where the inner infill and roofing infill areas (output) is stored.
-     */
-    void generateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part);
-
 protected:
     LayerIndex layer_nr; //!< The index of the layer for which to generate the skins and infill.
     SliceMeshStorage& mesh; //!< The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
