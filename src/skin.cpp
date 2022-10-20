@@ -86,10 +86,9 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
     generateSkinAndInfillAreas();
 
     SliceLayer* layer = &mesh.layers[layer_nr];
-    for (unsigned int part_nr = 0; part_nr < layer->parts.size(); part_nr++)
-    {
-        SliceLayerPart& part = layer->parts[part_nr];
 
+    for (SliceLayerPart& part : layer->parts)
+    {
         generateRoofing(part);
 
         generateTopAndBottomMostSkinSurfaces(part);
