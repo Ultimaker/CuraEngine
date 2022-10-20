@@ -86,10 +86,9 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
     generateSkinAndInfillAreas();
 
     SliceLayer* layer = &mesh.layers[layer_nr];
-    for (unsigned int part_nr = 0; part_nr < layer->parts.size(); part_nr++)
-    {
-        SliceLayerPart& part = layer->parts[part_nr];
 
+    for (SliceLayerPart& part : layer->parts)
+    {
         generateRoofing(part);
 
         generateTopAndBottomMostSkinSurfaces(part);
@@ -306,7 +305,14 @@ void SkinInfillAreaComputation::generateRoofing(SliceLayerPart& part)
 {
     for(SkinPart& skin_part : part.skin_parts)
     {
-        generateRoofingFillAndInnerInfill(part, skin_part);
+        const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
+        const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
+
+        Polygons filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
+        Polygons outline = skin_part.outline.offset(skin_overlap);
+
+        skin_part.skin_fill = outline.intersection(filled_area_above);
+        skin_part.roofing_fill = outline.difference(filled_area_above);
     }
 }
 
