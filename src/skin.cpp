@@ -315,8 +315,8 @@ void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& p
 
         // We remove offsets areas from roofing_fill anywhere they overlap with skin_fill.
         // Otherwise, adjacent skin_fill and roofing_fill would have doubled offset areas. Since they both offset into each other.
-        skin_part.roofing_fill = skin_part.roofing_fill.offset(skin_overlap).difference(skin_part.skin_fill);
-        skin_part.skin_fill = skin_part.skin_fill.offset(skin_overlap);
+        skin_part.skin_fill = skin_part.skin_fill.offset(skin_overlap).difference(skin_part.roofing_fill);
+        skin_part.roofing_fill = skin_part.roofing_fill.offset(skin_overlap);
     }
 }
 
