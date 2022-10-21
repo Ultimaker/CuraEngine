@@ -502,8 +502,9 @@ protected:
                 }
             }
 
-            constexpr float EPSILON = 25.0;
-            if (seam_config.type != EZSeamType::SKIRT_BRIM && fabs(best_score - score) <= EPSILON)
+            constexpr float tiebreaker_difference = .01; // Scores that are less than 1% better will use a tie breaker based on the x and y coordinates
+            float score_difference = best_score - score;
+            if (seam_config.type != EZSeamType::SKIRT_BRIM && score_difference > 0 && score_difference / best_score < tiebreaker_difference)
             {
                 // add breaker for two candidate starting location with similar score
                 // if we don't do this then we (can) get an un-even seam
@@ -513,8 +514,8 @@ protected:
                 if (here.X != best_point.X ? here.X < best_point.X : here.Y < best_point.Y)
                 {
                     best_point = here;
+                    best_score = score;
                 }
-                best_score = std::min(best_score, score);
             }
             else if(score < best_score)
             {
