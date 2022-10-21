@@ -421,7 +421,10 @@ protected:
         Polygon simple_poly(*path.converted);
         if (seam_config.simplify_curvature > 0 && simple_poly.size() > 2)
         {
-            const coord_t max_simplify_dist = seam_config.simplify_curvature;
+            // Simplify the polygons less when using USER_SPECIFIED, this will cause the seams to be much straighter
+            // but "smooth" corners that are spread out over multiple points are less likely to be selected for the seam location.
+            const coord_t max_simplify_dist = seam_config.type == EZSeamType::USER_SPECIFIED ? seam_config.simplify_curvature / 2 : seam_config.simplify_curvature;
+
             simple_poly = Simplify(max_simplify_dist, max_simplify_dist / 2, 0).polygon(simple_poly);
         }
         if(simple_poly.empty()) //Simplify removed everything because it's all too small.
