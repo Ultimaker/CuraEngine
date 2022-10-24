@@ -530,14 +530,14 @@ protected:
 
         // Which point in the real deal is closest to the simple polygon version?
         size_t best_index = 0;
-        coord_t closest_dist = std::numeric_limits<coord_t>::max();
+        coord_t closest_dist2 = std::numeric_limits<coord_t>::max();
         for (size_t i = 0; i < path.converted->size(); ++i)
         {
             const Point& here = (*path.converted)[i];
-            const coord_t here_dist = vSize2(best_point - here);
-            if (here_dist < closest_dist)
+            const coord_t dist2 = vSize2(best_point - here);
+            if (dist2 < closest_dist2)
             {
-                closest_dist = here_dist;
+                closest_dist2 = dist2;
                 best_index = i;
             }
         }
