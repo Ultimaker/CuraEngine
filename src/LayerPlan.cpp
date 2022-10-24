@@ -1457,7 +1457,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
     double total_extrude_time_at_minimum_speed = 0;
     double total_extrude_time_at_slowest_speed = 0;
 
-    double slowestPathSpeed = DBL_MAX;
+    double slowestPathSpeed = std::numeric_limits<double>::max();
     for (GCodePath& path : paths)
     {
         total_extrude_time_at_minimum_speed += path.estimates.extrude_time_at_minimum_speed;
@@ -1465,7 +1465,8 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         slowestPathSpeed = std::min(path.config->getSpeed().value * path.speed_factor, slowestPathSpeed);
     }
 
-    if (totalTime < minTime - 0.01 && extrudeTime > 0.0)
+    constexpr double epsilon = 0.01;
+    if (totalTime < minTime - epsilon && extrudeTime > 0.0)
     {
         double minExtrudeTime = minTime - travelTime;
         if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
@@ -1474,7 +1475,9 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             for (GCodePath& path : paths)
             {
                 if (path.isTravelPath())
+                {
                     continue;
+                }
                 path.speed_factor = minimalSpeed / (path.config->getSpeed() * path.speed_factor);
                 path.estimates.extrude_time /= path.speed_factor;
             }
@@ -1485,16 +1488,18 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
                 extraTime = minTime - total_extrude_time_at_minimum_speed - travelTime;
             }
         }
-        else if (minExtrudeTime >= total_extrude_time_at_slowest_speed && abs(total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed) >= 0.01)
+        else if (minExtrudeTime >= total_extrude_time_at_slowest_speed && std::abs(total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed) >= epsilon)
         {
             // Slowing down to the slowest path speed is not sufficient, need to slow down further to the minimum speed.
             // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
             double factor = (total_extrude_time_at_minimum_speed - minExtrudeTime) / (total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed);
-            double target_speed = minimalSpeed * (1-factor) + slowestPathSpeed * factor;
+            double target_speed = minimalSpeed * (1.0 - factor) + slowestPathSpeed * factor;
             for (GCodePath& path : paths)
             {
                 if (path.isTravelPath())
+                {
                     continue;
+                }
                 path.speed_factor = target_speed / (path.config->getSpeed() * path.speed_factor);
                 path.estimates.extrude_time /= path.speed_factor;
             }
@@ -1505,11 +1510,13 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         {
             // Slowing down to the slowest_speed is sufficient to respect the minimum layer time.
             // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
-            double factor = (total_extrude_time_at_slowest_speed - minExtrudeTime) / (total_extrude_time_at_slowest_speed - extrudeTime);
+            const double factor = (total_extrude_time_at_slowest_speed - minExtrudeTime) / (total_extrude_time_at_slowest_speed - extrudeTime);
             for (GCodePath& path : paths)
             {
                 if (path.isTravelPath())
+                {
                     continue;
+                }
                 double target_speed = slowestPathSpeed * (1-factor) + (path.config->getSpeed() * path.speed_factor) * factor;
                 path.speed_factor = target_speed / (path.config->getSpeed() * path.speed_factor);
                 path.estimates.extrude_time /= path.speed_factor;
@@ -1529,7 +1536,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
 
     //TODO: This slowest_path_speed is causing warnings for empty layers and looks a bit uckly to me anyway.
     //      Maybe it can also be returned, because it is now calculated again in the forceMinimalLayerTime function.
-    double slowest_path_speed = DBL_MAX;
+    double slowest_path_speed = std::numeric_limits<double>::max();
     for (GCodePath& path : paths)
     {
         slowest_path_speed = std::min(slowest_path_speed, path.config->getSpeed().value * path.speed_factor);
