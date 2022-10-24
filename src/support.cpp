@@ -1313,7 +1313,7 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
 }
 
 
-void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_this, std::vector<Polygons>& towerRoofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
+void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_this, std::vector<Polygons>& tower_roofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
 {
     LayerIndex layer_overhang_point = layer_idx + 1; // Start tower 1 layer below overhang point.
     if (layer_overhang_point >= static_cast<LayerIndex>(layer_count) - 1)
@@ -1321,7 +1321,7 @@ void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_
         return;
     }
     std::vector<Polygons>& overhang_points_here = overhang_points[layer_overhang_point]; // may be changed if an overhang point has a (smaller) overhang point directly below
-    // handle new tower roof tops
+    // handle new tower rooftops
     if (overhang_points_here.size() > 0)
     {
         { // make sure we have the lowest point (make polys empty if they have small parts below)
@@ -1342,7 +1342,7 @@ void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_
         {
             if (poly.size() > 0)
             {
-                towerRoofs.push_back(poly);
+                tower_roofs.push_back(poly);
             }
         }
     }
@@ -1353,9 +1353,8 @@ void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_
     const double tan_tower_roof_angle = tan(tower_roof_angle);
     const coord_t tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
     const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
-    for (size_t roof_idx = 0; roof_idx < towerRoofs.size(); roof_idx++)
+    for (Polygons& tower_roof: tower_roofs)
     {
-        Polygons& tower_roof = towerRoofs[roof_idx];
         if (tower_roof.size() > 0)
         {
             supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
