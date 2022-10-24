@@ -1453,22 +1453,22 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
 
 void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
 {
-    double totalTime = travelTime + extrudeTime;
-    double total_extrude_time_at_minimum_speed = 0;
-    double total_extrude_time_at_slowest_speed = 0;
+    const double totalTime = travelTime + extrudeTime;
+    constexpr double epsilon = 0.01;
 
-    double slowestPathSpeed = std::numeric_limits<double>::max();
+    double total_extrude_time_at_minimum_speed = 0.0;
+    double total_extrude_time_at_slowest_speed = 0.0;
+    double slowest_path_speed = std::numeric_limits<double>::max();
     for (GCodePath& path : paths)
     {
         total_extrude_time_at_minimum_speed += path.estimates.extrude_time_at_minimum_speed;
-        total_extrude_time_at_slowest_speed += path.estimates.extrude_time_at_slowest_speed;
-        slowestPathSpeed = std::min(path.config->getSpeed().value * path.speed_factor, slowestPathSpeed);
+        total_extrude_time_at_slowest_speed += path.estimates.extrude_time_at_slowest_path_speed;
+        slowest_path_speed = std::min(path.config->getSpeed().value * path.speed_factor, slowest_path_speed);
     }
 
-    constexpr double epsilon = 0.01;
     if (totalTime < minTime - epsilon && extrudeTime > 0.0)
     {
-        double minExtrudeTime = minTime - travelTime;
+        const double minExtrudeTime = minTime - travelTime;
         if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
         {
             // Even at cool min speed extrusion is not taken enough time. So speed is set to cool min speed.
@@ -1483,7 +1483,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             }
             // Update stored naive time estimates
             estimates.extrude_time = total_extrude_time_at_minimum_speed;
-            if (minTime - total_extrude_time_at_minimum_speed - travelTime > 0.1)
+            if (minTime - total_extrude_time_at_minimum_speed - travelTime > epsilon)
             {
                 extraTime = minTime - total_extrude_time_at_minimum_speed - travelTime;
             }
@@ -1492,8 +1492,8 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         {
             // Slowing down to the slowest path speed is not sufficient, need to slow down further to the minimum speed.
             // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
-            double factor = (total_extrude_time_at_minimum_speed - minExtrudeTime) / (total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed);
-            double target_speed = minimalSpeed * (1.0 - factor) + slowestPathSpeed * factor;
+            const double factor = (total_extrude_time_at_minimum_speed - minExtrudeTime) / (total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed);
+            const double target_speed = minimalSpeed * (1.0-factor) + slowest_path_speed * factor;
             for (GCodePath& path : paths)
             {
                 if (path.isTravelPath())
@@ -1517,7 +1517,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
                 {
                     continue;
                 }
-                double target_speed = slowestPathSpeed * (1-factor) + (path.config->getSpeed() * path.speed_factor) * factor;
+                const double target_speed = slowest_path_speed * (1.0-factor) + (path.config->getSpeed() * path.speed_factor) * factor;
                 path.speed_factor = target_speed / (path.config->getSpeed() * path.speed_factor);
                 path.estimates.extrude_time /= path.speed_factor;
             }
@@ -1549,10 +1549,8 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
         double* path_time_estimate;
         double& material_estimate = path.estimates.material;
 
-        //TODO: I don't understand why it is needed to initialize these path estimates at zero. But if I don't do it,
-        //      weird values are returned for non extruding paths.
-        path.estimates.extrude_time_at_minimum_speed = 0;
-        path.estimates.extrude_time_at_slowest_speed = 0;
+        path.estimates.extrude_time_at_minimum_speed = 0.0;
+        path.estimates.extrude_time_at_slowest_path_speed = 0.0;
 
         if (! path.isTravelPath())
         {
@@ -1592,7 +1590,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
                 if (length > 0)
                 {
                     path.estimates.extrude_time_at_minimum_speed += length / min_path_speed;
-                    path.estimates.extrude_time_at_slowest_speed += length / slowest_path_speed;
+                    path.estimates.extrude_time_at_slowest_path_speed += length / slowest_path_speed;
                 }
                 material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
             }
