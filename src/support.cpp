@@ -212,14 +212,6 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
             }
 
             Settings wall_settings=infill_extruder.settings;
-            if(tree_support_enabled){
-                // For some reason having a 0.4mm wall with 0.4mm line width means the result will be two 0.2mm lines, but no matter the minimum wall thickness setting it seems to always draw one line.
-                // TreeSupport would rather have one line of 0.4 mm than two of 0.2mm.
-                // This was the best way I found to make SURE it actually adheres to this.
-                // This causes errors and warnings down the road (when generating the wallToolPaths), BUT i did not see any issues with the result, so this stays as some kind of stop-gap solution.
-                wall_settings.add("wall_split_middle_threshold","100");
-                wall_settings.add("wall_add_middle_threshold","100");
-            }
 
             // NOTE: This both generates the walls _and_ returns the _actual_ infill area (the one _without_ walls) for use in the rest of the method.
             const Polygons infill_area = Infill::generateWallToolPaths(support_infill_part.wall_toolpaths, original_area, wall_count, wall_width, 0, wall_settings);
