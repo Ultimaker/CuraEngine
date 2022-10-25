@@ -12,6 +12,9 @@
 #include <spdlog/sinks/dup_filter_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#include <spdlog/cfg/helpers.h>
+#include <spdlog/details/registry.h>
+#include <spdlog/details/os.h>
 
 #include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
@@ -27,6 +30,11 @@ Application::Application()
 {
     auto dup_filter = std::make_shared<spdlog::sinks::dup_filter_sink_st>(std::chrono::seconds(5));
     spdlog::default_logger()->sinks().push_back(dup_filter);
+    auto env_val = spdlog::details::os::getenv("CURAENGINE_LOG_LEVEL");
+    if (! env_val.empty())
+    {
+        spdlog::cfg::helpers::load_levels(env_val);
+    }
 }
 
 Application::~Application()

@@ -38,7 +38,7 @@ Polygons ExtrusionSegment::toPolygons(bool reduced)
     assert(alpha < M_PI + 0.0001);
     if (alpha <= -M_PI || alpha >= M_PI)
     {
-        spdlog::warn("Line joint slope is out of bounds (should be between -pi and +pi): {}", alpha);
+        RUN_ONCE(spdlog::warn("Line joint slope is out of bounds (should be between -pi and +pi): {}", alpha));
     }
 
     float dir = std::atan(vec.Y / static_cast<float>(vec.X));

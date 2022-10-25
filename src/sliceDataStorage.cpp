@@ -182,13 +182,6 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             {
                 return true;
             }
-            for (const SkinPart& skin_part : part.skin_parts)
-            {
-                if (! skin_part.inset_paths.empty())
-                {
-                    return true;
-                }
-            }
         }
     }
     if (settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr && layer.openPolyLines.size() > 0)
