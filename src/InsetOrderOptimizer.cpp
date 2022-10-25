@@ -1,13 +1,20 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "InsetOrderOptimizer.h"
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
+#include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
-#include "WallToolPaths.h"
 
 #include <iterator>
+
+#include <range/v3/view/any_view.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/take_exactly.hpp>
+#include <range/v3/view/join.hpp>
+#include <range/v3/view/remove_if.hpp>
+#include <range/v3/to_container.hpp>
 
 namespace cura
 {
@@ -61,45 +68,8 @@ bool InsetOrderOptimizer::addToLayer()
     const bool use_one_extruder = wall_0_extruder_nr == wall_x_extruder_nr;
     const bool current_extruder_is_wall_x = wall_x_extruder_nr == extruder_nr;
 
-    const auto should_reverse = [&]()
-    {
-        if (use_one_extruder && current_extruder_is_wall_x)
-        {
-            // The entire wall is printed with the current extruder.
-            // Reversing the insets now depends on the inverse of the inset direction.
-            // If we want to print the outer insets first we start with the lowest and move forward
-            // otherwise we start with the highest and iterate back.
-            return ! outer_to_inner;
-        }
-        // If the wall is partially printed with the current extruder we need to move forward
-        // for the outer wall extruder and iterate back for the inner wall extruder
-        return current_extruder_is_wall_x;
-    }; // Helper lambda to ensure that the reverse bool can be a const type
-    const bool reverse = should_reverse();
-
-    // Switches the begin()...end() forward iterator for a rbegin()...rend() reverse iterator
-    // I can't wait till we use the C++20 standard and have access to ranges and views
-    const auto get_walls_to_be_added = [&](const bool reverse, const std::vector<VariableWidthLines>& paths)
-    {
-        if (paths.empty())
-        {
-            return std::vector<const ExtrusionLine*>{};
-        }
-        if (reverse)
-        {
-            if (use_one_extruder)
-            {
-                return wallsToBeAdded(paths.rbegin(), paths.rend()); // Complete wall with one extruder
-            }
-            return wallsToBeAdded(paths.rbegin(), std::prev(paths.rend())); // Ignore inner wall
-        }
-        if (use_one_extruder)
-        {
-            return wallsToBeAdded(paths.begin(), paths.end()); // Complete wall with one extruder
-        }
-        return wallsToBeAdded(paths.begin(), std::next(paths.begin())); // Ignore outer wall
-    };
-    const auto walls_to_be_added = get_walls_to_be_added(reverse, paths);
+    const bool reverse = should_reverse_path(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
+    const auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
 
     const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
 
@@ -114,15 +84,15 @@ bool InsetOrderOptimizer::addToLayer()
     constexpr bool reverse_all_paths = false;
     PathOrderOptimizer<const ExtrusionLine*> order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config, detect_loops, combing_boundary, reverse_all_paths, order);
 
-    for (const ExtrusionLine* line : walls_to_be_added)
+    for (const auto& line : walls_to_be_added)
     {
-        if (line->is_closed)
+        if (line.is_closed)
         {
-            order_optimizer.addPolygon(line);
+            order_optimizer.addPolygon(&line);
         }
         else
         {
-            order_optimizer.addPolyline(line);
+            order_optimizer.addPolyline(&line);
         }
     }
 
@@ -160,7 +130,7 @@ bool InsetOrderOptimizer::addToLayer()
 }
 
 
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(const auto& input, const bool outer_to_inner)
 {
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order_requirements;
 
@@ -185,9 +155,9 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     // This problem is expected to be not so severe and happen very sparsely.
 
     coord_t max_line_w = 0u;
-    for (const ExtrusionLine* line : input)
+    for (const auto& line : input)
     { // compute max_line_w
-        for (const ExtrusionJunction& junction : *line)
+        for (const auto& junction : line)
         {
             max_line_w = std::max(max_line_w, junction.w);
         }
@@ -220,11 +190,11 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     GridT grid(searching_radius);
 
 
-    for (const ExtrusionLine* line : input)
+    for (const auto& line : input)
     {
-        for (const ExtrusionJunction& junction : *line)
+        for (const auto& junction : line)
         {
-            grid.insert(LineLoc{ junction, line });
+            grid.insert(LineLoc{ junction, &line });
         }
     }
     for (const std::pair<SquareGrid::GridPoint, LineLoc>& pair : grid)
@@ -271,30 +241,30 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     return order_requirements;
 }
 
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner)
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
 {
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
 
     std::vector<std::vector<const ExtrusionLine*>> walls_by_inset;
     std::vector<std::vector<const ExtrusionLine*>> fillers_by_inset;
 
-    for (const ExtrusionLine* line : input)
+    for (const auto& line : input)
     {
-        if (line->is_odd)
+        if (line.is_odd)
         {
-            if (line->inset_idx >= fillers_by_inset.size())
+            if (line.inset_idx >= fillers_by_inset.size())
             {
-                fillers_by_inset.resize(line->inset_idx + 1);
+                fillers_by_inset.resize(line.inset_idx + 1);
             }
-            fillers_by_inset[line->inset_idx].emplace_back(line);
+            fillers_by_inset[line.inset_idx].emplace_back(&line);
         }
         else
         {
-            if (line->inset_idx >= walls_by_inset.size())
+            if (line.inset_idx >= walls_by_inset.size())
             {
-                walls_by_inset.resize(line->inset_idx + 1);
+                walls_by_inset.resize(line.inset_idx + 1);
             }
-            walls_by_inset[line->inset_idx].emplace_back(line);
+            walls_by_inset[line.inset_idx].emplace_back(&line);
         }
     }
     for (size_t inset_idx = 0; inset_idx + 1 < walls_by_inset.size(); inset_idx++)
@@ -329,5 +299,43 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     return order;
 }
 
+constexpr bool InsetOrderOptimizer::should_reverse_path(const bool use_one_extruder, const bool current_extruder_is_wall_x, const bool outer_to_inner)
+{
+    if (use_one_extruder && current_extruder_is_wall_x)
+    {
+        return ! outer_to_inner;
+    }
+    return current_extruder_is_wall_x;
+}
 
+std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool reverse, const bool use_one_extruder)
+{
+    ranges::any_view<VariableWidthLines> view;
+    if (reverse)
+    {
+        if (use_one_extruder)
+        {
+            view = paths | ranges::views::reverse;
+        }
+        else
+        {
+            view = paths | ranges::views::reverse | ranges::views::drop_last(1);
+        }
+    }
+    else
+    {
+        if (use_one_extruder)
+        {
+            view = paths | ranges::views::all;
+        }
+        else
+        {
+            view = paths | ranges::views::take_exactly(1);
+        }
+    }
+    return view
+           | ranges::views::join
+           | ranges::views::remove_if(ranges::empty)
+           | ranges::to_vector;
+}
 } // namespace cura

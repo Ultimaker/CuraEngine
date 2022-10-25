@@ -1,5 +1,5 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
@@ -70,7 +70,7 @@ public:
      * 
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
-    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getRegionOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner);
+    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getRegionOrder(const auto& input, const bool outer_to_inner);
 
     /*!
      * Get the order constraints of the insets when printing walls per inset.
@@ -80,7 +80,7 @@ public:
      * 
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
-    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getInsetOrder(const std::vector<const ExtrusionLine*>& input, const bool outer_to_inner);
+    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getInsetOrder(const auto& input, const bool outer_to_inner);
 
     /*!
      * Make order requirements transitive.
@@ -112,37 +112,37 @@ private:
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
     Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
 
+    /* Determine if the paths should be reversed
+     * If there is one extruder used, and we're currently printing the inner walls then Reversing the insets now depends on the inverse of
+     * the inset direction. If we want to print the outer insets first we start with the lowest and move forward otherwise we start with the
+     * highest and iterate back.
+     * Otherwise, if the wall is partially printed with the current extruder we need to move forward for the outer wall extruder and iterate
+     * back for the inner wall extruder
+     *
+     * \param use_one_extruder boolean stating that we are using a single extruder.
+     * \param current_extruder_is_wall_x boolean stating if the current extruder is used for the inner walls.
+     * \param outer_to_inner boolean which should be set to true if we're printing from an outside to the inside
+     *
+     * \return a bool if the paths should be printed in reverse or not
+     */
+    constexpr bool should_reverse_path(const bool use_one_extruder, const bool current_extruder_is_wall_x, const bool outer_to_inner);
+
+    /* Flattens the `paths` and sorts the walls that should be printed added depending on if it is a single outer wall or the inner wall(s),
+     * The order can be reversed if required.
+     *
+     * \param reverse boolean stating if the order of the wall should be revered or not
+     * \param use_one_extruder lean stating that we are using a single extruder.
+     *
+     * \return A vector of ExtrusionLines with walls that should be printed
+     */
+    std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
+
     /*!
      * Endpoints of polylines that are closer together than this distance
      * will be considered to be coincident,
      * closing that polyline into a polygon.
      */
     constexpr static coord_t coincident_point_distance = 10;
-
-    /*!
-     * Helper function to either iterate forward or backward over the path and output a vector of ExtrusionLines
-     *
-     * @tparam It an iterator type, forward or revers
-     * @param begin either the begin() or rbegin() of the path
-     * @param end either the end() or rend() of the path
-     * @return a vector of const ExtrusionLine pointers (whom ever came up with that container???)
-     */
-    template<typename It>
-    std::vector<const ExtrusionLine*> wallsToBeAdded(It begin, It end)
-    {
-        std::vector<const ExtrusionLine*> walls_to_be_added;
-        for (It it = begin; it != end; ++it)
-        {
-            if (! it->empty())
-            {
-                for (const auto& wall : *it)
-                {
-                    walls_to_be_added.emplace_back(&wall);
-                }
-            }
-        }
-        return walls_to_be_added;
-    }
 };
 
 
