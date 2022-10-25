@@ -3,6 +3,8 @@
 
 #include <cmath> // std::ceil
 
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get settings.
 #include "Slice.h"
 #include "ExtruderTrain.h"
@@ -271,24 +273,41 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
 
     bool should_bottom_be_clipped = bottom_skin_expand_distance > 0;
     bool should_top_be_clipped = top_skin_expand_distance > 0;
+    //TODO: move this setting to the front end.
+    // Default value should be something like: (4 + 2 * extra_skin_wall_line_count) * skin_line_width + wall_line_width_0 + (wall_line_count - 1) * wall_line_width_x.
+    const coord_t narrow_skin_width = 3200;
 
     // Remove thin pieces of support for Skin Removal Width.
     if(bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance != 0))
     {
-        Polygons before_shrink = downskin;
-        downskin = downskin.offset(-bottom_skin_preshrink / 2, ClipperLib::jtMiter).offset(bottom_skin_preshrink / 2, ClipperLib::jtMiter);
-        narrow_skin = narrow_skin.unionPolygons(before_shrink.difference(downskin));
+        downskin = downskin.offset(-bottom_skin_preshrink / 2, ClipperLib::jtRound).offset(bottom_skin_preshrink / 2, ClipperLib::jtRound);
         should_bottom_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
     if(top_skin_preshrink > 0 || (min_width == 0 && top_skin_expand_distance != 0))
     {
+        upskin = upskin.offset(-top_skin_preshrink / 2, ClipperLib::jtRound).offset(top_skin_preshrink / 2, ClipperLib::jtRound);
+        should_top_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
+    }
+
+    // Remove thin pieces of support for Skin Removal Width.
+    if(narrow_skin_width > bottom_skin_preshrink)
+    {
+        Polygons before_shrink = downskin;
+        downskin = downskin.offset(-narrow_skin_width / 2, ClipperLib::jtRound).offset(narrow_skin_width / 2, ClipperLib::jtRound);
+        narrow_skin = narrow_skin.unionPolygons(before_shrink.difference(downskin));
+        should_bottom_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
+    }
+    if(narrow_skin_width > top_skin_preshrink)
+    {
         Polygons before_shrink = upskin;
-        upskin = upskin.offset(-top_skin_preshrink / 2, ClipperLib::jtMiter).offset(top_skin_preshrink / 2, ClipperLib::jtMiter);
+        upskin = upskin.offset(-narrow_skin_width / 2, ClipperLib::jtRound).offset(narrow_skin_width / 2, ClipperLib::jtRound);
         narrow_skin = narrow_skin.unionPolygons(before_shrink.difference(upskin));
         should_top_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
 
-    if (should_bottom_be_clipped || should_top_be_clipped)
+    //TODO: there is still a need to avoid transitioning back and forth between normal and narrow skin
+
+    if ((should_bottom_be_clipped || should_top_be_clipped) && narrow_skin_width > top_skin_preshrink)
     {
         narrow_skin = narrow_skin.intersection(original_outline);
     }
