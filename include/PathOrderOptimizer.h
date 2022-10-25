@@ -576,8 +576,7 @@ protected:
             }
         }
 
-        corner_angle = std::max(-1.0, std::min(1.0, corner_angle / M_PI)); // Limit angle between -1 and 1.
-        return corner_angle;
+        return corner_angle / M_PI; // Limit angle between -1 and 1.
     }
 
     /*!
