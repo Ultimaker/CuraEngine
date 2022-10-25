@@ -15,6 +15,9 @@
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/remove_if.hpp>
 #include <range/v3/to_container.hpp>
+#include <range/v3/view/transform.hpp>
+#include <range/v3/algorithm/max.hpp>
+
 
 namespace cura
 {
@@ -132,8 +135,6 @@ bool InsetOrderOptimizer::addToLayer()
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(const auto& input, const bool outer_to_inner)
 {
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order_requirements;
-
     // We build a grid where we map toolpath vertex locations to toolpaths,
     // so that we can easily find which two toolpaths are next to each other,
     // which is the requirement for there to be an order constraint.
@@ -149,21 +150,18 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     //  /            .
     // However, because of how Arachne works this will likely never be the case for two consecutive insets.
     // On the other hand one could imagine that two consecutive insets of a very large circle
-    // could be simplify()ed such that the remaining vertices of the two insets don't align.
+    // could be simplified such that the remaining vertices of the two insets don't align.
     // In those cases the order requirement is not captured,
     // which means that the PathOrderOptimizer *might* result in a violation of the user set path order.
     // This problem is expected to be not so severe and happen very sparsely.
 
-    coord_t max_line_w = 0u;
-    for (const auto& line : input)
-    { // compute max_line_w
-        for (const auto& junction : line)
-        {
-            max_line_w = std::max(max_line_w, junction.w);
-        }
-    }
+    // Determine the maximum junction width
+    auto junctions = input | ranges::views::transform([](const auto& line){ return line.junctions; }) | ranges::views::join;
+    const auto max_line_w = ranges::max(junctions, {}, &ExtrusionJunction::w).w;
     if (max_line_w == 0u)
-        return order_requirements;
+    {
+        return {};
+    }
 
     struct LineLoc
     {
@@ -197,6 +195,8 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
             grid.insert(LineLoc{ junction, &line });
         }
     }
+
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order_requirements;
     for (const std::pair<SquareGrid::GridPoint, LineLoc>& pair : grid)
     {
         const LineLoc& lineloc_here = pair.second;
