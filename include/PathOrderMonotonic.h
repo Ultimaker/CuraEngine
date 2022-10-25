@@ -80,7 +80,8 @@ public:
             else
             {
                 polylines.push_back(&path);
-                polylines.back()->start_vertex = polylines.back()->converted->size(); //Assign an invalid starting vertex to indicate we don't know the starting point yet.
+                // Assign an invalid starting vertex to indicate we don't know the starting point yet.
+                polylines.back()->start_vertex = polylines.back()->converted->size();
             }
         }
 
@@ -100,11 +101,7 @@ public:
         SparsePointGridInclusive<Path*> line_bucket_grid(MM2INT(2)); //Grid size of 2mm.
         for(Path* polyline : polylines)
         {
-            if(polyline->converted->empty())
-            {
-                continue;
-            }
-            else
+            if(! polyline->converted->empty())
             {
                 line_bucket_grid.insert(polyline->converted->front(), polyline);
                 line_bucket_grid.insert(polyline->converted->back(), polyline);
@@ -114,7 +111,7 @@ public:
         //Create sequences of line segments that get printed together in a monotonic direction.
         //There are several constraints we impose here:
         // - Strings of incident polylines are printed in sequence. That is, if their endpoints are incident.
-        //   - The endpoint of the string that is earlier in the montonic direction will get printed first.
+        //   - The endpoint of the string that is earlier in the monotonic direction will get printed first.
         //   - The start_vertex of this line will already be set to indicate where to start from.
         // - If a line overlaps with another line in the perpendicular direction, and is within max_adjacent_distance (~1 line width) in the monotonic direction, it must be printed in monotonic order.
         //   - The earlier line is marked as being in sequence with the later line.
@@ -130,7 +127,7 @@ public:
 
         for(auto polyline_it = polylines.begin(); polyline_it != polylines.end(); polyline_it++)
         {
-            if(connections.find(*polyline_it) != connections.end()) //Already connected this one through a polyline.
+            if(connections.contains(*polyline_it)) //Already connected this one through a polyline.
             {
                 continue;
             }
@@ -163,7 +160,7 @@ public:
             }
             else //Not a string of polylines, but simply adjacent line segments.
             {
-                if(connected_lines.find(*polyline_it) == connected_lines.end()) //Nothing connects to this line yet.
+                if(! connected_lines.contains(*polyline_it)) //Nothing connects to this line yet.
                 {
                     starting_lines.insert(*polyline_it); //This is a starting point then.
                 }
@@ -171,7 +168,7 @@ public:
                 if(overlapping_lines.size() == 1) //If we're not a string of polylines, but adjacent to only one other polyline, create a sequence of polylines.
                 {
                     connections[*polyline_it] = overlapping_lines[0];
-                    if(connected_lines.find(overlapping_lines[0]) != connected_lines.end()) //This line was already connected to.
+                    if(connected_lines.contains(overlapping_lines[0])) //This line was already connected to.
                     {
                         starting_lines.insert(overlapping_lines[0]); //Multiple lines connect to it, so we must be able to start there.
                     }
@@ -401,18 +398,21 @@ protected:
      */
     std::vector<Path*> getOverlappingLines(const typename std::vector<Path*>::iterator polyline_it, const Point perpendicular, const std::vector<Path*>& polylines)
     {
+        const coord_t max_adjacent_projected_distance = max_adjacent_distance * monotonic_vector_resolution;
         //How far this extends in the monotonic direction, to make sure we only go up to max_adjacent_distance in that direction.
-        const coord_t start_projection = dot((*polyline_it)->converted->front(), monotonic_vector);
-        const coord_t end_projection = dot((*polyline_it)->converted->back(), monotonic_vector);
-        const coord_t my_farthest_projection = std::max(start_projection, end_projection);
-        const coord_t my_closest_projection = std::min(start_projection, end_projection);
+        const coord_t start_monotonic = dot((*polyline_it)->converted->front(), monotonic_vector);
+        const coord_t end_monotonic = dot((*polyline_it)->converted->back(), monotonic_vector);
+        const coord_t my_farthest_monotonic = std::max(start_monotonic, end_monotonic);
+        const coord_t my_closest_monotonic  = std::min(start_monotonic, end_monotonic);
+        const coord_t my_farthest_monotonic_padded = my_farthest_monotonic + max_adjacent_projected_distance;
+        const coord_t my_closest_monotonic_padded  = my_closest_monotonic  - max_adjacent_projected_distance;
         //How far this line reaches in the perpendicular direction -- the range at which the line overlaps other lines.
-        coord_t my_start = dot((*polyline_it)->converted->front(), perpendicular);
-        coord_t my_end = dot((*polyline_it)->converted->back(), perpendicular);
-        if(my_start > my_end)
-        {
-            std::swap(my_start, my_end);
-        }
+        const coord_t my_start = dot((*polyline_it)->converted->front(), perpendicular);
+        const coord_t my_end   = dot((*polyline_it)->converted->back(),  perpendicular);
+        const coord_t my_farthest = std::max(my_start, my_end);
+        const coord_t my_closest  = std::min(my_start, my_end);
+        const coord_t my_farthest_padded = my_farthest + max_adjacent_projected_distance;
+        const coord_t my_closest_padded  = my_closest  - max_adjacent_projected_distance;
 
         std::vector<Path*> overlapping_lines;
         for(auto overlapping_line = polyline_it + 1; overlapping_line != polylines.end(); overlapping_line++)
@@ -422,28 +422,26 @@ protected:
             const coord_t end_their_projection = dot((*overlapping_line)->converted->back(), monotonic_vector);
             const coord_t their_farthest_projection = std::max(start_their_projection, end_their_projection);
             const coord_t their_closest_projection = std::min(start_their_projection, end_their_projection);
-            if(their_closest_projection - my_farthest_projection > max_adjacent_distance * monotonic_vector_resolution
-                    || my_closest_projection - their_farthest_projection > max_adjacent_distance * monotonic_vector_resolution) //Multiply by the length of the vector since we need to compare actual distances here.
+            // Multiply by the length of the vector since we need to compare actual distances here.
+            if(their_closest_projection > my_farthest_monotonic_padded || my_closest_monotonic_padded > their_farthest_projection)
             {
-                break; //Too far. This line and all subsequent lines are not adjacent any more, even though they might be side-by-side.
+                break; //Too far. This line and all subsequent lines are not adjacent anymore, even though they might be side-by-side.
             }
 
             //Does this one overlap?
-            coord_t their_start = dot((*overlapping_line)->converted->front(), perpendicular);
-            coord_t their_end = dot((*overlapping_line)->converted->back(), perpendicular);
-            if(their_start > their_end)
-            {
-                std::swap(their_start, their_end);
-            }
+            const coord_t their_start = dot((*overlapping_line)->converted->front(), perpendicular);
+            const coord_t their_end = dot((*overlapping_line)->converted->back(), perpendicular);
+            const coord_t their_farthest = std::max(their_start, their_end);
+            const coord_t their_closest  = std::min(their_start, their_end);
             /*There are 5 possible cases of overlapping:
             - We are behind them, partially overlapping. my_start is between their_start and their_end.
             - We are in front of them, partially overlapping. my_end is between their_start and their_end.
             - We are a smaller line, they completely overlap us. Both my_start and my_end are between their_start and their_end. (Caught with the first 2 conditions already.)
             - We are a bigger line, and completely overlap them. Both their_start and their_end are between my_start and my_end.
             - Lines are exactly equal. Start and end are the same. (Caught with the previous condition too.)*/
-            if(    (my_start >= their_start && my_start <= their_end)
-                || (my_end >= their_start   && my_end <= their_end)
-                || (their_start >= my_start && their_end <= my_end))
+            if(    (my_closest_padded  >= their_closest     && my_closest_padded  <= their_farthest)
+                || (my_farthest_padded >= their_closest     && my_farthest_padded <= their_farthest)
+                || (their_closest      >= my_closest_padded && their_farthest     <= my_farthest_padded))
             {
                 overlapping_lines.push_back(*overlapping_line);
             }
@@ -452,7 +450,7 @@ protected:
         return overlapping_lines;
     }
 
-    protected:
+protected:
     /*!
      * Length of the monotonic vector, as stored.
      *

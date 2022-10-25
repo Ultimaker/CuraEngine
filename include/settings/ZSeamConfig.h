@@ -43,21 +43,19 @@ struct ZSeamConfig
     coord_t simplify_curvature;
 
     /*!
-     * Default constructor for use when memory must be allocated before it gets
-     * filled (like with some data structures).
-     *
-     * This will select the "shortest" seam strategy.
-     */
-    ZSeamConfig();
-
-    /*!
      * Create a seam configuration with a custom configuration.
      * \param type The strategy to place the seam.
      * \param pos The position of a user-specified seam.
      * \param corner_pref The corner preference, when using the sharpest corner strategy.
      * \param by how much to simplify the curvature (when detecting corners), as otherwise 'smooth' corners are penalized.
      */
-    ZSeamConfig(const EZSeamType type, const Point pos, const EZSeamCornerPrefType corner_pref, const coord_t simplify_curvature);
+    ZSeamConfig
+    (
+        const EZSeamType type = EZSeamType::SHORTEST,
+        const Point pos = Point(0, 0),
+        const EZSeamCornerPrefType corner_pref = EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE,
+        const coord_t simplify_curvature = 0
+    );
 };
 
 } //Cura namespace.

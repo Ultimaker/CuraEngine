@@ -1113,8 +1113,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                     continue;
                 }
 
-                result_paths.emplace_back();
-                auto& result_lines = result_paths.back();
+                auto& result_lines = result_paths.emplace_back();
 
                 if (apply_outside_only)
                 {
@@ -1129,9 +1128,10 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         continue;
                     }
 
-                    result_lines.emplace_back();
-                    auto& result = result_lines.back();
+                    auto& result = result_lines.emplace_back();
                     result.inset_idx = line.inset_idx;
+                    result.is_odd = line.is_odd;
+                    result.is_closed = line.is_closed;
 
                     // generate points in between p0 and p1
                     int64_t dist_left_over = (min_dist_between_points / 4) + rand() % (min_dist_between_points / 4); // the distance to be traversed on the line before making the first new point

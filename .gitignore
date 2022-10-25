@@ -5,6 +5,7 @@
 *.zip
 .DS_Store
 *~
+*.bak
 NUL
 *.gcode
 

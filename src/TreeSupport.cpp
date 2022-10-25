@@ -93,6 +93,8 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const size_t z_distance_bottom_layers = round_up_divide(z_distance_bottom, layer_height) > 0 ? round_up_divide(z_distance_bottom, layer_height) : 1;
     const double diameter_angle_scale_factor = sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius; // Scale factor per layer to produce the desired angle.
+    const coord_t max_radius = mesh_group_settings.get<coord_t>("support_tree_max_diameter");
+    const double max_relative_expansion = static_cast<double>(max_radius) / branch_radius - 1.0;
     const coord_t line_width = mesh_group_settings.get<coord_t>("support_line_width");
     const coord_t minimum_tip_radius = line_width / 2 * 1.5; // End up slightly wider than 1 line width in the tip.
     const size_t tip_layers = (branch_radius - minimum_tip_radius) / layer_height; // The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
@@ -127,7 +129,7 @@ void TreeSupport::drawCircles(SliceDataStorage& storage, const std::vector<std::
                                            }
                                            else
                                            {
-                                               corner = corner * (1 + static_cast<double>(node.distance_to_top - tip_layers) * diameter_angle_scale_factor);
+                                               corner = corner * (1 + std::min(max_relative_expansion, static_cast<double>(node.distance_to_top - tip_layers) * diameter_angle_scale_factor));
                                            }
                                            circle.add(node.position + corner);
                                        }
@@ -332,7 +334,7 @@ void TreeSupport::dropNodes(std::vector<std::vector<Node*>>& contact_nodes)
 
                     const bool to_buildplate = ! volumes_.getAvoidance(branch_radius_node, layer_nr - 1).inside(next_position);
                     Node* next_node = new Node(next_position, new_distance_to_top, node.skin_direction, new_support_roof_layers_below, to_buildplate, p_node);
-                    insertDroppedNode(contact_nodes[layer_nr - 1], next_node); // Insert the node, resolving conflicts of the two colliding nodes.
+                    next_node = insertDroppedNode(contact_nodes[layer_nr - 1], next_node); // Insert the node, resolving conflicts of the two colliding nodes.
 
                     // Make sure the next pass doesn't drop down either of these (since that already happened).
                     node.merged_neighbours.push_front(neighbour);
@@ -594,18 +596,32 @@ void TreeSupport::generateContactPoints(const SliceMeshStorage& mesh, std::vecto
     }
 }
 
-void TreeSupport::insertDroppedNode(std::vector<Node*>& nodes_layer, Node* p_node)
+TreeSupport::Node* TreeSupport::insertDroppedNode(std::vector<Node*>& nodes_layer, Node* p_node)
 {
-    std::vector<Node*>::iterator conflicting_node_it = std::find(nodes_layer.begin(), nodes_layer.end(), p_node);
+    auto node_ptr_eq{ [&p_node](Node* p_other) { return p_node->position == p_other->position; } };
+    auto conflicting_node_it = std::find_if(nodes_layer.begin(), nodes_layer.end(), node_ptr_eq);
     if (conflicting_node_it == nodes_layer.end()) // No conflict.
     {
         nodes_layer.emplace_back(p_node);
-        return;
+        return p_node;
     }
 
     Node* conflicting_node = *conflicting_node_it;
     conflicting_node->distance_to_top = std::max(conflicting_node->distance_to_top, p_node->distance_to_top);
     conflicting_node->support_roof_layers_below = std::max(conflicting_node->support_roof_layers_below, p_node->support_roof_layers_below);
+    if (p_node->parent != nullptr && p_node->parent != conflicting_node->parent)
+    {
+        if (conflicting_node->parent != nullptr)
+        {
+            conflicting_node->parent->merged_neighbours.push_front(p_node->parent);
+        }
+        else
+        {
+            conflicting_node->parent = p_node->parent;
+        }
+    }
+    delete p_node;
+    return conflicting_node;
 }
 
 } // namespace cura

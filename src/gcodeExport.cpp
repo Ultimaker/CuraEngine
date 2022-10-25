@@ -60,7 +60,6 @@ GCodeExport::GCodeExport() : output_stream(&std::cout), currentPosition(0, 0, MM
     fan_number = 0;
     use_extruder_offset_to_offset_coords = false;
     machine_name = "";
-    machine_buildplate_type = "";
     relative_extrusion = false;
     new_line = "\n";
 
@@ -91,7 +90,6 @@ void GCodeExport::preSetup(const size_t start_extruder)
     }
 
     machine_name = mesh_group->settings.get<std::string>("machine_name");
-    machine_buildplate_type = mesh_group->settings.get<std::string>("machine_buildplate_type");
 
     relative_extrusion = mesh_group->settings.get<bool>("relative_extrusion");
     always_write_active_tool = mesh_group->settings.get<bool>("machine_always_write_active_tool");
@@ -197,7 +195,6 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << extruder_settings.get<double>("machine_nozzle_size") << new_line;
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.NAME:" << extruder_settings.get<std::string>("machine_nozzle_id") << new_line;
         }
-        prefix << ";BUILD_PLATE.TYPE:" << machine_buildplate_type << new_line;
         prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
         if (machine_heated_build_volume)

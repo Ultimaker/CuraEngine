@@ -67,7 +67,6 @@ public:
 
         gcode.new_line = "\n"; // Not BFB flavour by default.
         gcode.machine_name = "Your favourite 3D printer";
-        gcode.machine_buildplate_type = "Your favourite build plate";
 
         // Set up a scene so that we may request settings.
         Application::getInstance().current_slice = new Slice(1);
@@ -224,7 +223,6 @@ public:
 
         gcode.new_line = "\n"; // Not BFB flavour by default.
         gcode.machine_name = "Your favourite 3D printer";
-        gcode.machine_buildplate_type = "Your favourite build plate";
 
         // Set up a scene so that we may request settings.
         Application::getInstance().current_slice = new Slice(0);
@@ -287,9 +285,6 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
         EXPECT_EQ(std::string(".NOZZLE.NAME:TestNozzle"), token.substr(17, 23)); // Nozzle name needs to be equal to the machine_nozzle_id setting.
     }
 
-    std::getline(result, token, '\n');
-    EXPECT_EQ(std::string(";BUILD_PLATE.TYPE:"), token.substr(0, 18));
-    EXPECT_EQ(gcode.machine_buildplate_type, token.substr(18));
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";BUILD_PLATE.INITIAL_TEMPERATURE:"), token.substr(0, 33)); // Actual temperature doesn't matter in this test.
     std::getline(result, token, '\n');

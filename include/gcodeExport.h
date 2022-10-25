@@ -107,7 +107,6 @@ private:
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
     bool use_extruder_offset_to_offset_coords;
     std::string machine_name;
-    std::string machine_buildplate_type;
     std::string slice_uuid_; //!< The UUID of the current slice.
 
     std::ostream* output_stream;
