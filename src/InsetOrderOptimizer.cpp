@@ -68,7 +68,7 @@ bool InsetOrderOptimizer::addToLayer()
     const bool use_one_extruder = wall_0_extruder_nr == wall_x_extruder_nr;
     const bool current_extruder_is_wall_x = wall_x_extruder_nr == extruder_nr;
 
-    const bool reverse = should_reverse_path(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
+    const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
     const auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
 
     const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
@@ -299,7 +299,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     return order;
 }
 
-constexpr bool InsetOrderOptimizer::should_reverse_path(const bool use_one_extruder, const bool current_extruder_is_wall_x, const bool outer_to_inner)
+constexpr bool InsetOrderOptimizer::shouldReversePath(const bool use_one_extruder, const bool current_extruder_is_wall_x, const bool outer_to_inner)
 {
     if (use_one_extruder && current_extruder_is_wall_x)
     {

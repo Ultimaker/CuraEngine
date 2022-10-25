@@ -125,7 +125,7 @@ private:
      *
      * \return a bool if the paths should be printed in reverse or not
      */
-    constexpr bool should_reverse_path(const bool use_one_extruder, const bool current_extruder_is_wall_x, const bool outer_to_inner);
+    constexpr bool shouldReversePath(const bool use_one_extruder, const bool current_extruder_is_wall_x, const bool outer_to_inner);
 
     /* Flattens the `paths` and sorts the walls that should be printed added depending on if it is a single outer wall or the inner wall(s),
      * The order can be reversed if required.
