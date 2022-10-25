@@ -22,7 +22,7 @@ namespace cura
 
 /*!
  * Path order optimization class.
- * 
+ *
  * Utility class for optimizing the order in which things are printed, by
  * minimizing the distance traveled between different items to be printed. For
  * each item to be printed, it also chooses a starting point as to where on the
@@ -418,36 +418,24 @@ protected:
         // Don't know the path-type here, or whether it has a simplify. Also, simplification occurs in-place, which is not wanted here: Copy the polygon.
         // A course simplification is needed, since Arachne has a tendency to 'smear' corners out over multiple line segments.
         // Which in itself is a good thing, but will mess up the detection of sharp corners and such.
-        Polygon simple_poly(*path.converted);
-        if (seam_config.simplify_curvature > 0 && simple_poly.size() > 2)
-        {
-            // Simplify the polygons less when using USER_SPECIFIED, this will cause the seams to be much straighter
-            // but "smooth" corners that are spread out over multiple points are less likely to be selected for the seam location.
-            const coord_t max_simplify_dist = seam_config.type == EZSeamType::USER_SPECIFIED ? seam_config.simplify_curvature / 2 : seam_config.simplify_curvature;
-
-            simple_poly = Simplify(max_simplify_dist, max_simplify_dist / 2, 0).polygon(simple_poly);
-        }
-        if(simple_poly.empty()) //Simplify removed everything because it's all too small.
-        {
-            simple_poly = Polygon(*path.converted); //Restore the original. We have to output a vertex as the seam position, so there needs to be a vertex.
-        }
 
         const Point focus_fixed_point = (seam_config.type == EZSeamType::USER_SPECIFIED)
-            ? seam_config.pos
-            : Point(0, std::sqrt(std::numeric_limits<coord_t>::max())); //Use sqrt, so the squared size can be used when comparing distances.
-        const size_t start_from_pos = std::min_element(simple_poly.begin(), simple_poly.end(), [focus_fixed_point](const Point& a, const Point& b) {
-            return vSize2(a - focus_fixed_point) < vSize2(b - focus_fixed_point);
-        }) - simple_poly.begin();
-        const size_t end_before_pos = simple_poly.size() + start_from_pos;
+                                          ? seam_config.pos
+                                          : Point(0, std::sqrt(std::numeric_limits<coord_t>::max())); //Use sqrt, so the squared size can be used when comparing distances.
+        const size_t start_from_pos = std::min_element(path.converted->begin(), path.converted->end(), [focus_fixed_point](const Point& a, const Point& b) {
+                                                           return vSize2(a - focus_fixed_point) < vSize2(b - focus_fixed_point);
+                                                       }) - path.converted->begin();
+        const size_t end_before_pos = path.converted->size() + start_from_pos;
 
         // Find a seam position in the simple polygon:
+        size_t best_i;
         Point best_point;
         float best_score = std::numeric_limits<float>::infinity();
-        Point previous = simple_poly[(start_from_pos - 1 + simple_poly.size()) % simple_poly.size()];
+        Point previous = (*path.converted)[(start_from_pos - 1 + path.converted->size()) % path.converted->size()];
         for(size_t i = start_from_pos; i < end_before_pos; ++i)
         {
-            const Point& here = simple_poly[i % simple_poly.size()];
-            const Point& next = simple_poly[(i + 1) % simple_poly.size()];
+            const Point& here = (*path.converted)[i % path.converted->size()];
+            const Point& next = (*path.converted)[(i + 1) % path.converted->size()];
 
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
@@ -455,7 +443,56 @@ protected:
                 ? getDirectDistance(here, target_pos)
                 : getCombingDistance(here, target_pos);
             const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : static_cast<float>(distance) / 1000000;
-            const float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) / M_PI - 1; //Between -1 and 1.
+
+            float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) - M_PI;
+
+            // Some models have very sharp corners, but also have a high resolution. If a sharp corner
+            // consists of many points each point individual might have a shallow corner, but the
+            // collective angle of all nearby points is greater. To counter this the corner_angle is
+            // calculated from all points 1mm in front and 1mm behind there current point. Angles
+            // closer to the current point are weighted more than points further away. The formula for
+            // the angle weight is: 1 - (distance_to_query / 1mm)^3
+            const coord_t angle_query_distance = 1000;
+
+            // previous points
+            {
+                int offset_index = 1;
+                coord_t distance_to_query = vSize(here - previous);
+                while (distance_to_query < angle_query_distance)
+                {
+                    const Point& previous_ = (*path.converted)[(i - offset_index - 1 + path.converted->size()) % path.converted->size()];
+                    const Point& here_ = (*path.converted)[(i - offset_index + path.converted->size()) % path.converted->size()];
+                    const Point& behind_next_ = (*path.converted)[(i - offset_index + 1 + path.converted->size()) % path.converted->size()];
+                    // angles further away from the query point are weighted less
+                    float threshold_ratio = distance_to_query / angle_query_distance;
+                    float angle_weight = 1.0 - threshold_ratio * threshold_ratio * threshold_ratio;
+                    corner_angle += (LinearAlg2D::getAngleLeft(previous_, here_, behind_next_) - M_PI) * angle_weight;
+                    // update distance value
+                    distance_to_query += vSize(here_ - previous_);
+                    offset_index += 1;
+                }
+            }
+
+            // next points
+            {
+                coord_t distance_to_query = vSize(here - next);
+                int offset_index = 1;
+                while (distance_to_query < angle_query_distance)
+                {
+                    const Point& previous_ = (*path.converted)[(i + offset_index - 1) % path.converted->size()];
+                    const Point& here_ = (*path.converted)[(i + offset_index) % path.converted->size()];
+                    const Point& next_ = (*path.converted)[(i + offset_index + 1) % path.converted->size()];
+                    // angles further away from the query point are weighted less
+                    float threshold_ratio = distance_to_query / angle_query_distance;
+                    float angle_weight = 1.0 - threshold_ratio * threshold_ratio * threshold_ratio;
+                    corner_angle += (LinearAlg2D::getAngleLeft(previous_, here_, next_) - M_PI) * angle_weight;
+                    // update distance value
+                    distance_to_query += vSize(here_ - next_);
+                    offset_index += 1;
+                }
+            }
+
+            corner_angle = std::max(-1.0, std::min(1.0, corner_angle / M_PI)); // Limit angle between -1 and 1.
             // angles < 0 are concave (left turning)
             // angles > 0 are convex (right turning)
 
@@ -518,31 +555,19 @@ protected:
                 {
                     best_point = here;
                     best_score = score;
+                    best_i = i;
                 }
             }
             else if(score < best_score)
             {
                 best_point = here;
                 best_score = score;
+                best_i = i;
             }
             previous = here;
         }
 
-        // Which point in the real deal is closest to the simple polygon version?
-        size_t best_index = 0;
-        coord_t closest_dist2 = std::numeric_limits<coord_t>::max();
-        for (size_t i = 0; i < path.converted->size(); ++i)
-        {
-            const Point& here = (*path.converted)[i];
-            const coord_t dist2 = vSize2(best_point - here);
-            if (dist2 < closest_dist2)
-            {
-                closest_dist2 = dist2;
-                best_index = i;
-            }
-        }
-
-        return best_index;
+        return best_i % path.converted->size();
     }
 
     /*!
