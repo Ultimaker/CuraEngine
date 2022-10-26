@@ -15,7 +15,6 @@
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
 #include "utils/polygonUtils.h"
-#include "utils/Simplify.h"
 
 namespace cura
 {
@@ -414,10 +413,6 @@ protected:
             size_t vert = getRandomPointInPolygon(*path.converted);
             return vert;
         }
-
-        // Don't know the path-type here, or whether it has a simplify. Also, simplification occurs in-place, which is not wanted here: Copy the polygon.
-        // A course simplification is needed, since Arachne has a tendency to 'smear' corners out over multiple line segments.
-        // Which in itself is a good thing, but will mess up the detection of sharp corners and such.
 
         const Point focus_fixed_point = (seam_config.type == EZSeamType::USER_SPECIFIED)
                                           ? seam_config.pos
