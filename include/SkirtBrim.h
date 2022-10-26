@@ -22,15 +22,25 @@ private:
      */
     struct Offset
     {
-        Offset(const Polygons* reference_outline, const size_t reference_idx, bool external_only, const coord_t offset_value, const coord_t total_offset, size_t inset_idx, const int extruder_nr, bool is_last)
-        : reference_outline(reference_outline)
-        , reference_idx(reference_idx)
-        , external_only(external_only)
-        , offset_value(offset_value)
-        , total_offset(total_offset)
-        , inset_idx(inset_idx)
-        , extruder_nr(extruder_nr)
-        , is_last(is_last)
+        Offset
+        (
+            const Polygons* reference_outline,
+            const size_t reference_idx,
+            bool external_only,
+            const coord_t offset_value,
+            const coord_t total_offset,
+            size_t inset_idx,
+            const int extruder_nr,
+            bool is_last
+        ) :
+            reference_outline(reference_outline),
+            reference_idx(reference_idx),
+            external_only(external_only),
+            offset_value(offset_value),
+            total_offset(total_offset),
+            inset_idx(inset_idx),
+            extruder_nr(extruder_nr),
+            is_last(is_last)
         {}
         const Polygons* reference_outline; //!< Optional reference polygons from which to offset
         int reference_idx; //!< Optional reference index into storage.skirt_brim from which to offset
@@ -45,12 +55,12 @@ private:
     /*!
      * Defines an order on offsets (potentially from different extruders) based on how far the offset is from the original outline.
      */
-    struct OffsetSorter
+    static inline const auto OffsetSorter
     {
-        bool operator()(const Offset& a, const Offset& b)
+        [](const Offset& a, const Offset& b)
         {
-            return a.total_offset + a.extruder_nr
-            < b.total_offset + b.extruder_nr; // add extruder_nr so that it's more stable when both extruders have the same offset settings
+            // Use extruder_nr in case both extruders have the same offset settings.
+            return a.total_offset != b.total_offset ? a.total_offset < b.total_offset : a.extruder_nr < b.extruder_nr;
         }
     };
 

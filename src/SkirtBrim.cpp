@@ -123,7 +123,7 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
         }
     }
 
-    std::sort(all_brim_offsets.begin(), all_brim_offsets.end(), OffsetSorter{});
+    std::sort(all_brim_offsets.begin(), all_brim_offsets.end(), OffsetSorter);
 
     return all_brim_offsets;
 }
@@ -217,7 +217,7 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
             constexpr bool is_last = true;
             constexpr Polygons* reference_outline = nullptr; // not used
             all_brim_offsets.emplace_back(reference_outline, offset.inset_idx, external_polys_only[offset.extruder_nr], line_widths[offset.extruder_nr], offset.total_offset + line_widths[offset.extruder_nr], offset.inset_idx + 1, offset.extruder_nr, is_last);
-            std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter{}); // reorder remaining offsets
+            std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter); // reorder remaining offsets
         }
     }
     return total_length;
