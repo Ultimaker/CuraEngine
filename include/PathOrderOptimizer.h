@@ -429,7 +429,6 @@ protected:
 
         // Find a seam position in the simple polygon:
         size_t best_i;
-        Point best_point;
         float best_score = std::numeric_limits<float>::infinity();
         for(size_t i = start_from_pos; i < end_before_pos; ++i)
         {
@@ -492,25 +491,8 @@ protected:
                 }
             }
 
-            constexpr float tiebreaker_difference = .01; // Scores that are less than 1% better will use a tie breaker based on the x and y coordinates
-            float score_difference = best_score - score;
-            if (seam_config.type != EZSeamType::SKIRT_BRIM && score_difference > 0 && score_difference / best_score < tiebreaker_difference)
+            if(score < best_score)
             {
-                // add breaker for two candidate starting location with similar score
-                // if we don't do this then we (can) get an un-even seam
-                // ties are broken by favouring points with lower x-coord
-                // if x-coord for both points are equal then break ties by
-                // favouring points with lower y-coord
-                if (here.X != best_point.X ? here.X < best_point.X : here.Y < best_point.Y)
-                {
-                    best_point = here;
-                    best_score = score;
-                    best_i = i;
-                }
-            }
-            else if(score < best_score)
-            {
-                best_point = here;
                 best_score = score;
                 best_i = i;
             }
