@@ -18,14 +18,14 @@
 namespace cura
 {
 
-SkirtBrim::SkirtBrim(SliceDataStorage& storage)
-: storage(storage)
-, adhesion_type(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type"))
-, has_ooze_shield(storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0)
-, has_draft_shield(storage.draft_protection_shield.size() > 0)
-, extruders(Application::getInstance().current_slice->scene.extruders)
-, extruder_count(extruders.size())
-, extruder_is_used(storage.getExtrudersUsed())
+SkirtBrim::SkirtBrim(SliceDataStorage& storage) :
+    storage(storage),
+    adhesion_type(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type")),
+    has_ooze_shield(storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0),
+    has_draft_shield(storage.draft_protection_shield.size() > 0),
+    extruders(Application::getInstance().current_slice->scene.extruders),
+    extruder_count(extruders.size()),
+    extruder_is_used(storage.getExtrudersUsed())
 {
     first_used_extruder_nr = 0;
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
@@ -50,8 +50,10 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage)
     gap.resize(extruder_count);
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        if ( ! extruder_is_used[extruder_nr]) continue;
-    
+        if (!extruder_is_used[extruder_nr])
+        {
+            continue;
+        }
         const ExtruderTrain& extruder = extruders[extruder_nr];
 
         line_widths[extruder_nr] = extruder.settings.get<coord_t>("skirt_brim_line_width") * extruder.settings.get<Ratio>("initial_layer_line_width_factor");
@@ -75,15 +77,17 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
     {
         for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
-            if ( ! extruder_is_used[extruder_nr]) continue;
+            if (! extruder_is_used[extruder_nr])
+            {
+                continue;
+            }
             starting_outlines[extruder_nr] = getFirstLayerOutline(extruder_nr);
         }
     }
 
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        if ( ! extruder_is_used[extruder_nr]) continue;
-        if (skirt_brim_extruder_nr >= 0 && extruder_nr != skirt_brim_extruder_nr)
+        if (!extruder_is_used[extruder_nr] || (skirt_brim_extruder_nr >= 0 && extruder_nr != skirt_brim_extruder_nr))
         {
             continue; // only include offsets for brim extruder
         }
@@ -142,18 +146,21 @@ void SkirtBrim::generate()
     std::vector<Polygons> allowed_areas_per_extruder(extruder_count);
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        if ( ! extruder_is_used[extruder_nr]) continue;
+        if (! extruder_is_used[extruder_nr])
+        {
+            continue;
+        }
         Polygons machine_area = storage.getMachineBorder(extruder_nr);
         allowed_areas_per_extruder[extruder_nr] = machine_area.difference(covered_area);
         if (external_polys_only[extruder_nr])
-        { // Expand covered area on inside of holes when external_only is enabled for any extruder,
+        {
+            // Expand covered area on inside of holes when external_only is enabled for any extruder,
             // so that the brim lines don't overlap with the holes by half the line width
             allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(getInternalHoleExclusionArea(covered_area, extruder_nr));
         }
     }
 
-    std::vector<coord_t> total_length =
-        generatePrimaryBrim(all_brim_offsets, covered_area, allowed_areas_per_extruder);
+    std::vector<coord_t> total_length = generatePrimaryBrim(all_brim_offsets, covered_area, allowed_areas_per_extruder);
     
     // ooze/draft shield brim
     generateShieldBrim(covered_area, allowed_areas_per_extruder);
@@ -197,21 +204,31 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
         }
         SkirtBrimLine& output_location = storage.skirt_brim[offset.extruder_nr][offset.inset_idx];
         coord_t added_length = generateOffset(offset, covered_area, allowed_areas_per_extruder, output_location);
-        if ( ! added_length)
+        if (! added_length)
         { // no more place for more brim. Trying to satisfy minimum length constraint with generateSecondarySkirtBrim
             break;
         }
         total_length[offset.extruder_nr] += added_length;
         
-        if (offset.is_last
-            // v This was the last offset of this extruder, but the brim lines don't meet minimal length yet
-            && total_length[offset.extruder_nr] < skirt_brim_minimal_length[offset.extruder_nr]
-            && total_length[offset.extruder_nr] > 0u // No lines got added; we have no extrusion lines to build on
+        if
+        (
+            offset.is_last &&
+            total_length[offset.extruder_nr] < skirt_brim_minimal_length[offset.extruder_nr] && // This was the last offset of this extruder, but the brim lines don't meet minimal length yet
+            total_length[offset.extruder_nr] > 0u // No lines got added; we have no extrusion lines to build on
         )
         {
             offset.is_last = false;
             constexpr bool is_last = true;
-            all_brim_offsets.emplace_back(offset.inset_idx, external_polys_only[offset.extruder_nr], line_widths[offset.extruder_nr], offset.total_offset + line_widths[offset.extruder_nr], offset.inset_idx + 1, offset.extruder_nr, is_last);
+            all_brim_offsets.emplace_back
+            (
+                offset.inset_idx,
+                external_polys_only[offset.extruder_nr],
+                line_widths[offset.extruder_nr],
+                offset.total_offset + line_widths[offset.extruder_nr],
+                offset.inset_idx + 1,
+                offset.extruder_nr,
+                is_last
+            );
             std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter); // reorder remaining offsets
         }
     }
@@ -313,7 +330,10 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
     { // update allowed_areas_per_extruder
         for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
-            if ( ! extruder_is_used[extruder_nr]) continue;
+            if (! extruder_is_used[extruder_nr])
+            {
+                continue;
+            }
             covered_area = covered_area.unionPolygons(newly_covered.unionPolygons());
             allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(covered_area);
         }
@@ -416,9 +436,12 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
             first_layer_outline.add(support_layer.support_bottom);
             first_layer_outline.add(support_layer.support_roof);
         }
-        if (storage.primeTower.enabled
-            && global_settings.get<bool>("prime_tower_brim_enable")
-            && (extruder_nr == -1 || int(storage.primeTower.extruder_order[0]) == extruder_nr))
+        if
+        (
+            storage.primeTower.enabled &&
+            global_settings.get<bool>("prime_tower_brim_enable") &&
+            (extruder_nr == -1 || int(storage.primeTower.extruder_order[0]) == extruder_nr)
+        )
         {
             first_layer_outline.add(storage.primeTower.outer_poly); // don't remove parts of the prime tower, but make a brim for it
         }
@@ -446,9 +469,7 @@ void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area, std::vector<Poly
     // generate brim for ooze shield and draft shield
     if (adhesion_type == EPlatformAdhesion::BRIM && (has_ooze_shield || has_draft_shield))
     {
-
         const coord_t primary_extruder_skirt_brim_line_width = line_widths[extruder_nr];
-
         int primary_line_count = line_count[extruder_nr];
 
         // generate areas where to make extra brim for the shields
@@ -609,6 +630,5 @@ void SkirtBrim::generateSupportBrim()
         }
     }
 }
-
 
 } // namespace cura

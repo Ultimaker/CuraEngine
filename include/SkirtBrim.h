@@ -81,6 +81,7 @@ private:
     std::vector<coord_t> skirt_brim_minimal_length; //!< For each extruder the minimal brim length
     std::vector<int> line_count; //!< For each extruder the (minimal) number of brim lines to generate
     std::vector<coord_t> gap; //!< For each extruder the gap between the part and the first brim/skirt line
+
 public:
     /*!
      * Precomputes some values used in several functions when calling \ref generate
