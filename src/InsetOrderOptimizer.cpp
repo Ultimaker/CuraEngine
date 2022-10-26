@@ -1,23 +1,31 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "InsetOrderOptimizer.h"
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
-#include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
+#include "utils/AABB.h"
+#include "utils/SparseLineGrid.h"
 
 #include <iterator>
+#include <tuple>
+#include <unordered_map>
 
+#include <range/v3/algorithm/max.hpp>
+#include <range/v3/to_container.hpp>
 #include <range/v3/view/any_view.hpp>
-#include <range/v3/view/reverse.hpp>
 #include <range/v3/view/drop_last.hpp>
-#include <range/v3/view/take_exactly.hpp>
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/remove_if.hpp>
-#include <range/v3/to_container.hpp>
+#include <range/v3/view/reverse.hpp>
+#include <range/v3/view/take_exactly.hpp>
 #include <range/v3/view/transform.hpp>
-#include <range/v3/algorithm/max.hpp>
 
+
+#include <range/v3/all.hpp>  // TODO: only include what I use
+#include <spdlog/spdlog.h>
+#include <fmt/ranges.h>
 
 namespace cura
 {
@@ -72,7 +80,7 @@ bool InsetOrderOptimizer::addToLayer()
     const bool current_extruder_is_wall_x = wall_x_extruder_nr == extruder_nr;
 
     const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
-    const auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
+    auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
 
     const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
 
@@ -132,113 +140,82 @@ bool InsetOrderOptimizer::addToLayer()
     return added_something;
 }
 
-
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(const auto& input, const bool outer_to_inner)
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(std::vector<ExtrusionLine>& input, const bool outer_to_inner)
 {
-    // We build a grid where we map toolpath vertex locations to toolpaths,
-    // so that we can easily find which two toolpaths are next to each other,
-    // which is the requirement for there to be an order constraint.
-    //
-    // We use a PointGrid rather than a LineGrid to save on computation time.
-    // In very rare cases two insets might lie next to each other without having neighboring vertices, e.g.
-    //  \            .
-    //   |  /        .
-    //   | /         .
-    //   ||          .
-    //   | \         .
-    //   |  \        .
-    //  /            .
-    // However, because of how Arachne works this will likely never be the case for two consecutive insets.
-    // On the other hand one could imagine that two consecutive insets of a very large circle
-    // could be simplified such that the remaining vertices of the two insets don't align.
-    // In those cases the order requirement is not captured,
-    // which means that the PathOrderOptimizer *might* result in a violation of the user set path order.
-    // This problem is expected to be not so severe and happen very sparsely.
-
-    // Determine the maximum junction width
-    auto junctions = input | ranges::views::transform([](const auto& line){ return line.junctions; }) | ranges::views::join;
-    const auto max_line_w = ranges::max(junctions, {}, &ExtrusionJunction::w).w;
-    if (max_line_w == 0u)
+    struct Loco
     {
-        return {};
-    }
-
-    struct LineLoc
-    {
-        ExtrusionJunction j;
-        const ExtrusionLine* line;
-    };
-    struct Locator
-    {
-        Point operator()(const LineLoc& elem)
-        {
-            return elem.j.p;
-        }
+        ExtrusionLine* line;
+        Polygons poly;
+        coord_t width;
+        coord_t length;
+        size_t idx;
     };
 
-    // How much farther two verts may be apart due to corners.
-    // This distance must be smaller than 2, because otherwise
-    // we could create an order requirement between e.g.
-    // wall 2 of one region and wall 3 of another region,
-    // while another wall 3 of the first region would lie in between those two walls.
-    // However, higher values are better against the limitations of using a PointGrid rather than a LineGrid.
-    constexpr float diagonal_extension = 1.9;
-    const coord_t searching_radius = max_line_w * diagonal_extension;
-    using GridT = SparsePointGrid<LineLoc, Locator>;
-    GridT grid(searching_radius);
-
-
-    for (const auto& line : input)
+    struct Candidate
     {
-        for (const auto& junction : line)
+        std::shared_ptr<Loco> candidate;
+        double weight;
+    };
+
+    using map_t = std::unordered_multimap<std::shared_ptr<Loco>, Candidate>;
+    map_t map{};
+
+    constexpr auto offset = 40;  // TODO: base it on the max bead width?
+
+    std::vector<std::shared_ptr<Loco>> locos;
+    locos.reserve(input.size());
+    for (auto [i, line] : input | ranges::views::enumerate)
+    {
+        Polygons poly;
+        poly.emplace_back( line.toPolygon() );
+        auto width = line.getMinimalWidth() / 2;
+        auto prime_candidate = std::make_shared<Loco>(Loco{
+            .line = &line,
+            .poly = poly,
+            .width = width,
+            .length = line.getLength(),
+            .idx = i,
+        });
+        locos.emplace_back(prime_candidate);
+    }
+
+    for (const auto& loco : locos)
+    {
+        for (const auto& candidate : locos | ranges::views::remove_if([loco](auto candidate){ return candidate == loco; }))
         {
-            grid.insert(LineLoc{ junction, &line });
+            // Note: Current implementation favors outer intersections over inner intersections: `outer_radius > inner_radius`
+            //  not sure yet if this works in our favor or has a negative effect. Need to doublecheck.
+            AABB loco_box {loco->poly};
+            AABB candidate_box {candidate->poly};
+            if (! candidate_box.contains(loco_box))
+            {
+                auto area = loco->poly.offset(loco->width).intersection(candidate->poly.offset(-candidate->width)).area();
+                double weight = area; // TODO: normalize the weight / loco->length; // Empty ExtrusionLines are already filtered out, no need to guard against 0-length
+                if (weight > 0)
+                {
+                    map.emplace(std::make_pair(loco, Candidate{ .candidate = candidate, .weight = weight }));
+                }
+            }
         }
     }
 
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order_requirements;
-    for (const std::pair<SquareGrid::GridPoint, LineLoc>& pair : grid)
+    // Pick the best candidate
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> ret;
+    for (const auto& loco : locos | ranges::views::unique)
     {
-        const LineLoc& lineloc_here = pair.second;
-        const ExtrusionLine* here = lineloc_here.line;
-        Point loc_here = pair.second.j.p;
-        std::vector<LineLoc> nearby_verts = grid.getNearby(loc_here, searching_radius);
-        for (const LineLoc& lineloc_nearby : nearby_verts)
+        auto [candidate_begin, candidate_end] = map.equal_range(loco);
+        auto candidates = ranges::subrange(candidate_begin, candidate_end) | ranges::views::values | ranges::to_vector;
+        if (! ranges::empty(candidates))
         {
-            const ExtrusionLine* nearby = lineloc_nearby.line;
-            if (nearby == here)
-                continue;
-            if (nearby->inset_idx == here->inset_idx)
-                continue;
-            if (nearby->inset_idx > here->inset_idx + 1)
-                continue; // not directly adjacent
-            if (here->inset_idx > nearby->inset_idx + 1)
-                continue; // not directly adjacent
-            if (! shorterThan(loc_here - lineloc_nearby.j.p, (lineloc_here.j.w + lineloc_nearby.j.w) / 2 * diagonal_extension))
-                continue; // points are too far away from each other
-            if (here->is_odd || nearby->is_odd)
-            {
-                if (here->is_odd && ! nearby->is_odd && nearby->inset_idx < here->inset_idx)
-                {
-                    order_requirements.emplace(std::make_pair(nearby, here));
-                }
-                if (nearby->is_odd && ! here->is_odd && here->inset_idx < nearby->inset_idx)
-                {
-                    order_requirements.emplace(std::make_pair(here, nearby));
-                }
-            }
-            else if ((nearby->inset_idx < here->inset_idx) == outer_to_inner)
-            {
-                order_requirements.emplace(std::make_pair(nearby, here));
-            }
-            else
-            {
-                assert((nearby->inset_idx > here->inset_idx) == outer_to_inner);
-                order_requirements.emplace(std::make_pair(here, nearby));
-            }
+            // TODO: pick the best candidate in the list also taking other loco's into account
+            ranges::sort(candidates, ranges::greater{}, &Candidate::weight);
+            auto best = ranges::max(candidates, ranges::less{}, &Candidate::weight);
+            spdlog::debug("inset: {} -> {}", loco->idx, candidates | ranges::views::transform([](const auto& c){ return std::make_pair( c.candidate->idx, c.weight ); }));
+            ret.emplace(loco->line, best.candidate->line);
+            spdlog::debug("inset: {} -> {} with weight {}", loco->idx, best.candidate->idx, best.weight);
         }
     }
-    return order_requirements;
+    return ret;
 }
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
@@ -333,9 +310,6 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
             view = paths | ranges::views::take_exactly(1);
         }
     }
-    return view
-           | ranges::views::join
-           | ranges::views::remove_if(ranges::empty)
-           | ranges::to_vector;
+    return view | ranges::views::join | ranges::views::remove_if(ranges::empty) | ranges::to_vector;
 }
 } // namespace cura
