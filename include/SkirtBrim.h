@@ -6,13 +6,18 @@
 
 #include "utils/Coord_t.h"
 #include "ExtruderTrain.h"
+#include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
+
+#include <variant>
 
 namespace cura 
 {
 
 class Polygons;
 class SliceDataStorage;
+
+constexpr coord_t min_brim_line_length = 3000u; //!< open polyline brim lines smaller than this will be removed
 
 class SkirtBrim
 {
@@ -24,17 +29,15 @@ private:
     {
         Offset
         (
-            const Polygons* reference_outline,
-            const size_t reference_idx,
-            bool external_only,
+            const std::variant<Polygons*, int>& reference_outline_or_index,
+            const bool external_only,
             const coord_t offset_value,
             const coord_t total_offset,
-            size_t inset_idx,
+            const size_t inset_idx,
             const int extruder_nr,
-            bool is_last
+            const bool is_last
         ) :
-            reference_outline(reference_outline),
-            reference_idx(reference_idx),
+            reference_outline_or_index(reference_outline_or_index),
             external_only(external_only),
             offset_value(offset_value),
             total_offset(total_offset),
@@ -42,12 +45,12 @@ private:
             extruder_nr(extruder_nr),
             is_last(is_last)
         {}
-        const Polygons* reference_outline; //!< Optional reference polygons from which to offset
-        int reference_idx; //!< Optional reference index into storage.skirt_brim from which to offset
+
+        std::variant<Polygons*, int>  reference_outline_or_index;
         bool external_only; //!< Wether to only offset outward from the reference polygons
         coord_t offset_value; //!< Distance by which to offset from the reference
         coord_t total_offset; //!< Total distance from the model
-        size_t inset_idx; //!< The outset index of this brimline
+        int inset_idx; //!< The outset index of this brimline
         int extruder_nr; //!< The extruder by which to print this brim line
         bool is_last; //!< Whether this is the last planned offset for this extruder.
     };
@@ -63,12 +66,9 @@ private:
             return a.total_offset != b.total_offset ? a.total_offset < b.total_offset : a.extruder_nr < b.extruder_nr;
         }
     };
-
-    static const coord_t min_brim_line_length = 3000u; //!< open polyline brim lines smaller than this will be removed
     
     SliceDataStorage& storage; //!< Where to retrieve settings and store brim lines.
-    const bool is_brim; //!< Whether we are generating brim
-    const bool is_skirt; //!< Whether we are generating skirt. Opposite of \ref is_brim
+    const EPlatformAdhesion adhesion_type; //!< Whether we are generating brim, skirt, or raft
     const bool has_ooze_shield; //!< Whether the meshgroup has an ooze shield
     const bool has_draft_shield; //!< Whether the meshgroup has a draft shield
     const std::vector<ExtruderTrain>& extruders; //!< The extruders of the current slice

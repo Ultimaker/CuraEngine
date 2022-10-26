@@ -20,8 +20,7 @@ namespace cura
 
 SkirtBrim::SkirtBrim(SliceDataStorage& storage)
 : storage(storage)
-, is_brim(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type")== EPlatformAdhesion::BRIM)
-, is_skirt( ! is_brim)
+, adhesion_type(Application::getInstance().current_slice->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type"))
 , has_ooze_shield(storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0)
 , has_draft_shield(storage.draft_protection_shield.size() > 0)
 , extruders(Application::getInstance().current_slice->scene.extruders)
@@ -38,7 +37,7 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage)
         }
     }
     skirt_brim_extruder_nr = Application::getInstance().current_slice->scene.current_mesh_group->settings.get<int>("skirt_brim_extruder_nr");
-    if (skirt_brim_extruder_nr == -1 && is_skirt)
+    if (skirt_brim_extruder_nr == -1 && adhesion_type == EPlatformAdhesion::SKIRT)
     { // Skirt is always printed with all extruders in order to satisfy minimum legnth constraint
         // NOTE: the line count will only be satisfied for the first extruder used.
         skirt_brim_extruder_nr = first_used_extruder_nr;
@@ -57,9 +56,9 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage)
 
         line_widths[extruder_nr] = extruder.settings.get<coord_t>("skirt_brim_line_width") * extruder.settings.get<Ratio>("initial_layer_line_width_factor");
         skirt_brim_minimal_length[extruder_nr] = extruder.settings.get<coord_t>("skirt_brim_minimal_length");
-        external_polys_only[extruder_nr] = is_skirt || extruder.settings.get<bool>("brim_outside_only");
-        line_count[extruder_nr] = extruder.settings.get<int>(is_brim? "brim_line_count" : "skirt_line_count");
-        gap[extruder_nr] = extruder.settings.get<coord_t>(is_brim? "brim_gap" : "skirt_gap");
+        external_polys_only[extruder_nr] = adhesion_type == EPlatformAdhesion::SKIRT || extruder.settings.get<bool>("brim_outside_only");
+        line_count[extruder_nr] = extruder.settings.get<int>(adhesion_type == EPlatformAdhesion::BRIM ? "brim_line_count" : "skirt_line_count");
+        gap[extruder_nr] = extruder.settings.get<coord_t>(adhesion_type == EPlatformAdhesion::BRIM ? "brim_gap" : "skirt_gap");
     }
 }
 
@@ -95,20 +94,18 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
             coord_t offset = gap[extruder_nr] + line_widths[extruder_nr] / 2 + line_widths[extruder_nr] * line_idx;
             if (line_idx == 0)
             {
-                constexpr int reference_idx = -1; // not used, we use the outliens as reference instead
-                all_brim_offsets.emplace_back(&starting_outlines[extruder_nr], reference_idx, external_polys_only[extruder_nr], offset, offset, line_idx, extruder_nr, is_last);
+                all_brim_offsets.emplace_back(&starting_outlines[extruder_nr], external_polys_only[extruder_nr], offset, offset, line_idx, extruder_nr, is_last);
             }
             else
             {
-                constexpr Polygons* reference_outline = nullptr; // not used, we use previous brimlines as reference instead
-                all_brim_offsets.emplace_back(reference_outline, line_idx - 1, external_polys_only[extruder_nr], line_widths[extruder_nr], offset, line_idx, extruder_nr, is_last);
+                all_brim_offsets.emplace_back(line_idx - 1, external_polys_only[extruder_nr], line_widths[extruder_nr], offset, line_idx, extruder_nr, is_last);
             }
         }
     }
 
     const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const bool prime_tower_brim_enable = global_settings.get<bool>("prime_tower_brim_enable");
-    if (is_skirt && prime_tower_brim_enable && storage.primeTower.enabled)
+    if (adhesion_type == EPlatformAdhesion::SKIRT && prime_tower_brim_enable && storage.primeTower.enabled)
     {
         const int extruder_nr = storage.primeTower.extruder_order[0];
         const ExtruderTrain& extruder = extruders[extruder_nr];
@@ -118,8 +115,7 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
         {
             const bool is_last = line_idx == line_count - 1;
             coord_t offset = gap + line_widths[extruder_nr] / 2 + line_widths[extruder_nr] * line_idx;
-            constexpr int reference_idx = -1; // not used, we use the outliens as reference instead
-            all_brim_offsets.emplace_back(&storage.primeTower.outer_poly, reference_idx, external_polys_only[extruder_nr], offset, offset, line_idx, extruder_nr, is_last);
+            all_brim_offsets.emplace_back(&storage.primeTower.outer_poly, external_polys_only[extruder_nr], offset, offset, line_idx, extruder_nr, is_last);
         }
     }
 
@@ -215,8 +211,7 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
         {
             offset.is_last = false;
             constexpr bool is_last = true;
-            constexpr Polygons* reference_outline = nullptr; // not used
-            all_brim_offsets.emplace_back(reference_outline, offset.inset_idx, external_polys_only[offset.extruder_nr], line_widths[offset.extruder_nr], offset.total_offset + line_widths[offset.extruder_nr], offset.inset_idx + 1, offset.extruder_nr, is_last);
+            all_brim_offsets.emplace_back(offset.inset_idx, external_polys_only[offset.extruder_nr], line_widths[offset.extruder_nr], offset.total_offset + line_widths[offset.extruder_nr], offset.inset_idx + 1, offset.extruder_nr, is_last);
             std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter); // reorder remaining offsets
         }
     }
@@ -251,11 +246,12 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
     Polygons brim;
     Polygons newly_covered;
     {
-        if (offset.reference_outline)
+        if (std::holds_alternative<Polygons*>(offset.reference_outline_or_index))
         {
+            Polygons* reference_outline = std::get<Polygons*>(offset.reference_outline_or_index);
             if (offset.external_only)
             { // prevent unioning of external polys enclosed by other parts, e.g. a small part inside a hollow cylinder.
-                for (Polygons& polys : offset.reference_outline->sortByNesting())
+                for (Polygons& polys : reference_outline->sortByNesting())
                 { // offset external polygons of islands contained within another part in each batch
                     for (PolygonRef poly : polys)
                     {
@@ -275,16 +271,16 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
             }
             else
             {
-                brim = offset.reference_outline->offset(offset.offset_value, ClipperLib::jtRound);
-                newly_covered = offset.reference_outline->offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound);
+                brim = reference_outline->offset(offset.offset_value, ClipperLib::jtRound);
+                newly_covered = reference_outline->offset(offset.offset_value + line_widths[offset.extruder_nr] / 2, ClipperLib::jtRound);
             }
         }
         else
         {
-            
-            Polygons polylines = storage.skirt_brim[offset.extruder_nr][offset.reference_idx].closed_polygons;
+            const int reference_idx = std::get<int>(offset.reference_outline_or_index);
+            Polygons polylines = storage.skirt_brim[offset.extruder_nr][reference_idx].closed_polygons;
             polylines.toPolylines();
-            polylines.add(storage.skirt_brim[offset.extruder_nr][offset.reference_idx].open_polylines);
+            polylines.add(storage.skirt_brim[offset.extruder_nr][reference_idx].open_polylines);
             brim.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr], ClipperLib::jtRound));
             newly_covered.add(polylines.offsetPolyLine(line_widths[offset.extruder_nr] * 3 / 2, ClipperLib::jtRound));
         }
@@ -336,9 +332,9 @@ Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr)
         reference_extruder_nr = extruder_nr;
     }
     const int primary_line_count = line_count[reference_extruder_nr];
-    const bool external_only = is_skirt || external_polys_only[reference_extruder_nr]; // Whether to include holes or not. Skirt doesn't have any holes.
+    const bool external_only = adhesion_type == EPlatformAdhesion::SKIRT || external_polys_only[reference_extruder_nr]; // Whether to include holes or not. Skirt doesn't have any holes.
     const LayerIndex layer_nr = 0;
-    if (is_skirt)
+    if (adhesion_type == EPlatformAdhesion::SKIRT)
     {
         constexpr bool include_support = true;
         const bool skirt_around_prime_tower_brim = storage.primeTower.enabled && global_settings.get<bool>("prime_tower_brim_enable");
@@ -448,7 +444,7 @@ void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area, std::vector<Poly
     }
 
     // generate brim for ooze shield and draft shield
-    if (! is_skirt && (has_ooze_shield || has_draft_shield))
+    if (adhesion_type == EPlatformAdhesion::BRIM && (has_ooze_shield || has_draft_shield))
     {
 
         const coord_t primary_extruder_skirt_brim_line_width = line_widths[extruder_nr];
@@ -492,7 +488,7 @@ void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area, std::vector<Poly
         }
     }
 
-    if (is_skirt)
+    if (adhesion_type == EPlatformAdhesion::SKIRT)
     {
         if (has_ooze_shield)
         {
@@ -511,7 +507,6 @@ void SkirtBrim::generateShieldBrim(Polygons& brim_covered_area, std::vector<Poly
 
 void SkirtBrim::generateSecondarySkirtBrim(Polygons& covered_area, std::vector<Polygons>& allowed_areas_per_extruder, std::vector<coord_t>& total_length)
 {
-
     constexpr coord_t bogus_total_offset = 0u; // Doesn't matter. The offsets won't be sorted here.
     constexpr bool is_last = false; // Doesn't matter. Isn't used in the algorithm below.
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
@@ -520,21 +515,20 @@ void SkirtBrim::generateSecondarySkirtBrim(Polygons& covered_area, std::vector<P
         Polygons reference_outline = covered_area;
         while (total_length[extruder_nr] < skirt_brim_minimal_length[extruder_nr])
         {
-            int reference_index = -1;
-            Polygons* reference_polygons = nullptr;
+            decltype(Offset::reference_outline_or_index) ref_polys_or_idx = nullptr;
             coord_t offset_from_reference;
             if (first)
             {
-                reference_polygons = &reference_outline;
+                ref_polys_or_idx = &reference_outline;
                 offset_from_reference = line_widths[extruder_nr] / 2;
             }
             else
             {
-                reference_index = storage.skirt_brim[extruder_nr].size() - 1;
+                ref_polys_or_idx = static_cast<int>(storage.skirt_brim[extruder_nr].size() - 1);
                 offset_from_reference = line_widths[extruder_nr];
             }
             constexpr bool external_only = false; // The reference outline may contain both outlines and hole polygons.
-            Offset extra_offset(reference_polygons, reference_index, external_only, offset_from_reference, bogus_total_offset, storage.skirt_brim[extruder_nr].size(), extruder_nr, is_last);
+            Offset extra_offset(ref_polys_or_idx, external_only, offset_from_reference, bogus_total_offset, storage.skirt_brim[extruder_nr].size(), extruder_nr, is_last);
             
             storage.skirt_brim[extruder_nr].emplace_back();
             SkirtBrimLine& output_location = storage.skirt_brim[extruder_nr].back();
