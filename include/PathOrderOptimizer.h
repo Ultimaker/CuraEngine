@@ -424,36 +424,48 @@ protected:
             const coord_t distance = (combing_boundary == nullptr)
                 ? getDirectDistance(here, target_pos)
                 : getCombingDistance(here, target_pos);
-            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? 0 : static_cast<float>(distance) / 1000000;
+            const float score_distance = (seam_config.type == EZSeamType::SHARPEST_CORNER && seam_config.corner_pref != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE) ? MM2INT(10) : vSize2(here - target_pos);
 
             float corner_angle = cornerAngle(path, i);
             // angles < 0 are concave (left turning)
             // angles > 0 are convex (right turning)
 
-            float score;
-            const float corner_shift = seam_config.type != EZSeamType::USER_SPECIFIED ? 10000 : 0; //Allow up to 20mm shifting of the seam to find a good location. For SHARPEST_CORNER, this shift is the only factor. For USER_SPECIFIED, don't allow shifting.
+            float corner_shift;
+            if (seam_config.type == EZSeamType::SHORTEST)
+            {
+                // the more a corner satisfies our criteria, the closer it appears to be
+                // shift 10mm for a very acute corner
+                corner_shift = MM2INT(10) * MM2INT(10);
+            }
+            else
+            {
+                // the larger the distance from prev_point to p1, the more a corner will "attract" the seam
+                // so the user has some control over where the seam will lie.
+
+                // the divisor here may need adjusting to obtain the best results (TBD)
+                corner_shift = score_distance / 10;
+            }
+
+            float score = score_distance;
             switch(seam_config.corner_pref)
             {
             default:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                score = score_distance;
                 if(corner_angle < 0) // Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
                 {
                     score -= (-corner_angle + 1.0) * corner_shift;
                 }
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                score = score_distance;
-                if(corner_angle > 0) //Indeed a convex corner?
+                if(corner_angle > 0) // Indeed a convex corner?
                 {
                     score -= (corner_angle + 1.0) * corner_shift;
                 }
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-                score = score_distance - std::abs(corner_angle) * corner_shift; //Still give sharper corners more advantage.
+                score -= std::abs(corner_angle) * corner_shift; //Still give sharper corners more advantage.
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
-                score = score_distance; //No advantage for sharper corners.
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED: //Give sharper corners some advantage, but sharper concave corners even more.
                 {
@@ -462,17 +474,8 @@ protected:
                     {
                         score_corner *= 2;
                     }
-                    score = score_distance - score_corner;
+                    score -= score_corner;
                     break;
-                }
-            }
-
-            if(seam_config.type == EZSeamType::USER_SPECIFIED) //If user-specified, the seam always needs to be the closest vertex that applies within the filter of the CornerPrefType. Give it a big penalty otherwise.
-            {
-                if((seam_config.corner_pref == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER && corner_angle >= 0)
-                || (seam_config.corner_pref == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER && corner_angle <= 0))
-                {
-                    score += 1000; //1 meter penalty.
                 }
             }
 
@@ -483,7 +486,7 @@ protected:
             }
         }
 
-        return best_i % path.converted->size();
+        return best_i;
     }
 
     /*!
