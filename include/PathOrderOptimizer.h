@@ -522,57 +522,96 @@ protected:
     /*!
     * Some models have very sharp corners, but also have a high resolution. If a sharp corner
     * consists of many points each point individual might have a shallow corner, but the
-    * collective angle of all nearby points is greater. To counter this the corner_angle is
-    * calculated from all points 1mm in front and 1mm behind there current point. Angles
-    * closer to the current point are weighted more than points further away. The formula for
-    * the angle weight is: 1 - (distance_to_query / angle_query_distance)^fall_off_strength
+    * collective angle of all nearby points is greater. To counter this the cornerAngle is
+    * calculated from all points within angle_query_distance of the query point. Angles closer
+    * to the current point are weighted more towards the total angle then points further away.
+    * The formula for the angle weight is: 1 - (distance_to_query / angle_query_distance)^fall_off_strength
     * \param path The vertex data of a path
     * \param i index of the query point
-    * \param angle_query_distance query range (default to 1mm)
+    * \param angle_query_distance query range (default to 0.1mm)
     * \param fall_off_strength fall of strength of the angle weight
-    * \return sum of angles angle of all points p in range i - 1mm < p < i + 1mm
+    * \return sum of angles of all points p in range i - angle_query_distance < p < i + angle_query_distance
     */
-    float cornerAngle(const PathOrderPath<PathType>& path, int i, const coord_t angle_query_distance = 1000, const float fall_off_strength = 0.5)
+    float cornerAngle(const PathOrderPath<PathType>& path, int i, const coord_t angle_query_distance = 100, const float fall_off_strength = 0.5)
     {
-        const Point& previous = (*path.converted)[(i - 1 + path.converted->size()) % path.converted->size()];
-        const Point& here = (*path.converted)[i % path.converted->size()];
-        const Point& next = (*path.converted)[(i + 1) % path.converted->size()];
+        // If the edge length becomes too small we cannot accurately calculate the angle
+        // define a minimum edge length, so we don't get deviant values in the angle calculations
+        const coord_t min_edge_length = 10;
+        const coord_t min_edge_length2 = min_edge_length * min_edge_length;
+
+        Point here = (*path.converted)[i % path.converted->size()];
+
+        int previous_offset_index = i;
+        auto find_previous_point = [previous_offset_index, path](Point& here) mutable
+        {
+            previous_offset_index --;
+            Point previous = (*path.converted)[(previous_offset_index + path.converted->size()) % path.converted->size()];
+            // find previous point that is at least min_edge_length units away from here
+            while (vSize2(here - previous) < min_edge_length2) {
+                previous_offset_index --;
+                previous = (*path.converted)[(previous_offset_index + path.converted->size()) % path.converted->size()];
+            }
+            return previous;
+        };
+        Point previous = find_previous_point(here);
+
+        int next_offset_index = i;
+        auto find_next_point = [next_offset_index, path](Point& here) mutable
+        {
+            next_offset_index ++;
+            Point next = (*path.converted)[(next_offset_index) % path.converted->size()];
+            // find next point that is at least min_edge_length units away from here
+            while (vSize2(here - next) < min_edge_length2) {
+                next_offset_index ++;
+                next = (*path.converted)[(next_offset_index) % path.converted->size()];
+            }
+            return next;
+        };
+        Point next = find_next_point(here);
 
         float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) - M_PI;
 
         // previous points
         {
-            int offset_index = 1;
-            coord_t distance_to_query = vSize(here - previous);
+            Point next_ = here;
+            Point here_ = previous;
+            Point previous_ = find_previous_point(here_);
+
+            coord_t distance_to_query = vSize(here_ - next_);
             while (distance_to_query < angle_query_distance)
             {
-                const Point& previous_ = (*path.converted)[(i - offset_index - 1 + path.converted->size()) % path.converted->size()];
-                const Point& here_ = (*path.converted)[(i - offset_index + path.converted->size()) % path.converted->size()];
-                const Point& next_ = (*path.converted)[(i - offset_index + 1 + path.converted->size()) % path.converted->size()];
                 // angles further away from the query point are weighted less
                 float angle_weight = 1.0 - pow(distance_to_query / angle_query_distance, fall_off_strength);
                 corner_angle += (LinearAlg2D::getAngleLeft(previous_, here_, next_) - M_PI) * angle_weight;
+
                 // update distance value
-                distance_to_query += vSize(here_ - previous_);
-                offset_index += 1;
+                distance_to_query += vSize(here_ - next_);
+
+                next_ = here_;
+                here_ = previous_;
+                previous_ = find_previous_point(here_);
             }
         }
 
         // next points
         {
-            coord_t distance_to_query = vSize(here - next);
-            int offset_index = 1;
+            Point previous_ = here;
+            Point here_ = next;
+            Point next_ = find_next_point(here_);
+
+            coord_t distance_to_query = vSize(here_ - previous_);
             while (distance_to_query < angle_query_distance)
             {
-                const Point& previous_ = (*path.converted)[(i + offset_index - 1) % path.converted->size()];
-                const Point& here_ = (*path.converted)[(i + offset_index) % path.converted->size()];
-                const Point& next_ = (*path.converted)[(i + offset_index + 1) % path.converted->size()];
                 // angles further away from the query point are weighted less
                 float angle_weight = 1.0 - pow(distance_to_query / angle_query_distance, fall_off_strength);
                 corner_angle += (LinearAlg2D::getAngleLeft(previous_, here_, next_) - M_PI) * angle_weight;
+
                 // update distance value
-                distance_to_query += vSize(here_ - next_);
-                offset_index += 1;
+                distance_to_query += vSize(here_ - previous_);
+
+                previous_ = here_;
+                here_ = next_;
+                next_ = find_next_point(here_);
             }
         }
 
