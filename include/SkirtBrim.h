@@ -39,7 +39,7 @@ private:
         coord_t total_offset; //!< Total distance from the model
         size_t inset_idx; //!< The outset index of this brimline
         int extruder_nr; //!< The extruder by which to print this brim line
-        mutable bool is_last; //!< Whether this is the last planned offset for this extruder.
+        bool is_last; //!< Whether this is the last planned offset for this extruder.
     };
 
     /*!

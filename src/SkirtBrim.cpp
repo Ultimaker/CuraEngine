@@ -194,7 +194,7 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
 
     for (size_t offset_idx = 0; offset_idx < all_brim_offsets.size(); offset_idx++)
     {
-        const Offset& offset = all_brim_offsets[offset_idx];
+        Offset& offset = all_brim_offsets[offset_idx];
         if (storage.skirt_brim[offset.extruder_nr].size() <= offset.inset_idx)
         {
             storage.skirt_brim[offset.extruder_nr].resize(offset.inset_idx + 1);
