@@ -149,7 +149,7 @@ private:
      * \param extruder_nr The extruder for which to get the outlines. -1 to include outliens for all extruders
      * \return The resulting reference polygons
      */
-    Polygons getFirstLayerOutline(const int extruder_nr);
+    Polygons getFirstLayerOutline(const int extruder_nr = -1);
 
     /*!
      * The disallowed area around the internal holes of parts with other parts inside which would get an external brim.

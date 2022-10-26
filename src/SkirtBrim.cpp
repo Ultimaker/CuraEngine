@@ -69,7 +69,7 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Pol
 
     if (skirt_brim_extruder_nr >= 0)
     {
-        starting_outlines[skirt_brim_extruder_nr] = getFirstLayerOutline(-1);
+        starting_outlines[skirt_brim_extruder_nr] = getFirstLayerOutline();
     }
     else
     {
@@ -321,7 +321,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
     return length_added;
 }
 
-Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr)
+Polygons SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
 {
     Polygons first_layer_outline;
     Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
