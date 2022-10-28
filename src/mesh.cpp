@@ -9,7 +9,7 @@
 namespace cura
 {
 
-const int vertex_meld_distance = MM2INT(0.03);
+const int vertex_meld_distance = 30_mu;
 /*!
  * returns a hash for the location, but first divides by the vertex_meld_distance,
  * so that any point within a box of vertex_meld_distance by vertex_meld_distance would get mapped to the same hash.

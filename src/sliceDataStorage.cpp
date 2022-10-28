@@ -336,7 +336,7 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                 }
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
-                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(MM2INT(0.1)));
+                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(0.1_mm));
                 }
             }
         }

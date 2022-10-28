@@ -230,8 +230,8 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
                 z_angle = M_PI;
             }
 
-            face_min_z_values.push_back(MM2INT(min_z));
-            face_max_z_values.push_back(MM2INT(max_z));
+            face_min_z_values.push_back(mm_to_coord(min_z));
+            face_max_z_values.push_back(mm_to_coord(max_z));
             face_slopes.push_back(z_angle);
         }
     }

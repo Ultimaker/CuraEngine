@@ -38,7 +38,7 @@ class GetDist2FromLineSegmentTest : public testing::TestWithParam<GetDist2FromLi
 public:
     /*
      * Maximum allowed distance error in measurements due to rounding, in
-     * microns.
+     * INT_PER_MM units.
      */
     const coord_t maximum_error = 10;
 };

@@ -192,8 +192,8 @@ Point PolygonUtils::getVertexInwardNormal(ConstPolygonRef poly, unsigned int poi
     }
     const Point& p2 = poly[p2_idx];
 
-    Point off0 = turn90CCW(normal(p1 - p0, MM2INT(10.0))); // 10.0 for some precision
-    Point off1 = turn90CCW(normal(p2 - p1, MM2INT(10.0))); // 10.0 for some precision
+    Point off0 = turn90CCW(normal(p1 - p0, INT_PRECISION_COMP));
+    Point off1 = turn90CCW(normal(p2 - p1, INT_PRECISION_COMP));
     Point n = off0 + off1;
     return n;
 }
@@ -352,8 +352,8 @@ unsigned int PolygonUtils::moveInside(const Polygons& polygons, Point& from, int
                         }
                         else
                         {
-                            Point inward_dir = turn90CCW(normal(ab, MM2INT(10.0)) + normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
-                            // MM2INT(10.0) to retain precision for the eventual normalization
+                            Point inward_dir = turn90CCW(normal(ab, INT_PRECISION_COMP) + normal(p1 - p0, INT_PRECISION_COMP)); // inward direction irrespective of sign of [distance]
+                            // 10.0_mm to retain precision for the eventual normalization
                             ret = x + normal(inward_dir, distance);
                             is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) * distance >= 0;
                         }
@@ -477,8 +477,8 @@ unsigned int PolygonUtils::moveInside(const ConstPolygonRef polygon, Point& from
                     }
                     else
                     {
-                        Point inward_dir = turn90CCW(normal(ab, MM2INT(10.0)) + normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
-                        // MM2INT(10.0) to retain precision for the eventual normalization
+                        Point inward_dir = turn90CCW(normal(ab, INT_PRECISION_COMP) + normal(p1 - p0, INT_PRECISION_COMP)); // inward direction irrespective of sign of [distance]
+                        // 10.0_mm to retain precision for the eventual normalization
                         ret = x + normal(inward_dir, distance);
                         is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) * distance >= 0;
                     }
@@ -722,7 +722,7 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
         return;
     }
 
-    int equilibirum_limit = MM2INT(0.1); // hard coded value
+    int equilibirum_limit = 100; // hard coded value
     for (int loop_counter = 0; loop_counter < equilibirum_limit; loop_counter++)
     {
         unsigned int pos1_before = poly1_result.point_idx;
@@ -1060,11 +1060,11 @@ bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, ConstPolyg
 
             Point pn = next_poly_point - prev_poly_point;
 
-            if (shorterThen(pn, 100)) // when precision is limited
+            if (shorterThen(pn, INT_PRECISION_COMP)) // when precision is limited
             {
                 Point middle = (next_poly_point + prev_poly_point) / 2;
                 coord_t dist_to_middle = vSize(from - middle);
-                if (dist_to_middle - dist < 100 && dist_to_middle - dist > -100)
+                if (dist_to_middle - dist < INT_PRECISION_COMP && dist_to_middle - dist > -INT_PRECISION_COMP)
                 {
                     result.location = middle;
                     result.pos = prev_idx;
@@ -1437,7 +1437,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Polygons& thiss)
 
     // Points too close to line segments should be moved a little away from those line segments, but less than epsilon,
     //   so at least half-epsilon distance between points can still be guaranteed.
-    constexpr coord_t grid_size = 2000;
+    constexpr coord_t grid_size = 2_mm;
     auto query_grid = PolygonUtils::createLocToLineGrid(thiss, grid_size);
 
     const coord_t move_dist = half_epsilon - 2;

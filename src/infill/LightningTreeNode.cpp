@@ -265,16 +265,9 @@ LightningTreeNode::RectilinearJunction LightningTreeNode::straighten
             }
         }
         { // remove nodes on linear segments
-            constexpr coord_t close_enough = 10;
-
             child_p = children.front(); //recursive call to straighten might have removed the child
             const LightningTreeNodeSPtr& parent_node = parent.lock();
-            if
-            (
-                parent_node &&
-                vSize2(child_p->p - parent_node->p) < max_remove_colinear_dist2 &&
-                LinearAlg2D::getDist2FromLineSegment(parent_node->p, p, child_p->p) < close_enough
-            )
+            if (parent_node && vSize2(child_p->p - parent_node->p) < max_remove_colinear_dist2 && LinearAlg2D::getDist2FromLineSegment(parent_node->p, p, child_p->p) < INT_EPSILON)
             {
                 child_p->parent = parent;
                 for (auto& sibling : parent_node->children)
@@ -351,7 +344,7 @@ coord_t LightningTreeNode::prune(const coord_t& pruning_distance)
             else
             { // pruning stops in between this node and the child
                 const Point n = b + normal(ba, pruning_distance - dist_pruned_child);
-                assert(std::abs(vSize(n - b) + dist_pruned_child - pruning_distance) < 10 && "total pruned distance must be equal to the pruning_distance");
+                assert(std::abs(vSize(n - b) + dist_pruned_child - pruning_distance) < INT_EPSILON && "total pruned distance must be equal to the pruning_distance");
                 max_distance_pruned = std::max(max_distance_pruned, pruning_distance);
                 child->setLocation(n);
                 ++child_it;

@@ -254,8 +254,8 @@ private:
      */
     void addPoint2D(const Point& point)
     {
-        points.push_back(INT2MM(point.X));
-        points.push_back(INT2MM(point.Y));
+        points.push_back(coord_to_mm(point.X));
+        points.push_back(coord_to_mm(point.Y));
         last_point = point;
     }
 
@@ -275,8 +275,8 @@ private:
     {
         addPoint2D(point);
         line_types.push_back(print_feature_type);
-        line_widths.push_back(INT2MM(width));
-        line_thicknesses.push_back(INT2MM(thickness));
+        line_widths.push_back(coord_to_mm(width));
+        line_thicknesses.push_back(coord_to_mm(thickness));
         line_velocities.push_back(velocity);
     }
 };
@@ -389,8 +389,9 @@ void ArcusCommunication::sendFinishedSlicing() const
 void ArcusCommunication::sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness)
 {
     std::shared_ptr<proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);
-    layer->set_height(z);
-    layer->set_thickness(thickness);
+    // FIXME: Currently, the frontend interprets layer heights as microns. Because proto use a float value, this should be interpreted as milimeters instead.
+    layer->set_height(coord_to_mm(z) * 1000.0);
+    layer->set_thickness(coord_to_mm(thickness) * 1000.0);
 }
 
 void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)

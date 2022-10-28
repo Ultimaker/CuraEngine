@@ -48,23 +48,23 @@ public:
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(MM2INT(10), 0);
-        square_shape.back().emplace_back(MM2INT(10), MM2INT(10));
-        square_shape.back().emplace_back(0, MM2INT(10));
+        square_shape.back().emplace_back(10_mm, 0);
+        square_shape.back().emplace_back(10_mm, 10_mm);
+        square_shape.back().emplace_back(0, 10_mm);
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
-        ff_holes.back().emplace_back(10000, 0);
-        ff_holes.back().emplace_back(10000, 5000);
-        ff_holes.back().emplace_back(0, 5000);
+        ff_holes.back().emplace_back(10_mm, 0);
+        ff_holes.back().emplace_back(10_mm, 5_mm);
+        ff_holes.back().emplace_back(0, 5_mm);
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(1000, 1000);
-        ff_holes.back().emplace_back(1000, 4000);
-        ff_holes.back().emplace_back(4000, 2500);
+        ff_holes.back().emplace_back(1_mm, 1_mm);
+        ff_holes.back().emplace_back(1_mm, 4_mm);
+        ff_holes.back().emplace_back(4_mm, 2.5_mm);
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(6000, 1000);
-        ff_holes.back().emplace_back(6000, 4000);
-        ff_holes.back().emplace_back(9000, 2500);
+        ff_holes.back().emplace_back(6_mm, 1_mm);
+        ff_holes.back().emplace_back(6_mm, 4_mm);
+        ff_holes.back().emplace_back(9_mm, 2.5_mm);
 
         // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");

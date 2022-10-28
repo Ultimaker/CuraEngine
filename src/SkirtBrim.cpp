@@ -79,16 +79,19 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const size_t pri
             first_layer_outline.add(storage.primeTower.outer_poly_first_layer); // don't remove parts of the prime tower, but make a brim for it
         }
     }
-    constexpr coord_t join_distance = 20;
+    constexpr coord_t join_distance = 20_mu;
     first_layer_outline = first_layer_outline.offset(join_distance).offset(-join_distance); // merge adjacent models into single polygon
-    constexpr coord_t smallest_line_length = 200;
-    constexpr coord_t largest_error_of_removed_point = 50;
+    constexpr coord_t smallest_line_length = 200_mu;
+    constexpr coord_t largest_error_of_removed_point = 50_mu;
     first_layer_outline = Simplify(smallest_line_length, largest_error_of_removed_point, 0).polygon(first_layer_outline);
     if (first_layer_outline.size() == 0)
     {
         spdlog::error("Couldn't generate skirt / brim! No polygons on first layer.");
     }
 }
+
+// Holes are removed when their area is smaller than the squared line width multiplied by this constant:
+static constexpr coord_t brim_area_minimum_hole_size_multiplier = 100;
 
 coord_t SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, size_t& primary_line_count, const coord_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)
 {
@@ -105,7 +108,7 @@ coord_t SkirtBrim::generatePrimarySkirtBrimLines(const coord_t start_distance, s
         for (unsigned int n = 0; n < outer_skirt_brim_line.size(); n++)
         {
             double area = outer_skirt_brim_line[n].area();
-            if (area < 0 && area > -primary_extruder_skirt_brim_line_width * primary_extruder_skirt_brim_line_width * 100)
+            if (area < 0 && area > -primary_extruder_skirt_brim_line_width * primary_extruder_skirt_brim_line_width * brim_area_minimum_hole_size_multiplier)
             {
                 outer_skirt_brim_line.remove(n--);
             }
@@ -239,8 +242,6 @@ void SkirtBrim::generate(SliceDataStorage& storage, Polygons first_layer_outline
 
 void SkirtBrim::generateSupportBrim(SliceDataStorage& storage, const bool merge_with_model_skirtbrim)
 {
-    constexpr coord_t brim_area_minimum_hole_size_multiplier = 100;
-
     Scene& scene = Application::getInstance().current_slice->scene;
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t brim_line_width = support_infill_extruder.settings.get<coord_t>("skirt_brim_line_width") * support_infill_extruder.settings.get<Ratio>("initial_layer_line_width_factor");

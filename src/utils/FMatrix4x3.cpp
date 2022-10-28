@@ -48,11 +48,7 @@ FMatrix4x3::FMatrix4x3()
 
 Point3 FMatrix4x3::apply(const FPoint3& p) const
 {
-    return Point3(
-        MM2INT(p.x * m[0][0] + p.y * m[1][0] + p.z * m[2][0] + m[3][0]),
-        MM2INT(p.x * m[0][1] + p.y * m[1][1] + p.z * m[2][1] + m[3][1]),
-        MM2INT(p.x * m[0][2] + p.y * m[1][2] + p.z * m[2][2] + m[3][2])
-    );
+    return Point3(mm_to_coord(p.x * m[0][0] + p.y * m[1][0] + p.z * m[2][0] + m[3][0]), mm_to_coord(p.x * m[0][1] + p.y * m[1][1] + p.z * m[2][1] + m[3][1]), mm_to_coord(p.x * m[0][2] + p.y * m[1][2] + p.z * m[2][2] + m[3][2]));
 }
 
 Point3 FMatrix4x3::apply(const Point3& p) const

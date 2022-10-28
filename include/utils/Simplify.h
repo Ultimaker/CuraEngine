@@ -131,7 +131,7 @@ protected:
      * If a vertex causes deviation of less than this, it should always be
      * removed.
      */
-    constexpr static coord_t min_resolution = 5; //5 units, regardless of how big those are, to allow for rounding errors.
+    constexpr static coord_t min_resolution = INT_EPSILON / 2; // 5 units, regardless of how big those are, to allow for rounding errors.
 
     /*!
      * The main simplification algorithm starts here.

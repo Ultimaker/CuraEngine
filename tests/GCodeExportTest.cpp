@@ -45,7 +45,7 @@ public:
         gcode.output_stream = &output;
 
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.currentPosition = Point3(0, 0, MM2INT(20));
+        gcode.currentPosition = Point3(0, 0, 20_mm);
         gcode.layer_nr = 0;
         gcode.current_e_value = 0;
         gcode.current_e_offset = 0;
@@ -204,7 +204,7 @@ public:
         gcode.output_stream = &output;
 
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
-        gcode.currentPosition = Point3(0, 0, MM2INT(20));
+        gcode.currentPosition = Point3(0, 0, 20_mm);
         gcode.layer_nr = 0;
         gcode.current_e_value = 0;
         gcode.current_extruder = 0;
@@ -325,7 +325,7 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
         ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders.back();
         train.settings.add("machine_nozzle_size", "0.4");
     }
-    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
+    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1_mm, 1_mm, 1_mm));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
@@ -344,7 +344,7 @@ TEST_F(GCodeExportTest, HeaderRepRap)
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
-    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
+    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1_mm, 1_mm, 1_mm));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
@@ -363,7 +363,7 @@ TEST_F(GCodeExportTest, HeaderMarlin)
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
-    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
+    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1_mm, 1_mm, 1_mm));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
@@ -380,7 +380,7 @@ TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
     const std::vector<bool> extruder_is_used(num_extruders, true);
     constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
-    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1000, 1000, 1000));
+    gcode.total_bounding_box = AABB3D(Point3(0, 0, 0), Point3(1_mm, 1_mm, 1_mm));
 
     std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
 
@@ -426,7 +426,7 @@ TEST_F(GCodeExportTest, EVsMmLinear)
     EXPECT_EQ(gcode.mmToE(15.0), 15.0) << "Since the E is linear and the input mm is also linear, the output needs to be the same.";
     EXPECT_EQ(gcode.eToMm(15.0), 15.0) << "Since the E is linear and the output mm is also linear, the output needs to be the same.";
 
-    for (int x = -1000; x < 1000; x += 16)
+    for (int x = -1_mm; x < 1_mm; x += 16)
     {
         EXPECT_DOUBLE_EQ(gcode.mmToE(gcode.eToMm(static_cast<double>(x))), static_cast<double>(x)) << "Converting back and forth should lead to the same number.";
     }
@@ -481,8 +481,8 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
-    gcode.current_layer_z = 2000;
-    constexpr coord_t hop_height = 3000;
+    gcode.current_layer_z = 2_mm;
+    constexpr coord_t hop_height = 3_mm;
     gcode.writeZhopStart(hop_height);
     EXPECT_EQ(std::string("G1 F60 Z5\n"), output.str());
 }
@@ -491,8 +491,8 @@ TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
-    gcode.current_layer_z = 2000;
-    constexpr coord_t hop_height = 3000;
+    gcode.current_layer_z = 2_mm;
+    constexpr coord_t hop_height = 3_mm;
     constexpr Velocity speed = 4; // 240 mm/min.
     gcode.writeZhopStart(hop_height, speed);
     EXPECT_EQ(std::string("G1 F240 Z5\n"), output.str()) << "Custom provided speed should be used.";
@@ -509,8 +509,8 @@ TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1"); // 60mm/min.
-    gcode.current_layer_z = 2000;
-    gcode.is_z_hopped = 3000;
+    gcode.current_layer_z = 2_mm;
+    gcode.is_z_hopped = 3_mm;
     gcode.writeZhopEnd();
     EXPECT_EQ(std::string("G1 F60 Z2\n"), output.str());
 }
@@ -519,8 +519,8 @@ TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 {
     Application::getInstance().current_slice->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice->scene.extruders[gcode.current_extruder].settings.add("speed_z_hop", "1");
-    gcode.current_layer_z = 2000;
-    gcode.is_z_hopped = 3000;
+    gcode.current_layer_z = 2_mm;
+    gcode.is_z_hopped = 3_mm;
     constexpr Velocity speed = 4; // 240 mm/min.
     gcode.writeZhopEnd(speed);
     EXPECT_EQ(std::string("G1 F240 Z2\n"), output.str()) << "Custom provided speed should be used.";
@@ -528,17 +528,17 @@ TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 
 TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
 {
-    gcode.currentPosition = Point3(1000, 1000, 1000);
-    gcode.current_layer_z = 1000;
+    gcode.currentPosition = Point3(1_mm, 1_mm, 1_mm);
+    gcode.current_layer_z = 1_mm;
     gcode.use_extruder_offset_to_offset_coords = false;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
 
     WipeScriptConfig config;
     config.retraction_enable = false;
     config.hop_enable = false;
-    config.brush_pos_x = 2000;
+    config.brush_pos_x = 2_mm;
     config.repeat_count = 1;
-    config.move_distance = 500;
+    config.move_distance = 0.5_mm;
     config.move_speed = 10;
     config.pause = 0;
 
@@ -560,17 +560,17 @@ TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
 
 TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
 {
-    gcode.currentPosition = Point3(1000, 1000, 1000);
-    gcode.current_layer_z = 1000;
+    gcode.currentPosition = Point3(1_mm, 1_mm, 1_mm);
+    gcode.current_layer_z = 1_mm;
     gcode.use_extruder_offset_to_offset_coords = false;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
 
     WipeScriptConfig config;
     config.retraction_enable = false;
     config.hop_enable = false;
-    config.brush_pos_x = 2000;
+    config.brush_pos_x = 2_mm;
     config.repeat_count = 4;
-    config.move_distance = 500;
+    config.move_distance = 0.5_mm;
     config.move_speed = 10;
     config.pause = 0;
 
@@ -598,17 +598,17 @@ TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
 
 TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
 {
-    gcode.currentPosition = Point3(1000, 1000, 1000);
-    gcode.current_layer_z = 1000;
+    gcode.currentPosition = Point3(1_mm, 1_mm, 1_mm);
+    gcode.current_layer_z = 1_mm;
     gcode.use_extruder_offset_to_offset_coords = false;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
 
     WipeScriptConfig config;
     config.retraction_enable = false;
     config.hop_enable = false;
-    config.brush_pos_x = 2000;
+    config.brush_pos_x = 2_mm;
     config.repeat_count = 1;
-    config.move_distance = 500;
+    config.move_distance = 0.5_mm;
     config.move_speed = 10;
     config.pause = 1.5; // 1.5 sec = 1500 ms.
 
@@ -629,8 +629,8 @@ TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
 
 TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
 {
-    gcode.currentPosition = Point3(1000, 1000, 1000);
-    gcode.current_layer_z = 1000;
+    gcode.currentPosition = Point3(1_mm, 1_mm, 1_mm);
+    gcode.current_layer_z = 1_mm;
     gcode.current_e_value = 100;
     gcode.use_extruder_offset_to_offset_coords = false;
     gcode.is_volumetric = false;
@@ -652,9 +652,9 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     config.retraction_config.retraction_extrusion_window = 1;
     config.retraction_config.retraction_min_travel_distance = 0; // Don't limit retractions for being too short.
     config.hop_enable = false;
-    config.brush_pos_x = 2000;
+    config.brush_pos_x = 2_mm;
     config.repeat_count = 1;
-    config.move_distance = 500;
+    config.move_distance = 0.5_mm;
     config.move_speed = 10;
     config.pause = 0;
 
@@ -677,8 +677,8 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
 
 TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
 {
-    gcode.currentPosition = Point3(1000, 1000, 1000);
-    gcode.current_layer_z = 1000;
+    gcode.currentPosition = Point3(1_mm, 1_mm, 1_mm);
+    gcode.current_layer_z = 1_mm;
     gcode.use_extruder_offset_to_offset_coords = false;
     gcode.currentSpeed = 1;
     Application::getInstance().current_slice->scene.current_mesh_group->settings.add("layer_height", "0.2");
@@ -687,10 +687,10 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     config.retraction_enable = false;
     config.hop_enable = true;
     config.hop_speed = 2; // 120 mm/min.
-    config.hop_amount = 300;
-    config.brush_pos_x = 2000;
+    config.hop_amount = 0.3_mm;
+    config.brush_pos_x = 2_mm;
     config.repeat_count = 1;
-    config.move_distance = 500;
+    config.move_distance = 0.5_mm;
     config.move_speed = 10;
     config.pause = 0;
 

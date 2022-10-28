@@ -186,8 +186,7 @@ public:
      * \param stroke_width The width of the grid lines.
      * \param font_size The size of the font to write the coordinates with.
      */
-    void writeCoordinateGrid(const coord_t grid_size = MM2INT(1), const Color color = Color::BLACK, const float stroke_width = 0.1, const float font_size = 10) const;
-
+    void writeCoordinateGrid(const coord_t grid_size = 1_mm, const Color color = Color::BLACK, const float stroke_width = 0.1, const float font_size = 10) const;
 };
 
 template<typename... Args>

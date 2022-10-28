@@ -23,8 +23,8 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
 
     int pitch = line_distance * 2.41; // this produces similar density to the "line" infill pattern
     int num_steps = 4;
-    int step = pitch / num_steps;
-    while (step > 500 && num_steps < 16)
+    coord_t step = pitch / num_steps;
+    while (step > 500_mu && num_steps < 16)
     {
         num_steps *= 2;
         step = pitch / num_steps;
@@ -267,7 +267,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     {
                         // don't include chain ends that are close to the segment but are beyond the segment ends
                         short beyond = 0;
-                        if (LinearAlg2D::getDist2FromLineSegment(op0, chains[point_index][chain_index], op1, &beyond) < 10 && !beyond)
+                        if (LinearAlg2D::getDist2FromLineSegment(op0, chains[point_index][chain_index], op1, &beyond) < INT_EPSILON && ! beyond)
                         {
                             points_on_outline_point_index.push_back(point_index);
                             points_on_outline_chain_index.push_back(chain_index);
@@ -275,7 +275,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     }
                 }
 
-                if (outline_point_index == 0 || vSize2(op0 - cur_point) > MM2INT(0.1))
+                if (outline_point_index == 0 || vSize2(op0 - cur_point) > 100_mu2)
                 {
                     // this is either the first outline point or it is another outline point that is not too close to cur_point
 
@@ -314,7 +314,7 @@ void GyroidInfill::generateTotalGyroidInfill(Polygons& result_lines, bool zig_za
                     // make the chain end the current point and add it to the connector line
                     cur_point = chains[point_index][chain_index];
 
-                    if (drawing && connector_points.size() > 0 && vSize2(cur_point - connector_points.back()) < MM2INT(0.1))
+                    if (drawing && connector_points.size() > 0 && vSize2(cur_point - connector_points.back()) < 100_mu2)
                     {
                         // this chain end will be too close to the last connector point so throw away the last connector point
                         connector_points.pop_back();

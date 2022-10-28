@@ -13,16 +13,100 @@ namespace cura
 
 using coord_t = ClipperLib::cInt;
 
-static inline coord_t operator "" _mu(unsigned long long i) { return i; };
+template<typename T>
+constexpr T ipow(T x, unsigned power)
+{
+    return power != 0 ? x * ipow(x, power - 1) : T(1);
+}
 
-#define INT2MM(n) (static_cast<double>(n) / 1000.0)
-#define INT2MM2(n) (static_cast<double>(n) / 1000000.0)
-#define MM2INT(n) (static_cast<coord_t>((n) * 1000 + 0.5 * (((n) > 0) - ((n) < 0))))
-#define MM2_2INT(n) (static_cast<coord_t>((n) * 1000000 + 0.5 * (((n) > 0) - ((n) < 0))))
-#define MM3_2INT(n) (static_cast<coord_t>((n) * 1000000000 + 0.5 * (((n) > 0) - ((n) < 0))))
+static constexpr unsigned INT10POW_PER_MM = 3;
+static constexpr coord_t INT_PER_MM = ipow(10, INT10POW_PER_MM);
+static constexpr coord_t INT_PER_MM2 = INT_PER_MM * INT_PER_MM;
+static constexpr coord_t INT_PER_MM3 = INT_PER_MM2 * INT_PER_MM;
 
-#define INT2MICRON(n) ((n) / 1)
-#define MICRON2INT(n) ((n) * 1)
+// Minimum distance for snapping, tolerance for arcs, etc.
+static constexpr coord_t INT_EPSILON = 10;
+// The lenght of unit vectors for normal() and rotation computation, such that the rounding errors are negligible.
+static constexpr coord_t INT_PRECISION_COMP = 10000;
+
+constexpr double coord_to_mm(coord_t n)
+{
+    return static_cast<double>(n) / INT_PER_MM;
+}
+constexpr double coord_to_mm2(coord_t n)
+{
+    return static_cast<double>(n) / INT_PER_MM2;
+}
+constexpr double coord_to_mm3(coord_t n)
+{
+    return static_cast<double>(n) / INT_PER_MM3;
+}
+constexpr coord_t mm_to_coord(double n)
+{
+    return static_cast<coord_t>(n * INT_PER_MM + (n >= 0. ? 0.5 : -0.5));
+}
+constexpr coord_t mm2_to_coord(double n)
+{
+    return static_cast<coord_t>(n * INT_PER_MM2 + (n >= 0. ? 0.5 : -0.5));
+}
+constexpr coord_t mm3_to_coord(double n)
+{
+    return static_cast<coord_t>(n * INT_PER_MM3 + (n >= 0. ? 0.5 : -0.5));
+}
+constexpr coord_t mu2_to_coord(double n)
+{
+    return static_cast<coord_t>(n * (INT_PER_MM2 / 1000000.) + (n >= 0. ? 0.5 : -0.5));
+}
+
+constexpr coord_t operator"" _mm(long double n)
+{
+    return mm_to_coord(n);
+}
+constexpr coord_t operator"" _mm(unsigned long long int n)
+{
+    return mm_to_coord(n);
+}
+constexpr coord_t operator"" _mm2(long double n)
+{
+    return mm2_to_coord(n);
+}
+constexpr coord_t operator"" _mm2(unsigned long long int n)
+{
+    return mm2_to_coord(n);
+}
+constexpr coord_t operator"" _mm3(long double n)
+{
+    return mm3_to_coord(n);
+}
+constexpr coord_t operator"" _mm3(unsigned long long int n)
+{
+    return mm3_to_coord(n);
+}
+
+constexpr coord_t operator"" _mu(long double n)
+{
+    return mm_to_coord(n * 1e-3);
+}
+constexpr coord_t operator"" _mu(unsigned long long int n)
+{
+    return mm_to_coord(n * 1e-3);
+}
+constexpr coord_t operator"" _mu2(long double n)
+{
+    return mm2_to_coord(n * 1e-6);
+}
+constexpr coord_t operator"" _mu2(unsigned long long int n)
+{
+    return mm2_to_coord(n * 1e-6);
+}
+constexpr coord_t operator"" _mu3(long double n)
+{
+    return mm3_to_coord(n * 1e-9);
+}
+constexpr coord_t operator"" _mu3(unsigned long long int n)
+{
+    return mm3_to_coord(n * 1e-9);
+}
 
 } // namespace cura
 

@@ -52,7 +52,7 @@ public:
      * \param snap_distance Points closer than this distance are considered to
      * be the same point.
      */
-    static void stitch(const Paths& lines, Paths& result_lines, Paths& result_polygons, coord_t max_stitch_distance = MM2INT(0.1), coord_t snap_distance = 10)
+    static void stitch(const Paths& lines, Paths& result_lines, Paths& result_polygons, coord_t max_stitch_distance = 0.1_mm, coord_t snap_distance = INT_EPSILON)
     {
         if (lines.empty())
         {

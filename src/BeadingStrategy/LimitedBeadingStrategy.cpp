@@ -95,7 +95,7 @@ coord_t LimitedBeadingStrategy::getOptimalThickness(coord_t bead_count) const
     {
         return parent->getOptimalThickness(bead_count);
     }
-    return 10000000; // 10 meter
+    return 10000_mm; // 10 meter
 }
 
 coord_t LimitedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
@@ -106,9 +106,9 @@ coord_t LimitedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count)
     }
     if (lower_bead_count == max_bead_count)
     {
-        return parent->getOptimalThickness(lower_bead_count + 1) - 10;
+        return parent->getOptimalThickness(lower_bead_count + 1) - INT_EPSILON;
     }
-    return 9000000; // 9 meter
+    return 9000_mm; // 9 meter
 }
 
 coord_t LimitedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
@@ -120,7 +120,7 @@ coord_t LimitedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
     }
     else if (parent_bead_count == max_bead_count + 1)
     {
-        if (thickness < parent->getOptimalThickness(max_bead_count + 1) - 10)
+        if (thickness < parent->getOptimalThickness(max_bead_count + 1) - INT_EPSILON)
             return max_bead_count;
         else
             return max_bead_count + 1;

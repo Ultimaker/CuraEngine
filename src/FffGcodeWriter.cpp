@@ -634,7 +634,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
-        tmp << "M227 S" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
+        tmp << "M227 S" << coord_to_mm(mesh_group_settings.get<coord_t>("retraction_amount") * 2560) << " P" << coord_to_mm(mesh_group_settings.get<coord_t>("retraction_amount") * 2560);
         gcode.writeLine(tmp.str().c_str());
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
@@ -667,7 +667,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
-    gcode.setZ(max_object_height + MM2INT(5));
+    gcode.setZ(max_object_height + 5_mm);
 
     Application::getInstance().communication->sendCurrentPosition(gcode.getPositionXY());
     gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice->scene.extruders[gcode.getExtruderNr()].settings.get<Velocity>("speed_travel"));
@@ -1830,7 +1830,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
         // Originally an area of 0.4*0.4*2 (2 line width squares) was found to be a good threshold for removal.
         // However we found that this doesn't scale well with polygons with larger circumference (https://github.com/Ultimaker/Cura/issues/3992).
         // Given that the original test worked for approximately 2x2cm models, this scaling by circumference should make it work for any size.
-        constexpr double minimum_small_area_factor = 0.4 * 0.4 / 40000;
+        // Note that the result is in mm^2, but circumference is in INT_PER_MM, this is why the denominator get the _mm unit.
+        constexpr double minimum_small_area_factor = 0.4 * 0.4 / 40_mm;
         const double minimum_small_area = minimum_small_area_factor * circumference;
 
         // This is only for density infill, because after generating the infill might appear unnecessary infill on walls
@@ -1955,7 +1956,7 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
 
 bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Polygons& infill_not_below_skin, const LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const SliceLayerPart& part, coord_t infill_line_width)
 {
-    constexpr coord_t tiny_infill_offset = 20;
+    constexpr coord_t tiny_infill_offset = 2 * INT_EPSILON;
     const auto skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
     Polygons skin_above_combined; // skin regions on the layers above combined with small gaps between
 
@@ -2040,7 +2041,7 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(Polygons& infill_below_skin, Pol
 
         constexpr bool remove_small_holes_from_infill_below_skin = true;
         constexpr double min_area_multiplier = 25;
-        const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
+        const double min_area = coord_to_mm2(infill_line_width * infill_line_width) * min_area_multiplier;
         infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
 
         // there is infill below skin, is there also infill that isn't below skin?
@@ -2229,7 +2230,7 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
             // considered to be
             const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / M_PI));
-            Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
+            Polygons overhang_region = part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(INT_EPSILON + overhang_width - half_outer_wall_width)).offset(INT_EPSILON);
             gcode_layer.setOverhangMask(overhang_region);
         }
     }

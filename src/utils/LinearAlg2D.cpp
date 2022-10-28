@@ -55,7 +55,7 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point& p, const Point& a, const P
     const Point ab = b - a;
     const coord_t ab_size = vSize(ab);
     const Point ap = p - a;
-    const coord_t ax_size = (ab_size < 50)? dot(normal(ab, 1000), ap) / 1000 : dot(ab, ap) / ab_size;
+    const coord_t ax_size = (ab_size < 5 * INT_EPSILON) ? dot(normal(ab, INT_PRECISION_COMP), ap) / INT_PRECISION_COMP : dot(ab, ap) / ab_size;
     const coord_t ap_size2 = vSize2(ap);
     const coord_t px_size = sqrt(std::max(coord_t(0), ap_size2 - ax_size * ax_size));
     if (px_size > dist)
@@ -247,10 +247,8 @@ bool LinearAlg2D::isInsideCorner(const Point a, const Point b, const Point c, co
      */
 
 
-
-    constexpr coord_t normal_length = 10000; //Create a normal vector of reasonable length in order to reduce rounding error.
-    const Point ba = normal(a - b, normal_length);
-    const Point bc = normal(c - b, normal_length);
+    const Point ba = normal(a - b, INT_PRECISION_COMP);
+    const Point bc = normal(c - b, INT_PRECISION_COMP);
     const Point bq = query_point - b;
     const Point perpendicular = turn90CCW(bq); //The query projects to this perpendicular to coordinate 0.
     const coord_t project_a_perpendicular = dot(ba, perpendicular); //Project vertex A on the perpendicular line.

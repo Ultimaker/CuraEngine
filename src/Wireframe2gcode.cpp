@@ -116,7 +116,7 @@ void Wireframe2gcode::writeGCode()
             {
                 if (vSize2(gcode.getPositionXY() - part.connection.from) > connectionHeight)
                 {
-                    Point3 point_same_height(part.connection.from.x, part.connection.from.y, layer.z1 + MM2INT(0.1));
+                    Point3 point_same_height(part.connection.from.x, part.connection.from.y, layer.z1 + 0.1_mm);
                     writeMoveWithRetract(point_same_height);
                 }
                 writeMoveWithRetract(part.connection.from);
@@ -248,8 +248,8 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
     Settings& scene_settings = Application::getInstance().current_slice->scene.settings;
     RetractionConfig retraction_config;
     // TODO: get these from the settings!
-    retraction_config.distance = MM2INT(0.5); // INT2MM(getSettingInt("retraction_amount"))
-    retraction_config.prime_volume = 0; // INT2MM(getSettingInt("retractionPrime
+    retraction_config.distance = 0.5_mm;
+    retraction_config.prime_volume = 0;
     retraction_config.speed = 20; // 40;
     retraction_config.primeSpeed = 15; // 30;
     retraction_config.zHop = 0; // getSettingInt("retraction_hop");
@@ -258,7 +258,7 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
     retraction_config.retraction_min_travel_distance = scene_settings.get<coord_t>("retraction_min_travel");
 
     double top_retract_pause = 2.0;
-    const coord_t retract_hop_dist = MM2INT(1);
+    const coord_t retract_hop_dist = 1_mm;
     bool after_retract_hop = false;
     // bool go_horizontal_first = true;
     bool lower_retract_start = true;
@@ -504,7 +504,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode) : gcode(gco
     flowConnection = scene_settings.get<Ratio>("wireframe_flow_connection");
     flowFlat = scene_settings.get<Ratio>("wireframe_flow_flat");
 
-    const double line_area = M_PI * square(INT2MM(line_width) / 2.0);
+    const double line_area = M_PI * square(coord_to_mm(line_width) / 2.0);
     extrusion_mm3_per_mm_connection = line_area * flowConnection;
     extrusion_mm3_per_mm_flat = line_area * flowFlat;
 
@@ -610,7 +610,7 @@ void Wireframe2gcode::processStartingCode()
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
-        tmp << "M227 S" << (scene_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (scene_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
+        tmp << "M227 S" << coord_to_mm(scene_settings.get<coord_t>("retraction_amount") * 2560) << " P" << coord_to_mm(scene_settings.get<coord_t>("retraction_amount") * 2560);
         gcode.writeLine(tmp.str().c_str());
     }
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
@@ -632,7 +632,7 @@ void Wireframe2gcode::processSkirt()
     {
         return;
     }
-    Polygons skirt = wireFrame.bottom_outline.offset(MM2INT(100 + 5), ClipperLib::jtRound).offset(MM2INT(-100), ClipperLib::jtRound);
+    Polygons skirt = wireFrame.bottom_outline.offset(105_mm, ClipperLib::jtRound).offset(-100_mm, ClipperLib::jtRound);
     PathOrderOptimizer<PolygonPointer> order(Point(INT32_MIN, INT32_MIN));
     for (PolygonRef skirt_path : skirt)
     {
@@ -649,7 +649,7 @@ void Wireframe2gcode::processSkirt()
             Point vertex = (*path.vertices)[(vertex_index + path.start_vertex + 1) % path.vertices->size()];
             gcode.writeExtrusion(vertex,
                                  scene_settings.get<Velocity>("skirt_brim_speed"),
-                                 scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * INT2MM(initial_layer_thickness),
+                                 scene_settings.get<double>("skirt_brim_line_width") * scene_settings.get<Ratio>("initial_layer_line_width_factor") * coord_to_mm(initial_layer_thickness),
                                  PrintFeatureType::SkirtBrim);
         }
     }

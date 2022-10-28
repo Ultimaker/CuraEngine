@@ -77,7 +77,7 @@ bool Polygons::empty() const
 
 Polygons Polygons::approxConvexHull(int extra_outset)
 {
-    constexpr int overshoot = MM2INT(100); //10cm (hard-coded value).
+    constexpr coord_t overshoot = 100_mm; // 10cm (hard-coded value).
 
     Polygons convex_hull;
     //Perform the offset for each polygon one at a time.
@@ -86,7 +86,7 @@ Polygons Polygons::approxConvexHull(int extra_outset)
     for (const ClipperLib::Path& path : paths)
     {
         Polygons offset_result;
-        ClipperLib::ClipperOffset offsetter(1.2, 10.0);
+        ClipperLib::ClipperOffset offsetter(clipper_miter_limit, ConstPolygonRef::calcArcTolerance(overshoot));
         offsetter.AddPath(path, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
         offsetter.Execute(offset_result.paths, overshoot);
         convex_hull.add(offset_result);
@@ -269,7 +269,7 @@ unsigned int Polygons::findInside(Point p, bool border_result)
 Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitch, const coord_t max_stitch_distance) const
 {
     Polygons split_polylines = polylines.splitPolylinesIntoSegments();
-    
+
     ClipperLib::PolyTree result;
     ClipperLib::Clipper clipper(clipper_init);
     clipper.AddPaths(split_polylines.paths, ClipperLib::ptSubject, false);
@@ -277,11 +277,11 @@ Polygons Polygons::intersectionPolyLines(const Polygons& polylines, bool restitc
     clipper.Execute(ClipperLib::ctIntersection, result);
     Polygons ret;
     ClipperLib::OpenPathsFromPolyTree(result, ret.paths);
-    
+
     if (restitch)
     {
         Polygons result_lines, result_polygons;
-        const coord_t snap_distance = 10_mu;
+        const coord_t snap_distance = INT_EPSILON;
         PolylineStitcher<Polygons, Polygon, Point>::stitch(ret, result_lines, result_polygons, max_stitch_distance, snap_distance);
         ret = result_lines;
         // if polylines got stitched into polygons, split them back up into a polyline again, because the result only admits polylines
@@ -344,25 +344,30 @@ Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double m
         return *this;
     }
     Polygons ret;
-    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    ClipperLib::ClipperOffset clipper(miter_limit, ConstPolygonRef::calcArcTolerance(distance));
     clipper.AddPaths(unionPolygons().paths, join_type, ClipperLib::etClosedPolygon);
-    clipper.MiterLimit = miter_limit;
+    assert(clipper.MiterLimit == miter_limit);
     clipper.Execute(ret.paths, distance);
     return ret;
 }
 
+double ConstPolygonRef::calcArcTolerance(int offset)
+{
+    constexpr double min_tol = std::max<double>(5_mu, INT_EPSILON);
+    return std::max(min_tol, std::abs(static_cast<double>(offset)) * 1e-2);
+}
+
 Polygons ConstPolygonRef::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
+    Polygons ret;
     if (distance == 0)
     {
-        Polygons ret;
         ret.add(*this);
         return ret;
     }
-    Polygons ret;
-    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    ClipperLib::ClipperOffset clipper(miter_limit, calcArcTolerance(distance));
     clipper.AddPath(*path, join_type, ClipperLib::etClosedPolygon);
-    clipper.MiterLimit = miter_limit;
+    assert(clipper.MiterLimit == miter_limit);
     clipper.Execute(ret.paths, distance);
     return ret;
 }
@@ -532,7 +537,7 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
         for(auto it = paths.begin(); it < new_end; it++)
         {
             // All polygons smaller than target are removed by replacing them with a polygon from the back of the vector
-            if(std::abs(INT2MM2(ClipperLib::Area(*it))) < min_area_size)
+            if (std::abs(coord_to_mm2(ClipperLib::Area(*it))) < min_area_size)
             {
                 new_end--;
                 *it = std::move(*new_end);
@@ -545,7 +550,7 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
         // For each polygon, computes the signed area, move small outlines at the end of the vector and keep references on small holes
         std::vector<PolygonRef> small_holes;
         for(auto it = paths.begin(); it < new_end; it++) {
-            double area = INT2MM2(ClipperLib::Area(*it));
+            double area = coord_to_mm2(ClipperLib::Area(*it));
             if (std::abs(area) < min_area_size)
             {
                 if(area >= 0)
@@ -765,7 +770,7 @@ bool ConstPolygonRef::smooth_corner_complex(const Point p1, ListPolyIt& p0_it, L
         const Point p0_2 = p0_2_it.p();
         const Point v02_2 = p0_2 - p2_2;
         const int64_t v02_2_size = vSize(v02_2);
-        float progress = std::min(1.0, INT2MM(shortcut_length - v02_size) / INT2MM(v02_2_size - v02_size)); // account for rounding error when v02_2_size is approx equal to v02_size
+        float progress = std::min(1.0, coord_to_mm(shortcut_length - v02_size) / coord_to_mm(v02_2_size - v02_size)); // account for rounding error when v02_2_size is approx equal to v02_size
         assert(progress >= 0.0f && progress <= 1.0f && "shortcut length must be between last length and new length");
         const Point new_p0 = p0_it.p() + (p0_2 - p0_it.p()) * progress;
         p0_it = ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
@@ -918,8 +923,8 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
     //  |
     //  0
     // ideally a1_size == b1_size
-    if (vSize2(v02) <= shortcut_length * (shortcut_length + 10) // v02 is approximately shortcut length
-        || (cos_angle > 0.9999 && LinearAlg2D::getDist2FromLine(p2, p0, p1) < 20 * 20)) // p1 is degenerate
+    if (vSize2(v02) <= shortcut_length * (shortcut_length + INT_EPSILON) // v02 is approximately shortcut length
+        || (cos_angle > 0.9999 && LinearAlg2D::getDist2FromLine(p2, p0, p1) < 2 * INT_EPSILON * 2 * INT_EPSILON)) // p1 is degenerate
     {
         // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
         p1_it.remove();
@@ -943,8 +948,8 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             Point a = p1 + normal(v10, a1_size);
             Point b = p1 + normal(v12, a1_size);
 #ifdef ASSERT_INSANE_OUTPUT
-            assert(vSize(a) < 4000000);
-            assert(vSize(b) < 4000000);
+            assert(vSize(a) < 4000_mm);
+            assert(vSize(b) < 4000_mm);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
             ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
             ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
@@ -968,7 +973,7 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             if (success)
             { // if not success then assume a is negligibly close to 0, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
-                assert(vSize(a) < 4000000);
+                assert(vSize(a) < 4000_mm);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
                 ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
             }
@@ -988,7 +993,7 @@ void ConstPolygonRef::smooth_corner_simple(const Point p0, const Point p1, const
             if (success)
             { // if not success then assume b is negligibly close to 2, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
-                assert(vSize(b) < 4000000);
+                assert(vSize(b) < 4000_mm);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
                 ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
             }
@@ -1026,7 +1031,7 @@ void ConstPolygonRef::smooth_outward(const AngleDegrees min_angle, int shortcut_
         do
         {
             ListPolyIt next = p1_it.next();
-            if (vSize2(p1_it.p() - next.p()) < 10 * 10)
+            if (vSize2(p1_it.p() - next.p()) < INT_EPSILON * INT_EPSILON)
             {
                 p1_it.remove();
             }
@@ -1045,7 +1050,7 @@ void ConstPolygonRef::smooth_outward(const AngleDegrees min_angle, int shortcut_
 
         const Point v10 = p0 - p1;
         const Point v12 = p2 - p1;
-        float cos_angle = INT2MM(INT2MM(dot(v10, v12))) / vSizeMM(v10) / vSizeMM(v12);
+        float cos_angle = coord_to_mm2(dot(v10, v12)) / (vSizeMM(v10) * vSizeMM(v12));
         bool is_left_angle = LinearAlg2D::pointIsLeftOfLine(p1, p0, p2) > 0;
         if (cos_angle > cos_min_angle && is_left_angle)
         {
@@ -1101,9 +1106,7 @@ Polygons Polygons::smooth_outward(const AngleDegrees max_angle, int shortcut_len
 }
 
 
-
-
-void ConstPolygonRef::splitPolylineIntoSegments(Polygons& result) const 
+void ConstPolygonRef::splitPolylineIntoSegments(Polygons& result) const
 {
     Point last = front();
     for (size_t idx = 1; idx < size(); idx++)
@@ -1114,7 +1117,7 @@ void ConstPolygonRef::splitPolylineIntoSegments(Polygons& result) const
     }
 }
 
-Polygons ConstPolygonRef::splitPolylineIntoSegments() const 
+Polygons ConstPolygonRef::splitPolylineIntoSegments() const
 {
     Polygons ret;
     splitPolylineIntoSegments(ret);
@@ -1127,7 +1130,7 @@ void ConstPolygonRef::splitPolygonIntoSegments(Polygons& result) const
     result.addLine(back(), front());
 }
 
-Polygons ConstPolygonRef::splitPolygonIntoSegments() const 
+Polygons ConstPolygonRef::splitPolygonIntoSegments() const
 {
     Polygons ret;
     splitPolygonIntoSegments(ret);

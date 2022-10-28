@@ -5,7 +5,7 @@
 #define UTILS_INT_POINT_H
 
 /**
-The integer point classes are used as soon as possible and represent microns in 2D or 3D space.
+The integer point classes are used as soon as possible and represent in 2D or 3D space with INT_PER_MM units.
 Integer points are used to avoid floating point rounding errors, and because ClipperLib uses them.
 */
 #define INLINE static inline
@@ -107,8 +107,8 @@ INLINE coord_t vSize(const Point& p0)
 
 INLINE double vSizeMM(const Point& p0)
 {
-    double fx = INT2MM(p0.X);
-    double fy = INT2MM(p0.Y);
+    double fx = coord_to_mm(p0.X);
+    double fy = coord_to_mm(p0.Y);
     return sqrt(fx*fx+fy*fy);
 }
 

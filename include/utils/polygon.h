@@ -59,7 +59,9 @@ class ListPolyIt;
 typedef std::list<Point> ListPolygon; //!< A polygon represented by a linked list instead of a vector
 typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
 
-const static int clipper_init = (0);
+// How far a miter can be offseted before being truncated, relative to the offset size (http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/Properties/MiterLimit.htm)
+static constexpr double clipper_miter_limit = 1.2;
+static constexpr int clipper_init = 0;
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
 
 class ConstPolygonPointer;
@@ -162,7 +164,7 @@ public:
         return ClipperLib::Orientation(*path);
     }
 
-    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = clipper_miter_limit) const;
 
     coord_t polygonLength() const
     {
@@ -394,6 +396,11 @@ private:
      * \param[in,out] backward_is_too_far Whether trying another step backward is blocked by the shortcut length condition. Updated for the next iteration.
      */
     static void smooth_outward_step(const Point p1, const int64_t shortcut_length2, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far);
+
+
+    /// Allowed deviation for round joints while offsetting (this reduces the number of segment
+    /// @see http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/Properties/ArcTolerance.htm
+    static double calcArcTolerance(int offset);
 };
 
 
@@ -551,19 +558,20 @@ public:
      * \param smallest_line_segment_squared maximal squared length of removed line segments
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
-    void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
+    void simplify(const coord_t smallest_line_segment_squared = 100_mu2, const coord_t allowed_error_distance_squared = 25_mu2);
 
     /*!
      * See simplify(.)
      */
-    void simplifyPolyline(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25);
+    void simplifyPolyline(const coord_t smallest_line_segment_squared = 100_mu2, const coord_t allowed_error_distance_squared = 25_mu2);
+
 protected:
     /*!
      * Private implementation for both simplify and simplifyPolygons.
      * 
      * Made private to avoid accidental use of the wrong function.
      */
-    void _simplify(const coord_t smallest_line_segment_squared = 100, const coord_t allowed_error_distance_squared = 25, bool processing_polylines = false);
+    void _simplify(const coord_t smallest_line_segment_squared = 100_mu2, const coord_t allowed_error_distance_squared = 25_mu2, bool processing_polylines = false);
 
 public:
     void pop_back()
@@ -1003,16 +1011,15 @@ public:
         return ret;
     }
 
-    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = clipper_miter_limit) const;
 
     Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter) const
     {
         Polygons ret;
-        double miterLimit = 1.2;
         ClipperLib::EndType end_type = (joinType == ClipperLib::jtMiter)? ClipperLib::etOpenSquare : ClipperLib::etOpenRound;
-        ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
+        ClipperLib::ClipperOffset clipper(clipper_miter_limit, ConstPolygonRef::calcArcTolerance(distance));
         clipper.AddPaths(paths, joinType, end_type);
-        clipper.MiterLimit = miterLimit;
+        clipper.MiterLimit = clipper_miter_limit;
         clipper.Execute(ret.paths, distance);
         return ret;
     }

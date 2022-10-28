@@ -12,7 +12,7 @@ class AdaptiveLayer
 {
 public:
     /*!
-     * Height of the layer in microns.
+     * Height of the layer in INT_PER_MM units.
      */
     coord_t layer_height;
 

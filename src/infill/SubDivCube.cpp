@@ -268,17 +268,16 @@ void SubDivCube::rotatePoint120(Point& target)
 
 void SubDivCube::addLineAndCombine(Polygons& group, Point from, Point to)
 {
-    int epsilon = 10; // the smallest distance of two points which are viewed as coincident (dist > 0 due to rounding errors)
     for (unsigned int idx = 0; idx < group.size(); idx++)
     {
-        if (std::abs(from.X - group[idx][1].X) < epsilon && std::abs(from.Y - group[idx][1].Y) < epsilon)
+        if (std::abs(from.X - group[idx][1].X) < INT_EPSILON && std::abs(from.Y - group[idx][1].Y) < INT_EPSILON)
         {
             from = group[idx][0];
             group.remove(idx);
             idx--;
             continue;
         }
-        if (std::abs(to.X - group[idx][0].X) < epsilon && std::abs(to.Y - group[idx][0].Y) < epsilon)
+        if (std::abs(to.X - group[idx][0].X) < INT_EPSILON && std::abs(to.Y - group[idx][0].Y) < INT_EPSILON)
         {
             to = group[idx][1];
             group.remove(idx);

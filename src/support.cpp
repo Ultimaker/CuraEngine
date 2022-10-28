@@ -354,7 +354,8 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
                             continue;
                         }
 
-                        Polygons intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.getInfillArea()).offset(-200).offset(200);
+                        constexpr coord_t opening_offset = 200_mu; // FIXME: < Magic constant (how is it derived? should it scale with units?)
+                        Polygons intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.getInfillArea()).offset(-opening_offset).offset(opening_offset);
                         if (intersection.size() <= 0)
                         {
                             continue;
@@ -845,7 +846,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
     constexpr bool no_prime_tower = false;
     const coord_t support_line_width = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").settings.get<coord_t>("support_line_width");
     const double sloped_areas_angle = mesh.settings.get<AngleRadians>("support_bottom_stair_step_min_slope");
-    const coord_t sloped_area_detection_width = 10 + static_cast<coord_t>(layer_thickness / std::tan(sloped_areas_angle)) / 2;
+    const coord_t sloped_area_detection_width = INT_EPSILON + static_cast<coord_t>(layer_thickness / std::tan(sloped_areas_angle)) / 2;
     xy_disallowed_per_layer[0] = storage.getLayerOutlines(0, no_support, no_prime_tower).offset(xy_distance);
 
     cura::parallel_for<size_t>(1,
@@ -860,14 +861,14 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                    sloped_areas_per_layer[layer_idx] =
                                        // Take the outer areas of the previous layer, where the outer areas are (mostly) just _inside_ the shape.
                                        storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower)
-                                           .tubeShape(sloped_area_detection_width, 10)
+                                           .tubeShape(sloped_area_detection_width, INT_EPSILON)
                                            // Intersect those with the outer areas of the current layer, where the outer areas are (mostly) _outside_ the shape.
                                            // This will detect every slope (and some/most vertical walls) between those two layers.
-                                           .intersection(outlines.tubeShape(10, sloped_area_detection_width))
+                                           .intersection(outlines.tubeShape(INT_EPSILON, sloped_area_detection_width))
                                            // Do an opening operation so we're not stuck with tiny patches.
                                            // The later offset is extended with the line-width, so all patches are merged together if there's less than a line-width between them.
-                                           .offset(-10)
-                                           .offset(10 + sloped_area_detection_width);
+                                           .offset(-INT_EPSILON)
+                                           .offset(INT_EPSILON + sloped_area_detection_width);
                                    // The sloped areas are now ready to be post-processed.
 
                                    if (! is_support_mesh_place_holder)
@@ -900,7 +901,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                                        // expand area_beyond_limit so that the inner hole fills in all the way back to the current layer's outline
                                                        // and use that to remove the regions in larger_area_below that should not use min XY because the regions are
                                                        // wide enough for a normal support to be placed there
-                                                       larger_area_below = larger_area_below.difference(area_beyond_limit.offset(limit_distance + 10));
+                                                       larger_area_below = larger_area_below.difference(area_beyond_limit.offset(limit_distance + INT_EPSILON));
                                                    }
                                                }
                                            }
@@ -1083,8 +1084,8 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
 
             if (conical_support)
             { // with conical support the next layer is allowed to be larger than the previous
-                touching_buildplate = touching_buildplate.offset(std::abs(conical_support_offset) + 10, ClipperLib::jtMiter, 10);
-                // + 10 and larger miter limit cause performing an outward offset after an inward offset can disregard sharp corners
+                touching_buildplate = touching_buildplate.offset(std::abs(conical_support_offset) + INT_EPSILON, ClipperLib::jtMiter, INT_EPSILON);
+                // + INT_EPSILON and larger miter limit cause performing an outward offset after an inward offset can disregard sharp corners
                 //
                 // conical support can make
                 //  layer above    layer below
@@ -1274,7 +1275,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     //     Polygons overhang =  basic_overhang.unionPolygons(support_extension);
     //         presumably the computation above is slower than the one below
 
-    Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
+    Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 0.1_mm); // +0.1mm for easier joining with support from layer above
     Polygons full_overhang = overhang_extented.intersection(supportLayer_supportee);
     return std::make_pair(basic_overhang, full_overhang);
 }

@@ -58,7 +58,7 @@ public:
      */
     Mesh mesh;
 
-    LayerPlanTest() : storage(setUpStorage()), layer_plan(*storage, 100, 10000, 100, 0, fan_speed_layer_time_settings, 20, 10, 5000)
+    LayerPlanTest() : storage(setUpStorage()), layer_plan(*storage, 0.1_mm, 10_mm, 0.1_mm, 0, fan_speed_layer_time_settings, 20_mu, 10_mu, 5_mm)
     {
     }
 
@@ -96,7 +96,7 @@ public:
         settings->add("cool_fan_full_layer", "3");
         settings->add("cool_fan_speed_0", "0");
         settings->add("cool_fan_speed_min", "75");
-        settings->add("cool_fan_speed_max", "100");
+        settings->add("cool_fan_speed_max", "0.1_mm");
         settings->add("cool_min_speed", "10");
         settings->add("cool_min_layer_time", "5");
         settings->add("cool_min_layer_time_fan_speed_max", "10");
@@ -117,7 +117,7 @@ public:
         settings->add("machine_height", "1000");
         settings->add("machine_nozzle_tip_outer_diameter", "1");
         settings->add("machine_width", "1000");
-        settings->add("material_flow_layer_0", "100");
+        settings->add("material_flow_layer_0", "0.1_mm");
         settings->add("meshfix_maximum_travel_resolution", "0");
         settings->add("prime_tower_enable", "true");
         settings->add("prime_tower_flow", "108");
@@ -309,30 +309,30 @@ public:
 
     AddTravelTest() : parameters(std::make_tuple<std::string, std::string, std::string, bool, bool, AddTravelTestScene>("false", "false", "off", false, false, AddTravelTestScene::OPEN))
     {
-        around_start_end.add(Point(-100, -100));
-        around_start_end.add(Point(500100, -100));
-        around_start_end.add(Point(500100, 500100));
-        around_start_end.add(Point(-100, 500100));
+        around_start_end.add(Point(-0.1_mm, -0.1_mm));
+        around_start_end.add(Point(500.1_mm, -0.1_mm));
+        around_start_end.add(Point(500.1_mm, 500.1_mm));
+        around_start_end.add(Point(-0.1_mm, 500.1_mm));
 
-        around_start.add(Point(-100, -100));
-        around_start.add(Point(100, -100));
-        around_start.add(Point(100, 100));
-        around_start.add(Point(-100, 100));
+        around_start.add(Point(-0.1_mm, -0.1_mm));
+        around_start.add(Point(0.1_mm, -0.1_mm));
+        around_start.add(Point(0.1_mm, 0.1_mm));
+        around_start.add(Point(-0.1_mm, 0.1_mm));
 
-        around_end.add(Point(249900, 249900));
-        around_end.add(Point(250100, 249900));
-        around_end.add(Point(250100, 250100));
-        around_end.add(Point(249900, 249900));
+        around_end.add(Point(249.9_mm, 249.9_mm));
+        around_end.add(Point(250100, 249.9_mm));
+        around_end.add(Point(250.1_mm, 250.1_mm));
+        around_end.add(Point(249.9_mm, 249.9_mm));
 
-        between.add(Point(250000, 240000));
-        between.add(Point(260000, 240000));
-        between.add(Point(260000, 300000));
-        between.add(Point(250000, 300000));
+        between.add(Point(250_mm, 240_mm));
+        between.add(Point(260_mm, 240_mm));
+        between.add(Point(260_mm, 300_mm));
+        between.add(Point(250_mm, 300_mm));
 
-        between_hole.add(Point(250000, 240000));
-        between_hole.add(Point(250000, 300000));
-        between_hole.add(Point(260000, 300000));
-        between_hole.add(Point(260000, 240000));
+        between_hole.add(Point(250_mm, 240_mm));
+        between_hole.add(Point(250_mm, 300_mm));
+        between_hole.add(Point(260_mm, 300_mm));
+        between_hole.add(Point(260_mm, 240_mm));
     }
 
     /*!
@@ -385,14 +385,13 @@ public:
         layer_plan.comb_boundary_preferred = slice_data; // We don't care about the combing accuracy itself, so just use the same for both.
         if (parameters.combing != "off")
         {
-            layer_plan.comb = new Comb(
-                *storage,
-                100, // layer_nr
-                layer_plan.comb_boundary_minimum,
-                layer_plan.comb_boundary_preferred,
-                20, // comb_boundary_offset
-                5000, // travel_avoid_distance
-                10 // comb_move_inside_distance
+            layer_plan.comb = new Comb(*storage,
+                                       0.1_mm, // layer_nr
+                                       layer_plan.comb_boundary_minimum,
+                                       layer_plan.comb_boundary_preferred,
+                                       20_mu, // comb_boundary_offset
+                                       5_mm, // travel_avoid_distance
+                                       10_mu // comb_move_inside_distance
             );
         }
         else
@@ -400,7 +399,7 @@ public:
             layer_plan.comb = nullptr;
         }
 
-        const Point destination(500000, 500000);
+        const Point destination(500_mm, 500_mm);
         return layer_plan.addTravel(destination);
     }
 };

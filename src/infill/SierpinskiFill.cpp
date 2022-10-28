@@ -119,7 +119,7 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
 void SierpinskiFill::createTreeStatistics(SierpinskiTriangle& triangle)
 {
     Point ac = triangle.straight_corner - triangle.a;
-    float area = 0.5 * INT2MM2(vSize2(ac));
+    float area = 0.5 * coord_to_mm2(vSize2(ac));
     float short_length = .5 * vSizeMM(ac);
     float long_length = .5 * vSizeMM(triangle.b - triangle.a);
     triangle.area = area;
@@ -141,7 +141,7 @@ void SierpinskiFill::createTreeRequestedLengths(SierpinskiTriangle& triangle)
         triangle_aabb.include(triangle.straight_corner);
         AABB3D triangle_aabb3d(Point3(triangle_aabb.min.X, triangle_aabb.min.Y, 0), Point3(triangle_aabb.max.X, triangle_aabb.max.Y, 1));
         float density = density_provider(triangle_aabb3d); // The density of the square around the triangle is a rough estimate of the density of the triangle.
-        triangle.requested_length = density * triangle.area / INT2MM(line_width);
+        triangle.requested_length = density * triangle.area / coord_to_mm(line_width);
     }
     else
     { // bubble total up requested_length and total_child_realized_length
@@ -708,7 +708,7 @@ Polygon SierpinskiFill::generateCross() const
         ret.add(edge_middle / 2);
     }
 
-    float realized_length = INT2MM(ret.polygonLength());
+    float realized_length = coord_to_mm(ret.polygonLength());
     float requested_length = root.requested_length;
     float error = (realized_length - requested_length) / requested_length;
     spdlog::debug("realized_length: {}, requested_length: {}  :: {}% error", realized_length, requested_length, .01 * static_cast<int>(10000 * error));
@@ -754,7 +754,7 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
     const coord_t period = vSize(last_triangle->straight_corner - last_triangle->a);
     ret.add(get_edge_crossing_location(period, last_triangle->getToEdge()));
 
-    if (pocket_size > 10)
+    if (pocket_size > INT_EPSILON)
     {
         // round off corners by half square root 2 of the pocket size so that the whole hole will be sqrt_pocket_size wide
         // \      /     \      /

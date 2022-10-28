@@ -23,7 +23,9 @@ public:
     float x,y,z;
     FPoint3() {}
     FPoint3(float _x, float _y, float _z): x(_x), y(_y), z(_z) {}
-    FPoint3(const Point3& p): x(p.x*.001), y(p.y*.001), z(p.z*.001) {}
+    FPoint3(const Point3& p) : x(coord_to_mm(p.x)), y(coord_to_mm(p.y)), z(coord_to_mm(p.z))
+    {
+    }
 
     FPoint3 operator+(const FPoint3& p) const { return FPoint3(x+p.x, y+p.y, z+p.z); }
     FPoint3 operator-(const FPoint3& p) const { return FPoint3(x-p.x, y-p.y, z-p.z); }
@@ -83,7 +85,7 @@ public:
 
     Point3 toPoint3()
     {
-        return Point3(MM2INT(x), MM2INT(y), MM2INT(z));
+        return Point3(mm_to_coord(x), mm_to_coord(y), mm_to_coord(z));
     }
 };
 

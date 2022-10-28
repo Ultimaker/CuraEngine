@@ -41,9 +41,8 @@ PrimeTower::PrimeTower()
         multiple_extruders_on_first_layer = scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle") && ((adhesion_type != EPlatformAdhesion::SKIRT) && (adhesion_type != EPlatformAdhesion::BRIM));
     }
 
-    enabled = scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
-           && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
-           && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
+    enabled = scene.current_mesh_group->settings.get<bool>("prime_tower_enable") && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > INT_EPSILON
+           && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > INT_EPSILON;
     would_have_actual_tower = enabled;  // Assume so for now.
 
     extruder_count = scene.extruders.size();
@@ -113,7 +112,7 @@ void PrimeTower::generatePaths_denseInfill()
     for (size_t extruder_nr : extruder_order)
     {
         const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
-        const coord_t required_volume = MM3_2INT(scene.extruders[extruder_nr].settings.get<double>("prime_tower_min_volume"));
+        const coord_t required_volume = mm3_to_coord(scene.extruders[extruder_nr].settings.get<double>("prime_tower_min_volume"));
         const Ratio flow = scene.extruders[extruder_nr].settings.get<Ratio>("prime_tower_flow");
         coord_t current_volume = 0;
         ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
