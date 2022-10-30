@@ -578,11 +578,6 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         break;
     }
 
-    bool nozzle_offsetting_for_disallowed_areas = 
-        mesh_group_settings.has("nozzle_offsetting_for_disallowed_areas")? // TODO: is that metadata provided to CuraEngien as a setting?!
-        mesh_group_settings.get<bool>("nozzle_offsetting_for_disallowed_areas")
-        : true;
-    
     Polygons disallowed_areas = mesh_group_settings.get<Polygons>("machine_disallowed_areas");
     disallowed_areas = disallowed_areas.unionPolygons(); // union overlapping disallowed areas
     for (PolygonRef poly : disallowed_areas)
@@ -640,7 +635,7 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     disallowed_all_extruders.processEvenOdd(ClipperLib::pftNonZero); // prevent overlapping disallowed areas from XORing
     
     Polygons border_all_extruders = border; // each extruders border areas must be limited to the global border, which is the union of all extruders borders
-    if (nozzle_offsetting_for_disallowed_areas)
+    if (mesh_group_settings.has("nozzle_offsetting_for_disallowed_areas") && mesh_group_settings.get<bool>("nozzle_offsetting_for_disallowed_areas"))
     {
         for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
         {
