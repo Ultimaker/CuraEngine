@@ -1019,64 +1019,15 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         skirt_brim.generateSupportBrim();
     }
 
-
-    // Also apply maximum_[deviation|resolution] to skirt/brim.
-//     const coord_t line_segment_resolution = train.settings.get<coord_t>("meshfix_maximum_resolution");
-//     const coord_t line_segment_deviation = train.settings.get<coord_t>("meshfix_maximum_deviation");
-    // TODO:
-//     for (Polygons& polygons : storage.skirt_brim)
-//     {
-//         polygons.simplify(line_segment_resolution, line_segment_deviation);
-//     }
-    return;
-    
-    /*
-    Polygons first_layer_outline;
-    coord_t primary_line_count;
-
-
-    if (adhesion_type == EPlatformAdhesion::SKIRT)
+    for (const auto& extruder : Application::getInstance().current_slice->scene.extruders)
     {
-        primary_line_count = train.settings.get<size_t>("skirt_line_count");
-        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, true, first_layer_outline);
-        SkirtBrim::generate(storage, first_layer_outline, train.settings.get<coord_t>("skirt_gap"), primary_line_count);
-    }
-
-    // Generate any brim for the prime tower, should happen _after_ any skirt, but _before_ any other brim (since FffGCodeWriter assumes that the outermost contour is last).
-    if (adhesion_type != EPlatformAdhesion::RAFT && storage.primeTower.enabled && mesh_group_settings.get<bool>("prime_tower_brim_enable"))
-    {
-        constexpr bool dont_allow_helpers = false;
-        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"), dont_allow_helpers);
-    }
-
-    switch (adhesion_type)
-    {
-    case EPlatformAdhesion::SKIRT:
-        // Already done, because of prime-tower-brim & ordering, see above.
-        break;
-    case EPlatformAdhesion::BRIM:
-        primary_line_count = train.settings.get<size_t>("brim_line_count");
-        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, false, first_layer_outline);
-        SkirtBrim::generate(storage, first_layer_outline, 0, primary_line_count);
-        break;
-    case EPlatformAdhesion::RAFT:
-        Raft::generate(storage);
-        break;
-    case EPlatformAdhesion::NONE:
-        if (mesh_group_settings.get<bool>("support_brim_enable"))
+        Simplify simplifier(extruder.settings);
+        for (auto skirt_brim_line : storage.skirt_brim[extruder.extruder_nr])
         {
-            SkirtBrim::generate(storage, Polygons(), 0, 0);
+            skirt_brim_line.closed_polygons = simplifier.polygon(skirt_brim_line.closed_polygons);
+            skirt_brim_line.open_polylines = simplifier.polyline(skirt_brim_line.open_polylines);
         }
-        break;
     }
-
-    // Also apply maximum_[deviation|resolution] to skirt/brim.
-    Simplify simplifier(train.settings);
-    for (Polygons& polygons : storage.skirt_brim)
-    {
-        polygons = simplifier.polygon(polygons);
-    }
-    */
 }
 
 

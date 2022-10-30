@@ -304,7 +304,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Polygons& covered_area, 
     }
 
     { // limit brim lines to allowed areas, stitch them and store them in the result
-        brim = Simplify(100, 10, 0).polygon(brim); // TODO: use coorect simplifying settings
+        brim = Simplify(Application::getInstance().current_slice->scene.extruders[offset.extruder_nr].settings).polygon(brim);
         brim.toPolylines();
         Polygons brim_lines = allowed_areas_per_extruder[offset.extruder_nr].intersectionPolyLines(brim, false);
         length_added = brim_lines.polyLineLength();
