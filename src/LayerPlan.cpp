@@ -1132,7 +1132,8 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons,
                                     const Ratio flow_ratio,
                                     const std::optional<Point> near_start_location,
                                     const double fan_speed,
-                                    const bool reverse_print_direction)
+                                    const bool reverse_print_direction,
+                                    const std::unordered_set<std::pair<ConstPolygonPointer, ConstPolygonPointer>>& order_requirements)
 {
     Polygons boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum.empty())
@@ -1157,7 +1158,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons,
         boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
     }
     constexpr bool detect_loops = true;
-    PathOrderOptimizer<ConstPolygonPointer> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction);
+    PathOrderOptimizer<ConstPolygonPointer> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction, order_requirements);
     for (size_t line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
         order_optimizer.addPolyline(polygons[line_idx]);
