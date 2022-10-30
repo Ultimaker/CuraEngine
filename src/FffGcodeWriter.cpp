@@ -1282,14 +1282,18 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     const Ratio flow_ratio = 1.0;
     const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
     const bool reverse_print_direction = false;
-    gcode_layer.addLinesByOptimizer(all_brim_lines, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], SpaceFillType::PolyLines,
+    gcode_layer.addLinesByOptimizer
+    (
+        all_brim_lines,
+        gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+        SpaceFillType::PolyLines,
         enable_travel_optimization,
         wipe_dist,
         flow_ratio,
         start_close_to,
         fan_speed,
-        reverse_print_direction
-        , order_requirements
+        reverse_print_direction,
+        order_requirements
     );
 }
 
