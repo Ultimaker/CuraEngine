@@ -5,6 +5,7 @@
 #include <limits> // numeric_limits
 #include <list>
 #include <optional>
+#include <unordered_set>
 
 #include <boost/uuid/random_generator.hpp> //For generating a UUID.
 #include <boost/uuid/uuid_io.hpp> //For generating a UUID.
@@ -360,19 +361,25 @@ size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
-    const ExtruderTrain& skirt_brim_extruder = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
+    const int skirt_brim_extruder_nr = mesh_group_settings.get<int>("skirt_brim_extruder_nr");
+    const ExtruderTrain* skirt_brim_extruder = (skirt_brim_extruder_nr < 0)? nullptr : &mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
 
     size_t start_extruder_nr;
-    if (adhesion_type == EPlatformAdhesion::SKIRT && (skirt_brim_extruder.settings.get<int>("skirt_line_count") > 0 || skirt_brim_extruder.settings.get<coord_t>("skirt_brim_minimal_length") > 0))
+    if (adhesion_type == EPlatformAdhesion::SKIRT
+        && skirt_brim_extruder
+        && (skirt_brim_extruder->settings.get<int>("skirt_line_count") > 0 || skirt_brim_extruder->settings.get<coord_t>("skirt_brim_minimal_length") > 0))
     {
-        start_extruder_nr = skirt_brim_extruder.extruder_nr;
+        start_extruder_nr = skirt_brim_extruder->extruder_nr;
     }
     else if ((adhesion_type == EPlatformAdhesion::BRIM || mesh_group_settings.get<bool>("prime_tower_brim_enable"))
-             && (skirt_brim_extruder.settings.get<int>("brim_line_count") > 0 || skirt_brim_extruder.settings.get<coord_t>("skirt_brim_minimal_length") > 0))
+        && skirt_brim_extruder
+        && (skirt_brim_extruder->settings.get<int>("brim_line_count") > 0 || skirt_brim_extruder->settings.get<coord_t>("skirt_brim_minimal_length") > 0))
     {
-        start_extruder_nr = skirt_brim_extruder.extruder_nr;
+        start_extruder_nr = skirt_brim_extruder->extruder_nr;
     }
-    else if (adhesion_type == EPlatformAdhesion::RAFT)
+    else if (adhesion_type == EPlatformAdhesion::RAFT
+        && skirt_brim_extruder
+    )
     {
         start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr;
     }
@@ -1159,12 +1166,14 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     {
         return;
     }
-    const Polygons& original_skirt_brim = storage.skirt_brim[extruder_nr];
     gcode_layer.setSkirtBrimIsPlanned(extruder_nr);
+    
+    const std::vector<SkirtBrimLine>& original_skirt_brim = storage.skirt_brim[extruder_nr];
     if (original_skirt_brim.size() == 0)
     {
         return;
     }
+
     // Start brim close to the prime location
     const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[extruder_nr];
     Point start_close_to;
@@ -1179,72 +1188,113 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
-    Polygons first_skirt_brim;
-    Polygons skirt_brim;
-    // Plan parts that need to be printed first: for example, skirt needs to be printed before support-brim.
-    for (size_t i_part = 0; i_part < original_skirt_brim.size(); ++i_part)
+    // figure out order requirements
+    struct BrimLineReference
     {
-        if (i_part < storage.skirt_brim_max_locked_part_order[extruder_nr])
+        const size_t inset_idx;
+        ConstPolygonPointer poly;
+    };
+    
+    size_t total_line_count = 0;
+    for (const SkirtBrimLine& line : storage.skirt_brim[extruder_nr])
+    {
+        total_line_count += line.closed_polygons.size();
+        total_line_count += line.open_polylines.size();
+    }
+    Polygons all_brim_lines;
+    
+    // Add the support brim before the below algorithm which takes order requirements into account
+    // For support brim we don't care about the order, because support doesn't need to be accurate.
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    if (extruder_nr == mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr)
+    {
+        total_line_count += storage.support_brim.size();
+        Polygons support_brim_lines = storage.support_brim;
+        support_brim_lines.toPolylines();
+        all_brim_lines = support_brim_lines;
+    }
+    
+    all_brim_lines.reserve(total_line_count);
+
+    const coord_t line_w = train.settings.get<coord_t>("skirt_brim_line_width") * train.settings.get<Ratio>("initial_layer_line_width_factor");
+    const coord_t searching_radius = line_w * 2;
+    using GridT = SparsePointGridInclusive<BrimLineReference>;
+    GridT grid(searching_radius);
+
+    for (size_t inset_idx = 0; inset_idx < storage.skirt_brim[extruder_nr].size(); inset_idx++)
+    {
+        const SkirtBrimLine& offset = storage.skirt_brim[extruder_nr][inset_idx];
+        for (bool closed : { false, true })
         {
-            first_skirt_brim.add(original_skirt_brim[i_part]);
-        }
-        else
-        {
-            skirt_brim.add(original_skirt_brim[i_part]);
-        }
-    }
-
-    const auto brim_zseam_config = ZSeamConfig(EZSeamType::SKIRT_BRIM);
-
-    if (! first_skirt_brim.empty())
-    {
-        gcode_layer.addTravel(first_skirt_brim.back().closestPointTo(start_close_to));
-        gcode_layer.addPolygonsByOptimizer(first_skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config);
-    }
-
-    if (skirt_brim.empty())
-    {
-        return;
-    }
-
-    if (train.settings.get<bool>("brim_outside_only"))
-    {
-        gcode_layer.addTravel(skirt_brim.back().closestPointTo(start_close_to));
-        gcode_layer.addPolygonsByOptimizer(skirt_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config);
-    }
-    else
-    {
-        Polygons outer_brim, inner_brim;
-        for (unsigned int index = 0; index < skirt_brim.size(); index++)
-        {
-            ConstPolygonRef polygon = skirt_brim[index];
-            if (polygon.area() > 0)
+            for (ConstPolygonRef line : closed? offset.closed_polygons : offset.open_polylines)
             {
-                outer_brim.add(polygon);
+                if (line.size() <= 1)
+                {
+                    continue;
+                }
+                all_brim_lines.emplace_back(line);
+                if (closed)
+                { // add closing segment
+                    all_brim_lines.back().add(line.front());
+                }
+                ConstPolygonPointer pp(all_brim_lines.back());
+                for (Point p : line)
+                {
+                    grid.insert(p, BrimLineReference{inset_idx, pp});
+                }
+            }
+        }
+    }
+
+    const Settings& global_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
+    bool inner_to_outer = global_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM && // for skirt outer to inner is faster
+                            train.settings.get<coord_t>("brim_gap") < line_w; // for a large brim gap it's not so bad for the overextrudate to propagate inward.
+    std::unordered_set<std::pair<ConstPolygonPointer, ConstPolygonPointer>> order_requirements;
+    for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
+    {
+        const BrimLineReference& here = p.second.val;
+        Point loc_here = p.second.point;
+        std::vector<BrimLineReference> nearby_verts = grid.getNearbyVals(loc_here, searching_radius);
+        for (const BrimLineReference& nearby : nearby_verts)
+        {
+            if (nearby.poly == here.poly || nearby.inset_idx == here.inset_idx)
+            {
+                continue;
+            }
+            if ((nearby.inset_idx > here.inset_idx + 1) || (here.inset_idx > nearby.inset_idx + 1))
+            {
+                continue; // not directly adjacent
+            }
+            if ((nearby.inset_idx < here.inset_idx) == inner_to_outer)
+            {
+                order_requirements.emplace(std::make_pair(nearby.poly, here.poly));
             }
             else
             {
-                inner_brim.add(polygon);
+                order_requirements.emplace(std::make_pair(here.poly, nearby.poly));
             }
         }
-
-        if (! outer_brim.empty())
-        {
-            gcode_layer.addTravel(outer_brim.back().closestPointTo(start_close_to));
-            gcode_layer.addPolygonsByOptimizer(outer_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config);
-        }
-
-        if (! inner_brim.empty())
-        {
-            // Add polygon in reverse order
-            const coord_t wall_0_wipe_dist = 0;
-            const bool spiralize = false;
-            const float flow_ratio = 1.0;
-            const bool always_retract = false;
-            const bool reverse_order = true;
-            gcode_layer.addPolygonsByOptimizer(inner_brim, gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr], brim_zseam_config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract, reverse_order);
-        }
     }
+    assert(all_brim_lines.size() == total_line_count); // Otherwise pointers would have gotten invalidated
+    
+    const bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
+    const coord_t wipe_dist = 0u;
+    const Ratio flow_ratio = 1.0;
+    const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    const bool reverse_print_direction = false;
+    gcode_layer.addLinesByOptimizer
+    (
+        all_brim_lines,
+        gcode_layer.configs_storage.skirt_brim_config_per_extruder[extruder_nr],
+        SpaceFillType::PolyLines,
+        enable_travel_optimization,
+        wipe_dist,
+        flow_ratio,
+        start_close_to,
+        fan_speed,
+        reverse_print_direction,
+        order_requirements
+    );
 }
 
 void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const

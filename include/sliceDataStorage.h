@@ -299,6 +299,15 @@ public:
     Point getZSeamHint() const;
 };
 
+/*!
+ * Class to store all open polylines or closed polygons related to one outset index of brim/skirt.
+ */
+struct SkirtBrimLine
+{
+    Polygons open_polylines;
+    Polygons closed_polygons;
+};
+
 class SliceDataStorage : public NoCopy
 {
 public:
@@ -314,9 +323,9 @@ public:
     std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
 
     SupportStorage support;
-
-    Polygons skirt_brim[MAX_EXTRUDERS]; //!< Skirt and brim polygons per extruder, ordered from inner to outer polygons.
-    size_t skirt_brim_max_locked_part_order[MAX_EXTRUDERS]; //!< Some parts (like skirt) always need to be printed before parts like support-brim, so lock 0..n for each extruder, where n is the value saved in this array.
+    
+    std::vector<SkirtBrimLine> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
+    Polygons support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
     Polygons primeRaftOutline;          // ... the raft underneath the prime-tower will have to be printed first, if there is one. (When the raft has top layers with a different extruder for example.)
 
@@ -351,9 +360,9 @@ public:
      * \param include_prime_tower Whether to include the prime tower in the
      * outline.
      * \param external_polys_only Whether to disregard all hole polygons.
-     * \param for_brim Whether the outline is to be used to construct the brim.
+     * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
      */
-    Polygons getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false, const bool for_brim = false) const;
+    Polygons getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only = false, const int extruder_nr = -1) const;
 
     /*!
      * Get the extruders used.
@@ -382,11 +391,10 @@ public:
     /*!
      * Gets the border of the usable print area for this machine.
      *
-     * \param adhesion_offset whether to offset the border by the adhesion width to account for brims, skirts and
-     * rafts, if present.
-     * \return a Polygon representing the usable area of the print bed.
+     * \param extruder_nr The extruder for which to return the allowed areas. -1 if the areas allowed for all extruders should be returned.
+     * \return the Polygons representing the usable area of the print bed.
      */
-    Polygon getMachineBorder(bool adhesion_offset = false) const;
+    Polygons getMachineBorder(int extruder_nr = -1) const;
 
 private:
     /*!
