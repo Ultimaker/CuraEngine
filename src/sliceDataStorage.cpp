@@ -594,13 +594,20 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     constexpr coord_t prime_clearance = MM2INT(6.5);
     for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {
-        if (checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) continue;
-        if ( ! extruder_is_used[extruder_nr]) continue;
+        if ((checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) || ! extruder_is_used[extruder_nr])
+        {
+            continue;
+        }
         Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
-        if ( ! extruder_settings.get<bool>("prime_blob_enable")) continue;
-        if ( ! mesh_group_settings.get<bool>("extruder_prime_pos_abs")) continue;
+        if (!(extruder_settings.get<bool>("prime_blob_enable") && mesh_group_settings.get<bool>("extruder_prime_pos_abs")))
+        {
+            continue;
+        }
         Point prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"));
-        if (prime_pos == Point(0, 0)) continue; // Ignore extruder prime position if it is not set.
+        if (prime_pos == Point(0, 0))
+        {
+            continue; // Ignore extruder prime position if it is not set.
+        }
         Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         prime_pos -= translation;
         Polygons prime_polygons;
@@ -608,15 +615,14 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
         disallowed_areas = disallowed_areas.unionPolygons(prime_polygons);
     }
 
-//     border = border.difference(disallowed_areas);
-//     border = border.processEvenOdd(ClipperLib::pftNonZero);
-
     Polygons disallowed_all_extruders;
     bool first = true;
     for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {
-        if (checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) continue;
-        if ( ! extruder_is_used[extruder_nr]) continue;
+        if ((checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) || !extruder_is_used[extruder_nr])
+        {
+            continue;
+        }
         Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
         Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         Polygons extruder_border = disallowed_areas;
@@ -638,14 +644,19 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     {
         for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
         {
-            if (checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) continue;
-            if ( ! extruder_is_used[extruder_nr]) continue;
+            if ((checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) || ! extruder_is_used[extruder_nr])
+            {
+                continue;
+            }
             Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
             Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
             for (size_t other_extruder_nr = 0; other_extruder_nr < extruder_is_used.size(); other_extruder_nr++)
             {
                 // NOTE: the other extruder doesn't have to be used. Since the global border is the union of all extruders borders also unused extruders must be taken into account.
-                if (other_extruder_nr == extruder_nr) continue;
+                if (other_extruder_nr == extruder_nr)
+                {
+                    continue;
+                }
                 Settings& other_extruder_settings = Application::getInstance().current_slice->scene.extruders[other_extruder_nr].settings;
                 Point other_translation(other_extruder_settings.get<coord_t>("machine_nozzle_offset_x"), other_extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
                 Polygons translated_border = border;
@@ -654,10 +665,8 @@ Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
             }
         }
     }
-    
+
     border = border_all_extruders.difference(disallowed_all_extruders);
-    border = border.offset(-3000u).offset(3000u); // make sure the area between the clip of the UM3 and the offsetted clip isnt filled
-    
     return border;
 }
 

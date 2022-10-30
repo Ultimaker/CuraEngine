@@ -1228,7 +1228,10 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         {
             for (ConstPolygonRef line : closed? offset.closed_polygons : offset.open_polylines)
             {
-                if (line.size() <= 1) continue;
+                if (line.size() <= 1)
+                {
+                    continue;
+                }
                 all_brim_lines.emplace_back(line);
                 if (closed)
                 { // add closing segment
@@ -1254,10 +1257,14 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         std::vector<BrimLineReference> nearby_verts = grid.getNearbyVals(loc_here, searching_radius);
         for (const BrimLineReference& nearby : nearby_verts)
         {
-            if (nearby.poly == here.poly) continue;
-            if (nearby.inset_idx == here.inset_idx) continue;
-            if (nearby.inset_idx > here.inset_idx + 1) continue; // not directly adjacent
-            if (here.inset_idx > nearby.inset_idx + 1) continue; // not directly adjacent
+            if (nearby.poly == here.poly || nearby.inset_idx == here.inset_idx)
+            {
+                continue;
+            }
+            if ((nearby.inset_idx > here.inset_idx + 1) || (here.inset_idx > nearby.inset_idx + 1))
+            {
+                continue; // not directly adjacent
+            }
             if ((nearby.inset_idx < here.inset_idx) == inner_to_outer)
             {
                 order_requirements.emplace(std::make_pair(nearby.poly, here.poly));
