@@ -23,9 +23,9 @@
 #include <range/v3/view/transform.hpp>
 
 
-#include <range/v3/all.hpp>  // TODO: only include what I use
-#include <spdlog/spdlog.h>
 #include <fmt/ranges.h>
+#include <range/v3/all.hpp> // TODO: only include what I use
+#include <spdlog/spdlog.h>
 
 namespace cura
 {
@@ -145,77 +145,65 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     struct Loco
     {
         ExtrusionLine* line;
-        Polygons poly;
-        coord_t width;
-        coord_t length;
-        size_t idx;
+        AABB box;
     };
 
-    struct Candidate
+    // Cache the bounding boxes of each Extrusion line
+    auto cached = input
+               | ranges::views::transform(
+                     [](auto& line)
+                     {
+                         const AABB box{ line.toPolygon() };
+                         return std::make_shared<Loco>(Loco{ .line = &line, .box = box });
+                     })
+               | ranges::to_vector;
+
+
+    // Building the contains matrix, check for each ExtrusionLine if the bounding box is within another ExtrusionLines bounding box
+    std::unordered_map<ExtrusionLine*, std::vector<ExtrusionLine*>> contained_matrix;
+    contained_matrix.reserve(cached.size());
+    for (const auto& loco : cached)
     {
-        std::shared_ptr<Loco> candidate;
-        double weight;
-    };
-
-    using map_t = std::unordered_multimap<std::shared_ptr<Loco>, Candidate>;
-    map_t map{};
-
-    constexpr auto offset = 40;  // TODO: base it on the max bead width?
-
-    std::vector<std::shared_ptr<Loco>> locos;
-    locos.reserve(input.size());
-    for (auto [i, line] : input | ranges::views::enumerate)
-    {
-        Polygons poly;
-        poly.emplace_back( line.toPolygon() );
-        auto width = line.getMinimalWidth() / 2;
-        auto prime_candidate = std::make_shared<Loco>(Loco{
-            .line = &line,
-            .poly = poly,
-            .width = width,
-            .length = line.getLength(),
-            .idx = i,
-        });
-        locos.emplace_back(prime_candidate);
+        std::vector<ExtrusionLine*> contained_candidates;
+        contained_candidates.reserve(cached.size());
+        for (const auto& candidate : cached | ranges::views::remove_if([loco](const auto& candidate){ return candidate == loco; }))
+        {
+            if (candidate->box.contains(loco->box))
+            {
+                contained_candidates.emplace_back(candidate->line);
+            }
+        }
+        contained_matrix.emplace(loco->line, contained_candidates);
     }
 
-    for (const auto& loco : locos)
+    // Building the directed graph, creating an intersection for each contained collection obtained from above; If the intersection has a
+    // single item in the set it is the topmost inner bounding box and an edge can be added between the loco candidate
+    std::unordered_multimap<ExtrusionLine*, ExtrusionLine*> directed_graph;
+    for (const auto& [loco, contained] :  contained_matrix)
     {
-        for (const auto& candidate : locos | ranges::views::remove_if([loco](auto candidate){ return candidate == loco; }))
+        for (const auto& [candidate, contained_candidate] : contained_matrix | ranges::views::remove_if([&](const auto& key_value){ return key_value.first == loco; }))
         {
-            // Note: Current implementation favors outer intersections over inner intersections: `outer_radius > inner_radius`
-            //  not sure yet if this works in our favor or has a negative effect. Need to doublecheck.
-            AABB loco_box {loco->poly};
-            AABB candidate_box {candidate->poly};
-            if (! candidate_box.contains(loco_box))
+            std::vector<ExtrusionLine*> out;
+            ranges::set_intersection(contained, contained_candidate, ranges::back_inserter(out));
+            if (out.size() == 1)
             {
-                auto area = loco->poly.offset(loco->width).intersection(candidate->poly.offset(-candidate->width)).area();
-                double weight = area; // TODO: normalize the weight / loco->length; // Empty ExtrusionLines are already filtered out, no need to guard against 0-length
-                if (weight > 0)
-                {
-                    map.emplace(std::make_pair(loco, Candidate{ .candidate = candidate, .weight = weight }));
-                }
+                directed_graph.emplace(loco, candidate);
             }
         }
     }
 
-    // Pick the best candidate
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> ret;
-    for (const auto& loco : locos | ranges::views::unique)
-    {
-        auto [candidate_begin, candidate_end] = map.equal_range(loco);
-        auto candidates = ranges::subrange(candidate_begin, candidate_end) | ranges::views::values | ranges::to_vector;
-        if (! ranges::empty(candidates))
-        {
-            // TODO: pick the best candidate in the list also taking other loco's into account
-            ranges::sort(candidates, ranges::greater{}, &Candidate::weight);
-            auto best = ranges::max(candidates, ranges::less{}, &Candidate::weight);
-            spdlog::debug("inset: {} -> {}", loco->idx, candidates | ranges::views::transform([](const auto& c){ return std::make_pair( c.candidate->idx, c.weight ); }));
-            ret.emplace(loco->line, best.candidate->line);
-            spdlog::debug("inset: {} -> {} with weight {}", loco->idx, best.candidate->idx, best.weight);
-        }
-    }
-    return ret;
+    // Sort the directed graph from the longest path to the shorted path, this will generate the order in which the end nodes are to be processed
+    std::vector<ExtrusionLine*> sorted_leaves;
+    ranges::set_difference(directed_graph | ranges::views::values, directed_graph | ranges::views::keys, ranges::back_inserter(sorted_leaves));
+    // TODO: walk from each leave and determine the length of the path (Maybe I need to walk the otherway around from the root to the leaves??
+
+
+    // Walk through all branches in the directed graph, starting with the innermost node on the longest branch, moving downward.
+    // Once a node has been reached which branches off we move to the next sorted_leave node
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order_constraint;
+    // TODO: walk the graph and created the order_constraint
+
+    return order_constraint;
 }
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
