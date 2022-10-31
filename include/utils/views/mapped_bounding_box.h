@@ -27,10 +27,10 @@ namespace cura::views
  *
  * \returns a zipped view of elements of `std::tuple<T::value_type*, AABB>`
  */
-constexpr auto mapped_bounding_box(auto&& rng, auto&& proj = ranges::identity{})
+auto mapped_bounding_box(auto&& rng, auto&& proj = ranges::identity{})
 {
-    constexpr auto bounding_box_view = rng | bounding_box(std::forward<decltype(proj)>(proj));
-    constexpr auto pointer_view = rng | ranges::views::transform([](const auto& value) { return &value; });
+    auto bounding_box_view = rng | bounding_box(std::forward<decltype(proj)>(proj));
+    auto pointer_view = rng | ranges::views::transform([](const auto& value) { return &value; });
     return ranges::make_view_closure(ranges::views::zip(pointer_view, bounding_box_view));
 }
 
