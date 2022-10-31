@@ -175,8 +175,12 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     std::unordered_multimap<ExtrusionLine*, ExtrusionLine*> directed_graph;
     for (const auto& [loco, contained] :  contained_matrix)
     {
-        for (const auto& [candidate, contained_candidate] : contained_matrix) // | ranges::views::remove_if([&](const auto& key_value){ return key_value.first == loco; }))
+        for (const auto& [candidate, contained_candidate] : contained_matrix)
         {
+            if (candidate == loco)
+            {
+                continue ;
+            }
             std::vector<ExtrusionLine*> out;
             ranges::set_intersection(contained, contained_candidate, ranges::back_inserter(out));
             if (out.size() == 1)
