@@ -7,6 +7,7 @@
 #include "LayerPlan.h"
 #include "utils/AABB.h"
 #include "utils/SparseLineGrid.h"
+#include "utils/views/bounding_box.h"
 
 #include <iterator>
 #include <tuple>
@@ -148,32 +149,24 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
         AABB box;
     };
 
-    // Cache the bounding boxes of each Extrusion line
-    auto cached = input
-               | ranges::views::transform(
-                     [](auto& line)
-                     {
-                         const AABB box{ line.toPolygon() };
-                         return std::make_shared<Loco>(Loco{ .line = &line, .box = box });
-                     })
-               | ranges::to_vector;
-
+    // Cache the bounding boxes of each extrusion line and map them against the pointers of those lines
+    auto bounding_box_view = input | views::bounding_box(&ExtrusionLine::toPolygon) | ranges::to_vector;
+    auto pointer_view = input | ranges::views::addressof;
+    auto mapped_bounding_box_view = ranges::views::zip(pointer_view, bounding_box_view);
 
     // Building the contains matrix, check for each ExtrusionLine if the bounding box is within another ExtrusionLines bounding box
     std::unordered_map<ExtrusionLine*, std::vector<ExtrusionLine*>> contained_matrix;
-    contained_matrix.reserve(cached.size());
-    for (const auto& loco : cached)
+    for (const auto& [line, box] : mapped_bounding_box_view)
     {
         std::vector<ExtrusionLine*> contained_candidates;
-        contained_candidates.reserve(cached.size());
-        for (const auto& candidate : cached | ranges::views::remove_if([loco](const auto& candidate){ return candidate == loco; }))
+        for (const auto& [candidate, candidate_box] : mapped_bounding_box_view)
         {
-            if (candidate->box.contains(loco->box))
+            if (candidate_box.contains(box))
             {
-                contained_candidates.emplace_back(candidate->line);
+                contained_candidates.emplace_back(candidate);
             }
         }
-        contained_matrix.emplace(loco->line, contained_candidates);
+        contained_matrix.emplace(line, contained_candidates);
     }
 
     // Building the directed graph, creating an intersection for each contained collection obtained from above; If the intersection has a
@@ -181,7 +174,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     std::unordered_multimap<ExtrusionLine*, ExtrusionLine*> directed_graph;
     for (const auto& [loco, contained] :  contained_matrix)
     {
-        for (const auto& [candidate, contained_candidate] : contained_matrix | ranges::views::remove_if([&](const auto& key_value){ return key_value.first == loco; }))
+        for (const auto& [candidate, contained_candidate] : contained_matrix) // | ranges::views::remove_if([&](const auto& key_value){ return key_value.first == loco; }))
         {
             std::vector<ExtrusionLine*> out;
             ranges::set_intersection(contained, contained_candidate, ranges::back_inserter(out));
