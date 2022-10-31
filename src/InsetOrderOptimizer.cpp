@@ -8,6 +8,7 @@
 #include "utils/AABB.h"
 #include "utils/SparseLineGrid.h"
 #include "utils/views/bounding_box.h"
+#include "utils/actions/get_leaves.h"
 
 #include <iterator>
 #include <tuple>
@@ -186,8 +187,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     }
 
     // Sort the directed graph from the longest path to the shorted path, this will generate the order in which the end nodes are to be processed
-    std::vector<ExtrusionLine*> sorted_leaves;
-    ranges::set_difference(directed_graph | ranges::views::values, directed_graph | ranges::views::keys, ranges::back_inserter(sorted_leaves));
+    auto sorted_leaves = actions::get_leaves(directed_graph);
     // TODO: walk from each leave and determine the length of the path (Maybe I need to walk the otherway around from the root to the leaves??
 
 
