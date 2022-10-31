@@ -15,7 +15,6 @@
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
 #include "utils/polygonUtils.h"
-#include <range/v3/view/enumerate.hpp>
 
 namespace cura
 {
@@ -415,10 +414,21 @@ protected:
             return vert;
         }
 
+        const Point focus_fixed_point = (seam_config.type == EZSeamType::USER_SPECIFIED)
+                                          ? seam_config.pos
+                                          : Point(0, std::sqrt(std::numeric_limits<coord_t>::max())); //Use sqrt, so the squared size can be used when comparing distances.
+        const size_t start_from_pos = std::min_element(path.converted->begin(), path.converted->end(), [focus_fixed_point](const Point& a, const Point& b) {
+                                                           return vSize2(a - focus_fixed_point) < vSize2(b - focus_fixed_point);
+                                                       }) - path.converted->begin();
+        const size_t end_before_pos = path.converted->size() + start_from_pos;
+
+        // Find a seam position in the simple polygon:
         size_t best_i;
         float best_score = std::numeric_limits<float>::infinity();
-        for(const auto& [i, here]: **path.converted | ranges::views::enumerate)
+        for(size_t i = start_from_pos; i < end_before_pos; ++i)
         {
+            const Point& here = (*path.converted)[i % path.converted->size()];
+
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
             const coord_t distance = (combing_boundary == nullptr)
@@ -451,7 +461,7 @@ protected:
             {
             default:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                if(corner_angle < 0) // Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
+                if(corner_angle < 0) //Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
                 {
                     score -= (-corner_angle + 1.0) * corner_shift;
                 }
@@ -486,7 +496,7 @@ protected:
             }
         }
 
-        return best_i;
+        return best_i % path.converted->size();
     }
 
     /*!
