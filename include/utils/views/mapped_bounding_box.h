@@ -31,7 +31,7 @@ auto mapped_bounding_box(auto&& rng, auto&& proj = ranges::identity{})
 {
     auto bounding_box_view = rng | bounding_box(std::forward<decltype(proj)>(proj));
     auto pointer_view = rng | ranges::views::transform([](const auto& value) { return &value; });
-    return ranges::make_view_closure(ranges::views::zip(pointer_view, bounding_box_view));
+    return ranges::views::zip(pointer_view, bounding_box_view);
 }
 
 } // namespace cura::views
