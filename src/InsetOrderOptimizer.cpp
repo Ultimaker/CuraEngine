@@ -7,8 +7,9 @@
 #include "LayerPlan.h"
 #include "utils/AABB.h"
 #include "utils/SparseLineGrid.h"
-#include "utils/views/bounding_box.h"
-#include "utils/actions/get_leaves.h"
+#include "utils/actions/roots.h"
+#include "utils/format/IntPoint.h"
+#include "utils/views/convert.h"
 
 #include <iterator>
 #include <tuple>
@@ -26,6 +27,7 @@
 
 
 #include <fmt/ranges.h>
+#include <fmt/format.h>
 #include <range/v3/all.hpp> // TODO: only include what I use
 #include <spdlog/spdlog.h>
 
@@ -144,63 +146,69 @@ bool InsetOrderOptimizer::addToLayer()
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(std::vector<ExtrusionLine>& input, const bool outer_to_inner)
 {
-    struct Loco
-    {
-        ExtrusionLine* line;
-        AABB box;
-    };
-
     // Cache the bounding boxes of each extrusion line and map them against the pointers of those lines
-    auto bounding_box_view = input | views::bounding_box(&ExtrusionLine::toPolygon) | ranges::to_vector;
+    auto bounding_box_view = input | views::convert<Polygon>(&ExtrusionLine::toPolygon) | ranges::to_vector;
     auto pointer_view = input | ranges::views::addressof;
     auto mapped_bounding_box_view = ranges::views::zip(pointer_view, bounding_box_view);
 
     // Building the contains matrix, check for each ExtrusionLine if the bounding box is within another ExtrusionLines bounding box
     std::unordered_map<ExtrusionLine*, std::vector<ExtrusionLine*>> contained_matrix;
-    for (const auto& [line, box] : mapped_bounding_box_view)
+    for (const auto& [loco, box] : mapped_bounding_box_view)
     {
         std::vector<ExtrusionLine*> contained_candidates;
         for (const auto& [candidate, candidate_box] : mapped_bounding_box_view)
-        {
-            if (candidate_box.contains(box))
-            {
-                contained_candidates.emplace_back(candidate);
-            }
-        }
-        contained_matrix.emplace(line, contained_candidates);
-    }
-
-    // Building the directed graph, creating an intersection for each contained collection obtained from above; If the intersection has a
-    // single item in the set it is the topmost inner bounding box and an edge can be added between the loco candidate
-    std::unordered_multimap<ExtrusionLine*, ExtrusionLine*> directed_graph;
-    for (const auto& [loco, contained] :  contained_matrix)
-    {
-        for (const auto& [candidate, contained_candidate] : contained_matrix)
         {
             if (candidate == loco)
             {
                 continue ;
             }
+//            if (candidate_box.contains(box))
+//            {
+//                contained_candidates.emplace_back(candidate);
+//            }
+            // TODO: Don't use intersect to check if it inside
+            auto intersection_area = std::abs(candidate_box.intersection(box).area());
+            auto area = std::abs(box.area());
+            if (intersection_area == area)
+            {
+                contained_candidates.emplace_back(candidate);
+            }
+        }
+        ranges::sort(contained_candidates);
+        contained_matrix.emplace(loco, contained_candidates);
+    }
+
+    // Building the directed graph, creating an intersection for each contained collection obtained from above; If the intersection has a
+    // single item in the set it is the topmost inner bounding box and an edge can be added between the loco candidate
+    std::unordered_multimap<ExtrusionLine*, ExtrusionLine*> directed_graph;
+    for (auto [loco, contained] :  contained_matrix)
+    {
+        for (const auto& candidate : contained)
+        {
+            const auto inside = contained_matrix.find(candidate);
             std::vector<ExtrusionLine*> out;
-            ranges::set_intersection(contained, contained_candidate, ranges::back_inserter(out));
+            ranges::set_difference(contained, inside->second, ranges::back_inserter(out));
             if (out.size() == 1)
             {
-                directed_graph.emplace(loco, candidate);
+                directed_graph.emplace(candidate, loco);
             }
         }
     }
 
-    // Sort the directed graph from the longest path to the shorted path, this will generate the order in which the end nodes are to be processed
-    auto sorted_leaves = actions::get_leaves(directed_graph);
-    // TODO: walk from each leave and determine the length of the path (Maybe I need to walk the otherway around from the root to the leaves??
+    auto roots = cura::actions::roots(directed_graph) | ranges::to<std::unordered_set>;
+    std::unordered_set<ExtrusionLine*> visited;
 
+    for (const auto& root : roots)
+    {
+        dfs(root, directed_graph, visited);
+    }
 
-    // Walk through all branches in the directed graph, starting with the innermost node on the longest branch, moving downward.
-    // Once a node has been reached which branches off we move to the next sorted_leave node
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order_constraint;
-    // TODO: walk the graph and created the order_constraint
-
-    return order_constraint;
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
+    for (auto line_pair : visited | ranges::views::sliding(2))
+    {
+        order.emplace(std::make_pair(*line_pair.begin(), *ranges::next(line_pair.begin())));
+    }
+    return order;
 }
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
@@ -296,5 +304,21 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
         }
     }
     return view | ranges::views::join | ranges::views::remove_if(ranges::empty) | ranges::to_vector;
+}
+
+template<isGraph Graph>
+void InsetOrderOptimizer::dfs(ExtrusionLine* node, Graph dag, std::unordered_set<ExtrusionLine*>& visited)
+{
+    if (visited.contains(node))
+    {
+        return;
+    }
+    const auto& [children_begin, children_end] = dag.equal_range(node);
+    auto children = ranges::make_subrange(children_begin, children_end);
+    for (const auto& [_, child] : children)
+    {
+        dfs(child, dag, visited);
+    }
+    visited.insert(node);
 }
 } // namespace cura

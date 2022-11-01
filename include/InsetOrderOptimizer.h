@@ -8,6 +8,7 @@
 
 #include "sliceDataStorage.h" //For SliceMeshStorage, which is used here at implementation in the header.
 #include "settings/ZSeamConfig.h"
+#include "utils/concepts/graph.h"
 
 namespace cura
 {
@@ -136,6 +137,9 @@ private:
      * \return A vector of ExtrusionLines with walls that should be printed
      */
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
+
+    template<isGraph Graph>
+    static void dfs(ExtrusionLine* node, Graph dag, std::unordered_set<ExtrusionLine*>& visited);
 
     /*!
      * Endpoints of polylines that are closer together than this distance
