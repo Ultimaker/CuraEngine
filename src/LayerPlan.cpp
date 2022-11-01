@@ -1,7 +1,9 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <algorithm>
 #include <cstring>
+#include <numeric>
 #include <optional>
 
 #include <spdlog/spdlog.h>
@@ -28,23 +30,27 @@ namespace cura
 constexpr int MINIMUM_LINE_LENGTH = 5; // in uM. Generated lines shorter than this may be discarded
 constexpr int MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_LENGTH;
 
-ExtruderPlan::ExtruderPlan(const size_t extruder,
-                           const LayerIndex layer_nr,
-                           const bool is_initial_layer,
-                           const bool is_raft_layer,
-                           const coord_t layer_thickness,
-                           const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
-                           const RetractionConfig& retraction_config)
-    : heated_pre_travel_time(0)
-    , required_start_temperature(-1)
-    , extruder_nr(extruder)
-    , layer_nr(layer_nr)
-    , is_initial_layer(is_initial_layer)
-    , is_raft_layer(is_raft_layer)
-    , layer_thickness(layer_thickness)
-    , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
-    , retraction_config(retraction_config)
-    , extraTime(0.0)
+ExtruderPlan::ExtruderPlan
+(
+    const size_t extruder,
+    const LayerIndex layer_nr,
+    const bool is_initial_layer,
+    const bool is_raft_layer,
+    const coord_t layer_thickness,
+    const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
+    const RetractionConfig& retraction_config
+) :
+    heated_pre_travel_time(0),
+    required_start_temperature(-1),
+    extruder_nr(extruder),
+    layer_nr(layer_nr),
+    is_initial_layer(is_initial_layer),
+    is_raft_layer(is_raft_layer),
+    layer_thickness(layer_thickness),
+    fan_speed_layer_time_settings(fan_speed_layer_time_settings),
+    retraction_config(retraction_config),
+    extraTime(0.0),
+    slowest_path_speed(0.0)
 {
 }
 
@@ -1458,12 +1464,10 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
 
     double total_extrude_time_at_minimum_speed = 0.0;
     double total_extrude_time_at_slowest_speed = 0.0;
-    double slowest_path_speed = std::numeric_limits<double>::max();
     for (GCodePath& path : paths)
     {
         total_extrude_time_at_minimum_speed += path.estimates.extrude_time_at_minimum_speed;
         total_extrude_time_at_slowest_speed += path.estimates.extrude_time_at_slowest_path_speed;
-        slowest_path_speed = std::min(path.config->getSpeed().value * path.speed_factor, slowest_path_speed);
     }
 
     if (totalTime < minTime - epsilon && extrudeTime > 0.0)
@@ -1529,18 +1533,16 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
 
 TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_position)
 {
-    TimeMaterialEstimates ret;
     Point p0 = starting_position;
 
-    double min_path_speed = fan_speed_layer_time_settings.cool_min_speed;
-
-    //TODO: This slowest_path_speed is causing warnings for empty layers and looks a bit uckly to me anyway.
-    //      Maybe it can also be returned, because it is now calculated again in the forceMinimalLayerTime function.
-    double slowest_path_speed = std::numeric_limits<double>::max();
-    for (GCodePath& path : paths)
-    {
-        slowest_path_speed = std::min(slowest_path_speed, path.config->getSpeed().value * path.speed_factor);
-    }
+    const double min_path_speed = fan_speed_layer_time_settings.cool_min_speed;
+    slowest_path_speed =
+        std::accumulate
+        (
+            paths.begin(),
+            paths.end(),
+            std::numeric_limits<double>::max(), [](double value, const GCodePath& path) { return std::min(value, path.config->getSpeed().value * path.speed_factor); }
+        );
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
     for (GCodePath& path : paths)

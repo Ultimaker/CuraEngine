@@ -72,6 +72,7 @@ protected:
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
+    double slowest_path_speed;
 
 public:
     size_t extruder_nr; //!< The extruder used for this paths in the current plan.
