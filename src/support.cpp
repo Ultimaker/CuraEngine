@@ -1354,18 +1354,20 @@ void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_
     const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
     for (Polygons& tower_roof: tower_roofs)
     {
-        if (tower_roof.size() > 0)
+        if (tower_roof.size() == 0)
         {
-            supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
+            continue;
+        }
 
-            if (tower_roof[0].area() < tower_diameter * tower_diameter)
-            {
-                tower_roof = tower_roof.offset(tower_roof_expansion_distance);
-            }
-            else
-            {
-                tower_roof.clear();
-            }
+        supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
+
+        if (tower_roof[0].area() < tower_diameter * tower_diameter)
+        {
+            tower_roof = tower_roof.offset(tower_roof_expansion_distance);
+        }
+        else
+        {
+            tower_roof.clear();
         }
     }
 }
