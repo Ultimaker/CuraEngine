@@ -1541,7 +1541,11 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
         (
             paths.begin(),
             paths.end(),
-            std::numeric_limits<double>::max(), [](double value, const GCodePath& path) { return std::min(value, path.config->getSpeed().value * path.speed_factor); }
+            std::numeric_limits<double>::max(),
+            [](double value, const GCodePath& path)
+                {
+                    return path.isTravelPath() ? value : std::min(value, path.config->getSpeed().value * path.speed_factor);
+                }
         );
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
