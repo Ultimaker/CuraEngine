@@ -1473,18 +1473,19 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
     if (totalTime < minTime - epsilon && extrudeTime > 0.0)
     {
         const double minExtrudeTime = minTime - travelTime;
+
+        double factor = 0.0;
+        double target_speed = 0.0;
+        std::function<double(const GCodePath&)> slow_down_func
+        {
+            [&target_speed](const GCodePath& path) { return target_speed / (path.config->getSpeed() * path.speed_factor); }
+        };
+
         if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
         {
             // Even at cool min speed extrusion is not taken enough time. So speed is set to cool min speed.
-            for (GCodePath& path : paths)
-            {
-                if (path.isTravelPath())
-                {
-                    continue;
-                }
-                path.speed_factor = minimalSpeed / (path.config->getSpeed() * path.speed_factor);
-                path.estimates.extrude_time /= path.speed_factor;
-            }
+            target_speed = minimalSpeed;
+
             // Update stored naive time estimates
             estimates.extrude_time = total_extrude_time_at_minimum_speed;
             if (minTime - total_extrude_time_at_minimum_speed - travelTime > epsilon)
@@ -1497,16 +1498,8 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             // Slowing down to the slowest path speed is not sufficient, need to slow down further to the minimum speed.
             // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
             const double factor = (total_extrude_time_at_minimum_speed - minExtrudeTime) / (total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed);
-            const double target_speed = minimalSpeed * (1.0-factor) + slowest_path_speed * factor;
-            for (GCodePath& path : paths)
-            {
-                if (path.isTravelPath())
-                {
-                    continue;
-                }
-                path.speed_factor = target_speed / (path.config->getSpeed() * path.speed_factor);
-                path.estimates.extrude_time /= path.speed_factor;
-            }
+            target_speed = minimalSpeed * (1.0-factor) + slowest_path_speed * factor;
+
             // Update stored naive time estimates
             estimates.extrude_time = minExtrudeTime;
         }
@@ -1514,19 +1507,26 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         {
             // Slowing down to the slowest_speed is sufficient to respect the minimum layer time.
             // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
-            const double factor = (total_extrude_time_at_slowest_speed - minExtrudeTime) / (total_extrude_time_at_slowest_speed - extrudeTime);
-            for (GCodePath& path : paths)
-            {
-                if (path.isTravelPath())
+            factor = (total_extrude_time_at_slowest_speed - minExtrudeTime) / (total_extrude_time_at_slowest_speed - extrudeTime);
+            slow_down_func =
+                [&slowest_path_speed = slowest_path_speed, &factor](const GCodePath& path)
                 {
-                    continue;
-                }
-                const double target_speed = slowest_path_speed * (1.0-factor) + (path.config->getSpeed() * path.speed_factor) * factor;
-                path.speed_factor = target_speed / (path.config->getSpeed() * path.speed_factor);
-                path.estimates.extrude_time /= path.speed_factor;
-            }
+                    const double target_speed = slowest_path_speed * (1.0 - factor) + (path.config->getSpeed() * path.speed_factor) * factor;
+                    return target_speed / (path.config->getSpeed() * path.speed_factor);
+                };
+
             // Update stored naive time estimates
             estimates.extrude_time = minExtrudeTime;
+        }
+
+        for (GCodePath& path : paths)
+        {
+            if (path.isTravelPath())
+            {
+                continue;
+            }
+            path.speed_factor = slow_down_func(path);
+            path.estimates.extrude_time /= path.speed_factor;
         }
     }
 }
