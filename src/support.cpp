@@ -1013,7 +1013,25 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                 layer_above = &empty;
                 layer_this = layer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
             }
-            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance).difference(model_mesh_on_layer);
+            layer_this = AreaSupport::join(storage, *layer_above, layer_this, smoothing_distance);
+            const int layer_size = layer_this.size();
+
+            Polygons layer_this_without_expansion = layer_this.difference(model_mesh_on_layer.offset(extension_offset));
+            layer_this = layer_this.difference(model_mesh_on_layer);
+            if (layer_size < layer_this.size())
+            {
+                // the support areas in this layer are split into parts by the model itself
+                int i = 0;
+                for (PolygonsPart poly : layer_this.splitIntoParts())
+                {
+                    if (poly.intersection(layer_this_without_expansion).empty())
+                    {
+                        // this area is expanded to the other side of the model and not connected to the original area that needed support
+                        layer_this.remove(i);
+                    }
+                    i++;
+                }
+            }
         }
 
         // make towers for small support
