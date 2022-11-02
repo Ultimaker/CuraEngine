@@ -182,13 +182,6 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             {
                 return true;
             }
-            for (const SkinPart& skin_part : part.skin_parts)
-            {
-                if (! skin_part.inset_paths.empty())
-                {
-                    return true;
-                }
-            }
         }
     }
     if (settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr == extruder_nr && layer.openPolyLines.size() > 0)
@@ -291,15 +284,15 @@ SliceDataStorage::SliceDataStorage()
     }
     machine_size.include(machine_min);
     machine_size.include(machine_max);
-
-    std::fill(skirt_brim_max_locked_part_order, skirt_brim_max_locked_part_order + MAX_EXTRUDERS, 0);
 }
 
-Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const bool for_brim) const
+Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const bool include_support, const bool include_prime_tower, const bool external_polys_only, const int extruder_nr) const
 {
+    const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     if (layer_nr < 0 && layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
     { // when processing raft
-        if (include_support)
+        ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr");
+        if (include_support && (extruder_nr == -1 || extruder_nr == int(train.extruder_nr)))
         {
             if (external_polys_only)
             {
@@ -328,26 +321,20 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
         {
             for (const SliceMeshStorage& mesh : meshes)
             {
-                if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+                if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")
+                    || (extruder_nr != -1 && extruder_nr != int(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr)))
                 {
                     continue;
                 }
                 const SliceLayer& layer = mesh.layers[layer_nr];
-                if (for_brim)
-                {
-                    total.add(layer.getOutlines(external_polys_only).offset(mesh.settings.get<coord_t>("brim_gap")));
-                }
-                else
-                {
-                    layer.getOutlines(total, external_polys_only);
-                }
+                layer.getOutlines(total, external_polys_only);
                 if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
                     total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(MM2INT(0.1)));
                 }
             }
         }
-        if (include_support)
+        if (include_support && (extruder_nr == -1 || extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr)))
         {
             const SupportLayer& support_layer = support.supportLayers[std::max(LayerIndex(0), layer_nr)];
             if (support.generated)
@@ -360,11 +347,12 @@ Polygons SliceDataStorage::getLayerOutlines(const LayerIndex layer_nr, const boo
                 total.add(support_layer.support_roof);
             }
         }
-        if (include_prime_tower)
+        int prime_tower_outer_extruder_nr = primeTower.extruder_order[0];
+        if (include_prime_tower && (extruder_nr == -1 || extruder_nr == prime_tower_outer_extruder_nr))
         {
             if (primeTower.enabled)
             {
-                total.add(layer_nr == 0 ? primeTower.outer_poly_first_layer : primeTower.outer_poly);
+                total.add(primeTower.outer_poly);
             }
         }
         return total;
@@ -555,11 +543,13 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) con
     return train.settings.get<bool>("prime_blob_enable");
 }
 
-Polygon SliceDataStorage::getMachineBorder(bool adhesion_offset) const
+Polygons SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
 
-    Polygon border{};
+    Polygons border;
+    border.emplace_back();
+    PolygonRef outline = border.back();
     switch (mesh_group_settings.get<BuildPlateShape>("machine_shape"))
     {
     case BuildPlateShape::ELLIPTIC:
@@ -571,58 +561,101 @@ Polygon SliceDataStorage::getMachineBorder(bool adhesion_offset) const
         for (unsigned int i = 0; i < circle_resolution; i++)
         {
             const double angle = M_PI * 2 * i / circle_resolution;
-            border.emplace_back(machine_size.getMiddle().x + std::cos(angle) * width / 2, machine_size.getMiddle().y + std::sin(angle) * depth / 2);
+            outline.emplace_back(machine_size.getMiddle().x + std::cos(angle) * width / 2, machine_size.getMiddle().y + std::sin(angle) * depth / 2);
         }
         break;
     }
     case BuildPlateShape::RECTANGULAR:
     default:
-        border = machine_size.flatten().toPolygon();
+        outline = machine_size.flatten().toPolygon();
         break;
     }
-    if (! adhesion_offset)
-    {
-        return border;
-    }
 
-    coord_t adhesion_size = 0; // Make sure there is enough room for the platform adhesion around support.
-    const ExtruderTrain& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr");
-    const ExtruderTrain& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr");
-    const ExtruderTrain& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-    const ExtruderTrain& skirt_brim_train = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
-    coord_t extra_skirt_line_width = 0;
-    const std::vector<bool> is_extruder_used = getExtrudersUsed();
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
+    Polygons disallowed_areas = mesh_group_settings.get<Polygons>("machine_disallowed_areas");
+    disallowed_areas = disallowed_areas.unionPolygons(); // union overlapping disallowed areas
+    for (PolygonRef poly : disallowed_areas)
+        for (Point& p : poly)
+            p = Point(machine_size.max.x / 2 + p.X, machine_size.max.y / 2 - p.Y); // apparently the frontend stores the disallowed areas in a different coordinate system
+    
+    std::vector<bool> extruder_is_used = getExtrudersUsed();
+
+    constexpr coord_t prime_clearance = MM2INT(6.5);
+    for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {
-        if (extruder_nr == skirt_brim_train.extruder_nr || ! is_extruder_used[extruder_nr]) // Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+        if ((checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) || ! extruder_is_used[extruder_nr])
         {
             continue;
         }
-        const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
-        extra_skirt_line_width += other_extruder.settings.get<coord_t>("skirt_brim_line_width") * other_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
+        Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+        if (!(extruder_settings.get<bool>("prime_blob_enable") && mesh_group_settings.get<bool>("extruder_prime_pos_abs")))
+        {
+            continue;
+        }
+        Point prime_pos(extruder_settings.get<coord_t>("extruder_prime_pos_x"), extruder_settings.get<coord_t>("extruder_prime_pos_y"));
+        if (prime_pos == Point(0, 0))
+        {
+            continue; // Ignore extruder prime position if it is not set.
+        }
+        Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+        prime_pos -= translation;
+        Polygons prime_polygons;
+        prime_polygons.emplace_back(PolygonUtils::makeCircle(prime_pos, prime_clearance, M_PI / 32));
+        disallowed_areas = disallowed_areas.unionPolygons(prime_polygons);
     }
-    switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
+
+    Polygons disallowed_all_extruders;
+    bool first = true;
+    for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
     {
-    case EPlatformAdhesion::BRIM:
-        adhesion_size =
-            skirt_brim_train.settings.get<coord_t>("skirt_brim_line_width") * skirt_brim_train.settings.get<Ratio>("initial_layer_line_width_factor") * skirt_brim_train.settings.get<size_t>("brim_line_count") + extra_skirt_line_width;
-        break;
-    case EPlatformAdhesion::RAFT:
-        adhesion_size = std::max({ base_train.settings.get<coord_t>("raft_margin"), interface_train.settings.get<coord_t>("raft_margin"), surface_train.settings.get<coord_t>("raft_margin") });
-        break;
-    case EPlatformAdhesion::SKIRT:
-        adhesion_size = skirt_brim_train.settings.get<coord_t>("skirt_gap")
-                      + skirt_brim_train.settings.get<coord_t>("skirt_brim_line_width") * skirt_brim_train.settings.get<Ratio>("initial_layer_line_width_factor") * skirt_brim_train.settings.get<size_t>("skirt_line_count")
-                      + extra_skirt_line_width;
-        break;
-    case EPlatformAdhesion::NONE:
-        adhesion_size = 0;
-        break;
-    default: // Also use 0.
-        spdlog::info("Unknown platform adhesion type! Please implement the width of the platform adhesion here.");
-        break;
+        if ((checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) || !extruder_is_used[extruder_nr])
+        {
+            continue;
+        }
+        Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+        Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+        Polygons extruder_border = disallowed_areas;
+        extruder_border.translate(translation);
+        if (first)
+        {
+            disallowed_all_extruders = extruder_border;
+            first = false;
+        }
+        else
+        {
+            disallowed_all_extruders = disallowed_all_extruders.unionPolygons(extruder_border);
+        }
     }
-    return border.offset(-adhesion_size)[0];
+    disallowed_all_extruders.processEvenOdd(ClipperLib::pftNonZero); // prevent overlapping disallowed areas from XORing
+    
+    Polygons border_all_extruders = border; // each extruders border areas must be limited to the global border, which is the union of all extruders borders
+    if (mesh_group_settings.has("nozzle_offsetting_for_disallowed_areas") && mesh_group_settings.get<bool>("nozzle_offsetting_for_disallowed_areas"))
+    {
+        for (size_t extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
+        {
+            if ((checking_extruder_nr != -1 && int(extruder_nr) != checking_extruder_nr) || ! extruder_is_used[extruder_nr])
+            {
+                continue;
+            }
+            Settings& extruder_settings = Application::getInstance().current_slice->scene.extruders[extruder_nr].settings;
+            Point translation(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+            for (size_t other_extruder_nr = 0; other_extruder_nr < extruder_is_used.size(); other_extruder_nr++)
+            {
+                // NOTE: the other extruder doesn't have to be used. Since the global border is the union of all extruders borders also unused extruders must be taken into account.
+                if (other_extruder_nr == extruder_nr)
+                {
+                    continue;
+                }
+                Settings& other_extruder_settings = Application::getInstance().current_slice->scene.extruders[other_extruder_nr].settings;
+                Point other_translation(other_extruder_settings.get<coord_t>("machine_nozzle_offset_x"), other_extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
+                Polygons translated_border = border;
+                translated_border.translate(translation - other_translation);
+                border_all_extruders = border_all_extruders.intersection(translated_border);
+            }
+        }
+    }
+
+    border = border_all_extruders.difference(disallowed_all_extruders);
+    return border;
 }
 
 

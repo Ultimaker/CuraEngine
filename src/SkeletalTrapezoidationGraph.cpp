@@ -245,7 +245,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
             assert(quad_mid->twin);
             if (! quad_mid->twin)
             {
-                spdlog::warn("Encountered quad edge without a twin.");
+                RUN_ONCE(spdlog::warn("Encountered quad edge without a twin."));
                 continue; // Prevent accessing unallocated memory.
             }
             int count = 0;
