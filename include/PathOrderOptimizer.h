@@ -577,16 +577,8 @@ protected:
             Point next_ = next;
             Point here_ = here;
             Point previous_ = previous;
-            coord_t distance_to_query = 0.;
-            while(true)
+            for(coord_t distance_to_query = iterate_func(previous_, here_, next_); distance_to_query < angle_query_distance; distance_to_query += iterate_func(previous_, here_, next_))
             {
-                // update distance value
-                distance_to_query += iterate_func(previous_, here_, next_);
-                if (distance_to_query >= angle_query_distance)
-                {
-                    break;
-                }
-
                 // angles further away from the query point are weighted less
                 const float angle_weight = 1.0 - pow(distance_to_query / angle_query_distance, fall_off_strength);
                 corner_angle += (LinearAlg2D::getAngleLeft(previous_, here_, next_) - M_PI) * angle_weight;
