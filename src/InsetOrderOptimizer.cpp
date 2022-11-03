@@ -146,6 +146,10 @@ bool InsetOrderOptimizer::addToLayer()
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(std::vector<ExtrusionLine>& input, const bool outer_to_inner)
 {
+    if (input.empty())
+    {
+        return {};
+    }
     // Cache the bounding boxes of each extrusion line and map them against the pointers of those lines
     using extrusion_line_ptr = const ExtrusionLine*;
     using loco_t = Loco<extrusion_line_ptr>;
