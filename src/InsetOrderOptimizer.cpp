@@ -1,15 +1,17 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "InsetOrderOptimizer.h"
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
+#include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "utils/AABB.h"
 #include "utils/SparseLineGrid.h"
 #include "utils/actions/roots.h"
 #include "utils/format/IntPoint.h"
+#include "utils/views/bounding_box.h"
 #include "utils/views/convert.h"
+#include "utils/views/get.h"
 
 #include <iterator>
 #include <tuple>
@@ -26,8 +28,8 @@
 #include <range/v3/view/transform.hpp>
 
 
-#include <fmt/ranges.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <range/v3/all.hpp> // TODO: only include what I use
 #include <spdlog/spdlog.h>
 
@@ -147,68 +149,52 @@ bool InsetOrderOptimizer::addToLayer()
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(std::vector<ExtrusionLine>& input, const bool outer_to_inner)
 {
     // Cache the bounding boxes of each extrusion line and map them against the pointers of those lines
-    auto bounding_box_view = input | views::convert<Polygon>(&ExtrusionLine::toPolygon) | ranges::to_vector;
+    using extrusion_line_ptr = const ExtrusionLine*;
+    using loco_t = Loco<extrusion_line_ptr>;
+    auto poly_views = input | views::convert<Polygon>(&ExtrusionLine::toPolygon);
     auto pointer_view = input | ranges::views::addressof;
-    auto mapped_bounding_box_view = ranges::views::zip(pointer_view, bounding_box_view);
+    auto extrusion_lines = ranges::views::zip(pointer_view, poly_views)
+                         | ranges::views::transform([](const auto& line){return loco_t{
+                                                          .line = std::get<0>(line),
+                                                          .poly = std::get<1>(line),
+                                                          .area = AABB{ std::get<1>(line) }.area()}; })
+                         | ranges::to_vector;
+    ranges::sort(extrusion_lines, {}, &loco_t::area);
 
-    // Building the contains matrix, check for each ExtrusionLine if the bounding box is within another ExtrusionLines bounding box
-    std::unordered_map<ExtrusionLine*, std::vector<ExtrusionLine*>> contained_matrix;
-    for (const auto& [loco, box] : mapped_bounding_box_view)
+    std::unordered_multimap<extrusion_line_ptr, extrusion_line_ptr> dag;
+    std::unordered_set<const loco_t*> leaves { &ranges::front(extrusion_lines) };
+    for (const auto& loco : extrusion_lines | ranges::views::drop(1) | ranges::views::addressof)
     {
-        std::vector<ExtrusionLine*> contained_candidates;
-        for (const auto& [candidate, candidate_box] : mapped_bounding_box_view)
+        std::vector<const loco_t*> erase;
+        for (const auto& leave : leaves)
         {
-            if (candidate == loco)
+            if (leave->poly.inside(loco->poly))
             {
-                continue ;
-            }
-//            if (candidate_box.contains(box))
-//            {
-//                contained_candidates.emplace_back(candidate);
-//            }
-            // TODO: Don't use intersect to check if it inside
-            auto intersection_area = std::abs(candidate_box.intersection(box).area());
-            auto area = std::abs(box.area());
-            if (intersection_area == area)
-            {
-                contained_candidates.emplace_back(candidate);
+                dag.emplace(loco->line, leave->line);
+                erase.emplace_back(leave);
             }
         }
-        ranges::sort(contained_candidates);
-        contained_matrix.emplace(loco, contained_candidates);
-    }
-
-    // Building the directed graph, creating an intersection for each contained collection obtained from above; If the intersection has a
-    // single item in the set it is the topmost inner bounding box and an edge can be added between the loco candidate
-    std::unordered_multimap<ExtrusionLine*, ExtrusionLine*> directed_graph;
-    for (auto [loco, contained] :  contained_matrix)
-    {
-        for (const auto& candidate : contained)
+        for (const auto& leave : erase)
         {
-            const auto inside = contained_matrix.find(candidate);
-            std::vector<ExtrusionLine*> out;
-            ranges::set_difference(contained, inside->second, ranges::back_inserter(out));
-            if (out.size() == 1)
-            {
-                directed_graph.emplace(candidate, loco);
-            }
+            leaves.erase(leave);
         }
+        leaves.emplace(loco);
     }
 
-    auto roots = cura::actions::roots(directed_graph) | ranges::to<std::unordered_set>;
-    std::unordered_set<ExtrusionLine*> visited;
-
-    for (const auto& root : roots)
+    std::vector<extrusion_line_ptr> visited;
+    for (const auto& node : leaves | views::get(&loco_t::line))
     {
-        dfs(root, directed_graph, visited);
+        dfs(node, dag, visited);
     }
+
 
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
-    for (auto line_pair : visited | ranges::views::sliding(2))
+    for (const auto& line_pair :  visited | ranges::views::sliding(2))
     {
-        order.emplace(std::make_pair(*line_pair.begin(), *ranges::next(line_pair.begin())));
+        order.emplace(line_pair.at(0), line_pair.at(1));
     }
-    return order;
+
+    return  order;
 }
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
@@ -306,19 +292,18 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
     return view | ranges::views::join | ranges::views::remove_if(ranges::empty) | ranges::to_vector;
 }
 
-template<isGraph Graph>
-void InsetOrderOptimizer::dfs(ExtrusionLine* node, Graph dag, std::unordered_set<ExtrusionLine*>& visited)
+void InsetOrderOptimizer::dfs(auto node, isGraph auto dag, isSet auto visited)
 {
-    if (visited.contains(node))
+    if (ranges::contains(visited, node))
     {
         return;
     }
+    visited.push_back(node);
     const auto& [children_begin, children_end] = dag.equal_range(node);
     auto children = ranges::make_subrange(children_begin, children_end);
     for (const auto& [_, child] : children)
     {
         dfs(child, dag, visited);
     }
-    visited.insert(node);
 }
 } // namespace cura

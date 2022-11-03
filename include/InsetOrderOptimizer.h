@@ -13,6 +13,14 @@
 namespace cura
 {
 
+template<typename T>
+struct Loco
+{
+    T line;
+    Polygon poly;
+    coord_t area;
+};
+
 class FffGcodeWriter;
 class LayerPlan;
 
@@ -138,8 +146,7 @@ private:
      */
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
 
-    template<isGraph Graph>
-    static void dfs(ExtrusionLine* node, Graph dag, std::unordered_set<ExtrusionLine*>& visited);
+    static void dfs(auto node, isGraph auto dag, isSet auto visited);
 
     /*!
      * Endpoints of polylines that are closer together than this distance
