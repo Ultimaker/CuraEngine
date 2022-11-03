@@ -285,7 +285,7 @@ class TreeModelVolumes
      */
     LayerIndex getMaxCalculatedLayer(coord_t radius, const std::unordered_map<RadiusLayerPair, Polygons>& map) const;
 
-    Polygons calculateMachineBorderCollision(Polygon machine_border);
+    Polygons calculateMachineBorderCollision(const Polygons&& machine_border);
     /*!
      * \brief The maximum distance that the center point of a tree branch may move in consecutive layers if it has to avoid the model.
      */

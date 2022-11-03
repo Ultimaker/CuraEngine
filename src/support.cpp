@@ -485,24 +485,37 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
             break;
         }
         coord_t adhesion_size = 0; // Make sure there is enough room for the platform adhesion around support.
-        const ExtruderTrain& skirt_brim_extruder = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
         coord_t extra_skirt_line_width = 0;
         const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
         for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice->scene.extruders.size(); extruder_nr++)
         {
-            if (extruder_nr == skirt_brim_extruder.extruder_nr || ! is_extruder_used[extruder_nr]) // Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
+            if (! is_extruder_used[extruder_nr]) //Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
             {
                 continue;
             }
             const ExtruderTrain& other_extruder = Application::getInstance().current_slice->scene.extruders[extruder_nr];
             extra_skirt_line_width += other_extruder.settings.get<coord_t>("skirt_brim_line_width") * other_extruder.settings.get<Ratio>("initial_layer_line_width_factor");
         }
+        const std::vector<ExtruderTrain*> skirt_brim_extruders = mesh_group_settings.get<std::vector<ExtruderTrain*>>("skirt_brim_extruder_nr");
+        auto adhesion_width_str{ "brim_width" };
+        auto adhesion_line_count_str{ "brim_line_count" };
         switch (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type"))
         {
+        case EPlatformAdhesion::SKIRT:
+            adhesion_width_str = "skirt_gap";
+            adhesion_line_count_str = "skirt_line_count";
+            [[fallthrough]];
         case EPlatformAdhesion::BRIM:
-            adhesion_size = skirt_brim_extruder.settings.get<coord_t>("brim_width")
-                          + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width") * skirt_brim_extruder.settings.get<size_t>("brim_line_count") * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
-                          + extra_skirt_line_width;
+            for (ExtruderTrain* skirt_brim_extruder_p : skirt_brim_extruders)
+            {
+                ExtruderTrain& skirt_brim_extruder = *skirt_brim_extruder_p;
+                adhesion_size = std::max(adhesion_size, coord_t(
+                    skirt_brim_extruder.settings.get<coord_t>(adhesion_width_str)
+                    + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width")
+                    * (skirt_brim_extruder.settings.get<coord_t>(adhesion_line_count_str) - 1) // - 1 because the line is also included in extra_skirt_line_width
+                    * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor")
+                    + extra_skirt_line_width));
+                }
             break;
         case EPlatformAdhesion::RAFT:
         {
@@ -511,11 +524,6 @@ Polygons AreaSupport::join(const SliceDataStorage& storage, const Polygons& supp
                                        mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings.get<coord_t>("raft_margin") });
             break;
         }
-        case EPlatformAdhesion::SKIRT:
-            adhesion_size = skirt_brim_extruder.settings.get<coord_t>("skirt_gap")
-                          + skirt_brim_extruder.settings.get<coord_t>("skirt_brim_line_width") * skirt_brim_extruder.settings.get<Ratio>("initial_layer_line_width_factor") * skirt_brim_extruder.settings.get<size_t>("skirt_line_count")
-                          + extra_skirt_line_width;
-            break;
         case EPlatformAdhesion::NONE:
             adhesion_size = 0;
             break;
@@ -1023,12 +1031,11 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                     constexpr size_t tower_top_layer_count = 6; // number of layers after which to conclude that a tiny support area needs a tower
                     if (layer_idx < layer_count - tower_top_layer_count && layer_idx >= tower_top_layer_count + bottom_empty_layer_count)
                     {
+                        const Polygons& layer_below = xy_disallowed_per_layer[layer_idx - tower_top_layer_count - bottom_empty_layer_count];
                         const Polygons& layer_above = support_areas[layer_idx + tower_top_layer_count];
                         const Point middle = AABB(poly).getMiddle();
                         const bool has_support_above = layer_above.inside(middle);
-                        constexpr bool no_support = false;
-                        constexpr bool no_prime_tower = false;
-                        const bool has_model_below = storage.getLayerOutlines(layer_idx - tower_top_layer_count - bottom_empty_layer_count, no_support, no_prime_tower).inside(middle);
+                        const bool has_model_below = layer_below.inside(middle);
                         if (has_support_above && ! has_model_below)
                         {
                             Polygons tiny_tower_here;
@@ -1317,7 +1324,7 @@ void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMes
 }
 
 
-void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_this, std::vector<Polygons>& towerRoofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
+void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_this, std::vector<Polygons>& tower_roofs, std::vector<std::vector<Polygons>>& overhang_points, LayerIndex layer_idx, size_t layer_count)
 {
     LayerIndex layer_overhang_point = layer_idx + 1; // Start tower 1 layer below overhang point.
     if (layer_overhang_point >= static_cast<LayerIndex>(layer_count) - 1)
@@ -1325,7 +1332,7 @@ void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_
         return;
     }
     std::vector<Polygons>& overhang_points_here = overhang_points[layer_overhang_point]; // may be changed if an overhang point has a (smaller) overhang point directly below
-    // handle new tower roof tops
+    // handle new tower rooftops
     if (overhang_points_here.size() > 0)
     {
         { // make sure we have the lowest point (make polys empty if they have small parts below)
@@ -1346,7 +1353,7 @@ void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_
         {
             if (poly.size() > 0)
             {
-                towerRoofs.push_back(poly);
+                tower_roofs.push_back(poly);
             }
         }
     }
@@ -1357,21 +1364,22 @@ void AreaSupport::handleTowers(const Settings& settings, Polygons& supportLayer_
     const double tan_tower_roof_angle = tan(tower_roof_angle);
     const coord_t tower_roof_expansion_distance = layer_thickness / tan_tower_roof_angle;
     const coord_t tower_diameter = settings.get<coord_t>("support_tower_diameter");
-    for (size_t roof_idx = 0; roof_idx < towerRoofs.size(); roof_idx++)
+    for (Polygons& tower_roof: tower_roofs)
     {
-        Polygons& tower_roof = towerRoofs[roof_idx];
-        if (tower_roof.size() > 0)
+        if (tower_roof.size() == 0)
         {
-            supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
+            continue;
+        }
 
-            if (tower_roof[0].area() < tower_diameter * tower_diameter)
-            {
-                tower_roof = tower_roof.offset(tower_roof_expansion_distance);
-            }
-            else
-            {
-                tower_roof.clear();
-            }
+        supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
+
+        if (tower_roof[0].area() < tower_diameter * tower_diameter)
+        {
+            tower_roof = tower_roof.offset(tower_roof_expansion_distance);
+        }
+        else
+        {
+            tower_roof.clear();
         }
     }
 }
