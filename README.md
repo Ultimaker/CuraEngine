@@ -1,47 +1,84 @@
+
+<br>
+
+<div align = center>
+
+[![Badge Issues]][Issues]   
+[![Badge PullRequests]][PullRequests]   
+[![Badge Closed]][Closed]
+
+[![Badge Size]][#]   
+[![Badge License]][License]   
+[![Badge Contributors]][Contributors]
+
+[![Badge Test]][Test]   
+[![Badge Conan]][Conan]   
+
+<br>
+<br>
+
+<img
+    src = 'CuraEngine.ico'
+    width = 200
+/>
+
 # CuraEngine
 
-<p align="center">
-    <a href="https://github.com/Ultimaker/CuraEngine/actions/workflows/unit-test.yml" alt="Unit Tests">
-        <img src="https://github.com/Ultimaker/CuraEngine/actions/workflows/unit-test.yml/badge.svg" /></a>
-    <a href="https://github.com/Ultimaker/CuraEngine/actions/workflows/conan-package.yml" alt="Unit Tests">
-        <img src="https://github.com/Ultimaker/CuraEngine/actions/workflows/conan-package.yml/badge.svg" /></a>
-    <a href="https://github.com/Ultimaker/CuraEngine/issues" alt="Open Issues">
-        <img src="https://img.shields.io/github/issues/Ultimaker/CuraEngine" /></a>
-    <a href="https://github.com/Ultimaker/CuraEngine/issues?q=is%3Aissue+is%3Aclosed" alt="Closed Issues">
-        <img src="https://img.shields.io/github/issues-closed/ultimaker/CuraEngine?color=g" /></a>
-    <a href="https://github.com/Ultimaker/CuraEngine/pulls" alt="Pull Requests">
-        <img src="https://img.shields.io/github/issues-pr/Ultimaker/CuraEngine" /></a>
-    <a href="https://github.com/Ultimaker/CuraEngine/graphs/contributors" alt="Contributors">
-        <img src="https://img.shields.io/github/contributors/Ultimaker/CuraEngine" /></a>
-    <a href="https://github.com/Ultimaker/CuraEngine" alt="Repo Size">
-        <img src="https://img.shields.io/github/repo-size/Ultimaker/CuraEngine?style=flat" /></a>
-    <a href="https://github.com/Ultimaker/CuraEngine/blob/master/LICENSE" alt="License">
-        <img src="https://img.shields.io/github/license/Ultimaker/CuraEngine?style=flat" /></a>
-</p>
 
-CuraEngine is a C++ console application for 3D printing GCode generation. It has been made as a better and faster
-alternative to the old Skeinforge engine and is an integral part of [Cura](https://github.com/ultimaker/Cura). You can
-use CuraEngine separately or in other applications. Feel free to add it to your application. But please take
-note of the [License](LICENSE)
+*C++ console application for 3D printing GCode generation.*
 
-## License
+<br>
+<br>
 
-![License](https://img.shields.io/github/license/ultimaker/curaengine?style=flat)  
-CuraEngine is released under terms of the AGPLv3 License. Terms of the license can be found in the LICENSE file. Or at
-http://www.gnu.org/licenses/agpl.html
+[![Button Install]][Install]   
+[![Button Dependencies]][Dependencies]   
+[![Button Internals]][Internals]
 
-> But in general it boils down to:  
-> **You need to share the source of any CuraEngine modifications if you make an application with the CuraEngine. (Even if
-> you make a web-based slicer, you still need to share the source!)**
+<br>
+<br>
 
-## How to Install & Run
 
-Please check our [Wiki page](https://github.com/Ultimaker/CuraEngine/wiki/Building-CuraEngine-From-Source) for details on how to install CuraEngine.
+Designed as a better and faster alternative to the old <br>
+**Skeinforge Engine** and is an integral part of **[Cura]**.
 
-## Dependencies
+You can use CuraEngine separately, in other <br>
+applications and integrate it into your own app.
 
-Please check our [Wiki page](https://github.com/Ultimaker/CuraEngine/wiki/Dependencies) for details on CuraEngines dependencies.
+<br>
 
-## Internals
 
-Please check our [Wiki page](https://github.com/Ultimaker/CuraEngine/wiki/Internals) for details on CuraEngines internals.
+<!----------------------------------------------------------------------------->
+
+[Contributors]: https://github.com/Ultimaker/CuraEngine/graphs/contributors
+[Dependencies]: https://github.com/Ultimaker/CuraEngine/wiki/Dependencies
+[PullRequests]: https://github.com/Ultimaker/CuraEngine/pulls
+[Internals]: https://github.com/Ultimaker/CuraEngine/wiki/Internals
+[Install]: https://github.com/Ultimaker/CuraEngine/wiki/Building-CuraEngine-From-Source
+[Closed]: https://github.com/Ultimaker/CuraEngine/issues?q=is%3Aissue+is%3Aclosed
+[Issues]: https://github.com/Ultimaker/CuraEngine/issues
+[Conan]: https://github.com/Ultimaker/CuraEngine/actions/workflows/conan-package.yml
+[Test]: https://github.com/Ultimaker/CuraEngine/actions/workflows/unit-test.yml
+[Cura]: https://github.com/Ultimaker/Cura
+
+[License]: LICENSE
+[#]: #
+
+
+<!---------------------------------[ Badges ]---------------------------------->
+
+[Badge Contributors]: https://img.shields.io/github/contributors/ultimaker/CuraEngine?style=for-the-badge&logoColor=white&labelColor=db5e8a&color=ab4a6c&logo=GitHub
+[Badge PullRequests]: https://img.shields.io/github/issues-pr/ultimaker/CuraEngine?style=for-the-badge&logoColor=white&labelColor=bb9f3e&color=937d31&logo=GitExtensions
+[Badge License]: https://img.shields.io/badge/License-AGPL3-336887.svg?style=for-the-badge&labelColor=458cb5&logoColor=white&logo=GNU
+[Badge Closed]: https://img.shields.io/github/issues-closed/ultimaker/CuraEngine?style=for-the-badge&logoColor=white&labelColor=629944&color=446a30&logo=AddThis
+[Badge Issues]: https://img.shields.io/github/issues/ultimaker/CuraEngine?style=for-the-badge&logoColor=white&labelColor=c34360&color=933349&logo=AdBlock
+[Badge Conan]: https://img.shields.io/github/workflow/status/Ultimaker/CuraEngine/conan-package?style=for-the-badge&logoColor=white&labelColor=6185aa&color=4c6987&logo=Conan&label=Conan%20Package
+[Badge Test]: https://img.shields.io/github/workflow/status/Ultimaker/CuraEngine/unit-test?style=for-the-badge&logoColor=white&labelColor=4a999d&color=346c6e&logo=Codacy&label=Unit%20Test
+[Badge Size]: https://img.shields.io/github/repo-size/ultimaker/CuraEngine?style=for-the-badge&logoColor=white&labelColor=715a97&color=584674&logo=GoogleAnalytics
+
+
+<!---------------------------------[ Buttons ]--------------------------------->
+
+[Button Dependencies]: https://img.shields.io/badge/Dependencies-26aae2?style=for-the-badge&logoColor=white&logo=BookStack
+[Button Internals]: https://img.shields.io/badge/Internals-00979D?style=for-the-badge&logoColor=white&logo=CodeReview
+[Button Install]: https://img.shields.io/badge/Installation-e23345?style=for-the-badge&logoColor=white&logo=DocuSign
+
