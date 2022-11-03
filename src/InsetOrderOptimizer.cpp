@@ -190,7 +190,15 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     }
 
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
-    for (const auto& line_pair :  visited | ranges::views::sliding(2))
+    if (outer_to_inner)
+    {
+        for (const auto& line_pair :  visited | ranges::views::sliding(2))
+        {
+            order.emplace(line_pair.at(0), line_pair.at(1));
+        }
+        return order;
+    }
+    for (const auto& line_pair :  visited | ranges::views::reverse | ranges::views::sliding(2))
     {
         order.emplace(line_pair.at(0), line_pair.at(1));
     }
