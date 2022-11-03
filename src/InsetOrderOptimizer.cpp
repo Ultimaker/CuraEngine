@@ -292,7 +292,7 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
     return view | ranges::views::join | ranges::views::remove_if(ranges::empty) | ranges::to_vector;
 }
 
-void InsetOrderOptimizer::dfs(auto node, isGraph auto dag, isSet auto visited)
+void InsetOrderOptimizer::dfs(auto node, isGraph auto& dag, isSet auto& visited)
 {
     if (ranges::contains(visited, node))
     {

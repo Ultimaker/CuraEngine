@@ -146,7 +146,10 @@ private:
      */
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
 
-    static void dfs(auto node, isGraph auto dag, isSet auto visited);
+    /* # Depth First Search of a directed graph
+     * TODO: move to utils/actions and treat it like a view action
+     */
+    static void dfs(auto node, isGraph auto& dag, isSet auto& visited);
 
     /*!
      * Endpoints of polylines that are closer together than this distance
