@@ -15,6 +15,9 @@ namespace cura
  */
 template<class T>
 concept isGraph = std::is_same<T, std::unordered_map<typename T::key_type, typename T::mapped_type>>::value || std::is_same<T, std::unordered_multimap<typename T::key_type, typename T::mapped_type>>::value;
+
+template<class T>
+concept isSet = std::is_same<T, std::vector<typename T::value_type>>::value || std::is_same<T, std::unordered_multiset<typename T::value_type>>::value || std::is_same<T, std::unordered_set<typename T::value_type>>::value;
 } // namespace cura
 
 #endif // UTILS_CONCEPTS_GRAPH_H
