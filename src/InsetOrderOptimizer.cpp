@@ -6,10 +6,7 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "utils/AABB.h"
-#include "utils/SparseLineGrid.h"
 #include "utils/actions/roots.h"
-#include "utils/format/IntPoint.h"
-#include "utils/views/bounding_box.h"
 #include "utils/views/convert.h"
 #include "utils/views/get.h"
 
@@ -17,21 +14,22 @@
 #include <tuple>
 #include <unordered_map>
 
+#include <range/v3/algorithm/contains.hpp>
 #include <range/v3/algorithm/max.hpp>
+#include <range/v3/range/operations.hpp>
 #include <range/v3/to_container.hpp>
+#include <range/v3/view/addressof.hpp>
 #include <range/v3/view/any_view.hpp>
+#include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/remove_if.hpp>
 #include <range/v3/view/reverse.hpp>
+#include <range/v3/view/sliding.hpp>
 #include <range/v3/view/take_exactly.hpp>
 #include <range/v3/view/transform.hpp>
+#include <range/v3/view/zip.hpp>
 
-
-#include <fmt/format.h>
-#include <fmt/ranges.h>
-#include <range/v3/all.hpp> // TODO: only include what I use
-#include <spdlog/spdlog.h>
 
 namespace cura
 {
@@ -187,13 +185,11 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
         dfs(node, dag, visited);
     }
 
-
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
     for (const auto& line_pair :  visited | ranges::views::sliding(2))
     {
         order.emplace(line_pair.at(0), line_pair.at(1));
     }
-
     return  order;
 }
 
