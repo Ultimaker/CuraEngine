@@ -481,10 +481,25 @@ protected:
                 }
             }
 
-            if(score < best_score)
+            constexpr float EPSILON = 25.0;
+            if(fabs(best_score - score) <= EPSILON)
             {
-                best_score = score;
+                // add breaker for two candidate starting location with similar score
+                // if we don't do this then we (can) get an un-even seam
+                // ties are broken by favouring points with lower x-coord
+                // if x-coord for both points are equal then break ties by
+                // favouring points with lower y-coord
+                const Point& best_point = (*path.converted)[best_i];
+                if(fabs(here.Y - best_point.Y) <= EPSILON ? best_point.X < here.X : best_point.Y < here.Y)
+                {
+                    best_score = std::min(best_score, score);
+                    best_i = i;
+                }
+            }
+            else if(score < best_score)
+            {
                 best_i = i;
+                best_score = score;
             }
         }
 
