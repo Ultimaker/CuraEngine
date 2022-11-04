@@ -524,17 +524,17 @@ protected:
 
         Point here = (*path.converted)[i % path.converted->size()];
 
-        int previous_offset_index = i;
-        const std::function<Point(Point&)> find_previous_point = [previous_offset_index, path](Point& here) mutable
+        const int previous_offset_index = i;
+        const std::function<Point(Point&)> find_previous_point = [&previous_offset_index, &path](Point& here)
         {
-            previous_offset_index --;
-            Point previous = (*path.converted)[(previous_offset_index + path.converted->size()) % path.converted->size()];
-            // find previous point that is at least min_edge_length units away from here
-            while (vSize2(here - previous) < min_edge_length2)
+            int previous_offset_index_ = previous_offset_index;
+            Point previous;
+            do
             {
-                previous_offset_index --;
-                previous = (*path.converted)[(previous_offset_index + path.converted->size()) % path.converted->size()];
+                previous_offset_index_ = (previous_offset_index_ + path.converted->size() - 1) % path.converted->size();
+                previous = (*path.converted)[previous_offset_index_];
             }
+            while (vSize2(here - previous) < min_edge_length2 && previous_offset_index_ != previous_offset_index); // find previous point that is at least min_edge_length units away from here
             return previous;
         };
         const std::function<coord_t(Point&, Point&, Point&)> iterate_to_previous_point = [&find_previous_point](Point& previous_, Point& here_, Point& next_)
@@ -547,17 +547,17 @@ protected:
         };
         Point previous = find_previous_point(here);
 
-        int next_offset_index = i;
-        const std::function<Point(Point&)> find_next_point = [next_offset_index, path](Point& here) mutable
+        const int next_offset_index = i;
+        const std::function<Point(Point&)> find_next_point = [&next_offset_index, &path](Point& here)
         {
-            next_offset_index ++;
-            Point next = (*path.converted)[(next_offset_index) % path.converted->size()];
-            // find next point that is at least min_edge_length units away from here
-            while (vSize2(here - next) < min_edge_length2)
+            int next_offset_index_ = next_offset_index;
+            Point next;
+            do
             {
-                next_offset_index ++;
-                next = (*path.converted)[(next_offset_index) % path.converted->size()];
+                next_offset_index_ = (next_offset_index_ + 1) % path.converted->size();
+                next = (*path.converted)[next_offset_index_];
             }
+            while (vSize2(here - next) < min_edge_length2 && next_offset_index_ != next_offset_index); // find previous point that is at least min_edge_length units away from here
             return next;
         };
         const std::function<coord_t(Point&, Point&, Point&)> iterate_to_next_point = [&find_next_point](Point& previous_, Point& here_, Point& next_)
@@ -577,7 +577,7 @@ protected:
             Point next_ = next;
             Point here_ = here;
             Point previous_ = previous;
-            for(coord_t distance_to_query = iterate_func(previous_, here_, next_); distance_to_query < angle_query_distance; distance_to_query += iterate_func(previous_, here_, next_))
+            for(coord_t distance_to_query = iterate_func(previous_, here_, next_); distance_to_query < angle_query_distance && here_ != here; distance_to_query += iterate_func(previous_, here_, next_))
             {
                 // angles further away from the query point are weighted less
                 const float angle_weight = 1.0 - pow(distance_to_query / angle_query_distance, fall_off_strength);
