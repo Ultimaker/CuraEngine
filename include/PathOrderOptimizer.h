@@ -491,8 +491,7 @@ protected:
                 }
             }
 
-            constexpr float EPSILON = 25.0;
-            if(score + EPSILON < best_score)
+            if(score < best_score)
             {
                 best_score = score;
                 best_i = i;
