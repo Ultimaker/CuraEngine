@@ -72,6 +72,7 @@ protected:
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
+    double slowest_path_speed;
 
 public:
     size_t extruder_nr; //!< The extruder used for this paths in the current plan.
@@ -129,22 +130,6 @@ public:
     void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position);
 
     /*!
-     * Set the extrude speed factor. This is used for printing slower than normal.
-     * 
-     * Leaves the extrusion speed as is for values of 1.0
-     * 
-     * \param speedFactor The factor by which to alter the extrusion move speed
-     */
-    void setExtrudeSpeedFactor(const Ratio speed_factor);
-
-    /*!
-     * Get the extrude speed factor. This is used for printing slower than normal.
-     * 
-     * \return The factor by which to alter the extrusion move speed
-     */
-    double getExtrudeSpeedFactor();
-
-    /*!
      * Get the fan speed computed for this extruder plan
      * 
      * \warning assumes ExtruderPlan::processFanSpeedAndMinimalLayerTime has already been called
@@ -175,10 +160,7 @@ protected:
 
     const RetractionConfig& retraction_config; //!< The retraction settings for the extruder of this plan
 
-    Ratio extrudeSpeedFactor; //!< The factor by which to alter the extrusion move speed
-
     double extraTime; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
-    double totalPrintTime; //!< The total naive time estimate for this extruder plan
 
     double fan_speed; //!< The fan speed to be used during this extruder plan
 
