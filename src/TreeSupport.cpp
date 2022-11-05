@@ -130,7 +130,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         std::vector<Polygons> exclude(storage.support.supportLayers.size());
         auto t_start = std::chrono::high_resolution_clock::now();
         // get all already existing support areas and exclude them
-        cura::parallel_for<coord_t>(LayerIndex(0), LayerIndex(storage.support.supportLayers.size()),
+        cura::parallel_for<coord_t>(LayerIndex(0), LayerIndex(storage.support.supportLayers.size()), //todo LayerIndex
             [&](const LayerIndex layer_idx)
             {
             Polygons exlude_at_layer;
@@ -700,7 +700,7 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
     std::vector<std::unordered_set<Point>> already_inserted(mesh.overhang_areas.size() - z_distance_delta);
 
     std::mutex critical_sections;
-    cura::parallel_for<coord_t>(1, mesh.overhang_areas.size() - z_distance_delta,
+    cura::parallel_for<coord_t>(1, mesh.overhang_areas.size() - z_distance_delta, //todo LayerIndex
         [&](const LayerIndex layer_idx)
         {
         if (mesh.overhang_areas[layer_idx + z_distance_delta].empty())
@@ -2383,7 +2383,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
 
     // Iterate over the generated circles in parallel and clean them up. Also add support floor.
     std::mutex critical_sections;
-    cura::parallel_for<coord_t>(0, support_layer_storage.size(),
+    cura::parallel_for<coord_t>(0, support_layer_storage.size(), //todo LayerIndex
         [&](const LayerIndex layer_idx)
         {
         support_layer_storage[layer_idx] = config.simplifier.polygon(support_layer_storage[layer_idx].unionPolygons().smooth(50)); // Most of the time in this function is this union call. Can take 300+ ms when a lot of areas are to be unioned. Also simplify a bit, to ensure the output does not contain outrageous amounts of vertices. Should not be necessary, just a precaution.

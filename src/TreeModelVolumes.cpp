@@ -102,7 +102,7 @@ TreeModelVolumes::TreeModelVolumes(const SliceDataStorage& storage, const coord_
 
         if (storage.primeTower.enabled)
         {
-            anti_overhang_[layer_idx].add(layer_idx == 0 ? storage.primeTower.outer_poly_first_layer : storage.primeTower.outer_poly);
+            anti_overhang_[layer_idx].add(storage.primeTower.outer_poly);
         }
         anti_overhang_[layer_idx] = anti_overhang_[layer_idx].unionPolygons();
     });
