@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "WallsComputation.h" //Unit under test.
 #include "InsetOrderOptimizer.h" //Unit also under test.
@@ -214,7 +214,6 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     std::unordered_set<const ExtrusionLine*> has_order_info(part.wall_toolpaths.size());
     for (auto [from, to] : order)
     {
-        EXPECT_FALSE(from->is_odd) << "Odd gap filler lines are never required to go before anything.";
         has_order_info.emplace(from);
         has_order_info.emplace(to);
     }
