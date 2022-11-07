@@ -75,7 +75,6 @@ jobs:
             -   name: Install Python requirements and Create default Conan profile
                 run: |
                     pip install -r requirements-conan-package.txt
-                    conan profile new default --detect
                 working-directory: .github/workflows/
 
             -   name: Use Conan download cache (Bash)
@@ -105,7 +104,9 @@ jobs:
                     sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 10
 
             -   name: Get Conan configuration
-                run: conan config install https://github.com/Ultimaker/conan-config.git
+                run: |
+                    conan profile new default --detect
+                    conan config install https://github.com/Ultimaker/conan-config.git
 
             -   name: Install dependencies
                 run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_testing=True -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv
