@@ -6,6 +6,7 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "utils/AABB.h"
+#include "utils/actions/dfs_sort.h"
 #include "utils/views/convert.h"
 #include "utils/views/get.h"
 
@@ -191,7 +192,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     std::vector<extrusion_line_ptr> visited;
     for (const auto& node : roots | views::get(&loco_t::line))
     {
-        dfs(node, dag, visited);
+        actions::dfs_sort(node, dag, visited);
     }
 
     // Map the ordered visited lines in the order requirements, the ordered visited vector is currently order from outside to inside
@@ -305,20 +306,5 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
         }
     }
     return view | ranges::views::join | ranges::views::remove_if(ranges::empty) | ranges::to_vector;
-}
-
-void InsetOrderOptimizer::dfs(auto node, isGraph auto& dag, isSet auto& visited)
-{
-    if (ranges::contains(visited, node))
-    {
-        return;
-    }
-    visited.push_back(node);
-    const auto& [children_begin, children_end] = dag.equal_range(node);
-    auto children = ranges::make_subrange(children_begin, children_end);
-    for (const auto& [_, child] : children)
-    {
-        dfs(child, dag, visited);
-    }
 }
 } // namespace cura
