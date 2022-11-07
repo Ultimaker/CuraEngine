@@ -161,34 +161,41 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
                                                           .poly = std::get<1>(line),
                                                           .area = AABB{ std::get<1>(line) }.area()}; })
                          | ranges::to_vector;
+
+    // Sort the extrusion lines on the area of the bounding box from small to big
     ranges::sort(extrusion_lines, {}, &loco_t::area);
 
+    // Check if an extrusion line is a root, if it isn't inside a known root then add it to the roots. If it is inside
+    // then replace that root with the current extrusion line and map that relationship in the directional graph.
     std::unordered_multimap<extrusion_line_ptr, extrusion_line_ptr> dag;
-    std::unordered_set<const loco_t*> leaves { &ranges::front(extrusion_lines) };
+    std::unordered_set<const loco_t*> roots { &ranges::front(extrusion_lines) };
     for (const auto& loco : extrusion_lines | ranges::views::drop(1) | ranges::views::addressof)
     {
         std::vector<const loco_t*> erase;
-        for (const auto& leave : leaves)
+        for (const auto& root : roots)
         {
-            if (leave->poly.inside(loco->poly))
+            if (root->poly.inside(loco->poly))
             {
-                dag.emplace(loco->line, leave->line);
-                erase.emplace_back(leave);
+                dag.emplace(loco->line, root->line);
+                erase.emplace_back(root);
             }
         }
-        for (const auto& leave : erase)
+        for (const auto& node : erase)
         {
-            leaves.erase(leave);
+            roots.erase(node);
         }
-        leaves.emplace(loco);
+        roots.emplace(loco);
     }
 
+    // Do a dept-first-search over the nodes, ordering them in the visited vector
     std::vector<extrusion_line_ptr> visited;
-    for (const auto& node : leaves | views::get(&loco_t::line))
+    for (const auto& node : roots | views::get(&loco_t::line))
     {
         dfs(node, dag, visited);
     }
 
+    // Map the ordered visited lines in the order requirements, the ordered visited vector is currently order from outside to inside
+    // Note: this can probably be optimized since at this stage we already know the correct order as provided by the visited vector, but that would require a bigger rewrite.
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
     if (outer_to_inner)
     {
