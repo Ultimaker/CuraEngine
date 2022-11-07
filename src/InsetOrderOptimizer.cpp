@@ -152,7 +152,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     }
     // Cache the bounding boxes of each extrusion line and map them against the pointers of those lines
     using extrusion_line_ptr = const ExtrusionLine*;
-    using loco_t = Loco<extrusion_line_ptr>;
+    using loco_t = details::Loco<extrusion_line_ptr>;
     auto poly_views = input | views::convert<Polygon>(&ExtrusionLine::toPolygon);
     auto pointer_view = input | ranges::views::addressof;
     auto extrusion_lines = ranges::views::zip(pointer_view, poly_views)

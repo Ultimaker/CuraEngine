@@ -6,20 +6,27 @@
 
 #include <unordered_set>
 
-#include "sliceDataStorage.h" //For SliceMeshStorage, which is used here at implementation in the header.
 #include "settings/ZSeamConfig.h"
+#include "sliceDataStorage.h"
 #include "utils/concepts/graph.h"
 
 namespace cura
 {
 
+namespace details
+{
+
+/* Helper struct to sort lines
+ * \tparam T Type which needs to be sorted
+ */
 template<typename T>
 struct Loco
 {
-    T line;
-    Polygon poly;
-    coord_t area;
+    T line; //!< lines to be sorted of Type T
+    Polygon poly; //!< extracted polygon of the lines
+    coord_t area; //!< area used to sort the lines
 };
+} // namespace details
 
 class FffGcodeWriter;
 class LayerPlan;
