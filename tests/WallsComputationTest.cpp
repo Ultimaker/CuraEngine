@@ -1,8 +1,8 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "WallsComputation.h" //Unit under test.
 #include "InsetOrderOptimizer.h" //Unit also under test.
+#include "WallsComputation.h" //Unit under test.
 #include "settings/Settings.h" //Settings to generate walls with.
 #include "sliceDataStorage.h" //Sl
 #include "utils/polygon.h" //To create example polygons.
