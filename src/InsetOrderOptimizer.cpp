@@ -6,7 +6,6 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "utils/AABB.h"
-#include "utils/actions/roots.h"
 #include "utils/views/convert.h"
 #include "utils/views/get.h"
 
@@ -16,6 +15,7 @@
 
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/algorithm/max.hpp>
+#include <range/v3/algorithm/sort.hpp>
 #include <range/v3/range/operations.hpp>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/addressof.hpp>
