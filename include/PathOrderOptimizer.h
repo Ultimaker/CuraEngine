@@ -522,9 +522,9 @@ protected:
         constexpr coord_t min_edge_length = 10;
         constexpr coord_t min_edge_length2 = min_edge_length * min_edge_length;
 
-        Point here = (*path.converted)[i % path.converted->size()];
+        const int offset_index = i % path.converted->size();
+        Point here = (*path.converted)[offset_index];
 
-        const int offset_index = i;
         const std::function<Point(const int, const Point&)> find_neighbour_point = [&offset_index, &path](const int direction, const Point& here)
         {
             int offset_index_ = offset_index;
