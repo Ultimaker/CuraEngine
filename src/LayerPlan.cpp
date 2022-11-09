@@ -1526,8 +1526,9 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             {
                 continue;
             }
-            path.speed_factor = slow_down_func(path);
-            path.estimates.extrude_time /= path.speed_factor;
+            Ratio slow_down_factor = slow_down_func(path);
+            path.speed_factor *= slow_down_factor;
+            path.estimates.extrude_time /= slow_down_factor;
         }
     }
 }
