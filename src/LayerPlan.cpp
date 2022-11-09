@@ -1479,7 +1479,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         double target_speed = 0.0;
         std::function<double(const GCodePath&)> slow_down_func
         {
-            [&target_speed](const GCodePath& path) { return target_speed / (path.config->getSpeed() * path.speed_factor); }
+            [&target_speed](const GCodePath& path) {return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0); }
         };
 
         if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
