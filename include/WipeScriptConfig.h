@@ -31,7 +31,8 @@ struct WipeScriptConfig
     bool clean_between_layers; // whether to include nozzle wipe g-code between layers
 };
 
-struct RetractionAndWipeConfig {
+struct RetractionAndWipeConfig
+{
     WipeScriptConfig wipe_config;
 
     RetractionConfig retraction_config;

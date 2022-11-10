@@ -352,7 +352,8 @@ void FffGcodeWriter::setConfigRetractionAndWipe(SliceDataStorage& storage)
         ExtruderTrain& train = scene.extruders[extruder_index];
         retractionAndWipeConfigFromSettings(train.settings, &storage.retraction_wipe_config_per_extruder[extruder_index]);
     }
-    for(SliceMeshStorage& mesh: storage.meshes) {
+    for(SliceMeshStorage& mesh: storage.meshes)
+    {
         retractionAndWipeConfigFromSettings(mesh.settings, &mesh.retraction_wipe_config);
     }
 }
