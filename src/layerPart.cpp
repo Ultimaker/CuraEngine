@@ -59,6 +59,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
     }
     const coord_t hole_offset = settings.get<coord_t>("hole_xy_offset");
+    const coord_t hole_offset_max_diameter = settings.get<coord_t>("hole_xy_offset_max_diameter");
     for(auto & part : result)
     {
         storageLayer.parts.emplace_back();
@@ -75,7 +76,23 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
                 }
                 else
                 {
-                    holes.add(poly.offset(hole_offset));
+                    if (hole_offset_max_diameter > 0)
+                    {
+                        // only apply offset to small holes
+                        const coord_t hole_size = poly.polygonLength();
+                        if (hole_size < hole_offset_max_diameter * 3.1415)
+                        {
+                            holes.add(poly.offset(hole_offset * (1 - hole_size / (hole_offset_max_diameter * 3.1415))));
+                        }
+                        else
+                        {
+                            holes.add(poly);
+                        }
+                    }
+                    else
+                    {
+                        holes.add(poly.offset(hole_offset));
+                    }
                 }
             }
             storageLayer.parts.back().outline.add(outline.difference(holes.unionPolygons()));
