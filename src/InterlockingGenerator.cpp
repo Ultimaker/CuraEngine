@@ -35,7 +35,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
 
             if (extruder_nr_a == extruder_nr_b || !mesh_a.mesh->getAABB().expand(ignored_gap).hit(mesh_b.mesh->getAABB()))
             {
-                // early out for when meshes dont share any overlap in their bounding box
+                // early out for when meshes don't share any overlap in their bounding box
                 continue;
             }
 
@@ -43,7 +43,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
             beam_widths[0] = mesh_a.mesh->settings.get<coord_t>("interlocking_beam_width");
             beam_widths[1] = mesh_b.mesh->settings.get<coord_t>("interlocking_beam_width");
 
-            // TODO: why are these two kernels different kernal types?!
+            // TODO: why are these two kernels different kernel types?!
             const DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::PRISM);
 
             const bool air_filtering = boundary_avoidance > 0;
