@@ -186,7 +186,7 @@ private:
      *
      * If a node is already at that position in the layer, the nodes are merged.
      */
-    void insertDroppedNode(std::vector<Node*>& nodes_layer, Node* node);
+    Node* insertDroppedNode(std::vector<Node*>& nodes_layer, Node* node);
 };
 
 }

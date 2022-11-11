@@ -78,6 +78,8 @@ jobs:
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
+            project_name: curaengine
+            build_id: 3
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: 'macos-11'
             python_version: '3.10.x'
@@ -90,6 +92,8 @@ jobs:
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
+            project_name: curaengine
+            build_id: 4
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: 'windows-2022'
             python_version: '3.10.x'
@@ -103,6 +107,8 @@ jobs:
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
+            project_name: curaengine
+            build_id: 2
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: 'ubuntu-20.04'
             python_version: '3.10.x'
@@ -115,6 +121,8 @@ jobs:
 
         uses: ultimaker/cura/.github/workflows/conan-package-create.yml@main
         with:
+            project_name: curaengine
+            build_id: 1
             recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
             runs_on: 'ubuntu-22.04'
             python_version: '3.10.x'

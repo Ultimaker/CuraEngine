@@ -259,7 +259,7 @@ private:
      * \param settings The settings to use for towers.
      * \param supportLayer_this The support areas in the layer for which we are
      * creating towers/struts
-     * \param towerRoofs The parts of roofs which need to expand downward until
+     * \param tower_roofs The parts of roofs which need to expand downward until
      * they have the required diameter
      * \param overhang_points stores overhang_points of each layer
      * \param layer_idx The index of the layer at which to handle towers
@@ -268,7 +268,7 @@ private:
     static void handleTowers(
         const Settings& settings,
         Polygons& supportLayer_this,
-        std::vector<Polygons>& towerRoofs,
+        std::vector<Polygons>& tower_roofs,
         std::vector<std::vector<Polygons>>& overhang_points,
         LayerIndex layer_idx,
         size_t layer_count

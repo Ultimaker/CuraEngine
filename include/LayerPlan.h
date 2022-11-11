@@ -72,6 +72,7 @@ protected:
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
+    double slowest_path_speed;
 
 public:
     size_t extruder_nr; //!< The extruder used for this paths in the current plan.
@@ -129,22 +130,6 @@ public:
     void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position);
 
     /*!
-     * Set the extrude speed factor. This is used for printing slower than normal.
-     * 
-     * Leaves the extrusion speed as is for values of 1.0
-     * 
-     * \param speedFactor The factor by which to alter the extrusion move speed
-     */
-    void setExtrudeSpeedFactor(const Ratio speed_factor);
-
-    /*!
-     * Get the extrude speed factor. This is used for printing slower than normal.
-     * 
-     * \return The factor by which to alter the extrusion move speed
-     */
-    double getExtrudeSpeedFactor();
-
-    /*!
      * Get the fan speed computed for this extruder plan
      * 
      * \warning assumes ExtruderPlan::processFanSpeedAndMinimalLayerTime has already been called
@@ -175,10 +160,7 @@ protected:
 
     const RetractionConfig& retraction_config; //!< The retraction settings for the extruder of this plan
 
-    Ratio extrudeSpeedFactor; //!< The factor by which to alter the extrusion move speed
-
     double extraTime; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
-    double totalPrintTime; //!< The total naive time estimate for this extruder plan
 
     double fan_speed; //!< The fan speed to be used during this extruder plan
 
@@ -240,7 +222,7 @@ private:
     std::vector<bool> has_prime_tower_planned_per_extruder; //!< For each extruder, whether the prime tower is planned yet or not.
     std::optional<Point> last_planned_position; //!< The last planned XY position of the print head (if known)
 
-    std::string current_mesh; //<! A unique ID for the mesh of the last planned move.
+    const SliceMeshStorage* current_mesh; //!< The mesh of the last planned move.
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
@@ -393,7 +375,7 @@ public:
      * Track the currently printing mesh.
      * \param mesh_id A unique ID indicating the current mesh.
      */
-    void setMesh(const std::string mesh_id);
+    void setMesh(const SliceMeshStorage* mesh_id);
 
     /*!
      * Set bridge_wall_mask.
@@ -618,8 +600,10 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
      * \param fan_speed optional fan speed override for this path
+     * \param reverse_print_direction Whether to reverse the optimized order and their printing direction.
+     * \param order_requirements Pairs where first needs to be printed before second. Pointers are pointing to elements of \p polygons
      */
-    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const bool enable_travel_optimization = false, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0, const std::optional<Point> near_start_location = std::optional<Point>(), const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT, const bool reverse_print_direction = false);
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig& config, const SpaceFillType space_fill_type, const bool enable_travel_optimization = false, const coord_t wipe_dist = 0, const Ratio flow_ratio = 1.0, const std::optional<Point> near_start_location = std::optional<Point>(), const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT, const bool reverse_print_direction = false, const std::unordered_set<std::pair<ConstPolygonPointer, ConstPolygonPointer>>& order_requirements = PathOrderOptimizer<ConstPolygonPointer>::no_order_requirements);
 
     /*!
      * Add polygons to the g-code with monotonic order.
