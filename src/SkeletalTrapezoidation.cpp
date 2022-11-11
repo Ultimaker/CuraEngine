@@ -1322,7 +1322,7 @@ bool SkeletalTrapezoidation::isEndOfCentral(const edge_t& edge_to) const
 
 void SkeletalTrapezoidation::generateExtraRibs()
 {
-    for (auto edge : graph.edges | ranges::views::drop_last(1))
+    for (auto edge : graph.edges)
     {
         if (! edge.data.isCentral() || shorterThen(edge.to->p - edge.from->p, discretization_step_size) || edge.from->data.distance_to_boundary >= edge.to->data.distance_to_boundary)
         {
