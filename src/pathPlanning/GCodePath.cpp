@@ -6,24 +6,24 @@
 
 namespace cura
 {
-GCodePath::GCodePath(const GCodePathConfig& config, std::string mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor) :
-config(&config),
-mesh_id(mesh_id),
-space_fill_type(space_fill_type),
-flow(flow),
-width_factor(width_factor),
-speed_factor(speed_factor),
-speed_back_pressure_factor(1.0),
-retract(false),
-unretract_before_last_travel_move(false),
-perform_z_hop(false),
-perform_prime(false),
-skip_agressive_merge_hint(false),
-points(std::vector<Point>()),
-done(false),
-spiralize(spiralize),
-fan_speed(GCodePathConfig::FAN_SPEED_DEFAULT),
-estimates(TimeMaterialEstimates())
+GCodePath::GCodePath(const GCodePathConfig& config, const SliceMeshStorage* mesh, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor) :
+    config(&config),
+    mesh(mesh),
+    space_fill_type(space_fill_type),
+    flow(flow),
+    width_factor(width_factor),
+    speed_factor(speed_factor),
+    speed_back_pressure_factor(1.0),
+    retract(false),
+    unretract_before_last_travel_move(false),
+    perform_z_hop(false),
+    perform_prime(false),
+    skip_agressive_merge_hint(false),
+    points(std::vector<Point>()),
+    done(false),
+    spiralize(spiralize),
+    fan_speed(GCodePathConfig::FAN_SPEED_DEFAULT),
+    estimates(TimeMaterialEstimates())
 {
 }
 

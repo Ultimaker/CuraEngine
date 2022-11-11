@@ -79,7 +79,19 @@ Comb::Comb(const SliceDataStorage& storage, const LayerIndex layer_nr, const Pol
 {
 }
 
-bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, CombPaths& comb_paths, bool _start_inside, bool _end_inside, coord_t max_comb_distance_ignored, bool &unretract_before_last_travel_move)
+bool Comb::calc
+(
+    bool perform_z_hops,
+    bool perform_z_hops_only_when_collides,
+    const ExtruderTrain& train, // NOTE: USe for travel settings and 'extruder-nr' only, don't use for z-hop/retraction/wipe settings, as that should also be settable per mesh!
+    Point start_point,
+    Point end_point,
+    CombPaths& comb_paths,
+    bool _start_inside,
+    bool _end_inside,
+    coord_t max_comb_distance_ignored,
+    bool &unretract_before_last_travel_move
+)
 {
     if(shorterThen(end_point - start_point, max_comb_distance_ignored))
     {
@@ -98,8 +110,6 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
     unsigned int start_part_idx =   (start_inside_poly == NO_INDEX)?    NO_INDEX : partsView_inside_optimal.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
     unsigned int end_part_idx =     (end_inside_poly == NO_INDEX)?      NO_INDEX : partsView_inside_optimal.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
 
-    const bool perform_z_hops = train.settings.get<bool>("retraction_hop_enabled");
-    const bool perform_z_hops_only_when_collides = train.settings.get<bool>("retraction_hop_only_when_collides");
     const bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
 
     // normal combing within part using optimal comb boundary
@@ -170,7 +180,8 @@ bool Comb::calc(const ExtruderTrain& train, Point start_point, Point end_point, 
     { // parts are next to each other, i.e. the direct crossing will always be smaller than two crossings via outside
         skip_avoid_other_parts_path = true;
     }
-    bool travel_avoid_other_parts = train.settings.get<bool>("travel_avoid_other_parts");
+
+    const bool travel_avoid_other_parts = train.settings.get<bool>("travel_avoid_other_parts");
 
     if (travel_avoid_other_parts && !skip_avoid_other_parts_path)
     { // compute the crossing points when moving through air
