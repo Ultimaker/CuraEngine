@@ -8,7 +8,9 @@ Checks: >
   -fuchsia-default-arguments-calls,
   -google-readability-todo,
   -altera-struct-pack-align,
-  -android-*
+  -android-*,
+  -misc-non-private-member-variables-in-classes,
+  -fuchsia-overloaded-operator
 WarningsAsErrors: '-*'
 HeaderFilterRegex: ''
 FormatStyle: none

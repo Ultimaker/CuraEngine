@@ -133,7 +133,7 @@ protected:
      * 
      * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing areas
      */
-    void generateRoofing(SliceLayerPart& part);
+    void generateRoofingFillAndSkinFill(SliceLayerPart& part);
 
     /*!
      * Remove the areas which are directly under air in the top-most surface and directly above air in bottom-most
@@ -143,7 +143,7 @@ protected:
      * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the top and bottom-most
      * infill areas
      */
-    void generateTopAndBottomMostSkinSurfaces(SliceLayerPart& part);
+    void generateTopAndBottomMostSkinFill(SliceLayerPart& part);
 
     /*!
      * Helper function to calculate and return the areas which are 'directly' under air.
@@ -151,7 +151,7 @@ protected:
      * \param part Where to get the SkinParts to get the outline info from
      * \param roofing_layer_count The number of layers above the layer which we are looking into
      */
-    Polygons generateNoAirAbove(SliceLayerPart& part, size_t roofing_layer_count);
+    Polygons generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count);
 
     /*!
      * Helper function to calculate and return the areas which are 'directly' above air.
@@ -159,17 +159,7 @@ protected:
      * \param part Where to get the SkinParts to get the outline info from
      * \param flooring_layer_count The number of layers below the layer which we are looking into
      */
-    Polygons generateNoAirBelow(SliceLayerPart& part, size_t flooring_layer_count);
-
-    /*!
-     * Helper function to recalculate the roofing fill and inner infill in roofing layers where the 
-     * insets have to be changed.
-     *
-     * \param part Where to get the SkinParts to get the outline info from
-     * \param skin_part The part where the skin outline information (input) is stored and
-     * where the inner infill and roofing infill areas (output) is stored.
-     */
-    void regenerateRoofingFillAndInnerInfill(SliceLayerPart& part, SkinPart& skin_part);
+    Polygons generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
 
 protected:
     LayerIndex layer_nr; //!< The index of the layer for which to generate the skins and infill.

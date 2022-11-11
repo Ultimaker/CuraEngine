@@ -414,6 +414,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     computePrintHeightStatistics(storage);
 
     // handle helpers
+    storage.primeTower.checkUsed(storage);
     storage.primeTower.generateGroundpoly();
     storage.primeTower.generatePaths(storage);
     storage.primeTower.subtractFromSupport(storage);
@@ -867,8 +868,12 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         case EPlatformAdhesion::SKIRT:
         case EPlatformAdhesion::BRIM:
         {
-            const size_t skirt_brim_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr").extruder_nr;
-            max_print_height_per_extruder[skirt_brim_extruder_nr] = std::max(0, max_print_height_per_extruder[skirt_brim_extruder_nr]); // Includes layer 0.
+                const std::vector<ExtruderTrain*> skirt_brim_extruder_trains = mesh_group_settings.get<std::vector<ExtruderTrain*>>("skirt_brim_extruder_nr");
+                for (ExtruderTrain* train : skirt_brim_extruder_trains)
+                {
+                    const size_t skirt_brim_extruder_nr = train->extruder_nr;
+                    max_print_height_per_extruder[skirt_brim_extruder_nr] = std::max(0, max_print_height_per_extruder[skirt_brim_extruder_nr]); // Includes layer 0.
+                }
             break;
         }
         case EPlatformAdhesion::RAFT:
@@ -935,6 +940,23 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     {
         storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);
     }
+    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    {
+        coord_t max_line_width = 0;
+        { // compute max_line_width
+            const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+            const auto& extruders = Application::getInstance().current_slice->scene.extruders;
+            for (int extruder_nr = 0; extruder_nr < int(extruders.size()); extruder_nr++)
+            {
+                if ( ! extruder_is_used[extruder_nr]) continue;
+                max_line_width = std::max(max_line_width, extruders[extruder_nr].settings.get<coord_t>("skirt_brim_line_width"));
+            }
+        }
+        for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
+        {
+            storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].difference(storage.primeTower.outer_poly.offset(max_line_width / 2));
+        }
+    }
 }
 
 void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
@@ -969,58 +991,49 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         maximum_deviation = std::min(maximum_deviation, extruder.settings.get<coord_t>("meshfix_maximum_deviation"));
     }
     storage.draft_protection_shield = Simplify(maximum_resolution, maximum_deviation, 0).polygon(storage.draft_protection_shield);
+    if (mesh_group_settings.get<bool>("prime_tower_enable"))
+    {
+        coord_t max_line_width = 0;
+        { // compute max_line_width
+            const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+            const auto& extruders = Application::getInstance().current_slice->scene.extruders;
+            for (int extruder_nr = 0; extruder_nr < int(extruders.size()); extruder_nr++)
+            {
+                if ( ! extruder_is_used[extruder_nr]) continue;
+                max_line_width = std::max(max_line_width, extruders[extruder_nr].settings.get<coord_t>("skirt_brim_line_width"));
+            }
+        }
+        storage.draft_protection_shield = storage.draft_protection_shield.difference(storage.primeTower.outer_poly.offset(max_line_width / 2));
+    }
 }
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
-    ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
-
-    Polygons first_layer_outline;
-    coord_t primary_line_count;
-
     EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
-    if (adhesion_type == EPlatformAdhesion::SKIRT)
+    if (adhesion_type == EPlatformAdhesion::RAFT)
     {
-        primary_line_count = train.settings.get<size_t>("skirt_line_count");
-        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, true, first_layer_outline);
-        SkirtBrim::generate(storage, first_layer_outline, train.settings.get<coord_t>("skirt_gap"), primary_line_count);
-    }
-
-    // Generate any brim for the prime tower, should happen _after_ any skirt, but _before_ any other brim (since FffGCodeWriter assumes that the outermost contour is last).
-    if (adhesion_type != EPlatformAdhesion::RAFT && storage.primeTower.enabled && mesh_group_settings.get<bool>("prime_tower_brim_enable"))
-    {
-        constexpr bool dont_allow_helpers = false;
-        SkirtBrim::generate(storage, storage.primeTower.outer_poly, 0, train.settings.get<size_t>("brim_line_count"), dont_allow_helpers);
-    }
-
-    switch (adhesion_type)
-    {
-    case EPlatformAdhesion::SKIRT:
-        // Already done, because of prime-tower-brim & ordering, see above.
-        break;
-    case EPlatformAdhesion::BRIM:
-        primary_line_count = train.settings.get<size_t>("brim_line_count");
-        SkirtBrim::getFirstLayerOutline(storage, primary_line_count, false, first_layer_outline);
-        SkirtBrim::generate(storage, first_layer_outline, 0, primary_line_count);
-        break;
-    case EPlatformAdhesion::RAFT:
         Raft::generate(storage);
-        break;
-    case EPlatformAdhesion::NONE:
-        if (mesh_group_settings.get<bool>("support_brim_enable"))
-        {
-            SkirtBrim::generate(storage, Polygons(), 0, 0);
-        }
-        break;
+        return;
     }
 
-    // Also apply maximum_[deviation|resolution] to skirt/brim.
-    Simplify simplifier(train.settings);
-    for (Polygons& polygons : storage.skirt_brim)
+    SkirtBrim skirt_brim(storage);
+    skirt_brim.generate();
+
+    if (mesh_group_settings.get<bool>("support_brim_enable"))
     {
-        polygons = simplifier.polygon(polygons);
+        skirt_brim.generateSupportBrim();
+    }
+
+    for (const auto& extruder : Application::getInstance().current_slice->scene.extruders)
+    {
+        Simplify simplifier(extruder.settings);
+        for (auto skirt_brim_line : storage.skirt_brim[extruder.extruder_nr])
+        {
+            skirt_brim_line.closed_polygons = simplifier.polygon(skirt_brim_line.closed_polygons);
+            skirt_brim_line.open_polylines = simplifier.polyline(skirt_brim_line.open_polylines);
+        }
     }
 }
 
@@ -1057,8 +1070,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                     continue;
                 }
 
-                result_paths.emplace_back();
-                auto& result_lines = result_paths.back();
+                auto& result_lines = result_paths.emplace_back();
 
                 if (apply_outside_only)
                 {
@@ -1073,9 +1085,10 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         continue;
                     }
 
-                    result_lines.emplace_back();
-                    auto& result = result_lines.back();
+                    auto& result = result_lines.emplace_back();
                     result.inset_idx = line.inset_idx;
+                    result.is_odd = line.is_odd;
+                    result.is_closed = line.is_closed;
 
                     // generate points in between p0 and p1
                     int64_t dist_left_over = (min_dist_between_points / 4) + rand() % (min_dist_between_points / 4); // the distance to be traversed on the line before making the first new point

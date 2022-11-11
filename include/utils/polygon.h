@@ -419,6 +419,10 @@ public:
     {
     }
 
+    /*!
+     * Reserve a number of polygons to prevent reallocation and breakage of pointers.
+     * \param min_size The minimum size the new underlying array should have.
+     */
     void reserve(size_t min_size)
     {
         path->reserve(min_size);
@@ -754,6 +758,11 @@ public:
         return paths.size();
     }
 
+    void reserve(size_t new_cap)
+    {
+        paths.reserve(new_cap);
+    }
+
     /*!
      * Convenience function to check if the polygon has no points.
      *
@@ -978,6 +987,11 @@ public:
     Polygons intersectionPolyLines(const Polygons& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
 
     /*!
+     * Add the front to each polygon so that the polygon is represented as a polyline
+     */
+    void toPolylines();
+
+    /*!
      * Split this poly line object into several line segment objects
      * and store them in the \p result
      */
@@ -1187,6 +1201,13 @@ public:
     std::vector<PolygonsPart> splitIntoParts(bool unionAll = false) const;
 
     /*!
+     * Sort the polygons into bins where each bin has polygons which are contained within one of the polygons in the previous bin.
+     * 
+     * \warning When polygons are crossing each other the result is undefined.
+     */
+    std::vector<Polygons> sortByNesting() const;
+
+    /*!
      * Utility method for creating the tube (or 'donut') of a shape.
      * \param inner_offset Offset relative to the original shape-outline towards the inside of the shape. Sort-of like a negative normal offset, except it's the offset part that's kept, not the shape.
      * \param outer_offset Offset relative to the original shape-outline towards the outside of the shape. Comparable to normal offset.
@@ -1203,6 +1224,7 @@ private:
      */
     void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
+    void sortByNesting_processPolyTreeNode(ClipperLib::PolyNode* node, const size_t nesting_idx, std::vector<Polygons>& ret) const;
 
 public:
     /*!

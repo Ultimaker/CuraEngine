@@ -796,10 +796,10 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
 
     buildSegments(*mesh, zbbox, slicing_tolerance, layers);
 
-    spdlog::info("slice of mesh took {:3} seconds", slice_timer.restart());
+    spdlog::info("Slice of mesh took {:3} seconds", slice_timer.restart());
 
     makePolygons(*i_mesh, slicing_tolerance, layers);
-    spdlog::info("slice make polygons took {:3} seconds", slice_timer.restart());
+    spdlog::info("Make polygons took {:3} seconds", slice_timer.restart());
 }
 
 void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbbox, const SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers)
