@@ -4,7 +4,6 @@
 #include "SkeletalTrapezoidation.h"
 
 #include <spdlog/spdlog.h>
-#include <range/v3/view/drop_last.hpp>
 
 #include "settings/types/Ratio.h"
 #include <functional>
