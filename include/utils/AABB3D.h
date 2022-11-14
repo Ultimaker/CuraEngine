@@ -103,7 +103,7 @@ struct AABB3D
      * \param outset the distance (positive or negative) to expand the bounding box outward
      * \return this object (which has changed)
      */
-    AABB3D expandXY(int outset);
+    AABB3D expandXY(coord_t outset);
 };
 
 }//namespace cura

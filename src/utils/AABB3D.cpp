@@ -102,7 +102,7 @@ AABB3D AABB3D::expand(coord_t outset)
     return *this;
 }
 
-AABB3D AABB3D::expandXY(int outset)
+AABB3D AABB3D::expandXY(coord_t outset)
 {
     min -= Point3(outset, outset, 0);
     max += Point3(outset, outset, 0);
