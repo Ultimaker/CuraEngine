@@ -196,7 +196,6 @@ endif ()
 target_link_libraries(_CuraEngine
         PUBLIC
         spdlog::spdlog
-        PRIVATE
         range-v3::range-v3
         fmt::fmt
         clipper::clipper

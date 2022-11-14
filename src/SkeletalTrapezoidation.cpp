@@ -1321,7 +1321,9 @@ bool SkeletalTrapezoidation::isEndOfCentral(const edge_t& edge_to) const
 
 void SkeletalTrapezoidation::generateExtraRibs()
 {
-    for (auto edge : graph.edges)
+    // NOTE: At one point there was a comment here and some odd code that seemed to suggest some edge(s?) at the end should perhaps not be looped over.
+    //       The code was equivalent to a full loop over all the edges though, unless there was one edge or less, in which case it would produce undefined behaviour.
+    for (auto& edge : graph.edges)
     {
         if (! edge.data.isCentral() || shorterThen(edge.to->p - edge.from->p, discretization_step_size) || edge.from->data.distance_to_boundary >= edge.to->data.distance_to_boundary)
         {
