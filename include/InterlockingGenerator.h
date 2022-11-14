@@ -29,7 +29,7 @@ class Slicer;
  * ######           ##OO##OO
  * OOOOOO           ##OO##OO
  * 
- * One mateiral of a single cell of the structure looks like this:
+ * One material of a single cell of the structure looks like this:
  *                    .-*-.
  *                .-*       *-.
  *               |*-.           *-.
