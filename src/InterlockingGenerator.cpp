@@ -136,7 +136,10 @@ std::vector<Polygons> InterlockingGenerator::computeUnionedVolumeRegions() const
         Polygons& layer_region = layer_regions[layer_nr];
         for (Slicer* mesh : {&mesh_a, &mesh_b})
         {
-            if (layer_nr >= mesh->layers.size()) break;
+            if (layer_nr >= mesh->layers.size())
+            {
+                break;
+            }
             const SlicerLayer& layer = mesh->layers[layer_nr];
             layer_region.add(layer.polygons);
         }
@@ -219,7 +222,10 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
         Slicer* mesh = (mesh_idx == 0)? &mesh_a : &mesh_b;
         for (size_t layer_nr = 0; layer_nr < max_layer_count; layer_nr++)
         {
-            if (layer_nr >= mesh->layers.size()) break;
+            if (layer_nr >= mesh->layers.size())
+            {
+                break;
+            }
             const Polygons* areas_here = &structure_per_layer[mesh_idx][layer_nr / beam_layer_count];
             Polygons area_here_limited_to_outline;
             if ( ! air_filtering

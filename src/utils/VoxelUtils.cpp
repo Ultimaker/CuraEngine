@@ -62,13 +62,19 @@ bool VoxelUtils::walkLine(Point3 start, Point3 end, const std::function<bool (Gr
     {
         bool continue_ = process_cell_func(current_cell);
         
-        if ( ! continue_) return false;
+        if ( ! continue_)
+        {
+            return false;
+        }
 
         int stepping_dim = -1; // dimension in which the line next exits the current cell
         float percentage_along_line = std::numeric_limits<float>::max();
         for (int dim = 0; dim < 3; dim++)
         {
-            if (diff[dim] == 0) continue;
+            if (diff[dim] == 0)
+            {
+                continue;
+            }
             coord_t crossing_boundary = toLowerCoord(current_cell[dim], dim) + (diff[dim] > 0) * cell_size[dim];
             float percentage_along_line_here = (crossing_boundary - start[dim]) / static_cast<float>(diff[dim]);
             if (percentage_along_line_here < percentage_along_line)
@@ -78,7 +84,11 @@ bool VoxelUtils::walkLine(Point3 start, Point3 end, const std::function<bool (Gr
             }
         }
         assert(stepping_dim != -1);
-        if (percentage_along_line > 1.0) return true; // next cell is beyond the end
+        if (percentage_along_line > 1.0)
+        {
+            // next cell is beyond the end
+            return true;
+        }
         current_cell[stepping_dim] += (diff[stepping_dim] > 0) ? 1 : -1;
     }
     return true;
@@ -93,7 +103,10 @@ bool VoxelUtils::walkPolygons(const Polygons& polys, coord_t z, const std::funct
         for (Point p : poly)
         {
             bool continue_ = walkLine(Point3(last.X, last.Y, z), Point3(p.X, p.Y, z), process_cell_func);
-            if ( ! continue_) return false;
+            if ( ! continue_)
+            {
+                return false;
+            }
             last = p;
         }
     }
@@ -128,7 +141,10 @@ bool VoxelUtils::_walkAreas(const Polygons& polys, coord_t z, const std::functio
     for (Point p : skin_points)
     {
         bool continue_ = process_cell_func(toGridPoint(Point3(p.X + cell_size.x / 2, p.Y + cell_size.y / 2, z)));
-        if ( ! continue_) return false;
+        if ( ! continue_)
+        {
+            return false;
+        }
     }
     return true;
 }
