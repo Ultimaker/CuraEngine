@@ -15,6 +15,7 @@
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
 #include "utils/polygonUtils.h"
+#include <range/v3/view/enumerate.hpp>
 
 namespace cura
 {
@@ -416,21 +417,10 @@ protected:
             return vert;
         }
 
-        const Point focus_fixed_point = (seam_config.type == EZSeamType::USER_SPECIFIED)
-                                          ? seam_config.pos
-                                          : Point(0, std::sqrt(std::numeric_limits<coord_t>::max())); //Use sqrt, so the squared size can be used when comparing distances.
-        const size_t start_from_pos = std::min_element(path.converted->begin(), path.converted->end(), [focus_fixed_point](const Point& a, const Point& b) {
-                                                           return vSize2(a - focus_fixed_point) < vSize2(b - focus_fixed_point);
-                                                       }) - path.converted->begin();
-        const size_t end_before_pos = path.converted->size() + start_from_pos;
-
-        // Find a seam position in the simple polygon:
         size_t best_i;
         float best_score = std::numeric_limits<float>::infinity();
-        for(size_t i = start_from_pos; i < end_before_pos; ++i)
+        for(const auto& [i, here]: **path.converted | ranges::views::enumerate)
         {
-            const Point& here = (*path.converted)[i % path.converted->size()];
-
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
             const coord_t distance = (combing_boundary == nullptr)
@@ -463,7 +453,7 @@ protected:
             {
             default:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                if(corner_angle < 0) //Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
+                if(corner_angle < 0) // Indeed a concave corner? Give it some advantage over other corners. More advantage for sharper corners.
                 {
                     score -= (-corner_angle + 1.0) * corner_shift;
                 }
@@ -492,14 +482,28 @@ protected:
             }
 
             constexpr float EPSILON = 25.0;
-            if(score + EPSILON < best_score)
+            if(fabs(best_score - score) <= EPSILON)
             {
-                best_score = score;
+                // add breaker for two candidate starting location with similar score
+                // if we don't do this then we (can) get an un-even seam
+                // ties are broken by favouring points with lower x-coord
+                // if x-coord for both points are equal then break ties by
+                // favouring points with lower y-coord
+                const Point& best_point = (*path.converted)[best_i];
+                if(fabs(here.Y - best_point.Y) <= EPSILON ? best_point.X < here.X : best_point.Y < here.Y)
+                {
+                    best_score = std::min(best_score, score);
+                    best_i = i;
+                }
+            }
+            else if(score < best_score)
+            {
                 best_i = i;
+                best_score = score;
             }
         }
 
-        return best_i % path.converted->size();
+        return best_i;
     }
 
     /*!
@@ -522,53 +526,41 @@ protected:
         constexpr coord_t min_edge_length = 10;
         constexpr coord_t min_edge_length2 = min_edge_length * min_edge_length;
 
-        Point here = (*path.converted)[i % path.converted->size()];
+        const int offset_index = i % path.converted->size();
+        Point here = (*path.converted)[offset_index];
 
-        int previous_offset_index = i;
-        const std::function<Point(Point&)> find_previous_point = [previous_offset_index, path](Point& here) mutable
+        const std::function<Point(const int, const Point&)> find_neighbour_point = [&offset_index, &path](const int direction, const Point& here)
         {
-            previous_offset_index --;
-            Point previous = (*path.converted)[(previous_offset_index + path.converted->size()) % path.converted->size()];
-            // find previous point that is at least min_edge_length units away from here
-            while (vSize2(here - previous) < min_edge_length2)
+            int offset_index_ = offset_index;
+            Point neighbour;
+            do
             {
-                previous_offset_index --;
-                previous = (*path.converted)[(previous_offset_index + path.converted->size()) % path.converted->size()];
+                offset_index_ = (offset_index_ + path.converted->size() + direction) % path.converted->size();
+                neighbour = (*path.converted)[offset_index_];
             }
-            return previous;
+            while (vSize2(here - neighbour) < min_edge_length2 && offset_index_ != offset_index); // find previous point that is at least min_edge_length units away from here
+            return neighbour;
         };
-        const std::function<coord_t(Point&, Point&, Point&)> iterate_to_previous_point = [&find_previous_point](Point& previous_, Point& here_, Point& next_)
+
+        const std::function<coord_t(Point&, Point&, Point&)> iterate_to_previous_point = [&find_neighbour_point](Point& previous_, Point& here_, Point& next_)
         {
             const auto dist = vSize(here_ - next_);
             next_ = here_;
             here_ = previous_;
-            previous_ = find_previous_point(here_);
+            previous_ = find_neighbour_point(-1, here_);
             return dist;
         };
-        Point previous = find_previous_point(here);
+        Point previous = find_neighbour_point(-1, here);
 
-        int next_offset_index = i;
-        const std::function<Point(Point&)> find_next_point = [next_offset_index, path](Point& here) mutable
-        {
-            next_offset_index ++;
-            Point next = (*path.converted)[(next_offset_index) % path.converted->size()];
-            // find next point that is at least min_edge_length units away from here
-            while (vSize2(here - next) < min_edge_length2)
-            {
-                next_offset_index ++;
-                next = (*path.converted)[(next_offset_index) % path.converted->size()];
-            }
-            return next;
-        };
-        const std::function<coord_t(Point&, Point&, Point&)> iterate_to_next_point = [&find_next_point](Point& previous_, Point& here_, Point& next_)
+        const std::function<coord_t(Point&, Point&, Point&)> iterate_to_next_point = [&find_neighbour_point](Point& previous_, Point& here_, Point& next_)
         {
             const auto dist = vSize(here_ - previous_);
             previous_ = here_;
             here_ = next_;
-            next_ = find_next_point(here_);
+            next_ = find_neighbour_point(1, here_);
             return dist;
         };
-        Point next = find_next_point(here);
+        Point next = find_neighbour_point(1, here);
 
         float corner_angle = LinearAlg2D::getAngleLeft(previous, here, next) - M_PI;
 
@@ -577,7 +569,12 @@ protected:
             Point next_ = next;
             Point here_ = here;
             Point previous_ = previous;
-            for(coord_t distance_to_query = iterate_func(previous_, here_, next_); distance_to_query < angle_query_distance; distance_to_query += iterate_func(previous_, here_, next_))
+            for
+            (
+                coord_t distance_to_query = iterate_func(previous_, here_, next_);
+                distance_to_query < angle_query_distance && here_ != here;
+                distance_to_query += iterate_func(previous_, here_, next_)
+            )
             {
                 // angles further away from the query point are weighted less
                 const float angle_weight = 1.0 - pow(distance_to_query / angle_query_distance, fall_off_strength);

@@ -84,9 +84,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setConfigFanSpeedLayerTime();
 
-    setConfigRetraction(storage);
-
-    setConfigWipe(storage);
+    setConfigRetractionAndWipe(storage);
 
     if (scene.current_mesh_group == scene.mesh_groups.begin())
     {
@@ -166,7 +164,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
 
     constexpr bool force = true;
-    gcode.writeRetraction(storage.retraction_config_per_extruder[gcode.getExtruderNr()], force); // retract after finishing each meshgroup
+    gcode.writeRetraction(storage.retraction_wipe_config_per_extruder[gcode.getExtruderNr()].retraction_config, force); // retract after finishing each meshgroup
 }
 
 unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr)
@@ -297,63 +295,66 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime()
     }
 }
 
-void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
+static void retractionAndWipeConfigFromSettings(const Settings& settings, RetractionAndWipeConfig* config)
 {
-    Scene& scene = Application::getInstance().current_slice->scene;
-    for (size_t extruder_index = 0; extruder_index < scene.extruders.size(); extruder_index++)
-    {
-        ExtruderTrain& train = scene.extruders[extruder_index];
-        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_index];
-        retraction_config.distance = (train.settings.get<bool>("retraction_enable")) ? train.settings.get<double>("retraction_amount") : 0; // Retraction distance in mm.
-        retraction_config.prime_volume = train.settings.get<double>("retraction_extra_prime_amount"); // Extra prime volume in mm^3.
-        retraction_config.speed = train.settings.get<Velocity>("retraction_retract_speed");
-        retraction_config.primeSpeed = train.settings.get<Velocity>("retraction_prime_speed");
-        retraction_config.zHop = train.settings.get<coord_t>("retraction_hop");
-        retraction_config.retraction_min_travel_distance = train.settings.get<coord_t>("retraction_min_travel");
-        retraction_config.retraction_extrusion_window = train.settings.get<double>("retraction_extrusion_window"); // Window to count retractions in in mm of extruded filament.
-        retraction_config.retraction_count_max = train.settings.get<size_t>("retraction_count_max");
+    RetractionConfig& retraction_config = config->retraction_config;
+    retraction_config.distance = (settings.get<bool>("retraction_enable")) ? settings.get<double>("retraction_amount") : 0; // Retraction distance in mm.
+    retraction_config.prime_volume = settings.get<double>("retraction_extra_prime_amount"); // Extra prime volume in mm^3.
+    retraction_config.speed = settings.get<Velocity>("retraction_retract_speed");
+    retraction_config.primeSpeed = settings.get<Velocity>("retraction_prime_speed");
+    retraction_config.zHop = settings.get<coord_t>("retraction_hop");
+    retraction_config.retraction_min_travel_distance = settings.get<coord_t>("retraction_min_travel");
+    retraction_config.retraction_extrusion_window = settings.get<double>("retraction_extrusion_window"); // Window to count retractions in in mm of extruded filament.
+    retraction_config.retraction_count_max = settings.get<size_t>("retraction_count_max");
 
-        RetractionConfig& switch_retraction_config = storage.extruder_switch_retraction_config_per_extruder[extruder_index];
-        switch_retraction_config.distance = train.settings.get<double>("switch_extruder_retraction_amount"); // Retraction distance in mm.
-        switch_retraction_config.prime_volume = 0.0;
-        switch_retraction_config.speed = train.settings.get<Velocity>("switch_extruder_retraction_speed");
-        switch_retraction_config.primeSpeed = train.settings.get<Velocity>("switch_extruder_prime_speed");
-        switch_retraction_config.zHop = train.settings.get<coord_t>("retraction_hop_after_extruder_switch_height");
-        switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
-        switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
-        switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
-    }
+    config->retraction_hop_after_extruder_switch = settings.get<bool>("retraction_hop_after_extruder_switch");
+    config->switch_extruder_extra_prime_amount = settings.get<double>("switch_extruder_extra_prime_amount");
+    RetractionConfig& switch_retraction_config = config->extruder_switch_retraction_config;
+    switch_retraction_config.distance = settings.get<double>("switch_extruder_retraction_amount"); // Retraction distance in mm.
+    switch_retraction_config.prime_volume = 0.0;
+    switch_retraction_config.speed = settings.get<Velocity>("switch_extruder_retraction_speed");
+    switch_retraction_config.primeSpeed = settings.get<Velocity>("switch_extruder_prime_speed");
+    switch_retraction_config.zHop = settings.get<coord_t>("retraction_hop_after_extruder_switch_height");
+    switch_retraction_config.retraction_min_travel_distance = 0; // No limitation on travel distance for an extruder switch retract.
+    switch_retraction_config.retraction_extrusion_window = 99999.9; // So that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions).
+    switch_retraction_config.retraction_count_max = 9999999; // Extruder switch retraction is never limited.
+
+    WipeScriptConfig& wipe_config = config->wipe_config;
+
+    wipe_config.retraction_enable = settings.get<bool>("wipe_retraction_enable");
+    wipe_config.retraction_config.distance = settings.get<double>("wipe_retraction_amount");
+    wipe_config.retraction_config.speed = settings.get<Velocity>("wipe_retraction_retract_speed");
+    wipe_config.retraction_config.primeSpeed = settings.get<Velocity>("wipe_retraction_prime_speed");
+    wipe_config.retraction_config.prime_volume = settings.get<double>("wipe_retraction_extra_prime_amount");
+    wipe_config.retraction_config.retraction_min_travel_distance = 0;
+    wipe_config.retraction_config.retraction_extrusion_window = std::numeric_limits<double>::max();
+    wipe_config.retraction_config.retraction_count_max = std::numeric_limits<size_t>::max();
+
+    wipe_config.pause = settings.get<Duration>("wipe_pause");
+
+    wipe_config.hop_enable = settings.get<bool>("wipe_hop_enable");
+    wipe_config.hop_amount = settings.get<coord_t>("wipe_hop_amount");
+    wipe_config.hop_speed = settings.get<Velocity>("wipe_hop_speed");
+
+    wipe_config.brush_pos_x = settings.get<coord_t>("wipe_brush_pos_x");
+    wipe_config.repeat_count = settings.get<size_t>("wipe_repeat_count");
+    wipe_config.move_distance = settings.get<coord_t>("wipe_move_distance");
+    wipe_config.move_speed = settings.get<Velocity>("speed_travel");
+    wipe_config.max_extrusion_mm3 = settings.get<double>("max_extrusion_before_wipe");
+    wipe_config.clean_between_layers = settings.get<bool>("clean_between_layers");
 }
 
-void FffGcodeWriter::setConfigWipe(SliceDataStorage& storage)
+void FffGcodeWriter::setConfigRetractionAndWipe(SliceDataStorage& storage)
 {
     Scene& scene = Application::getInstance().current_slice->scene;
     for (size_t extruder_index = 0; extruder_index < scene.extruders.size(); extruder_index++)
     {
         ExtruderTrain& train = scene.extruders[extruder_index];
-        WipeScriptConfig& wipe_config = storage.wipe_config_per_extruder[extruder_index];
-
-        wipe_config.retraction_enable = train.settings.get<bool>("wipe_retraction_enable");
-        wipe_config.retraction_config.distance = train.settings.get<double>("wipe_retraction_amount");
-        wipe_config.retraction_config.speed = train.settings.get<Velocity>("wipe_retraction_retract_speed");
-        wipe_config.retraction_config.primeSpeed = train.settings.get<Velocity>("wipe_retraction_prime_speed");
-        wipe_config.retraction_config.prime_volume = train.settings.get<double>("wipe_retraction_extra_prime_amount");
-        wipe_config.retraction_config.retraction_min_travel_distance = 0;
-        wipe_config.retraction_config.retraction_extrusion_window = std::numeric_limits<double>::max();
-        wipe_config.retraction_config.retraction_count_max = std::numeric_limits<size_t>::max();
-
-        wipe_config.pause = train.settings.get<Duration>("wipe_pause");
-
-        wipe_config.hop_enable = train.settings.get<bool>("wipe_hop_enable");
-        wipe_config.hop_amount = train.settings.get<coord_t>("wipe_hop_amount");
-        wipe_config.hop_speed = train.settings.get<Velocity>("wipe_hop_speed");
-
-        wipe_config.brush_pos_x = train.settings.get<coord_t>("wipe_brush_pos_x");
-        wipe_config.repeat_count = train.settings.get<size_t>("wipe_repeat_count");
-        wipe_config.move_distance = train.settings.get<coord_t>("wipe_move_distance");
-        wipe_config.move_speed = train.settings.get<Velocity>("speed_travel");
-        wipe_config.max_extrusion_mm3 = train.settings.get<double>("max_extrusion_before_wipe");
-        wipe_config.clean_between_layers = train.settings.get<bool>("clean_between_layers");
+        retractionAndWipeConfigFromSettings(train.settings, &storage.retraction_wipe_config_per_extruder[extruder_index]);
+    }
+    for(SliceMeshStorage& mesh: storage.meshes)
+    {
+        retractionAndWipeConfigFromSettings(mesh.settings, &mesh.retraction_wipe_config);
     }
 }
 
@@ -650,7 +651,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
         processInitialLayerTemperature(storage, start_extruder_nr);
         gcode.writePrimeTrain(train.settings.get<Velocity>("speed_travel"));
         extruder_prime_layer_nr[start_extruder_nr] = std::numeric_limits<int>::min(); // set to most negative number so that layer processing never primes this extruder any more.
-        const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
+        const RetractionConfig& retraction_config = storage.retraction_wipe_config_per_extruder[start_extruder_nr].retraction_config;
         gcode.writeRetraction(retraction_config);
     }
     if (mesh_group_settings.get<bool>("relative_extrusion"))
@@ -665,7 +666,7 @@ void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const 
             gcode.resetExtrusionValue();
 
             // retract before first travel move
-            gcode.writeRetraction(storage.retraction_config_per_extruder[start_extruder_nr]);
+            gcode.writeRetraction(storage.retraction_wipe_config_per_extruder[start_extruder_nr].retraction_config);
         }
     }
     gcode.setExtruderFanNumber(start_extruder_nr);
@@ -1511,7 +1512,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         return;
     }
 
-    gcode_layer.setMesh(mesh.mesh_name);
+    gcode_layer.setMesh(&mesh);
 
     ZSeamConfig z_seam_config;
     if (mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
@@ -1538,7 +1539,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
     }
-    gcode_layer.setMesh("NONMESH");
+    gcode_layer.setMesh(nullptr);
 }
 
 void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const size_t extruder_nr, const PathConfigStorage::MeshPathConfigs& mesh_config, const SliceLayerPart& part, LayerPlan& gcode_layer)
@@ -2125,7 +2126,7 @@ void FffGcodeWriter::processSpiralizedWall(const SliceDataStorage& storage, Laye
             last_seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr - 1];
         }
     }
-    const bool is_bottom_layer = (layer_nr == mesh.settings.get<LayerIndex>("bottom_layers"));
+    const bool is_bottom_layer = (layer_nr == mesh.settings.get<LayerIndex>("initial_bottom_layers"));
     const bool is_top_layer = ((size_t)layer_nr == (storage.spiralize_wall_outlines.size() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr);
     const int seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr]; // use pre-computed seam vertex index for current layer
     // output a wall slice that is interpolated between the last and current walls
@@ -2981,7 +2982,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 if ((! wall_toolpaths.empty() || ! support_polygons.empty() || ! support_lines.empty()))
                 {
                     int layer_nr = gcode_layer.getLayerNr();
-                    if (layer_nr > (int)infill_extruder.settings.get<size_t>("bottom_layers"))
+                    if (layer_nr > (int)infill_extruder.settings.get<size_t>("initial_bottom_layers"))
                     {
                         // bit of subtlety here... support is being used on a spiralized model and to ensure the travel move from the end of the last spiral
                         // to the start of the support does not go through the model we have to tell the slicer what the current location of the nozzle is
