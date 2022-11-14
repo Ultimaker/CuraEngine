@@ -13,21 +13,6 @@
 namespace cura
 {
 
-namespace details
-{
-
-/* Helper struct to sort lines
- * \tparam T Type which needs to be sorted
- */
-template<typename T>
-struct Loco
-{
-    T line; //!< lines to be sorted of Type T
-    Polygon poly; //!< extracted polygon of the lines
-    coord_t area; //!< area used to sort the lines
-};
-} // namespace details
-
 class FffGcodeWriter;
 class LayerPlan;
 

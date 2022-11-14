@@ -6,15 +6,14 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "utils/AABB.h"
-#include "utils/actions/dfs_sort.h"
+
+#include "utils/actions/topological_order.h"
 #include "utils/views/convert.h"
-#include "utils/views/get.h"
 
 #include <iterator>
 #include <tuple>
 #include <unordered_map>
 
-#include <range/v3/algorithm/contains.hpp>
 #include <range/v3/algorithm/max.hpp>
 #include <range/v3/algorithm/sort.hpp>
 #include <range/v3/range/operations.hpp>
@@ -152,32 +151,52 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
         return {};
     }
     // Cache the bounding boxes of each extrusion line and map them against the pointers of those lines
-    using extrusion_line_ptr = const ExtrusionLine*;
-    using loco_t = details::Loco<extrusion_line_ptr>;
+    struct Loco
+    {
+        ExtrusionLine* line;
+        Polygon poly;
+        coord_t area;
+        size_t depth;
+        size_t idx;
+    };
+
     auto poly_views = input | views::convert<Polygon>(&ExtrusionLine::toPolygon);
     auto pointer_view = input | ranges::views::addressof;
     auto extrusion_lines = ranges::views::zip(pointer_view, poly_views)
-                         | ranges::views::transform([](const auto& line){return loco_t{
-                                                          .line = std::get<0>(line),
-                                                          .poly = std::get<1>(line),
-                                                          .area = AABB{ std::get<1>(line) }.area()}; })
+                         | ranges::views::enumerate
+                         | ranges::views::transform(
+                               [](const auto& value)
+                               {
+                                   const auto& [idx, line] = value;
+                                   return Loco{
+                                       .line = std::get<0>(line),
+                                       .poly = std::get<1>(line),
+                                       .area = AABB{ std::get<1>(line) }.area(),
+                                       .depth = 1,
+                                       .idx = idx,
+                                   };
+                               })
                          | ranges::to_vector;
 
     // Sort the extrusion lines on the area of the bounding box from small to big
-    ranges::sort(extrusion_lines, {}, &loco_t::area);
+    ranges::sort(extrusion_lines, {}, &Loco::area);
 
     // Check if an extrusion line is a root, if it isn't inside a known root then add it to the roots. If it is inside
     // then replace that root with the current extrusion line and map that relationship in the directional graph.
-    std::unordered_multimap<extrusion_line_ptr, extrusion_line_ptr> dag;
-    std::unordered_set<const loco_t*> roots { &ranges::front(extrusion_lines) };
+    std::unordered_multimap<Loco*, Loco*> dag;
+    std::unordered_set<Loco*> roots { &ranges::front(extrusion_lines) };
     for (const auto& loco : extrusion_lines | ranges::views::drop(1) | ranges::views::addressof)
     {
-        std::vector<const loco_t*> erase;
+        std::vector<Loco*> erase;
         for (const auto& root : roots)
         {
             if (root->poly.inside(loco->poly))
             {
-                dag.emplace(loco->line, root->line);
+                if (loco->depth <= root->depth)
+                {
+                    loco->depth = root->depth + 1;
+                }
+                dag.emplace(loco, root);
                 erase.emplace_back(root);
             }
         }
@@ -188,11 +207,10 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
         roots.emplace(loco);
     }
 
-    // Do a dept-first-search over the nodes, ordering them in the visited vector
-    std::vector<extrusion_line_ptr> visited;
-    for (const auto& node : roots | views::get(&loco_t::line))
+    std::vector<Loco*> visited;
+    for (const auto& node : roots)
     {
-        actions::dfs_sort(node, dag, visited);
+        actions::topological_order(node, dag, visited, &Loco::depth);
     }
 
     // Map the ordered visited lines in the order requirements, the ordered visited vector is currently order from outside to inside
@@ -202,13 +220,13 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     {
         for (const auto& line_pair :  visited | ranges::views::sliding(2))
         {
-            order.emplace(line_pair.at(0), line_pair.at(1));
+            order.emplace(line_pair.at(0)->line, line_pair.at(1)->line);
         }
         return order;
     }
     for (const auto& line_pair :  visited | ranges::views::reverse | ranges::views::sliding(2))
     {
-        order.emplace(line_pair.at(0), line_pair.at(1));
+        order.emplace(line_pair.at(0)->line, line_pair.at(1)->line);
     }
     return  order;
 }
