@@ -39,9 +39,8 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
                 continue;
             }
 
-            coord_t beam_widths[2];
-            beam_widths[0] = mesh_a.mesh->settings.get<coord_t>("interlocking_beam_width");
-            beam_widths[1] = mesh_b.mesh->settings.get<coord_t>("interlocking_beam_width");
+            coord_t beam_width_a = mesh_a.mesh->settings.get<coord_t>("interlocking_beam_width");
+            coord_t beam_width_b = mesh_b.mesh->settings.get<coord_t>("interlocking_beam_width");
 
             // TODO: why are these two kernels different kernel types?!
             const DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::PRISM);
@@ -49,10 +48,10 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
             const bool air_filtering = boundary_avoidance > 0;
             const DilationKernel air_dilation(GridPoint3(boundary_avoidance, boundary_avoidance, boundary_avoidance), DilationKernel::Type::PRISM);
 
-            const coord_t cell_width = beam_widths[0] + beam_widths[1];
+            const coord_t cell_width = beam_width_a + beam_width_b;
             const Point3 cell_size(cell_width, cell_width, 2 * beam_layer_count);
 
-            InterlockingGenerator gen(mesh_a, mesh_b, beam_widths, rotation, cell_size, beam_layer_count, interface_dilation, air_dilation, air_filtering);
+            InterlockingGenerator gen(mesh_a, mesh_b, beam_width_a, beam_width_b, rotation, cell_size, beam_layer_count, interface_dilation, air_dilation, air_filtering);
 
             gen.generateInterlockingStructure();
         }
@@ -152,8 +151,8 @@ std::vector<std::vector<Polygons>> InterlockingGenerator::generateMicrostructure
     std::vector<std::vector<Polygons>> cell_area_per_mesh_per_layer;
     cell_area_per_mesh_per_layer.resize(2);
     cell_area_per_mesh_per_layer[0].resize(2);
-    const coord_t beam_w_sum = beam_widths[0] + beam_widths[1];
-    const coord_t middle = cell_size.x * beam_widths[0] / beam_w_sum;
+    const coord_t beam_w_sum = beam_width_a + beam_width_b;
+    const coord_t middle = cell_size.x * beam_width_a / beam_w_sum;
     const coord_t width[2] = { middle, cell_size.x - middle };
     for (size_t mesh_idx : {0, 1})
     {

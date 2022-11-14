@@ -73,10 +73,11 @@ protected:
      * \param air_dilation The thickening kernel applied to air so that cells near the outside of the model won't be generated
      * \param air_filtering Whether to fully remove all of the interlocking cells which would be visible on the outside (i.e. touching air). If no air filtering then those cells will be cut off in the middle of a beam.
      */
-    InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t (& line_width_per_mesh)[2], const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count, DilationKernel interface_dilation, DilationKernel air_dilation, bool air_filtering)
+    InterlockingGenerator(Slicer& mesh_a, Slicer& mesh_b, coord_t beam_width_a, coord_t beam_width_b, const PointMatrix& rotation, Point3 cell_size, coord_t beam_layer_count, DilationKernel interface_dilation, DilationKernel air_dilation, bool air_filtering)
     : mesh_a(mesh_a)
     , mesh_b(mesh_b)
-    , beam_widths(line_width_per_mesh)
+    , beam_width_a(beam_width_a)
+    , beam_width_b(beam_width_b)
     , vu(cell_size)
     , rotation(rotation)
     , cell_size(cell_size)
@@ -131,7 +132,8 @@ protected:
 
     Slicer& mesh_a;
     Slicer& mesh_b;
-    const coord_t (& beam_widths)[2]; // reference to an array of length 2
+    coord_t beam_width_a;
+    coord_t beam_width_b;
 
     const VoxelUtils vu;
 
