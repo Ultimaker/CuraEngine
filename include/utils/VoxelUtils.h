@@ -27,13 +27,13 @@ struct DilationKernel
      * | |    |
      *  \|____|
      * 
-     * A diamond kernel uses a manhattan distance to create a diamond shape.
+     * A diamond kernel uses a manhattan distance to create a diamond shape around a reference voxel.
      *  /|\
      * /_|_\
      * \ | /
      *  \|/
      * 
-     * A prism kernel is diamond in XY, but extrudes straight in Z.
+     * A prism kernel is diamond in XY, but extrudes straight in Z around a reference voxel.
      *   / \
      *  /   \
      * |\   /|
