@@ -2878,15 +2878,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
     island_order_optimizer.optimize();
 
-    // Helper to determine the appropriate support area
-    const auto get_support_area = [](const Polygons& area, const int layer_nr, const EFillMethod pattern, const coord_t line_width, const coord_t brim_line_count)
-    {
-        if (layer_nr == 0 && pattern == EFillMethod::CONCENTRIC)
-        {
-            return area.offset(static_cast<int>(line_width * brim_line_count / 1000));
-        }
-        return area;
-    };
     const auto support_brim_line_count = infill_extruder.settings.get<coord_t>("support_brim_line_count");
     const auto support_connect_zigzags = infill_extruder.settings.get<bool>("support_connect_zigzags");
     const auto support_structure = infill_extruder.settings.get<ESupportStructure>("support_structure");
@@ -2947,7 +2938,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     support_line_distance_here /= 2;
                 }
 
-                const Polygons& area = get_support_area(part.infill_area_per_combine_per_density[density_idx][combine_idx], gcode_layer.getLayerNr(), support_pattern, support_line_width, support_brim_line_count);
+                const Polygons& area = part.infill_area_per_combine_per_density[density_idx][combine_idx];
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
                 constexpr bool skip_stitching = false;
