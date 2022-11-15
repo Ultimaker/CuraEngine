@@ -1626,7 +1626,8 @@ bool FffGcodeWriter::processMultiLayerInfill(const SliceDataStorage& storage, La
         std::vector<VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
         for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
         { // combine different density infill areas (for gradual infill)
-            coord_t infill_line_distance_here = infill_line_distance * pow(2, density_idx + 1 - max_infill_steps); // the highest density infill combines with the next to create a grid with density_factor 1
+            int density_factor = density_idx + 1 - max_infill_steps;
+            coord_t infill_line_distance_here = infill_line_distance * pow(2, density_factor); // the highest density infill combines with the next to create a grid with density_factor 1
             coord_t infill_shift = infill_line_distance_here / 2;
             if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || infill_pattern == EFillMethod::CROSS || infill_pattern == EFillMethod::CROSS_3D)
             {
@@ -1786,7 +1787,8 @@ bool FffGcodeWriter::processSingleLayerInfill(const SliceDataStorage& storage,
         Polygons infill_polygons_here;
 
         // the highest density infill combines with the next to create a grid with density_factor 1
-        coord_t infill_line_distance_here = infill_line_distance * pow(2, density_idx + 1 - max_infill_steps);
+        int density_factor = density_idx + 1 - max_infill_steps;
+        coord_t infill_line_distance_here = infill_line_distance * pow(2, density_factor);
         coord_t infill_shift = infill_line_distance_here / 2;
 
         /* infill shift explanation: [>]=shift ["]=line_dist
@@ -2940,6 +2942,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     continue;
                 }
 
+                // TODO: CURA-9790 do we also want to fix the support stuff?
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
                 int support_line_distance_here = default_support_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
                 const int support_shift = support_line_distance_here / 2;
