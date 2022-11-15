@@ -21,6 +21,7 @@
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/any_view.hpp>
+#include <range/v3/view/concat.hpp>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/join.hpp>
@@ -177,7 +178,8 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     ranges::sort(windings[1], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Loco::area);
 
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
-    std::unordered_set<Loco*> roots{ &ranges::front(windings[0]) };
+    auto windings_view = ranges::views::concat(windings[0], windings[1]); // Make sure we always have initial root even if one of the partitions resulted in an empty vector
+    std::unordered_set<Loco*> roots{ &ranges::front(windings_view) };
 
     for (auto& winding : windings)
     {
