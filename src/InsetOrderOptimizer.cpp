@@ -208,6 +208,15 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
             roots.emplace(loco);
         }
     }
+
+    // Connect loose roots (mostly center extrusion lines)
+    for (const auto& root : roots)
+    {
+        if (auto& line = ranges::back(windings_view).line; line != root->line)
+        {
+            order.emplace(line, root->line);
+        }
+    }
     return outer_to_inner ? order : ranges::views::zip(order | ranges::views::values, order | ranges::views::keys) | ranges::to<std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>>;
 }
 
