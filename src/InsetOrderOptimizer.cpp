@@ -148,18 +148,18 @@ bool InsetOrderOptimizer::addToLayer()
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(std::vector<ExtrusionLine>& input, const bool outer_to_inner)
 {
-    if (input.empty())
+    if (input.empty()) // Early out
     {
         return {};
     }
-    // Cache the bounding boxes of each extrusion line and map them against the pointers of those lines
+
+    // Cache the polygons and get the signed area of each extrusion line and store them mapped against the pointers for those lines
     struct Loco
     {
         ExtrusionLine* line;
         Polygon poly;
         double area;
     };
-
     auto poly_views = input | views::convert<Polygon>(&ExtrusionLine::toPolygon);
     auto pointer_view = input | ranges::views::addressof;
     auto loco_view = ranges::views::zip(pointer_view, poly_views)
@@ -173,15 +173,19 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
                                  .area = poly.area(),
                              };
                          });
+
+    // Partition the Extrusion lines based on their winding
     std::array<std::vector<Loco>, 2> windings;
     ranges::partition_copy(loco_view, ranges::back_inserter(windings[0]), ranges::back_inserter(windings[1]), [](const auto& line) { return line.area < 0; });
+
+    // Sort the extrusion lines from small to big
     ranges::sort(windings[0], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Loco::area);
     ranges::sort(windings[1], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Loco::area);
 
+    // Build the forest, depending on the winding
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
     auto windings_view = ranges::views::concat(windings[0], windings[1]); // Make sure we always have initial root even if one of the partitions resulted in an empty vector
     std::unordered_set<Loco*> roots{ &ranges::front(windings_view) };
-
     for (auto& winding : windings)
     {
         for (const auto& loco : winding | ranges::views::addressof)
@@ -218,6 +222,8 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
             order.emplace(line, root->line);
         }
     }
+
+    // flip the key values if we want to print from inner to outer walls
     return outer_to_inner ? order : ranges::views::zip(order | ranges::views::values, order | ranges::views::keys) | ranges::to<std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>>;
 }
 
