@@ -8,7 +8,6 @@
 
 #include "settings/ZSeamConfig.h"
 #include "sliceDataStorage.h"
-#include "utils/concepts/graph.h"
 
 namespace cura
 {
