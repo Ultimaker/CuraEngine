@@ -16,6 +16,7 @@
 #include "ExtruderTrain.h"
 #include "FffPolygonGenerator.h"
 #include "infill.h"
+#include "InterlockingGenerator.h"
 #include "layerPart.h"
 #include "MeshGroup.h"
 #include "Mold.h"
@@ -241,8 +242,14 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         carveMultipleVolumes(slicerList);
     }
-
+    
     generateMultipleVolumesOverlap(slicerList);
+
+    
+    if (Application::getInstance().current_slice->scene.current_mesh_group->settings.get<bool>("interlocking_enable"))
+    {
+        InterlockingGenerator::generateInterlockingStructure(slicerList);
+    }
 
     storage.print_layer_count = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)

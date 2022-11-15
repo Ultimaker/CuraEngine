@@ -55,6 +55,7 @@ template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::v
 INLINE Point operator*(const T i, const Point& p0) { return p0 * i; }
 INLINE Point operator/(const Point& p0, const coord_t i) { return Point(p0.X/i, p0.Y/i); }
 INLINE Point operator/(const Point& p0, const Point& p1) { return Point(p0.X/p1.X, p0.Y/p1.Y); }
+INLINE Point operator%(const Point& p0, const coord_t i) { return Point(p0.X%i, p0.Y%i); }
 
 INLINE Point& operator += (Point& p0, const Point& p1) { p0.X += p1.X; p0.Y += p1.Y; return p0; }
 INLINE Point& operator -= (Point& p0, const Point& p1) { p0.X -= p1.X; p0.Y -= p1.Y; return p0; }
@@ -220,9 +221,23 @@ public:
         return Point(p.X * matrix[0] + p.Y * matrix[1], p.X * matrix[2] + p.Y * matrix[3]);
     }
 
+    /*!
+     * \warning only works on a rotation matrix! Output is incorrect for other types of matrix
+     */
     Point unapply(const Point p) const
     {
         return Point(p.X * matrix[0] + p.Y * matrix[2], p.X * matrix[1] + p.Y * matrix[3]);
+    }
+
+    PointMatrix inverse() const
+    {
+        PointMatrix ret;
+        double det = matrix[0] * matrix[3] - matrix[1] * matrix[2];
+        ret.matrix[0] = matrix[3] / det;
+        ret.matrix[1] = - matrix[1] / det;
+        ret.matrix[2] = - matrix[2] / det;
+        ret.matrix[3] = matrix[0] / det;
+        return ret;
     }
 };
 
