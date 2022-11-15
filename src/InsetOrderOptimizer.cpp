@@ -206,7 +206,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
             roots.emplace(loco);
         }
     }
-    return  order;
+    return outer_to_inner ? order : ranges::views::zip(order | ranges::views::values, order | ranges::views::keys) | ranges::to<std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>>;
 }
 
 std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
