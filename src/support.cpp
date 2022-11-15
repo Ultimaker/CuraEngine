@@ -173,7 +173,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
     const size_t total_layer_count = storage.print_layer_count;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t gradual_support_step_height = infill_extruder.settings.get<coord_t>("gradual_support_infill_step_height");
-    const size_t max_density_steps = infill_extruder.settings.get<size_t>("gradual_support_infill_steps");
+    const size_t max_density_steps = infill_extruder.settings.get<bool>("gradual_support_infill") ? infill_extruder.settings.get<size_t>("gradual_support_infill_steps") : 0;
 
     const coord_t wall_count = infill_extruder.settings.get<size_t>("support_wall_count");
     const coord_t wall_width = infill_extruder.settings.get<coord_t>("support_line_width");
