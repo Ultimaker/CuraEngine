@@ -3035,7 +3035,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             // If we're printing with a support wall, that support wall generates gap filling as well.
             // If not, the pattern may still generate gap filling (if it's connected infill or zigzag). We still want to print those.
-            if (wall_line_count == 0 && ! wall_toolpaths_here.empty())
+            if (wall_line_count == 0 || ! wall_toolpaths_here.empty())
             {
                 const GCodePathConfig& config = gcode_layer.configs_storage.support_infill_config[0];
                 constexpr bool retract_before_outer_wall = false;
