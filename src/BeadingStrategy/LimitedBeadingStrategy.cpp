@@ -29,7 +29,7 @@ LimitedBeadingStrategy::LimitedBeadingStrategy(const coord_t max_bead_count, Bea
 {
     if (max_bead_count % 2 == 1)
     {
-        spdlog::warn("LimitedBeadingStrategy with odd bead count is odd indeed!");
+        RUN_ONCE(spdlog::warn("LimitedBeadingStrategy with odd bead count is odd indeed!"));
     }
 }
 
@@ -52,7 +52,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thicknes
     assert(bead_count == max_bead_count + 1);
     if (bead_count != max_bead_count + 1)
     {
-        spdlog::warn("Too many beads! {} != {}", bead_count, max_bead_count + 1);
+        RUN_ONCE(spdlog::warn("Too many beads! {} != {}", bead_count, max_bead_count + 1));
     }
 
     coord_t optimal_thickness = parent->getOptimalThickness(max_bead_count);

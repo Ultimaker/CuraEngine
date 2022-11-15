@@ -162,7 +162,9 @@ std::vector<Point> VoronoiUtils::discretizeParabola(const Point& p, const Segmen
     bool add_marking_end = mex * dir > (sx - px) * dir && mex * dir < (ex - px) * dir;
 
     const Point apex = rot.unapply(Point(0, d / 2)) + pxx;
-    bool add_apex = (sx - px) * dir < 0 && (ex - px) * dir > 0;
+    // Only at the apex point if the projected start and end points
+    // are more than 10 microns away from the projected apex
+    bool add_apex = (sx - px) * dir < -10 && (ex - px) * dir > 10;
 
     assert(! (add_marking_start && add_marking_end) || add_apex);
     if (add_marking_start && add_marking_end && ! add_apex)

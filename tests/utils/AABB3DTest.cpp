@@ -116,18 +116,18 @@ TEST(AABB3DTest, TestInclude)
     EXPECT_EQ(box2.max, b) << "Inclusion of an 'empty' or negative box should not change the maximum of the original.";
 }
 
-TEST(AABB3DTest, TestOffset)
+TEST(AABB3DTest, TestTranslate)
 {
     AABB3D box(Point3(2, 2, 2), Point3(5, 10, 3));
 
     EXPECT_FALSE(box.hit(toBox(1, 1, 1))) << "The unexpanded (via offset-3D) box should not contain a point in the (future) expanded area.";
 
-    box.offset(Point3(-2, -2, -2));
+    box.translate(Point3(-2, -2, -2));
 
     EXPECT_TRUE(box.hit(toBox(1, 1, 1))) << "The expanded (via offset-3D) box should contain a point in the expanded area.";
     EXPECT_FALSE(box.hit(toBox(6, 9, -1))) << "The unexpanded (via offset-3D) box should not contain a point in the (future) expanded area.";
 
-    box.offset(Point(-2, -2));
+    box.translate(Point(-2, -2));
 
     EXPECT_TRUE(box.hit(toBox(-1, -1, 0))) << "The expanded (via offset-2D) box should contain a point in the expanded area.";
 }

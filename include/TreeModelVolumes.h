@@ -129,7 +129,7 @@ private:
      *
      * \param a Polygons object representing the non-printable areas on and around the build platform
      */
-    static Polygons calculateMachineBorderCollision(Polygon machine_border);
+    static Polygons calculateMachineBorderCollision(const Polygons&& machine_border);
 
     /*!
      * \brief Polygons representing the limits of the printable area of the
