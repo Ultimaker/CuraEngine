@@ -156,7 +156,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     // Cache the polygons and get the signed area of each extrusion line and store them mapped against the pointers for those lines
     struct Loco
     {
-        ExtrusionLine* line;
+        const ExtrusionLine* line;
         Polygon poly;
         double area;
     };
