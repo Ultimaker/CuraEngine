@@ -166,10 +166,11 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
                    | ranges::views::transform(
                          [](const auto& loco)
                          {
+                             const auto poly = std::get<1>(loco);
                              return Loco{
                                  .line = std::get<0>(loco),
-                                 .poly = std::get<1>(loco),
-                                 .area = std::get<1>(loco).area(),
+                                 .poly = poly,
+                                 .area = poly.area(),
                              };
                          });
     std::array<std::vector<Loco>, 2> windings;
