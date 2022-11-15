@@ -146,7 +146,7 @@ bool InsetOrderOptimizer::addToLayer()
     return added_something;
 }
 
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(std::vector<ExtrusionLine>& input, const bool outer_to_inner)
+std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(const auto& input, const bool outer_to_inner)
 {
     if (input.empty()) // Early out
     {
