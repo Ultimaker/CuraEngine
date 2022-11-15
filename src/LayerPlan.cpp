@@ -50,6 +50,7 @@ ExtruderPlan::ExtruderPlan
     fan_speed_layer_time_settings(fan_speed_layer_time_settings),
     retraction_config(retraction_config),
     extraTime(0.0),
+    temperatureFactor(0.0),
     slowest_path_speed(0.0)
 {
 }
@@ -1522,6 +1523,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         {
             // Even at cool min speed extrusion is not taken enough time. So speed is set to cool min speed.
             target_speed = minimalSpeed;
+            temperatureFactor = 1.0;
 
             // Update stored naive time estimates
             estimates.extrude_time = total_extrude_time_at_minimum_speed;
@@ -1536,6 +1538,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
             const double factor = (total_extrude_time_at_minimum_speed - minExtrudeTime) / (total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed);
             target_speed = minimalSpeed * (1.0-factor) + slowest_path_speed * factor;
+            temperatureFactor = 1.0 - factor;
 
             // Update stored naive time estimates
             estimates.extrude_time = minExtrudeTime;
