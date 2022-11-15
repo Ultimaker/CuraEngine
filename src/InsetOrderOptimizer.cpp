@@ -24,6 +24,7 @@
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/join.hpp>
+#include <range/v3/view/map.hpp>
 #include <range/v3/view/remove_if.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/take_exactly.hpp>
@@ -156,33 +157,24 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
         ExtrusionLine* line;
         Polygon poly;
         double area;
-        size_t idx;
     };
 
     auto poly_views = input | views::convert<Polygon>(&ExtrusionLine::toPolygon);
     auto pointer_view = input | ranges::views::addressof;
     auto loco_view = ranges::views::zip(pointer_view, poly_views)
-                   | ranges::views::enumerate
                    | ranges::views::transform(
-                         [](const auto& value)
+                         [](const auto& loco)
                          {
-                             const auto& [idx, line] = value;
-                             double area = std::get<0>(line)->is_odd ? 1. : std::get<1>(line).area();
                              return Loco{
-                                 .line = std::get<0>(line),
-                                 .poly = std::get<1>(line),
-                                 .area = area,
-                                 .idx = idx,
+                                 .line = std::get<0>(loco),
+                                 .poly = std::get<1>(loco),
+                                 .area = std::get<1>(loco).area(),
                              };
                          });
     std::array<std::vector<Loco>, 2> windings;
     ranges::partition_copy(loco_view, ranges::back_inserter(windings[0]), ranges::back_inserter(windings[1]), [](const auto& line) { return line.area < 0; });
-    for (auto& winding : windings)
-    {
-        ranges::sort(winding, [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Loco::area);
-    }
-
-    std::unordered_multimap<const Loco*, const Loco*> dag;
+    ranges::sort(windings[0], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Loco::area);
+    ranges::sort(windings[1], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Loco::area);
 
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
     std::unordered_set<Loco*> roots{ &ranges::front(windings[0]) };
@@ -196,8 +188,14 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
             {
                 if (root->poly.inside(loco->poly))
                 {
-                    dag.emplace(loco, root);
-                    order.emplace(loco->line, root->line);
+                    if (loco->area <= 0)
+                    {
+                        order.emplace(loco->line, root->line);
+                    }
+                    else
+                    {
+                        order.emplace(root->line, loco->line);
+                    }
                     erase.emplace_back(root);
                 }
             }
