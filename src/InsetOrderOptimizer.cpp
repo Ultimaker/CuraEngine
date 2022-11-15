@@ -6,7 +6,6 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "utils/AABB.h"
-
 #include "utils/views/convert.h"
 
 #include <iterator>
@@ -154,7 +153,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     }
 
     // Cache the polygons and get the signed area of each extrusion line and store them mapped against the pointers for those lines
-    struct Loco
+    struct Locator
     {
         const ExtrusionLine* line;
         Polygon poly;
@@ -162,35 +161,35 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     };
     auto poly_views = input | views::convert<Polygon>(&ExtrusionLine::toPolygon);
     auto pointer_view = input | ranges::views::addressof;
-    auto loco_view = ranges::views::zip(pointer_view, poly_views)
-                   | ranges::views::transform(
-                         [](const auto& loco)
-                         {
-                             const auto poly = std::get<1>(loco);
-                             return Loco{
-                                 .line = std::get<0>(loco),
-                                 .poly = poly,
-                                 .area = poly.area(),
-                             };
-                         });
+    auto locator_view = ranges::views::zip(pointer_view, poly_views)
+                      | ranges::views::transform(
+                            [](const auto& loco)
+                            {
+                                const auto poly = std::get<1>(loco);
+                                return Locator{
+                                    .line = std::get<0>(loco),
+                                    .poly = poly,
+                                    .area = poly.area(),
+                                };
+                            });
 
     // Partition the Extrusion lines based on their winding
-    std::array<std::vector<Loco>, 2> windings;
-    ranges::partition_copy(loco_view, ranges::back_inserter(windings[0]), ranges::back_inserter(windings[1]), [](const auto& line) { return line.area < 0; });
+    std::array<std::vector<Locator>, 2> windings;
+    ranges::partition_copy(locator_view, ranges::back_inserter(windings[0]), ranges::back_inserter(windings[1]), [](const auto& line) { return line.area < 0; });
 
     // Sort the extrusion lines from small to big
-    ranges::sort(windings[0], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Loco::area);
-    ranges::sort(windings[1], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Loco::area);
+    ranges::sort(windings[0], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Locator::area);
+    ranges::sort(windings[1], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Locator::area);
 
     // Build the forest, depending on the winding
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
     auto windings_view = ranges::views::concat(windings[0], windings[1]); // Make sure we always have initial root even if one of the partitions resulted in an empty vector
-    std::unordered_set<Loco*> roots{ &ranges::front(windings_view) };
+    std::unordered_set<Locator*> roots{ &ranges::front(windings_view) };
     for (auto& winding : windings)
     {
         for (const auto& loco : winding | ranges::views::addressof)
         {
-            std::vector<Loco*> erase;
+            std::vector<Locator*> erase;
             for (const auto& root : roots)
             {
                 if (root->poly.inside(loco->poly))
