@@ -3087,7 +3087,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, Lay
     constexpr coord_t support_roof_overlap = 0; // the roofs should never be expanded outwards
     constexpr size_t infill_multiplier = 1;
     constexpr coord_t extra_infill_shift = 0;
-    const size_t wall_line_count = roof_extruder.settings.get<size_t>("support_roof_wall_count");
+    const auto wall_line_count = roof_extruder.settings.get<size_t>("support_roof_wall_count");
     const Point infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;
@@ -3194,11 +3194,12 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         fill_angle = storage.support.support_bottom_angles.at(index);
     }
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
-    const bool connect_polygons = false; // Keep the same as roof, also does make a bit less sense when support infill is < 100% or support walls are set to > 0.
+    constexpr bool connect_polygons = false; // Keep the same as roof, also does make a bit less sense when support infill is < 100% or support walls are set to > 0.
     constexpr coord_t support_bottom_overlap = 0; // the bottoms should never be expanded outwards
     constexpr size_t infill_multiplier = 1;
     constexpr coord_t extra_infill_shift = 0;
-    const size_t wall_line_count = bottom_extruder.settings.get<size_t>("support_bottom_wall_count");
+    const auto wall_line_count = bottom_extruder.settings.get<size_t>("support_bottom_wall_count");
+
     const Point infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;
