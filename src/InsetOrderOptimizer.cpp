@@ -214,7 +214,7 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     // Connect loose roots (mostly center extrusion lines)
     for (const auto& root : roots)
     {
-        if (auto& line = ranges::back(windings_view).line; line != root->line)
+        if (auto& line = ranges::front(windings_view).line; line != root->line)
         {
             order.emplace(line, root->line);
         }
