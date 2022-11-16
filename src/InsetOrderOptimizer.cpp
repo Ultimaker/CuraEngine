@@ -10,7 +10,6 @@
 
 #include <iterator>
 #include <tuple>
-#include <unordered_map>
 
 #include <range/v3/algorithm/max.hpp>
 #include <range/v3/algorithm/partition_copy.hpp>
@@ -31,6 +30,8 @@
 #include <range/v3/view/transform.hpp>
 #include <range/v3/view/zip.hpp>
 
+namespace rg = ranges;
+namespace rv = ranges::views;
 
 namespace cura
 {
@@ -158,9 +159,9 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         double area;
     };
     auto poly_views = input | views::convert<Polygon>(&ExtrusionLine::toPolygon);
-    auto pointer_view = input | ranges::views::addressof;
-    auto locator_view = ranges::views::zip(pointer_view, poly_views)
-                      | ranges::views::transform(
+    auto pointer_view = input | rv::addressof;
+    auto locator_view = rv::zip(pointer_view, poly_views)
+                      | rv::transform(
                             [](const auto& loco)
                             {
                                 const auto poly = std::get<1>(loco);
@@ -173,21 +174,18 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
 
     // Partition the Extrusion lines based on their winding
     std::array<std::vector<Locator>, 2> windings;
-    ranges::partition_copy(locator_view,
-                           ranges::back_inserter(windings[0]),
-                           ranges::back_inserter(windings[1]),
-                           [](const auto& line) { return line.area < 0; });
+    rg::partition_copy(locator_view, rg::back_inserter(windings[0]), rg::back_inserter(windings[1]), [](const auto& line) { return line.area < 0; });
 
     // Sort the extrusion lines from small to big
-    ranges::sort(windings[0], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Locator::area);
-    ranges::sort(windings[1], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Locator::area);
+    rg::sort( windings[0], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Locator::area);
+    rg::sort( windings[1], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Locator::area);
 
     // Build the forest, depending on the winding
     value_type order;
-    auto windings_view = ranges::views::concat(windings[0], windings[1]); // Make sure we always have initial root even if one of the partitions resulted in an empty vector
-    std::unordered_set<Locator*> roots{ &ranges::front(windings_view) };
+    auto windings_view = rv::concat(windings[0], windings[1]); // Make sure we always have initial root even if one of the partitions resulted in an empty vector
+    std::unordered_set<Locator*> roots{ &rg::front(windings_view) };
 
-    for (const auto& loco : windings_view | ranges::views::addressof)
+    for (const auto& loco : windings_view | rv::addressof)
     {
         std::vector<Locator*> erase;
         for (const auto& root : roots)
@@ -215,16 +213,14 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
     // Connect loose roots (mostly center extrusion lines)
     for (const auto& root : roots)
     {
-        if (auto& line = ranges::front(windings_view).line; line != root->line)
+        if (auto& line = rg::front(windings_view).line; line != root->line)
         {
             order.emplace(line, root->line);
         }
     }
 
     // flip the key values if we want to print from inner to outer walls
-    return outer_to_inner ? order
-                          : ranges::views::zip(order | ranges::views::values,
-                                               order | ranges::views::keys)| ranges::to<value_type>;
+    return outer_to_inner ? order : rv::zip(order | rv::values, order | rv::keys) | rg::to<value_type>;
 }
 
 InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
@@ -296,29 +292,29 @@ constexpr bool InsetOrderOptimizer::shouldReversePath(const bool use_one_extrude
 
 std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool reverse, const bool use_one_extruder)
 {
-    ranges::any_view<VariableWidthLines> view;
+    rg::any_view<VariableWidthLines> view;
     if (reverse)
     {
         if (use_one_extruder)
         {
-            view = paths | ranges::views::reverse;
+            view = paths | rv::reverse;
         }
         else
         {
-            view = paths | ranges::views::reverse | ranges::views::drop_last(1);
+            view = paths | rv::reverse | rv::drop_last(1);
         }
     }
     else
     {
         if (use_one_extruder)
         {
-            view = paths | ranges::views::all;
+            view = paths | rv::all;
         }
         else
         {
-            view = paths | ranges::views::take_exactly(1);
+            view = paths | rv::take_exactly(1);
         }
     }
-    return view | ranges::views::join | ranges::views::remove_if(ranges::empty) | ranges::to_vector;
+    return view | rv::join | rv::remove_if(rg::empty) | rg::to_vector;
 }
 } // namespace cura
