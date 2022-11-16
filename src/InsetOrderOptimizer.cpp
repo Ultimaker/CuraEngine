@@ -12,13 +12,19 @@
 #include <tuple>
 #include <unordered_map>
 
+#include <range/v3/algorithm/max.hpp>
 #include <range/v3/algorithm/partition_copy.hpp>
 #include <range/v3/algorithm/sort.hpp>
+#include <range/v3/iterator/insert_iterators.hpp>
+#include <range/v3/range/operations.hpp>
+#include <range/v3/to_container.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/any_view.hpp>
 #include <range/v3/view/concat.hpp>
+#include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/join.hpp>
+#include <range/v3/view/map.hpp>
 #include <range/v3/view/remove_if.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/take_exactly.hpp>
