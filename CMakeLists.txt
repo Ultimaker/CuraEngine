@@ -227,4 +227,5 @@ target_compile_definitions(CuraEngine PRIVATE VERSION=\"${CURA_ENGINE_VERSION}\"
 if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(tests)
+    add_subdirectory(benchmark)
 endif ()

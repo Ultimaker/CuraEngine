@@ -15,6 +15,7 @@
         - "protobuf/3.21.4"
     build_requirements_testing:
         - "gtest/1.12.1"
+        - "benchmark/1.7.0"
 "5.2.0-beta.2":
     requirements:
         - "clipper/6.4.2"
