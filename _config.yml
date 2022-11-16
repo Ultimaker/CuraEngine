@@ -1,6 +1,5 @@
 title: CuraEngine developer portal
 description: Development documentation and Benchmark results for CuraEngine
-#theme: just-the-docs
 remote_theme: pmarsceill/just-the-docs
 
 url: https://ultimaker.github.io/CuraEngine
