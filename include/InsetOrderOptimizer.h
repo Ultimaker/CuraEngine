@@ -82,13 +82,6 @@ public:
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
     static value_type getInsetOrder(const auto& input, const bool outer_to_inner);
-
-    /*!
-     * Make order requirements transitive.
-     * If the input contains A,B and B,C then after this call it will also include A,C.
-     */
-    template<typename PathType>
-    static std::unordered_set<std::pair<PathType, PathType>> makeOrderIncludeTransitive(const std::unordered_set<std::pair<PathType, PathType>>& order_requirements);
 private:
     const FffGcodeWriter& gcode_writer;
     const SliceDataStorage& storage;
@@ -107,9 +100,7 @@ private:
     const ZSeamConfig& z_seam_config;
     const std::vector<VariableWidthLines>& paths;
     const unsigned int layer_nr;
-    
-    bool added_something;
-    bool retraction_region_calculated; //Whether the retraction_region field has been calculated or not.
+
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
     Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
 
@@ -145,39 +136,6 @@ private:
      */
     constexpr static coord_t coincident_point_distance = 10;
 };
-
-
-template<typename PathType>
-std::unordered_set<std::pair<PathType, PathType>> InsetOrderOptimizer::makeOrderIncludeTransitive(const std::unordered_set<std::pair<PathType, PathType>>& order_requirements)
-{
-    if (order_requirements.empty()) return order_requirements;
-
-    std::unordered_multimap<PathType, PathType> order_mapping;
-    for (auto [from, to] : order_requirements)
-    {
-        order_mapping.emplace(from, to);
-    }
-    std::unordered_set<std::pair<PathType, PathType>> transitive_order = order_requirements;
-    for (auto [from, to] : order_requirements)
-    {
-        std::queue<PathType> starts_of_next_relation;
-        starts_of_next_relation.emplace(to);
-        while ( ! starts_of_next_relation.empty())
-        {
-            PathType start_of_next_relation = starts_of_next_relation.front();
-            starts_of_next_relation.pop();
-            auto range = order_mapping.equal_range(start_of_next_relation);
-            for (auto it = range.first; it != range.second; ++it)
-            {
-                auto [ next_from, next_to ] = *it;
-                starts_of_next_relation.emplace(next_to);
-                transitive_order.emplace(from, next_to);
-            }
-        }
-    }
-    return transitive_order;    
-}
-
 } //namespace cura
 
 #endif // INSET_ORDER_OPTIMIZER_H

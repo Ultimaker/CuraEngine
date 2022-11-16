@@ -68,8 +68,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(const FffGcodeWriter& gcode_writer,
     , z_seam_config(z_seam_config)
     , paths(paths)
     , layer_nr(gcode_layer.getLayerNr())
-    , added_something(false)
-    , retraction_region_calculated(false)
 {
 }
 
