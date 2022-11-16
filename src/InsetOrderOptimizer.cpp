@@ -213,7 +213,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
     // Connect loose roots (mostly center extrusion lines)
     for (const auto& root : roots)
     {
-        if (auto& line = rg::front(windings_view).line; line != root->line)
+        if (auto& line = rg::back(windings_view).line; line != root->line)
         {
             order.emplace(line, root->line);
         }
