@@ -1,11 +1,10 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "InsetOrderOptimizer.h"
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
-#include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
-#include "utils/AABB.h"
 #include "utils/views/convert.h"
 
 #include <iterator>
