@@ -107,7 +107,7 @@ jobs:
 
             -   name: Run benchmark CuraEngine
                 id: run-test
-                run: ./benchmarks --benchmark_format=json | tee ../../../benchmark/benchmark_result.json
+                run: ./benchmarks --benchmark_format=json | tee benchmark_result.json
                 working-directory: build/Release/benchmark
 
             -   name: Store benchmark result
@@ -115,7 +115,7 @@ jobs:
                 with:
                     name: C++ Benchmark
                     tool: 'googlecpp'
-                    output-file-path: benchmark/benchmark_result.json
+                    output-file-path: build/Release/benchmark/benchmark/benchmark_result.json
                     github-token: ${{ secrets.GITHUB_TOKEN }}
                     auto-push: true
                     # Show alert with commit comment on detecting possible performance regression
