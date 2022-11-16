@@ -119,7 +119,6 @@ jobs:
                     name: C++ Benchmark
                     tool: 'googlecpp'
                     output-file-path: build/Release/benchmark/benchmark_result.json
-                    external-data-json-path: ./cache/benchmark-data.json
                     github-token: ${{ secrets.GITHUB_TOKEN }}
                     auto-push: true
                     # Show alert with commit comment on detecting possible performance regression
