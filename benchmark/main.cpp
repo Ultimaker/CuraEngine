@@ -123,5 +123,15 @@ BENCHMARK_DEFINE_F(WallsComputationTest, InsetOrderOptimizer_getRegionOrder)(ben
 
 BENCHMARK_REGISTER_F(WallsComputationTest, InsetOrderOptimizer_getRegionOrder)->Arg(3)->Arg(5)->Arg(999999);
 
+BENCHMARK_DEFINE_F(WallsComputationTest, InsetOrderOptimizer_getInsetOrder)(benchmark::State& st)
+{
+    for (auto _ : st)
+    {
+        auto order = InsetOrderOptimizer::getInsetOrder(all_paths, outer_to_inner);
+    }
+}
+
+BENCHMARK_REGISTER_F(WallsComputationTest, InsetOrderOptimizer_getInsetOrder)->Arg(3)->Arg(5)->Arg(999999);
+
 // Run the benchmark
 BENCHMARK_MAIN();
