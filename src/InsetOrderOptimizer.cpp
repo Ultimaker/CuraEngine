@@ -162,11 +162,11 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
     auto pointer_view = input | rv::addressof;
     auto locator_view = rv::zip(pointer_view, poly_views)
                       | rv::transform(
-                            [](const auto& loco)
+                            [](const auto& locator)
                             {
-                                const auto poly = std::get<1>(loco);
+                                const auto poly = std::get<1>(locator);
                                 return Locator{
-                                    .line = std::get<0>(loco),
+                                    .line = std::get<0>(locator),
                                     .poly = poly,
                                     .area = poly.area(),
                                 };
@@ -185,20 +185,20 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
     auto windings_view = rv::concat(windings[0], windings[1]); // Make sure we always have initial root even if one of the partitions resulted in an empty vector
     std::unordered_set<Locator*> roots{ &rg::front(windings_view) };
 
-    for (const auto& loco : windings_view | rv::addressof)
+    for (const auto& locator : windings_view | rv::addressof)
     {
         std::vector<Locator*> erase;
         for (const auto& root : roots)
         {
-            if (root->poly.inside(loco->poly))
+            if (root->poly.inside(locator->poly))
             {
-                if (loco->area <= 0)
+                if (locator->area <= 0)
                 {
-                    order.emplace(loco->line, root->line);
+                    order.emplace(locator->line, root->line);
                 }
                 else
                 {
-                    order.emplace(root->line, loco->line);
+                    order.emplace(root->line, locator->line);
                 }
                 erase.emplace_back(root);
             }
@@ -207,7 +207,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         {
             roots.erase(node);
         }
-        roots.emplace(loco);
+        roots.emplace(locator);
     }
 
     // Connect loose roots (mostly center extrusion lines)
