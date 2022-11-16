@@ -1,6 +1,8 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <string>
+
 #include <benchmark/benchmark.h>
 
 #include "InsetOrderOptimizer.h"
@@ -35,27 +37,33 @@ public:
      */
     Polygons ff_holes;
 
+    SliceLayer layer;
+
+    std::vector<ExtrusionLine> all_paths;
+
+    bool outer_to_inner;
+
     void SetUp(const ::benchmark::State& state)
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
-        square_shape.back().emplace_back(MM2INT(10), 0);
-        square_shape.back().emplace_back(MM2INT(10), MM2INT(10));
-        square_shape.back().emplace_back(0, MM2INT(10));
+        square_shape.back().emplace_back(MM2INT(100), 0);
+        square_shape.back().emplace_back(MM2INT(100), MM2INT(100));
+        square_shape.back().emplace_back(0, MM2INT(100));
 
         ff_holes.emplace_back();
         ff_holes.back().emplace_back(0, 0);
-        ff_holes.back().emplace_back(10000, 0);
-        ff_holes.back().emplace_back(10000, 5000);
-        ff_holes.back().emplace_back(0, 5000);
+        ff_holes.back().emplace_back(MM2INT(90), 0);
+        ff_holes.back().emplace_back(MM2INT(90), MM2INT(50));
+        ff_holes.back().emplace_back(0, MM2INT(50));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(1000, 1000);
-        ff_holes.back().emplace_back(1000, 4000);
-        ff_holes.back().emplace_back(4000, 2500);
+        ff_holes.back().emplace_back(MM2INT(90), MM2INT(90));
+        ff_holes.back().emplace_back(MM2INT(90), MM2INT(40));
+        ff_holes.back().emplace_back(MM2INT(40), MM2INT(25));
         ff_holes.emplace_back();
-        ff_holes.back().emplace_back(6000, 1000);
-        ff_holes.back().emplace_back(6000, 4000);
-        ff_holes.back().emplace_back(9000, 2500);
+        ff_holes.back().emplace_back(MM2INT(60), MM2INT(90));
+        ff_holes.back().emplace_back(MM2INT(60), MM2INT(40));
+        ff_holes.back().emplace_back(MM2INT(90), MM2INT(25));
 
         // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");
@@ -80,7 +88,24 @@ public:
         settings.add("wall_transition_length", "1");
         settings.add("wall_x_extruder_nr", "0");
         settings.add("wall_distribution_count", "2");
-        settings.add("wall_line_count", "5");
+        settings.add("wall_line_count", std::to_string(state.range(0)));
+
+        layer.parts.emplace_back();
+        SliceLayerPart& part = layer.parts.back();
+        part.outline.add(ff_holes);
+
+        // Run the test.
+        walls_computation.generateWalls(&layer);
+
+        outer_to_inner = false;
+
+        for (auto& inset : part.wall_toolpaths)
+        {
+            for (auto& line : inset)
+            {
+                all_paths.emplace_back(line);
+            }
+        }
     }
 
     void TearDown(const ::benchmark::State& state)
@@ -88,30 +113,15 @@ public:
     }
 };
 
-BENCHMARK_F(WallsComputationTest, centerpoint_boundingbox)(benchmark::State& st)
+BENCHMARK_DEFINE_F(WallsComputationTest, InsetOrderOptimizer_getRegionOrder)(benchmark::State& st)
 {
-    SliceLayer layer;
-    layer.parts.emplace_back();
-    SliceLayerPart& part = layer.parts.back();
-    part.outline.add(ff_holes);
-
-    // Run the test.
-    walls_computation.generateWalls(&layer);
-
-    const bool outer_to_inner = false;
-    std::vector<ExtrusionLine> all_paths;
-    for (auto& inset : part.wall_toolpaths)
-    {
-        for (auto& line : inset)
-        {
-            all_paths.emplace_back(line);
-        }
-    }
     for (auto _ : st)
     {
         auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
     }
 }
+
+BENCHMARK_REGISTER_F(WallsComputationTest, InsetOrderOptimizer_getRegionOrder)->Arg(3)->Arg(5)->Arg(999999);
 
 // Run the benchmark
 BENCHMARK_MAIN();
