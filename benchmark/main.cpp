@@ -121,7 +121,7 @@ BENCHMARK_DEFINE_F(WallsComputationTest, generateWalls)(benchmark::State& st)
     }
 }
 
-BENCHMARK_REGISTER_F(WallsComputationTest, generateWalls)->Arg(3)->Arg(5)->Arg(999999);
+BENCHMARK_REGISTER_F(WallsComputationTest, generateWalls)->Arg(3)->Arg(15)->Arg(999999);
 
 BENCHMARK_DEFINE_F(WallsComputationTest, InsetOrderOptimizer_getRegionOrder)(benchmark::State& st)
 {
@@ -131,7 +131,7 @@ BENCHMARK_DEFINE_F(WallsComputationTest, InsetOrderOptimizer_getRegionOrder)(ben
     }
 }
 
-BENCHMARK_REGISTER_F(WallsComputationTest, InsetOrderOptimizer_getRegionOrder)->Arg(3)->Arg(5)->Arg(999999);
+BENCHMARK_REGISTER_F(WallsComputationTest, InsetOrderOptimizer_getRegionOrder)->Arg(3)->Arg(15)->Arg(999999);
 
 BENCHMARK_DEFINE_F(WallsComputationTest, InsetOrderOptimizer_getInsetOrder)(benchmark::State& st)
 {
@@ -141,7 +141,7 @@ BENCHMARK_DEFINE_F(WallsComputationTest, InsetOrderOptimizer_getInsetOrder)(benc
     }
 }
 
-BENCHMARK_REGISTER_F(WallsComputationTest, InsetOrderOptimizer_getInsetOrder)->Arg(3)->Arg(5)->Arg(999999);
+BENCHMARK_REGISTER_F(WallsComputationTest, InsetOrderOptimizer_getInsetOrder)->Arg(3)->Arg(15)->Arg(999999);
 
 // Run the benchmark
 BENCHMARK_MAIN();
