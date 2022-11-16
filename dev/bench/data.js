@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1668616206029,
+  "lastUpdate": 1668617392906,
   "repoUrl": "https://github.com/Ultimaker/CuraEngine",
   "entries": {
     "C++ Benchmark": [
@@ -216,6 +216,102 @@ window.BENCHMARK_DATA = {
             "value": 53681116.8999975,
             "unit": "ns/iter",
             "extra": "iterations: 10\ncpu: 53675220.000000045 ns\nthreads: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "j.spijker@ultimaker.com",
+            "name": "jspijker",
+            "username": "jellespijker"
+          },
+          "committer": {
+            "email": "j.spijker@ultimaker.com",
+            "name": "jspijker",
+            "username": "jellespijker"
+          },
+          "distinct": true,
+          "id": "269ae41cc08b7959f7d236103e78d3cbb0d26328",
+          "message": "Run benchmarks when a Release tag is created",
+          "timestamp": "2022-11-16T17:09:02+01:00",
+          "tree_id": "e68459067d93acc162d8ec4f5e2f15dbf2eb6e06",
+          "url": "https://github.com/Ultimaker/CuraEngine/commit/269ae41cc08b7959f7d236103e78d3cbb0d26328"
+        },
+        "date": 1668617387025,
+        "tool": "googlecpp",
+        "benches": [
+          {
+            "name": "WallsComputationTest/generateWalls/3",
+            "value": 5724430.830000528,
+            "unit": "ns/iter",
+            "extra": "iterations: 100\ncpu: 5722221.000000001 ns\nthreads: 1"
+          },
+          {
+            "name": "WallsComputationTest/generateWalls/15",
+            "value": 17324202.959190764,
+            "unit": "ns/iter",
+            "extra": "iterations: 49\ncpu: 17322659.18367347 ns\nthreads: 1"
+          },
+          {
+            "name": "WallsComputationTest/generateWalls/999999",
+            "value": 40692899.57894733,
+            "unit": "ns/iter",
+            "extra": "iterations: 19\ncpu: 40689057.89473684 ns\nthreads: 1"
+          },
+          {
+            "name": "WallsComputationTest/InsetOrderOptimizer_getRegionOrder/3",
+            "value": 78805.42459496767,
+            "unit": "ns/iter",
+            "extra": "iterations: 11604\ncpu: 78798.7504308859 ns\nthreads: 1"
+          },
+          {
+            "name": "WallsComputationTest/InsetOrderOptimizer_getRegionOrder/15",
+            "value": 1032100.0258428602,
+            "unit": "ns/iter",
+            "extra": "iterations: 890\ncpu: 1032028.4269662927 ns\nthreads: 1"
+          },
+          {
+            "name": "WallsComputationTest/InsetOrderOptimizer_getRegionOrder/999999",
+            "value": 4775268.696132056,
+            "unit": "ns/iter",
+            "extra": "iterations: 181\ncpu: 4774966.85082873 ns\nthreads: 1"
+          },
+          {
+            "name": "WallsComputationTest/InsetOrderOptimizer_getInsetOrder/3",
+            "value": 48001.30801777522,
+            "unit": "ns/iter",
+            "extra": "iterations: 23398\ncpu: 47997.7476707411 ns\nthreads: 1"
+          },
+          {
+            "name": "WallsComputationTest/InsetOrderOptimizer_getInsetOrder/15",
+            "value": 393872.66547564225,
+            "unit": "ns/iter",
+            "extra": "iterations: 2239\ncpu: 393851.36221527506 ns\nthreads: 1"
+          },
+          {
+            "name": "WallsComputationTest/InsetOrderOptimizer_getInsetOrder/999999",
+            "value": 1371088.3344483105,
+            "unit": "ns/iter",
+            "extra": "iterations: 598\ncpu: 1370973.578595318 ns\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generateTest/400",
+            "value": 2652485.5365081863,
+            "unit": "ns/iter",
+            "extra": "iterations: 315\ncpu: 2652076.190476192 ns\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generateTest/800",
+            "value": 13159282.23584706,
+            "unit": "ns/iter",
+            "extra": "iterations: 106\ncpu: 13158417.924528308 ns\nthreads: 1"
+          },
+          {
+            "name": "InfillTest/Infill_generateTest/1200",
+            "value": 52423129.099997826,
+            "unit": "ns/iter",
+            "extra": "iterations: 10\ncpu: 52416559.999999985 ns\nthreads: 1"
           }
         ]
       }
