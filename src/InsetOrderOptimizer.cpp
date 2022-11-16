@@ -156,7 +156,6 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         const ExtrusionLine* line;
         Polygon poly;
         double area;
-        Point centerpoint;
     };
     auto poly_views = input | views::convert<Polygon>(&ExtrusionLine::toPolygon);
     auto pointer_view = input | rv::addressof;
@@ -169,7 +168,6 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                                     .line = std::get<0>(locator),
                                     .poly = poly,
                                     .area = poly.area(),
-                                    .centerpoint = AABB{ poly }.getMiddle(),
                                 };
                             });
 
@@ -191,7 +189,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         std::vector<Locator*> erase;
         for (const auto& root : roots)
         {
-            if (root->poly.inside(locator->centerpoint))
+            if (root->poly.inside(locator->poly))
             {
                 if (locator->area <= 0)
                 {
