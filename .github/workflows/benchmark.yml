@@ -51,7 +51,7 @@ jobs:
             -   name: Cache Benchmark library
                 uses: actions/cache@v1
                 with:
-                    path: benchmark
+                    path: ./cache
                     key: ${{ runner.os }}-googlebenchmark-v1.5.0
 
             -   name: Install Python requirements and Create default Conan profile
@@ -119,6 +119,7 @@ jobs:
                     name: C++ Benchmark
                     tool: 'googlecpp'
                     output-file-path: build/Release/benchmark/benchmark_result.json
+                    external-data-json-path: ./cache/benchmark-data.json
                     github-token: ${{ secrets.GITHUB_TOKEN }}
                     auto-push: true
                     # Show alert with commit comment on detecting possible performance regression
