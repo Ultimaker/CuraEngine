@@ -30,6 +30,7 @@ jobs:
             project_name: curaengine
 
     benchmark:
+        needs: [ conan-recipe-version ]
         name: Run C++ benchmark
         runs-on: ubuntu-latest
         steps:
