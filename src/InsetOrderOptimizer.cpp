@@ -184,7 +184,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
     auto windings_view = rv::concat(windings[0], windings[1]); // Make sure we always have initial root even if one of the partitions resulted in an empty vector
     std::unordered_set<Locator*> roots{ &rg::front(windings_view) };
 
-    for (const auto& locator : windings_view | rv::addressof)
+    for (const auto& locator : windings_view | rv::addressof | rv::drop(1))
     {
         std::vector<Locator*> erase;
         for (const auto& root : roots)
