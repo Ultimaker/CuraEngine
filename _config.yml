@@ -1,0 +1,9 @@
+title: CuraEngine developer portal
+description: Development documentation and Benchmark results for CuraEngine
+theme: just-the-docs
+
+url: https://ultimaker.github.io/CuraEngine
+
+aux_links:
+    Repository: https://github.com/Ultimaker/CuraEngine
+    Benchmarks: https://ultimaker.github.io/CuraEngine/dev/bench/
