@@ -113,7 +113,7 @@ jobs:
 
             -   name: Run benchmark CuraEngine
                 id: run-test
-                run: ./benchmarks --benchmark_format=json | tee benchmark_result.json
+                run: ./benchmarks --benchmark_format=json --benchmark_context=version=`${{ needs.conan-recipe-version.outputs.recipe_semver_full }}` | tee benchmark_result.json
                 working-directory: build/Release/benchmark
 
             -   name: Store benchmark result
