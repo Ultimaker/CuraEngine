@@ -185,32 +185,30 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
     auto windings_view = ranges::views::concat(windings[0], windings[1]); // Make sure we always have initial root even if one of the partitions resulted in an empty vector
     std::unordered_set<Locator*> roots{ &ranges::front(windings_view) };
-    for (auto& winding : windings)
+
+    for (const auto& loco : windings_view | ranges::views::addressof)
     {
-        for (const auto& loco : winding | ranges::views::addressof)
+        std::vector<Locator*> erase;
+        for (const auto& root : roots)
         {
-            std::vector<Locator*> erase;
-            for (const auto& root : roots)
+            if (root->poly.inside(loco->poly))
             {
-                if (root->poly.inside(loco->poly))
+                if (loco->area <= 0)
                 {
-                    if (loco->area <= 0)
-                    {
-                        order.emplace(loco->line, root->line);
-                    }
-                    else
-                    {
-                        order.emplace(root->line, loco->line);
-                    }
-                    erase.emplace_back(root);
+                    order.emplace(loco->line, root->line);
                 }
+                else
+                {
+                    order.emplace(root->line, loco->line);
+                }
+                erase.emplace_back(root);
             }
-            for (const auto& node : erase)
-            {
-                roots.erase(node);
-            }
-            roots.emplace(loco);
         }
+        for (const auto& node : erase)
+        {
+            roots.erase(node);
+        }
+        roots.emplace(loco);
     }
 
     // Connect loose roots (mostly center extrusion lines)
