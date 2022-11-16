@@ -113,6 +113,16 @@ public:
     }
 };
 
+BENCHMARK_DEFINE_F(WallsComputationTest, generateWalls)(benchmark::State& st)
+{
+    for (auto _ : st)
+    {
+        walls_computation.generateWalls(&layer);
+    }
+}
+
+BENCHMARK_REGISTER_F(WallsComputationTest, generateWalls)->Arg(3)->Arg(5)->Arg(999999);
+
 BENCHMARK_DEFINE_F(WallsComputationTest, InsetOrderOptimizer_getRegionOrder)(benchmark::State& st)
 {
     for (auto _ : st)
