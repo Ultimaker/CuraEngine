@@ -3,7 +3,7 @@ on:
     schedule:
         - cron:  '15 6,12,17 * * *'
 
-    # FIXME: remove the push trigger after merge
+    # FIXME: remove the path trigger after merge
     push:
         paths:
             - 'include/**'
@@ -16,6 +16,8 @@ on:
             - '.github/workflows/benchmark.yml'
         branches:
             - benchmarking
+        tags:
+            - '[0-9].[0-9].[0-9]*'
 
 env:
     CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
