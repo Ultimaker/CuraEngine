@@ -18,6 +18,7 @@ class LayerPlan;
 class InsetOrderOptimizer
 {
 public:
+    using value_type = std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>;
 
     /*!
      * Constructor for inset ordering optimizer.
@@ -70,7 +71,7 @@ public:
      * 
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
-    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getRegionOrder(const auto& input, const bool outer_to_inner);
+    static value_type getRegionOrder(const auto& input, const bool outer_to_inner);
 
     /*!
      * Get the order constraints of the insets when printing walls per inset.
@@ -80,7 +81,7 @@ public:
      * 
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
      */
-    static std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> getInsetOrder(const auto& input, const bool outer_to_inner);
+    static value_type getInsetOrder(const auto& input, const bool outer_to_inner);
 
     /*!
      * Make order requirements transitive.

@@ -145,7 +145,7 @@ bool InsetOrderOptimizer::addToLayer()
     return added_something;
 }
 
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getRegionOrder(const auto& input, const bool outer_to_inner)
+InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& input, const bool outer_to_inner)
 {
     if (input.empty()) // Early out
     {
@@ -175,14 +175,17 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
 
     // Partition the Extrusion lines based on their winding
     std::array<std::vector<Locator>, 2> windings;
-    ranges::partition_copy(locator_view, ranges::back_inserter(windings[0]), ranges::back_inserter(windings[1]), [](const auto& line) { return line.area < 0; });
+    ranges::partition_copy(locator_view,
+                           ranges::back_inserter(windings[0]),
+                           ranges::back_inserter(windings[1]),
+                           [](const auto& line) { return line.area < 0; });
 
     // Sort the extrusion lines from small to big
     ranges::sort(windings[0], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Locator::area);
     ranges::sort(windings[1], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Locator::area);
 
     // Build the forest, depending on the winding
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
+    value_type order;
     auto windings_view = ranges::views::concat(windings[0], windings[1]); // Make sure we always have initial root even if one of the partitions resulted in an empty vector
     std::unordered_set<Locator*> roots{ &ranges::front(windings_view) };
 
@@ -221,12 +224,14 @@ std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetO
     }
 
     // flip the key values if we want to print from inner to outer walls
-    return outer_to_inner ? order : ranges::views::zip(order | ranges::views::values, order | ranges::views::keys) | ranges::to<std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>>>;
+    return outer_to_inner ? order
+                          : ranges::views::zip(order | ranges::views::values,
+                                               order | ranges::views::keys)| ranges::to<value_type>;
 }
 
-std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
+InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
 {
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
+    value_type order;
 
     std::vector<std::vector<const ExtrusionLine*>> walls_by_inset;
     std::vector<std::vector<const ExtrusionLine*>> fillers_by_inset;
