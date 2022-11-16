@@ -115,6 +115,6 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
     }
 }
 
-BENCHMARK_REGISTER_F(InfillTest, Infill_generate_connect)->ArgsProduct({{true, false}, {400, 800, 1200}});
+BENCHMARK_REGISTER_F(InfillTest, Infill_generate_connect)->ArgsProduct({{true, false}, {400, 800, 1200}})->Unit(benchmark::kMillisecond);
 } // namespace cura
 #endif // CURAENGINE_INFILL_BENCHMARK_H

@@ -93,7 +93,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, generateWalls)(benchmark::State& st)
     }
 }
 
-BENCHMARK_REGISTER_F(WallTestFixture, generateWalls)->Arg(3)->Arg(15)->Arg(9999);
+BENCHMARK_REGISTER_F(WallTestFixture, generateWalls)->Arg(3)->Arg(15)->Arg(9999)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmark::State& st)
 {
@@ -112,7 +112,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmar
     }
 }
 
-BENCHMARK_REGISTER_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)->Arg(3)->Arg(15)->Arg(9999);
+BENCHMARK_REGISTER_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)->Arg(3)->Arg(15)->Arg(9999)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark::State& st)
 {
@@ -131,7 +131,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark
     }
 }
 
-BENCHMARK_REGISTER_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)->Arg(3)->Arg(15)->Arg(9999);
+BENCHMARK_REGISTER_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)->Arg(3)->Arg(15)->Arg(9999)->Unit(benchmark::kMillisecond);
 
 } // namespace cura
 #endif // CURAENGINE_WALL_BENCHMARK_H
