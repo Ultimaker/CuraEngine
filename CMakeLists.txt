@@ -228,3 +228,7 @@ if (ENABLE_TESTING)
     enable_testing()
     add_subdirectory(tests)
 endif ()
+
+if (ENABLE_BENCHMARKS)
+    add_subdirectory(benchmark)
+endif()
