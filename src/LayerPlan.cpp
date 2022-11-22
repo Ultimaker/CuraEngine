@@ -2025,10 +2025,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 // If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
                 float totalLength = 0.0;
                 Point p0 = gcode.getPositionXY();
-                for (unsigned int _path_idx = path_idx; _path_idx < paths.size() && ! paths[_path_idx].isTravelPath(); _path_idx++)
+                for (int64_t _path_idx = path_idx; _path_idx < paths.size() && ! paths[_path_idx].isTravelPath(); _path_idx++)
                 {
                     GCodePath& _path = paths[_path_idx];
-                    for (unsigned int point_idx = 0; point_idx < _path.points.size(); point_idx++)
+                    for (int64_t point_idx = 0; point_idx < _path.points.size(); point_idx++)
                     {
                         Point p1 = _path.points[point_idx];
                         totalLength += vSizeMM(p0 - p1);
@@ -2042,10 +2042,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 { // handle all consecutive spiralized paths > CHANGES path_idx!
                     GCodePath& path = paths[path_idx];
 
-                    for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
+                    for (int64_t point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
                         const Point p1 = path.points[point_idx];
-                        length += vSizeMM(p0 - p1);
+                        const auto [length, time] = extruder_plan.getPointToPointTime(p0, p1, path);
+                        insertTempOnTime(cumulative_path_time, time, path_idx);
+
                         p0 = p1;
                         gcode.setZ(std::round(z + layer_thickness * length / totalLength));
 
