@@ -196,7 +196,7 @@ void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths
     {
         for(ExtrusionLine& line : toolpaths[toolpaths_idx])
         {
-            line = simplifier.polyline(line);
+            line = line.is_closed ? simplifier.polygon(line) : simplifier.polyline(line);
         }
     }
 }
