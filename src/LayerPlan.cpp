@@ -54,9 +54,9 @@ ExtruderPlan::ExtruderPlan
 {
 }
 
-void ExtruderPlan::handleInserts(unsigned int& path_idx, GCodeExport& gcode)
+void ExtruderPlan::handleInserts(const int64_t& path_idx, GCodeExport& gcode, const double& cumulative_path_time)
 {
-    while (! inserts.empty() && path_idx >= inserts.front().path_idx)
+    while (! inserts.empty() && path_idx >= inserts.front().path_idx && inserts.front().time_after_path_start < cumulative_path_time)
     { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
         inserts.front().write(gcode);
         inserts.pop_front();
@@ -1568,6 +1568,17 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
     }
 }
 
+double ExtruderPlan::getRetractTime(const GCodePath& path)
+{
+    return retraction_config.distance / (path.retract ? retraction_config.speed : retraction_config.primeSpeed);
+}
+
+std::pair<double, double> ExtruderPlan::getPointToPointTime(const Point& p0, const Point& p1, const GCodePath& path)
+{
+    const double length = vSizeMM(p0 - p1);
+    return { length, length / (path.config->getSpeed() * path.speed_factor) };
+}
+
 TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_position)
 {
     Point p0 = starting_position;
@@ -1612,22 +1623,14 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
             }
             if (path.retract != was_retracted)
             { // handle retraction times
-                double retract_unretract_time;
-                if (path.retract)
-                {
-                    retract_unretract_time = retraction_config.distance / retraction_config.speed;
-                }
-                else
-                {
-                    retract_unretract_time = retraction_config.distance / retraction_config.primeSpeed;
-                }
+                const double retract_unretract_time = getRetractTime(path);
                 path.estimates.retracted_travel_time += 0.5 * retract_unretract_time;
                 path.estimates.unretracted_travel_time += 0.5 * retract_unretract_time;
             }
         }
         for (Point& p1 : path.points)
         {
-            double length = vSizeMM(p0 - p1);
+            const auto [length, thisTime] = getPointToPointTime(p0, p1, path);
             if (is_extrusion_path)
             {
                 if (length > 0)
@@ -1637,7 +1640,6 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
                 }
                 material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
             }
-            double thisTime = length / (path.config->getSpeed() * path.speed_factor);
             *path_time_estimate += thisTime;
             p0 = p1;
         }
@@ -1833,15 +1835,24 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         bool update_extrusion_offset = true;
 
-        for (unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
+        const auto insertTempOnTime =
+            [&](double& cumulative_time, const double to_add, const int64_t path_idx)
+            {
+                cumulative_time = cumulative_time + to_add;
+                extruder_plan.handleInserts(path_idx - 1, gcode, cumulative_time);
+            };
+
+        for (int64_t path_idx = 0; path_idx < paths.size(); path_idx++)
         {
-            extruder_plan.handleInserts(path_idx, gcode);
+            extruder_plan.handleInserts(path_idx - 1, gcode);
+            double cumulative_path_time = 0.; // in seconds
 
             GCodePath& path = paths[path_idx];
 
             if (path.perform_prime)
             {
                 gcode.writePrimeTrain(extruder.settings.get<Velocity>("speed_travel"));
+                // Don't update cumulative path time, as ComputeNaiveTimeEstimates also doesn't.
                 gcode.writeRetraction(retraction_config->retraction_config);
             }
 
@@ -1917,6 +1928,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 retraction_config = path.mesh ? &path.mesh->retraction_wipe_config : retraction_config;
                 gcode.writeRetraction(retraction_config->retraction_config);
+                insertTempOnTime(cumulative_path_time, extruder_plan.getRetractTime(path), path_idx);
                 if (path.perform_z_hop)
                 {
                     gcode.writeZhopStart(z_hop_height);
@@ -1994,11 +2006,17 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
+                    Point prev_point = gcode.getPositionXY();
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
+                        const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, path.points[point_idx], path);
+                        insertTempOnTime(cumulative_path_time, time, path_idx);
+
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
                         gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type, update_extrusion_offset);
+
+                        prev_point = path.points[point_idx];
                     }
                 }
             }
@@ -2049,6 +2067,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
         } // paths for this extruder /\  .
+        extruder_plan.handleAllRemainingInserts(gcode);
 
         if (extruder.settings.get<bool>("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
@@ -2067,8 +2086,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             }
             gcode.writeDelay(extruder_plan.extraTime);
         }
-
-        extruder_plan.handleAllRemainingInserts(gcode);
     } // extruder plans /\  .
 
     communication->sendLayerComplete(layer_nr, z, layer_thickness);

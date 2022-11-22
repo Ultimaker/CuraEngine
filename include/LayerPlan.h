@@ -4,6 +4,7 @@
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
+#include <limits>
 #include <optional>
 #include <vector>
 #ifdef BUILD_TESTS
@@ -50,7 +51,7 @@ class ExtruderPlan
 #endif
 protected:
     std::vector<GCodePath> paths; //!< The paths planned for this extruder
-    std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
+    std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between (and even inside) paths.
 
     double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
 
@@ -108,7 +109,7 @@ public:
      * \param path_idx The index into ExtruderPlan::paths which is currently being consider for temperature command insertion
      * \param gcode The gcode exporter to which to write the temperature command.
      */
-    void handleInserts(unsigned int& path_idx, GCodeExport& gcode);
+    void handleInserts(const int64_t& path_idx, GCodeExport& gcode, const double& cumulative_path_time = std::numeric_limits<double>::infinity());
 
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
@@ -176,6 +177,9 @@ protected:
      * 
      */
     void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
+
+    double getRetractTime(const GCodePath& path);
+    std::pair<double, double> getPointToPointTime(const Point& p0, const Point& p1, const GCodePath& path);
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
