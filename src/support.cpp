@@ -1500,6 +1500,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         support_layers[layer_idx].support_roof.add(roofs);
     }
 
+    // Remove support in between the support roof and the model. Subtracts the roof polygons from the support polygons on the layers above it.
     for (auto [layer_idx, support_layer] : support_layers
                                                | ranges::views::enumerate
                                                | ranges::views::drop(1)
