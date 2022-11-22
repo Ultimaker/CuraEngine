@@ -1839,7 +1839,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             [&](double& cumulative_time, const double to_add, const int64_t path_idx)
             {
                 cumulative_time = cumulative_time + to_add;
-                extruder_plan.handleInserts(path_idx - 1, gcode, cumulative_time);
+                extruder_plan.handleInserts(path_idx, gcode, cumulative_time);
             };
 
         for (int64_t path_idx = 0; path_idx < paths.size(); path_idx++)
