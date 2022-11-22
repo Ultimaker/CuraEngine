@@ -4,6 +4,7 @@
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
+#include <functional>
 #include <limits>
 #include <optional>
 #include <vector>
@@ -752,7 +753,7 @@ public:
      * \param layer_thickness The height of the current layer.
      * \return Whether any GCode has been written for the path.
      */
-    bool writePathWithCoasting(GCodeExport& gcode, const size_t extruder_plan_idx, const size_t path_idx, const coord_t layer_thickness);
+    bool writePathWithCoasting(GCodeExport& gcode, const size_t extruder_plan_idx, const size_t path_idx, const coord_t layer_thickness, const std::function<void(const double, const int64_t)> insertTempOnTime);
 
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed. 

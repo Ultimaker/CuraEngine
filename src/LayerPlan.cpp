@@ -1835,17 +1835,18 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         bool update_extrusion_offset = true;
 
-        const auto insertTempOnTime =
-            [&](double& cumulative_time, const double to_add, const int64_t path_idx)
+        double cumulative_path_time = 0.; // Time in seconds.
+        const std::function<void(const double, const int64_t)> insertTempOnTime =
+            [&](const double to_add, const int64_t path_idx)
             {
-                cumulative_time = cumulative_time + to_add;
-                extruder_plan.handleInserts(path_idx, gcode, cumulative_time);
+                cumulative_path_time += to_add;
+                extruder_plan.handleInserts(path_idx, gcode, cumulative_path_time);
             };
 
         for (int64_t path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             extruder_plan.handleInserts(path_idx - 1, gcode);
-            double cumulative_path_time = 0.; // in seconds
+            cumulative_path_time = 0.; // Reset to 0 for current path.
 
             GCodePath& path = paths[path_idx];
 
@@ -1928,7 +1929,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 retraction_config = path.mesh ? &path.mesh->retraction_wipe_config : retraction_config;
                 gcode.writeRetraction(retraction_config->retraction_config);
-                insertTempOnTime(cumulative_path_time, extruder_plan.getRetractTime(path), path_idx);
+                insertTempOnTime(extruder_plan.getRetractTime(path), path_idx);
                 if (path.perform_z_hop)
                 {
                     gcode.writeZhopStart(z_hop_height);
@@ -2002,7 +2003,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 bool coasting = extruder.settings.get<bool>("coasting_enable");
                 if (coasting)
                 {
-                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness);
+                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness, insertTempOnTime);
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
@@ -2010,7 +2011,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
                         const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, path.points[point_idx], path);
-                        insertTempOnTime(cumulative_path_time, time, path_idx);
+                        insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
                         communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
@@ -2046,7 +2047,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     {
                         const Point p1 = path.points[point_idx];
                         const auto [length, time] = extruder_plan.getPointToPointTime(p0, p1, path);
-                        insertTempOnTime(cumulative_path_time, time, path_idx);
+                        insertTempOnTime(time, path_idx);
 
                         p0 = p1;
                         gcode.setZ(std::round(z + layer_thickness * length / totalLength));
@@ -2129,7 +2130,7 @@ bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigne
     }
 }
 
-bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_plan_idx, const size_t path_idx, const coord_t layer_thickness)
+bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_plan_idx, const size_t path_idx, const coord_t layer_thickness, const std::function<void(const double, const int64_t)> insertTempOnTime)
 {
     ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
     const ExtruderTrain& extruder = Application::getInstance().current_slice->scene.extruders[extruder_plan.extruder_nr];
@@ -2220,12 +2221,18 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
         start = b + normal(a - b, residual_dist);
     }
 
+    Point prev_pt = gcode.getPositionXY();
     { // write normal extrude path:
         Communication* communication = Application::getInstance().communication;
         for (size_t point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
+            auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
+            insertTempOnTime(time, path_idx);
+
             communication->sendLineTo(path.config->type, path.points[point_idx], path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
             gcode.writeExtrusion(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(), path.config->type);
+
+            prev_pt = path.points[point_idx];
         }
         communication->sendLineTo(path.config->type, start, path.getLineWidthForLayerView(), path.config->getLayerThickness(), extrude_speed);
         gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config->type);
@@ -2234,9 +2241,14 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
     // write coasting path
     for (size_t point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
+        auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
+        insertTempOnTime(time, path_idx);
+
         const Ratio coasting_speed_modifier = extruder.settings.get<Ratio>("coasting_speed");
         const Velocity speed = Velocity(coasting_speed_modifier * path.config->getSpeed());
         gcode.writeTravel(path.points[point_idx], speed);
+
+        prev_pt = path.points[point_idx];
     }
     return true;
 }
