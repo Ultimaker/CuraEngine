@@ -220,7 +220,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
 
                     // find hole roots, these are leaves of the tree structure
                     // as odd walls are also lease we filter them out by adding a non-zero area check
-                    if (graph.count(current_node) == 1 && current_node->area > 0)
+                    if (current_node != root && graph.count(current_node) == 1 && current_node->line->is_closed && current_node->area > 0)
                     {
                         hole_roots.push_back(current_node);
                     }
