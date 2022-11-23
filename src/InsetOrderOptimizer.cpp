@@ -6,6 +6,8 @@
 #include "FffGcodeWriter.h"
 #include "LayerPlan.h"
 #include "utils/views/convert.h"
+#include "utils/views/dfs.h"
+#include <spdlog/spdlog.h>
 
 #include <iterator>
 #include <tuple>
@@ -169,36 +171,23 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                                     .poly = poly,
                                     .area = poly.area(),
                                 };
-                            });
+                            })
+                      | rg::to_vector;
 
-    // Partition the Extrusion lines based on their winding
-    std::array<std::vector<Locator>, 2> windings;
-    rg::partition_copy(locator_view, rg::back_inserter(windings[0]), rg::back_inserter(windings[1]), [](const auto& line) { return line.area < 0; });
+    // sort polygons on increasing area
+    rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return AABB(lhs).area() < AABB(rhs).area(); }, &Locator::poly);
 
-    // Sort the extrusion lines from small to big
-    rg::sort( windings[0], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Locator::area);
-    rg::sort( windings[1], [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &Locator::area);
-
-    // Build the forest, depending on the winding
-    value_type order;
-    auto windings_view = rv::concat(windings[0], windings[1]); // Make sure we always have initial root even if one of the partitions resulted in an empty vector
-    std::unordered_set<Locator*> roots{ &rg::front(windings_view) };
-
-    for (const auto& locator : windings_view | rv::addressof | rv::drop(1))
+    std::unordered_multimap<const Locator*, const Locator*> graph;
+    std::unordered_set<Locator*> roots{ &rg::front(locator_view) };
+    for (const auto& locator : locator_view | rv::addressof | rv::drop(1))
     {
         std::vector<Locator*> erase;
         for (const auto& root : roots)
         {
             if (root->poly.inside(locator->poly))
             {
-                if (locator->area <= 0)
-                {
-                    order.emplace(locator->line, root->line);
-                }
-                else
-                {
-                    order.emplace(root->line, locator->line);
-                }
+                graph.emplace(locator, root);
+                graph.emplace(root, locator);
                 erase.emplace_back(root);
             }
         }
@@ -209,12 +198,91 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         roots.emplace(locator);
     }
 
-    // Connect loose roots (mostly center extrusion lines)
-    for (const auto& root : roots)
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
+
+    for (const Locator* root : roots)
     {
-        if (auto& line = rg::back(windings_view).line; line != root->line)
+        std::map<const Locator*, unsigned int> min_dist;
+        std::map<const Locator*, const Locator*> min_node;
+        std::vector<const Locator*> hole_roots;
+
+        // Responsible for the following initialization
+        // - initialize all reachable nodes to root
+        // - mark all reachable nodes with their distance from the root
+        // - find hole roots, these are the innermost polygons enclosing a hole
         {
-            order.emplace(line, root->line);
+            const std::function<unsigned int(const Locator*, const unsigned int)> initialize_nodes =
+                [graph, root, &hole_roots, &min_node, &min_dist]
+                (const auto current_node, const auto dist)
+                {
+                    min_node[current_node] = root;
+                    min_dist[current_node] = dist;
+
+                    // find hole roots, these are leaves of the tree structure
+                    // as odd walls are also lease we filter them out by adding a non-zero area check
+                    if (graph.count(current_node) == 1 && current_node->area > 0)
+                    {
+                        hole_roots.push_back(current_node);
+                    }
+
+                    return dist + 1;
+                };
+
+            unsigned int initial_dist = 0;
+            auto visited = std::unordered_set<const Locator*>();
+            actions::dfs(root, graph, initial_dist, initialize_nodes, visited);
+        };
+
+        // For each hole root perform a dfs, and keep track of distance from hole root
+        // if the distance to a node is smaller than a distance calculated from another root update
+        // min_dist and min_node
+        {
+            for (auto& hole_root: hole_roots)
+            {
+                const std::function<unsigned int(const Locator*, const unsigned int)> update_nodes =
+                    [hole_root, &min_dist, &min_node]
+                    (const auto& current_node, auto dist)
+                {
+                    if (dist < min_dist[current_node])
+                    {
+                        min_dist[current_node] = dist;
+                        min_node[current_node] = hole_root;
+                    }
+                    return dist + 1;
+                };
+
+                unsigned int initial_dist = 0;
+                auto visited = std::unordered_set<const Locator*>();
+                actions::dfs(hole_root, graph, initial_dist, update_nodes, visited);
+            }
+        };
+
+        // perform a dfs from the root and all hole roots $r$ and set the order constraints for each polyline for which
+        // the distance is closest to root $r$
+        {
+            const Locator* root_ = root;
+            const std::function<const Locator*(const Locator*, const Locator*)> set_order_constraints =
+                [&order, &min_node, &root_, graph]
+                (const auto& current_node, auto parent_line)
+                {
+                    if (parent_line != nullptr && min_node[current_node] == root_)
+                    {
+                        order.emplace(parent_line->line, current_node->line);
+                    }
+                    return current_node;
+                };
+
+            auto visited = std::unordered_set<const Locator*>();
+            const Locator* initial_parent = nullptr;
+            actions::dfs(root, graph, initial_parent, set_order_constraints, visited);
+
+            for (auto& hole_root: hole_roots)
+            {
+                root_ = hole_root;
+                const Locator* initial_parent = nullptr;
+                auto visited = std::unordered_set<const Locator*>();
+                actions::dfs(hole_root, graph, initial_parent, set_order_constraints, visited);
+            }
         }
     }
 
