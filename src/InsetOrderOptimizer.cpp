@@ -187,6 +187,8 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         {
             if (root->poly.inside(locator->poly))
             {
+                // we need a bi-directional graph as we are performing a dfs from the root down
+                // and from each of the hole (which are leaves in the graph) up the tree
                 graph.emplace(locator, root);
                 graph.emplace(root, locator);
                 erase.emplace_back(root);
