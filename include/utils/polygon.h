@@ -303,8 +303,7 @@ public:
     {
         for (const auto& point : *path)
         {
-            const auto res = ClipperLib::PointInPolygon(point, *polygon.path);
-            if (res < 1)
+            if (!ClipperLib::PointInPolygon(point, *polygon.path))
             {
                 return false;
             }
