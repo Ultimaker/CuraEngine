@@ -237,19 +237,19 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         // if the distance to a node is smaller than a distance calculated from another root update
         // min_dist and min_node
         {
-            for (auto& hole_root: hole_roots)
+            for (auto& hole_root : hole_roots)
             {
                 const std::function<unsigned int(const Locator*, const unsigned int)> update_nodes =
                     [hole_root, &min_dist, &min_node]
                     (const auto& current_node, auto dist)
-                {
-                    if (dist < min_dist[current_node])
                     {
-                        min_dist[current_node] = dist;
-                        min_node[current_node] = hole_root;
-                    }
-                    return dist + 1;
-                };
+                        if (dist < min_dist[current_node])
+                        {
+                            min_dist[current_node] = dist;
+                            min_node[current_node] = hole_root;
+                        }
+                        return dist + 1;
+                    };
 
                 unsigned int initial_dist = 0;
                 auto visited = std::unordered_set<const Locator*>();
