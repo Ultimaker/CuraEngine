@@ -104,7 +104,8 @@ private:
     std::vector<std::vector<ConstPolygonPointer>> inset_polys; // vector of vectors holding the inset polygons
     Polygons retraction_region; //After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see retraction_region_calculated).
 
-    /* Determine if the paths should be reversed
+    /*!
+     * Determine if the paths should be reversed
      * If there is one extruder used, and we're currently printing the inner walls then Reversing the insets now depends on the inverse of
      * the inset direction. If we want to print the outer insets first we start with the lowest and move forward otherwise we start with the
      * highest and iterate back.
@@ -119,7 +120,8 @@ private:
      */
     constexpr bool shouldReversePath(const bool use_one_extruder, const bool current_extruder_is_wall_x, const bool outer_to_inner);
 
-    /* Flattens the `paths` and sorts the walls that should be printed added depending on if it is a single outer wall or the inner wall(s),
+    /*!
+     * Flattens the `paths` and sorts the walls that should be printed added depending on if it is a single outer wall or the inner wall(s),
      * The order can be reversed if required.
      *
      * \param reverse boolean stating if the order of the wall should be revered or not
