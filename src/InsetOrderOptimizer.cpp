@@ -176,7 +176,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                       | rg::to_vector;
 
     // sort polygons on increasing area
-    rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return abs(lhs) < abs(rhs); }, &Locator::area);
+    rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return abs(lhs) < abs(rhs); }, &LineLoc::area);
 
     std::unordered_multimap<const LineLoc*, const LineLoc*> graph;
     std::unordered_set<LineLoc*> roots{ &rg::front(locator_view) };
@@ -203,18 +203,36 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
 
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
 
-    for (const Locator* root : roots)
+    std::map<const LineLoc*, unsigned int> locator_to_line_index;
+    std::map<const ExtrusionLine*, unsigned int> extrusion_line_to_index;
+    int node_counter = 0;
+
+    for (const LineLoc* root : roots)
     {
-        std::map<const Locator*, unsigned int> min_dist;
-        std::map<const Locator*, const Locator*> min_node;
-        std::vector<const Locator*> hole_roots;
+        std::function<nullptr_t(const LineLoc*, const nullptr_t)> write_locator_to_line_index =
+            [&node_counter, &locator_to_line_index, &extrusion_line_to_index]
+            (const auto current_node, const auto _parent_state)
+            {
+                locator_to_line_index[current_node] = node_counter++;
+                extrusion_line_to_index[current_node->line] = node_counter++;
+                return nullptr;
+            };
+            for (const LineLoc* root : roots)
+            {
+                auto visited = std::unordered_set<const LineLoc*>();
+                actions::dfs(root, graph, nullptr, write_locator_to_line_index, visited);
+            }
+
+        std::map<const LineLoc*, unsigned int> min_dist;
+        std::map<const LineLoc*, const LineLoc*> min_node;
+        std::vector<const LineLoc*> hole_roots;
 
         // Responsible for the following initialization
         // - initialize all reachable nodes to root
         // - mark all reachable nodes with their distance from the root
         // - find hole roots, these are the innermost polygons enclosing a hole
         {
-            const std::function<unsigned int(const Locator*, const unsigned int)> initialize_nodes =
+            const std::function<unsigned int(const LineLoc*, const unsigned int)> initialize_nodes =
                 [graph, root, &hole_roots, &min_node, &min_dist]
                 (const auto current_node, const auto dist)
                 {
@@ -232,7 +250,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                 };
 
             unsigned int initial_dist = 0;
-            auto visited = std::unordered_set<const Locator*>();
+            auto visited = std::unordered_set<const LineLoc*>();
             actions::dfs(root, graph, initial_dist, initialize_nodes, visited);
         };
 
@@ -242,7 +260,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         {
             for (auto& hole_root : hole_roots)
             {
-                const std::function<unsigned int(const Locator*, const unsigned int)> update_nodes =
+                const std::function<unsigned int(const LineLoc*, const unsigned int)> update_nodes =
                     [hole_root, &min_dist, &min_node]
                     (const auto& current_node, auto dist)
                     {
@@ -255,7 +273,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                     };
 
                 unsigned int initial_dist = 0;
-                auto visited = std::unordered_set<const Locator*>();
+                auto visited = std::unordered_set<const LineLoc*>();
                 actions::dfs(hole_root, graph, initial_dist, update_nodes, visited);
             }
         };
@@ -263,9 +281,9 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         // perform a dfs from the root and all hole roots $r$ and set the order constraints for each polyline for which
         // the distance is closest to root $r$
         {
-            const Locator* root_ = root;
-            std::unordered_set<const Locator*> prev_leaves;
-            const std::function<const Locator*(const Locator*, const Locator*)> set_order_constraints =
+            const LineLoc* root_ = root;
+            std::unordered_set<const LineLoc*> prev_leaves;
+            const std::function<const LineLoc*(const LineLoc*, const LineLoc*)> set_order_constraints =
                 [&order, &min_node, &root_, &prev_leaves, graph]
                 (const auto& current_node, auto parent_node)
                 {
@@ -289,8 +307,8 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                    return current_node;
                 };
 
-            auto visited = std::unordered_set<const Locator*>();
-            const Locator* initial_parent = nullptr;
+            auto visited = std::unordered_set<const LineLoc*>();
+            const LineLoc* initial_parent = nullptr;
             actions::dfs(root, graph, initial_parent, set_order_constraints, visited);
 
             for (auto& hole_root : hole_roots)
@@ -303,12 +321,50 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                 prev_leaves.clear();
 
                 root_ = hole_root;
-                const Locator* initial_parent = nullptr;
-                auto visited = std::unordered_set<const Locator*>();
+                const LineLoc* initial_parent = nullptr;
+                auto visited = std::unordered_set<const LineLoc*>();
                 actions::dfs(hole_root, graph, initial_parent, set_order_constraints, visited);
             }
         }
+
+        {
+            AABB aabb;
+            for (const auto& locator : locator_view)
+            {
+                const auto polygon = locator.poly;
+                aabb.include(AABB{ polygon });
+            }
+            aabb.expand(1000);
+            SVG svg("filename.svg", aabb);
+            for (const auto& locator : locator_view)
+            {
+                const auto polygon = locator.poly;
+                constexpr SVG::Color colors[] = {
+                    SVG::Color::RED, SVG::Color::BLUE, SVG::Color::GREEN, SVG::Color::LIME, SVG::Color::ORANGE, SVG::Color::MAGENTA, SVG::Color::YELLOW,
+                };
+
+                const int line_index = min_node[&locator] == root ? -1 : distance(hole_roots.begin(), find(hole_roots.begin(), hole_roots.end(), min_node[&locator]));
+                const SVG::Color color = line_index == -1 ? SVG::Color::GREEN : colors[line_index];
+                svg.writePolygon(polygon, color);
+            }
+
+            for (const auto& hole_root : hole_roots)
+            {
+                svg.writePolygon(hole_root->poly, SVG::Color::ORANGE, 4.0);
+            }
+            svg.writePolygon(root->poly, SVG::Color::LIME, 4.0);
+        }
     }
+
+    std::string mermaid = "graph TD;\n";
+    for (const auto& edge: order)
+    {
+        const auto& u = extrusion_line_to_index[edge.first];
+        const auto& v = extrusion_line_to_index[edge.second];
+        mermaid += "    " + std::to_string(u) + "-->" + std::to_string(v) + ";\n";
+
+    }
+    spdlog::info("mermaid: {}", mermaid);
 
     // flip the key values if we want to print from inner to outer walls
     return outer_to_inner ? order : rv::zip(order | rv::values, order | rv::keys) | rg::to<value_type>;
