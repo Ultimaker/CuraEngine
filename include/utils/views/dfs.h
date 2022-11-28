@@ -31,17 +31,9 @@ constexpr void dfs(
 {
     if (ranges::contains(visited, current_node))
     {
-        //        return DFSAction::ContinueSearch;
         return;
     }
     visited.emplace(current_node);
-
-    //    const auto handle_node_result = handle_node(current_node);
-    //    switch (handle_node_result)
-    //    {
-    //        case DFSAction::StopBranch: return DFSAction::ContinueSearch;
-    //        case DFSAction::StopSearch: return DFSAction::StopSearch;
-    //    }
 
     auto current_state = handle_node(current_node, state);
 
@@ -56,15 +48,7 @@ constexpr void dfs(
             handle_node,
             visited
         );
-
-        //        const auto dfs_result = dfs(child_node, current_node, dag, visited);
-        //        switch (dfs_result)
-        //        {
-        //            case DFSAction::StopSearch: return DFSAction::StopSearch;
-        //        }
     }
-
-    //    return DFSAction::ContinueSearch;
 }
 } // namespace cura::actions
 
