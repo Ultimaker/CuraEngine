@@ -139,6 +139,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
+        )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
 use_threads(_CuraEngine)
