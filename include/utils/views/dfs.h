@@ -29,7 +29,7 @@ constexpr void dfs(
     std::function<State(const Node, const State)> handle_node,
     isSet auto& visited)
 {
-    if (ranges::contains(visited, current_node))
+    if (visited.contains(current_node))
     {
         return;
     }
