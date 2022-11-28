@@ -262,23 +262,44 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         // the distance is closest to root $r$
         {
             const Locator* root_ = root;
+            std::unordered_set<const Locator*> prev_leaves;
             const std::function<const Locator*(const Locator*, const Locator*)> set_order_constraints =
-                [&order, &min_node, &root_, graph]
-                (const auto& current_node, auto parent_line)
+                [&order, &min_node, &root_, &prev_leaves, graph]
+                (const auto& current_node, auto parent_node)
                 {
-                    if (parent_line != nullptr && min_node[current_node] == root_)
-                    {
-                        order.emplace(parent_line->line, current_node->line);
-                    }
-                    return current_node;
+                   if (min_node[current_node] == root_)
+                   {
+                       if (parent_node != nullptr)
+                       {
+                           order.emplace(parent_node->line, current_node->line);
+                       }
+
+                       // For the identification of leaves add the current node to the
+                       // leaves. This node might however not be a leave, then it would
+                       // be removed in the next call where the parent of the next node
+                       // (which is the current_node) is removed. For the actual leaves
+                       // there is no call deeper in the tree so those nodes will never
+                       // be parents in the "deeper" call.
+                       prev_leaves.erase(parent_node);
+                       prev_leaves.insert(current_node);
+                   }
+
+                   return current_node;
                 };
 
             auto visited = std::unordered_set<const Locator*>();
             const Locator* initial_parent = nullptr;
             actions::dfs(root, graph, initial_parent, set_order_constraints, visited);
 
-            for (auto& hole_root: hole_roots)
+            for (auto& hole_root : hole_roots)
             {
+                // adding edges from all previous leaves to the current hole root to make sure it is printed after
+                for (auto& prev_leave : prev_leaves)
+                {
+                    order.emplace(prev_leave->line, hole_root->line);
+                }
+                prev_leaves.clear();
+
                 root_ = hole_root;
                 const Locator* initial_parent = nullptr;
                 auto visited = std::unordered_set<const Locator*>();
