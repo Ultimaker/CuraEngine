@@ -6,6 +6,10 @@
 #include <fstream> // ifstream.good()
 #include <utility> // pair
 
+#include <range/v3/view/drop.hpp>
+#include <range/v3/view/drop_last.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/slice.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
@@ -1493,6 +1497,27 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         Polygons roofs;
         generateSupportInterfaceLayer(global_support_areas_per_layer[layer_idx], mesh_outlines, roof_line_width, roof_outline_offset, minimum_roof_area, roofs);
         support_layers[layer_idx].support_roof.add(roofs);
+    }
+
+    // Remove support in between the support roof and the model. Subtracts the roof polygons from the support polygons on the layers above it.
+    for (auto [layer_idx, support_layer] : support_layers
+                                               | ranges::views::enumerate
+                                               | ranges::views::drop(1)
+                                               | ranges::views::drop_last(z_distance_top))
+    {
+        Polygons roof = support_layer.support_roof;
+
+        if (roof.empty())
+        {
+            continue;
+        }
+
+        int lower = static_cast<int>(layer_idx);
+        int upper = static_cast<int>(layer_idx + roof_layer_count + z_distance_top + 5);
+        for (Polygons global_support : global_support_areas_per_layer | ranges::views::slice(lower, upper))
+        {
+            global_support = global_support.difference(roof);
+        }
     }
 }
 
