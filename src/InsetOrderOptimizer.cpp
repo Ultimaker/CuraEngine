@@ -153,7 +153,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
     }
 
     // Cache the polygons and get the signed area of each extrusion line and store them mapped against the pointers for those lines
-    struct Locator
+    struct LineLoc
     {
         const ExtrusionLine* line;
         Polygon poly;
@@ -167,7 +167,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                             {
                                 const auto poly = std::get<1>(locator);
                                 const auto line = std::get<0>(locator);
-                                return Locator{
+                                return LineLoc {
                                     .line = line,
                                     .poly = poly,
                                     .area = line->is_closed ? poly.area() : 0,
@@ -178,11 +178,11 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
     // sort polygons on increasing area
     rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return abs(lhs) < abs(rhs); }, &Locator::area);
 
-    std::unordered_multimap<const Locator*, const Locator*> graph;
-    std::unordered_set<Locator*> roots{ &rg::front(locator_view) };
+    std::unordered_multimap<const LineLoc*, const LineLoc*> graph;
+    std::unordered_set<LineLoc*> roots{ &rg::front(locator_view) };
     for (const auto& locator : locator_view | rv::addressof | rv::drop(1))
     {
-        std::vector<Locator*> erase;
+        std::vector<LineLoc*> erase;
         for (const auto& root : roots)
         {
             if (root->poly.inside(locator->poly))
