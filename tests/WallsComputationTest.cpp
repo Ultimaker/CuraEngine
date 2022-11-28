@@ -1,6 +1,7 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2022 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <range/v3/view/join.hpp>
 #include "InsetOrderOptimizer.h" //Unit also under test.
 #include "WallsComputation.h" //Unit under test.
 #include "settings/Settings.h" //Settings to generate walls with.
@@ -150,12 +151,9 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
 
     const bool outer_to_inner = false;
     std::vector<ExtrusionLine> all_paths;
-    for (auto& inset : part.wall_toolpaths)
+    for (auto& line : part.wall_toolpaths | ranges::views::join)
     {
-        for (auto& line : inset)
-        {
-            all_paths.emplace_back(line);
-        }
+        all_paths.emplace_back(line);
     }
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
 
