@@ -166,16 +166,17 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                             [](const auto& locator)
                             {
                                 const auto poly = std::get<1>(locator);
+                                const auto line = std::get<0>(locator);
                                 return Locator{
-                                    .line = std::get<0>(locator),
+                                    .line = line,
                                     .poly = poly,
-                                    .area = poly.area(),
+                                    .area = line->is_closed ? poly.area() : 0,
                                 };
                             })
                       | rg::to_vector;
 
     // sort polygons on increasing area
-    rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return AABB(lhs).area() < AABB(rhs).area(); }, &Locator::poly);
+    rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return abs(lhs) < abs(rhs); }, &Locator::area);
 
     std::unordered_multimap<const Locator*, const Locator*> graph;
     std::unordered_set<Locator*> roots{ &rg::front(locator_view) };
