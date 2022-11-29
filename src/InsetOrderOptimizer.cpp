@@ -260,49 +260,33 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         // perform a dfs from the root and all hole roots $r$ and set the order constraints for each polyline for which
         // the distance is closest to root $r$
         {
+            const LineLoc* prev_node = nullptr;
+
             const LineLoc* root_ = root;
-            std::unordered_set<const LineLoc*> prev_leaves;
-            const std::function<const LineLoc*(const LineLoc*, const LineLoc*)> set_order_constraints =
-                [&order, &min_node, &root_, &prev_leaves, graph]
-                (const auto& current_node, auto parent_node)
+            const std::function<std::nullptr_t(const LineLoc*, std::nullptr_t)> set_order_constraints =
+                [&order, &min_node, &root_, &prev_node, graph]
+                (const auto& current_node, auto _prev_state)
                 {
                    if (min_node[current_node] == root_)
                    {
-                       if (parent_node != nullptr)
+                       if (prev_node != nullptr)
                        {
-                           order.emplace(parent_node->line, current_node->line);
+                           order.emplace(prev_node->line, current_node->line);
                        }
-
-                       // For the identification of leaves add the current node to the
-                       // leaves. This node might however not be a leave, then it would
-                       // be removed in the next call where the parent of the next node
-                       // (which is the current_node) is removed. For the actual leaves
-                       // there is no call deeper in the tree so those nodes will never
-                       // be parents in the "deeper" call.
-                       prev_leaves.erase(parent_node);
-                       prev_leaves.insert(current_node);
+                       prev_node = current_node;
                    }
 
-                   return current_node;
+                   return nullptr;
                 };
 
             auto visited = std::unordered_set<const LineLoc*>();
-            const LineLoc* initial_parent = nullptr;
-            actions::dfs(root, graph, initial_parent, set_order_constraints, visited);
+            actions::dfs(root, graph, nullptr, set_order_constraints, visited);
 
             for (auto& hole_root : hole_roots)
             {
-                // adding edges from all previous leaves to the current hole root to make sure it is printed after
-                for (auto& prev_leave : prev_leaves)
-                {
-                    order.emplace(prev_leave->line, hole_root->line);
-                }
-                prev_leaves.clear();
-
                 root_ = hole_root;
-                const LineLoc* initial_parent = nullptr;
                 auto visited = std::unordered_set<const LineLoc*>();
-                actions::dfs(hole_root, graph, initial_parent, set_order_constraints, visited);
+                actions::dfs(hole_root, graph, nullptr, set_order_constraints, visited);
             }
         }
     }
