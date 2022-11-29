@@ -167,7 +167,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                                 return LineLoc {
                                     .line = line,
                                     .poly = poly,
-                                    .area = line->is_closed ? poly.area() : 0,
+                                    .area = line->is_closed ? poly.area() : 0.0,
                                 };
                             })
                       | rg::to_vector;
@@ -218,8 +218,8 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                     min_node[current_node] = root;
                     min_dist[current_node] = dist;
 
-                    // find hole roots, these are leaves of the tree structure
-                    // as odd walls are also lease we filter them out by adding a non-zero area check
+                    // find hole roots (defined by a possitive area in clipper1), these are leaves of the tree structure
+                    // as odd walls are also leaves we filter them out by adding a non-zero area check
                     if (current_node != root && graph.count(current_node) == 1 && current_node->line->is_closed && current_node->area > 0)
                     {
                         hole_roots.push_back(current_node);

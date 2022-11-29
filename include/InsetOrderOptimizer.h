@@ -1,4 +1,4 @@
-// Copyright (c) 2022 UltiMaker
+// Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef INSET_ORDER_OPTIMIZER_H
@@ -131,12 +131,6 @@ private:
      */
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
 
-    /*!
-     * Endpoints of polylines that are closer together than this distance
-     * will be considered to be coincident,
-     * closing that polyline into a polygon.
-     */
-    constexpr static coord_t coincident_point_distance = 10;
 };
 } //namespace cura
 

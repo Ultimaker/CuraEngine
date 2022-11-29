@@ -1,4 +1,4 @@
-// Copyright (c) 2022 UltiMaker
+// Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_POLYGON_H
@@ -303,7 +303,7 @@ public:
     {
         for (const auto& point : *path)
         {
-            if (!ClipperLib::PointInPolygon(point, *polygon.path))
+            if (! ClipperLib::PointInPolygon(point, *polygon.path))
             {
                 return false;
             }

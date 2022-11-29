@@ -16,7 +16,7 @@ namespace cura::actions
  * Walks through an arbitrary graph using depth-first-search and calls a custom callback at each visited node
  * \param node the current visited node, should be convertable or have the same type as the nodes in dag and visited
  * \param dag Directed Acyclic Graph as defined by \concept isGraph
- * \param state a state that p
+ * \param state a state that propagate
  * \param handle_node Custom call back function called at each visited node. Arguments for the functions are the current node, and the state resulted from the parent node
  * \param visited nodes as defined by concept \isSet; _note: visited will not be ordered if it is of type `unordered_###`
  */

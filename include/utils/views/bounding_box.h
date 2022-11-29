@@ -4,10 +4,10 @@
 #ifndef UTILS_VIEWS_BOUNDING_BOX_H
 #define UTILS_VIEWS_BOUNDING_BOX_H
 
+#include <type_traits>
+
 #include "utils/AABB.h"
 #include "utils/views/convert.h"
-
-#include <type_traits>
 
 
 namespace cura::views
