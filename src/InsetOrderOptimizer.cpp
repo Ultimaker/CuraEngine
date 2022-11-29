@@ -1,9 +1,9 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "InsetOrderOptimizer.h"
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
+#include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "utils/views/convert.h"
 #include "utils/views/dfs.h"
@@ -13,14 +13,11 @@
 #include <tuple>
 
 #include <range/v3/algorithm/max.hpp>
-#include <range/v3/algorithm/partition_copy.hpp>
 #include <range/v3/algorithm/sort.hpp>
-#include <range/v3/iterator/insert_iterators.hpp>
 #include <range/v3/range/operations.hpp>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/any_view.hpp>
-#include <range/v3/view/concat.hpp>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/join.hpp>
