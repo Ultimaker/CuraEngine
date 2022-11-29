@@ -173,7 +173,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                       | rg::to_vector;
 
     // sort polygons on increasing area
-    rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return abs(lhs) < abs(rhs); }, &LineLoc::area);
+    rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &LineLoc::area);
 
     std::unordered_multimap<const LineLoc*, const LineLoc*> graph;
     std::unordered_set<LineLoc*> roots{ &rg::front(locator_view) };
