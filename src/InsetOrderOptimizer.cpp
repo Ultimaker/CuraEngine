@@ -203,26 +203,8 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
 
     std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
 
-    std::map<const LineLoc*, unsigned int> locator_to_line_index;
-    std::map<const ExtrusionLine*, unsigned int> extrusion_line_to_index;
-    int node_counter = 0;
-
     for (const LineLoc* root : roots)
     {
-        std::function<nullptr_t(const LineLoc*, const nullptr_t)> write_locator_to_line_index =
-            [&node_counter, &locator_to_line_index, &extrusion_line_to_index]
-            (const auto current_node, const auto _parent_state)
-            {
-                locator_to_line_index[current_node] = node_counter++;
-                extrusion_line_to_index[current_node->line] = node_counter++;
-                return nullptr;
-            };
-            for (const LineLoc* root : roots)
-            {
-                auto visited = std::unordered_set<const LineLoc*>();
-                actions::dfs(root, graph, nullptr, write_locator_to_line_index, visited);
-            }
-
         std::map<const LineLoc*, unsigned int> min_dist;
         std::map<const LineLoc*, const LineLoc*> min_node;
         std::vector<const LineLoc*> hole_roots;
@@ -326,45 +308,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                 actions::dfs(hole_root, graph, initial_parent, set_order_constraints, visited);
             }
         }
-
-        {
-            AABB aabb;
-            for (const auto& locator : locator_view)
-            {
-                const auto polygon = locator.poly;
-                aabb.include(AABB{ polygon });
-            }
-            aabb.expand(1000);
-            SVG svg("filename.svg", aabb);
-            for (const auto& locator : locator_view)
-            {
-                const auto polygon = locator.poly;
-                constexpr SVG::Color colors[] = {
-                    SVG::Color::RED, SVG::Color::BLUE, SVG::Color::GREEN, SVG::Color::LIME, SVG::Color::ORANGE, SVG::Color::MAGENTA, SVG::Color::YELLOW,
-                };
-
-                const int line_index = min_node[&locator] == root ? -1 : distance(hole_roots.begin(), find(hole_roots.begin(), hole_roots.end(), min_node[&locator]));
-                const SVG::Color color = line_index == -1 ? SVG::Color::GREEN : colors[line_index];
-                svg.writePolygon(polygon, color);
-            }
-
-            for (const auto& hole_root : hole_roots)
-            {
-                svg.writePolygon(hole_root->poly, SVG::Color::ORANGE, 4.0);
-            }
-            svg.writePolygon(root->poly, SVG::Color::LIME, 4.0);
-        }
     }
-
-    std::string mermaid = "graph TD;\n";
-    for (const auto& edge: order)
-    {
-        const auto& u = extrusion_line_to_index[edge.first];
-        const auto& v = extrusion_line_to_index[edge.second];
-        mermaid += "    " + std::to_string(u) + "-->" + std::to_string(v) + ";\n";
-
-    }
-    spdlog::info("mermaid: {}", mermaid);
 
     // flip the key values if we want to print from inner to outer walls
     return outer_to_inner ? order : rv::zip(order | rv::values, order | rv::keys) | rg::to<value_type>;
