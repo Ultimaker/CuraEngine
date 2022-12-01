@@ -7,6 +7,7 @@
 #include <string>
 
 #include <benchmark/benchmark.h>
+#include <range/v3/view/join.hpp>
 
 #include "InsetOrderOptimizer.h"
 #include "WallsComputation.h"
@@ -98,13 +99,10 @@ BENCHMARK_REGISTER_F(WallTestFixture, generateWalls)->Arg(3)->Arg(15)->Arg(9999)
 BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmark::State& st)
 {
     walls_computation.generateWalls(&layer);
-    std::vector<const ExtrusionLine*> all_paths;
-    for (auto& inset : layer.parts.back().wall_toolpaths)
+    std::vector<ExtrusionLine> all_paths;
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join )
     {
-        for (auto& line : inset)
-        {
-            all_paths.emplace_back(&line);
-        }
+        all_paths.emplace_back(line);
     }
     for (auto _ : st)
     {
@@ -117,13 +115,10 @@ BENCHMARK_REGISTER_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)->Arg(3
 BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark::State& st)
 {
     walls_computation.generateWalls(&layer);
-    std::vector<const ExtrusionLine*> all_paths;
-    for (auto& inset : layer.parts.back().wall_toolpaths)
+    std::vector<ExtrusionLine> all_paths;
+    for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join )
     {
-        for (auto& line : inset)
-        {
-            all_paths.emplace_back(&line);
-        }
+        all_paths.emplace_back(line);
     }
     for (auto _ : st)
     {
