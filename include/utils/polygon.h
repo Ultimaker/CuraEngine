@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_POLYGON_H
 #define UTILS_POLYGON_H
@@ -297,6 +297,18 @@ public:
             return border_result;
         }
         return res == 1;
+    }
+
+    bool inside(const auto& polygon) const
+    {
+        for (const auto& point : *path)
+        {
+            if (! ClipperLib::PointInPolygon(point, *polygon.path))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     /*!
