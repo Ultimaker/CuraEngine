@@ -1,40 +1,38 @@
-//Copyright (C) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <iterator>
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <limits>
 
+#include "Application.h"
+#include "Slice.h"
 #include "settings/AdaptiveLayerHeights.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Angle.h"
-#include "Application.h"
-#include "Slice.h"
 #include "utils/floatpoint.h"
 
 namespace cura
 {
 
-AdaptiveLayer::AdaptiveLayer(const coord_t layer_height) : layer_height(layer_height) { }
-
-AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation,
-                                           const coord_t step_size, const coord_t threshold,
-                                           const MeshGroup* meshgroup)
-    : base_layer_height(base_layer_height)
-    , max_variation(variation)
-    , step_size(step_size)
-    , threshold(threshold)
-    , meshgroup(meshgroup)
+AdaptiveLayer::AdaptiveLayer(const coord_t layer_height) : layer_height{ layer_height }
 {
-    layers = {};
+}
 
+AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup)
+    : base_layer_height{ base_layer_height }
+    , max_variation{ variation }
+    , step_size{ step_size }
+    , threshold{ threshold }
+    , meshgroup{ meshgroup }
+{
     calculateAllowedLayerHeights();
     calculateMeshTriangleSlopes();
     calculateLayers();
 }
 
-int AdaptiveLayerHeights::getLayerCount()
+size_t AdaptiveLayerHeights::getLayerCount() const
 {
     return layers.size();
 }
@@ -85,7 +83,7 @@ void AdaptiveLayerHeights::calculateLayers()
         int layer_height_for_global_min_slope = 0;
         // loop over all allowed layer heights starting with the largest
         bool has_added_layer = false;
-        for (auto & layer_height : allowed_layer_heights)
+        for (auto& layer_height : allowed_layer_heights)
         {
             // use lower and upper bounds to filter on triangles that are interesting for this potential layer
             const coord_t lower_bound = z_level;
@@ -161,10 +159,7 @@ void AdaptiveLayerHeights::calculateLayers()
             // 2) the layer height is the smallest it is allowed
             // 3) the layer is a flat surface (we can't divide by 0)
             const double minimum_slope_tan = std::tan(minimum_slope);
-            if (minimum_slope_tan == 0.0
-                || (layer_height / minimum_slope_tan) <= threshold
-                || layer_height == minimum_layer_height
-                || has_exceeded_step_size)
+            if (minimum_slope_tan == 0.0 || (layer_height / minimum_slope_tan) <= threshold || layer_height == minimum_layer_height || has_exceeded_step_size)
             {
                 z_level += layer_height;
                 AdaptiveLayer adaptive_layer(layer_height);
@@ -178,7 +173,7 @@ void AdaptiveLayerHeights::calculateLayers()
 
         // this means we cannot find a layer height that has an angle lower than the threshold.
         // in this case, we use the layer height with the lowest
-        if (!has_added_layer)
+        if (! has_added_layer)
         {
             z_level += allowed_layer_heights.back();
         }
@@ -231,4 +226,4 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
     }
 }
 
-}
+} // namespace cura

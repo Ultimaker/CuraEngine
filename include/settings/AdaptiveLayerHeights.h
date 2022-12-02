@@ -1,13 +1,14 @@
-//Copyright (C) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef ADAPTIVELAYERHEIGHTS_H
 #define ADAPTIVELAYERHEIGHTS_H
 
-#include "../utils/Coord_t.h"
-#include "../MeshGroup.h"
+#include "MeshGroup.h"
+#include "utils/Coord_t.h"
 
-namespace cura {
+namespace cura
+{
 
 class AdaptiveLayer
 {
@@ -44,17 +45,17 @@ public:
     /**
      * The base layer height.
      */
-    int base_layer_height;
+    coord_t base_layer_height;
 
     /**
      * The maximum deviation from the base layer height.
      */
-    int max_variation;
+    coord_t max_variation;
 
     /**
      * The layer height change per step to try between min and max deviation from the base layer height.
      */
-    int step_size;
+    coord_t step_size;
 
     /*!
      * Target topography size. Adaptive layers will try to keep the horizontal
@@ -76,7 +77,7 @@ public:
      * Get the amount of adaptive layers found.
      * @return
      */
-    int getLayerCount();
+    size_t getLayerCount() const;
 
     /*!
      * Get the adaptive layers found.
@@ -94,11 +95,9 @@ public:
      * to.
      * \param meshgroup The meshgroup to process.
      */
-    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold,
-                         const MeshGroup* meshgroup);
+    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup);
 
 private:
-
     /*!
      * Stores the found slopes of each face using the same index.
      */
@@ -124,6 +123,6 @@ private:
     void calculateMeshTriangleSlopes();
 };
 
-}
+} // namespace cura
 
-#endif //ADAPTIVELAYERHEIGHTS_H
+#endif // ADAPTIVELAYERHEIGHTS_H
