@@ -1,5 +1,7 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
-#include "ProgressStageEstimator.h"
+//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#include "progress/ProgressStageEstimator.h"
 
 
 namespace cura 

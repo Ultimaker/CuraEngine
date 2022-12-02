@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifdef ARCUS
 
@@ -7,19 +7,20 @@
 #include <thread> //To sleep while waiting for the connection.
 #include <unordered_map> //To map settings to their extruder numbers for limit_to_extruder.
 
-#include "ArcusCommunication.h"
-#include "ArcusCommunicationPrivate.h" //Our PIMPL.
-#include "Listener.h" //To listen to the Arcus socket.
-#include "SliceDataStruct.h" //To store sliced layer data.
-#include "../Application.h" //To get and set the current slice command.
-#include "../ExtruderTrain.h"
-#include "../FffProcessor.h" //To start a slice.
-#include "../PrintFeature.h"
-#include "../Slice.h" //To process slices.
-#include "../settings/types/LayerIndex.h" //To point to layers.
-#include "../settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
-#include "../utils/logoutput.h"
-#include "../utils/polygon.h"
+#include <spdlog/spdlog.h>
+
+#include "Application.h" //To get and set the current slice command.
+#include "ExtruderTrain.h"
+#include "FffProcessor.h" //To start a slice.
+#include "PrintFeature.h"
+#include "Slice.h" //To process slices.
+#include "communication/ArcusCommunication.h"
+#include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
+#include "communication/Listener.h" //To listen to the Arcus socket.
+#include "communication/SliceDataStruct.h" //To store sliced layer data.
+#include "settings/types/LayerIndex.h" //To point to layers.
+#include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
+#include "utils/polygon.h"
 
 namespace cura
 {
@@ -52,22 +53,24 @@ class ArcusCommunication::PathCompiler
 
     PathCompiler(const PathCompiler&) = delete;
     PathCompiler& operator=(const PathCompiler&) = delete;
+
 public:
     /*
      * Create a new path compiler.
      */
-    PathCompiler(ArcusCommunication::Private& cs_private_data):
-        _cs_private_data(cs_private_data),
-        _layer_nr(0),
-        extruder(0),
-        data_point_type(cura::proto::PathSegment::Point2D),
-        line_types(),
-        line_widths(),
-        line_thicknesses(),
-        line_velocities(),
-        points(),
-        last_point{0,0}
-    {}
+    PathCompiler(ArcusCommunication::Private& cs_private_data)
+        : _cs_private_data(cs_private_data)
+        , _layer_nr(0)
+        , extruder(0)
+        , data_point_type(cura::proto::PathSegment::Point2D)
+        , line_types()
+        , line_widths()
+        , line_thicknesses()
+        , line_velocities()
+        , points()
+        , last_point{ 0, 0 }
+    {
+    }
 
     /*
      * Flush the remaining unflushed paths when destroying this compiler.
@@ -142,7 +145,7 @@ public:
     {
         if (line_types.empty())
         {
-            return; //Nothing to do.
+            return; // Nothing to do.
         }
 
         std::shared_ptr<proto::LayerOptimized> proto_layer = _cs_private_data.getOptimizedLayerById(_layer_nr);
@@ -198,7 +201,7 @@ public:
      */
     void sendLineTo(const PrintFeatureType& print_feature_type, const Point& to, const coord_t& width, const coord_t& thickness, const Velocity& feedrate)
     {
-        assert(!points.empty() && "A point must already be in the buffer for sendLineTo(.) to function properly.");
+        assert(! points.empty() && "A point must already be in the buffer for sendLineTo(.) to function properly.");
 
         if (to != last_point)
         {
@@ -217,7 +220,7 @@ public:
      */
     void sendPolygon(const PrintFeatureType& print_feature_type, const ConstPolygonRef& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
     {
-        if (polygon.size() < 2) //Don't send single points or empty polygons.
+        if (polygon.size() < 2) // Don't send single points or empty polygons.
         {
             return;
         }
@@ -225,17 +228,17 @@ public:
         ClipperLib::Path::const_iterator point = polygon.begin();
         handleInitialPoint(*point);
 
-        //Send all coordinates one by one.
-        while(++point != polygon.end())
+        // Send all coordinates one by one.
+        while (++point != polygon.end())
         {
             if (*point == last_point)
             {
-                continue; //Ignore zero-length segments.
+                continue; // Ignore zero-length segments.
             }
             addLineSegment(print_feature_type, *point, width, thickness, velocity);
         }
 
-        //Make sure the polygon is closed.
+        // Make sure the polygon is closed.
         if (*polygon.begin() != polygon.back())
         {
             addLineSegment(print_feature_type, *polygon.begin(), width, thickness, velocity);
@@ -278,16 +281,15 @@ private:
     }
 };
 
-ArcusCommunication::ArcusCommunication()
-    : private_data(new Private)
-    , path_compiler(new PathCompiler(*private_data))
+ArcusCommunication::ArcusCommunication() : private_data(new Private), path_compiler(new PathCompiler(*private_data))
 {
 }
 
 ArcusCommunication::~ArcusCommunication()
 {
-    log("Closing connection.\n");
+    spdlog::info("Closing connection.");
     private_data->socket->close();
+    delete private_data->socket;
 }
 
 void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
@@ -306,13 +308,18 @@ void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
     private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SettingExtruder::default_instance());
 
-    log("Connecting to %s:%i\n", ip.c_str(), port);
+    spdlog::info("Connecting to {}:{}", ip, port);
     private_data->socket->connect(ip, port);
-    while (private_data->socket->getState() != Arcus::SocketState::Connected && private_data->socket->getState() != Arcus::SocketState::Error)
+    auto socket_state = private_data->socket->getState();
+    while (socket_state != Arcus::SocketState::Connected && socket_state != Arcus::SocketState::Error)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(private_data->millisecUntilNextTry)); //Wait until we're connected. Check every XXXms.
+        std::this_thread::sleep_for(std::chrono::milliseconds(private_data->millisecUntilNextTry)); // Wait until we're connected. Check every XXXms.
+        socket_state = private_data->socket->getState();
     }
-    log("Connected to %s:%i\n", ip.c_str(), port);
+    if (socket_state != Arcus::SocketState::Connected)
+    {
+        spdlog::info("Connected to {}:{}", ip, port);
+    }
 }
 
 // On the one hand, don't expose the socket for normal use, but on the other, we need to mock it for unit-tests.
@@ -336,7 +343,7 @@ void ArcusCommunication::flushGCode()
     std::shared_ptr<proto::GCodeLayer> message = std::make_shared<proto::GCodeLayer>();
     message->set_data(message_str);
 
-    //Send the g-code to the front-end! Yay!
+    // Send the g-code to the front-end! Yay!
     private_data->socket->sendMessage(message);
 
     private_data->gcode_output_stream.str("");
@@ -344,14 +351,13 @@ void ArcusCommunication::flushGCode()
 
 bool ArcusCommunication::isSequential() const
 {
-    return false; //We don't necessarily need to send the start g-code before the rest. We can send it afterwards when we have more accurate print statistics.
+    return false; // We don't necessarily need to send the start g-code before the rest. We can send it afterwards when we have more accurate print statistics.
 }
 
 bool ArcusCommunication::hasSlice() const
 {
-    return private_data->socket->getState() != Arcus::SocketState::Closed
-        && private_data->socket->getState() != Arcus::SocketState::Error
-        && private_data->slice_count < 1; //Only slice once per run of CuraEngine. See documentation of slice_count.
+    return private_data->socket->getState() != Arcus::SocketState::Closed && private_data->socket->getState() != Arcus::SocketState::Error
+        && private_data->slice_count < 1; // Only slice once per run of CuraEngine. See documentation of slice_count.
 }
 
 void ArcusCommunication::sendCurrentPosition(const Point& position)
@@ -366,11 +372,18 @@ void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
     private_data->socket->sendMessage(message);
 }
 
+void ArcusCommunication::sendSliceUUID(const std::string& slice_uuid) const
+{
+    std::shared_ptr<proto::SliceUUID> message = std::make_shared<proto::SliceUUID>();
+    message->set_slice_uuid(slice_uuid);
+    private_data->socket->sendMessage(message);
+}
+
 void ArcusCommunication::sendFinishedSlicing() const
 {
     std::shared_ptr<proto::SlicingFinished> done_message = std::make_shared<proto::SlicingFinished>();
     private_data->socket->sendMessage(done_message);
-    logDebug("Sent slicing finished message.\n");
+    spdlog::debug("Sent slicing finished message.");
 }
 
 void ArcusCommunication::sendLayerComplete(const LayerIndex& layer_nr, const coord_t& z, const coord_t& thickness)
@@ -387,21 +400,21 @@ void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point& t
 
 void ArcusCommunication::sendOptimizedLayerData()
 {
-    path_compiler->flushPathSegments(); //Make sure the last path segment has been flushed from the compiler.
+    path_compiler->flushPathSegments(); // Make sure the last path segment has been flushed from the compiler.
 
     SliceDataStruct<proto::LayerOptimized>& data = private_data->optimized_layers;
     data.sliced_objects++;
     data.current_layer_offset = data.current_layer_count;
-    if (data.sliced_objects < private_data->object_count) //Nothing to send.
+    if (data.sliced_objects < private_data->object_count) // Nothing to send.
     {
         return;
     }
-    log("Sending %d layers.", data.current_layer_count);
+    spdlog::info("Sending {} layers.", data.current_layer_count);
 
-    for (std::pair<const int, std::shared_ptr<proto::LayerOptimized>> entry : data.slice_data) //Note: This is in no particular order!
+    for (std::pair<const int, std::shared_ptr<proto::LayerOptimized>> entry : data.slice_data) // Note: This is in no particular order!
     {
-        logDebug("Sending layer data for layer %i of %i.\n", entry.first, data.slice_data.size());
-        private_data->socket->sendMessage(entry.second); //Send the actual layers.
+        spdlog::debug("Sending layer data for layer {} of {}.", entry.first, data.slice_data.size());
+        private_data->socket->sendMessage(entry.second); // Send the actual layers.
     }
     data.sliced_objects = 0;
     data.current_layer_count = 0;
@@ -416,7 +429,7 @@ void ArcusCommunication::sendPolygon(const PrintFeatureType& type, const ConstPo
 
 void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygons& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
-    for (const ConstPolygonRef& polygon : polygons)
+    for (const std::vector<Point>& polygon : polygons)
     {
         path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
     }
@@ -424,7 +437,7 @@ void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Polygo
 
 void ArcusCommunication::sendPrintTimeMaterialEstimates() const
 {
-    logDebug("Sending print time and material estimates.\n");
+    spdlog::debug("Sending print time and material estimates.");
     std::shared_ptr<proto::PrintTimeMaterialEstimates> message = std::make_shared<proto::PrintTimeMaterialEstimates>();
 
     std::vector<Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
@@ -449,13 +462,13 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     }
 
     private_data->socket->sendMessage(message);
-    logDebug("Done sending print time and material estimates.\n");
+    spdlog::debug("Done sending print time and material estimates.");
 }
 
 void ArcusCommunication::sendProgress(const float& progress) const
 {
     const int rounded_amount = 1000 * progress;
-    if (private_data->last_sent_progress == rounded_amount) //No need to send another tiny update step.
+    if (private_data->last_sent_progress == rounded_amount) // No need to send another tiny update step.
     {
         return;
     }
@@ -483,13 +496,13 @@ void ArcusCommunication::sliceNext()
 {
     const Arcus::MessagePtr message = private_data->socket->takeNextMessage();
 
-    //Handle the main Slice message.
-    const cura::proto::Slice* slice_message = dynamic_cast<cura::proto::Slice*>(message.get()); //See if the message is of the message type Slice. Returns nullptr otherwise.
-    if (!slice_message)
+    // Handle the main Slice message.
+    const cura::proto::Slice* slice_message = dynamic_cast<cura::proto::Slice*>(message.get()); // See if the message is of the message type Slice. Returns nullptr otherwise.
+    if (! slice_message)
     {
         return;
     }
-    logDebug("Received a Slice message.\n");
+    spdlog::debug("Received a Slice message.");
 
     Slice slice(slice_message->object_lists().size());
     Application::getInstance().current_slice = &slice;
@@ -498,28 +511,28 @@ void ArcusCommunication::sliceNext()
     private_data->readExtruderSettingsMessage(slice_message->extruders());
     const size_t extruder_count = slice.scene.extruders.size();
 
-    //For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
+    // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
     for (const cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
     {
-        const int32_t extruder_nr = setting_extruder.extruder(); //Cast from proto::int to int32_t!
+        const int32_t extruder_nr = setting_extruder.extruder(); // Cast from proto::int to int32_t!
         if (extruder_nr < 0 || extruder_nr > static_cast<int32_t>(extruder_count))
         {
-            //If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
+            // If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
             continue;
         }
         ExtruderTrain& extruder = slice.scene.extruders[setting_extruder.extruder()];
         slice.scene.limit_to_extruder.emplace(setting_extruder.name(), &extruder);
     }
 
-    //Load all mesh groups, meshes and their settings.
+    // Load all mesh groups, meshes and their settings.
     private_data->object_count = 0;
     for (const cura::proto::ObjectList& mesh_group_message : slice_message->object_lists())
     {
         private_data->readMeshGroupMessage(mesh_group_message);
     }
-    logDebug("Done reading Slice message.\n");
+    spdlog::debug("Done reading Slice message.");
 
-    if (!slice.scene.mesh_groups.empty())
+    if (! slice.scene.mesh_groups.empty())
     {
         slice.compute();
         FffProcessor::getInstance()->finalize();
@@ -530,9 +543,9 @@ void ArcusCommunication::sliceNext()
         private_data->slice_count++;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(250)); //Pause before checking again for a slice message.
+    std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Pause before checking again for a slice message.
 }
 
-} //namespace cura
+} // namespace cura
 
-#endif //ARCUS
+#endif // ARCUS

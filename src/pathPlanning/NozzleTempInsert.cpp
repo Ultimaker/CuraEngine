@@ -1,9 +1,9 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <assert.h>
-#include "../gcodeExport.h"
-#include "NozzleTempInsert.h"
+#include "gcodeExport.h"
+#include "pathPlanning/NozzleTempInsert.h"
 
 namespace cura
 {

@@ -1,17 +1,17 @@
-//Copyright (c) 2017 Tim Kuipers
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #define STBI_FAILURE_USERMSG // enable user friendly bug messages for STB lib
 #define STB_IMAGE_IMPLEMENTATION // needed in order to enable the implementation of libs/std_image.h
-#include <stb/stb_image.h>
+#include <spdlog/spdlog.h>
+#include <stb_image.h>
 
-#include "ImageBasedDensityProvider.h"
-#include "SierpinskiFill.h"
-#include "../utils/AABB3D.h"
-#include "../utils/logoutput.h"
+#include "infill/ImageBasedDensityProvider.h"
+#include "infill/SierpinskiFill.h"
+#include "utils/AABB3D.h"
 
-namespace cura {
+namespace cura
+{
 
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;
@@ -22,14 +22,14 @@ ImageBasedDensityProvider::ImageBasedDensityProvider(const std::string filename,
     int img_x, img_y, img_z; // stbi requires pointer to int rather than to coord_t
     image = stbi_load(filename.c_str(), &img_x, &img_y, &img_z, desired_channel_count);
     image_size = Point3(img_x, img_y, img_z);
-    if (!image)
+    if (! image)
     {
         const char* reason = "[unknown reason]";
         if (stbi_failure_reason())
         {
             reason = stbi_failure_reason();
         }
-        logError("Cannot load image %s: '%s'.\n", filename.c_str(), reason);
+        spdlog::error("Cannot load image {}: {}", filename, reason);
         std::exit(-1);
     }
     { // compute aabb
@@ -64,8 +64,8 @@ ImageBasedDensityProvider::~ImageBasedDensityProvider()
 float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
 {
     AABB query_box(Point(query_cube.min.x, query_cube.min.y), Point(query_cube.max.x, query_cube.max.y));
-    Point img_min = (query_box.min - print_aabb.min - Point(1,1)) * image_size.x / (print_aabb.max.X - print_aabb.min.X);
-    Point img_max = (query_box.max - print_aabb.min + Point(1,1)) * image_size.y / (print_aabb.max.Y - print_aabb.min.Y);
+    Point img_min = (query_box.min - print_aabb.min - Point(1, 1)) * image_size.x / (print_aabb.max.X - print_aabb.min.X);
+    Point img_max = (query_box.max - print_aabb.min + Point(1, 1)) * image_size.y / (print_aabb.max.Y - print_aabb.min.Y);
     long total_lightness = 0;
     int value_count = 0;
     for (int x = std::max((coord_t)0, img_min.X); x <= std::min((coord_t)image_size.x - 1, img_max.X); x++)
@@ -92,6 +92,6 @@ float ImageBasedDensityProvider::operator()(const AABB3D& query_cube) const
         }
     }
     return 1.0f - ((float)total_lightness) / value_count / 255.0f;
-};
+}
 
-}; // namespace cura
+} // namespace cura

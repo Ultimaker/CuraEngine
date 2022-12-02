@@ -1,5 +1,8 @@
+//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <cassert>
-#include "ZigzagConnectorProcessor.h"
+#include "infill/ZigzagConnectorProcessor.h"
 
 using namespace cura;
 
@@ -137,18 +140,14 @@ void ZigzagConnectorProcessor::registerPolyFinished()
 void ZigzagConnectorProcessor::addZagConnector(std::vector<Point>& points, bool is_endpiece)
 {
     // don't include the last line yet
-    if (points.size() >= 3)
+    if (points.size() < 2)
     {
-        for (size_t point_idx = 1; point_idx <= points.size() - 2; ++point_idx)
-        {
-            addLine(points[point_idx - 1], points[point_idx]);
-        }
+        return;
     }
-    // only add the last line if:
-    //  - it is not an end piece, or
-    //  - it is an end piece and "connected end pieces" is enabled
-    if ((!is_endpiece || (is_endpiece && connected_endpieces)) && points.size() >= 2)
+    Polygon polyline(points);
+    if (is_endpiece && !connected_endpieces)
     {
-        addLine(points[points.size() - 2], points[points.size() - 1]);
+        polyline.pop_back();
     }
+    addPolyline(polyline);
 }

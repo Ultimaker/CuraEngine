@@ -1,7 +1,7 @@
-//Copyright (c) 2017 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "MinimumSpanningTree.h"
+#include "utils/MinimumSpanningTree.h"
 
 #include <iterator>
 #include <algorithm>
@@ -9,12 +9,12 @@
 namespace cura
 {
 
-MinimumSpanningTree::MinimumSpanningTree(std::unordered_set<Point> vertices) : adjacency_graph(prim(vertices))
+MinimumSpanningTree::MinimumSpanningTree(std::vector<Point> vertices) : adjacency_graph(prim(vertices))
 {
     //Just copy over the fields.
 }
 
-auto MinimumSpanningTree::prim(std::unordered_set<Point> vertices) const -> AdjacencyGraph_t
+auto MinimumSpanningTree::prim(std::vector<Point> vertices) const -> AdjacencyGraph_t
 {
     AdjacencyGraph_t result;
     if (vertices.empty())

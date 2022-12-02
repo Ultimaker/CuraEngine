@@ -1,4 +1,4 @@
-//Copyright (c) 2018 Ultimaker B.V.
+//Copyright (c) 2022 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <algorithm>
@@ -26,9 +26,25 @@ PrimeTower::PrimeTower()
 : wipe_from_middle(false)
 {
     const Scene& scene = Application::getInstance().current_slice->scene;
+
+    {
+        EPlatformAdhesion adhesion_type = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type");
+
+        //When we have multiple extruders sharing the same heater/nozzle, we expect that all the extruders have been
+        //'primed' by the print-start gcode script, but we don't know which one has been left at the tip of the nozzle
+        //and whether it needs 'purging' (before extruding a pure material) or not, so we need to prime (actually purge)
+        //each extruder before it is used for the model. This can done by the (per-extruder) brim lines or (per-extruder)
+        //skirt lines when they are used, but we need to do that inside the first prime-tower layer when they are not
+        //used (sacrifying for this purpose the usual single-extruder first layer, that would be better for prime-tower
+        //adhesion).
+
+        multiple_extruders_on_first_layer = scene.current_mesh_group->settings.get<bool>("machine_extruders_share_nozzle") && ((adhesion_type != EPlatformAdhesion::SKIRT) && (adhesion_type != EPlatformAdhesion::BRIM));
+    }
+
     enabled = scene.current_mesh_group->settings.get<bool>("prime_tower_enable")
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_min_volume") > 10
            && scene.current_mesh_group->settings.get<coord_t>("prime_tower_size") > 10;
+    would_have_actual_tower = enabled;  // Assume so for now.
 
     extruder_count = scene.extruders.size();
     extruder_order.resize(extruder_count);
@@ -46,6 +62,20 @@ PrimeTower::PrimeTower()
     });
 }
 
+void PrimeTower::checkUsed(const SliceDataStorage& storage)
+{
+    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+    size_t used_extruder_count = 0;
+    for (bool is_used : extruder_is_used)
+    {
+        used_extruder_count += is_used;
+    }
+    if (used_extruder_count <= 1)
+    {
+        enabled = false;
+    }
+}
+
 void PrimeTower::generateGroundpoly()
 {
     if (!enabled)
@@ -55,37 +85,20 @@ void PrimeTower::generateGroundpoly()
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     const coord_t tower_size = mesh_group_settings.get<coord_t>("prime_tower_size");
-    
-    const Settings& brim_extruder_settings = mesh_group_settings.get<ExtruderTrain&>("adhesion_extruder_nr").settings;
-    const bool has_raft = (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT);
-    const bool has_prime_brim = mesh_group_settings.get<bool>("prime_tower_brim_enable");
-    const coord_t offset = (has_raft || ! has_prime_brim) ? 0 :
-        brim_extruder_settings.get<size_t>("brim_line_count") *
-        brim_extruder_settings.get<coord_t>("skirt_brim_line_width") *
-        brim_extruder_settings.get<Ratio>("initial_layer_line_width_factor");
 
-    PolygonRef p = outer_poly.newPoly();
-    int tower_distance = 0; 
-    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x") - offset;
-    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y") - offset;
+    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
+    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
     const coord_t tower_radius = tower_size / 2;
-    for (unsigned int i = 0; i < CIRCLE_RESOLUTION; i++)
-    {
-        const double angle = (double) i / CIRCLE_RESOLUTION * 2 * M_PI; //In radians.
-        p.add(Point(x - tower_radius + tower_distance + cos(angle) * tower_radius,
-                    y + tower_radius + tower_distance + sin(angle) * tower_radius));
-    }
+    outer_poly.add(PolygonUtils::makeCircle(Point(x - tower_radius, y + tower_radius), tower_radius, TAU / CIRCLE_RESOLUTION));
     middle = Point(x - tower_size / 2, y + tower_size / 2);
 
-    post_wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
-
-    outer_poly_first_layer = outer_poly.offset(offset);
+    post_wipe_point = Point(x - tower_size / 2, y + tower_size / 2);
 }
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
-    enabled &= storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
-    if (enabled)
+    would_have_actual_tower = storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
+    if (would_have_actual_tower && enabled)
     {
         generatePaths_denseInfill();
         generateStartLocations();
@@ -98,12 +111,13 @@ void PrimeTower::generatePaths_denseInfill()
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     pattern_per_extruder.resize(extruder_count);
+    pattern_per_extruder_layer0.resize(extruder_count);
 
     coord_t cumulative_inset = 0; //Each tower shape is going to be printed inside the other. This is the inset we're doing for each extruder.
     for (size_t extruder_nr : extruder_order)
     {
         const coord_t line_width = scene.extruders[extruder_nr].settings.get<coord_t>("prime_tower_line_width");
-        const coord_t required_volume = scene.extruders[extruder_nr].settings.get<double>("prime_tower_min_volume") * 1000000000; //To cubic microns.
+        const coord_t required_volume = MM3_2INT(scene.extruders[extruder_nr].settings.get<double>("prime_tower_min_volume"));
         const Ratio flow = scene.extruders[extruder_nr].settings.get<Ratio>("prime_tower_flow");
         coord_t current_volume = 0;
         ExtrusionMoves& pattern = pattern_per_extruder[extruder_nr];
@@ -123,24 +137,26 @@ void PrimeTower::generatePaths_denseInfill()
         }
         cumulative_inset += wall_nr * line_width;
 
-        //Generate the pattern for the first layer.
-        coord_t line_width_layer0 = line_width;
-        if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
+        if (multiple_extruders_on_first_layer)
         {
-            line_width_layer0 *= scene.extruders[extruder_nr].settings.get<Ratio>("initial_layer_line_width_factor");
+            //With a raft there is no difference for the first layer (of the prime tower)
+            pattern_per_extruder_layer0 = pattern_per_extruder;
         }
-        pattern_per_extruder_layer0.emplace_back();
-
-        ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0.back();
-
-        // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
-        // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
-        // first layer of the prime tower to not stick well.
-        Polygons inset = outer_poly.offset(-line_width_layer0 / 2);
-        while (!inset.empty())
+        else
         {
-            pattern_layer0.polygons.add(inset);
-            inset = inset.offset(-line_width_layer0);
+            //Generate the pattern for the first layer.
+            coord_t line_width_layer0 = line_width * scene.extruders[extruder_nr].settings.get<Ratio>("initial_layer_line_width_factor");
+            ExtrusionMoves& pattern_layer0 = pattern_per_extruder_layer0[extruder_nr];
+
+            // Generate a concentric infill pattern in the form insets for the prime tower's first layer instead of using
+            // the infill pattern because the infill pattern tries to connect polygons in different insets which causes the
+            // first layer of the prime tower to not stick well.
+            Polygons inset = outer_poly.offset(-line_width_layer0 / 2);
+            while (!inset.empty())
+            {
+                pattern_layer0.polygons.add(inset);
+                inset = inset.offset(-line_width_layer0);
+            }
         }
     }
 }
@@ -155,9 +171,9 @@ void PrimeTower::generateStartLocations()
     PolygonUtils::spreadDots(segment_start, segment_end, number_of_prime_tower_start_locations, prime_tower_start_locations);
 }
 
-void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const int prev_extruder, const int new_extruder) const
+void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder, const size_t new_extruder) const
 {
-    if (!enabled)
+    if (! (enabled && would_have_actual_tower))
     {
         return;
     }
@@ -167,7 +183,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, LayerPlan& gcode_la
     }
 
     const LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
+    if (layer_nr < 0 || layer_nr > storage.max_print_height_second_to_last_extruder + 1)
     {
         return;
     }

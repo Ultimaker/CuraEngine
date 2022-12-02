@@ -1,22 +1,23 @@
-//Copyright (c) 2017 Tim Kuipers
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "SierpinskiFill.h"
+#include "infill/SierpinskiFill.h"
 
 #include <algorithm> // swap
 #include <assert.h>
 #include <functional> // function
 #include <iterator> // next, prev
 
-#include "ImageBasedDensityProvider.h"
-#include "UniformDensityProvider.h"
-#include "../utils/AABB3D.h"
-#include "../utils/logoutput.h"
-#include "../utils/polygon.h"
-#include "../utils/SVG.h"
+#include <spdlog/spdlog.h>
 
-namespace cura {
+#include "infill/ImageBasedDensityProvider.h"
+#include "infill/UniformDensityProvider.h"
+#include "utils/AABB3D.h"
+#include "utils/SVG.h"
+#include "utils/polygon.h"
+
+namespace cura
+{
 
 static constexpr bool diagonal = true;
 static constexpr bool straight = false;
@@ -26,12 +27,12 @@ static constexpr float allowed_length_error = .01;
 static constexpr bool deep_debug_checking = false;
 
 SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AABB aabb, int max_depth, const coord_t line_width, bool dithering)
-: dithering(dithering)
-, constraint_error_diffusion(dithering)
-, density_provider(density_provider)
-, aabb(aabb)
-, line_width(line_width)
-, max_depth(max_depth)
+    : dithering(dithering)
+    , constraint_error_diffusion(dithering)
+    , density_provider(density_provider)
+    , aabb(aabb)
+    , line_width(line_width)
+    , max_depth(max_depth)
 {
     createTree();
 
@@ -41,7 +42,12 @@ SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AA
     {
         if (node->getValueError() < -allowed_length_error)
         {
-            logError("Node is subdivided without the appropriate value! value_error: %f from base %f el: %f er: %f, while the realized_length = %f\n", node->getValueError(), node->requested_length, node->error_left, node->error_right, node->realized_length);
+            spdlog::error("Node is subdivided without the appropriate value! value_error: {} from base {} el: {} er: {}, while the realized_length = {}",
+                          node->getValueError(),
+                          node->requested_length,
+                          node->error_left,
+                          node->error_right,
+                          node->realized_length);
             assert(false);
         }
     }
@@ -73,37 +79,37 @@ void SierpinskiFill::createTree()
 
     // calculate node statistics
     createTreeStatistics(root);
-    
+
     createTreeRequestedLengths(root);
 }
 
 void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
 {
-    if (sub_root.depth < max_depth) //We need to subdivide.
+    if (sub_root.depth < max_depth) // We need to subdivide.
     {
         SierpinskiTriangle& t = sub_root;
         Point middle = (t.a + t.b) / 2;
-        //At each subdivision we divide the triangle in two.
-        //Figure out which sort of triangle each child will be:
+        // At each subdivision we divide the triangle in two.
+        // Figure out which sort of triangle each child will be:
         SierpinskiTriangle::SierpinskiDirection first_dir, second_dir;
-        switch(t.dir)
+        switch (t.dir)
         {
-            default:
-            case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
-                first_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
-                second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;
-                break;
-            case SierpinskiTriangle::SierpinskiDirection::AC_TO_AB:
-                first_dir = SierpinskiTriangle::SierpinskiDirection::AB_TO_BC;
-                second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
-                break;
-            case SierpinskiTriangle::SierpinskiDirection::AC_TO_BC:
-                first_dir = SierpinskiTriangle::SierpinskiDirection::AB_TO_BC;
-                second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;
-                break;
+        default:
+        case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
+            first_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
+            second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;
+            break;
+        case SierpinskiTriangle::SierpinskiDirection::AC_TO_AB:
+            first_dir = SierpinskiTriangle::SierpinskiDirection::AB_TO_BC;
+            second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_BC;
+            break;
+        case SierpinskiTriangle::SierpinskiDirection::AC_TO_BC:
+            first_dir = SierpinskiTriangle::SierpinskiDirection::AB_TO_BC;
+            second_dir = SierpinskiTriangle::SierpinskiDirection::AC_TO_AB;
+            break;
         }
-        sub_root.children.emplace_back(middle, t.a, t.straight_corner, first_dir, !t.straight_corner_is_left, t.depth + 1);
-        sub_root.children.emplace_back(middle, t.straight_corner, t.b, second_dir, !t.straight_corner_is_left, t.depth + 1);
+        sub_root.children.emplace_back(middle, t.a, t.straight_corner, first_dir, ! t.straight_corner_is_left, t.depth + 1);
+        sub_root.children.emplace_back(middle, t.straight_corner, t.b, second_dir, ! t.straight_corner_is_left, t.depth + 1);
         for (SierpinskiTriangle& child : t.children)
         {
             createTree(child);
@@ -117,7 +123,7 @@ void SierpinskiFill::createTreeStatistics(SierpinskiTriangle& triangle)
     float short_length = .5 * vSizeMM(ac);
     float long_length = .5 * vSizeMM(triangle.b - triangle.a);
     triangle.area = area;
-    triangle.realized_length = (triangle.dir == SierpinskiTriangle::SierpinskiDirection::AC_TO_BC)? long_length : short_length;
+    triangle.realized_length = (triangle.dir == SierpinskiTriangle::SierpinskiDirection::AC_TO_BC) ? long_length : short_length;
     for (SierpinskiTriangle& child : triangle.children)
     {
         createTreeStatistics(child);
@@ -142,7 +148,7 @@ void SierpinskiFill::createTreeRequestedLengths(SierpinskiTriangle& triangle)
         for (SierpinskiTriangle& child : triangle.children)
         {
             createTreeRequestedLengths(child);
-            
+
             triangle.requested_length += child.requested_length;
             triangle.total_child_realized_length += child.realized_length;
         }
@@ -153,22 +159,25 @@ void SierpinskiFill::createLowerBoundSequence()
 {
     sequence.emplace_front(&root);
 
-    if (deep_debug_checking) debugCheck();
+    if (deep_debug_checking)
+        debugCheck();
     for (int iteration = 0; iteration < 999; iteration++)
     {
         bool change = false;
         change |= subdivideAll();
-        if (deep_debug_checking) debugCheck();
+        if (deep_debug_checking)
+            debugCheck();
 
         if (constraint_error_diffusion)
         {
             change |= bubbleUpConstraintErrors();
-            if (deep_debug_checking) debugCheck();
+            if (deep_debug_checking)
+                debugCheck();
         }
 
-        if (!change)
+        if (! change)
         {
-            logDebug("Finished after %i iterations, with a max depth of %i.\n", iteration + 1, max_depth);
+            spdlog::debug("Finished after {} iterations, with a max depth of {}.", iteration + 1, max_depth);
             break;
         }
     }
@@ -202,16 +211,11 @@ bool SierpinskiFill::subdivideAll()
             // so then the range will be two long rather than one.
             std::list<SierpinskiTriangle*>::iterator begin = it;
             std::list<SierpinskiTriangle*>::iterator end = std::next(it);
-            if (
-                triangle.dir == SierpinskiTriangle::SierpinskiDirection::AC_TO_AB
-                && end != sequence.end()
-            )
+            if (triangle.dir == SierpinskiTriangle::SierpinskiDirection::AC_TO_AB && end != sequence.end())
             {
                 continue; // don't subdivide these two triangles just yet, wait till next iteration
             }
-            if (triangle.dir == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC
-                && begin != sequence.begin()
-            )
+            if (triangle.dir == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC && begin != sequence.begin())
             {
                 begin = std::prev(it);
                 assert((*begin)->depth == triangle.depth || isConstrainedBackward(it));
@@ -224,14 +228,10 @@ bool SierpinskiFill::subdivideAll()
             // Don't check for constraining in between the cells in the range;
             // the range is defined as the range of triangles which are constraining each other simultaneously.
 
-            if (node->depth == max_depth) //Never subdivide beyond maximum depth.
+            if (node->depth == max_depth) // Never subdivide beyond maximum depth.
                 continue;
             float total_subdiv_error = getSubdivisionError(begin, end);
-            if (
-                !node->children.empty()
-                && total_subdiv_error >= 0
-                && !is_constrained
-                )
+            if (! node->children.empty() && total_subdiv_error >= 0 && ! is_constrained)
             {
                 bool redistribute_errors = true;
                 subdivide(begin, end, redistribute_errors);
@@ -244,9 +244,9 @@ bool SierpinskiFill::subdivideAll()
 bool SierpinskiFill::bubbleUpConstraintErrors()
 {
     std::vector<std::vector<std::list<SierpinskiTriangle*>::iterator>> depth_ordered = getDepthOrdered();
-    
+
     bool redistributed_anything = false;
-    
+
     for (int depth = max_depth; depth >= 0; depth--)
     {
         std::vector<std::list<SierpinskiTriangle*>::iterator>& depth_nodes = depth_ordered[depth];
@@ -257,14 +257,11 @@ bool SierpinskiFill::bubbleUpConstraintErrors()
 
             float unresolvable_error = triangle.getValueError();
 
-            //If constrained in one direction, resolve the error in the other direction only.
-            //If constrained in both directions, divide the error equally over both directions.
+            // If constrained in one direction, resolve the error in the other direction only.
+            // If constrained in both directions, divide the error equally over both directions.
             bool is_constrained_forward = isConstrainedForward(it);
             bool is_constrained_backward = isConstrainedBackward(it);
-            if (
-                unresolvable_error > allowed_length_error &&
-                (is_constrained_forward || is_constrained_backward)
-                )
+            if (unresolvable_error > allowed_length_error && (is_constrained_forward || is_constrained_backward))
             {
                 if (is_constrained_forward && is_constrained_backward)
                 {
@@ -272,7 +269,8 @@ bool SierpinskiFill::bubbleUpConstraintErrors()
                     unresolvable_error *= .5;
                     // disperse half of the error forward and the other half backward
                 }
-                if (deep_debug_checking) debugCheck();
+                if (deep_debug_checking)
+                    debugCheck();
                 if (is_constrained_forward)
                 {
                     SierpinskiTriangle* next = *std::next(it);
@@ -289,7 +287,8 @@ bool SierpinskiFill::bubbleUpConstraintErrors()
                 {
                     redistributed_anything = true;
                 }
-                if (deep_debug_checking) debugCheck();
+                if (deep_debug_checking)
+                    debugCheck();
             }
         }
     }
@@ -299,7 +298,8 @@ bool SierpinskiFill::bubbleUpConstraintErrors()
 
 std::list<SierpinskiFill::SierpinskiTriangle*>::iterator SierpinskiFill::subdivide(std::list<SierpinskiTriangle*>::iterator begin, std::list<SierpinskiTriangle*>::iterator end, bool redistribute_errors)
 {
-    if (redistribute_errors && deep_debug_checking) debugCheck();
+    if (redistribute_errors && deep_debug_checking)
+        debugCheck();
     if (redistribute_errors)
     { // move left-over errors
         bool distribute_subdivision_errors = true;
@@ -309,16 +309,16 @@ std::list<SierpinskiFill::SierpinskiTriangle*>::iterator SierpinskiFill::subdivi
         SierpinskiTriangle* last = *std::prev(end);
         (*begin)->children.front().error_left += first->error_left;
         (*std::prev(end))->children.back().error_right += last->error_right;
-
     }
-    if (redistribute_errors && deep_debug_checking) debugCheck(false);
-    
+    if (redistribute_errors && deep_debug_checking)
+        debugCheck(false);
+
     std::list<SierpinskiFill::SierpinskiTriangle*>::iterator first_child_it = std::prev(begin);
     // the actual subdivision
     for (std::list<SierpinskiTriangle*>::iterator it = begin; it != end; ++it)
     {
         SierpinskiTriangle* node = *it;
-        assert(!node->children.empty() && "cannot subdivide node with no children!");
+        assert(! node->children.empty() && "cannot subdivide node with no children!");
         for (SierpinskiTriangle& child : node->children)
         {
             sequence.insert(begin, &child);
@@ -329,15 +329,17 @@ std::list<SierpinskiFill::SierpinskiTriangle*>::iterator SierpinskiFill::subdivi
     std::list<SierpinskiTriangle*>::iterator last_child_it = std::prev(begin);
     sequence.erase(begin, end);
 
-    if (redistribute_errors && deep_debug_checking) debugCheck(false);
-    
+    if (redistribute_errors && deep_debug_checking)
+        debugCheck(false);
+
     if (redistribute_errors)
     { // make positive errors in children well balanced
         // Pass along error from parent
         balanceErrors(first_child_it, std::next(last_child_it));
     }
-    
-    if (redistribute_errors && deep_debug_checking) debugCheck();
+
+    if (redistribute_errors && deep_debug_checking)
+        debugCheck();
 
     return last_child_it;
 }
@@ -356,7 +358,7 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
         SierpinskiTriangle* next = *std::next(it);
         if (std::abs(node->error_right + next->error_left) > allowed_length_error)
         {
-            logWarning("Nodes aren't balanced! er: %f next el: %f\n", node->error_right, next->error_left);
+            spdlog::warn("Nodes aren't balanced! er: {} next el: {}", node->error_right, next->error_left);
             assert(false);
         }
         float exchange = node->error_right;
@@ -372,13 +374,13 @@ void SierpinskiFill::redistributeLeftoverErrors(std::list<SierpinskiTriangle*>::
     for (auto it = begin; it != end; ++it)
     {
         SierpinskiTriangle* node = *it;
-        total_superfluous_error += (distribute_subdivision_errors)? node->getSubdivisionError() : node->getValueError();
+        total_superfluous_error += (distribute_subdivision_errors) ? node->getSubdivisionError() : node->getValueError();
     }
     if (total_superfluous_error < allowed_length_error)
     { // there is no significant left-over error
         if (distribute_subdivision_errors && total_superfluous_error < -allowed_length_error)
         {
-            logWarning("redistributeLeftoverErrors shouldn't be called if the node isn't to be subdivided. Total error: %f\n", total_superfluous_error);
+            spdlog::warn("RedistributeLeftoverErrors shouldn't be called if the node isn't to be subdivided. Total error: {}", total_superfluous_error);
             assert(false);
         }
         return;
@@ -427,11 +429,8 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     {
         order.emplace_back(node_idx);
     }
-    std::sort(order.begin(), order.end(), [&nodes](int a, int b)
-        {
-            return nodes[a]->getValueError() < nodes[b]->getValueError();
-        });
-    
+    std::sort(order.begin(), order.end(), [&nodes](int a, int b) { return nodes[a]->getValueError() < nodes[b]->getValueError(); });
+
     // add error to children with too low value
     float added = 0;
     unsigned int node_order_idx;
@@ -452,9 +451,9 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     {
         return;
     }
-    
+
     // subtract the added value from remaining children
-    // divide acquired negative balancing error among remaining nodes with positive value error 
+    // divide acquired negative balancing error among remaining nodes with positive value error
     float subtracted = 0;
     // divide up added among remaining children in ratio to their value error
     float total_remaining_value_error = 0;
@@ -466,14 +465,14 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
         assert(val_err > -allowed_length_error);
         total_remaining_value_error += val_err;
     }
-    
+
     if (total_remaining_value_error < added - allowed_length_error)
     {
-        logWarning("total_remaining: %f should be > %f\n", total_remaining_value_error, added);
+        spdlog::warn("total_remaining: {} should be > {}", total_remaining_value_error, added);
         assert(false);
     }
-    
-    if (std::abs(total_remaining_value_error) < .0001) //Error is insignificant.
+
+    if (std::abs(total_remaining_value_error) < .0001) // Error is insignificant.
     {
         return;
     }
@@ -484,14 +483,14 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
         SierpinskiTriangle* node = nodes[node_idx];
         float val_error = node->getValueError();
         assert(val_error > -allowed_length_error);
-        
+
         float diff = added * val_error / total_remaining_value_error;
         subtracted += diff;
         node_error_compensation[node_idx] = -diff;
     }
     if (std::abs(subtracted - added) > allowed_length_error)
     {
-        logWarning("Redistribution didn't distribute well!! added %f subtracted %f\n", added, subtracted);
+        spdlog::warn("Redistribution didn't distribute well!! added {} subtracted {}", added, subtracted);
         assert(false);
     }
 
@@ -530,24 +529,19 @@ void SierpinskiFill::diffuseError()
         SierpinskiTriangle& triangle = *(*it);
 
         float boundary = (triangle.realized_length + triangle.total_child_realized_length) * .5f;
-        
-        float nodal_value = ((use_errors_in_dithering)? triangle.getErroredValue() : triangle.requested_length);
-        
+
+        float nodal_value = ((use_errors_in_dithering) ? triangle.getErroredValue() : triangle.requested_length);
+
         float boundary_error = nodal_value - boundary + error;
 
         std::list<SierpinskiTriangle*>::iterator begin = it;
         std::list<SierpinskiTriangle*>::iterator end = std::next(it);
-        if (
-            triangle.dir == SierpinskiTriangle::SierpinskiDirection::AC_TO_AB
-            && end != sequence.end()
-        )
+        if (triangle.dir == SierpinskiTriangle::SierpinskiDirection::AC_TO_AB && end != sequence.end())
         {
             pair_constrained_nodes++;
             continue; // don't subdivide these two triangles just yet, wait till next iteration
         }
-        if (triangle.dir == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC
-            && begin != sequence.begin()
-        )
+        if (triangle.dir == SierpinskiTriangle::SierpinskiDirection::AB_TO_BC && begin != sequence.begin())
         {
             begin = std::prev(it);
             assert((*begin)->depth == triangle.depth || isConstrainedBackward(it));
@@ -564,12 +558,9 @@ void SierpinskiFill::diffuseError()
                 break;
             }
         }
-        if (!is_constrained)
+        if (! is_constrained)
             unconstrained_nodes++;
-        if (!is_constrained
-            && boundary_error >= 0
-            && !triangle.children.empty()
-            )
+        if (! is_constrained && boundary_error >= 0 && ! triangle.children.empty())
         {
             subdivided_nodes++;
             it = subdivide(begin, end, false);
@@ -582,7 +573,7 @@ void SierpinskiFill::diffuseError()
                 error += nodal_value - triangle.realized_length;
         }
     }
-    logDebug("pair_constrained_nodes: %i, constrained_nodes: %i, unconstrained_nodes: %i, subdivided_nodes: %i\n", pair_constrained_nodes, constrained_nodes, unconstrained_nodes, subdivided_nodes);
+    spdlog::debug("pair_constrained_nodes: {}, constrained_nodes: {}, unconstrained_nodes: {}, subdivided_nodes: {}", pair_constrained_nodes, constrained_nodes, unconstrained_nodes, subdivided_nodes);
 }
 
 bool SierpinskiFill::isConstrainedBackward(std::list<SierpinskiTriangle*>::iterator it)
@@ -614,8 +605,6 @@ float SierpinskiFill::getSubdivisionError(std::list<SierpinskiTriangle*>::iterat
 }
 
 
-
-
 void SierpinskiFill::debugOutput(SVG& svg)
 {
     svg.writePolygon(aabb.toPolygon(), SVG::Color::RED);
@@ -634,19 +623,19 @@ void SierpinskiFill::debugOutput(SVG& svg)
 SierpinskiFill::Edge SierpinskiFill::SierpinskiTriangle::getFromEdge()
 {
     Edge ret;
-    switch(dir)
+    switch (dir)
     {
-        case SierpinskiDirection::AB_TO_BC:
-            ret = Edge{a, b};
-            break;
-        case SierpinskiDirection::AC_TO_AB:
-            ret = Edge{straight_corner, a};
-            break;
-        case SierpinskiDirection::AC_TO_BC:
-            ret = Edge{straight_corner, a};
-            break;
+    case SierpinskiDirection::AB_TO_BC:
+        ret = Edge{ a, b };
+        break;
+    case SierpinskiDirection::AC_TO_AB:
+        ret = Edge{ straight_corner, a };
+        break;
+    case SierpinskiDirection::AC_TO_BC:
+        ret = Edge{ straight_corner, a };
+        break;
     }
-    if (!straight_corner_is_left)
+    if (! straight_corner_is_left)
     {
         std::swap(ret.l, ret.r);
     }
@@ -656,19 +645,19 @@ SierpinskiFill::Edge SierpinskiFill::SierpinskiTriangle::getFromEdge()
 SierpinskiFill::Edge SierpinskiFill::SierpinskiTriangle::getToEdge()
 {
     Edge ret;
-    switch(dir)
+    switch (dir)
     {
-        case SierpinskiDirection::AB_TO_BC:
-            ret = Edge{straight_corner, b};
-            break;
-        case SierpinskiDirection::AC_TO_AB:
-            ret = Edge{b, a};
-            break;
-        case SierpinskiDirection::AC_TO_BC:
-            ret = Edge{straight_corner, b};
-            break;
+    case SierpinskiDirection::AB_TO_BC:
+        ret = Edge{ straight_corner, b };
+        break;
+    case SierpinskiDirection::AC_TO_AB:
+        ret = Edge{ b, a };
+        break;
+    case SierpinskiDirection::AC_TO_BC:
+        ret = Edge{ straight_corner, b };
+        break;
     }
-    if (!straight_corner_is_left)
+    if (! straight_corner_is_left)
     {
         std::swap(ret.l, ret.r);
     }
@@ -702,19 +691,19 @@ Polygon SierpinskiFill::generateCross() const
 
     for (SierpinskiTriangle* max_level_it : sequence)
     {
-        SierpinskiTriangle& triangle = *max_level_it; 
+        SierpinskiTriangle& triangle = *max_level_it;
         Point edge_middle = triangle.a + triangle.b + triangle.straight_corner;
-        switch(triangle.dir)
+        switch (triangle.dir)
         {
-            case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
-                edge_middle -= triangle.a;
-                break;
-            case SierpinskiTriangle::SierpinskiDirection::AC_TO_AB:
-                edge_middle -= triangle.straight_corner;
-                break;
-            case SierpinskiTriangle::SierpinskiDirection::AC_TO_BC:
-                edge_middle -= triangle.a;
-                break;
+        case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
+            edge_middle -= triangle.a;
+            break;
+        case SierpinskiTriangle::SierpinskiDirection::AC_TO_AB:
+            edge_middle -= triangle.straight_corner;
+            break;
+        case SierpinskiTriangle::SierpinskiDirection::AC_TO_BC:
+            edge_middle -= triangle.a;
+            break;
         }
         ret.add(edge_middle / 2);
     }
@@ -722,18 +711,16 @@ Polygon SierpinskiFill::generateCross() const
     float realized_length = INT2MM(ret.polygonLength());
     float requested_length = root.requested_length;
     float error = (realized_length - requested_length) / requested_length;
-    logDebug("realized_length: %f, requested_length: %f  :: %f% error\n", realized_length, requested_length, .01 * static_cast<int>(10000 * error));
+    spdlog::debug("realized_length: {}, requested_length: {}  :: {}% error", realized_length, requested_length, .01 * static_cast<int>(10000 * error));
     return ret;
 }
 
 Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord_t pocket_size) const
 {
-    
     Polygon ret;
-    
-    std::function<Point (int, Edge)> get_edge_crossing_location = [&ret, z, min_dist_to_side](int depth, Edge e)
+
+    std::function<Point(int, Edge)> get_edge_crossing_location = [z, min_dist_to_side](const coord_t period, const Edge e)
     {
-        coord_t period =  8 << (14 - depth / 2);
         coord_t from_l = z % (period * 2);
         if (from_l > period)
         {
@@ -744,18 +731,28 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
         from_l = std::min(vSize(e.l - e.r) - min_dist_to_side, from_l);
         return e.l + normal(e.r - e.l, from_l);
     };
-    
+
     SierpinskiTriangle* last_triangle = nullptr;
     for (SierpinskiTriangle* node : sequence)
     {
         SierpinskiTriangle& triangle = *node;
-        
-        ret.add(get_edge_crossing_location(triangle.depth, triangle.getFromEdge()));
-        
+
+        /* The length of a side of the triangle is used as the period of
+        repetition. That way the edges overhang by not more than 45 degrees.
+
+        While there is a vertex is moving back and forth on the diagonal between
+        A and B, this doesn't cause a steeper angle of parallel lines in the
+        Cross pattern because the other side is sliding along the straight
+        sides. The steeper overhang is then only in the corner, which is deemed
+        acceptable since the corners are never too sharp. */
+        const coord_t period = vSize(triangle.straight_corner - triangle.a);
+        ret.add(get_edge_crossing_location(period, triangle.getFromEdge()));
+
         last_triangle = &triangle;
     }
     assert(last_triangle);
-    ret.add(get_edge_crossing_location(last_triangle->depth, last_triangle->getToEdge()));
+    const coord_t period = vSize(last_triangle->straight_corner - last_triangle->a);
+    ret.add(get_edge_crossing_location(period, last_triangle->getToEdge()));
 
     if (pocket_size > 10)
     {
@@ -798,19 +795,18 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
     {
         return ret;
     }
-
 }
 
 void SierpinskiFill::debugCheck(bool check_subdivision)
 {
     if (std::abs(sequence.front()->error_left) > allowed_length_error)
     {
-        logWarning("First node has error left!\n");
+        spdlog::warn("First node has error left!");
         assert(false);
     }
     if (std::abs(sequence.back()->error_right) > allowed_length_error)
     {
-        logWarning("Last node has error right!\n");
+        spdlog::warn("Last node has error right!");
         assert(false);
     }
 
@@ -825,15 +821,15 @@ void SierpinskiFill::debugCheck(bool check_subdivision)
 
         if (std::abs(node->error_right + next->error_left) > allowed_length_error)
         {
-            logWarning("Consecutive nodes in fractal don't have the same error! er: %f , nel: %f\n", node->error_right, next->error_left);
+            spdlog::warn("Consecutive nodes in fractal don't have the same error! er: {} , nel: {}", node->error_right, next->error_left);
             assert(false);
         }
         if (check_subdivision && node->getValueError() < -allowed_length_error)
         {
-            logWarning("Fractal node shouldn't have been subdivided!\n");
+            spdlog::warn("Fractal node shouldn't have been subdivided!");
             assert(false);
         }
     }
 }
 
-}; // namespace cura
+} // namespace cura

@@ -1,15 +1,16 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "FlowTempGraph.h"
-#include "../utils/logoutput.h"
+#include "settings/FlowTempGraph.h"
+
+#include <spdlog/spdlog.h>
 
 namespace cura
 {
 
 double FlowTempGraph::getTemp(const double flow, const Temperature material_print_temperature, const bool flow_dependent_temperature) const
 {
-    if (!flow_dependent_temperature || data.size() == 0)
+    if (! flow_dependent_temperature || data.size() == 0)
     {
         return material_print_temperature;
     }
@@ -19,7 +20,7 @@ double FlowTempGraph::getTemp(const double flow, const Temperature material_prin
     }
     if (flow < data.front().flow)
     {
-        logWarning("Warning! Flow too low!\n"); // TODO
+        spdlog::warn("Warning! Flow too low!");
         return data.front().temp;
     }
     const Datum* last_datum = &data.front();
@@ -33,8 +34,8 @@ double FlowTempGraph::getTemp(const double flow, const Temperature material_prin
         last_datum = &datum;
     }
 
-    logWarning("Warning! Flow too high!\n"); // TODO
+    spdlog::warn("Warning! Flow too high!");
     return data.back().temp;
-};
+}
 
-} //namespace cura
+} // namespace cura

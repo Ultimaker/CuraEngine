@@ -1,10 +1,11 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+//Copyright (c) 2022 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "AABB3D.h"
+#include "utils/AABB3D.h"
 
 #include <limits>
 
-#include "AABB.h"
+#include "utils/AABB.h"
 
 namespace cura
 {
@@ -46,7 +47,7 @@ bool AABB3D::hit(const AABB3D& other) const
     return true;
 }
 
-void AABB3D::include(Point3 p)
+AABB3D AABB3D::include(Point3 p)
 {
     min.x = std::min(min.x, p.x);
     min.y = std::min(min.y, p.y);
@@ -54,33 +55,54 @@ void AABB3D::include(Point3 p)
     max.x = std::max(max.x, p.x);
     max.y = std::max(max.y, p.y);
     max.z = std::max(max.z, p.z);   
+    return *this;
 }
 
-void AABB3D::include(const AABB3D& aabb)
+AABB3D AABB3D::include(const AABB3D& aabb)
 {
-    include(aabb.min);
-    include(aabb.max);
+    // Note that this is different from including the min and max points, since when 'min > max' it's used to denote an negative/empty box.
+    min.x = std::min(min.x, aabb.min.x);
+    min.y = std::min(min.y, aabb.min.y);
+    min.z = std::min(min.z, aabb.min.z);
+    max.x = std::max(max.x, aabb.max.x);
+    max.y = std::max(max.y, aabb.max.y);
+    max.z = std::max(max.z, aabb.max.z);
+    return *this;
 }
 
-void AABB3D::includeZ(coord_t z)
+AABB3D AABB3D::includeZ(coord_t z)
 {
     min.z = std::min(min.z, z);
     max.z = std::max(max.z, z);
+    return *this;
 }
 
-void AABB3D::offset(Point3 offset)
+AABB3D AABB3D::translate(Point3 offset)
 {
     min += offset;
     max += offset;
+    return *this;
 }
 
-void AABB3D::offset(Point offset)
+AABB3D AABB3D::translate(Point offset)
 {
     min += offset;
     max += offset;
+    return *this;
 }
 
-void AABB3D::expandXY(int outset)
+AABB3D AABB3D::expand(coord_t outset)
+{
+    min -= Point3(outset, outset, outset);
+    max += Point3(outset, outset, outset);
+    if (min.x > max.x || min.y > max.y || min.z > max.z)
+    { // make this AABB3D invalid
+        *this = AABB3D();
+    }
+    return *this;
+}
+
+AABB3D AABB3D::expandXY(coord_t outset)
 {
     min -= Point3(outset, outset, 0);
     max += Point3(outset, outset, 0);
@@ -88,6 +110,7 @@ void AABB3D::expandXY(int outset)
     { // make this AABB3D invalid
         *this = AABB3D();
     }
+    return *this;
 }
 
 }//namespace cura

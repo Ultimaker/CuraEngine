@@ -1,15 +1,18 @@
-//Copyright (c) 2019 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2022 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
+#include "utils/polygon.h" // The class under test.
+#include "utils/Coord_t.h"
+#include "utils/SVG.h" // helper functions
+#include "utils/polygonUtils.h" // helper functions
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
 
-#include <../src/utils/polygon.h> //The class under test.
-
+// NOLINTBEGIN(*-magic-numbers)
 namespace cura
 {
 
-class PolygonTest: public testing::Test
+// NOLINTBEGIN(misc-non-private-member-variables-in-classes)
+class PolygonTest : public testing::Test
 {
 public:
     Polygon test_square;
@@ -20,8 +23,9 @@ public:
     Polygon clockwise_small;
     Polygons clockwise_donut;
     Polygon line;
+    Polygon small_area;
 
-    void SetUp()
+    void SetUp() override
     {
         test_square.emplace_back(0, 0);
         test_square.emplace_back(100, 0);
@@ -59,15 +63,36 @@ public:
         clockwise_small.emplace_back(50, 50);
         clockwise_small.emplace_back(50, -50);
 
-        Polygons outer, inner;
+        Polygons outer;
+        Polygons inner;
         outer.add(clockwise_large);
         inner.add(clockwise_small);
         clockwise_donut = outer.difference(inner);
 
         line.emplace_back(0, 0);
         line.emplace_back(100, 0);
+
+        small_area.emplace_back(0, 0);
+        small_area.emplace_back(10, 0);
+        small_area.emplace_back(10, 10);
+        small_area.emplace_back(0, 10);
+    }
+    void twoPolygonsAreEqual(Polygons& polygon1, Polygons& polygon2) const
+    {
+        auto poly_cmp = [](const ClipperLib::Path& a, const ClipperLib::Path& b) { return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end(), [](const Point& p1, const Point& p2) { return p1 < p2; }); };
+        std::sort(polygon1.begin(), polygon1.end(), poly_cmp);
+        std::sort(polygon2.begin(), polygon2.end(), poly_cmp);
+
+        std::vector<ClipperLib::Path> difference;
+        std::set_difference(polygon1.begin(), polygon1.end(), polygon2.begin(), polygon2.end(), std::back_inserter(difference), poly_cmp);
+        ASSERT_TRUE(difference.empty()) << "Paths in polygon1 not found in polygon2:" << difference;
+
+        difference.clear();
+        std::set_difference(polygon2.begin(), polygon2.end(), polygon1.begin(), polygon1.end(), std::back_inserter(difference), poly_cmp);
+        ASSERT_TRUE(difference.empty()) << "Paths in polygon2 not found in polygon1:" << difference;
     }
 };
+// NOLINTEND(misc-non-private-member-variables-in-classes)
 
 TEST_F(PolygonTest, polygonOffsetTest)
 {
@@ -120,18 +145,18 @@ TEST_F(PolygonTest, isInsideTest)
 {
     Polygons test_polys;
     PolygonRef poly = test_polys.newPoly();
-    poly.add(Point(82124,98235));
-    poly.add(Point(83179,98691));
-    poly.add(Point(83434,98950));
-    poly.add(Point(82751,99026));
-    poly.add(Point(82528,99019));
-    poly.add(Point(81605,98854));
-    poly.add(Point(80401,98686));
-    poly.add(Point(79191,98595));
-    poly.add(Point(78191,98441));
-    poly.add(Point(78998,98299));
-    poly.add(Point(79747,98179));
-    poly.add(Point(80960,98095));
+    poly.add(Point(82124, 98235));
+    poly.add(Point(83179, 98691));
+    poly.add(Point(83434, 98950));
+    poly.add(Point(82751, 99026));
+    poly.add(Point(82528, 99019));
+    poly.add(Point(81605, 98854));
+    poly.add(Point(80401, 98686));
+    poly.add(Point(79191, 98595));
+    poly.add(Point(78191, 98441));
+    poly.add(Point(78998, 98299));
+    poly.add(Point(79747, 98179));
+    poly.add(Point(80960, 98095));
 
     EXPECT_TRUE(test_polys.inside(Point(78315, 98440))) << "Point should be inside the polygons!";
 }
@@ -147,7 +172,7 @@ TEST_F(PolygonTest, isOnBorderTest)
     EXPECT_TRUE(test_triangle.inside(Point(150, 50), true)) << "Point is on a diagonal side of the triangle.";
 }
 
-TEST_F(PolygonTest, DISABLED_isInsideLineTest) //Disabled because this fails due to a bug in Clipper.
+TEST_F(PolygonTest, DISABLED_isInsideLineTest) // Disabled because this fails due to a bug in Clipper.
 {
     Polygons polys;
     polys.add(line);
@@ -177,7 +202,7 @@ TEST_F(PolygonTest, differenceClockwiseTest)
     const PolygonsPart part = clockwise_donut.splitIntoParts()[0];
 
     const ConstPolygonRef outer = part.outerPolygon();
-    //Apply the shoelace formula to determine surface area. If it's negative, the polygon is counterclockwise.
+    // Apply the shoelace formula to determine surface area. If it's negative, the polygon is counterclockwise.
     coord_t area = 0;
     for (size_t point_index = 0; point_index < outer.size(); point_index++)
     {
@@ -212,158 +237,324 @@ TEST_F(PolygonTest, getEmptyHolesTest)
     }
 }
 
-TEST_F(PolygonTest, simplifyCircle)
-{
-    Polygons circle_polygons;
-    PolygonRef circle = circle_polygons.newPoly();
-    constexpr coord_t radius = 100000;
-    constexpr double segment_length = 1000;
-    constexpr double tau = 6.283185307179586476925286766559; //2 * pi.
-    constexpr double increment = segment_length / radius; //Segments of 1000 units.
-    for (double angle = 0; angle < tau; angle += increment)
-    {
-        circle.add(Point(std::cos(angle) * radius, std::sin(angle) * radius));
-    }
-
-    constexpr coord_t minimum_segment_length = segment_length + 10;
-    circle_polygons.simplify(minimum_segment_length, 999999999); //With segments of 1000, we need to remove exactly half of the vertices to meet the requirement that all segments are >1010.
-    constexpr coord_t maximum_segment_length = segment_length * 2 + 20; //+20 for some error margin due to rounding.
-
-    for (size_t point_index = 1; point_index + 1 < circle.size(); point_index++) //Don't check the last vertex. Due to odd-numbered vertices it has to be shorter than the minimum.
-    {
-        coord_t segment_length = vSize(circle[point_index % circle.size()] - circle[point_index - 1]);
-        ASSERT_GE(segment_length, minimum_segment_length) << "Segment " << (point_index - 1) << " - " << point_index << " is too short!";
-        ASSERT_LE(segment_length, maximum_segment_length) << "Segment " << (point_index - 1) << " - " << point_index << " is too long!";
-    }
-}
-
-TEST_F(PolygonTest, simplifyZigzag)
-{
-    //Tests a zigzag line: /\/\/\/\/\/\/
-    //If all line segments are short, they can all be removed and turned into one long line: -------------------
-    Polygons zigzag_polygons;
-    PolygonRef zigzag = zigzag_polygons.newPoly();
-    constexpr coord_t segment_length = 1000;
-    const coord_t y_increment = segment_length / std::sqrt(2);
-    coord_t x = y_increment / 2;
-
-    for (size_t i = 0; i < 100; i++)
-    {
-        zigzag.add(Point(x, i * y_increment));
-        x = 0 - x;
-    }
-
-    constexpr coord_t maximum_error = 2 * segment_length * segment_length + 100; //Squared offset from baseline (and some margin for rounding).
-    zigzag_polygons.simplify(segment_length + 10, maximum_error);
-
-    ASSERT_LE(zigzag.size(), 5) << "Zigzag should be removed since the total error compensates with each zag.";
-}
-
-TEST_F(PolygonTest, simplifyLimitedLength)
-{
-    //Generate a spiral with segments that gradually increase in length.
-    Polygons spiral_polygons;
-    PolygonRef spiral = spiral_polygons.newPoly();
-    spiral.add(Point());
-
-    coord_t segment_length = 1000;
-    double angle = 0;
-    Point last_position;
-
-    for (size_t i = 0; i < 10; i++)
-    {
-        const coord_t dx = std::cos(angle) * segment_length;
-        const coord_t dy = std::sin(angle) * segment_length;
-        last_position += Point(dx, dy);
-        spiral.add(last_position);
-        segment_length += 100;
-        angle += 0.1;
-    }
-
-    spiral_polygons.simplify(1550, 999999999); //Remove segments smaller than 1550 (infinite area error).
-
-    ASSERT_EQ(spiral.size(), 11 - 3) << "Should merge segments of length 1100 with 1200, 1300 with 1400 and first with last.";
-}
-
-TEST_F(PolygonTest, simplifyLimitedError)
-{
-    //Generate a square spiral with increasingly large corners until the area exceeds the limit.
-    Polygons spiral_polygons;
-    PolygonRef spiral = spiral_polygons.newPoly();
-    spiral.add(Point());
-
-    //Generate a square spiral, 90 degree corners to make it easy to compute the area loss while retaining a positive area per corner.
-    coord_t segment_length = 1000;
-    Point last_position;
-    double angle = 0;
-    for (size_t i = 0; i < 10; i++)
-    {
-        const coord_t dx = std::cos(angle) * segment_length;
-        const coord_t dy = std::sin(angle) * segment_length;
-        last_position += Point(dx, dy);
-        spiral.add(last_position);
-        segment_length += 100;
-        angle += M_PI / 2;
-    }
-
-    //We want it to not merge the lines 1400 and 1500 any more, but do merge all lines before it.
-    //Take the area of the 1400 by 1500 and plug it into the formula for the height to get at the baseline height, which is our allowed error.
-    constexpr coord_t area = 1400 * 1500 / 2;
-    const coord_t diagonal_length = std::sqrt(1400 * 1400 + 1500 * 1500); //Pythagoras.
-    //A = 0.5 * b * h. diagonal_length is the base line in this case.
-    //2A = b * h
-    //2A / b = h
-    const coord_t height = 4 * area / diagonal_length; //Error of the first vertex we want to keep, so we must set the limit to something slightly lower than this.
-    spiral_polygons.simplify(999999999, height - 10);
-
-    EXPECT_THAT(spiral.size(), testing::AllOf(testing::Ge(11 - 5), testing::Le(11 - 4))) << "Should merge segments of length 1000 through 1400 and (optionally) first with last.";
-}
-
-TEST_F(PolygonTest, simplifyColinear)
-{
-    //Generate a line with several vertices halfway.
-    constexpr coord_t spacing = 100;
-    Polygons colinear_polygons;
-    PolygonRef colinear = colinear_polygons.newPoly();
-    for(size_t i = 0; i < 10; i++)
-    {
-        colinear.add(Point(i * spacing + i % 2 - 1, i * spacing + i % 2 - 1)); //Some jitter of 2 microns is allowed.
-    }
-    colinear.add(Point(spacing * 9, 0)); //Make it a triangle so that the area is not 0 or anything.
-
-    colinear_polygons.simplify(20, 20); //Regardless of parameters, it should always remove vertices with less than 5 micron deviation.
-    ASSERT_EQ(colinear_polygons[0].size(), 3) << "Only the first vertex of the colinear segments, the last vertex of the colinear segments, and the extra triangle vertex should remain.";
-    size_t start_point = 0;
-    for(; start_point < 3; start_point++) //Find where in the new polygon it starts with (-1, -1).
-    {
-        if(colinear_polygons[0][start_point] == Point(-1, -1))
-        {
-            break;
-        }
-    }
-    ASSERT_LT(start_point, 3) << "The starting point (-1, -1) must be in the resulting polygon somewhere. Doesn't matter where.";
-    EXPECT_EQ(colinear_polygons[0][start_point], Point(-1, -1));
-    EXPECT_EQ(colinear_polygons[0][(start_point + 1) % 3], Point(spacing * 9, spacing * 9));
-    EXPECT_EQ(colinear_polygons[0][(start_point + 2) % 3], Point(spacing * 9, 0));
-}
-
 /*
- * Test whether a polygon can be reduced to 1 or 2 vertices. In that case, it
- * should get reduced to 0 or stay at 3.
+ * The convex hull of a cube should still be a cube
  */
-TEST_F(PolygonTest, simplifyToDegenerate)
+TEST_F(PolygonTest, convexTestCube)
 {
-    //Generate a D shape with one long side and another curved side broken up into smaller pieces that can be removed.
     Polygons d_polygons;
     PolygonRef d = d_polygons.newPoly();
     d.add(Point(0, 0));
-    d.add(Point(10, 55));
-    d.add(Point(0, 110));
+    d.add(Point(10, 0));
+    d.add(Point(10, 10));
+    d.add(Point(0, 10));
 
-    d.simplify(100, 15);
+    d_polygons.makeConvex();
 
-    EXPECT_NE(d.size(), 1);
-    EXPECT_NE(d.size(), 2);
+    EXPECT_EQ(d.size(), 4);
+    EXPECT_EQ(d[0], Point(0, 0));
+    EXPECT_EQ(d[1], Point(10, 0));
+    EXPECT_EQ(d[2], Point(10, 10));
+    EXPECT_EQ(d[3], Point(0, 10));
 }
 
+/*
+ * The convex hull of a star should remove the inner points of the star
+ */
+TEST_F(PolygonTest, convexHullStar)
+{
+    Polygons d_polygons;
+    PolygonRef d = d_polygons.newPoly();
+
+    const int num_points = 10;
+    const int outer_radius = 20;
+    const int inner_radius = 10;
+    const double angle_step = M_PI * 2.0 / num_points;
+    for (int i = 0; i < num_points; ++i)
+    {
+        coord_t x_outer = -std::cos(angle_step * i) * outer_radius;
+        coord_t y_outer = -std::sin(angle_step * i) * outer_radius;
+        d.add(Point(x_outer, y_outer));
+
+        coord_t x_inner = -std::cos(angle_step * (i + 0.5)) * inner_radius;
+        coord_t y_inner = -std::sin(angle_step * (i + 0.5)) * inner_radius;
+        d.add(Point(x_inner, y_inner));
+    }
+
+    d_polygons.makeConvex();
+
+    EXPECT_EQ(d.size(), num_points);
+    for (int i = 0; i < num_points; ++i)
+    {
+        double angle = angle_step * i;
+        coord_t x = -std::cos(angle) * outer_radius;
+        coord_t y = -std::sin(angle) * outer_radius;
+        EXPECT_EQ(d[i], Point(x, y));
+    }
 }
+
+/*
+ * Multiple min-x points
+ * the convex hull the point with minimal x value. if there are multiple it might go wrong
+ */
+TEST_F(PolygonTest, convexHullMultipleMinX)
+{
+    Polygons d_polygons;
+    PolygonRef d = d_polygons.newPoly();
+    d.add(Point(0, 0));
+    d.add(Point(0, -10));
+    d.add(Point(10, 0));
+    d.add(Point(0, 10));
+
+    /*
+     *   x\                          x\
+     *   | \                        | \
+     *   x  x    should result in   |  x
+     *   | /                        | /
+     *   x/                         x/
+     *
+     */
+
+    d_polygons.makeConvex();
+
+    EXPECT_EQ(d.size(), 3);
+}
+
+/*
+ * The convex hull should remove collinear points
+ */
+TEST_F(PolygonTest, convexTestCubeColinear)
+{
+    Polygons d_polygons;
+    PolygonRef d = d_polygons.newPoly();
+    d.add(Point(0, 0));
+    d.add(Point(5, 0));
+    d.add(Point(10, 0));
+    d.add(Point(10, 5));
+    d.add(Point(10, 10));
+    d.add(Point(5, 10));
+    d.add(Point(0, 10));
+    d.add(Point(0, 5));
+
+    d_polygons.makeConvex();
+
+    EXPECT_EQ(d.size(), 4);
+    EXPECT_EQ(d[0], Point(0, 0));
+    EXPECT_EQ(d[1], Point(10, 0));
+    EXPECT_EQ(d[2], Point(10, 10));
+    EXPECT_EQ(d[3], Point(0, 10));
+}
+
+/*
+ * The convex hull should remove duplicate points
+ */
+TEST_F(PolygonTest, convexHullRemoveDuplicatePoints)
+{
+    Polygons d_polygons;
+    PolygonRef d = d_polygons.newPoly();
+    d.add(Point(0, 0));
+    d.add(Point(0, 0));
+    d.add(Point(10, 0));
+    d.add(Point(10, 0));
+    d.add(Point(10, 10));
+    d.add(Point(10, 10));
+    d.add(Point(0, 10));
+    d.add(Point(0, 10));
+
+    d_polygons.makeConvex();
+
+    EXPECT_EQ(d.size(), 4);
+    EXPECT_EQ(d[0], Point(0, 0));
+    EXPECT_EQ(d[1], Point(10, 0));
+    EXPECT_EQ(d[2], Point(10, 10));
+    EXPECT_EQ(d[3], Point(0, 10));
+}
+
+/*
+ * Check that a simple set of polygons do not change when run through
+ * removeSmallAreas.
+ */
+TEST_F(PolygonTest, removeSmallAreas_simple)
+{
+    // basic set of polygons
+    auto test_square_2 = test_square;
+    test_square_2.translate(Point(0, 500));
+    auto d_polygons = Polygons{};
+    d_polygons.add(test_square);
+    d_polygons.add(test_square_2);
+    d_polygons.add(triangle);
+
+    // for the simple case there should be no change.
+    auto act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-5, false);
+    twoPolygonsAreEqual(act_polygons, d_polygons);
+
+    // changing remove_holes should have no effect.
+    act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-5, true);
+    twoPolygonsAreEqual(act_polygons, d_polygons);
+}
+
+/*
+ * Check that the two small areas are removed but the two large areas are not
+ * affected.
+ */
+TEST_F(PolygonTest, removeSmallAreas_small_area)
+{
+    // make some areas.
+    auto small_area_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    small_area_1.translate(Point(350, 450));
+    auto small_area_2 = small_area;
+    small_area_2.translate(Point(450, 350));
+    auto triangle_1 = triangle; // area = 10000 micron^2 = 1e-2 mm^2
+    triangle_1.translate(Point(50, 0));
+
+    // add areas to polygons
+    auto d_polygons = Polygons{};
+    d_polygons.add(small_area_1);
+    d_polygons.add(small_area_2);
+    d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
+    d_polygons.add(triangle_1);
+
+    // make an expected Polygons
+    auto exp_polygons = Polygons{};
+    exp_polygons.add(test_square);
+    exp_polygons.add(triangle_1);
+
+    // for remove_holes == false, 2 poly removed
+    auto act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-3, false);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+
+    // for remove_holes == true, 2 poly removed
+    act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-3, true);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+}
+
+/*
+ * Check that that a small hole in a large area is only removed if the setting
+ * is true.
+ */
+TEST_F(PolygonTest, removeSmallAreas_hole)
+{
+    // make some areas.
+    auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    small_hole_1.reverse();
+    small_hole_1.translate(Point(10, 10));
+
+    // add areas to polygons
+    auto d_polygons = Polygons{};
+    d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
+    d_polygons.add(small_hole_1);
+
+
+    // for remove_holes == false there should be no change.
+    auto act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-3, false);
+    twoPolygonsAreEqual(act_polygons, d_polygons);
+
+    // for remove_holes == true there should be one less poly.
+    // make an expected Polygons
+    auto exp_polygons = Polygons{};
+    exp_polygons.add(test_square);
+    act_polygons = d_polygons;
+    act_polygons.removeSmallAreas(1e-3, true);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+}
+
+/*
+ * Test that a hole inside a removed area is always removed.
+ */
+TEST_F(PolygonTest, removeSmallAreas_hole_2)
+{
+    // make some areas.
+    auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    small_hole_1.reverse();
+    auto small_hole_2 = small_hole_1;
+    small_hole_1.translate(Point(10, 10));
+    small_hole_2.translate(Point(160, 160));
+    auto med_square_1 = Polygon{}; // area = 2500 micron^2 = 2.5e-3 mm^2
+    med_square_1.add(Point(0, 0));
+    med_square_1.add(Point(50, 0));
+    med_square_1.add(Point(50, 50));
+    med_square_1.add(Point(0, 50));
+    med_square_1.translate(Point(150, 150));
+
+    // add areas to polygons
+    auto d_polygons = Polygons{};
+    d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
+    d_polygons.add(small_hole_1);
+    d_polygons.add(med_square_1);
+    d_polygons.add(small_hole_2);
+
+    // for remove_holes == false, two polygons removed.
+    auto act_polygons = d_polygons;
+    // make an expected Polygons
+    auto exp_polygons = Polygons{};
+    exp_polygons.add(test_square);
+    exp_polygons.add(small_hole_1);
+    act_polygons.removeSmallAreas(3e-3, false);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+
+    // for remove_holes == true, three polygons removed.
+    act_polygons = d_polygons;
+    // make an expected Polygons
+    exp_polygons = Polygons{};
+    exp_polygons.add(test_square);
+    act_polygons.removeSmallAreas(3e-3, true);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+}
+
+/*
+ * Test the following:
+ *   1. Two large areas (triangle and square) are not removed.
+ *   2. Two small holes in the square are removed if remove_holes==true.
+ *   3. Three small areas are always removed.
+ */
+TEST_F(PolygonTest, removeSmallAreas_complex)
+{
+    // make some areas.
+    auto small_area_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    small_area_1.translate(Point(350, 450));
+    auto small_area_2 = small_area;
+    small_area_2.translate(Point(450, 350));
+    auto small_hole_1 = small_area; // Area = 100 micron^2 = 1e-4 mm^2
+    small_hole_1.reverse();
+    auto small_hole_2 = small_hole_1;
+    small_hole_1.translate(Point(3, 3));
+    small_hole_2.translate(Point(22, 50));
+    auto triangle_1 = triangle; // area = 10000 micron^2 = 1e-2 mm^2
+    triangle_1.translate(Point(600, 0));
+
+    // add areas to polygons
+    auto d_polygons = Polygons{};
+    d_polygons.add(small_area_1);
+    d_polygons.add(small_area_2);
+    d_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
+    d_polygons.add(small_hole_1);
+    d_polygons.add(small_hole_2);
+    d_polygons.add(triangle_1);
+
+    // for remove_holes == false there should be 2 small areas removed.
+    auto act_polygons = d_polygons;
+    // make an expected Polygons
+    auto exp_polygons = Polygons{};
+    exp_polygons.add(test_square); // area = 10000 micron^2 = 1e-2 mm^2
+    exp_polygons.add(small_hole_1);
+    exp_polygons.add(small_hole_2);
+    exp_polygons.add(triangle_1);
+    act_polygons.removeSmallAreas(1e-3, false);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+
+    // for remove_holes == true there should be 2 small areas and 2 small holes removed.
+    act_polygons = d_polygons;
+    // make an expected Polygons
+    exp_polygons = Polygons{};
+    exp_polygons.add(test_square);
+    exp_polygons.add(triangle_1); // area = 10000 micron^2 = 1e-2 mm^2
+    act_polygons.removeSmallAreas(1e-3, true);
+    twoPolygonsAreEqual(act_polygons, exp_polygons);
+}
+} // namespace cura
+// NOLINTEND(*-magic-numbers)
