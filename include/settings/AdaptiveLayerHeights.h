@@ -42,6 +42,41 @@ public:
 class AdaptiveLayerHeights
 {
 public:
+    /*!
+     * Get the amount of adaptive layers found.
+     * @return
+     */
+    [[nodiscard]] size_t getLayerCount() const;
+
+    /*!
+     * Get the adaptive layers found.
+     * @return
+     */
+    std::vector<AdaptiveLayer>* getLayers();
+
+    /*!
+     * \brief Creates a new adaptive layer height calculator.
+     * \param base_layer_height The base layer height to calculate adaptive layers from.
+     * \param variation How much variation is allowed in the layer thickness.
+     * \param step_size The maximum difference in layer height between two
+     * adjacent layers.
+     * \param threshold Threshold to compare the tangent of the steepest slope
+     * to.
+     * \param meshgroup The meshgroup to process.
+     */
+    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup);
+
+private:
+    /*!
+     * Stores the found layer heights
+     */
+    std::vector<AdaptiveLayer> layers;
+
+    /*!
+     * Stores the allowed layer heights in microns.
+     */
+    std::vector<int> allowed_layer_heights;
+
     /**
      * The base layer height.
      */
@@ -63,41 +98,6 @@ public:
      */
     coord_t threshold;
 
-    /*!
-     * Stores the found layer heights
-     */
-    std::vector<AdaptiveLayer> layers;
-
-    /*!
-     * Stores the allowed layer heights in microns.
-     */
-    std::vector<int> allowed_layer_heights;
-
-    /*!
-     * Get the amount of adaptive layers found.
-     * @return
-     */
-    size_t getLayerCount() const;
-
-    /*!
-     * Get the adaptive layers found.
-     * @return
-     */
-    std::vector<AdaptiveLayer>* getLayers();
-
-    /*!
-     * \brief Creates a new adaptive layer height calculator.
-     * \param base_layer_height The base layer height to calculate adaptive layers from.
-     * \param variation How much variation is allowed in the layer thickness.
-     * \param step_size The maximum difference in layer height between two
-     * adjacent layers.
-     * \param threshold Threshold to compare the tangent of the steepest slope
-     * to.
-     * \param meshgroup The meshgroup to process.
-     */
-    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup);
-
-private:
     /*!
      * Stores the found slopes of each face using the same index.
      */
