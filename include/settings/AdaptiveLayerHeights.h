@@ -28,11 +28,6 @@ public:
      */
     int temperature;
 
-    /*!
-     * The print speed for this layer.
-     */
-    int print_speed;
-
     explicit AdaptiveLayer(const coord_t layer_height);
 };
 
