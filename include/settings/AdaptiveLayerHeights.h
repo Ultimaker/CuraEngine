@@ -21,7 +21,7 @@ public:
     /*!
      * The absolute z position of the layer.
      */
-    int z_position;
+    coord_t z_position;
 
     /*!
      * Temperature to use for this layer.
@@ -75,7 +75,7 @@ private:
     /*!
      * Stores the allowed layer heights in microns.
      */
-    std::vector<int> allowed_layer_heights;
+    std::vector<coord_t> allowed_layer_heights;
 
     /**
      * The base layer height.
