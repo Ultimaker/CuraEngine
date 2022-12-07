@@ -1514,7 +1514,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
 
         int lower = static_cast<int>(layer_idx);
         int upper = static_cast<int>(layer_idx + roof_layer_count + z_distance_top + 5);
-        for (Polygons global_support : global_support_areas_per_layer | ranges::views::slice(lower, upper))
+        for (Polygons& global_support : global_support_areas_per_layer | ranges::views::slice(lower, upper))
         {
             global_support = global_support.difference(roof);
         }
