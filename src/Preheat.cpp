@@ -25,6 +25,7 @@ Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const Tempera
             heat_up_speed -= extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
         }
         time = (temp_after - temp_before) / heat_up_speed;
+        spdlog::info("heat_up_speed: {:.2f}, heat_up_time: {:.2f}, temp_after: {:.0f}, temp_before: {:.0f}", heat_up_speed, time, temp_after, temp_before);
     }
     else
     {
@@ -34,6 +35,7 @@ Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const Tempera
             cool_down_speed += extruder_settings.get<Temperature>("material_extrusion_cool_down_speed");
         }
         time = (temp_before - temp_after) / cool_down_speed;
+        spdlog::info("cool_down_speed: {:.2f}, cool_down_time: {:.2f}, temp_after: {:.0f}, temp_before: {:.0f}", cool_down_speed, time, temp_after, temp_before);
     }
     return std::max(0.0_s, time);
 }
@@ -76,6 +78,7 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
     //      limited_time_window
     double outer_temp;
     double limited_time_window;
+    spdlog::info("initial/end: {}, temp_start: {}", temp_end, temp_start);
     if (temp_start < temp_end)
     { // extra time needed during heating
         double extra_heatup_time = (temp_end - temp_start) * time_to_heatup_1_degree;
@@ -98,6 +101,7 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
     }
 
     double time_ratio_cooldown_heatup = time_to_cooldown_1_degree / time_to_heatup_1_degree;
+    spdlog::info("The heatup Stuff:");
     double time_to_heat_from_standby_to_print_temp = getTimeToGoFromTempToTemp(extruder, temp_mid, outer_temp, during_printing);
     double time_needed_to_reach_standby_temp = time_to_heat_from_standby_to_print_temp * (1.0 + time_ratio_cooldown_heatup);
     if (time_needed_to_reach_standby_temp < limited_time_window)
@@ -170,6 +174,7 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
         return result;
     }
     double time_ratio_cooldown_heatup = time_to_cooldown_1_degree / time_to_heatup_1_degree;
+    spdlog::info("The cooldown stuff:");
     double cool_down_time = getTimeToGoFromTempToTemp(extruder, temp_mid, outer_temp, during_printing);
     double time_needed_to_reach_temp1 = cool_down_time * (1.0 + time_ratio_cooldown_heatup);
     if (time_needed_to_reach_temp1 < limited_time_window)
