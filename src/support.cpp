@@ -659,8 +659,13 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
         mesh_support_areas_per_layer.resize(storage.print_layer_count, Polygons());
 
         generateSupportAreasForMesh(storage, *infill_settings, *roof_settings, *bottom_settings, mesh_idx, storage.print_layer_count, mesh_support_areas_per_layer);
+        const double minimum_support_area = mesh.settings.get<double>("minimum_support_area");
         for (size_t layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
         {
+            if (minimum_support_area > 0.0)
+            {
+                mesh_support_areas_per_layer[layer_idx].removeSmallAreas(minimum_support_area);
+            }
             global_support_areas_per_layer[layer_idx].add(mesh_support_areas_per_layer[layer_idx]);
         }
     }
@@ -1281,16 +1286,6 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 
     Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
     Polygons full_overhang = overhang_extented.intersection(supportLayer_supportee);
-
-    // Apply 'minimum support overhang area', which is applied before the actual support.
-    // Not to be confused with 'minimum support area', which is applied _after_ everything has been generated.
-    const auto minimum_support_area = mesh.settings.get<double>("minimum_support_area");
-    if (minimum_support_area > 0)
-    {
-        full_overhang.removeSmallAreas(minimum_support_area);
-    }
-    basic_overhang = basic_overhang.intersection(full_overhang);
-
     return std::make_pair(basic_overhang, full_overhang);
 }
 
