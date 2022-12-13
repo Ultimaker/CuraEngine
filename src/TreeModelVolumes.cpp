@@ -1098,10 +1098,12 @@ const std::optional<std::reference_wrapper<const Polygons>> TreeModelVolumes::ge
 }
 
 
-Polygons TreeModelVolumes::calculateMachineBorderCollision(const Polygons&& machine_border)
+Polygons TreeModelVolumes::calculateMachineBorderCollision(Polygon machine_border)
 {
-    Polygons machine_volume_border = machine_border.offset(MM2INT(1000.0)); // Put a border of 1 meter around the print volume so that we don't collide.
-    machine_volume_border = machine_volume_border.difference(machine_border); // Subtract the actual volume from the collision area.
+    Polygons machine_volume_border;
+    machine_volume_border.add(machine_border.offset(1000000)); // Put a border of 1m around the print volume so that we don't collide.
+    machine_border.reverse(); // Makes the polygon negative so that we subtract the actual volume from the collision area.
+    machine_volume_border.add(machine_border);
     return machine_volume_border;
 }
 

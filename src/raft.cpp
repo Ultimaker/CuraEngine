@@ -62,8 +62,7 @@ void Raft::generate(SliceDataStorage& storage)
         }
     }
 
-    storage.primeRaftOutline = storage.primeTower.outer_poly.offset(distance, ClipperLib::jtRound);
-    // NOTE: the raft doesn't take the prime tower brim into account, because it's (currently) not being printed when printing a raft
+    storage.primeRaftOutline = storage.primeTower.outer_poly_first_layer.offset(distance, ClipperLib::jtRound);
     if (settings.get<bool>("raft_remove_inside_corners"))
     {
         storage.primeRaftOutline = storage.primeRaftOutline.unionPolygons(storage.raftOutline);

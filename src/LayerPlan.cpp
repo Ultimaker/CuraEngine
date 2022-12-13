@@ -1,9 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include <algorithm>
 #include <cstring>
-#include <numeric>
 #include <optional>
 
 #include <spdlog/spdlog.h>
@@ -30,27 +28,25 @@ namespace cura
 constexpr int MINIMUM_LINE_LENGTH = 5; // in uM. Generated lines shorter than this may be discarded
 constexpr int MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_LENGTH;
 
-ExtruderPlan::ExtruderPlan
-(
-    const size_t extruder,
-    const LayerIndex layer_nr,
-    const bool is_initial_layer,
-    const bool is_raft_layer,
-    const coord_t layer_thickness,
-    const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
-    const RetractionConfig& retraction_config
-) :
-    heated_pre_travel_time(0),
-    required_start_temperature(-1),
-    extruder_nr(extruder),
-    layer_nr(layer_nr),
-    is_initial_layer(is_initial_layer),
-    is_raft_layer(is_raft_layer),
-    layer_thickness(layer_thickness),
-    fan_speed_layer_time_settings(fan_speed_layer_time_settings),
-    retraction_config(retraction_config),
-    extraTime(0.0),
-    slowest_path_speed(0.0)
+ExtruderPlan::ExtruderPlan(const size_t extruder,
+                           const LayerIndex layer_nr,
+                           const bool is_initial_layer,
+                           const bool is_raft_layer,
+                           const coord_t layer_thickness,
+                           const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
+                           const RetractionConfig& retraction_config)
+    : heated_pre_travel_time(0)
+    , required_start_temperature(-1)
+    , extruder_nr(extruder)
+    , layer_nr(layer_nr)
+    , is_initial_layer(is_initial_layer)
+    , is_raft_layer(is_raft_layer)
+    , layer_thickness(layer_thickness)
+    , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
+    , retraction_config(retraction_config)
+    , extrudeSpeedFactor(1.0)
+    , extraTime(0.0)
+    , totalPrintTime(0)
 {
 }
 
@@ -72,6 +68,16 @@ void ExtruderPlan::handleAllRemainingInserts(GCodeExport& gcode)
         insert.write(gcode);
         inserts.pop_front();
     }
+}
+
+void ExtruderPlan::setExtrudeSpeedFactor(const Ratio speed_factor)
+{
+    extrudeSpeedFactor = speed_factor;
+}
+
+double ExtruderPlan::getExtrudeSpeedFactor()
+{
+    return extrudeSpeedFactor;
 }
 
 void ExtruderPlan::setFanSpeed(double _fan_speed)
@@ -1126,8 +1132,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons,
                                     const Ratio flow_ratio,
                                     const std::optional<Point> near_start_location,
                                     const double fan_speed,
-                                    const bool reverse_print_direction,
-                                    const std::unordered_set<std::pair<ConstPolygonPointer, ConstPolygonPointer>>& order_requirements)
+                                    const bool reverse_print_direction)
 {
     Polygons boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum.empty())
@@ -1152,7 +1157,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons,
         boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
     }
     constexpr bool detect_loops = true;
-    PathOrderOptimizer<ConstPolygonPointer> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction, order_requirements);
+    PathOrderOptimizer<ConstPolygonPointer> order_optimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), ZSeamConfig(), detect_loops, &boundary, reverse_print_direction);
     for (size_t line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
         order_optimizer.addPolyline(polygons[line_idx]);
@@ -1460,94 +1465,54 @@ void LayerPlan::spiralizeWallSlice(const GCodePathConfig& config, ConstPolygonRe
 
 void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
 {
-    const double totalTime = travelTime + extrudeTime;
-    constexpr double epsilon = 0.01;
-
-    double total_extrude_time_at_minimum_speed = 0.0;
-    double total_extrude_time_at_slowest_speed = 0.0;
-    for (GCodePath& path : paths)
+    double totalTime = travelTime + extrudeTime;
+    if (totalTime < minTime && extrudeTime > 0.0)
     {
-        total_extrude_time_at_minimum_speed += path.estimates.extrude_time_at_minimum_speed;
-        total_extrude_time_at_slowest_speed += path.estimates.extrude_time_at_slowest_path_speed;
-    }
-
-    if (totalTime < minTime - epsilon && extrudeTime > 0.0)
-    {
-        const double minExtrudeTime = minTime - travelTime;
-
-        double factor = 0.0;
-        double target_speed = 0.0;
-        std::function<double(const GCodePath&)> slow_down_func
-        {
-            [&target_speed](const GCodePath& path) { return target_speed / (path.config->getSpeed() * path.speed_factor); }
-        };
-
-        if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
-        {
-            // Even at cool min speed extrusion is not taken enough time. So speed is set to cool min speed.
-            target_speed = minimalSpeed;
-
-            // Update stored naive time estimates
-            estimates.extrude_time = total_extrude_time_at_minimum_speed;
-            if (minTime - total_extrude_time_at_minimum_speed - travelTime > epsilon)
-            {
-                extraTime = minTime - total_extrude_time_at_minimum_speed - travelTime;
-            }
-        }
-        else if (minExtrudeTime >= total_extrude_time_at_slowest_speed && std::abs(total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed) >= epsilon)
-        {
-            // Slowing down to the slowest path speed is not sufficient, need to slow down further to the minimum speed.
-            // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
-            const double factor = (total_extrude_time_at_minimum_speed - minExtrudeTime) / (total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed);
-            target_speed = minimalSpeed * (1.0-factor) + slowest_path_speed * factor;
-
-            // Update stored naive time estimates
-            estimates.extrude_time = minExtrudeTime;
-        }
-        else
-        {
-            // Slowing down to the slowest_speed is sufficient to respect the minimum layer time.
-            // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
-            factor = (total_extrude_time_at_slowest_speed - minExtrudeTime) / (total_extrude_time_at_slowest_speed - extrudeTime);
-            slow_down_func =
-                [&slowest_path_speed = slowest_path_speed, &factor](const GCodePath& path)
-                {
-                    const double target_speed = slowest_path_speed * (1.0 - factor) + (path.config->getSpeed() * path.speed_factor) * factor;
-                    return target_speed / (path.config->getSpeed() * path.speed_factor);
-                };
-
-            // Update stored naive time estimates
-            estimates.extrude_time = minExtrudeTime;
-        }
-
+        double minExtrudeTime = minTime - travelTime;
+        if (minExtrudeTime < 1)
+            minExtrudeTime = 1;
+        double factor = extrudeTime / minExtrudeTime;
         for (GCodePath& path : paths)
         {
             if (path.isTravelPath())
-            {
                 continue;
-            }
-            path.speed_factor = slow_down_func(path);
-            path.estimates.extrude_time /= path.speed_factor;
+            double speed = path.config->getSpeed() * path.speed_factor * factor;
+            if (speed < minimalSpeed)
+                factor = minimalSpeed / (path.config->getSpeed() * path.speed_factor);
         }
+
+        // Only slow down for the minimal time if that will be slower.
+        assert(getExtrudeSpeedFactor() == 1.0); // The extrude speed factor is assumed not to be changed yet
+        if (factor < 1.0)
+        {
+            setExtrudeSpeedFactor(factor);
+        }
+        else
+        {
+            factor = 1.0;
+        }
+
+        double inv_factor = 1.0 / factor; // cause multiplication is faster than division
+
+        // Adjust stored naive time estimates
+        estimates.extrude_time *= inv_factor;
+        for (GCodePath& path : paths)
+        {
+            path.estimates.extrude_time *= inv_factor;
+        }
+
+        if (minTime - (extrudeTime * inv_factor) - travelTime > 0.1)
+        {
+            extraTime = minTime - (extrudeTime * inv_factor) - travelTime;
+        }
+        totalPrintTime = (extrudeTime * inv_factor) + travelTime;
     }
 }
 
 TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_position)
 {
+    TimeMaterialEstimates ret;
     Point p0 = starting_position;
-
-    const double min_path_speed = fan_speed_layer_time_settings.cool_min_speed;
-    slowest_path_speed =
-        std::accumulate
-        (
-            paths.begin(),
-            paths.end(),
-            std::numeric_limits<double>::max(),
-            [](double value, const GCodePath& path)
-                {
-                    return path.isTravelPath() ? value : std::min(value, path.config->getSpeed().value * path.speed_factor);
-                }
-        );
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
     for (GCodePath& path : paths)
@@ -1555,10 +1520,6 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
         bool is_extrusion_path = false;
         double* path_time_estimate;
         double& material_estimate = path.estimates.material;
-
-        path.estimates.extrude_time_at_minimum_speed = 0.0;
-        path.estimates.extrude_time_at_slowest_path_speed = 0.0;
-
         if (! path.isTravelPath())
         {
             is_extrusion_path = true;
@@ -1594,11 +1555,6 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
             double length = vSizeMM(p0 - p1);
             if (is_extrusion_path)
             {
-                if (length > 0)
-                {
-                    path.estimates.extrude_time_at_minimum_speed += length / min_path_speed;
-                    path.estimates.extrude_time_at_slowest_path_speed += length / slowest_path_speed;
-                }
                 material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
             }
             double thisTime = length / (path.config->getSpeed() * path.speed_factor);
@@ -1613,6 +1569,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point starting_pos
 void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time, Point starting_position)
 {
     TimeMaterialEstimates estimates = computeNaiveTimeEstimates(starting_position);
+    totalPrintTime = estimates.getTotalTime();
     if (force_minimal_layer_time)
     {
         forceMinimalLayerTime(fan_speed_layer_time_settings.cool_min_layer_time, fan_speed_layer_time_settings.cool_min_speed, estimates.getTravelTime(), estimates.getExtrudeTime());
@@ -1907,6 +1864,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             // for some movements such as prime tower purge, the speed may get changed by this factor
             speed *= path.speed_factor;
 
+            // Apply the extrusion speed factor if it's an extrusion move.
+            if (! path.config->isTravelPath())
+            {
+                speed *= extruder_plan.getExtrudeSpeedFactor();
+            }
             // This seems to be the best location to place this, but still not ideal.
             if (path.mesh_id != current_mesh)
             {
@@ -2089,7 +2051,7 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
 
     coord_t coasting_min_dist_considered = MM2INT(0.1); // hardcoded setting for when to not perform coasting
 
-    const double extrude_speed = path.config->getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
+    const double extrude_speed = path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor() * path.speed_factor * path.speed_back_pressure_factor;
 
     const coord_t coasting_dist = MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     const double coasting_min_volume = extruder.settings.get<double>("coasting_min_volume");
@@ -2177,7 +2139,7 @@ bool LayerPlan::writePathWithCoasting(GCodeExport& gcode, const size_t extruder_
     for (size_t point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
         const Ratio coasting_speed_modifier = extruder.settings.get<Ratio>("coasting_speed");
-        const Velocity speed = Velocity(coasting_speed_modifier * path.config->getSpeed());
+        const Velocity speed = Velocity(coasting_speed_modifier * path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor());
         gcode.writeTravel(path.points[point_idx], speed);
     }
     return true;
