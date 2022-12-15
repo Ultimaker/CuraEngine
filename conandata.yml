@@ -1,3 +1,4 @@
+# TODO: Remove before merging to main
 "5.3.0-alpha":
     requirements:
         - "clipper/6.4.2"
@@ -9,7 +10,7 @@
         - "range-v3/0.12.0"
     requirements_arcus:
         - "protobuf/3.21.4"
-        - "arcus/5.2.0"
+        - "arcus/(latest)@ultimaker/testing"
         - "zlib/1.2.12"
     build_requirements_arcus:
         - "protobuf/3.21.4"
