@@ -159,7 +159,7 @@ private:
      * collide with the model. Result is saved in the cache.
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
      */
-    void calculateCollision(std::deque<RadiusLayerPair> keys);
+    void calculateCollision(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
@@ -181,7 +181,7 @@ private:
      * A Hole is defined as an area, in which a branch with increase_until_radius radius would collide with the wall.
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
      */
-    void calculateCollisionHolefree(std::deque<RadiusLayerPair> keys);
+    void calculateCollisionHolefree(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer. Holes are removed.
@@ -205,7 +205,7 @@ private:
      * collide with the model. Result is saved in the cache.
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
      */
-    void calculateAvoidance(std::deque<RadiusLayerPair> keys);
+    void calculateAvoidance(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model.
@@ -235,7 +235,7 @@ private:
      * \param keys RadiusLayerPair of the requested areas. The radius will be calculated up to the provided layer.
      *
      */
-    void calculatePlaceables(std::deque<RadiusLayerPair> keys);
+    void calculatePlaceables(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a single layer.
@@ -245,7 +245,7 @@ private:
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
      *
      */
-    void calculateAvoidanceToModel(std::deque<RadiusLayerPair> keys);
+    void calculateAvoidanceToModel(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a single layer.
@@ -268,7 +268,7 @@ private:
      *
      * \return A future that has to be waited on
      */
-    void calculateWallRestrictions(std::deque<RadiusLayerPair> keys);
+    void calculateWallRestrictions(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed object).

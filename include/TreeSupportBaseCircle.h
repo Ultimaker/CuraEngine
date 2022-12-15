@@ -38,7 +38,7 @@ public:
 
             constexpr auto support_tree_circle_resolution = 25; // The number of vertices in each circle.
             Polygon circle;
-            for (const uint64_t i : ranges::views::iota(1, support_tree_circle_resolution))
+            for (const uint64_t i : ranges::views::iota(0, support_tree_circle_resolution))
             {
                 const AngleRadians angle = static_cast<double>(i) / support_tree_circle_resolution * TAU;
                 circle.emplace_back(static_cast<coord_t>(std::cos(angle) * base_radius), static_cast<coord_t>(std::sin(angle) * base_radius));

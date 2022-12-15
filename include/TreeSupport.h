@@ -13,7 +13,11 @@
 #include "polyclipping/clipper.hpp"
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
+#include "utils/Coord_t.h"
 #include "utils/polygon.h"
+
+namespace cura
+{
 
 // The various stages of the process can be weighted differently in the progress bar.
 // These weights are obtained experimentally using a small sample size. Sensible weights can differ drastically based on the assumed default settings and model.
@@ -30,16 +34,12 @@ constexpr auto TREE_PROGRESS_FINALIZE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 
 
 constexpr auto SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL = false;
 constexpr auto SUPPORT_TREE_AVOID_SUPPORT_BLOCKER = true;
-constexpr auto SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION = true;
-constexpr auto SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
+constexpr coord_t SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
 constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
-constexpr auto SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
-constexpr auto SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
+constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
+constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
 
-constexpr auto SUPPORT_TREE_MAX_DEVIATION = 0;
-
-namespace cura
-{
+constexpr coord_t SUPPORT_TREE_MAX_DEVIATION = 0;
 
 /*!
  * \brief Generates a tree structure to support your models.
