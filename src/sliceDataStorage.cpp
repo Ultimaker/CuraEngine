@@ -366,6 +366,11 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
                 ret[extruder_nr] = true;
             }
         }
+        int skirt_brim_extruder_nr = mesh_group_settings.get<int>("skirt_brim_extruder_nr");
+        if (skirt_brim_extruder_nr >= 0)
+        {
+            ret[skirt_brim_extruder_nr] = true;
+        }
     }
     else if (adhesion_type == EPlatformAdhesion::RAFT)
     {
