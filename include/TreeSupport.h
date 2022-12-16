@@ -241,9 +241,8 @@ private:
     (
         std::map<TreeSupportElement, AABB>& reduced_aabb,
         std::map<TreeSupportElement, AABB>& input_aabb,
-        const std::unordered_map<TreeSupportElement,
-        Polygons>& to_bp_areas,
-        const std::unordered_map<TreeSupportElement, Polygons>& to_model_areas,
+        const std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas,
+        const std::map<TreeSupportElement, Polygons>& to_model_areas,
         const std::map<TreeSupportElement, Polygons>& influence_areas,
         std::unordered_map<TreeSupportElement, Polygons>& insert_bp_areas,
         std::unordered_map<TreeSupportElement, Polygons>& insert_model_areas,
@@ -269,7 +268,7 @@ private:
     void mergeInfluenceAreas
     (
         std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas,
-        std::unordered_map<TreeSupportElement, Polygons>& to_model_areas,
+        std::map<TreeSupportElement, Polygons>& to_model_areas,
         std::map<TreeSupportElement, Polygons>& influence_areas,
         LayerIndex layer_idx
     );
@@ -328,7 +327,7 @@ private:
     void increaseAreas
     (
         std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas,
-        std::unordered_map<TreeSupportElement, Polygons>& to_model_areas,
+        std::map<TreeSupportElement, Polygons>& to_model_areas,
         std::map<TreeSupportElement, Polygons>& influence_areas,
         std::vector<TreeSupportElement*>& bypass_merge_areas,
         const std::vector<TreeSupportElement*>& last_layer,

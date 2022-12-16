@@ -98,18 +98,23 @@ TreeModelVolumes::TreeModelVolumes
     // (So we can handle some settings on a per-mesh basis.)
     for (auto [mesh_idx, mesh] : storage.meshes | ranges::views::enumerate)
     {
+        // Workaround for compiler bug on apple-clang -- Closure won't properly capture variables in capture lists in outer scope.
+        const auto& mesh_idx_l = mesh_idx;
+        const auto& mesh_l = mesh;
+        // ^^^ Remove when fixed (and rename accordingly in the below parallel-for).
+
         cura::parallel_for<coord_t>
         (
             0,
-            LayerIndex(layer_outlines_[mesh_to_layeroutline_idx[mesh_idx]].second.size()),
+            LayerIndex(layer_outlines_[mesh_to_layeroutline_idx[mesh_idx_l]].second.size()),
             [&](const LayerIndex layer_idx)
             {
                 if (mesh.layer_nr_max_filled_layer < layer_idx)
                 {
                     return; // Can't break as parallel_for wont allow it, this is equivalent to a continue.
                 }
-                Polygons outline = extractOutlineFromMesh(mesh, layer_idx);
-                layer_outlines_[mesh_to_layeroutline_idx[mesh_idx]].second[layer_idx].add(outline);
+                Polygons outline = extractOutlineFromMesh(mesh_l, layer_idx);
+                layer_outlines_[mesh_to_layeroutline_idx[mesh_idx_l]].second[layer_idx].add(outline);
             }
         );
     }
@@ -117,13 +122,13 @@ TreeModelVolumes::TreeModelVolumes
     for (auto& layer_outline : layer_outlines_)
     {
         cura::parallel_for<coord_t>
-            (
-                0,
-                LayerIndex(anti_overhang_.size()),
-                [&](const LayerIndex layer_idx)
-                {
-                    layer_outline.second[layer_idx] = layer_outline.second[layer_idx].unionPolygons();
-                }
+        (
+            0,
+            LayerIndex(anti_overhang_.size()),
+            [&](const LayerIndex layer_idx)
+            {
+                layer_outline.second[layer_idx] = layer_outline.second[layer_idx].unionPolygons();
+            }
         );
     }
 
