@@ -9,6 +9,10 @@
 #include "utils/Coord_t.h"
 #include "utils/polygon.h"
 #include <boost/container_hash/hash.hpp>
+
+#include <map>
+#include <unordered_map>
+
 namespace cura
 {
 
@@ -105,7 +109,6 @@ struct TreeSupportElement
     {
         RecreateInfluenceLimitArea();
     }
-
 
     TreeSupportElement(const TreeSupportElement& elem, Polygons* newArea = nullptr) : // copy constructor with possibility to set a new area
         target_height(elem.target_height),
@@ -426,6 +429,9 @@ struct TreeSupportElement
         }
     }
 };
+
+using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Polygons>;
+using PropertyAreas = std::map<TreeSupportElement, Polygons>;
 
 } // namespace cura
 

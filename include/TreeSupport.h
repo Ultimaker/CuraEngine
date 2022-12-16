@@ -241,12 +241,12 @@ private:
     (
         std::map<TreeSupportElement, AABB>& reduced_aabb,
         std::map<TreeSupportElement, AABB>& input_aabb,
-        const std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas,
-        const std::map<TreeSupportElement, Polygons>& to_model_areas,
-        const std::map<TreeSupportElement, Polygons>& influence_areas,
-        std::unordered_map<TreeSupportElement, Polygons>& insert_bp_areas,
-        std::unordered_map<TreeSupportElement, Polygons>& insert_model_areas,
-        std::unordered_map<TreeSupportElement, Polygons>& insert_influence,
+        const PropertyAreasUnordered& to_bp_areas,
+        const PropertyAreas& to_model_areas,
+        const PropertyAreas& influence_areas,
+        PropertyAreasUnordered& insert_bp_areas,
+        PropertyAreasUnordered& insert_model_areas,
+        PropertyAreasUnordered& insert_influence,
         std::vector<TreeSupportElement>& erase,
         const LayerIndex layer_idx
     );
@@ -267,9 +267,9 @@ private:
      */
     void mergeInfluenceAreas
     (
-        std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas,
-        std::map<TreeSupportElement, Polygons>& to_model_areas,
-        std::map<TreeSupportElement, Polygons>& influence_areas,
+        PropertyAreasUnordered& to_bp_areas,
+        PropertyAreas& to_model_areas,
+        PropertyAreas& influence_areas,
         LayerIndex layer_idx
     );
 
@@ -326,9 +326,9 @@ private:
      */
     void increaseAreas
     (
-        std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas,
-        std::map<TreeSupportElement, Polygons>& to_model_areas,
-        std::map<TreeSupportElement, Polygons>& influence_areas,
+        PropertyAreasUnordered& to_bp_areas,
+        PropertyAreas& to_model_areas,
+        PropertyAreas& influence_areas,
         std::vector<TreeSupportElement*>& bypass_merge_areas,
         const std::vector<TreeSupportElement*>& last_layer,
         const LayerIndex layer_idx,
@@ -404,7 +404,6 @@ private:
         std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas,
         const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order
     );
-
 
     /*!
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage

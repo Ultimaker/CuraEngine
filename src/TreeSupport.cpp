@@ -1100,12 +1100,12 @@ void TreeSupport::mergeHelper
 (
     std::map<TreeSupportElement, AABB>& reduced_aabb,
     std::map<TreeSupportElement, AABB>& input_aabb,
-    const std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas,
-    const std::map<TreeSupportElement, Polygons>& to_model_areas,
-    const std::map<TreeSupportElement, Polygons>& influence_areas,
-    std::unordered_map<TreeSupportElement, Polygons>& insert_bp_areas,
-    std::unordered_map<TreeSupportElement, Polygons>& insert_model_areas,
-    std::unordered_map<TreeSupportElement, Polygons>& insert_influence,
+    const PropertyAreasUnordered& to_bp_areas,
+    const PropertyAreas& to_model_areas,
+    const PropertyAreas& influence_areas,
+    PropertyAreasUnordered& insert_bp_areas,
+    PropertyAreasUnordered& insert_model_areas,
+    PropertyAreasUnordered& insert_influence,
     std::vector<TreeSupportElement>& erase, const LayerIndex layer_idx
 )
 {
@@ -1279,7 +1279,7 @@ void TreeSupport::mergeHelper
                     );
 
                     const auto getIntersectInfluence =
-                        [&] (const std::unordered_map<TreeSupportElement, Polygons>& insert_infl, const std::map<TreeSupportElement, Polygons>& infl_areas)
+                        [&] (const PropertyAreasUnordered& insert_infl, const PropertyAreas& infl_areas)
                         {
                             const Polygons infl_small = insert_infl.count(smaller_rad.first) ? insert_infl.at(smaller_rad.first) : (infl_areas.count(smaller_rad.first) ? infl_areas.at(smaller_rad.first) : Polygons());
                             const Polygons infl_big = insert_infl.count(bigger_rad.first) ? insert_infl.at(bigger_rad.first) : (infl_areas.count(bigger_rad.first) ? infl_areas.at(bigger_rad.first) : Polygons());
@@ -1352,9 +1352,9 @@ void TreeSupport::mergeHelper
 
 void TreeSupport::mergeInfluenceAreas
 (
-    std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas,
-    std::map<TreeSupportElement, Polygons>& to_model_areas,
-    std::map<TreeSupportElement, Polygons>& influence_areas,
+    PropertyAreasUnordered& to_bp_areas,
+    PropertyAreas& to_model_areas,
+    PropertyAreas& influence_areas,
     LayerIndex layer_idx
 )
 {
@@ -1383,7 +1383,7 @@ void TreeSupport::mergeInfluenceAreas
     // To achieve that every element in a bucket is already correctly merged with other elements in this bucket
     // an extra empty bucket is created for each bucket, and the elements are merged into the empty one.
     // Each thread will then process two buckets by merging all elements in the second bucket into the first one as mergeHelper will disable not trying to merge elements from the same bucket in this case.
-    std::vector<std::map<TreeSupportElement, Polygons>> buckets_area(2 * bucket_count);
+    std::vector<PropertyAreas> buckets_area(2 * bucket_count);
     std::vector<std::map<TreeSupportElement, AABB>> buckets_aabb(2 * bucket_count);
 
 
@@ -1425,9 +1425,9 @@ void TreeSupport::mergeInfluenceAreas
     while (buckets_area.size() > 1)
     {
         // Some temporary storage, of elements that have to be inserted or removed from the background storage. Only one per two buckets required
-        std::vector<std::unordered_map<TreeSupportElement, Polygons>> insert_main(buckets_area.size() / 2);
-        std::vector<std::unordered_map<TreeSupportElement, Polygons>> insert_secondary(buckets_area.size() / 2);
-        std::vector<std::unordered_map<TreeSupportElement, Polygons>> insert_influence(buckets_area.size() / 2);
+        std::vector<PropertyAreasUnordered> insert_main(buckets_area.size() / 2);
+        std::vector<PropertyAreasUnordered> insert_secondary(buckets_area.size() / 2);
+        std::vector<PropertyAreasUnordered> insert_influence(buckets_area.size() / 2);
         std::vector<std::vector<TreeSupportElement>> erase(buckets_area.size() / 2);
 
         cura::parallel_for<size_t>
@@ -1481,7 +1481,7 @@ void TreeSupport::mergeInfluenceAreas
             }
         }
 
-        const auto position_rem = std::remove_if(buckets_area.begin(), buckets_area.end(), [&](const std::map<TreeSupportElement, Polygons> x) mutable { return x.empty(); });
+        const auto position_rem = std::remove_if(buckets_area.begin(), buckets_area.end(), [&](const PropertyAreas x) mutable { return x.empty(); });
         buckets_area.erase(position_rem, buckets_area.end());
 
         const auto position_aabb = std::remove_if(buckets_aabb.begin(), buckets_aabb.end(), [&](const std::map<TreeSupportElement, AABB> x) mutable { return x.empty(); });
@@ -1713,9 +1713,9 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea
 
 void TreeSupport::increaseAreas
 (
-    std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas,
-    std::map<TreeSupportElement, Polygons>& to_model_areas,
-    std::map<TreeSupportElement, Polygons>& influence_areas,
+    PropertyAreasUnordered& to_bp_areas,
+    PropertyAreas& to_model_areas,
+    PropertyAreas& influence_areas,
     std::vector<TreeSupportElement*>& bypass_merge_areas,
     const std::vector<TreeSupportElement*>& last_layer,
     const LayerIndex layer_idx, const bool mergelayer
@@ -2075,9 +2075,9 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
             merge_every_x_layers = 1;
         }
 
-        std::map<TreeSupportElement, Polygons> influence_areas; // Over this map will be iterated when merging, as such it has to be ordered to ensure deterministic results.
-        std::map<TreeSupportElement, Polygons> to_model_areas; // The area of these SupportElement is not set, to avoid to much allocation and deallocation on the heap.
-        std::unordered_map<TreeSupportElement, Polygons> to_bp_areas; // Same.
+        PropertyAreas influence_areas; // Over this map will be iterated when merging, as such it has to be ordered to ensure deterministic results.
+        PropertyAreas to_model_areas; // The area of these SupportElement is not set, to avoid to much allocation and deallocation on the heap.
+        PropertyAreasUnordered to_bp_areas; // Same.
         std::vector<TreeSupportElement*> bypass_merge_areas; // Different to the other maps of SupportElements as these here have the area already set, as they are already to be inserted into move_bounds.
 
         const auto time_a = std::chrono::high_resolution_clock::now();
