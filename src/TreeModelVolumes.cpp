@@ -37,7 +37,8 @@ TreeModelVolumes::TreeModelVolumes
     std::unordered_map<size_t, size_t> mesh_to_layeroutline_idx;
 
     // Get, for all participating meshes, simplification settings, and support settings that can be set per mesh.
-    // NOTER: The setting 'support_type' (used here for 'support_rests_on_model' is not settable per mesh, so it's not known why you'd do it this way for that setting.
+    // NOTE: The setting 'support_type' (used here for 'support_rests_on_model' is not settable per mesh, if this stays that way, we could simplify the code a bit.
+    //       Currently in the middle of rethinking support, so this stays.
 
     coord_t min_maximum_resolution = std::numeric_limits<coord_t>::max();
     coord_t min_maximum_deviation = std::numeric_limits<coord_t>::max();
@@ -170,7 +171,6 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
 
     // Get the config corresponding to one mesh that is in the current group. Which one has to be irrelevant.
     // Not the prettiest way to do this, but it ensures some calculations that may be a bit more complex like inital layer diameter are only done in once.
-    // NOTER: The (same!) config is already needed in the constructor though. At this point, why not just make it a member variable?
     const TreeSupportSettings config(layer_outlines_[current_outline_idx].first);
 
     // Calculate which radius each layer in the tip may have.
@@ -219,8 +219,7 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
     }
 
     // Copy these deques, as the methods we provide them to will loop over them using parallel-for.
-    // NOTER: This seems to be for the case that we have a 'nowait' implemented, as I see these are (at the moment) copied to the methods anyway, and then only used read-only.
-    //        I think at least one of these can be removed (relevant_avoidance_radiis_to_model), and replaced with just the use of 'radius_until_layer'.
+    // NOTE: While it might seem that one of these could be removed, they are here in case the parallel loop becomes no-wait.
     std::deque<RadiusLayerPair> relevant_avoidance_radiis;
     std::deque<RadiusLayerPair> relevant_avoidance_radiis_to_model;
     relevant_avoidance_radiis.insert(relevant_avoidance_radiis.end(), radius_until_layer.begin(), radius_until_layer.end());
