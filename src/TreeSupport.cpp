@@ -296,7 +296,7 @@ std::function<bool(std::pair<Point, TreeSupport::LineStatus>)> TreeSupport::getE
 {
     const bool xy_overrides = config.support_overrides == SupportDistPriority::XY_OVERRIDES_Z;
     std::function<bool(std::pair<Point, LineStatus>)> evaluatePoint =
-        [&](std::pair<Point, LineStatus> p)
+        [=](std::pair<Point, LineStatus> p)
         {
             if (! volumes_.getAvoidance(config.getRadius(0), current_layer - 1, p.second == LineStatus::TO_BP_SAFE ? AvoidanceType::FAST_SAFE : AvoidanceType::FAST, false, !xy_overrides).inside(p.first, true))
             {
