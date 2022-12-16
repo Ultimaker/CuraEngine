@@ -82,7 +82,7 @@ TreeModelVolumes::TreeModelVolumes
 
         if (TreeSupportSettings::has_to_rely_on_min_xy_dist_only)
         {
-            current_min_xy_dist = std::max(current_min_xy_dist, coord_t(100));
+            current_min_xy_dist = std::max(current_min_xy_dist, coord_t(FUDGE_LENGTH * 2));
         }
 
         current_min_xy_dist_delta = std::max(config.xy_distance - current_min_xy_dist, coord_t(0));
@@ -514,7 +514,7 @@ Polygons TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, 
     layer.getOutlines(total, external_polys_only);
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
-        total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
+        total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(FUDGE_LENGTH * 2));
     }
     const coord_t maximum_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     const coord_t maximum_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
@@ -639,7 +639,7 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                         //   +-----+
                         //   s+-----+
 
-                        // technically the calculation below is off by one layer, as the actual distance between plastic one layer down is 0 not layer height, as this layer is filled with said plastic.
+                        // Technically the calculation below is off by one layer, as the actual distance between plastic one layer down is 0 not layer height, as this layer is filled with said plastic.
                         // But otherwise a part of the overhang that is expected to be supported is overwritten by the remaining part of the xy distance of the layer below the to be supported area.
                         const coord_t required_range_x = coord_t(xy_distance - ((layer_offset - (z_distance_top_layers == 1 ? 0.5 : 0)) * xy_distance / z_distance_top_layers));
                         // ^^^ The conditional -0.5 ensures that plastic can never touch on the diagonal downward when the z_distance_top_layers = 1.
@@ -714,8 +714,7 @@ void TreeModelVolumes::calculateCollisionHolefree(const std::deque<RadiusLayerPa
                 // Logically increase the collision by increase_until_radius
                 const coord_t radius = key.first;
                 const coord_t increase_radius_ceil = ceilRadius(increase_until_radius, false) - ceilRadius(radius, true);
-                constexpr auto epsilon = 5;
-                Polygons col = getCollision(increase_until_radius, layer_idx, false).offset(epsilon - increase_radius_ceil, ClipperLib::jtRound).unionPolygons();
+                Polygons col = getCollision(increase_until_radius, layer_idx, false).offset(EPSILON - increase_radius_ceil, ClipperLib::jtRound).unionPolygons();
                 // ^^^ That last 'unionPolygons' is important as otherwise holes(in form of lines that will increase to holes in a later step) can get unioned onto the area.
                 col = simplifier.polygon(col);
                 data[RadiusLayerPair(radius, layer_idx)] = col;
