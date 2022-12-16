@@ -618,7 +618,8 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
 {
     TreeSupportSettings mesh_config(mesh.settings);
 
-    const size_t z_distance_delta = mesh_config.z_distance_top_layers + 1; // To ensure z_distance_top_layers are left empty between the overhang (zeroth empty layer), the support has to be added z_distance_top_layers+1 layers below
+    // To ensure z_distance_top_layers are left empty between the overhang (zeroth empty layer), the support has to be added z_distance_top_layers+1 layers below
+    const size_t z_distance_delta = mesh_config.z_distance_top_layers + 1;
 
     const bool xy_overrides = mesh_config.support_overrides == SupportDistPriority::XY_OVERRIDES_Z;
     const coord_t support_roof_line_distance = mesh.settings.get<coord_t>("support_roof_line_distance");
@@ -630,7 +631,9 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
     const EFillMethod support_pattern = mesh.settings.get<EFillMethod>("support_pattern");
     const coord_t connect_length = (mesh_config.support_line_width * 100 / mesh.settings.get<double>("support_tree_top_rate")) + std::max(2 * mesh_config.min_radius - 1.0 * mesh_config.support_line_width, 0.0);
     const coord_t support_tree_branch_distance = (support_pattern == EFillMethod::TRIANGLES ? 3 : (support_pattern == EFillMethod::GRID ? 2 : 1)) * connect_length;
-    const coord_t circle_length_to_half_linewidth_change = mesh_config.min_radius < mesh_config.support_line_width ? mesh_config.min_radius / 2 : sqrt(square(mesh_config.min_radius) - square(mesh_config.min_radius - mesh_config.support_line_width / 2)); // As r*r=x*x+y*y (circle equation): If a circle with center at (0,0) the top most point is at (0,r) as in y=r. This calculates how far one has to move on the x-axis so that y=r-support_line_width/2. In other words how far does one need to move on the x-axis to be support_line_width/2 away from the circle line. As a circle is round this length is identical for every axis as long as the 90� angle between both remains.
+    const coord_t circle_length_to_half_linewidth_change = mesh_config.min_radius < mesh_config.support_line_width ? mesh_config.min_radius / 2 : sqrt(square(mesh_config.min_radius) - square(mesh_config.min_radius - mesh_config.support_line_width / 2));
+    // ^^^ As r*r=x*x+y*y (circle equation): If a circle with center at (0,0) the top most point is at (0,r) as in y=r. This calculates how far one has to move on the x-axis so that y=r-support_line_width/2. In other words how far does one need to move on the x-axis to be support_line_width/2 away from the circle line.
+    //     As a circle is round this length is identical for every axis as long as the 90� angle between both remains.
     const coord_t support_outset = mesh.settings.get<coord_t>("support_offset");
     const coord_t roof_outset = mesh.settings.get<coord_t>("support_roof_offset");
     const coord_t extra_outset = std::max(coord_t(0), mesh_config.min_radius - mesh_config.support_line_width / 2) + (xy_overrides ? 0 : mesh_config.support_line_width / 2);
@@ -639,7 +642,10 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
     const double tip_roof_size=force_tip_to_roof?mesh_config.min_radius * mesh_config.min_radius * M_PI:0;
     const double support_overhang_angle = mesh.settings.get<AngleRadians>("support_angle");
     const coord_t max_overhang_speed = (support_overhang_angle < TAU / 4) ? (coord_t)(tan(support_overhang_angle) * mesh_config.layer_height) : std::numeric_limits<coord_t>::max();
-    const size_t max_overhang_insert_lag = std::max((size_t)round_up_divide(mesh_config.xy_distance, max_overhang_speed / 2), 2 * mesh_config.z_distance_top_layers); // cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point may cause extra material and time cost.  Could also be an user setting or differently calculated. Idea is that if an overhang does not turn valid in double the amount of layers a slope of support angle would take to travel xy_distance, nothing reasonable will come from it. The 2*z_distance_delta is only a catch for when the support angle is very high.
+    const size_t max_overhang_insert_lag = std::max((size_t)round_up_divide(mesh_config.xy_distance, max_overhang_speed / 2), 2 * mesh_config.z_distance_top_layers);
+    // ^^^ Cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point may cause extra material and time cost.
+    //     Could also be an user setting or differently calculated. Idea is that if an overhang does not turn valid in double the amount of layers a slope of support angle would take to travel xy_distance, nothing reasonable will come from it.
+    //     The 2*z_distance_delta is only a catch for when the support angle is very high.
     const bool support_tree_limit_branch_reach = mesh.settings.get<bool>("support_tree_limit_branch_reach");
     const coord_t support_tree_branch_reach_limit = support_tree_limit_branch_reach ? mesh.settings.get<coord_t>("support_tree_branch_reach_limit") : 0;
 
