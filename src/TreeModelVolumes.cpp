@@ -634,9 +634,33 @@ void TreeModelVolumes::calculateCollision(std::deque<RadiusLayerPair> keys)
             for (LayerIndex layer_idx = min_layer_bottom; layer_idx <= max_required_layer; layer_idx++)
             {
                 key.second = layer_idx;
-                for (coord_t layer_offset = 1; layer_offset <= z_distance_top_layers && layer_offset + layer_idx <= max_required_layer; layer_offset++)
+                for (coord_t layer_offset = 1; layer_offset <= z_distance_top_layers && layer_offset + layer_idx < std::min(coord_t(layer_outlines_[outline_idx].second.size()), coord_t(max_required_layer + 1)); layer_offset++)
                 {
-                    data[key].add(data[RadiusLayerPair(radius, layer_idx + layer_offset)]);
+                    // If just the collision (including the xy distance) of the layers above is accumulated, it leads to the following issue:
+                    // Example: assuming the z distance is 2 layer
+                    // + = xy_distance
+                    // - = model
+                    // o = overhang of the area two layers above that should result in tips on this layer
+                    //
+                    //  +-----+
+                    //   +-----+
+                    //    +-----+
+                    //   o +-----+
+                    // If just the collision above is accumulated the overhang will get overwritten by the xy_distance of the layer below the overhang...
+                    //
+                    // This only causes issues if the overhang area is thinner than xy_distance
+                    // Just accumulating areas of the model above without the xy distance is also problematic, as then support may get closer to the model (on the diagonal downwards) than the user intended.
+                    // Example (s = support):
+                    //  +-----+
+                    //   +-----+
+                    //   +-----+
+                    //   s+-----+
+
+                    // technically the calculation below is off by one layer, as the actual distance between plastic one layer down is 0 not layer height, as this layer is filled with said plastic.
+                    // But otherwise a part of the overhang that is expected to be supported is overwritten by the remaining part of the xy distance of the layer below the to be supported area.
+                    coord_t required_range_x = coord_t(xy_distance - ((layer_offset - (z_distance_top_layers == 1 ? 0.5 : 0)) * xy_distance / z_distance_top_layers)); // the conditional -0.5 ensures that plastic can never touch on the diagonal downward when the z_distance_top_layers = 1. It is assumed to be better to not support an overhang<90° than to risk fusing to it.
+                    data[key].add(layer_outlines_[outline_idx].second[layer_idx + layer_offset].offset(radius + required_range_x));
+
                 }
                 if (max_anti_overhang_layer >= layer_idx)
                 {
