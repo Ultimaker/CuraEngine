@@ -403,7 +403,7 @@ Polygons TreeSupport::ensureMaximumDistancePolyline(const Polygons& input, coord
                 line.clear();
                 Point current_point = part[0];
                 line.add(part[0]);
-                if (min_points > 1 || vSize(part[0] - part[optimal_end_index]) > current_distance)
+                if (min_points > 1 || vSize2(part[0] - part[optimal_end_index]) > (current_distance * current_distance))
                 {
                     line.add(part[optimal_end_index]);
                 }
@@ -417,12 +417,12 @@ Polygons TreeSupport::ensureMaximumDistancePolyline(const Polygons& input, coord
                     // Not every point that is distance away, is valid, as it may be much closer to another point. This is especially the case when the overhang is very thin.
                     // So this ensures that the points are actually a certain distance from each other.
                     // This assurance is only made on a per polygon basis, as different but close polygon may not be able to use support below the other polygon.
-                    coord_t min_distance_to_existing_point = std::numeric_limits<coord_t>::max();
+                    coord_t min_distance_to_existing_point_sqd = std::numeric_limits<coord_t>::max();
                     for (Point p : line)
                     {
-                        min_distance_to_existing_point = std::min(min_distance_to_existing_point, vSize(p - next_point.location));
+                        min_distance_to_existing_point_sqd = std::min(min_distance_to_existing_point_sqd, vSize2(p - next_point.location));
                     }
-                    if (min_distance_to_existing_point >= current_distance)
+                    if (min_distance_to_existing_point_sqd >= (current_distance * current_distance))
                     {
                         // viable point was found. Add to possible result.
                         line.add(next_point.location);
@@ -445,7 +445,7 @@ Polygons TreeSupport::ensureMaximumDistancePolyline(const Polygons& input, coord
                             continue;
                         }
                         // if the point was too close, the next possible viable point is at least distance-min_distance_to_existing_point away from the one that was just checked.
-                        next_distance = std::max(current_distance - min_distance_to_existing_point, coord_t(100));
+                        next_distance = std::max(static_cast<coord_t>(current_distance - std::sqrt(min_distance_to_existing_point_sqd)), static_cast<coord_t>(100));
                         current_point = next_point.location;
                         current_index = next_point.pos;
                     }
@@ -2399,7 +2399,7 @@ void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, TreeSupp
                 }
             }
 
-            coord_t max_speed = 0;
+            coord_t max_speed_sqd = 0;
             std::function<Polygons(coord_t)> generateArea =
                 [&](coord_t offset)
                 {
@@ -2407,7 +2407,7 @@ void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, TreeSupp
 
                     for (std::pair<Point, coord_t> movement : movement_directions)
                     {
-                        max_speed = std::max(max_speed, vSize(movement.first));
+                        max_speed_sqd = std::max(max_speed_sqd, vSize2(movement.first));
 
                         // Visualization: https://jsfiddle.net/0zvcq39L/2/
                         // Ovalizes the circle to an ellipse, that contains both old center and new target position.
@@ -2439,7 +2439,8 @@ void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, TreeSupp
                     return poly;
                 };
 
-            bool fast_relative_movement = max_speed > radius * 0.75;
+            constexpr auto three_quarters_sqd = 0.75 * 0.75;
+            bool fast_relative_movement = max_speed_sqd > (radius * radius * three_quarters_sqd);
 
             // Ensure branch area will not overlap with model/collision. This can happen because of e.g. ovalization or increase_until_radius.
             linear_inserts[idx] = generateArea(0);
@@ -2470,7 +2471,7 @@ void TreeSupport::generateBranchAreas(std::vector<std::pair<LayerIndex, TreeSupp
                                 // Try a fuzzy inside as sometimes the point should be on the border, but is not because of rounding errors...
                                 Point from = elem->result_on_layer;
                                 PolygonUtils::moveInside(part, from, 0);
-                                if (vSize(elem->result_on_layer - from) < 25)
+                                if (vSize2(elem->result_on_layer - from) < 625)
                                 {
                                     polygons_with_correct_center = polygons_with_correct_center.unionPolygons(part);
                                 }
