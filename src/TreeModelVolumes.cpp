@@ -109,7 +109,7 @@ TreeModelVolumes::TreeModelVolumes
             LayerIndex(layer_outlines_[mesh_to_layeroutline_idx[mesh_idx_l]].second.size()),
             [&](const LayerIndex layer_idx)
             {
-                if (mesh.layer_nr_max_filled_layer < layer_idx)
+                if (mesh_l.layer_nr_max_filled_layer < layer_idx)
                 {
                     return; // Can't break as parallel_for wont allow it, this is equivalent to a continue.
                 }
