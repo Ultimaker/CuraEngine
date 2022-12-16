@@ -435,7 +435,8 @@ private:
     mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_min_; // A different cache for min_xy_dist as the maximal safe distance an influence area can be increased(guaranteed overlap of two walls in consecutive layer) is much smaller when min_xy_dist is used. This causes the area of the wall restriction to be thinner and as such just using the min_xy_dist wall restriction would be slower.
+    // A different cache for min_xy_dist as the maximal safe distance an influence area can be increased(guaranteed overlap of two walls in consecutive layer) is much smaller when min_xy_dist is used. This causes the area of the wall restriction to be thinner and as such just using the min_xy_dist wall restriction would be slower.
+    mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_min_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_min_ = std::make_unique<std::mutex>();
 
     std::unique_ptr<std::mutex> critical_progress = std::make_unique<std::mutex>();
