@@ -172,7 +172,12 @@ void AdaptiveLayerHeights::calculateLayers()
         // in this case, we use the layer height with the lowest
         if (! has_added_layer)
         {
-            z_level += allowed_layer_heights.back();
+            const auto& min_layer_height = allowed_layer_heights.back();
+            AdaptiveLayer minimum_adaptive_layer(min_layer_height);
+            z_level += min_layer_height;
+            minimum_adaptive_layer.z_position = z_level;
+            previous_layer_height = min_layer_height;
+            layers.push_back(minimum_adaptive_layer);
         }
     }
 }
