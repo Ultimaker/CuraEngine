@@ -2233,7 +2233,7 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
             }
         }
 
-        for (const auto layer : ranges::views::iota(static_cast<size_t>(layer_idx) + 1UL, last_successfull_layer - 1UL))
+        for (LayerIndex layer = layer_idx + 1; layer < last_successfull_layer - 1; ++layer) // NOTE: Use of 'itoa' will make this crash in the loop, even though the operation should be equivalent.
         {
             move_bounds[layer].erase(checked[layer - layer_idx]);
             delete checked[layer - layer_idx]->area;
