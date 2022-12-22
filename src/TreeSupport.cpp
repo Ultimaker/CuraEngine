@@ -1463,7 +1463,15 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(AreaIncreaseSe
 
         const coord_t foot_radius_increase = config.branch_radius * (std::max(config.diameter_scale_bp_radius - config.diameter_angle_scale_factor, 0.0));
         double planned_foot_increase = std::min(1.0, double(config.recommendedMinRadius(layer_idx - 1) - config.getRadius(current_elem)) / foot_radius_increase); // Is nearly all of the time 1, but sometimes an increase of 1 could cause the radius to become bigger than recommendedMinRadius, which could cause the radius to become bigger than precalculated.
-        bool increase_bp_foot = planned_foot_increase > 0 && current_elem.to_buildplate;
+        
+        // If the support_rest_preference is GRACEFUL, increase buildplate_radius_increases anyway. This does ONLY affect the CollisionRadius, as the regular radius only includes the buildplate_radius_increases when the SupportElement is to_buildplate (which it can not be when support_rest_preference is GRACEFUL).
+        // If the branch later rests on the buildplate the to_buildplate flag will only need to be updated to ensure that the radius is also correctly increased.
+        // Downside is that the enlargement of the CollisionRadius can cause branches, that could rest on the model if the radius was not increased, to instead rest on the buildplate.
+        // A better way could be changing avoidance to model to not include the buildplate and then calculate avoidances by combining the to model avoidance without the radius increase with the to buildplate avoidance with the larger radius.
+        // This would require ensuring all requests for the avoidance would have to ensure that the correct hybrid avoidance is requested (which would only be relevant when support_rest_preference is GRACEFUL)
+        // Also unioning areas when an avoidance is requested may also have a relevant performance impact, so there can be an argument made that the current workaround is preferable.
+        bool increase_bp_foot = planned_foot_increase > 0 && (current_elem.to_buildplate || (current_elem.to_model_gracious && config.support_rest_preference == RestPreference::GRACEFUL));
+
 
         if (increase_bp_foot && config.getRadius(current_elem) >= config.branch_radius && config.getRadius(current_elem) >= config.increase_radius_until_radius)
         {
@@ -2041,6 +2049,20 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>
             if (setToModelContact(move_bounds, init, 0))
             {
                 remove.emplace(init);
+            }
+            else
+            {
+                // If the support_rest_preference is GRACEFUL the collision radius is increased, but the radius will only be increased if the element is to_buildplate, so if the branch rests on the buildplate, the element will have to be updated to include this information.
+                 init->to_buildplate=true;
+                 std::vector<TreeSupportElement*> parents {init->parents};
+                 while (!parents.empty()){
+                     std::vector<TreeSupportElement*> next_parents;
+                     for (TreeSupportElement* parent:parents){
+                         next_parents.insert(next_parents.end(),parent->parents.begin(),parent->parents.end());
+                         parent->to_buildplate = true;
+                     }
+                     parents = next_parents;
+                 }
             }
         }
     }

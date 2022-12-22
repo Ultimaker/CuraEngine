@@ -359,7 +359,7 @@ struct TreeSupportSettings
      */
     [[nodiscard]] inline coord_t getRadius(const TreeSupportElement& elem) const
     {
-        return getRadius(getEffectiveDTT(elem), elem.buildplate_radius_increases);
+        return getRadius(getEffectiveDTT(elem), elem.to_buildplate?elem.buildplate_radius_increases:0);
     }
 
     /*!
