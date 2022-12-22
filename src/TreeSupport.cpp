@@ -227,12 +227,8 @@ std::vector<TreeSupport::LineInformation> TreeSupport::convertLinesToInternal(Po
 {
     const bool xy_overrides = config.support_overrides == SupportDistPriority::XY_OVERRIDES_Z;
 
-    // Precalcutate relevant areas outside of the loop.
-    const auto avoidance_fast_safe_to_bp = volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST_SAFE, false, ! xy_overrides);
-    const auto avoidance_fast_to_bp = volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST, false, ! xy_overrides);
-    const auto avoidance_fast_safe_to_model = volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST_SAFE, true, ! xy_overrides);
-    const auto avoidance_fast_to_model = volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST, true, ! xy_overrides);
-    const auto collission_area = volumes_.getCollision(config.getRadius(0), layer_idx, ! xy_overrides);
+    // NOTE: The volumes below (on which '.inside(p, true)' is called each time below) are the same each time. The values being calculated here are strictly local as well.
+    //       So they could in theory be pre-calculated here (outside of the loop). However, when I refatored it to be that way, it seemed to cause deadlocks each time for some settings.
 
     std::vector<LineInformation> result;
     // Also checks if the position is valid, if it is NOT, it deletes that point
@@ -241,23 +237,23 @@ std::vector<TreeSupport::LineInformation> TreeSupport::convertLinesToInternal(Po
         LineInformation res_line;
         for (const Point& p : line)
         {
-            if (config.support_rest_preference == RestPreference::BUILDPLATE && ! avoidance_fast_safe_to_bp.inside(p, true))
+            if (config.support_rest_preference == RestPreference::BUILDPLATE && ! volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST_SAFE, false, !xy_overrides).inside(p, true))
             {
                 res_line.emplace_back(p, LineStatus::TO_BP_SAFE);
             }
-            else if (config.support_rest_preference == RestPreference::BUILDPLATE && ! avoidance_fast_to_bp.inside(p, true))
+            else if (config.support_rest_preference == RestPreference::BUILDPLATE && ! volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST, false, !xy_overrides).inside(p, true))
             {
                 res_line.emplace_back(p, LineStatus::TO_BP);
             }
-            else if (config.support_rests_on_model && ! avoidance_fast_safe_to_model.inside(p, true))
+            else if (config.support_rests_on_model && ! volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST_SAFE, true, !xy_overrides).inside(p, true))
             {
                 res_line.emplace_back(p, LineStatus::TO_MODEL_GRACIOUS_SAFE);
             }
-            else if (config.support_rests_on_model && ! avoidance_fast_to_model.inside(p, true))
+            else if (config.support_rests_on_model && ! volumes_.getAvoidance(config.getRadius(0), layer_idx, AvoidanceType::FAST, true, !xy_overrides).inside(p, true))
             {
                 res_line.emplace_back(p, LineStatus::TO_MODEL_GRACIOUS);
             }
-            else if (config.support_rests_on_model && ! collission_area.inside(p, true))
+            else if (config.support_rests_on_model && ! volumes_.getCollision(config.getRadius(0), layer_idx, !xy_overrides).inside(p, true))
             {
                 res_line.emplace_back(p, LineStatus::TO_MODEL);
             }
