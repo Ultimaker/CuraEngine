@@ -1,45 +1,24 @@
----
-name: unit-test
-# FIXME: This should be a reusable workflow
-
+name: Benchmark
 on:
+    schedule:
+        -   cron: '15 6,12,17 * * *'
+
+    # FIXME: remove the path trigger after merge
     push:
         paths:
             - 'include/**'
             - 'src/**'
             - 'cmake/**'
-            - 'tests/**'
-            - 'test_package/**'
+            - 'benchmark/**'
             - 'conanfile.py'
             - 'conandata.yml'
             - 'CMakeLists.txt'
-            - '.github/workflows/unit-test.yml'
-            - '.github/worflows/requirements-conan-package.txt'
+            - '.github/workflows/benchmark.yml'
         branches:
             - main
-            - 'CURA-*'
-            - '[0-9]+.[0-9]+'
+            - CURA-9906_benchmark
         tags:
-            - '[0-9]+.[0-9]+.[0-9]+'
-    pull_request:
-        types: [opened, reopened, synchronize]
-        paths:
-            - 'include/**'
-            - 'src/**'
-            - 'cmake/**'
-            - 'tests/**'
-            - 'test_package/**'
-            - 'conanfile.py'
-            - 'conandata.yml'
-            - 'CMakeLists.txt'
-            - '.github/workflows/unit-test.yml'
-            - '.github/worflows/requirements-conan-package.txt'
-        branches:
-            - main
-            - 'CURA-*'
-            - '[0-9]+.[0-9]+'
-        tags:
-            - '[0-9]+.[0-9]+.[0-9]+'
+            - '[0-9].[0-9].[0-9]*'
 
 env:
     CONAN_LOGIN_USERNAME_CURA: ${{ secrets.CONAN_USER }}
@@ -56,10 +35,10 @@ jobs:
         with:
             project_name: curaengine
 
-    testing:
-        runs-on: ubuntu-20.04
+    benchmark:
         needs: [ conan-recipe-version ]
-
+        name: Run C++ benchmark
+        runs-on: ubuntu-latest
         steps:
             -   name: Checkout CuraEngine
                 uses: actions/checkout@v3
@@ -71,6 +50,12 @@ jobs:
                     architecture: 'x64'
                     cache: 'pip'
                     cache-dependency-path: .github/workflows/requirements-conan-package.txt
+
+            -   name: Cache Benchmark library
+                uses: actions/cache@v1
+                with:
+                    path: ./cache
+                    key: ${{ runner.os }}-googlebenchmark-v1.5.0
 
             -   name: Install Python requirements and Create default Conan profile
                 run: |
@@ -109,7 +94,7 @@ jobs:
                     conan config install https://github.com/Ultimaker/conan-config.git
 
             -   name: Install dependencies
-                run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_testing=True -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv
+                run: conan install . ${{ needs.conan-recipe-version.outputs.recipe_id_full }} -o enable_benchmarks=True -s build_type=Release --build=missing --update -g GitHubActionsRunEnv -g GitHubActionsBuildEnv
 
             -   name: Upload the Dependency package(s)
                 run: conan upload "*" -r cura --all -c
@@ -126,18 +111,20 @@ jobs:
                     cmake --preset release
                     cmake --build --preset release
 
-            -   name: Run Unit Test CuraEngine
+            -   name: Run benchmark CuraEngine
                 id: run-test
-                run: ctest --output-junit engine_test.xml
-                working-directory: build/Release
+                run: ./benchmarks --benchmark_format=json --benchmark_context=version=`${{ needs.conan-recipe-version.outputs.recipe_semver_full }}` | tee benchmark_result.json
+                working-directory: build/Release/benchmark
 
-            -   name: Publish Unit Test Results
-                id: test-results
-                uses: EnricoMi/publish-unit-test-result-action@v1
-                if: ${{ always() }}
+            -   name: Store benchmark result
+                uses: benchmark-action/github-action-benchmark@v1
                 with:
-                    files: |
-                        **/*.xml
-
-            -   name: Conclusion
-                run: echo "Conclusion is ${{ fromJSON( steps.test-results.outputs.json ).conclusion }}"
+                    name: C++ Benchmark
+                    tool: 'googlecpp'
+                    output-file-path: build/Release/benchmark/benchmark_result.json
+                    github-token: ${{ secrets.GITHUB_TOKEN }}
+                    auto-push: true
+                    # Show alert with commit comment on detecting possible performance regression
+                    alert-threshold: '200%'
+                    comment-on-alert: true
+                    fail-on-alert: true
