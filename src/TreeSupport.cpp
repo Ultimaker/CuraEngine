@@ -301,7 +301,7 @@ std::function<bool(std::pair<Point, TreeSupport::LineStatus>)> TreeSupport::getE
     const bool xy_overrides = config.support_overrides == SupportDistPriority::XY_OVERRIDES_Z;
     std::function<bool(std::pair<Point, LineStatus>)> evaluatePoint = [=](std::pair<Point, LineStatus> p)
     {
-        if (!volumes_.getAvoidance(config.getRadius(0), current_layer - 1, p.second == LineStatus::TO_BP_SAFE ? AvoidanceType::FAST_SAFE : AvoidanceType::FAST, false, !xy_overrides).inside(p.first, true))
+        if (config.support_rest_preference != RestPreference::GRACEFUL && !volumes_.getAvoidance(config.getRadius(0), current_layer - 1, p.second == LineStatus::TO_BP_SAFE ? AvoidanceType::FAST_SAFE : AvoidanceType::FAST, false, !xy_overrides).inside(p.first, true))
         {
             return true;
         }
@@ -1507,10 +1507,13 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(AreaIncreaseSe
         }
     }
 
-    if (current_elem.influence_area_limit_active && !current_elem.use_min_xy_dist && check_layer_data.area() > 1)
+    if (current_elem.influence_area_limit_active && !current_elem.use_min_xy_dist && check_layer_data.area() > 1 && (current_elem.to_model_gracious || current_elem.distance_to_top <= config.min_dtt_to_model))
     {
         const coord_t max_radius_increase = std::max(coord_t((config.branch_radius - config.min_radius) / config.tip_layers), coord_t((config.branch_radius * config.diameter_angle_scale_factor) + config.branch_radius * (std::max(config.diameter_scale_bp_radius - config.diameter_angle_scale_factor, 0.0))));
         bool limit_range_validated = false;
+        // Rounding errors in a while loop can cause non-termination, so better safe than sorry. See https://github.com/Ultimaker/Cura/issues/14133 for an example.
+        to_bp_data = safeUnion(to_bp_data);
+        to_model_data = safeUnion(to_model_data);
         while (!limit_range_validated)
         {
             if (current_elem.to_buildplate)
