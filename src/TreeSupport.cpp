@@ -2056,16 +2056,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>
             else
             {
                 // If the support_rest_preference is GRACEFUL the collision radius is increased, but the radius will only be increased if the element is to_buildplate, so if the branch rests on the buildplate, the element will have to be updated to include this information.
-                 init->to_buildplate=true;
-                 std::vector<TreeSupportElement*> parents {init->parents};
-                 while (!parents.empty()){
-                     std::vector<TreeSupportElement*> next_parents;
-                     for (TreeSupportElement* parent:parents){
-                         next_parents.insert(next_parents.end(),parent->parents.begin(),parent->parents.end());
-                         parent->to_buildplate = true;
-                     }
-                     parents = next_parents;
-                 }
+                init->setToBuildplateForAllParents(true);
             }
         }
     }

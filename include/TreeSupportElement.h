@@ -143,6 +143,10 @@ struct TreeSupportElement
         influence_area_limit_range = std::max(first.influence_area_limit_range, second.influence_area_limit_range);
         influence_area_limit_active = first.influence_area_limit_active || second.influence_area_limit_active;
         RecreateInfluenceLimitArea();
+        if(first.to_buildplate != second.to_buildplate)
+        {
+            setToBuildplateForAllParents(to_buildplate);
+        }
     }
 
     /*!
@@ -323,6 +327,25 @@ struct TreeSupportElement
             }
         }
     }
+    void setToBuildplateForAllParents(bool new_value)
+    {
+        to_buildplate = new_value;
+        std::vector<TreeSupportElement*> grandparents {parents};
+        while (!grandparents.empty()){
+            std::vector<TreeSupportElement*> next_parents;
+            for (TreeSupportElement* grandparent:grandparents){
+                next_parents.insert(next_parents.end(),grandparent->parents.begin(),grandparent->parents.end());
+                grandparent->to_buildplate = new_value;
+            }
+            grandparents = next_parents;
+        }
+    }
+    
+    inline bool isResultOnLayerSet() const
+    {
+        return result_on_layer != Point(-1, -1);
+    }
+
 };
 } // namespace cura
 namespace std
