@@ -1508,7 +1508,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
         }
 
         int lower = static_cast<int>(layer_idx);
-        int upper = static_cast<int>(layer_idx + roof_layer_count + z_distance_top + 5);
+        int upper = std::min(static_cast<int>(layer_idx + roof_layer_count + z_distance_top + 5), static_cast<int>(global_support_areas_per_layer.size()) - 1);
         for (Polygons& global_support : global_support_areas_per_layer | ranges::views::slice(lower, upper))
         {
             global_support = global_support.difference(roof);
@@ -1519,7 +1519,7 @@ void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMesh
 void AreaSupport::generateSupportInterfaceLayer(Polygons& support_areas, const Polygons colliding_mesh_outlines, const coord_t safety_offset, const coord_t outline_offset, const double minimum_interface_area, Polygons& interface_polygons)
 {
     Polygons model = colliding_mesh_outlines.unionPolygons();
-    interface_polygons = support_areas.intersection(model);
+    interface_polygons = support_areas.offset(safety_offset / 2).intersection(model);
     interface_polygons = interface_polygons.offset(safety_offset).intersection(support_areas); // Make sure we don't generate any models that are not printable.
     if (outline_offset != 0)
     {
