@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher
+// Copyright (c) 2022 UltiMaker
+// CuraEngine is release under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_STRING_H
 #define UTILS_STRING_H
@@ -7,8 +7,14 @@
 #include <cstdio> // sprintf
 #include <ctype.h>
 #include <sstream> // ostringstream
+#include <string>
 
+#include <range/v3/to_container.hpp>
+#include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
+
+#include "utils/concepts/string.h"
+
 
 namespace cura
 {
@@ -24,6 +30,12 @@ static inline int stringcasecompare(const char* a, const char* b)
         b++;
     }
     return *a - *b;
+}
+
+template<isString T>
+constexpr T toLower(const T& value)
+{
+    return value | ranges::views::transform([](const auto& character) { return std::tolower(character); }) | ranges::to<T>;
 }
 
 /*!

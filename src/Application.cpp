@@ -1,26 +1,29 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher
+// Copyright (c) 2022 UltiMaker
+// CuraEngine is release under the terms of the AGPLv3 or higher
 
 #include "Application.h"
 
 #include <chrono>
+#include <filesystem>
 #include <memory>
 #include <string>
 
+#include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <spdlog/cfg/helpers.h>
+#include <spdlog/details/os.h>
+#include <spdlog/details/registry.h>
 #include <spdlog/sinks/dup_filter_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-#include <spdlog/cfg/helpers.h>
-#include <spdlog/details/registry.h>
-#include <spdlog/details/os.h>
 
 #include "FffProcessor.h"
 #include "communication/ArcusCommunication.h" //To connect via Arcus to the front-end.
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
+#include "utils/debug/visual_debugger.h"
 #include "utils/string.h" //For stringcasecompare.
 
 namespace cura
@@ -30,10 +33,28 @@ Application::Application()
 {
     auto dup_filter = std::make_shared<spdlog::sinks::dup_filter_sink_st>(std::chrono::seconds(5));
     spdlog::default_logger()->sinks().push_back(dup_filter);
-    auto env_val = spdlog::details::os::getenv("CURAENGINE_LOG_LEVEL");
-    if (! env_val.empty())
+    if (isString auto spdlog_val = spdlog::details::os::getenv("CURAENGINE_LOG_LEVEL"); ! spdlog_val.empty())
     {
-        spdlog::cfg::helpers::load_levels(env_val);
+        spdlog::cfg::helpers::load_levels(spdlog_val);
+    }
+
+    isString auto visual_debug = toLower(spdlog::details::os::getenv("CURAENGINE_VISUALDEBUG"));
+    if (visual_debug == "1" || visual_debug == "on" || visual_debug == "true")
+    {
+        namespace fs = std::filesystem;
+        auto now = std::chrono::system_clock::now();
+        auto current_dir_name = fmt::format("{:%M_%H_%Y%m%d}", now);
+
+        auto vtu_dir = spdlog::details::os::getenv("CURAENGINE_VTU_DIR");
+        auto vtu_path = vtu_dir.empty() ? fs::current_path().append(fmt::format("visual_debug/{}", current_dir_name)) : fs::path(vtu_dir).append(current_dir_name);
+        if (! fs::is_directory(vtu_path))
+        {
+            spdlog::error("CURAENGINE_VTU_DIR should be a directory");
+        }
+        if (! fs::exists(vtu_path))
+        {
+            fs::create_directories(vtu_path);
+        }
     }
 }
 
