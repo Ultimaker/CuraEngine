@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is release under the terms of the AGPLv3 or higher
 
 #ifdef ARCUS
 
@@ -77,6 +77,7 @@ void ArcusCommunication::Private::readExtruderSettingsMessage(const google::prot
 
 void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& mesh_group_message)
 {
+    auto vlogger = Application::getInstance().getLogger();
     if (mesh_group_message.objects_size() <= 0)
     {
         return; // Don't slice empty mesh groups.
@@ -128,6 +129,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
 
         mesh.mesh_name = object.name();
         mesh.finish();
+        vlogger->log(mesh);
     }
     object_count++;
     mesh_group.finalize();

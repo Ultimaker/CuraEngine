@@ -1,12 +1,16 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 UltiMaker
+// CuraEngine is release under the terms of the AGPLv3 or higher
 
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "utils/NoCopy.h"
-#include <cstddef> //For size_t.
 #include <cassert>
+#include <cstddef> //For size_t.
+#include <memory>
+
+#include "utils/NoCopy.h"
+#include "utils/debug/visual_logger.h"
+
 
 namespace cura
 {
@@ -85,7 +89,12 @@ public:
      *
      * \param nworkers The number of workers (including the main thread) that are ran.
      */
-    void startThreadPool(int nworkers=0);
+    void startThreadPool(int nworkers = 0);
+
+    [[nodiscard]] debug::shared_visual_logger getLogger() const noexcept
+    {
+        return logger_;
+    }
 
 protected:
 #ifdef ARCUS
@@ -95,7 +104,7 @@ protected:
      * \param argv The arguments provided to the application.
      */
     void connect();
-#endif //ARCUS
+#endif // ARCUS
 
     /*!
      * \brief Print the header and license to the stderr channel.
@@ -134,8 +143,10 @@ private:
      * This destroys the Communication instance along with it.
      */
     ~Application();
+
+    debug::shared_visual_logger logger_;
 };
 
-} //Cura namespace.
+} // namespace cura
 
-#endif //APPLICATION_H
+#endif // APPLICATION_H

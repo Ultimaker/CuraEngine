@@ -1,4 +1,4 @@
-// Copyright (c) 2022 UltiMaker
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is release under the terms of the AGPLv3 or higher
 
 #include "Application.h"
@@ -23,7 +23,7 @@
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
-#include "utils/debug/visual_debugger.h"
+#include "utils/debug/visual_logger.h"
 #include "utils/string.h" //For stringcasecompare.
 
 namespace cura
@@ -53,8 +53,10 @@ Application::Application()
         }
         if (! fs::exists(vtu_path))
         {
-            fs::create_directories(vtu_path);
+            fs::create_directories(vtu_path.append("CuraEngine"));
         }
+
+        logger_ = std::make_shared<debug::VisualLogger>(vtu_path);
     }
 }
 

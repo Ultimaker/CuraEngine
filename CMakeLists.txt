@@ -40,7 +40,7 @@ set(engine_SRCS # Except main.cpp.
         src/gcodeExport.cpp
         src/GCodePathConfig.cpp
         src/infill.cpp
-    src/InterlockingGenerator.cpp
+        src/InterlockingGenerator.cpp
         src/InsetOrderOptimizer.cpp
         src/layerPart.cpp
         src/LayerPlan.cpp
@@ -141,7 +141,11 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoxelUtils.cpp
         )
 
-add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
+set(engine_HDRS
+        include/utils/debug/visual_logger.h
+        )
+
+add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS} ${engine_HDRS} ${engine_PB_HEADERS})
 use_threads(_CuraEngine)
 
 target_include_directories(_CuraEngine
@@ -188,6 +192,7 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
+find_package(vtu11 REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -202,6 +207,7 @@ target_link_libraries(_CuraEngine
         rapidjson
         stb::stb
         boost::boost
+        vtu11::vtu11
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
