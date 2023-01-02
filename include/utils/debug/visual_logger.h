@@ -43,6 +43,7 @@ public:
         std::swap(vtu_dir_, other.vtu_dir_);
         std::swap(idx_, other.idx_);
         std::swap(data_set_info_, other.data_set_info_);
+        return *this;
     }
 
     void log(const isMesh auto& mesh)
