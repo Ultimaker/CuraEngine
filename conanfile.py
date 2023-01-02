@@ -1,14 +1,13 @@
-#  Copyright (c) 2022 Ultimaker B.V.
+#  Copyright (c) 2023 UltiMaker
 #  CuraEngine is released under the terms of the AGPLv3 or higher
-
-from os import path
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import AutoPackager, copy, mkdir
-from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
+from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
+from conan.tools.files import copy, mkdir
 from conan.tools.scm import Version
+from os import path
 
 required_conan_version = ">=1.50.0"
 
@@ -32,7 +31,8 @@ class CuraEngineConan(ConanFile):
         "enable_openmp": [True, False],
         "enable_testing": [True, False],
         "enable_benchmarks": [True, False],
-        "enable_extensive_warnings": [True, False]
+        "enable_extensive_warnings": [True, False],
+        "enable_visual_debug": [True, False],
     }
     default_options = {
         "enable_arcus": True,
@@ -40,6 +40,7 @@ class CuraEngineConan(ConanFile):
         "enable_testing": False,
         "enable_benchmarks": False,
         "enable_extensive_warnings": False,
+        "enable_visual_debug": False,
     }
     scm = {
         "type": "git",
@@ -55,6 +56,8 @@ class CuraEngineConan(ConanFile):
     def config_options(self):
         if self.settings.os == "Macos":
             del self.options.enable_openmp
+        if self.settings.build_type == "Debug":
+            self.options.enable_visual_debug = True
 
     def configure(self):
         self.options["boost"].header_only = True
@@ -82,6 +85,9 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_benchmarks:
             for req in self._um_data()["build_requirements_benchmarks"]:
                 self.test_requires(req)
+        if self.options.enable_visual_debug:
+            for req in self._um_data()["build_requirements_visual_debug"]:
+                self.test_requires(req)
 
     def requirements(self):
         self.requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
@@ -97,12 +103,13 @@ class CuraEngineConan(ConanFile):
 
         tc = CMakeToolchain(self)
         tc.variables["CURA_ENGINE_VERSION"] = self.version
-        tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
-        tc.variables["ENABLE_TESTING"] = self.options.enable_testing
-        tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
-        tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
+        tc.variables["ENABLE_ARCUS"] = 1 if self.options.enable_arcus else 0
+        tc.variables["ENABLE_TESTING"] = 1 if self.options.enable_testing else 0
+        tc.variables["ENABLE_VISUAL_DEBUG"] = 1 if self.options.enable_visual_debug else 0
+        tc.variables["ENABLE_BENCHMARKS"] = 1 if self.options.enable_benchmarks else 0
+        tc.variables["EXTENSIVE_WARNINGS"] = 1 if self.options.enable_extensive_warnings else 0
         if self.settings.os != "Macos":
-            tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp
+            tc.variables["ENABLE_OPENMP"] = 1 if self.options.enable_openmp else 0
         tc.generate()
 
         for dep in self.dependencies.values():
@@ -133,8 +140,6 @@ class CuraEngineConan(ConanFile):
         cmake.build()
 
     def package(self):
-        packager = AutoPackager(self)
-        packager.run()
         copy(self, "CuraEngine*", src = self.build_folder, dst = path.join(self.package_folder, "bin"))
         copy(self, "LICENSE*", src = self.source_folder, dst = path.join(self.package_folder, "license"))
 
@@ -144,3 +149,5 @@ class CuraEngineConan(ConanFile):
             self.conf_info.define("user.curaengine:curaengine", path.join(self.package_folder, "bin", f"CuraEngine{ext}"))
         else:
             self.conf_info.define("user.curaengine:curaengine", path.join(self.build_folder, f"CuraEngine{ext}"))
+        if self.options.enable_visual_debug:
+            self.cpp_info.defines["VISUAL_DEBUG"]

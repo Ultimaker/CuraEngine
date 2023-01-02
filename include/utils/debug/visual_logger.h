@@ -46,6 +46,10 @@ public:
         return *this;
     }
 
+#ifndef VISUAL_DEBUG
+    template<typename... Args>
+    constexpr void log(Args... args){};
+#else
     void log(const isMesh auto& mesh)
     {
         // TODO: write mesh to vtu partition5
@@ -73,6 +77,7 @@ public:
         std::lock_guard<std::mutex> guard(mutex_);
         vtu11::writePartition(vtu_dir_.string(), "CuraEngine", meshPartition0, data_set_info_, dataSetData0, idx_++, "RawBinary");
     }
+#endif
 
 private:
     std::mutex mutex_;

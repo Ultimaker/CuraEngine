@@ -9,6 +9,7 @@ AssureOutOfSourceBuilds()
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 option(ENABLE_TESTING "Build with unit tests" OFF)
+option(ENABLE_VISUAL_DEBUG "Build with visual debugging capabilities" ON)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
@@ -157,8 +158,9 @@ target_include_directories(_CuraEngine
         )
 target_compile_definitions(_CuraEngine
         PUBLIC
-        $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
+        $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
+        $<$<BOOL:${ENABLE_VISUAL_DEBUG}>:VISUAL_DEBUG>
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
         $<$<BOOL:${WIN32}>:NOMINMAX>

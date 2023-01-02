@@ -91,7 +91,7 @@ public:
      */
     void startThreadPool(int nworkers = 0);
 
-    [[nodiscard]] debug::shared_visual_logger getLogger() const noexcept
+    [[nodiscard]] auto getLogger() const noexcept
     {
         return logger_;
     }
