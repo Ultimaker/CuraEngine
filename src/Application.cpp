@@ -1,5 +1,5 @@
 // Copyright (c) 2023 UltiMaker
-// CuraEngine is release under the terms of the AGPLv3 or higher
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Application.h"
 
@@ -57,6 +57,10 @@ Application::Application()
         }
 
         logger_ = std::make_shared<debug::VisualLogger>(vtu_path);
+    }
+    else
+    {
+        logger_ = std::make_shared<debug::VisualLogger>();
     }
 }
 

@@ -24,7 +24,7 @@ concept isMesh = requires(T mesh)
     { mesh.faces };
     {
         mesh.mesh_name
-    } -> std::convertible_to<std::string>
+    } -> std::convertible_to<std::string>;
 
 }; // FIXME: define proper concept
 
