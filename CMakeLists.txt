@@ -9,7 +9,7 @@ AssureOutOfSourceBuilds()
 
 option(ENABLE_ARCUS "Enable support for ARCUS" ON)
 option(ENABLE_TESTING "Build with unit tests" OFF)
-option(ENABLE_VISUAL_DEBUG "Build with visual debugging capabilities" ON)
+option(ENABLE_VISUAL_DEBUG "Build with visual debugging capabilities" OFF)
 option(EXTENSIVE_WARNINGS "Build with all warnings" ON)
 option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" ON)
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
@@ -194,7 +194,10 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
-find_package(vtu11 REQUIRED)
+
+if (ENABLE_VISUAL_DEBUG)
+    find_package(vtu11 REQUIRED)
+endif ()
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -209,7 +212,7 @@ target_link_libraries(_CuraEngine
         rapidjson
         stb::stb
         boost::boost
-        vtu11::vtu11
+        $<$<BOOL:${ENABLE_VISUAL_DEBUG}>:vtu11::vtu11>
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
