@@ -103,13 +103,13 @@ class CuraEngineConan(ConanFile):
 
         tc = CMakeToolchain(self)
         tc.variables["CURA_ENGINE_VERSION"] = self.version
-        tc.variables["ENABLE_ARCUS"] = 1 if self.options.enable_arcus else 0
-        tc.variables["ENABLE_TESTING"] = 1 if self.options.enable_testing else 0
-        tc.variables["ENABLE_VISUAL_DEBUG"] = 1 if self.options.enable_visual_debug else 0
-        tc.variables["ENABLE_BENCHMARKS"] = 1 if self.options.enable_benchmarks else 0
-        tc.variables["EXTENSIVE_WARNINGS"] = 1 if self.options.enable_extensive_warnings else 0
+        tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
+        tc.variables["ENABLE_TESTING"] = self.options.enable_testing
+        tc.variables["ENABLE_VISUAL_DEBUG"] = self.options.enable_visual_debug
+        tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
+        tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         if self.settings.os != "Macos":
-            tc.variables["ENABLE_OPENMP"] = 1 if self.options.enable_openmp else 0
+            tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp
         tc.generate()
 
         for dep in self.dependencies.values():
