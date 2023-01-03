@@ -172,9 +172,12 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                             })
                       | rg::to_vector;
 
-    // sort polygons on increasing area
+    // Sort polygons by increasing area, we are building the graph from the leaves (smallest area) upwards.
     rg::sort( locator_view, [](const auto& lhs, const auto& rhs) { return std::abs(lhs) < std::abs(rhs); }, &LineLoc::area);
 
+    // Create a bi-direction directed acyclic graph (Tree). Where polygon B is a child of A if B is inside A. The root of the graph is
+    // the polygon that contains all other polygons. The leaves are polygons that contain no polygons.
+    // We need a bi-directional graph as we are performing a dfs from the root down and from each of the hole (which are leaves in the graph) up the tree
     std::unordered_multimap<const LineLoc*, const LineLoc*> graph;
     std::unordered_set<LineLoc*> roots{ &rg::front(locator_view) };
     for (const auto& locator : locator_view | rv::addressof | rv::drop(1))
@@ -184,8 +187,8 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         {
             if (root->poly.inside(locator->poly))
             {
-                // we need a bi-directional graph as we are performing a dfs from the root down
-                // and from each of the hole (which are leaves in the graph) up the tree
+                // The root polygon is inside the location polygon. It is no longer a root in the graph we are building.
+                // Add this relationship (locator <-> root) to the graph, and remove root from roots.
                 graph.emplace(locator, root);
                 graph.emplace(root, locator);
                 erase.emplace_back(root);
@@ -195,10 +198,12 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         {
             roots.erase(node);
         }
+        // We are adding to the graph from smallest area -> largest area. This means locator will always be the largest polygon in the graph so far.
+        // No polygon in the graph is big enough to contain locator, so it must be a root.
         roots.emplace(locator);
     }
 
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order;
+    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order; // A linked list of the output order
 
     for (const LineLoc* root : roots)
     {
@@ -211,14 +216,14 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         // - mark all reachable nodes with their distance from the root
         // - find hole roots, these are the innermost polygons enclosing a hole
         {
-            const std::function<unsigned int(const LineLoc*, const unsigned int)> initialize_nodes =
+            const std::function<unsigned int(const LineLoc*, const LineLoc*, const unsigned int)> initialize_nodes =
                 [graph, root, &hole_roots, &min_node, &min_dist]
-                (const auto current_node, const auto dist)
+                (const auto current_node, const auto, const auto dist)
                 {
                     min_node[current_node] = root;
                     min_dist[current_node] = dist;
 
-                    // find hole roots (defined by a possitive area in clipper1), these are leaves of the tree structure
+                    // find hole roots (defined by a positive area in clipper1), these are leaves of the tree structure
                     // as odd walls are also leaves we filter them out by adding a non-zero area check
                     if (current_node != root && graph.count(current_node) == 1 && current_node->line->is_closed && current_node->area > 0)
                     {
@@ -239,9 +244,9 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         {
             for (auto& hole_root : hole_roots)
             {
-                const std::function<unsigned int(const LineLoc*, const unsigned int)> update_nodes =
+                const std::function<unsigned int(const LineLoc*, const LineLoc*, const unsigned int)> update_nodes =
                     [hole_root, &min_dist, &min_node]
-                    (const auto& current_node, auto dist)
+                    (const auto& current_node, const auto, auto dist)
                     {
                         if (dist < min_dist[current_node])
                         {
@@ -260,20 +265,17 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         // perform a dfs from the root and all hole roots $r$ and set the order constraints for each polyline for which
         // the distance is closest to root $r$
         {
-            const LineLoc* prev_node = nullptr;
-
             const LineLoc* root_ = root;
-            const std::function<std::nullptr_t(const LineLoc*, std::nullptr_t)> set_order_constraints =
-                [&order, &min_node, &root_, &prev_node, graph]
-                (const auto& current_node, auto _prev_state)
+            const std::function<std::nullptr_t(const LineLoc*, const LineLoc*, std::nullptr_t)> set_order_constraints =
+                [&order, &min_node, &root_, graph]
+                (const auto& current_node, const auto& parent_node, const auto)
                 {
                    if (min_node[current_node] == root_)
                    {
-                       if (prev_node != nullptr)
+                       if (parent_node != nullptr)
                        {
-                           order.emplace(prev_node->line, current_node->line);
+                           order.emplace(parent_node->line, current_node->line);
                        }
-                       prev_node = current_node;
                    }
 
                    return nullptr;

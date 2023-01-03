@@ -19,6 +19,7 @@ namespace cura::actions
  * \param state a state that propagate
  * \param handle_node Custom call back function called at each visited node. Arguments for the functions are the current node, and the state resulted from the parent node
  * \param visited nodes as defined by concept \isSet; _note: visited will not be ordered if it is of type `unordered_###`
+ * \param parent_node the node in the dag that triggered the call to dfs on current_node.
  */
 
 template <typename Node, typename State>
@@ -26,8 +27,9 @@ constexpr void dfs(
     const Node& current_node,
     const isGraph auto& dag,
     const State& state,
-    std::function<State(const Node, const State)> handle_node,
-    isSet auto& visited)
+    std::function<State(const Node, const Node, const State)> handle_node,
+    isSet auto& visited,
+    const Node& parent_node = nullptr)
 {
     if (visited.contains(current_node))
     {
@@ -35,7 +37,7 @@ constexpr void dfs(
     }
     visited.emplace(current_node);
 
-    auto current_state = handle_node(current_node, state);
+    auto current_state = handle_node(current_node, parent_node, state);
 
     const auto& [children_begin, children_end] = dag.equal_range(current_node);
     auto children = ranges::make_subrange(children_begin, children_end);
@@ -46,7 +48,8 @@ constexpr void dfs(
             dag,
             current_state,
             handle_node,
-            visited
+            visited,
+            current_node
         );
     }
 }
