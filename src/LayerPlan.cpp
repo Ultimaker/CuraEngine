@@ -455,21 +455,6 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
                         }
                     }
                 }
-                if (combPaths.size() == 1)
-                {
-                    CombPath comb_path = combPaths[0];
-                    if
-                    (
-                        mesh_or_extruder_settings.get<bool>("limit_support_retractions") &&
-                        combPaths.throughAir &&
-                        ! comb_path.cross_boundary &&
-                        comb_path.size() == 2 &&
-                        comb_path[0] == *last_planned_position && comb_path[1] == p
-                    )
-                    { // limit the retractions from support to support, which didn't cross anything
-                        retract = false;
-                    }
-                }
             }
 
             const coord_t maximum_travel_resolution = mesh_or_extruder_settings.get<coord_t>("meshfix_maximum_travel_resolution");
