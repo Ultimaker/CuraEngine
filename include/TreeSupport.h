@@ -142,10 +142,10 @@ private:
     Polygons toPolylines(const Polygons& poly) const;
 
     /*!
-     * \brief Converts toolpaths to a Polygons object, containing the implicit line from first to last vertex
+     * \brief Converts toolpaths to a Polygons object
      *
      * \param toolpaths[in] The toolpaths.
-     * \return A Polygons object with implicit line from the last vertex of a Polygon to the first one added.
+     * \return A Polygons object.
      */
     Polygons toPolylines(const std::vector<VariableWidthLines> toolpaths) const;
 

@@ -408,7 +408,7 @@ Polygons TreeSupport::ensureMaximumDistancePolyline(const Polygons& input, coord
                 coord_t next_distance = current_distance;
                 // Get points so that at least min_points are added and they each are current_distance away from each other. If that is impossible, decrease current_distance a bit.
                 // (Regarding the while-loop) The input are lines, that means that the line from the last to the first vertex does not have to exist, so exclude all points that are on this line!
-                while (PolygonUtils::getNextPointWithDistance(current_point, next_distance, part, current_index, 0, next_point) && next_point.pos < coord_t(part.size()))
+                while (PolygonUtils::getNextPointWithDistance(current_point, next_distance, part, current_index, 0, next_point) && next_point.pos < coord_t(part.size()) - 1)
                 {
                     // Not every point that is distance away, is valid, as it may be much closer to another point. This is especially the case when the overhang is very thin.
                     // So this ensures that the points are actually a certain distance from each other.
@@ -2699,10 +2699,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                     case InterfacePreference::INTERFACE_LINES_OVERWRITE_SUPPORT:
                     {
                         Polygons interface_lines =
-                            toPolylines
-                            (
-                                generateSupportInfillLines(storage.support.supportLayers[layer_idx].support_roof, true, layer_idx, config.support_roof_line_distance, storage.support.cross_fill_provider)
-                            ).offsetPolyLine(config.support_roof_line_width / 2);
+                            generateSupportInfillLines(storage.support.supportLayers[layer_idx].support_roof, true, layer_idx, config.support_roof_line_distance, storage.support.cross_fill_provider)
+                            .offsetPolyLine(config.support_roof_line_width / 2);
                         support_layer_storage[layer_idx] = support_layer_storage[layer_idx].difference(interface_lines);
                     }
                     break;
@@ -2713,8 +2711,9 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(std::vector<Polygons>& suppor
                         tree_lines =
                             tree_lines.unionPolygons
                             (
-                                toPolylines(generateSupportInfillLines(support_layer_storage[layer_idx], false, layer_idx, config.support_line_distance, storage.support.cross_fill_provider, true)
-                            ).offsetPolyLine(config.support_line_width / 2));
+                                generateSupportInfillLines(support_layer_storage[layer_idx], false, layer_idx, config.support_line_distance, storage.support.cross_fill_provider, true)
+                                .offsetPolyLine(config.support_line_width / 2)
+                            );
                         storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
                         // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                     }
