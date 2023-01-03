@@ -85,9 +85,6 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_benchmarks:
             for req in self._um_data()["build_requirements_benchmarks"]:
                 self.test_requires(req)
-        if self.options.enable_visual_debug:
-            for req in self._um_data()["build_requirements_visual_debug"]:
-                self.test_requires(req)
 
     def requirements(self):
         self.requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")

@@ -194,10 +194,7 @@ find_package(Boost REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
-
-if (ENABLE_VISUAL_DEBUG)
-    find_package(vtu11 REQUIRED)
-endif ()
+find_package(vtu11 REQUIRED)
 
 if (ENABLE_TESTING)
     find_package(GTest REQUIRED)
@@ -212,7 +209,7 @@ target_link_libraries(_CuraEngine
         rapidjson
         stb::stb
         boost::boost
-        $<$<BOOL:${ENABLE_VISUAL_DEBUG}>:vtu11::vtu11>
+        vtu11::vtu11
         $<$<BOOL:${ENABLE_TESTING}>:GTest::gtest>)
 
 if (NOT WIN32)
