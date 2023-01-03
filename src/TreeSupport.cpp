@@ -229,7 +229,8 @@ std::vector<TreeSupport::LineInformation> TreeSupport::convertLinesToInternal(Po
 
     // NOTE: The volumes below (on which '.inside(p, true)' is called each time below) are the same each time. The values being calculated here are strictly local as well.
     //       So they could in theory be pre-calculated here (outside of the loop). However, when I refatored it to be that way, it seemed to cause deadlocks each time for some settings.
-
+    // NOTE2: When refactoring ensure that avoidance to buildplate is only requested when support_rest_preference == RestPreference::BUILDPLATE as otherwise it has not been precalculated (causing long delays while it is calculated when requested here).
+    
     std::vector<LineInformation> result;
     // Also checks if the position is valid, if it is NOT, it deletes that point
     for (const auto& line : polylines)
