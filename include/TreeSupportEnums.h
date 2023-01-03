@@ -14,8 +14,10 @@ enum class InterfacePreference
     NOTHING
 };
 
-enum class RestPreference{
-    BUILDPLATE,GRACEFUL
+enum class RestPreference
+{
+    BUILDPLATE,
+    GRACEFUL
 };
 
 enum class AvoidanceType

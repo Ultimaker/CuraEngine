@@ -13,39 +13,37 @@
 #include "polyclipping/clipper.hpp"
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
+#include "utils/Coord_t.h"
 #include "utils/polygon.h"
-
-// The various stages of the process can be weighted differently in the progress bar.
-// These weights are obtained experimentally using a small sample size. Sensible weights can differ drastically based on the assumed default settings and model.
-#define TREE_PROGRESS_TOTAL 10000
-#define TREE_PROGRESS_PRECALC_COLL TREE_PROGRESS_TOTAL * 0.1
-#define TREE_PROGRESS_PRECALC_AVO TREE_PROGRESS_TOTAL * 0.4
-#define TREE_PROGRESS_GENERATE_NODES TREE_PROGRESS_TOTAL * 0.1
-#define TREE_PROGRESS_AREA_CALC TREE_PROGRESS_TOTAL * 0.3
-#define TREE_PROGRESS_DRAW_AREAS TREE_PROGRESS_TOTAL * 0.1
-
-#define TREE_PROGRESS_GENERATE_BRANCH_AREAS TREE_PROGRESS_DRAW_AREAS / 3
-#define TREE_PROGRESS_SMOOTH_BRANCH_AREAS TREE_PROGRESS_DRAW_AREAS / 3
-#define TREE_PROGRESS_FINALIZE_BRANCH_AREAS TREE_PROGRESS_DRAW_AREAS / 3
-
-#define SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL false
-#define SUPPORT_TREE_AVOID_SUPPORT_BLOCKER true
-#define SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION true
-#define SUPPORT_TREE_EXPONENTIAL_THRESHOLD 1000
-#define SUPPORT_TREE_EXPONENTIAL_FACTOR 1.5
-#define SUPPORT_TREE_PRE_EXPONENTIAL_STEPS 1
-#define SUPPORT_TREE_COLLISION_RESOLUTION 500 // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
-
-#define SUPPORT_TREE_MAX_DEVIATION 0
 
 namespace cura
 {
 
+// The various stages of the process can be weighted differently in the progress bar.
+// These weights are obtained experimentally using a small sample size. Sensible weights can differ drastically based on the assumed default settings and model.
+constexpr auto TREE_PROGRESS_TOTAL = 10000;
+constexpr auto TREE_PROGRESS_PRECALC_COLL = TREE_PROGRESS_TOTAL * 0.1;
+constexpr auto TREE_PROGRESS_PRECALC_AVO = TREE_PROGRESS_TOTAL * 0.4;
+constexpr auto TREE_PROGRESS_GENERATE_NODES = TREE_PROGRESS_TOTAL * 0.1;
+constexpr auto TREE_PROGRESS_AREA_CALC = TREE_PROGRESS_TOTAL * 0.3;
+constexpr auto TREE_PROGRESS_DRAW_AREAS = TREE_PROGRESS_TOTAL * 0.1;
+
+constexpr auto TREE_PROGRESS_GENERATE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
+constexpr auto TREE_PROGRESS_SMOOTH_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
+constexpr auto TREE_PROGRESS_FINALIZE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
+
+constexpr auto SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL = false;
+constexpr auto SUPPORT_TREE_AVOID_SUPPORT_BLOCKER = true;
+constexpr coord_t SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
+constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
+constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
+constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
+
+constexpr coord_t SUPPORT_TREE_MAX_DEVIATION = 0;
 
 /*!
  * \brief Generates a tree structure to support your models.
  */
-
 class TreeSupport
 {
 public:
@@ -79,7 +77,6 @@ private:
 
     using LineInformation = std::vector<std::pair<Point, TreeSupport::LineStatus>>;
 
-
     /*!
      * \brief Precalculates all avoidances, that could be required.
      *
@@ -87,6 +84,7 @@ private:
      * \param currently_processing_meshes[in] Indexes of all meshes that are processed in this iteration
      */
     void precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes);
+
     /*!
      * \brief Converts a Polygons object representing a line into the internal format.
      *
@@ -95,6 +93,7 @@ private:
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
     std::vector<LineInformation> convertLinesToInternal(Polygons polylines, LayerIndex layer_idx);
+
     /*!
      * \brief Converts lines in internal format into a Polygons object representing these lines.
      *
@@ -102,6 +101,7 @@ private:
      * \return All lines of the \p lines object as a Polygons object.
      */
     Polygons convertInternalToLines(std::vector<TreeSupport::LineInformation> lines);
+
     /*!
      * \brief Returns a function, evaluating if a point has to be added now. Required for a splitLines call in generateInitialAreas.
      *
@@ -109,6 +109,7 @@ private:
      * \return A function that can be called to evaluate a point.
      */
     std::function<bool(std::pair<Point, TreeSupport::LineStatus>)> getEvaluatePointForNextLayerFunction(size_t current_layer);
+
     /*!
      * \brief Evaluates which points of some lines are not valid one layer below and which are. Assumes all points are valid on the current layer. Validity is evaluated using supplied lambda.
      *
@@ -116,7 +117,11 @@ private:
      * \param evaluatePoint[in] The function used to evaluate the points.
      * \return A pair with which points are still valid in the first slot and which are not in the second slot.
      */
-    std::pair<std::vector<LineInformation>, std::vector<LineInformation>> splitLines(std::vector<LineInformation> lines, std::function<bool(std::pair<Point, TreeSupport::LineStatus>)> evaluatePoint); // assumes all Points on the current line are valid
+    std::pair<std::vector<LineInformation>, std::vector<LineInformation>> splitLines
+    (
+        std::vector<LineInformation> lines,
+        std::function<bool(std::pair<Point, TreeSupport::LineStatus>)> evaluatePoint
+    ); // assumes all Points on the current line are valid
 
     /*!
      * \brief Ensures that every line segment is about distance in length. The resulting lines may differ from the original but all points are on the original
@@ -135,7 +140,6 @@ private:
      * \return A Polygons object with implicit line from the last vertex of a Polygon to the first one added.
      */
     Polygons toPolylines(const Polygons& poly) const;
-
 
     /*!
      * \brief Converts toolpaths to a Polygons object, containing the implicit line from first to last vertex
@@ -156,7 +160,15 @@ private:
      *
      * \return A Polygons object that represents the resulting infill lines.
      */
-    Polygons generateSupportInfillLines(const Polygons& area, bool roof, LayerIndex layer_idx, coord_t support_infill_distance, SierpinskiFillProvider* cross_fill_provider = nullptr, bool include_walls = false);
+    Polygons generateSupportInfillLines
+    (
+        const Polygons& area,
+        bool roof,
+        LayerIndex layer_idx,
+        coord_t support_infill_distance,
+        SierpinskiFillProvider* cross_fill_provider = nullptr,
+        bool include_walls = false
+    );
 
     /*!
      * \brief Unions two Polygons. Ensures that if the input is non empty that the output also will be non empty.
@@ -176,7 +188,6 @@ private:
      */
     SierpinskiFillProvider* generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width);
 
-
     /*!
      * \brief Creates the initial influence areas (that can later be propagated down) by placing them below the overhang.
      *
@@ -194,11 +205,19 @@ private:
      * \param distance[in] The distance by which me should be offset. Expects values >=0.
      * \param collision[in] The area representing obstacles.
      * \param last_step_offset_without_check[in] The most it is allowed to offset in one step.
-     * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the amount of vertices, which may be required if Polygons get very small. Required as arcTolerance is not exposed in offset, which should result with a similar result.
+     * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the amount of vertices, which may be required if Polygons get very small.
+     *     Required as arcTolerance is not exposed in offset, which should result with a similar result.
      * \return The resulting Polygons object.
      */
-    [[nodiscard]] Polygons safeOffsetInc(const Polygons& me, coord_t distance, const Polygons& collision, coord_t safe_step_size, coord_t last_step_offset_without_check, size_t min_amount_offset) const;
-
+    [[nodiscard]] Polygons safeOffsetInc
+    (
+        const Polygons& me,
+        coord_t distance,
+        const Polygons& collision,
+        coord_t safe_step_size,
+        coord_t last_step_offset_without_check,
+        size_t min_amount_offset
+    ) const;
 
     /*!
      * \brief Merges Influence Areas if possible.
@@ -210,7 +229,7 @@ private:
      * \param input_aabb[in] Not yet processed elements
      * \param to_bp_areas[in] The Elements of the current Layer that will reach the buildplate. Value is the influence area where the center of a circle of support may be placed.
      * \param to_model_areas[in] The Elements of the current Layer that do not have to reach the buildplate. Also contains main as every element that can reach the buildplate is not forced to.
-     * Value is the influence area where the center of a circle of support may be placed.
+     *     Value is the influence area where the center of a circle of support may be placed.
      * \param influence_areas[in] The influence areas without avoidance removed.
      * \param insert_bp_areas[out] Elements to be inserted into the main dictionary after the Helper terminates.
      * \param insert_model_areas[out] Elements to be inserted into the secondary dictionary after the Helper terminates.
@@ -218,11 +237,25 @@ private:
      * \param erase[out] Elements that should be deleted from the above dictionaries.
      * \param layer_idx[in] The Index of the current Layer.
      */
-    void mergeHelper(std::map<TreeSupportElement, AABB>& reduced_aabb, std::map<TreeSupportElement, AABB>& input_aabb, const std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas, const std::unordered_map<TreeSupportElement, Polygons>& to_model_areas, const std::map<TreeSupportElement, Polygons>& influence_areas, std::unordered_map<TreeSupportElement, Polygons>& insert_bp_areas, std::unordered_map<TreeSupportElement, Polygons>& insert_model_areas, std::unordered_map<TreeSupportElement, Polygons>& insert_influence, std::vector<TreeSupportElement>& erase, const LayerIndex layer_idx);
+    void mergeHelper
+    (
+        std::map<TreeSupportElement, AABB>& reduced_aabb,
+        std::map<TreeSupportElement, AABB>& input_aabb,
+        const PropertyAreasUnordered& to_bp_areas,
+        const PropertyAreas& to_model_areas,
+        const PropertyAreas& influence_areas,
+        PropertyAreasUnordered& insert_bp_areas,
+        PropertyAreasUnordered& insert_model_areas,
+        PropertyAreasUnordered& insert_influence,
+        std::vector<TreeSupportElement>& erase,
+        const LayerIndex layer_idx
+    );
+
     /*!
      * \brief Merges Influence Areas if possible.
      *
-     * Branches which do overlap have to be merged. This manages the helper and uses a divide and conquer approach to parallelize this problem. This parallelization can at most accelerate the merging by a factor of 2.
+     * Branches which do overlap have to be merged. This manages the helper and uses a divide and conquer approach to parallelize this problem.
+     * This parallelization can at most accelerate the merging by a factor of 2.
      *
      * \param to_bp_areas[in] The Elements of the current Layer that will reach the buildplate.
      *  Value is the influence area where the center of a circle of support may be placed.
@@ -232,7 +265,13 @@ private:
      *  Value is the influence area where the center of a circle of support may be placed.
      * \param layer_idx[in] The current layer.
      */
-    void mergeInfluenceAreas(std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas, std::unordered_map<TreeSupportElement, Polygons>& to_model_areas, std::map<TreeSupportElement, Polygons>& influence_areas, LayerIndex layer_idx);
+    void mergeInfluenceAreas
+    (
+        PropertyAreasUnordered& to_bp_areas,
+        PropertyAreas& to_model_areas,
+        PropertyAreas& influence_areas,
+        LayerIndex layer_idx
+    );
 
     /*!
      * \brief Checks if an influence area contains a valid subsection and returns the corresponding metadata and the new Influence area.
@@ -254,7 +293,19 @@ private:
      * \param mergelayer[in] Will the merge method be called on this layer. This information is required as some calculation can be avoided if they are not required for merging.
      * \return A valid support element for the next layer regarding the calculated influence areas. Empty if no influence are can be created using the supplied influence area and settings.
      */
-    std::optional<TreeSupportElement> increaseSingleArea(AreaIncreaseSettings settings, LayerIndex layer_idx, TreeSupportElement* parent, const Polygons& relevant_offset, Polygons& to_bp_data, Polygons& to_model_data, Polygons& increased, const coord_t overspeed, const bool mergelayer);
+    std::optional<TreeSupportElement> increaseSingleArea
+    (
+        AreaIncreaseSettings settings,
+        LayerIndex layer_idx,
+        TreeSupportElement* parent,
+        const Polygons& relevant_offset,
+        Polygons& to_bp_data,
+        Polygons& to_model_data,
+        Polygons& increased,
+        const coord_t overspeed,
+        const bool mergelayer
+    );
+
     /*!
      * \brief Increases influence areas as far as required.
      *
@@ -266,14 +317,23 @@ private:
      *
      * \param to_bp_areas[out] Influence areas that can reach the buildplate
      * \param to_model_areas[out] Influence areas that do not have to reach the buildplate. This has overlap with new_layer_data, as areas that can reach the buildplate are also considered valid areas to the model.
-     * This redundancy is required if a to_buildplate influence area is allowed to merge with a to model influence area.
+     *     This redundancy is required if a to_buildplate influence area is allowed to merge with a to model influence area.
      * \param influence_areas[out] Area than can reach all further up support points. No assurance is made that the buildplate or the model can be reached in accordance to the user-supplied settings.
      * \param bypass_merge_areas[out] Influence areas ready to be added to the layer below that do not need merging.
      * \param last_layer[in] Influence areas of the current layer.
      * \param layer_idx[in] Number of the current layer.
      * \param mergelayer[in] Will the merge method be called on this layer. This information is required as some calculation can be avoided if they are not required for merging.
      */
-    void increaseAreas(std::unordered_map<TreeSupportElement, Polygons>& to_bp_areas, std::unordered_map<TreeSupportElement, Polygons>& to_model_areas, std::map<TreeSupportElement, Polygons>& influence_areas, std::vector<TreeSupportElement*>& bypass_merge_areas, const std::vector<TreeSupportElement*>& last_layer, const LayerIndex layer_idx, const bool mergelayer);
+    void increaseAreas
+    (
+        PropertyAreasUnordered& to_bp_areas,
+        PropertyAreas& to_model_areas,
+        PropertyAreas& influence_areas,
+        std::vector<TreeSupportElement*>& bypass_merge_areas,
+        const std::vector<TreeSupportElement*>& last_layer,
+        const LayerIndex layer_idx,
+        const bool mergelayer
+    );
 
     /*!
      * \brief Propagates influence downwards, and merges overlapping ones.
@@ -289,6 +349,7 @@ private:
      * \param elem[in] The SupportElements, which parent's position should be determined.
      */
     void setPointsOnAreas(const TreeSupportElement* elem);
+
     /*!
      * \brief Get the best point to connect to the model and set the result_on_layer of the relevant SupportElement accordingly.
      *
@@ -310,10 +371,16 @@ private:
      * \brief Draws circles around result_on_layer points of the influence areas
      *
      * \param linear_data[in] All currently existing influence areas with the layer they are on
-     * \param layer_tree_polygons[out] Resulting branch areas with the layerindex they appear on. layer_tree_polygons.size() has to be at least linear_data.size() as each Influence area in linear_data will save have at least one (that's why it's a vector<vector>) corresponding branch area in layer_tree_polygons.
+     * \param layer_tree_polygons[out] Resulting branch areas with the layerindex they appear on.
+     *    layer_tree_polygons.size() has to be at least linear_data.size() as each Influence area in linear_data will save have at least one (that's why it's a vector<vector>) corresponding branch area in layer_tree_polygons.
      * \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
-    void generateBranchAreas(std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data, std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons, const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
+    void generateBranchAreas
+    (
+        std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
+        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+        const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order
+    );
 
     /*!
      * \brief Applies some smoothing to the outer wall, intended to smooth out sudden jumps as they can happen when a branch moves though a hole.
@@ -330,8 +397,13 @@ private:
      * \param dropped_down_areas[out] Areas that have to be added to support all non-graceful areas.
      * \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
-    void dropNonGraciousAreas(std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons, const std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data, std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas, const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
-
+    void dropNonGraciousAreas
+    (
+        std::vector<std::unordered_map<TreeSupportElement*, Polygons>>& layer_tree_polygons,
+        const std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
+        std::vector<std::vector<std::pair<LayerIndex, Polygons>>>& dropped_down_areas,
+        const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order
+    );
 
     /*!
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage

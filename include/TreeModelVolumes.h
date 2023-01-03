@@ -18,18 +18,28 @@
 
 namespace cura
 {
+constexpr coord_t EPSILON = 5;
+constexpr coord_t FUDGE_LENGTH = 50;
 
 class TreeModelVolumes
 {
-  public:
+public:
     TreeModelVolumes() = default;
-    TreeModelVolumes(const SliceDataStorage& storage, coord_t max_move, coord_t max_move_slow, size_t current_mesh_idx, double progress_multiplier, double progress_offset, const std::vector<Polygons>& additional_excluded_areas = std::vector<Polygons>());
+    TreeModelVolumes
+    (
+        const SliceDataStorage& storage,
+        coord_t max_move,
+        coord_t max_move_slow,
+        size_t current_mesh_idx,
+        double progress_multiplier,
+        double progress_offset,
+        const std::vector<Polygons>& additional_excluded_areas = std::vector<Polygons>()
+    );
     TreeModelVolumes(TreeModelVolumes&&) = default;
     TreeModelVolumes& operator=(TreeModelVolumes&&) = default;
 
     TreeModelVolumes(const TreeModelVolumes&) = delete;
     TreeModelVolumes& operator=(const TreeModelVolumes&) = delete;
-
 
     /*!
      * \brief Precalculate avoidances and collisions up to this layer.
@@ -51,7 +61,6 @@ class TreeModelVolumes
      * \param min_xy_dist Is the minimum xy distance used.
      * \return Polygons object
      */
-
     const Polygons& getCollision(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
 
     /*!
@@ -66,7 +75,6 @@ class TreeModelVolumes
      * \return Polygons object
      */
     const Polygons& getCollisionHolefree(coord_t radius, LayerIndex layer_idx, bool min_xy_dist = false);
-
 
     /*!
      * \brief Provides the areas that have to be avoided by the tree's branches
@@ -86,6 +94,7 @@ class TreeModelVolumes
      * \return Polygons object
      */
     const Polygons& getAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model = false, bool min_xy_dist = false);
+
     /*!
      * \brief Provides the area represents all areas on the model where the branch does completely fit on the given layer.
      * \param radius The radius of the node of interest
@@ -93,6 +102,7 @@ class TreeModelVolumes
      * \return Polygons object
      */
     const Polygons& getPlaceableAreas(coord_t radius, LayerIndex layer_idx);
+
     /*!
      * \brief Provides the area that represents the walls, as in the printed area, of the model. This is an abstract representation not equal with the outline. See calculateWallRestrictions for better description.
      * \param radius The radius of the node of interest.
@@ -101,6 +111,7 @@ class TreeModelVolumes
      * \return Polygons object
      */
     const Polygons& getWallRestriction(coord_t radius, LayerIndex layer_idx, bool min_xy_dist);
+
     /*!
      * \brief Round \p radius upwards to either a multiple of radius_sample_resolution_ or a exponentially increasing value
      *
@@ -111,6 +122,7 @@ class TreeModelVolumes
      * \return The rounded radius
      */
     coord_t ceilRadius(coord_t radius, bool min_xy_dist) const;
+
     /*!
      * \brief Round \p radius upwards to the maximum that would still round up to the same value as the provided one.
      *
@@ -121,12 +133,11 @@ class TreeModelVolumes
     coord_t getRadiusNextCeil(coord_t radius, bool min_xy_dist) const;
 
 
-  private:
+private:
     /*!
      * \brief Convenience typedef for the keys to the caches
      */
     using RadiusLayerPair = std::pair<coord_t, LayerIndex>;
-
 
     /*!
      * \brief Round \p radius upwards to either a multiple of radius_sample_resolution_ or a exponentially increasing value
@@ -150,7 +161,8 @@ class TreeModelVolumes
      * collide with the model. Result is saved in the cache.
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
      */
-    void calculateCollision(std::deque<RadiusLayerPair> keys);
+    void calculateCollision(const std::deque<RadiusLayerPair>& keys);
+
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
      *
@@ -162,6 +174,7 @@ class TreeModelVolumes
     {
         calculateCollision(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) });
     }
+
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer. Holes are removed.
      *
@@ -170,7 +183,7 @@ class TreeModelVolumes
      * A Hole is defined as an area, in which a branch with increase_until_radius radius would collide with the wall.
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
      */
-    void calculateCollisionHolefree(std::deque<RadiusLayerPair> keys);
+    void calculateCollisionHolefree(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer. Holes are removed.
@@ -194,7 +207,7 @@ class TreeModelVolumes
      * collide with the model. Result is saved in the cache.
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
      */
-    void calculateAvoidance(std::deque<RadiusLayerPair> keys);
+    void calculateAvoidance(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model.
@@ -224,7 +237,7 @@ class TreeModelVolumes
      * \param keys RadiusLayerPair of the requested areas. The radius will be calculated up to the provided layer.
      *
      */
-    void calculatePlaceables(std::deque<RadiusLayerPair> keys);
+    void calculatePlaceables(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a single layer.
@@ -234,7 +247,7 @@ class TreeModelVolumes
      * \param keys RadiusLayerPairs of all requested areas. Every radius will be calculated up to the provided layer.
      *
      */
-    void calculateAvoidanceToModel(std::deque<RadiusLayerPair> keys);
+    void calculateAvoidanceToModel(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model without being able to place a branch with given radius on a single layer.
@@ -247,6 +260,7 @@ class TreeModelVolumes
     {
         calculateAvoidanceToModel(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) });
     }
+
     /*!
      * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed object).
      *
@@ -256,7 +270,7 @@ class TreeModelVolumes
      *
      * \return A future that has to be waited on
      */
-    void calculateWallRestrictions(std::deque<RadiusLayerPair> keys);
+    void calculateWallRestrictions(const std::deque<RadiusLayerPair>& keys);
 
     /*!
      * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed object).
@@ -275,7 +289,9 @@ class TreeModelVolumes
      */
     template <typename KEY>
     const std::optional<std::reference_wrapper<const Polygons>> getArea(const std::unordered_map<KEY, Polygons>& cache, const KEY key) const;
+
     bool checkSettingsEquality(const Settings& me, const Settings& other) const;
+
     /*!
      * \brief Get the highest already calculated layer in the cache.
      * \param radius The radius for which the highest already calculated layer has to be found.
@@ -285,11 +301,13 @@ class TreeModelVolumes
      */
     LayerIndex getMaxCalculatedLayer(coord_t radius, const std::unordered_map<RadiusLayerPair, Polygons>& map) const;
 
-    Polygons calculateMachineBorderCollision(const Polygons&& machine_border);
+    Polygons calculateMachineBorderCollision(Polygon machine_border);
+
     /*!
      * \brief The maximum distance that the center point of a tree branch may move in consecutive layers if it has to avoid the model.
      */
     coord_t max_move_;
+
     /*!
      * \brief The maximum distance that the centre-point of a tree branch may
      * move in consecutive layers if it does not have to avoid the model
@@ -300,37 +318,44 @@ class TreeModelVolumes
      * \brief Whether the precalculate was called, meaning every required value should be cached.
      */
     bool precalculated = false;
+
     /*!
      * \brief The index to access the outline corresponding with the currently processing mesh
      */
     size_t current_outline_idx;
+
     /*!
      * \brief The minimum required clearance between the model and the tree branches
      */
     coord_t current_min_xy_dist;
+
     /*!
      * \brief The difference between the minimum required clearance between the model and the tree branches and the regular one.
      */
     coord_t current_min_xy_dist_delta;
+
     /*!
      * \brief Does at least one mesh allow support to rest on a model.
      */
     bool support_rests_on_model;
+
     /*!
      * \brief The progress of the precalculate function for communicating it to the progress bar.
      */
-
     coord_t precalculation_progress = 0;
+
     /*!
      * \brief The progress multiplier of all values added progress bar.
      * Required for the progress bar the behave as expected when areas have to be calculated multiple times
      */
     double progress_multiplier;
+
     /*!
      * \brief The progress offset added to all values communicated to the progress bar.
      * Required for the progress bar the behave as expected when areas have to be calculated multiple times
      */
     double progress_offset;
+
     /*!
      * \brief Increase radius in the resulting drawn branches, even if the avoidance does not allow it. Will be cut later to still fit.
      */
@@ -341,14 +366,17 @@ class TreeModelVolumes
      * machine
      */
     Polygons machine_border_;
+
     /*!
      * \brief Storage for layer outlines and the corresponding settings of the meshes grouped by meshes with identical setting.
      */
     std::vector<std::pair<Settings, std::vector<Polygons>>> layer_outlines_;
+
     /*!
      * \brief Storage for areas that should be avoided, like support blocker or previous generated trees.
      */
     std::vector<Polygons> anti_overhang_;
+
     /*!
      * \brief Radii that can be ignored by ceilRadius as they will never be requested.
      */
@@ -394,7 +422,6 @@ class TreeModelVolumes
     mutable std::unordered_map<RadiusLayerPair, Polygons> placeable_areas_cache_;
     std::unique_ptr<std::mutex> critical_placeable_areas_cache_ = std::make_unique<std::mutex>();
 
-
     /*!
      * \brief Caches to avoid holes smaller than the radius until which the radius is always increased, as they are free of holes. Also called safe avoidances, as they are safe regarding not running into holes.
      */
@@ -410,12 +437,13 @@ class TreeModelVolumes
     mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_ = std::make_unique<std::mutex>();
 
-    mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_min_; // A different cache for min_xy_dist as the maximal safe distance an influence area can be increased(guaranteed overlap of two walls in consecutive layer) is much smaller when min_xy_dist is used. This causes the area of the wall restriction to be thinner and as such just using the min_xy_dist wall restriction would be slower.
+    // A different cache for min_xy_dist as the maximal safe distance an influence area can be increased(guaranteed overlap of two walls in consecutive layer) is much smaller when min_xy_dist is used. This causes the area of the wall restriction to be thinner and as such just using the min_xy_dist wall restriction would be slower.
+    mutable std::unordered_map<RadiusLayerPair, Polygons> wall_restrictions_cache_min_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_min_ = std::make_unique<std::mutex>();
 
     std::unique_ptr<std::mutex> critical_progress = std::make_unique<std::mutex>();
 
-    Simplify simplifier=Simplify(0,0,0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
+    Simplify simplifier = Simplify(0, 0, 0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
 };
 
 }
