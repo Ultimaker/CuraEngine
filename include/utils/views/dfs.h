@@ -26,10 +26,9 @@ template <typename Node, typename State>
 constexpr void dfs(
     const Node& current_node,
     const isGraph auto& dag,
-    const State& state,
-    std::function<State(const Node, const Node, const State)> handle_node,
+    std::function<State(const Node, const State)> handle_node,
     isSet auto& visited,
-    const Node& parent_node = nullptr)
+    const State& state = nullptr)
 {
     if (visited.contains(current_node))
     {
@@ -37,7 +36,7 @@ constexpr void dfs(
     }
     visited.emplace(current_node);
 
-    auto current_state = handle_node(current_node, parent_node, state);
+    auto current_state = handle_node(current_node, state);
 
     const auto& [children_begin, children_end] = dag.equal_range(current_node);
     auto children = ranges::make_subrange(children_begin, children_end);
@@ -46,12 +45,28 @@ constexpr void dfs(
         dfs(
             child_node,
             dag,
-            current_state,
             handle_node,
             visited,
-            current_node
+            current_state
         );
     }
+}
+
+template <typename Node>
+constexpr void dfs_parent_view(
+    const Node& current_node,
+    const isGraph auto& dag,
+    std::function<void(const Node, const Node)> handle_node,
+    isSet auto& visited)
+{
+    const std::function<Node(const Node, const Node)> parent_view =
+        [handle_node](auto current_node, auto parent_node)
+    {
+        handle_node(current_node, parent_node);
+        return current_node;
+    };
+
+    dfs(current_node, dag, parent_view, visited);
 }
 } // namespace cura::actions
 

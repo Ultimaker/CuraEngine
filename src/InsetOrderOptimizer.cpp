@@ -216,9 +216,9 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         // - mark all reachable nodes with their distance from the root
         // - find hole roots, these are the innermost polygons enclosing a hole
         {
-            const std::function<unsigned int(const LineLoc*, const LineLoc*, const unsigned int)> initialize_nodes =
+            const std::function<unsigned int(const LineLoc*, const unsigned int)> initialize_nodes =
                 [graph, root, &hole_roots, &min_node, &min_dist]
-                (const auto current_node, const auto, const auto dist)
+                (const auto current_node, const auto dist)
                 {
                     min_node[current_node] = root;
                     min_dist[current_node] = dist;
@@ -235,7 +235,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
 
             unsigned int initial_dist = 0;
             auto visited = std::unordered_set<const LineLoc*>();
-            actions::dfs(root, graph, initial_dist, initialize_nodes, visited);
+            actions::dfs(root, graph, initialize_nodes, visited, initial_dist);
         };
 
         // For each hole root perform a dfs, and keep track of distance from hole root
@@ -244,9 +244,9 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         {
             for (auto& hole_root : hole_roots)
             {
-                const std::function<unsigned int(const LineLoc*, const LineLoc*, const unsigned int)> update_nodes =
+                const std::function<unsigned int(const LineLoc*, const unsigned int)> update_nodes =
                     [hole_root, &min_dist, &min_node]
-                    (const auto& current_node, const auto, auto dist)
+                    (const auto& current_node, auto dist)
                     {
                         if (dist < min_dist[current_node])
                         {
@@ -258,7 +258,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
 
                 unsigned int initial_dist = 0;
                 auto visited = std::unordered_set<const LineLoc*>();
-                actions::dfs(hole_root, graph, initial_dist, update_nodes, visited);
+                actions::dfs(hole_root, graph, update_nodes, visited, initial_dist);
             }
         };
 
@@ -266,9 +266,9 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         // the distance is closest to root $r$
         {
             const LineLoc* root_ = root;
-            const std::function<std::nullptr_t(const LineLoc*, const LineLoc*, std::nullptr_t)> set_order_constraints =
+            const std::function<void(const LineLoc*, const LineLoc*)> set_order_constraints =
                 [&order, &min_node, &root_, graph]
-                (const auto& current_node, const auto& parent_node, const auto)
+                (const auto& current_node, const auto& parent_node)
                 {
                    if (min_node[current_node] == root_)
                    {
@@ -277,18 +277,16 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                            order.emplace(parent_node->line, current_node->line);
                        }
                    }
-
-                   return nullptr;
                 };
 
             auto visited = std::unordered_set<const LineLoc*>();
-            actions::dfs(root, graph, nullptr, set_order_constraints, visited);
+            actions::dfs_parent_view(root, graph, set_order_constraints, visited);
 
             for (auto& hole_root : hole_roots)
             {
                 root_ = hole_root;
                 auto visited = std::unordered_set<const LineLoc*>();
-                actions::dfs(hole_root, graph, nullptr, set_order_constraints, visited);
+                actions::dfs_parent_view(hole_root, graph, set_order_constraints, visited);
             }
         }
     }
