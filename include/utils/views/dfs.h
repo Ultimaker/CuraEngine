@@ -14,21 +14,21 @@ namespace cura::actions
 /* # dfs utility
  *
  * Walks through an arbitrary graph using depth-first-search and calls a custom callback at each visited node
- * \param node the current visited node, should be convertable or have the same type as the nodes in dag and visited
- * \param dag Directed Acyclic Graph as defined by \concept isGraph
+ * \param node the current visited node, should be convertable or have the same type as the nodes in graph and visited
+ * \param graph A Graph as defined by \concept isGraph
  * \param state a state that propagate
  * \param handle_node Custom call back function called at each visited node. Arguments for the functions are the current node, and the state resulted from the parent node
  * \param visited nodes as defined by concept \isSet; _note: visited will not be ordered if it is of type `unordered_###`
- * \param parent_node the node in the dag that triggered the call to dfs on current_node.
+ * \param parent_node the node in the graph that triggered the call to dfs on current_node.
  */
 
 template <typename Node, typename State>
 constexpr void dfs(
     const Node& current_node,
-    const isGraph auto& dag,
+    const isGraph auto& graph,
     std::function<State(const Node, const State)> handle_node,
-    isSet auto& visited,
-    const State& state = nullptr)
+    const State& state = nullptr,
+    std::unordered_set<Node> visited = std::unordered_set<Node>())
 {
     if (visited.contains(current_node))
     {
@@ -38,16 +38,15 @@ constexpr void dfs(
 
     auto current_state = handle_node(current_node, state);
 
-    const auto& [children_begin, children_end] = dag.equal_range(current_node);
+    const auto& [children_begin, children_end] = graph.equal_range(current_node);
     auto children = ranges::make_subrange(children_begin, children_end);
     for (const auto& [_, child_node] : children)
     {
         dfs(
-            child_node,
-            dag,
+            child_node, graph,
             handle_node,
-            visited,
-            current_state
+            current_state,
+            visited
         );
     }
 }
@@ -55,9 +54,8 @@ constexpr void dfs(
 template <typename Node>
 constexpr void dfs_parent_view(
     const Node& current_node,
-    const isGraph auto& dag,
-    std::function<void(const Node, const Node)> handle_node,
-    isSet auto& visited)
+    const isGraph auto& graph,
+    std::function<void(const Node, const Node)> handle_node)
 {
     const std::function<Node(const Node, const Node)> parent_view =
         [handle_node](auto current_node, auto parent_node)
@@ -66,7 +64,23 @@ constexpr void dfs_parent_view(
         return current_node;
     };
 
-    dfs(current_node, dag, parent_view, visited);
+    dfs(current_node, graph, parent_view);
+}
+
+template <typename Node>
+constexpr void dfs_depth_view(
+    const Node& current_node,
+    const isGraph auto& graph,
+    std::function<void(const Node, const unsigned int)> handle_node)
+{
+    const std::function<unsigned int(const Node, const unsigned int)> depth_view =
+        [handle_node](auto current_node, auto depth)
+    {
+        handle_node(current_node, depth);
+        return depth + 1;
+    };
+
+    dfs(current_node, graph, depth_view, 0u);
 }
 } // namespace cura::actions
 

@@ -207,21 +207,21 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
 
     for (const LineLoc* root : roots)
     {
-        std::map<const LineLoc*, unsigned int> min_dist;
+        std::map<const LineLoc*, unsigned int> min_depth;
         std::map<const LineLoc*, const LineLoc*> min_node;
         std::vector<const LineLoc*> hole_roots;
 
         // Responsible for the following initialization
         // - initialize all reachable nodes to root
-        // - mark all reachable nodes with their distance from the root
+        // - mark all reachable nodes with their depth from the root
         // - find hole roots, these are the innermost polygons enclosing a hole
         {
-            const std::function<unsigned int(const LineLoc*, const unsigned int)> initialize_nodes =
-                [graph, root, &hole_roots, &min_node, &min_dist]
-                (const auto current_node, const auto dist)
+            const std::function<void(const LineLoc*, const unsigned int)> initialize_nodes =
+                [graph, root, &hole_roots, &min_node, &min_depth]
+                (const auto current_node, const auto depth)
                 {
                     min_node[current_node] = root;
-                    min_dist[current_node] = dist;
+                    min_depth[current_node] = depth;
 
                     // find hole roots (defined by a positive area in clipper1), these are leaves of the tree structure
                     // as odd walls are also leaves we filter them out by adding a non-zero area check
@@ -229,41 +229,34 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                     {
                         hole_roots.push_back(current_node);
                     }
-
-                    return dist + 1;
                 };
 
-            unsigned int initial_dist = 0;
-            auto visited = std::unordered_set<const LineLoc*>();
-            actions::dfs(root, graph, initialize_nodes, visited, initial_dist);
+            actions::dfs_depth_view(root, graph, initialize_nodes);
         };
 
-        // For each hole root perform a dfs, and keep track of distance from hole root
-        // if the distance to a node is smaller than a distance calculated from another root update
-        // min_dist and min_node
+        // For each hole root perform a dfs, and keep track of depth from hole root
+        // if the depth to a node is smaller than a depth calculated from another root update
+        // min_depth and min_node
         {
             for (auto& hole_root : hole_roots)
             {
-                const std::function<unsigned int(const LineLoc*, const unsigned int)> update_nodes =
-                    [hole_root, &min_dist, &min_node]
-                    (const auto& current_node, auto dist)
+                const std::function<void(const LineLoc*, const unsigned int)> update_nodes =
+                    [hole_root, &min_depth, &min_node]
+                    (const auto& current_node, auto depth)
                     {
-                        if (dist < min_dist[current_node])
+                        if (depth < min_depth[current_node])
                         {
-                            min_dist[current_node] = dist;
+                            min_depth[current_node] = depth;
                             min_node[current_node] = hole_root;
                         }
-                        return dist + 1;
                     };
 
-                unsigned int initial_dist = 0;
-                auto visited = std::unordered_set<const LineLoc*>();
-                actions::dfs(hole_root, graph, update_nodes, visited, initial_dist);
+                actions::dfs_depth_view(hole_root, graph, update_nodes);
             }
         };
 
         // perform a dfs from the root and all hole roots $r$ and set the order constraints for each polyline for which
-        // the distance is closest to root $r$
+        // the depth is closest to root $r$
         {
             const LineLoc* root_ = root;
             const std::function<void(const LineLoc*, const LineLoc*)> set_order_constraints =
@@ -279,14 +272,12 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                    }
                 };
 
-            auto visited = std::unordered_set<const LineLoc*>();
-            actions::dfs_parent_view(root, graph, set_order_constraints, visited);
+            actions::dfs_parent_view(root, graph, set_order_constraints);
 
             for (auto& hole_root : hole_roots)
             {
                 root_ = hole_root;
-                auto visited = std::unordered_set<const LineLoc*>();
-                actions::dfs_parent_view(hole_root, graph, set_order_constraints, visited);
+                actions::dfs_parent_view(hole_root, graph, set_order_constraints);
             }
         }
     }
