@@ -1717,11 +1717,17 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
 
 void LayerPlan::processFanSpeedAndMinimalLayerTime(Point starting_position)
 {
+    // the minimum layer time behaviour is only applied to the last extruder.
+    size_t max_extruder_nr = 0;
+    for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
+    {
+        max_extruder_nr = std::max(extruder_plans[extr_plan_idx].extruder_nr, max_extruder_nr);
+    }
     for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extr_plan_idx];
-        bool force_minimal_layer_time = extr_plan_idx == extruder_plans.size() - 1;
         extruder_plan.processFanSpeedAndMinimalLayerTime(force_minimal_layer_time, starting_position);
+        bool force_minimal_layer_time = extruder_plan.extruder_nr == max_extruder_nr;
         if (! extruder_plan.paths.empty() && ! extruder_plan.paths.back().points.empty())
         {
             starting_position = extruder_plan.paths.back().points.back();
