@@ -1536,7 +1536,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         {
             // Slowing down to the slowest path speed is not sufficient, need to slow down further to the minimum speed.
             // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
-            const double factor = (total_extrude_time_at_minimum_speed - minExtrudeTime) / (total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed);
+            const double factor = (1/total_extrude_time_at_minimum_speed - 1/minExtrudeTime) / (1/total_extrude_time_at_minimum_speed - 1/total_extrude_time_at_slowest_speed);
             target_speed = minimalSpeed * (1.0-factor) + slowest_path_speed * factor;
             temperatureFactor = 1.0 - factor;
 
@@ -1547,7 +1547,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         {
             // Slowing down to the slowest_speed is sufficient to respect the minimum layer time.
             // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
-            factor = (total_extrude_time_at_slowest_speed - minExtrudeTime) / (total_extrude_time_at_slowest_speed - extrudeTime);
+            factor = (1/total_extrude_time_at_slowest_speed - 1/minExtrudeTime) / (1/total_extrude_time_at_slowest_speed - 1/extrudeTime);
             slow_down_func =
                 [&slowest_path_speed = slowest_path_speed, &factor](const GCodePath& path)
                 {
