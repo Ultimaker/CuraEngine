@@ -5,9 +5,9 @@
 #define PATH_PLANNING_G_CODE_PATH_H
 
 #include "../SpaceFillType.h"
+#include "../sliceDataStorage.h"
 #include "../settings/types/Ratio.h"
 #include "../utils/IntPoint.h"
-
 #include "TimeMaterialEstimates.h"
 
 namespace cura 
@@ -29,7 +29,7 @@ class GCodePath
 {
 public:
     const GCodePathConfig* config; //!< The configuration settings of the path.
-    std::string mesh_id; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh ID should be 0.
+    const SliceMeshStorage* mesh; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
     Ratio flow; //!< A type-independent flow configuration
     Ratio width_factor; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.
@@ -62,7 +62,7 @@ public:
      * \param speed_factor The factor that the travel speed will be multiplied with
      * this path.
      */
-    GCodePath(const GCodePathConfig& config, std::string mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor = 1.0);
+    GCodePath(const GCodePathConfig& config, const SliceMeshStorage* mesh_id, const SpaceFillType space_fill_type, const Ratio flow, const Ratio width_factor, const bool spiralize, const Ratio speed_factor = 1.0);
 
     /*!
      * Whether this config is the config of a travel path.

@@ -133,15 +133,13 @@ void SkirtBrim::generate()
     std::vector<Polygons> starting_outlines(extruder_count);
     std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines);
     
-    coord_t max_offset = 0;
-    for (const Offset& offset : all_brim_offsets)
-    {
-        max_offset = std::max(max_offset, offset.offset_value);
-    }
-    
     constexpr LayerIndex layer_nr = 0;
     const bool include_support = true;
     Polygons covered_area = storage.getLayerOutlines(layer_nr, include_support, /*include_prime_tower*/ true, /*external_polys_only*/ false);
+    if (adhesion_type == EPlatformAdhesion::SKIRT)
+    {
+        covered_area = covered_area.approxConvexHull();
+    }
 
     std::vector<Polygons> allowed_areas_per_extruder(extruder_count);
     for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)

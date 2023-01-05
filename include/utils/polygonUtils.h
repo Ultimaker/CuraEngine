@@ -126,6 +126,8 @@ public:
      */
     static std::vector<Point> spreadDotsArea(const Polygons& polygons, coord_t grid_size);
 
+    static std::vector<Point> spreadDotsArea(const Polygons& polygons, Point grid_size);
+
     /*!
      * Whether a polygon intersects with a line-segment. If true, the closest collision point to 'b' is stored in the result.
      */

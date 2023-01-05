@@ -253,26 +253,17 @@ Point SliceMeshStorage::getZSeamHint() const
     return pos;
 }
 
-std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
+std::vector<RetractionAndWipeConfig> SliceDataStorage::initializeRetractionAndWipeConfigs()
 {
-    std::vector<RetractionConfig> ret;
+    std::vector<RetractionAndWipeConfig> ret;
     ret.resize(Application::getInstance().current_slice->scene.extruders.size()); // initializes with constructor RetractionConfig()
     return ret;
 }
 
-std::vector<WipeScriptConfig> SliceDataStorage::initializeWipeConfigs()
-{
-    std::vector<WipeScriptConfig> ret;
-    ret.resize(Application::getInstance().current_slice->scene.extruders.size());
-    return ret;
-}
-
-SliceDataStorage::SliceDataStorage()
-    : print_layer_count(0)
-    , wipe_config_per_extruder(initializeWipeConfigs())
-    , retraction_config_per_extruder(initializeRetractionConfigs())
-    , extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs())
-    , max_print_height_second_to_last_extruder(-1)
+SliceDataStorage::SliceDataStorage() :
+    print_layer_count(0),
+    retraction_wipe_config_per_extruder(initializeRetractionAndWipeConfigs()),
+    max_print_height_second_to_last_extruder(-1)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice->scene.current_mesh_group->settings;
     Point3 machine_max(mesh_group_settings.get<coord_t>("machine_width"), mesh_group_settings.get<coord_t>("machine_depth"), mesh_group_settings.get<coord_t>("machine_height"));
@@ -374,6 +365,11 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
             {
                 ret[extruder_nr] = true;
             }
+        }
+        int skirt_brim_extruder_nr = mesh_group_settings.get<int>("skirt_brim_extruder_nr");
+        if (skirt_brim_extruder_nr >= 0)
+        {
+            ret[skirt_brim_extruder_nr] = true;
         }
     }
     else if (adhesion_type == EPlatformAdhesion::RAFT)

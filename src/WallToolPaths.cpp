@@ -121,9 +121,9 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     
     removeSmallLines(toolpaths);
 
-    separateOutInnerContour();
-    
     simplifyToolPaths(toolpaths, settings);
+
+    separateOutInnerContour();
 
     removeEmptyToolPaths(toolpaths);
     assert(std::is_sorted(toolpaths.cbegin(), toolpaths.cend(),
@@ -196,7 +196,7 @@ void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths
     {
         for(ExtrusionLine& line : toolpaths[toolpaths_idx])
         {
-            line = simplifier.polyline(line);
+            line = line.is_closed ? simplifier.polygon(line) : simplifier.polyline(line);
         }
     }
 }
