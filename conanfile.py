@@ -5,7 +5,7 @@ from os import path
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import AutoPackager, copy, mkdir
+from conan.tools.files import copy, mkdir
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
 from conan.tools.scm import Version
@@ -133,9 +133,8 @@ class CuraEngineConan(ConanFile):
         cmake.build()
 
     def package(self):
-        packager = AutoPackager(self)
-        packager.run()
-        copy(self, "CuraEngine*", src = self.build_folder, dst = path.join(self.package_folder, "bin"))
+        ext = ".exe" if self.settings.os == "Windows" else ""
+        copy(self, f"CuraEngine{ext}", src = self.build_folder, dst = path.join(self.package_folder, "bin"))
         copy(self, "LICENSE*", src = self.source_folder, dst = path.join(self.package_folder, "license"))
 
     def package_info(self):
