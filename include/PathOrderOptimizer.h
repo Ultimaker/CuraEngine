@@ -118,49 +118,6 @@ public:
         paths.emplace_back(polyline, is_closed);
     }
 
-    size_t findClosestPath(Point start_position, std::vector<size_t> path_indexes)
-    {
-        coord_t best_distance2 = std::numeric_limits<coord_t>::max();
-        size_t best_candidate = 0;
-
-        // Pull this finding closest of candidate paths into seperate function
-        for(const size_t path_index : path_indexes)
-        {
-            PathOrderPath<PathType>& path = paths[path_index];
-            if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
-            {
-                if(best_distance2 == std::numeric_limits<coord_t>::max())
-                {
-                    best_candidate = path_index;
-                }
-                continue;
-            }
-
-            const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
-            if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
-            {
-                path.start_vertex = findStartLocation(path, start_position);
-                if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
-                {
-                    path.backwards = path.start_vertex > 0;
-                }
-            }
-            const Point candidate_position = (*path.converted)[path.start_vertex];
-            coord_t distance2 = getDirectDistance(start_position, candidate_position);
-            if(distance2 < best_distance2 && combing_boundary) //If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
-            {
-                distance2 = getCombingDistance(start_position, candidate_position);
-            }
-            if(distance2 < best_distance2) //Closer than the best candidate so far.
-            {
-                best_candidate = path_index;
-                best_distance2 = distance2;
-            }
-        }
-
-        return best_candidate;
-    }
-
     /*!
      * Perform the calculations to optimize the order of the parts.
      *
@@ -308,22 +265,9 @@ public:
             }
         }
 
-        //Apply the optimized order to the output field. Reverse if ordered to reverse.
         if(reverse_direction)
         {
-            //Reverse-insert the optimized order, to invert the ordering.
-            std::vector<PathOrderPath<PathType>> reversed;
-            //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for PathType.
-            reversed.reserve(optimized_order.size());
-            for(auto it = optimized_order.rbegin(); it != optimized_order.rend(); it++)
-            {
-                reversed.push_back(*it);
-                reversed.back().backwards = !reversed.back().backwards;
-                if(!reversed.back().is_closed)
-                {
-                    reversed.back().start_vertex = reversed.back().converted->size() - 1 - reversed.back().start_vertex;
-                }
-            }
+            std::vector<PathOrderPath<PathType>> reversed = reverseOrderPaths(paths);  //Reverse-insert the optimized order, to invert the ordering.
             std::swap(reversed, paths);
         }
         else
@@ -373,6 +317,67 @@ protected:
      * direction of each path as well.
      */
     bool reverse_direction;
+
+    std::vector<PathOrderPath<PathType>> reverseOrderPaths(std::vector<PathOrderPath<PathType>> pathsOrderPaths)
+    {
+        std::vector<PathOrderPath<PathType>> reversed;
+        //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for PathType.
+        reversed.reserve(pathsOrderPaths.size());
+        for(auto it = pathsOrderPaths.rbegin(); it != pathsOrderPaths.rend(); it++)
+        {
+            reversed.push_back(*it);
+            reversed.back().backwards = !reversed.back().backwards;
+            if(!reversed.back().is_closed)
+            {
+                reversed.back().start_vertex = reversed.back().converted->size() - 1 - reversed.back().start_vertex;
+            }
+        }
+
+        return reversed;
+    }
+
+    size_t findClosestPath(Point start_position, std::vector<size_t> path_indexes)
+    {
+        coord_t best_distance2 = std::numeric_limits<coord_t>::max();
+        size_t best_candidate = 0;
+
+        // Pull this finding closest of candidate paths into seperate function
+        for(const size_t path_index : path_indexes)
+        {
+            PathOrderPath<PathType>& path = paths[path_index];
+            if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
+            {
+                if(best_distance2 == std::numeric_limits<coord_t>::max())
+                {
+                    best_candidate = path_index;
+                }
+                continue;
+            }
+
+            const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
+            if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
+            {
+                path.start_vertex = findStartLocation(path, start_position);
+                if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
+                {
+                    path.backwards = path.start_vertex > 0;
+                }
+            }
+            const Point candidate_position = (*path.converted)[path.start_vertex];
+            coord_t distance2 = getDirectDistance(start_position, candidate_position);
+            if(distance2 < best_distance2 && combing_boundary) //If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
+            {
+                distance2 = getCombingDistance(start_position, candidate_position);
+            }
+            if(distance2 < best_distance2) //Closer than the best candidate so far.
+            {
+                best_candidate = path_index;
+                best_distance2 = distance2;
+            }
+        }
+
+        return best_candidate;
+    }
 
 public:
     static const std::unordered_set<std::pair<PathType, PathType>> no_order_requirements;
