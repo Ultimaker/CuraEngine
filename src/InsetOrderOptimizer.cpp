@@ -263,12 +263,9 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                 [&order, &min_node, &root_, graph]
                 (const auto& current_node, const auto& parent_node)
                 {
-                   if (min_node[current_node] == root_)
+                   if (min_node[current_node] == root_ && parent_node != nullptr)
                    {
-                       if (parent_node != nullptr)
-                       {
-                           order.emplace(parent_node->line, current_node->line);
-                       }
+                       order.emplace(parent_node->line, current_node->line);
                    }
                 };
 
