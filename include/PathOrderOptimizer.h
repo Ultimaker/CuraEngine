@@ -17,6 +17,9 @@
 #include "utils/polygonUtils.h"
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
+#include <range/v3/view/enumerate.hpp>
+
+namespace rv = ranges::views;
 
 namespace cura
 {
@@ -153,9 +156,8 @@ public:
         //Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
         const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
         SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
-        for(size_t i = 0; i < paths.size(); ++i)
+        for(const auto& [i, path]: paths | rv::enumerate)
         {
-            const PathOrderPath<PathType>& path = paths[i];
             if (path.converted->empty())
             {
                 continue;
@@ -181,13 +183,9 @@ public:
         {
             for(PathOrderPath<PathType>& path : paths)
             {
-                if(!path.is_closed)
+                if(!path.is_closed || path.converted->empty())
                 {
                     continue; //Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
-                }
-                if(path.converted->empty())
-                {
-                    continue;
                 }
                 path.start_vertex = findStartLocation(path, seam_config.pos);
             }
@@ -433,7 +431,7 @@ protected:
 
         size_t best_i;
         float best_score = std::numeric_limits<float>::infinity();
-        for(const auto& [i, here]: **path.converted | ranges::views::enumerate)
+        for(const auto& [i, here]: **path.converted | rv::enumerate)
         {
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
