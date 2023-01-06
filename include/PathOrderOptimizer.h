@@ -16,6 +16,7 @@
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
 #include "utils/polygonUtils.h"
 #include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/filter.hpp>
 
 namespace cura
 {
@@ -115,6 +116,49 @@ public:
     {
         constexpr bool is_closed = false;
         paths.emplace_back(polyline, is_closed);
+    }
+
+    size_t findClosestPath(Point start_position, std::vector<size_t> path_indexes)
+    {
+        coord_t best_distance2 = std::numeric_limits<coord_t>::max();
+        size_t best_candidate = 0;
+
+        // Pull this finding closest of candidate paths into seperate function
+        for(const size_t path_index : path_indexes)
+        {
+            PathOrderPath<PathType>& path = paths[path_index];
+            if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
+            {
+                if(best_distance2 == std::numeric_limits<coord_t>::max())
+                {
+                    best_candidate = path_index;
+                }
+                continue;
+            }
+
+            const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
+            if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
+            {
+                path.start_vertex = findStartLocation(path, start_position);
+                if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
+                {
+                    path.backwards = path.start_vertex > 0;
+                }
+            }
+            const Point candidate_position = (*path.converted)[path.start_vertex];
+            coord_t distance2 = getDirectDistance(start_position, candidate_position);
+            if(distance2 < best_distance2 && combing_boundary) //If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
+            {
+                distance2 = getCombingDistance(start_position, candidate_position);
+            }
+            if(distance2 < best_distance2) //Closer than the best candidate so far.
+            {
+                best_candidate = path_index;
+                best_distance2 = distance2;
+            }
+        }
+
+        return best_candidate;
     }
 
     /*!
@@ -217,9 +261,6 @@ public:
         optimized_order.reserve(paths.size());
         while(optimized_order.size() < paths.size())
         {
-            size_t best_candidate = 0;
-            coord_t best_distance2 = std::numeric_limits<coord_t>::max();
-
             //First see if we already know about some nearby paths due to the line bucket grid.
             std::vector<size_t> nearby_candidates = line_bucket_grid.getNearbyVals(current_position, snap_radius);
             std::vector<size_t> available_candidates;
@@ -243,39 +284,7 @@ public:
                     available_candidates.push_back(candidate);
                 }
             }
-
-            for(const size_t candidate_path_index : available_candidates)
-            {
-                PathOrderPath<PathType>& path = paths[candidate_path_index];
-                if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
-                {
-                    if(best_distance2 == std::numeric_limits<coord_t>::max())
-                    {
-                        best_candidate = candidate_path_index;
-                    }
-                    continue;
-                }
-
-                if(!path.is_closed || !precompute_start) //Find the start location unless we've already precomputed it.
-                {
-                    path.start_vertex = findStartLocation(path, current_position);
-                    if(!path.is_closed) //Open polylines start at vertex 0 or vertex N-1. Indicate that they should be reversed if they start at N-1.
-                    {
-                        path.backwards = path.start_vertex > 0;
-                    }
-                }
-                const Point candidate_position = (*path.converted)[path.start_vertex];
-                coord_t distance2 = getDirectDistance(current_position, candidate_position);
-                if(distance2 < best_distance2 && combing_boundary) //If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
-                {
-                    distance2 = getCombingDistance(current_position, candidate_position);
-                }
-                if(distance2 < best_distance2) //Closer than the best candidate so far.
-                {
-                    best_candidate = candidate_path_index;
-                    best_distance2 = distance2;
-                }
-            }
+            size_t best_candidate = findClosestPath(current_position, available_candidates);
 
             PathOrderPath<PathType>& best_path = paths[best_candidate];
             optimized_order.push_back(best_path);
