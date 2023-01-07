@@ -39,12 +39,6 @@ class CuraEngineConan(ConanFile):
         "enable_extensive_warnings": False,
     }
 
-    def export(self):
-        print("exporting")
-        git = Git(self, self.recipe_folder)
-        scm_url, scm_commit = git.get_url_and_commit()
-        update_conandata(self, {"sources": {"commit": scm_commit, "url": scm_url}})
-
     def export_sources(self):
         copy(self, "CMakeLists.txt", self.recipe_folder, self.export_sources_folder)
         copy(self, "Cura.proto", self.recipe_folder, self.export_sources_folder)
