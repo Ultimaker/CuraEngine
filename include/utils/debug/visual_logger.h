@@ -7,8 +7,9 @@
 #include <mutex>
 #include <utility>
 
-#include <vtu11/vtu11.hpp>
 #include <spdlog/spdlog.h>
+#include <vtu11/vtu11.hpp>
+#include <range/v3/all.hpp>
 
 #include "Application.h"
 #include "utils/concepts/geometry.h"
@@ -59,9 +60,6 @@ public:
         spdlog::info("Visual log mesh: {}", mesh.mesh_name);
         using float_type = double;
         std::vector<float_type> points {};
-        std::vector<vtu11::VtkIndexType> connectivity { 0 };
-        std::vector<vtu11::VtkIndexType> offsets { 0 };
-        std::vector<vtu11::VtkCellType> types {};
         std::vector<double> pointData { };
         std::vector<double> cellData {};
         for (const auto& face : mesh.faces)
@@ -72,13 +70,14 @@ public:
                 points.emplace_back(static_cast<float_type>(vertex.p.x));
                 points.emplace_back(static_cast<float_type>(vertex.p.y));
                 points.emplace_back(static_cast<float_type>(vertex.p.z));
-                connectivity.push_back(connectivity.back() + 1);
                 pointData.push_back(1);
             }
             cellData.push_back(2);
-            offsets.push_back(offsets.back() + 3);
-            types.push_back(5);
         }
+        auto connectivity = ranges::views::iota(0) | ranges::views::take(mesh.faces.size() * 3) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+        auto offsets = ranges::views::iota(0) | ranges::views::take(connectivity.size()) | ranges::views::stride(3) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+        auto types = ranges::views::repeat(5) | ranges::views::take(offsets.size()) | ranges::to<std::vector<vtu11::VtkCellType>>;
+
         vtu11::Vtu11UnstructuredMesh meshPartition{ points, connectivity, offsets, types };
         std::vector<vtu11::DataSetData> dataSetData{ pointData, cellData };
 
