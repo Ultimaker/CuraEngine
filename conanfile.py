@@ -55,13 +55,6 @@ class CuraEngineConan(ConanFile):
         copy(self, "*", path.join(self.recipe_folder, "include"), self.export_sources_folder)
         copy(self, "*", path.join(self.recipe_folder, "benchmark"), self.export_sources_folder)
         copy(self, "*", path.join(self.recipe_folder, "tests"), self.export_sources_folder)
-    def source(self):
-        print("source")
-        git = Git(self)
-        sources = self.conan_data["sources"]
-        git.clone(url=sources["url"], target=".")
-        git.checkout(commit=sources["commit"])
-
     def config_options(self):
         if self.settings.os == "Macos":
             del self.options.enable_openmp
