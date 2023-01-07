@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2023 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_DEBUG_VISUAL_LOGGER_H
@@ -52,7 +52,33 @@ public:
 #else
     void log(const isMesh auto& mesh)
     {
-        // TODO: write mesh to vtu partition5
+        using float_type = double;
+        std::vector<float_type> points {};
+        std::vector<vtu11::VtkIndexType> connectivity { 0 };
+        std::vector<vtu11::VtkIndexType> offsets { 0 };
+        std::vector<vtu11::VtkCellType> types {};
+        std::vector<double> pointData { };
+        std::vector<double> cellData {};
+        for (const auto& face : mesh.faces)
+        {
+            for (const auto& vertex_idx : face.vertex_index)
+            {
+                const auto& vertex = mesh.vertices[vertex_idx];
+                points.emplace_back(static_cast<float_type>(vertex.p.x));
+                points.emplace_back(static_cast<float_type>(vertex.p.y));
+                points.emplace_back(static_cast<float_type>(vertex.p.z));
+                connectivity.push_back(connectivity.back() + 1);
+                pointData.push_back(1);
+            }
+            cellData.push_back(2);
+            offsets.push_back(offsets.back() + 3);
+            types.push_back(5);
+        }
+        vtu11::Vtu11UnstructuredMesh meshPartition{ points, connectivity, offsets, types };
+        std::vector<vtu11::DataSetData> dataSetData{ pointData, cellData };
+
+        std::lock_guard<std::mutex> guard(mutex_);
+        vtu11::writePartition(vtu_dir_.string(), "CuraEngine", meshPartition, data_set_info_, dataSetData, idx_++, "RawBinary");
     }
 
     void log(const isPolygon auto& poly)
