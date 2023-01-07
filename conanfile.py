@@ -1,4 +1,4 @@
-#  Copyright (c) 2022 Ultimaker B.V.
+#  Copyright (c) 2023 Ultimaker B.V.
 #  CuraEngine is released under the terms of the AGPLv3 or higher
 
 from os import path
@@ -24,9 +24,6 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
 
-    python_requires = "umbase/[>=0.1.7]@ultimaker/stable"
-    python_requires_extend = "umbase.UMBaseConanfile"
-
     options = {
         "enable_arcus": [True, False],
         "enable_openmp": [True, False],
@@ -41,6 +38,7 @@ class CuraEngineConan(ConanFile):
         "enable_benchmarks": False,
         "enable_extensive_warnings": False,
     }
+
     def export(self):
         git = Git(self, self.recipe_folder)
         scm_url, scm_commit = git.get_url_and_commit()
@@ -78,22 +76,23 @@ class CuraEngineConan(ConanFile):
 
     def build_requirements(self):
         if self.options.enable_arcus:
-            for req in self._um_data()["build_requirements_arcus"]:
-                self.tool_requires(req)
+            self.test_requires("protobuf/3.21.4")
+            self.test_requires("arcus/5.2.2")
+            self.test_requires("zlib/1.2.12")
         if self.options.enable_testing:
-            for req in self._um_data()["build_requirements_testing"]:
-                self.test_requires(req)
+            self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
-            for req in self._um_data()["build_requirements_benchmarks"]:
-                self.test_requires(req)
+            self.test_requires("benchmark/1.7.0")
 
     def requirements(self):
         self.requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
-        for req in self._um_data()["requirements"]:
-            self.requires(req)
-        if self.options.enable_arcus:
-            for req in self._um_data()["requirements_arcus"]:
-                self.requires(req)
+        self.requires("clipper/6.4.2")
+        self.requires("boost/1.79.0")
+        self.requires("rapidjson/1.1.0")
+        self.requires("stb/20200203")
+        self.requires("spdlog/1.10.0")
+        self.requires("fmt/9.0.0")
+        self.requires("range-v3/0.12.0")
 
     def generate(self):
         deps = CMakeDeps(self)
