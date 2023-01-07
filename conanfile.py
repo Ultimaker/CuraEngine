@@ -40,11 +40,13 @@ class CuraEngineConan(ConanFile):
     }
 
     def export(self):
+        print("exporting")
         git = Git(self, self.recipe_folder)
         scm_url, scm_commit = git.get_url_and_commit()
         update_conandata(self, {"sources": {"commit": scm_commit, "url": scm_url}})
 
     def source(self):
+        print("source")
         git = Git(self)
         sources = self.conan_data["sources"]
         git.clone(url=sources["url"], target=".")
