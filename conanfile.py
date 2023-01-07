@@ -103,22 +103,6 @@ class CuraEngineConan(ConanFile):
             tc.variables["ENABLE_OPENMP"] = self.options.enable_openmp
         tc.generate()
 
-        for dep in self.dependencies.values():
-            if len(dep.cpp_info.libdirs) > 0:
-                copy(self, "*.dylib", dep.cpp_info.libdirs[0], self.build_folder)
-                copy(self, "*.dll", dep.cpp_info.libdirs[0], self.build_folder)
-            if len(dep.cpp_info.bindirs) > 0:
-                copy(self, "*.dll", dep.cpp_info.bindirs[0], self.build_folder)
-            if self.options.enable_testing:
-                test_path = path.join(self.build_folder,  "tests")
-                if not path.exists(test_path):
-                    mkdir(self, test_path)
-                if len(dep.cpp_info.libdirs) > 0:
-                    copy(self, "*.dylib", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
-                    copy(self, "*.dll", dep.cpp_info.libdirs[0], path.join(self.build_folder,  "tests"))
-                if len(dep.cpp_info.bindirs) > 0:
-                    copy(self, "*.dll", dep.cpp_info.bindirs[0], path.join(self.build_folder,  "tests"))
-
     def layout(self):
         cmake_layout(self)
 
