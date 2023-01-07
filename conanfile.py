@@ -50,10 +50,6 @@ class CuraEngineConan(ConanFile):
         git.clone(url=sources["url"], target=".")
         git.checkout(commit=sources["commit"])
 
-    def set_version(self):
-        if self.version is None:
-            self.version = self._umdefault_version()
-
     def config_options(self):
         if self.settings.os == "Macos":
             del self.options.enable_openmp
