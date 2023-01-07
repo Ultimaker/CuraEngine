@@ -8,6 +8,7 @@
 #include <utility>
 
 #include <vtu11/vtu11.hpp>
+#include <spdlog/spdlog.h>
 
 #include "Application.h"
 #include "utils/concepts/geometry.h"
@@ -21,11 +22,14 @@ public:
 
     explicit VisualLogger(std::filesystem::path vtu_dir) : vtu_dir_{ std::move(vtu_dir) }, data_set_info_{ vtu11::DataSetInfo{ "Property_1", vtu11::DataSetType::PointData, 1 }, { "Property_1", vtu11::DataSetType::CellData, 1 } }
     {
+        spdlog::info("Initializing vtu file(s) in {}", vtu_dir_.string());
         vtu11::writePVtu(vtu_dir_.string(), "CuraEngine", data_set_info_, 1);
     }
 
     ~VisualLogger()
     {
+        std::lock_guard<std::mutex> guard(mutex_);
+        spdlog::info("Finalizing vtu with a total of {} parallel vtu", idx_);
         vtu11::writePVtu(vtu_dir_.string(), "CuraEngine", data_set_info_, idx_); // Need to write this again since we now know the exact number of vtu files
     }
 
@@ -52,6 +56,7 @@ public:
 #else
     void log(const isMesh auto& mesh)
     {
+        spdlog::info("Visual log mesh: {}", mesh.mesh_name);
         using float_type = double;
         std::vector<float_type> points {};
         std::vector<vtu11::VtkIndexType> connectivity { 0 };
@@ -77,12 +82,14 @@ public:
         vtu11::Vtu11UnstructuredMesh meshPartition{ points, connectivity, offsets, types };
         std::vector<vtu11::DataSetData> dataSetData{ pointData, cellData };
 
+        spdlog::debug("Writting mesh pvtu: {}", idx_);
         std::lock_guard<std::mutex> guard(mutex_);
         vtu11::writePartition(vtu_dir_.string(), "CuraEngine", meshPartition, data_set_info_, dataSetData, idx_++, "RawBinary");
     }
 
     void log(const isPolygon auto& poly)
     {
+        spdlog::info("Visual log polygon");
         // TODO: convert to polygon
         std::vector<double> points0{
             0.0, 0.0, 0.5, 0.0, 0.3, 0.5, 0.0, 0.7, 0.5, 0.0, 1.0, 0.5, // 0,  1,  2,  3
@@ -100,6 +107,7 @@ public:
         std::vector<double> cellData0{ 3.2, 4.3, 5.4 };
         std::vector<vtu11::DataSetData> dataSetData0{ pointData0, cellData0 };
 
+        spdlog::debug("Writting polygon pvtu: {}", idx_);
         std::lock_guard<std::mutex> guard(mutex_);
         vtu11::writePartition(vtu_dir_.string(), "CuraEngine", meshPartition0, data_set_info_, dataSetData0, idx_++, "RawBinary");
     }
