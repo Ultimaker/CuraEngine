@@ -73,14 +73,15 @@ class CuraEngineConan(ConanFile):
         self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
         if self.options.enable_arcus:
             self.test_requires("protobuf/3.21.4")
-            self.test_requires("arcus/5.2.2")
-            self.test_requires("zlib/1.2.12")
         if self.options.enable_testing:
             self.test_requires("gtest/1.12.1")
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.7.0")
 
     def requirements(self):
+        if self.options.enable_arcus:
+            self.requires("arcus/5.2.2")
+            self.requires("zlib/1.2.12")
         self.requires("clipper/6.4.2")
         self.requires("boost/1.79.0")
         self.requires("rapidjson/1.1.0")
