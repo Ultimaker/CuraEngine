@@ -5,10 +5,10 @@ from os import path
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import copy, mkdir, update_conandata
+from conan.tools.files import copy
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
-from conan.tools.scm import Version, Git
+from conan.tools.scm import Version
 
 required_conan_version = ">=1.55.0"
 
@@ -16,7 +16,7 @@ required_conan_version = ">=1.55.0"
 class CuraEngineConan(ConanFile):
     name = "curaengine"
     license = "AGPL-3.0"
-    author = "Ultimaker B.V."
+    author = "UltiMaker"
     url = "https://github.com/Ultimaker/CuraEngine"
     description = "Powerful, fast and robust engine for converting 3D models into g-code instructions for 3D printers. It is part of the larger open source project Cura."
     topics = ("cura", "protobuf", "gcode", "c++", "curaengine", "libarcus", "gcode-generation", "3D-printing")
