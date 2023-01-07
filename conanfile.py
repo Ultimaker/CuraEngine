@@ -5,12 +5,12 @@ from os import path
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import copy, mkdir
+from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
-from conan.tools.scm import Version
+from conan.tools.scm import Version, Git
 
-required_conan_version = ">=1.50.0"
+required_conan_version = ">=1.55.0"
 
 
 class CuraEngineConan(ConanFile):
@@ -41,12 +41,16 @@ class CuraEngineConan(ConanFile):
         "enable_benchmarks": False,
         "enable_extensive_warnings": False,
     }
-    scm = {
-        "type": "git",
-        "subfolder": ".",
-        "url": "auto",
-        "revision": "auto"
-    }
+    def export(self):
+        git = Git(self, self.recipe_folder)
+        scm_url, scm_commit = git.get_url_and_commit()
+        update_conandata(self, {"sources": {"commit": scm_commit, "url": scm_url}})
+
+    def source(self):
+        git = Git(self)
+        sources = self.conan_data["sources"]
+        git.clone(url=sources["url"], target=".")
+        git.checkout(commit=sources["commit"])
 
     def set_version(self):
         if self.version is None:
