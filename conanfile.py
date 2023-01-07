@@ -70,6 +70,7 @@ class CuraEngineConan(ConanFile):
                 raise ConanInvalidConfiguration("only versions 5+ are supported")
 
     def build_requirements(self):
+        self.test_requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
         if self.options.enable_arcus:
             self.test_requires("protobuf/3.21.4")
             self.test_requires("arcus/5.2.2")
@@ -80,7 +81,6 @@ class CuraEngineConan(ConanFile):
             self.test_requires("benchmark/1.7.0")
 
     def requirements(self):
-        self.requires("standardprojectsettings/[>=0.1.0]@ultimaker/stable")
         self.requires("clipper/6.4.2")
         self.requires("boost/1.79.0")
         self.requires("rapidjson/1.1.0")
