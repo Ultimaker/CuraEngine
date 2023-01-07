@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2023 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Application.h"
@@ -43,7 +43,7 @@ Application::Application()
     {
         namespace fs = std::filesystem;
         auto now = std::chrono::system_clock::now();
-        auto current_dir_name = fmt::format("{:%M_%H_%Y%m%d}", now);
+        auto current_dir_name = fmt::format("{:%Y%m%d_%H_%M}", now);
 
         auto vtu_dir = spdlog::details::os::getenv("CURAENGINE_VTU_DIR");
         auto vtu_path = vtu_dir.empty() ? fs::current_path().append(fmt::format("visual_debug/{}", current_dir_name)) : fs::path(vtu_dir).append(current_dir_name);
