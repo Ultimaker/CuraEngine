@@ -51,10 +51,10 @@ class CuraEngineConan(ConanFile):
         copy(self, "CuraEngine.ico", self.recipe_folder, self.export_sources_folder)
         copy(self, "CuraEngine.rc", self.recipe_folder, self.export_sources_folder)
         copy(self, "LICENSE", self.recipe_folder, self.export_sources_folder)
-        copy(self, "*", path.join(self.recipe_folder, "src"), self.export_sources_folder)
-        copy(self, "*", path.join(self.recipe_folder, "include"), self.export_sources_folder)
-        copy(self, "*", path.join(self.recipe_folder, "benchmark"), self.export_sources_folder)
-        copy(self, "*", path.join(self.recipe_folder, "tests"), self.export_sources_folder)
+        copy(self, "*", path.join(self.recipe_folder, "src"), path.join(self.export_sources_folder, "src"))
+        copy(self, "*", path.join(self.recipe_folder, "include"), path.join(self.export_sources_folder, "include"))
+        copy(self, "*", path.join(self.recipe_folder, "benchmark"), path.join(self.export_sources_folder, "benchmark"))
+        copy(self, "*", path.join(self.recipe_folder, "tests"), path.join(self.export_sources_folder, "tests"))
     def config_options(self):
         if self.settings.os == "Macos":
             del self.options.enable_openmp
