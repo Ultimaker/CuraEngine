@@ -50,6 +50,7 @@ ExtruderPlan::ExtruderPlan
     fan_speed_layer_time_settings(fan_speed_layer_time_settings),
     retraction_config(retraction_config),
     extraTime(0.0),
+    temperatureFactor(0.0),
     slowest_path_speed(0.0)
 {
 }
@@ -453,21 +454,6 @@ GCodePath& LayerPlan::addTravel(const Point p, const bool force_retract)
                             retract = retraction_enable;
                             break;
                         }
-                    }
-                }
-                if (combPaths.size() == 1)
-                {
-                    CombPath comb_path = combPaths[0];
-                    if
-                    (
-                        mesh_or_extruder_settings.get<bool>("limit_support_retractions") &&
-                        combPaths.throughAir &&
-                        ! comb_path.cross_boundary &&
-                        comb_path.size() == 2 &&
-                        comb_path[0] == *last_planned_position && comb_path[1] == p
-                    )
-                    { // limit the retractions from support to support, which didn't cross anything
-                        retract = false;
                     }
                 }
             }
@@ -1522,6 +1508,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         {
             // Even at cool min speed extrusion is not taken enough time. So speed is set to cool min speed.
             target_speed = minimalSpeed;
+            temperatureFactor = 1.0;
 
             // Update stored naive time estimates
             estimates.extrude_time = total_extrude_time_at_minimum_speed;
@@ -1536,6 +1523,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
             const double factor = (total_extrude_time_at_minimum_speed - minExtrudeTime) / (total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed);
             target_speed = minimalSpeed * (1.0-factor) + slowest_path_speed * factor;
+            temperatureFactor = 1.0 - factor;
 
             // Update stored naive time estimates
             estimates.extrude_time = minExtrudeTime;
@@ -2056,14 +2044,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             const RetractionAndWipeConfig& retraction_config = current_mesh ? current_mesh->retraction_wipe_config: storage.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
             gcode.writeRetraction(retraction_config.retraction_config);
             if (extruder_plan_idx == extruder_plans.size() - 1 || ! extruder.settings.get<bool>("machine_extruder_end_pos_abs"))
-            {   // Only move the head if it's the last extruder plan; otherwise it's already at the switching bay area or do it anyway when we switch extruder in-place.
-                gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
-                gcode.writeTravel(gcode.getPositionXY(), configs_storage.travel_config_per_extruder[extruder_nr].getSpeed());
-
-                const Point current_pos = gcode.getPositionXY();
-                const Point machine_middle = storage.machine_size.flatten().getMiddle();
-                const Point toward_middle_of_bed = current_pos - normal(current_pos - machine_middle, MM2INT(20.0));
-                gcode.writeTravel(toward_middle_of_bed, configs_storage.travel_config_per_extruder[extruder_nr].getSpeed());
+            { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area
+                // or do it anyway when we switch extruder in-place
+                gcode.writeZhopStart(MM2INT(3.0));
             }
             gcode.writeDelay(extruder_plan.extraTime);
         }
