@@ -45,12 +45,12 @@ class CuraEngineConan(ConanFile):
         scm_url, scm_commit = git.get_url_and_commit()
         update_conandata(self, {"sources": {"commit": scm_commit, "url": scm_url}})
 
-    def source(self):
-        print("source")
-        git = Git(self)
-        sources = self.conan_data["sources"]
-        git.clone(url=sources["url"], target=".")
-        git.checkout(commit=sources["commit"])
+    # def source(self):
+    #     print("source")
+    #     git = Git(self)
+    #     sources = self.conan_data["sources"]
+    #     git.clone(url=sources["url"], target=".")
+    #     git.checkout(commit=sources["commit"])
 
     def config_options(self):
         if self.settings.os == "Macos":
