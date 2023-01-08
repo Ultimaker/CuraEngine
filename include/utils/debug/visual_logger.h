@@ -39,7 +39,6 @@ public:
 
     ~VisualLogger()
     {
-        std::lock_guard<std::mutex> guard(mutex_);
         const auto idx = getIdx();
         spdlog::info("Visual Debugger: Finalizing vtu {} with a total of {} parallel vtu", id_, idx);
         vtu11::writePVtu(vtu_dir_.string(), id_, data_set_info_, idx); // Need to write this again since we now know the exact number of vtu files
