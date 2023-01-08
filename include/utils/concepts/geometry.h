@@ -1,10 +1,11 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2023 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_CONCEPTS_GEOMETRY_H
 #define UTILS_CONCEPTS_GEOMETRY_H
 
 #include <concepts>
+#include <ranges>
 #include <string>
 #include <type_traits>
 
@@ -27,6 +28,15 @@ concept isMesh = requires(T mesh)
     } -> std::convertible_to<std::string>;
 
 }; // FIXME: define proper concept
+
+template<class T>
+concept isLayer = requires(T layer)
+{
+    { layer.z };
+};
+
+template<class T>
+concept isLayers = ranges::range<T> && isLayer<typename T::value_type>;
 
 } // namespace cura
 

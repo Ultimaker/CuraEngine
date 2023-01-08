@@ -107,6 +107,43 @@ public:
         writePartition(meshPartition, dataSetData);
     }
 
+    void log(const isLayers auto& layers, const std::experimental::source_location location = std::experimental::source_location::current())
+    {
+        spdlog::info("Visual Debugger: logging <{}> {} - {} - L{}", id_, location.file_name(), location.function_name(), location.line());
+        const auto x = settings_->get<coord_t>("machine_width");
+        const auto y = settings_->get<coord_t>("machine_depth");
+        using float_type = double;
+        std::vector<float_type> points{};
+        std::vector<double> cellData{};
+        for (const auto& [layer_idx, layer] : layers | ranges::views::enumerate)
+        {
+            points.emplace_back(0.);
+            points.emplace_back(0.);
+            points.emplace_back(layer.z);
+
+            points.emplace_back(0.);
+            points.emplace_back(static_cast<float_type>(y));
+            points.emplace_back(layer.z);
+
+            points.emplace_back(static_cast<float_type>(x));
+            points.emplace_back(static_cast<float_type>(y));
+            points.emplace_back(layer.z);
+
+            points.emplace_back(static_cast<float_type>(x));
+            points.emplace_back(0.);
+            points.emplace_back(layer.z);
+            cellData.push_back(layer_idx);
+        }
+        auto connectivity = ranges::views::iota(0) | ranges::views::take(layers.size() * 4) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+        auto offsets = ranges::views::iota(0) | ranges::views::take(connectivity.size()) | ranges::views::stride(4) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+        auto types = ranges::views::repeat(7) | ranges::views::take(offsets.size()) | ranges::to<std::vector<vtu11::VtkCellType>>;
+
+        vtu11::Vtu11UnstructuredMesh meshPartition{ points, connectivity, offsets, types };
+        std::vector<vtu11::DataSetData> dataSetData{ cellData };
+
+        writePartition(meshPartition, dataSetData);
+    }
+
     void log(const isPolygon auto& poly, const std::experimental::source_location location = std::experimental::source_location::current())
     {
         spdlog::info("Visual Debugger: logging <{}> {} - {} - L{}", id_, location.file_name(), location.function_name(), location.line());
