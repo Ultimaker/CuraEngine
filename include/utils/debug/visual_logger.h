@@ -103,24 +103,6 @@ public:
     void log(const isPolygon auto& poly, const std::experimental::source_location location = std::experimental::source_location::current())
     {
         spdlog::info("Visual Debugger: logging <{}> {} - {} - L{}", id_, location.file_name(), location.function_name(), location.line());
-        // TODO: convert to polygon
-        std::vector<double> points0{
-            0.0, 0.0, 0.5, 0.0, 0.3, 0.5, 0.0, 0.7, 0.5, 0.0, 1.0, 0.5, // 0,  1,  2,  3
-            0.5, 0.0, 0.5, 0.5, 0.3, 0.5, 0.5, 0.7, 0.5, 0.5, 1.0, 0.5, // 4,  5,  6,  7
-        };
-        std::vector<vtu11::VtkIndexType> connectivity0{
-            0, 4, 5, 1, // 0
-            1, 5, 6, 2, // 1
-            2, 6, 7, 3, // 2
-        };
-        std::vector<vtu11::VtkIndexType> offsets0{ 4, 8, 12 };
-        std::vector<vtu11::VtkCellType> types0{ 9, 9, 9 };
-        vtu11::Vtu11UnstructuredMesh meshPartition0{ points0, connectivity0, offsets0, types0 };
-        std::vector<double> pointData0{ 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0 };
-        std::vector<double> cellData0{ 3.2, 4.3, 5.4 };
-        std::vector<vtu11::DataSetData> dataSetData0{ pointData0, cellData0 };
-
-        writePartition(meshPartition0, dataSetData0);
     }
 #endif
 
