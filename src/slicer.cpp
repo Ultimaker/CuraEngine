@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm> // remove_if
@@ -870,48 +870,48 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
                                */
 
                                if (p0.z < z && p1.z > z && p2.z > z) //  1_______2
-                               { //   \     /
-                                   s = project2D(p0, p2, p1, z); //------------- z
-                                   end_edge_idx = 0; //     \ /
+                               {                                     //   \     /
+                                   s = project2D(p0, p2, p1, z);     //------------- z
+                                   end_edge_idx = 0;                 //     \ /
                                } //      0
 
                                else if (p0.z > z && p1.z <= z && p2.z <= z) //      0
-                               { //     / \      .
-                                   s = project2D(p0, p1, p2, z); //------------- z
-                                   end_edge_idx = 2; //   /     \    .
-                                   if (p2.z == z) //  1_______2
+                               {                                            //     / \      .
+                                   s = project2D(p0, p1, p2, z);            //------------- z
+                                   end_edge_idx = 2;                        //   /     \    .
+                                   if (p2.z == z)                           //  1_______2
                                    {
                                        s.endVertex = &v2;
                                    }
                                }
 
                                else if (p1.z < z && p0.z > z && p2.z > z) //  0_______2
-                               { //   \     /
-                                   s = project2D(p1, p0, p2, z); //------------- z
-                                   end_edge_idx = 1; //     \ /
+                               {                                          //   \     /
+                                   s = project2D(p1, p0, p2, z);          //------------- z
+                                   end_edge_idx = 1;                      //     \ /
                                } //      1
 
                                else if (p1.z > z && p0.z <= z && p2.z <= z) //      1
-                               { //     / \      .
-                                   s = project2D(p1, p2, p0, z); //------------- z
-                                   end_edge_idx = 0; //   /     \    .
-                                   if (p0.z == z) //  0_______2
+                               {                                            //     / \      .
+                                   s = project2D(p1, p2, p0, z);            //------------- z
+                                   end_edge_idx = 0;                        //   /     \    .
+                                   if (p0.z == z)                           //  0_______2
                                    {
                                        s.endVertex = &v0;
                                    }
                                }
 
                                else if (p2.z < z && p1.z > z && p0.z > z) //  0_______1
-                               { //   \     /
-                                   s = project2D(p2, p1, p0, z); //------------- z
-                                   end_edge_idx = 2; //     \ /
-                               } //      2
+                               {                                          //   \     /
+                                   s = project2D(p2, p1, p0, z);          //------------- z
+                                   end_edge_idx = 2;                      //     \ /
+                               }                                          //      2
 
                                else if (p2.z > z && p1.z <= z && p0.z <= z) //      2
-                               { //     / \      .
-                                   s = project2D(p2, p0, p1, z); //------------- z
-                                   end_edge_idx = 1; //   /     \    .
-                                   if (p1.z == z) //  0_______1
+                               {                                            //     / \      .
+                                   s = project2D(p2, p0, p1, z);            //------------- z
+                                   end_edge_idx = 1;                        //   /     \    .
+                                   if (p1.z == z)                           //  0_______1
                                    {
                                        s.endVertex = &v1;
                                    }
