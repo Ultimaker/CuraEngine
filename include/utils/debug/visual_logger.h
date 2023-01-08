@@ -7,9 +7,9 @@
 #include <mutex>
 #include <utility>
 
+#include <range/v3/all.hpp>
 #include <spdlog/spdlog.h>
 #include <vtu11/vtu11.hpp>
-#include <range/v3/all.hpp>
 
 #include "Application.h"
 #include "utils/concepts/geometry.h"
@@ -59,9 +59,9 @@ public:
     {
         spdlog::info("Visual log mesh: {}", mesh.mesh_name);
         using float_type = double;
-        std::vector<float_type> points {};
-        std::vector<double> pointData { };
-        std::vector<double> cellData {};
+        std::vector<float_type> points{};
+        std::vector<double> pointData{};
+        std::vector<double> cellData{};
         for (const auto& face : mesh.faces)
         {
             for (const auto& vertex_idx : face.vertex_index)
@@ -81,9 +81,7 @@ public:
         vtu11::Vtu11UnstructuredMesh meshPartition{ points, connectivity, offsets, types };
         std::vector<vtu11::DataSetData> dataSetData{ pointData, cellData };
 
-        spdlog::debug("Writting mesh pvtu: {}", idx_);
-        std::lock_guard<std::mutex> guard(mutex_);
-        vtu11::writePartition(vtu_dir_.string(), "CuraEngine", meshPartition, data_set_info_, dataSetData, idx_++, "RawBinary");
+        writePartition(meshPartition, dataSetData);
     }
 
     void log(const isPolygon auto& poly)
@@ -106,9 +104,7 @@ public:
         std::vector<double> cellData0{ 3.2, 4.3, 5.4 };
         std::vector<vtu11::DataSetData> dataSetData0{ pointData0, cellData0 };
 
-        spdlog::debug("Writting polygon pvtu: {}", idx_);
-        std::lock_guard<std::mutex> guard(mutex_);
-        vtu11::writePartition(vtu_dir_.string(), "CuraEngine", meshPartition0, data_set_info_, dataSetData0, idx_++, "RawBinary");
+        writePartition(meshPartition0, dataSetData0);
     }
 #endif
 
@@ -117,6 +113,26 @@ private:
     std::filesystem::path vtu_dir_;
     size_t idx_{ 0 };
     std::vector<vtu11::DataSetInfo> data_set_info_;
+
+    void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data)
+    {
+        const auto idx = getIdx();
+        spdlog::info("Visual Debug: writing parition {}", idx);
+        vtu11::writePartition(vtu_dir_.string(), "CuraEngine", mesh_partition, data_set_info_, dataset_data, idx, "RawBinary");
+        setIdx(idx + 1);
+    }
+
+    [[nodiscard]] size_t getIdx()
+    {
+        std::lock_guard<std::mutex> guard(mutex_);
+        return idx_;
+    }
+
+    void setIdx(size_t idx)
+    {
+        std::lock_guard<std::mutex> guard(mutex_);
+        idx_ = idx;
+    }
 };
 
 using shared_visual_logger = std::shared_ptr<VisualLogger>;
