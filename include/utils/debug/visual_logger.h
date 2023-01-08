@@ -21,22 +21,31 @@ class VisualLogger
 public:
     VisualLogger() : vtu_dir_{}, data_set_info_{} {};
 
-    explicit VisualLogger(std::filesystem::path vtu_dir) : vtu_dir_{ std::move(vtu_dir) }, data_set_info_{ vtu11::DataSetInfo{ "Property_1", vtu11::DataSetType::PointData, 1 }, { "Property_1", vtu11::DataSetType::CellData, 1 } }
+    explicit VisualLogger(const std::string& id) : id_{ id }, vtu_dir_{}, data_set_info_{}
     {
-        spdlog::info("Initializing vtu file(s) in {}", vtu_dir_.string());
-        vtu11::writePVtu(vtu_dir_.string(), "CuraEngine", data_set_info_, 1);
+        spdlog::info("Visual Debugger: Initializing vtu {} file(s) in {}", id_, vtu_dir_.string());
+        vtu11::writePVtu(vtu_dir_.string(), id_, data_set_info_, 1);
+    }
+
+    VisualLogger(const std::string& id, std::filesystem::path vtu_dir)
+        : id_{ id }
+        , vtu_dir_{ std::move(vtu_dir) }
+        , data_set_info_{ vtu11::DataSetInfo{ "Property_1", vtu11::DataSetType::PointData, 1 }, { "Property_1", vtu11::DataSetType::CellData, 1 } }
+    {
+        spdlog::info("Visual Debugger: Initializing vtu {} file(s) in {}", id_, vtu_dir_.string());
+        vtu11::writePVtu(vtu_dir_.string(), id_, data_set_info_, 1);
     }
 
     ~VisualLogger()
     {
         std::lock_guard<std::mutex> guard(mutex_);
-        spdlog::info("Finalizing vtu with a total of {} parallel vtu", idx_);
-        vtu11::writePVtu(vtu_dir_.string(), "CuraEngine", data_set_info_, idx_); // Need to write this again since we now know the exact number of vtu files
+        spdlog::info("Visual Debugger: Finalizing vtu {} with a total of {} parallel vtu", id_, getIdx());
+        vtu11::writePVtu(vtu_dir_.string(), id_, data_set_info_, idx_); // Need to write this again since we now know the exact number of vtu files
     }
 
-    VisualLogger(const VisualLogger& other) : vtu_dir_{ other.vtu_dir_ }, idx_{ other.idx_ }, data_set_info_{ other.data_set_info_ } {};
+    VisualLogger(const VisualLogger& other) : id_{ other.id_ }, vtu_dir_{ other.vtu_dir_ }, idx_{ other.idx_ }, data_set_info_{ other.data_set_info_ } {};
 
-    VisualLogger(VisualLogger&& other) noexcept : vtu_dir_{ std::exchange(other.vtu_dir_, {}) }, idx_{ std::exchange(other.idx_, 0) }, data_set_info_{ std::exchange(other.data_set_info_, {}) } {};
+    VisualLogger(VisualLogger&& other) noexcept : id_{ std::exchange(other.id_, {}) }, vtu_dir_{ std::exchange(other.vtu_dir_, {}) }, idx_{ std::exchange(other.idx_, 0) }, data_set_info_{ std::exchange(other.data_set_info_, {}) } {};
 
     VisualLogger& operator=(const VisualLogger& other)
     {
@@ -47,8 +56,14 @@ public:
     {
         std::swap(vtu_dir_, other.vtu_dir_);
         std::swap(idx_, other.idx_);
+        std::swap(id_, other.id_);
         std::swap(data_set_info_, other.data_set_info_);
         return *this;
+    }
+
+    [[nodiscard]] const std::string& getId() const
+    {
+        return id_;
     }
 
 #ifndef VISUAL_DEBUG
@@ -57,7 +72,7 @@ public:
 #else
     void log(const isMesh auto& mesh)
     {
-        spdlog::info("Visual log mesh: {}", mesh.mesh_name);
+        spdlog::info("Visual Debugger: logging mesh: {}", mesh.mesh_name);
         using float_type = double;
         std::vector<float_type> points{};
         std::vector<double> pointData{};
@@ -86,7 +101,7 @@ public:
 
     void log(const isPolygon auto& poly)
     {
-        spdlog::info("Visual log polygon");
+        spdlog::info("Visual Debugger: logging polygon");
         // TODO: convert to polygon
         std::vector<double> points0{
             0.0, 0.0, 0.5, 0.0, 0.3, 0.5, 0.0, 0.7, 0.5, 0.0, 1.0, 0.5, // 0,  1,  2,  3
@@ -113,12 +128,13 @@ private:
     std::filesystem::path vtu_dir_;
     size_t idx_{ 0 };
     std::vector<vtu11::DataSetInfo> data_set_info_;
+    std::string id_{};
 
     void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data)
     {
         const auto idx = getIdx();
-        spdlog::info("Visual Debug: writing parition {}", idx);
-        vtu11::writePartition(vtu_dir_.string(), "CuraEngine", mesh_partition, data_set_info_, dataset_data, idx, "RawBinary");
+        spdlog::info("Visual Debugger: writing {} parition {}", id_, idx);
+        vtu11::writePartition(vtu_dir_.string(), id_, mesh_partition, data_set_info_, dataset_data, idx, "RawBinary");
         setIdx(idx + 1);
     }
 

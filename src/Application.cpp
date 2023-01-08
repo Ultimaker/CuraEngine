@@ -52,13 +52,13 @@ Application::Application()
         }
         if (! fs::exists(vtu_path))
         {
-            fs::create_directories(vtu_path.append("CuraEngine"));
+            fs::create_directories(vtu_path);
         }
-        registerLogger("mesh", std::make_shared<debug::VisualLogger>(vtu_path));
+        registerLogger(std::make_shared<debug::VisualLogger>("mesh", vtu_path));
     }
     else
     {
-        registerLogger("mesh", std::make_shared<debug::VisualLogger>());
+        registerLogger(std::make_shared<debug::VisualLogger>("mesh"));
     }
 }
 

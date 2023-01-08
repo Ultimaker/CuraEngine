@@ -97,9 +97,9 @@ public:
         return loggers_[id];
     }
 
-    void registerLogger(std::string_view id, debug::shared_visual_logger&& logger)
+    void registerLogger(debug::shared_visual_logger&& logger)
     {
-        loggers_.insert_or_assign(id, logger);
+        loggers_.insert_or_assign(logger->getId(), logger);
     }
 
 protected:
