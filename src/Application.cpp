@@ -54,7 +54,12 @@ Application::Application()
         {
             fs::create_directories(vtu_path);
         }
-        registerLogger(std::make_shared<debug::VisualLogger>("mesh", vtu_path));
+        std::vector<vtu11::DataSetInfo> mesh_dataset
+            {
+                { "vertex_idx", vtu11::DataSetType::PointData, 1 },
+                { "face_idx", vtu11::DataSetType::CellData, 1 },
+            };
+        registerLogger(std::make_shared<debug::VisualLogger>("mesh", vtu_path, mesh_dataset));
     }
     else
     {
