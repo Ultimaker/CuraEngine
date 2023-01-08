@@ -6,6 +6,7 @@
 
 #include <experimental/source_location>
 #include <mutex>
+#include <memory>
 #include <utility>
 
 #include <range/v3/all.hpp>
@@ -13,6 +14,7 @@
 #include <vtu11/vtu11.hpp>
 
 #include "Application.h"
+#include "settings/Settings.h"
 #include "utils/concepts/geometry.h"
 
 namespace cura::debug
@@ -67,6 +69,11 @@ public:
         return id_;
     }
 
+    void setSettings(std::shared_ptr<Settings>&& settings)
+    {
+        settings_ = settings;
+    }
+
 #ifndef VISUAL_DEBUG
     template<typename... Args>
     constexpr void log(Args... args){};
@@ -112,6 +119,7 @@ private:
     size_t idx_{ 0 };
     std::vector<vtu11::DataSetInfo> dataset_info_;
     std::string id_{};
+    std::shared_ptr<Settings> settings_;
 
     void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data)
     {

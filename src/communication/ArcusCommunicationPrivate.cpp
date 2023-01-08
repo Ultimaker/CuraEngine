@@ -46,6 +46,7 @@ void ArcusCommunication::Private::readGlobalSettingsMessage(const proto::Setting
     {
         slice->scene.settings.add(setting_message.name(), setting_message.value());
     }
+    Application::getInstance().registerSettings(std::make_shared<Settings>(slice->scene.settings));
 }
 
 void ArcusCommunication::Private::readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages)

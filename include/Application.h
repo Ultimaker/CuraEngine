@@ -102,6 +102,14 @@ public:
         loggers_.insert_or_assign(logger->getId(), logger);
     }
 
+    void registerSettings(std::shared_ptr<Settings>&& settings)
+    {
+        for (auto& [id, logger] : loggers_)
+        {
+            logger->setSettings(std::forward<std::shared_ptr<Settings>>(settings));
+        }
+    }
+
 protected:
 #ifdef ARCUS
     /*!
