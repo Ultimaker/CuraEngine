@@ -19,6 +19,9 @@ template<class T>
 concept isPolygon = std::is_base_of_v<ConstPolygonRef, T>; // FIXME: define proper concept
 
 template<class T>
+concept isPolygons = std::is_base_of_v<Polygons, T>; // FIXME: define proper concept
+
+template<class T>
 concept isMesh = requires(T mesh)
 {
     { mesh.vertices };

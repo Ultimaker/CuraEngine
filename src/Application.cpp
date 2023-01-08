@@ -65,11 +65,16 @@ Application::Application()
                 { "layer_idx", vtu11::DataSetType::CellData, 1 },
             };
         registerLogger(std::make_shared<debug::VisualLogger>("layers", vtu_path, layer_dataset));
+        std::vector<vtu11::DataSetInfo> poly_dataset
+            {
+            };
+        registerLogger(std::make_shared<debug::VisualLogger>("slicer_polygons", vtu_path, poly_dataset));
     }
     else
     {
         registerLogger(std::make_shared<debug::VisualLogger>("mesh"));
         registerLogger(std::make_shared<debug::VisualLogger>("layers"));
+        registerLogger(std::make_shared<debug::VisualLogger>("slicer_polygons"));
     }
 }
 

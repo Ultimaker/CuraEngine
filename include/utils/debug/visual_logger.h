@@ -5,8 +5,8 @@
 #define UTILS_DEBUG_VISUAL_LOGGER_H
 
 #include <experimental/source_location>
-#include <mutex>
 #include <memory>
+#include <mutex>
 #include <utility>
 
 #include <range/v3/all.hpp>
@@ -30,10 +30,7 @@ public:
         vtu11::writePVtu(vtu_dir_.string(), id_, dataset_info_, 1);
     }
 
-    VisualLogger(const std::string& id, std::filesystem::path vtu_dir, std::vector<vtu11::DataSetInfo>& dataset_info)
-        : id_{ id }
-        , vtu_dir_{ std::move(vtu_dir) }
-        , dataset_info_{ dataset_info }
+    VisualLogger(const std::string& id, std::filesystem::path vtu_dir, std::vector<vtu11::DataSetInfo>& dataset_info) : id_{ id }, vtu_dir_{ std::move(vtu_dir) }, dataset_info_{ dataset_info }
     {
         spdlog::info("Visual Debugger: Initializing vtu <{}> file(s) in {}", id_, vtu_dir_.string());
         vtu11::writePVtu(vtu_dir_.string(), id_, dataset_info_, 1);
@@ -144,9 +141,29 @@ public:
         writePartition(meshPartition, dataSetData);
     }
 
-    void log(const isPolygon auto& poly, const std::experimental::source_location location = std::experimental::source_location::current())
+    void log(const isPolygons auto& polys, const auto& z, const std::experimental::source_location location = std::experimental::source_location::current())
     {
         spdlog::info("Visual Debugger: logging <{}> {} - {} - L{}", id_, location.file_name(), location.function_name(), location.line());
+
+        using float_type = double;
+        std::vector<float_type> points{};
+        std::vector<double> cellData{};
+        for (const auto& poly : polys)
+        {
+            for (const auto& point : poly)
+            {
+                points.emplace_back(static_cast<float_type>(point.X));
+                points.emplace_back(static_cast<float_type>(point.Y));
+                points.emplace_back(static_cast<float_type>(z));
+            }
+        }
+        auto connectivity = ranges::views::iota(0) | ranges::views::take(points.size() / 3) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+        auto offsets = ranges::views::iota(0) | ranges::views::take(connectivity.size()) | ranges::views::stride(3) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+        auto types = ranges::views::repeat(7) | ranges::views::take(offsets.size()) | ranges::to<std::vector<vtu11::VtkCellType>>;
+        vtu11::Vtu11UnstructuredMesh meshPartition{ points, connectivity, offsets, types };
+        std::vector<vtu11::DataSetData> dataSetData{ cellData };
+
+        writePartition(meshPartition, dataSetData);
     }
 #endif
 
