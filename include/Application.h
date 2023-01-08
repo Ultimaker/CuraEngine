@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2023 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef APPLICATION_H
@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cstddef> //For size_t.
 #include <memory>
+#include <unordered_map>
 
 #include "utils/NoCopy.h"
 #include "utils/debug/visual_logger.h"
@@ -91,9 +92,14 @@ public:
      */
     void startThreadPool(int nworkers = 0);
 
-    [[nodiscard]] auto getLogger() const noexcept
+    [[nodiscard]] auto getLogger(std::string_view id)
     {
-        return logger_;
+        return loggers_[id];
+    }
+
+    void registerLogger(std::string_view id, debug::shared_visual_logger&& logger)
+    {
+        loggers_.insert_or_assign(id, logger);
     }
 
 protected:
@@ -144,7 +150,7 @@ private:
      */
     ~Application();
 
-    debug::shared_visual_logger logger_;
+    std::unordered_map<std::string_view, debug::shared_visual_logger> loggers_;
 };
 
 } // namespace cura

@@ -5,7 +5,6 @@
 
 #include <chrono>
 #include <filesystem>
-#include <memory>
 #include <string>
 
 #include <fmt/chrono.h>
@@ -55,12 +54,11 @@ Application::Application()
         {
             fs::create_directories(vtu_path.append("CuraEngine"));
         }
-
-        logger_ = std::make_shared<debug::VisualLogger>(vtu_path);
+        registerLogger("mesh", std::make_shared<debug::VisualLogger>(vtu_path));
     }
     else
     {
-        logger_ = std::make_shared<debug::VisualLogger>();
+        registerLogger("mesh", std::make_shared<debug::VisualLogger>());
     }
 }
 
