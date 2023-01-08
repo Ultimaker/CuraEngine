@@ -4,6 +4,7 @@
 #ifndef UTILS_DEBUG_VISUAL_LOGGER_H
 #define UTILS_DEBUG_VISUAL_LOGGER_H
 
+#include <experimental/source_location>
 #include <mutex>
 #include <utility>
 
@@ -70,9 +71,9 @@ public:
     template<typename... Args>
     constexpr void log(Args... args){};
 #else
-    void log(const isMesh auto& mesh)
+    void log(const isMesh auto& mesh, const std::experimental::source_location location = std::experimental::source_location::current())
     {
-        spdlog::info("Visual Debugger: logging mesh: {}", mesh.mesh_name);
+        spdlog::info("Visual Debugger: logging {} for {}: {}", id_, location.function_name(), mesh.mesh_name);
         using float_type = double;
         std::vector<float_type> points{};
         std::vector<double> pointData{};
@@ -99,9 +100,9 @@ public:
         writePartition(meshPartition, dataSetData);
     }
 
-    void log(const isPolygon auto& poly)
+    void log(const isPolygon auto& poly, const std::experimental::source_location location = std::experimental::source_location::current())
     {
-        spdlog::info("Visual Debugger: logging polygon");
+        spdlog::info("Visual Debugger: logging {} for {}", id_, location.function_name());
         // TODO: convert to polygon
         std::vector<double> points0{
             0.0, 0.0, 0.5, 0.0, 0.3, 0.5, 0.0, 0.7, 0.5, 0.0, 1.0, 0.5, // 0,  1,  2,  3
