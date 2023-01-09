@@ -22,13 +22,24 @@ namespace cura::actions
  * \param parent_node the node in the graph that triggered the call to dfs on current_node.
  */
 
-template <typename Node, typename State>
+template <typename Node, typename State, isGraph Graph>
 constexpr void dfs(
     const Node& current_node,
-    const isGraph auto& graph,
+    const Graph& graph,
     std::function<State(const Node, const State)> handle_node,
     const State& state = nullptr,
-    std::unordered_set<Node> visited = std::unordered_set<Node>())
+    std::unordered_set<Node> visited = std::unordered_set<Node>(),
+    std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](const Node current_node, const Graph& graph){
+        const auto& [neighbour_begin, neighbour_end] = graph.equal_range(current_node);
+        auto neighbours_iterator = ranges::make_subrange(neighbour_begin, neighbour_end);
+        std::vector<Node> neighbours;
+        for (const auto& [_, neighbour] : neighbours_iterator)
+        {
+            neighbours.push_back(neighbour);
+        }
+        return neighbours;
+    }
+)
 {
     if (visited.contains(current_node))
     {
@@ -38,15 +49,15 @@ constexpr void dfs(
 
     auto current_state = handle_node(current_node, state);
 
-    const auto& [children_begin, children_end] = graph.equal_range(current_node);
-    auto children = ranges::make_subrange(children_begin, children_end);
-    for (const auto& [_, child_node] : children)
+    for (const auto& neighbour : get_neighbours(current_node, graph))
     {
         dfs(
-            child_node, graph,
+            neighbour,
+            graph,
             handle_node,
             current_state,
-            visited
+            visited,
+            get_neighbours
         );
     }
 }
@@ -81,6 +92,22 @@ constexpr void dfs_depth_view(
     };
 
     dfs(current_node, graph, depth_view, 0u);
+}
+
+template <typename Node, isGraph Graph>
+constexpr void dfs_conditional_neighbour_view(
+    const Node& current_node,
+    const Graph graph,
+    std::function<void(const Node)> handle_node,
+    std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours)
+{
+    const std::function<void(const Node, const std::nullptr_t)> wrapped_handle_node =
+        [handle_node](auto current_node, auto depth)
+    {
+        handle_node(current_node, depth);
+    };
+
+    dfs(current_node, graph, wrapped_handle_node, nullptr, std::unordered_set<Node>(), get_neighbours);
 }
 } // namespace cura::actions
 

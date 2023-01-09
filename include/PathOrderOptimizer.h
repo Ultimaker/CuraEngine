@@ -92,12 +92,12 @@ public:
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
     PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, const std::unordered_set<std::pair<PathType, PathType>>& order_requirements = no_order_requirements)
-    : start_point(start_point)
-    , seam_config(seam_config)
-    , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
-    , detect_loops(detect_loops)
-    , reverse_direction(reverse_direction)
-    , order_requirements(&order_requirements)
+        : start_point(start_point)
+        , seam_config(seam_config)
+        , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
+        , detect_loops(detect_loops)
+        , reverse_direction(reverse_direction)
+        , order_requirements(&order_requirements)
     {
     }
 
@@ -190,89 +190,27 @@ public:
                 path.start_vertex = findStartLocation(path, seam_config.pos);
             }
         }
-        
-        std::vector<size_t> blocked(paths.size(), 0); // Flag for seeing whether a path is blocked by a preceding toolpath to be printed first (and how many such blocking toolpaths there are)
-        std::vector<std::vector<size_t>> is_blocking(paths.size()); // For each path all paths that it is blocking, i.e. each path that it should precede
+
         std::unordered_map<PathType, size_t> path_to_index;
         for (size_t idx = 0; idx < paths.size(); idx++)
         {
             path_to_index.emplace(paths[idx].vertices, idx);
         }
-        for (auto [before, after] : *order_requirements)
-        {
-            auto after_it = path_to_index.find(after);
-            assert(after_it != path_to_index.end());
-            blocked[after_it->second]++;
 
-            auto before_it = path_to_index.find(before);
-            assert(before_it != path_to_index.end());
-            is_blocking[before_it->second].emplace_back(after_it->second);
-        }
-
-
-        std::vector<bool> picked(paths.size(), false); //Fixed size boolean flag for whether each path is already in the optimized vector.
-        Point current_position = start_point;
         std::vector<PathOrderPath<PathType>> optimized_order; //To store our result in. At the end we'll std::swap.
-        optimized_order.reserve(paths.size());
-        while(optimized_order.size() < paths.size())
-        {
-            //First see if we already know about some nearby paths due to the line bucket grid.
-            std::vector<size_t> nearby_candidates = line_bucket_grid.getNearbyVals(current_position, snap_radius);
-            std::vector<size_t> available_candidates;
-            available_candidates.reserve(nearby_candidates.size());
-            for(const size_t candidate : nearby_candidates)
-            {
-                if(picked[candidate] || blocked[candidate])
-                {
-                    continue; //Not a valid candidate.
-                }
-                available_candidates.push_back(candidate);
-            }
-            if(available_candidates.empty()) //We may need to broaden our search through all candidates then.
-            {
-                for(size_t candidate = 0; candidate < paths.size(); ++candidate)
-                {
-                    if(picked[candidate] || blocked[candidate])
-                    {
-                        continue; //Not a valid candidate.
-                    }
-                    available_candidates.push_back(candidate);
-                }
-            }
-            size_t best_candidate = findClosestPath(current_position, available_candidates);
 
-            PathOrderPath<PathType>& best_path = paths[best_candidate];
-            optimized_order.push_back(best_path);
-            picked[best_candidate] = true;
-            for (size_t unlocked_idx : is_blocking[best_candidate])
-            {
-                blocked[unlocked_idx]--;
-            }
-
-            if(!best_path.converted->empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
-            {
-                if(best_path.is_closed)
-                {
-                    current_position = (*best_path.converted)[best_path.start_vertex]; //We end where we started.
-                }
-                else
-                {
-                    //Pick the other end from where we started.
-                    current_position = best_path.start_vertex == 0 ? best_path.converted->back() : best_path.converted->front();
-                }
-            }
-        }
+        optimized_order = order_requirements->empty() ? getOptimizedOrder(line_bucket_grid, snap_radius) : getOptimizedOrder(line_bucket_grid, snap_radius);
 
         if(reverse_direction)
         {
-            std::vector<PathOrderPath<PathType>> reversed = reverseOrderPaths(paths);  //Reverse-insert the optimized order, to invert the ordering.
+            std::vector<PathOrderPath<PathType>> reversed = reverseOrderPaths(optimized_order);  //Reverse-insert the optimized order, to invert the ordering.
             std::swap(reversed, paths);
         }
         else
         {
             std::swap(optimized_order, paths);
         }
-        
+
         combing_grid.reset();
     }
 protected:
@@ -315,6 +253,67 @@ protected:
      * direction of each path as well.
      */
     bool reverse_direction;
+
+    std::vector<PathOrderPath<PathType>> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
+    {
+        std::vector<PathOrderPath<PathType>> optimized_orderr; //To store our result in. At the end we'll std::swap.
+        std::vector<bool> picked(paths.size(), false); //Fixed size boolean flag for whether each path is already in the optimized vector.
+        Point current_position = start_point;
+
+
+        while(optimized_orderr.size() < paths.size())
+        {
+            //First see if we already know about some nearby paths due to the line bucket grid.
+            std::vector<size_t> nearby_candidates = line_bucket_grid.getNearbyVals(current_position, snap_radius);
+            std::vector<size_t> available_candidates;
+            available_candidates.reserve(nearby_candidates.size());
+            for(const size_t candidate : nearby_candidates)
+            {
+                if(picked[candidate])
+                {
+                    continue; //Not a valid candidate.
+                }
+                available_candidates.push_back(candidate);
+            }
+            if(available_candidates.empty()) //We may need to broaden our search through all candidates then.
+            {
+                for(size_t candidate = 0; candidate < paths.size(); ++candidate)
+                {
+                    if(picked[candidate])
+                    {
+                        continue; //Not a valid candidate.
+                    }
+                    available_candidates.push_back(candidate);
+                }
+            }
+            size_t best_candidate = findClosestPath(current_position, available_candidates);
+
+            PathOrderPath<PathType>& best_path = paths[best_candidate];
+            optimized_orderr.push_back(best_path);
+            picked[best_candidate] = true;
+
+            if(!best_path.converted->empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
+            {
+                if(best_path.is_closed)
+                {
+                    current_position = (*best_path.converted)[best_path.start_vertex]; //We end where we started.
+                }
+                else
+                {
+                    //Pick the other end from where we started.
+                    current_position = best_path.start_vertex == 0 ? best_path.converted->back() : best_path.converted->front();
+                }
+            }
+        }
+
+        return optimized_orderr;
+    }
+
+    std::vector<PathOrderPath<PathType>> getOptimizerOrderWithConstraints(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius, const std::unordered_set<std::pair<PathType, PathType>>* order_requirementszz)
+    {
+        std::vector<PathOrderPath<PathType>> optimized_order; //To store our result in. At the end we'll std::swap.
+        return optimized_order;
+    }
 
     std::vector<PathOrderPath<PathType>> reverseOrderPaths(std::vector<PathOrderPath<PathType>> pathsOrderPaths)
     {
@@ -482,15 +481,15 @@ protected:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
                 break;
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED: //Give sharper corners some advantage, but sharper concave corners even more.
+            {
+                float score_corner = std::abs(corner_angle) * corner_shift;
+                if(corner_angle < 0) //Concave corner.
                 {
-                    float score_corner = std::abs(corner_angle) * corner_shift;
-                    if(corner_angle < 0) //Concave corner.
-                    {
-                        score_corner *= 2;
-                    }
-                    score -= score_corner;
-                    break;
+                    score_corner *= 2;
                 }
+                score -= score_corner;
+                break;
+            }
             }
 
             constexpr float EPSILON = 25.0;
