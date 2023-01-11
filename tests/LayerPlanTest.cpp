@@ -110,7 +110,6 @@ public:
         settings->add("layer_height", "0.1");
         settings->add("layer_start_x", "0");
         settings->add("layer_start_y", "0");
-        settings->add("limit_support_retractions", "false");
         settings->add("machine_center_is_zero", "false");
         settings->add("machine_depth", "1000");
         settings->add("machine_extruders_share_nozzle", "false");
