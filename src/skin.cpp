@@ -264,12 +264,12 @@ void SkinInfillAreaComputation::applySkinExpansion(const Polygons& original_outl
     // Remove thin pieces of support for Skin Removal Width.
     if(bottom_skin_preshrink > 0 || (min_width == 0 && bottom_skin_expand_distance != 0))
     {
-        downskin = downskin.offset(-bottom_skin_preshrink / 2, ClipperLib::jtRound).offset(bottom_skin_preshrink / 2, ClipperLib::jtRound);
+        downskin = downskin.offset(-bottom_skin_preshrink / 2, ClipperLib::jtMiter).offset(bottom_skin_preshrink / 2, ClipperLib::jtMiter).intersection(downskin);
         should_bottom_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
     if(top_skin_preshrink > 0 || (min_width == 0 && top_skin_expand_distance != 0))
     {
-        upskin = upskin.offset(-top_skin_preshrink / 2, ClipperLib::jtRound).offset(top_skin_preshrink / 2, ClipperLib::jtRound);
+        upskin = upskin.offset(-top_skin_preshrink / 2, ClipperLib::jtMiter).offset(top_skin_preshrink / 2, ClipperLib::jtMiter);
         should_top_be_clipped = true;  // Rounding errors can lead to propagation of errors. This could mean that skin goes beyond the original outline
     }
 
