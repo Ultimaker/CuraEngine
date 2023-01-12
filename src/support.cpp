@@ -995,7 +995,22 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
 
         if (extension_offset && ! is_support_mesh_place_holder)
         {
-            layer_this = layer_this.offset(extension_offset);
+            // To avoid that the support is folding around the model, the support horizontal expansion should not cause
+            // the support to grow towards the model. Stepwise applying the support horizontal expansion to both the
+            // model outline and the support is effectively calculating a voronoi. The offset is first applied to
+            // the support and next to the model to ensure that the expanded support area is connected to the original
+            // support area. Please note that the horizontal expansion is rounded down to an integer offset_per_step.
+            Polygons model_outline = storage.getLayerOutlines(layer_idx, no_support, no_prime_tower);
+            const coord_t offset_per_step = support_line_width / 2;
+            layer_this = layer_this.difference(model_outline);  // ensure the layer_this is not overlapping with the model_outline
+            for (coord_t offset_cumulative = 0; offset_cumulative <= extension_offset; offset_cumulative += offset_per_step)
+            {
+                layer_this = layer_this.offset(offset_per_step);
+                model_outline = model_outline.difference(layer_this);
+                model_outline = model_outline.offset(offset_per_step);
+                layer_this = layer_this.difference(model_outline);
+                offset_cumulative += offset_per_step;
+            }
         }
 
         if (use_towers && ! is_support_mesh_place_holder)
