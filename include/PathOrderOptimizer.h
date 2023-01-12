@@ -203,7 +203,8 @@ public:
         if (order_requirements.empty())
         {
             optimized_order = getOptimizedOrder(line_bucket_grid, snap_radius);
-        } else
+        }
+        else
         {
             optimized_order = getOptimizerOrderWithConstraints(line_bucket_grid, snap_radius, order_requirements);
         }
@@ -401,12 +402,13 @@ protected:
                         //Pick the other end from where we started.
                         current_position = path.start_vertex == 0 ? path.converted->back() : path.converted->front();
                     }
+
+                    // Add to optimized order
+                    optimized_order.push_back(path);
+
                     break;
                 }
             }
-
-            // Add to optimized order
-            optimized_order.push_back(current_node);
         };
 
         while (roots.size() != 0)
