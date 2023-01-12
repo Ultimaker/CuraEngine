@@ -109,7 +109,6 @@ bool InsetOrderOptimizer::addToLayer()
         }
     }
 
-
     order_optimizer.optimize();
 
     cura::Point p_end{ 0, 0 };
@@ -203,7 +202,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         roots.emplace(locator);
     }
 
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order; // A linked list of the output order
+    std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order;
 
     for (const LineLoc* root : roots)
     {

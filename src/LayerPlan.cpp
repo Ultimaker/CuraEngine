@@ -1163,7 +1163,7 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons,
                                     const std::optional<Point> near_start_location,
                                     const double fan_speed,
                                     const bool reverse_print_direction,
-                                    const std::unordered_set<std::pair<ConstPolygonPointer, ConstPolygonPointer>>& order_requirements)
+                                    const std::unordered_multimap<ConstPolygonPointer, ConstPolygonPointer>& order_requirements)
 {
     Polygons boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum.empty())
