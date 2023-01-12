@@ -1009,7 +1009,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                 model_outline = model_outline.difference(layer_this);
                 model_outline = model_outline.offset(offset_per_step);
                 layer_this = layer_this.difference(model_outline);
-                offset_cumulative += offset_per_step;
             }
         }
 
