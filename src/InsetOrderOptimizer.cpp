@@ -260,12 +260,19 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
         {
             const LineLoc* root_ = root;
             const std::function<void(const LineLoc*, const LineLoc*)> set_order_constraints =
-                [&order, &min_node, &root_, graph]
+                [&order, &min_node, &root_, graph, outer_to_inner]
                 (const auto& current_node, const auto& parent_node)
                 {
                    if (min_node[current_node] == root_ && parent_node != nullptr)
                    {
-                       order.emplace(parent_node->line, current_node->line);
+                       if (outer_to_inner)
+                       {
+                           order.insert(std::make_pair(parent_node->line, current_node->line));
+                       }
+                       else
+                       {
+                           order.insert(std::make_pair(current_node->line, parent_node->line));
+                       }
                    }
                 };
 
@@ -280,7 +287,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
     }
 
     // flip the key values if we want to print from inner to outer walls
-    return outer_to_inner ? order : rv::zip(order | rv::values, order | rv::keys) | rg::to<value_type>;
+    return order;
 }
 
 InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
