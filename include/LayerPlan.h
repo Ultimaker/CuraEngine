@@ -651,7 +651,7 @@ protected:
      * \param fan_speed optional fan speed override for this path
      */
     void addLinesInGivenOrder(
-        const std::vector<PathOrderPath<ConstPolygonPointer>>& paths, 
+        const std::vector<PathOrdering<ConstPolygonPointer>>& paths,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const coord_t wipe_dist,

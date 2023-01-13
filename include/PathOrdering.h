@@ -24,7 +24,7 @@ namespace cura
  * with optimized paths.
  */
 template<typename PathType>
-struct PathOrderPath
+struct PathOrdering
 {
     /*!
      * Construct a new planned path.
@@ -33,7 +33,7 @@ struct PathOrderPath
      * done after all of the input paths have been added, to prevent
      * invalidating the pointers.
      */
-    PathOrderPath(const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
+    PathOrdering(const PathType& vertices, const bool is_closed = false, const size_t start_vertex = 0, const bool backwards = false)
         : vertices(vertices)
         , start_vertex(start_vertex)
         , is_closed(is_closed)

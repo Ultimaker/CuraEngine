@@ -1525,7 +1525,7 @@ void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const 
         part_order_optimizer.addPolygon(&part);
     }
     part_order_optimizer.optimize();
-    for (const PathOrderPath<const SliceLayerPart*>& path : part_order_optimizer.paths)
+    for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices, gcode_layer);
     }
@@ -2389,7 +2389,7 @@ bool FffGcodeWriter::processSkin(const SliceDataStorage& storage, LayerPlan& gco
     }
     part_order_optimizer.optimize();
 
-    for (const PathOrderPath<const SkinPart*>& path : part_order_optimizer.paths)
+    for (const PathOrdering<const SkinPart*>& path : part_order_optimizer.paths)
     {
         const SkinPart& skin_part = *path.vertices;
 
@@ -2887,7 +2887,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     bool need_travel_to_end_of_last_spiral = true;
 
     // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-    for (const PathOrderPath<const SupportInfillPart*>& path : island_order_optimizer.paths)
+    for (const PathOrdering<const SupportInfillPart*>& path : island_order_optimizer.paths)
     {
         const SupportInfillPart& part = *path.vertices;
 

@@ -647,7 +647,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons,
 
     if (! reverse_order)
     {
-        for (const PathOrderPath<ConstPolygonPointer>& path : orderOptimizer.paths)
+        for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths)
         {
             addPolygon(*path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
@@ -656,7 +656,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons,
     {
         for (int index = orderOptimizer.paths.size() - 1; index >= 0; --index)
         {
-            const PathOrderPath<ConstPolygonPointer>& path = orderOptimizer.paths[index];
+            const PathOrdering<ConstPolygonPointer>& path = orderOptimizer.paths[index];
             addPolygon(**path.vertices, path.start_vertex, path.backwards, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
         }
     }
@@ -1147,7 +1147,7 @@ void LayerPlan::addWalls(const Polygons& walls,
         orderOptimizer.addPolygon(walls[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (const PathOrderPath<ConstPolygonPointer>& path : orderOptimizer.paths)
+    for (const PathOrdering<ConstPolygonPointer>& path : orderOptimizer.paths)
     {
         addWall(**path.vertices, path.start_vertex, settings, non_bridge_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
@@ -1199,13 +1199,13 @@ void LayerPlan::addLinesByOptimizer(const Polygons& polygons,
 }
 
 
-void LayerPlan::addLinesInGivenOrder(const std::vector<PathOrderPath<ConstPolygonPointer>>& paths, const GCodePathConfig& config, const SpaceFillType space_fill_type, const coord_t wipe_dist, const Ratio flow_ratio, const double fan_speed)
+void LayerPlan::addLinesInGivenOrder(const std::vector<PathOrdering<ConstPolygonPointer>>& paths, const GCodePathConfig& config, const SpaceFillType space_fill_type, const coord_t wipe_dist, const Ratio flow_ratio, const double fan_speed)
 {
     coord_t half_line_width = config.getLineWidth() / 2;
     coord_t line_width_2 = half_line_width * half_line_width;
     for (size_t order_idx = 0; order_idx < paths.size(); order_idx++)
     {
-        const PathOrderPath<ConstPolygonPointer>& path = paths[order_idx];
+        const PathOrdering<ConstPolygonPointer>& path = paths[order_idx];
         ConstPolygonRef polyline = *path.vertices;
         const size_t start_idx = path.start_vertex;
         assert(start_idx == 0 || start_idx == polyline.size() - 1 || path.is_closed);
@@ -1274,7 +1274,7 @@ void LayerPlan::addLinesInGivenOrder(const std::vector<PathOrderPath<ConstPolygo
             // Don't wipe if next starting point is very near
             if (wipe && (order_idx < paths.size() - 1))
             {
-                const PathOrderPath<ConstPolygonPointer>& next_path = paths[order_idx + 1];
+                const PathOrdering<ConstPolygonPointer>& next_path = paths[order_idx + 1];
                 ConstPolygonRef next_polygon = *next_path.vertices;
                 const size_t next_start = next_path.start_vertex;
                 const Point& next_p0 = next_polygon[next_start];

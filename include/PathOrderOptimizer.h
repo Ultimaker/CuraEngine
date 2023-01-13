@@ -8,7 +8,7 @@
 #include <unordered_set>
 
 #include "InsetOrderOptimizer.h" // for makeOrderIncludeTransitive
-#include "PathOrderPath.h"
+#include "PathOrdering.h"
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
 #include "settings/EnumSettings.h" //To get the seam settings.
@@ -18,7 +18,6 @@
 #include "utils/views/dfs.h"
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
-#include <range/v3/view/enumerate.hpp>
 
 namespace rv = ranges::views;
 
@@ -53,7 +52,7 @@ namespace cura
  * \ref get_size in order for the optimizer to know how to read information from
  * your path.
  */
-template<typename PathType>
+template<typename Path>
 class PathOrderOptimizer
 {
 public:
@@ -99,7 +98,7 @@ public:
      * it into a polygon.
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
-    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, const std::unordered_multimap<PathType, PathType>& order_requirements = no_order_requirements)
+    PathOrderOptimizer(const Point start_point, const ZSeamConfig seam_config = ZSeamConfig(), const bool detect_loops = false, const Polygons* combing_boundary = nullptr, const bool reverse_direction = false, const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements)
         : start_point(start_point)
         , seam_config(seam_config)
         , combing_boundary((combing_boundary != nullptr && !combing_boundary->empty()) ? combing_boundary : nullptr)
@@ -113,7 +112,7 @@ public:
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(const PathType& polygon)
+    void addPolygon(const Path& polygon)
     {
         constexpr bool is_closed = true;
         paths.emplace_back(polygon, is_closed);
@@ -123,7 +122,7 @@ public:
      * Add a new polyline to be optimized.
      * \param polyline The polyline to optimize.
      */
-    void addPolyline(const PathType& polyline)
+    void addPolyline(const Path& polyline)
     {
         constexpr bool is_closed = false;
         paths.emplace_back(polyline, is_closed);
@@ -199,7 +198,7 @@ public:
             }
         }
 
-        std::unordered_map<PathType, size_t> path_to_index;
+        std::unordered_map<Path, size_t> path_to_index;
         for (size_t idx = 0; idx < paths.size(); idx++)
         {
             path_to_index.emplace(paths[idx].vertices, idx);
@@ -330,7 +329,7 @@ protected:
         std::vector<OrderablePath> optimized_order; //To store our result in.
 
         // initialize the roots set with all possible nodes
-        std::unordered_set<PathType> roots;
+        std::unordered_set<Path> roots;
         for (auto& path : paths)
         {
             roots.insert(path.vertices);
@@ -345,17 +344,17 @@ protected:
 
         // We used a shared visited set between runs of dfs. This is for the case when we reverse the ordering tree.
         // In this case two roots can share the same children nodes, but we don't want to print them twice.
-        std::unordered_set<PathType> visited;
+        std::unordered_set<Path> visited;
         Point current_position = start_point;
 
-        std::function<std::vector<PathType>(const PathType, const std::unordered_multimap<PathType, PathType>&)> get_neighbours =
-            [current_position, this](const PathType current_node, const std::unordered_multimap<PathType, PathType>& graph)
+        std::function<std::vector<Path>(const Path, const std::unordered_multimap<Path, Path>&)> get_neighbours =
+            [current_position, this](const Path current_node, const std::unordered_multimap<Path, Path>& graph)
         {
-            std::vector<PathType> order; // Output order to traverse neighbors
+            std::vector<Path> order; // Output order to traverse neighbors
 
             const auto& [neighbour_begin, neighbour_end] = graph.equal_range(current_node);
             auto candidates_iterator = ranges::make_subrange(neighbour_begin, neighbour_end);
-            std::unordered_set<PathType> candidates;
+            std::unordered_set<Path> candidates;
             for (const auto& [_, neighbour] : candidates_iterator)
             {
                 candidates.insert(neighbour);
@@ -364,7 +363,7 @@ protected:
             auto local_current_position = current_position;
             while (candidates.size() != 0)
             {
-                PathType best_candidate = findClosestPath(local_current_position, candidates);
+                Path best_candidate = findClosestPath(local_current_position, candidates);
 
                 candidates.erase(best_candidate);
                 order.push_back(best_candidate);
@@ -392,7 +391,7 @@ protected:
             return order;
         };
 
-        std::function<void(const PathType)> handle_node = [&current_position, &optimized_order, this, &visited](const PathType current_node)
+        std::function<void(const Path)> handle_node = [&current_position, &optimized_order, this, &visited](const Path current_node)
         {
             // We should make map from node <-> path for this stuff
             for (auto& path : paths)
@@ -419,7 +418,7 @@ protected:
 
         while (roots.size() != 0)
         {
-            PathType root = findClosestPath(current_position, roots);
+            Path root = findClosestPath(current_position, roots);
             roots.erase(root);
             actions::dfs_conditional_neighbour_view(root, order_requirements, handle_node, visited, get_neighbours);
         }
@@ -445,7 +444,7 @@ protected:
         return reversed;
     }
 
-    PathType findClosestPath(Point start_position, std::unordered_set<PathType> candidate_path_types)
+    Path findClosestPath(Point start_position, std::unordered_set<Path> candidate_path_types)
     // TODO: DELETE THIS: please
     {
         std::vector<size_t> path_indexes;
@@ -463,7 +462,7 @@ protected:
         }
 
         size_t best_candidate_index = findClosestPath(start_position, path_indexes);
-        PathType best_candidate = paths[best_candidate_index].vertices;
+        Path best_candidate = paths[best_candidate_index].vertices;
         return best_candidate;
     }
 
@@ -513,14 +512,14 @@ protected:
     }
 
 public:
-    static const std::unordered_multimap<PathType, PathType> no_order_requirements;
+    static const std::unordered_multimap<Path, Path> no_order_requirements;
 
 protected:
     /*!
      * Order requirements on the paths.
      * For each pair the first needs to be printe before the second.
      */
-    const std::unordered_multimap<PathType, PathType> order_requirements;
+    const std::unordered_multimap<Path, Path> order_requirements;
 
     /*!
      * Find the vertex which will be the starting point of printing a polygon or
@@ -810,8 +809,8 @@ protected:
     }
 };
 
-template<typename PathType>
-const std::unordered_multimap<PathType, PathType> PathOrderOptimizer<PathType>::no_order_requirements;
+template<typename Path>
+const std::unordered_multimap<Path, Path> PathOrderOptimizer<Path>::no_order_requirements;
 
 } //namespace cura
 
