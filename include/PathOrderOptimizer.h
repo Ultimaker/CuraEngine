@@ -73,6 +73,8 @@ public:
      */
     std::unordered_map<Path, OrderablePath> vertices_to_paths;
 
+    std::unordered_map<int, OrderablePath> bucket_index_to_path;
+
     /*!
      * The location where the nozzle is assumed to start from before printing
      * these parts.
@@ -147,6 +149,11 @@ public:
             path.converted = path.getVertexData();
         }
 
+        for (auto& path : paths)
+        {
+            vertices_to_paths.emplace(path.vertices, path);
+        }
+
         //If necessary, check polylines to see if they are actually polygons.
         if(detect_loops)
         {
@@ -196,12 +203,6 @@ public:
                 }
                 path.start_vertex = findStartLocation(path, seam_config.pos);
             }
-        }
-
-        std::unordered_map<Path, size_t> path_to_index;
-        for (size_t idx = 0; idx < paths.size(); idx++)
-        {
-            path_to_index.emplace(paths[idx].vertices, idx);
         }
 
         std::vector<OrderablePath> optimized_order; //To store our result in. At the end we'll std::swap.
@@ -272,19 +273,27 @@ protected:
     std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
     {
         std::vector<OrderablePath> optimized_orderr; //To store our result in. At the end we'll std::swap.
-        std::vector<bool> picked(paths.size(), false); //Fixed size boolean flag for whether each path is already in the optimized vector.
+        std::unordered_map<OrderablePath*, bool> picked(paths.size()); //Fixed size boolean flag for whether each path is already in the optimized vector.
         Point current_position = start_point;
 
 
         while(optimized_orderr.size() < paths.size())
         {
             //First see if we already know about some nearby paths due to the line bucket grid.
-            std::vector<size_t> nearby_candidates = line_bucket_grid.getNearbyVals(current_position, snap_radius);
-            std::vector<size_t> available_candidates;
-            available_candidates.reserve(nearby_candidates.size());
-            for(const size_t candidate : nearby_candidates)
+            std::vector<size_t> nearby_candidates_indexes = line_bucket_grid.getNearbyVals(current_position, snap_radius);
+
+            //Shit Code delete later?
+            std::vector<OrderablePath> nearby_candidates;
+            for (auto i : nearby_candidates_indexes)
             {
-                if(picked[candidate])
+                nearby_candidates.push_back(paths[i]);
+            }
+
+            std::vector<OrderablePath> available_candidates;
+            available_candidates.reserve(nearby_candidates.size());
+            for(OrderablePath candidate : nearby_candidates)
+            {
+                if(picked[&candidate])
                 {
                     continue; //Not a valid candidate.
                 }
@@ -292,20 +301,21 @@ protected:
             }
             if(available_candidates.empty()) //We may need to broaden our search through all candidates then.
             {
-                for(size_t candidate = 0; candidate < paths.size(); ++candidate)
+                for(auto path : paths)
                 {
-                    if(picked[candidate])
+                    if(picked[&path])
                     {
                         continue; //Not a valid candidate.
                     }
-                    available_candidates.push_back(candidate);
+                    available_candidates.push_back(path);
                 }
             }
-            size_t best_candidate = findClosestPath(current_position, available_candidates);
 
-            OrderablePath& best_path = paths[best_candidate];
+            OrderablePath best_candidate = findClosestPath_(current_position, available_candidates);
+
+            OrderablePath best_path = best_candidate;
             optimized_orderr.push_back(best_path);
-            picked[best_candidate] = true;
+            picked[&best_candidate] = true;
 
             if(!best_path.converted->empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
             {
@@ -444,44 +454,33 @@ protected:
         return reversed;
     }
 
-    Path findClosestPath(Point start_position, std::unordered_set<Path> candidate_path_types)
-    // TODO: DELETE THIS: please
+    Path findClosestPath(Point start_position, std::unordered_set<Path> candidate_paths)
     {
-        std::vector<size_t> path_indexes;
+        std::vector<OrderablePath> candidate_orderable_paths;
 
-        // piece of shit code
-        for (auto& pathType : candidate_path_types)
+        for (auto path : candidate_paths)
         {
-            for (const auto& [i, path] : paths | rv::enumerate)
-            {
-                if (pathType == path.vertices)
-                {
-                    path_indexes.push_back(i);
-                }
-            }
+            candidate_orderable_paths.push_back(vertices_to_paths.at(path));
         }
 
-        size_t best_candidate_index = findClosestPath(start_position, path_indexes);
-        Path best_candidate = paths[best_candidate_index].vertices;
-        return best_candidate;
+        OrderablePath best_candidate = findClosestPath_(start_position, candidate_orderable_paths);
+        return best_candidate.vertices;
     }
 
-
-    size_t findClosestPath(Point start_position, std::vector<size_t> path_indexes)
+    OrderablePath findClosestPath_(Point start_position, std::vector<OrderablePath> candidate_paths)
     // TODO: Pass in paths and make static
     {
         coord_t best_distance2 = std::numeric_limits<coord_t>::max();
-        size_t best_candidate = 0;
+        OrderablePath* best_candidate = 0;
 
         // Pull this finding closest of candidate paths into seperate function
-        for(const size_t path_index : path_indexes)
+        for(OrderablePath& path : candidate_paths)
         {
-            OrderablePath& path = paths[path_index];
             if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
             {
                 if(best_distance2 == std::numeric_limits<coord_t>::max())
                 {
-                    best_candidate = path_index;
+                    best_candidate = &path;
                 }
                 continue;
             }
@@ -503,12 +502,12 @@ protected:
             }
             if(distance2 < best_distance2) //Closer than the best candidate so far.
             {
-                best_candidate = path_index;
+                best_candidate = &path;
                 best_distance2 = distance2;
             }
         }
 
-        return best_candidate;
+        return *best_candidate;
     }
 
 public:
