@@ -272,12 +272,15 @@ protected:
 
     std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
     {
-        std::vector<OrderablePath> optimized_orderr; //To store our result in. At the end we'll std::swap.
-        std::unordered_map<OrderablePath*, bool> picked(paths.size()); //Fixed size boolean flag for whether each path is already in the optimized vector.
+        std::vector<OrderablePath> optimized_order; //To store our result in.
+
         Point current_position = start_point;
 
+        std::unordered_map<OrderablePath*, bool> picked(paths.size()); //Fixed size boolean flag for whether each path is already in the optimized vector.
+        auto isPicked = [&picked](OrderablePath c) { return picked[&c]; };
+        auto notPicked = [&picked](OrderablePath c) { return !picked[&c]; };
 
-        while(optimized_orderr.size() < paths.size())
+        while(optimized_order.size() < paths.size())
         {
             //First see if we already know about some nearby paths due to the line bucket grid.
             std::vector<size_t> nearby_candidates_indexes = line_bucket_grid.getNearbyVals(current_position, snap_radius);
@@ -291,22 +294,15 @@ protected:
 
             std::vector<OrderablePath> available_candidates;
             available_candidates.reserve(nearby_candidates.size());
-            for(OrderablePath candidate : nearby_candidates)
+            for(OrderablePath candidate : nearby_candidates | rv::filter(isPicked))
             {
-                if(picked[&candidate])
-                {
-                    continue; //Not a valid candidate.
-                }
                 available_candidates.push_back(candidate);
             }
-            if(available_candidates.empty()) //We may need to broaden our search through all candidates then.
+
+            if(available_candidates.empty()) // We need to broaden our search through all candidates
             {
-                for(auto path : paths)
+                for(auto path : paths | rv::filter(notPicked))
                 {
-                    if(picked[&path])
-                    {
-                        continue; //Not a valid candidate.
-                    }
                     available_candidates.push_back(path);
                 }
             }
@@ -314,7 +310,7 @@ protected:
             OrderablePath best_candidate = findClosestPath_(current_position, available_candidates);
 
             OrderablePath best_path = best_candidate;
-            optimized_orderr.push_back(best_path);
+            optimized_order.push_back(best_path);
             picked[&best_candidate] = true;
 
             if(!best_path.converted->empty()) //If all paths were empty, the best path is still empty. We don't upate the current position then.
@@ -331,7 +327,7 @@ protected:
             }
         }
 
-        return optimized_orderr;
+        return optimized_order;
     }
 
     std::vector<OrderablePath> getOptimizerOrderWithConstraints(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius, const std::unordered_multimap<Path, Path>& order_requirements)
