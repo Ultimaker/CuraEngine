@@ -282,14 +282,11 @@ protected:
 
         while(optimized_order.size() < paths.size())
         {
-            //First see if we already know about some nearby paths due to the line bucket grid.
-            std::vector<size_t> nearby_candidates_indexes = line_bucket_grid.getNearbyVals(current_position, snap_radius);
-
-            //Shit Code delete later?
+            //Use bucket grid to find paths within snap_radius
             std::vector<OrderablePath> nearby_candidates;
-            for (auto i : nearby_candidates_indexes)
+            for (auto i : line_bucket_grid.getNearbyVals(current_position, snap_radius))
             {
-                nearby_candidates.push_back(paths[i]);
+                nearby_candidates.push_back(paths[i]); // Convert bucket indexes to corresponding paths
             }
 
             std::vector<OrderablePath> available_candidates;
