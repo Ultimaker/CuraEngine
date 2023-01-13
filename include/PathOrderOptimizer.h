@@ -57,6 +57,7 @@ template<typename PathType>
 class PathOrderOptimizer
 {
 public:
+    using OrderablePath = PathOrdering<Path>;
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -65,7 +66,13 @@ public:
      * pointer to the vertex data, whether or not to close the loop, the
      * direction in which to print the path and where to start the path.
      */
-    std::vector<PathOrderPath<PathType>> paths;
+    std::vector<OrderablePath> paths;
+
+
+    /*!
+     * Maps the path implementation to it's container
+     */
+    std::unordered_map<Path, OrderablePath> vertices_to_paths;
 
     /*!
      * The location where the nozzle is assumed to start from before printing
@@ -136,7 +143,7 @@ public:
         }
 
         //Get the vertex data and store it in the paths.
-        for(PathOrderPath<PathType>& path : paths)
+        for(OrderablePath& path : paths)
         {
             path.converted = path.getVertexData();
         }
@@ -144,7 +151,7 @@ public:
         //If necessary, check polylines to see if they are actually polygons.
         if(detect_loops)
         {
-            for(PathOrderPath<PathType>& path : paths)
+            for(OrderablePath& path : paths)
             {
                 if(!path.is_closed)
                 {
@@ -182,7 +189,7 @@ public:
         const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
         if(precompute_start)
         {
-            for(PathOrderPath<PathType>& path : paths)
+            for(OrderablePath& path : paths)
             {
                 if(!path.is_closed || path.converted->empty())
                 {
@@ -198,7 +205,7 @@ public:
             path_to_index.emplace(paths[idx].vertices, idx);
         }
 
-        std::vector<PathOrderPath<PathType>> optimized_order; //To store our result in. At the end we'll std::swap.
+        std::vector<OrderablePath> optimized_order; //To store our result in. At the end we'll std::swap.
 
         if (order_requirements.empty())
         {
@@ -212,7 +219,7 @@ public:
 
         if(reverse_direction)
         {
-            std::vector<PathOrderPath<PathType>> reversed = reverseOrderPaths(optimized_order);  //Reverse-insert the optimized order, to invert the ordering.
+            std::vector<OrderablePath> reversed = reverseOrderPaths(optimized_order);  //Reverse-insert the optimized order, to invert the ordering.
             std::swap(reversed, paths);
         }
         else
@@ -263,9 +270,9 @@ protected:
      */
     bool reverse_direction;
 
-    std::vector<PathOrderPath<PathType>> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
+    std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
     {
-        std::vector<PathOrderPath<PathType>> optimized_orderr; //To store our result in. At the end we'll std::swap.
+        std::vector<OrderablePath> optimized_orderr; //To store our result in. At the end we'll std::swap.
         std::vector<bool> picked(paths.size(), false); //Fixed size boolean flag for whether each path is already in the optimized vector.
         Point current_position = start_point;
 
@@ -297,7 +304,7 @@ protected:
             }
             size_t best_candidate = findClosestPath(current_position, available_candidates);
 
-            PathOrderPath<PathType>& best_path = paths[best_candidate];
+            OrderablePath& best_path = paths[best_candidate];
             optimized_orderr.push_back(best_path);
             picked[best_candidate] = true;
 
@@ -318,9 +325,9 @@ protected:
         return optimized_orderr;
     }
 
-    std::vector<PathOrderPath<PathType>> getOptimizerOrderWithConstraints(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius, const std::unordered_multimap<PathType, PathType>& order_requirements)
+    std::vector<OrderablePath> getOptimizerOrderWithConstraints(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius, const std::unordered_multimap<Path, Path>& order_requirements)
     {
-        std::vector<PathOrderPath<PathType>> optimized_order; //To store our result in.
+        std::vector<OrderablePath> optimized_order; //To store our result in.
 
         // initialize the roots set with all possible nodes
         std::unordered_set<PathType> roots;
@@ -377,7 +384,6 @@ protected:
                             //Pick the other end from where we started.
                             local_current_position = path.start_vertex == 0 ? path.converted->back() : path.converted->front();
                         }
-//                        spdlog::error("local_current_position: X{} Y{}", local_current_position.X, local_current_position.Y);
                         break;
                     }
                 }
@@ -421,10 +427,10 @@ protected:
         return optimized_order;
     }
 
-    std::vector<PathOrderPath<PathType>> reverseOrderPaths(std::vector<PathOrderPath<PathType>> pathsOrderPaths)
+    std::vector<OrderablePath> reverseOrderPaths(std::vector<OrderablePath> pathsOrderPaths)
     {
-        std::vector<PathOrderPath<PathType>> reversed;
-        //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for PathType.
+        std::vector<OrderablePath> reversed;
+        //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for Path.
         reversed.reserve(pathsOrderPaths.size());
         for(auto it = pathsOrderPaths.rbegin(); it != pathsOrderPaths.rend(); it++)
         {
@@ -471,7 +477,7 @@ protected:
         // Pull this finding closest of candidate paths into seperate function
         for(const size_t path_index : path_indexes)
         {
-            PathOrderPath<PathType>& path = paths[path_index];
+            OrderablePath& path = paths[path_index];
             if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
             {
                 if(best_distance2 == std::numeric_limits<coord_t>::max())
@@ -532,7 +538,7 @@ protected:
      * endpoints rather than 
      * \return An index to a vertex in that path where printing must start.
      */
-    size_t findStartLocation(const PathOrderPath<PathType>& path, const Point& target_pos)
+    size_t findStartLocation(const OrderablePath& path, const Point& target_pos)
     {
         if(!path.is_closed)
         {
@@ -660,7 +666,7 @@ protected:
     * \param fall_off_strength fall of strength of the angle weight
     * \return sum of angles of all points p in range i - angle_query_distance < p < i + angle_query_distance
     */
-    float cornerAngle(const PathOrderPath<PathType>& path, int i, const coord_t angle_query_distance = 100, const float fall_off_strength = 0.5)
+    float cornerAngle(const OrderablePath& path, int i, const coord_t angle_query_distance = 100, const float fall_off_strength = 0.5)
     {
         // If the edge length becomes too small we cannot accurately calculate the angle
         // define a minimum edge length, so we don't get deviant values in the angle calculations
@@ -794,7 +800,7 @@ protected:
         return rand() % polygon.size();
     }
 
-    bool isLoopingPolyline(const PathOrderPath<PathType>& path)
+    bool isLoopingPolyline(const OrderablePath& path)
     {
         if(path.converted->empty())
         {
