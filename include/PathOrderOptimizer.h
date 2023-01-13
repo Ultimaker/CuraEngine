@@ -73,8 +73,6 @@ public:
      */
     std::unordered_map<Path, OrderablePath> vertices_to_paths;
 
-    std::unordered_map<int, OrderablePath> bucket_index_to_path;
-
     /*!
      * The location where the nozzle is assumed to start from before printing
      * these parts.
@@ -304,7 +302,7 @@ protected:
                 }
             }
 
-            OrderablePath best_candidate = findClosestPath_(current_position, available_candidates);
+            OrderablePath best_candidate = findClosestPath(current_position, available_candidates);
 
             OrderablePath best_path = best_candidate;
             optimized_order.push_back(best_path);
@@ -366,7 +364,7 @@ protected:
             auto local_current_position = current_position;
             while (candidates.size() != 0)
             {
-                Path best_candidate = findClosestPath(local_current_position, candidates);
+                Path best_candidate = findClosestPathVertices(local_current_position, candidates);
 
                 candidates.erase(best_candidate);
                 order.push_back(best_candidate);
@@ -421,7 +419,7 @@ protected:
 
         while (roots.size() != 0)
         {
-            Path root = findClosestPath(current_position, roots);
+            Path root = findClosestPathVertices(current_position, roots);
             roots.erase(root);
             actions::dfs_conditional_neighbour_view(root, order_requirements, handle_node, visited, get_neighbours);
         }
@@ -447,7 +445,7 @@ protected:
         return reversed;
     }
 
-    Path findClosestPath(Point start_position, std::unordered_set<Path> candidate_paths)
+    Path findClosestPathVertices(Point start_position, std::unordered_set<Path> candidate_paths)
     {
         std::vector<OrderablePath> candidate_orderable_paths;
 
@@ -456,11 +454,11 @@ protected:
             candidate_orderable_paths.push_back(vertices_to_paths.at(path));
         }
 
-        OrderablePath best_candidate = findClosestPath_(start_position, candidate_orderable_paths);
+        OrderablePath best_candidate = findClosestPath(start_position, candidate_orderable_paths);
         return best_candidate.vertices;
     }
 
-    OrderablePath findClosestPath_(Point start_position, std::vector<OrderablePath> candidate_paths)
+    OrderablePath findClosestPath(Point start_position, std::vector<OrderablePath> candidate_paths)
     // TODO: Pass in paths and make static
     {
         coord_t best_distance2 = std::numeric_limits<coord_t>::max();
