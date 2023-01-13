@@ -18,6 +18,7 @@
 #include "utils/views/dfs.h"
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
+#include <range/v3/view/reverse.hpp>
 
 namespace rv = ranges::views;
 
@@ -142,20 +143,16 @@ public:
         }
 
         //Get the vertex data and store it in the paths.
-        for(OrderablePath& path : paths)
+        for(auto& path : paths)
         {
             path.converted = path.getVertexData();
-        }
-
-        for (auto& path : paths)
-        {
             vertices_to_paths.emplace(path.vertices, path);
         }
 
         //If necessary, check polylines to see if they are actually polygons.
         if(detect_loops)
         {
-            for(OrderablePath& path : paths)
+            for(auto& path : paths)
             {
                 if(!path.is_closed)
                 {
@@ -193,7 +190,7 @@ public:
         const bool precompute_start = seam_config.type == EZSeamType::RANDOM || seam_config.type == EZSeamType::USER_SPECIFIED || seam_config.type == EZSeamType::SHARPEST_CORNER;
         if(precompute_start)
         {
-            for(OrderablePath& path : paths)
+            for(auto& path : paths)
             {
                 if(!path.is_closed || path.converted->empty())
                 {
@@ -282,21 +279,21 @@ protected:
         {
             //Use bucket grid to find paths within snap_radius
             std::vector<OrderablePath> nearby_candidates;
-            for (auto i : line_bucket_grid.getNearbyVals(current_position, snap_radius))
+            for (const auto i : line_bucket_grid.getNearbyVals(current_position, snap_radius))
             {
                 nearby_candidates.push_back(paths[i]); // Convert bucket indexes to corresponding paths
             }
 
             std::vector<OrderablePath> available_candidates;
             available_candidates.reserve(nearby_candidates.size());
-            for(OrderablePath candidate : nearby_candidates | rv::filter(isPicked))
+            for(auto& candidate : nearby_candidates | rv::filter(isPicked))
             {
                 available_candidates.push_back(candidate);
             }
 
             if(available_candidates.empty()) // We need to broaden our search through all candidates
             {
-                for(auto path : paths | rv::filter(notPicked))
+                for(auto& path : paths | rv::filter(notPicked))
                 {
                     available_candidates.push_back(path);
                 }
@@ -331,7 +328,7 @@ protected:
 
         // initialize the roots set with all possible nodes
         std::unordered_set<Path> roots;
-        for (auto& path : paths)
+        for (const auto& path : paths)
         {
             roots.insert(path.vertices);
         }
@@ -370,7 +367,6 @@ protected:
                 order.push_back(best_candidate);
 
                 // update local_current_position
-                //local_current_position = best_candidate.start_
                 for (auto& path : paths)
                 {
                     if (path.vertices == best_candidate)
@@ -432,9 +428,9 @@ protected:
         std::vector<OrderablePath> reversed;
         //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for Path.
         reversed.reserve(pathsOrderPaths.size());
-        for(auto it = pathsOrderPaths.rbegin(); it != pathsOrderPaths.rend(); it++)
+        for(auto& path: pathsOrderPaths | rv::reverse)
         {
-            reversed.push_back(*it);
+            reversed.push_back(path);
             reversed.back().backwards = !reversed.back().backwards;
             if(!reversed.back().is_closed)
             {
@@ -449,7 +445,7 @@ protected:
     {
         std::vector<OrderablePath> candidate_orderable_paths;
 
-        for (auto path : candidate_paths)
+        for (auto& path : candidate_paths)
         {
             candidate_orderable_paths.push_back(vertices_to_paths.at(path));
         }
@@ -459,13 +455,11 @@ protected:
     }
 
     OrderablePath findClosestPath(Point start_position, std::vector<OrderablePath> candidate_paths)
-    // TODO: Pass in paths and make static
     {
         coord_t best_distance2 = std::numeric_limits<coord_t>::max();
         OrderablePath* best_candidate = 0;
 
-        // Pull this finding closest of candidate paths into seperate function
-        for(OrderablePath& path : candidate_paths)
+        for(auto& path : candidate_paths)
         {
             if(path.converted->empty()) //No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
             {
