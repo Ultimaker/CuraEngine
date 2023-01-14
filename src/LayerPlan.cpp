@@ -1501,7 +1501,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         double target_speed = 0.0;
         std::function<double(const GCodePath&)> slow_down_func
         {
-            [&target_speed](const GCodePath& path) { return target_speed / (path.config->getSpeed() * path.speed_factor); }
+            [&target_speed](const GCodePath& path) { return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0); }
         };
 
         if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
@@ -1537,7 +1537,7 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
                 [&slowest_path_speed = slowest_path_speed, &factor](const GCodePath& path)
                 {
                     const double target_speed = slowest_path_speed * (1.0 - factor) + (path.config->getSpeed() * path.speed_factor) * factor;
-                    return target_speed / (path.config->getSpeed() * path.speed_factor);
+                    return std::min(target_speed / (path.config->getSpeed() * path.speed_factor), 1.0);
                 };
 
             // Update stored naive time estimates
@@ -1550,8 +1550,9 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             {
                 continue;
             }
-            path.speed_factor = slow_down_func(path);
-            path.estimates.extrude_time /= path.speed_factor;
+            Ratio slow_down_factor = slow_down_func(path);
+            path.speed_factor *= slow_down_factor;
+            path.estimates.extrude_time /= slow_down_factor;
         }
     }
 }
