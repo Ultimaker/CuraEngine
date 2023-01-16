@@ -674,12 +674,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     {
         Polygons& support_areas = global_support_areas_per_layer[layer_idx];
         support_areas = support_areas.unionPolygons();
-
-//        AABB aabb(support_areas);
-//        aabb.expand(1000);
-//        std::string name = std::string("tmp/global_support_area") + std::to_string(layer_idx) + std::string(".svg");
-//        SVG svg(name, aabb);
-//        svg.writePolygons(support_areas, SVG::Color::ORANGE, 3.0);
     }
 
     // handle support interface
