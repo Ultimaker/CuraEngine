@@ -634,6 +634,44 @@ void Polygons::removeSmallCircumference(const coord_t min_circumference_size, co
     *this = new_polygon;
 }
 
+void Polygons::removeSmallAreaCircumference(const double min_area_size, const coord_t min_circumference_size, const bool remove_holes)
+{
+    Polygons new_polygon;
+
+    bool outline_is_removed = false;
+    for (ConstPolygonRef poly : paths)
+    {
+        double area = poly.area();
+        auto circumference = poly.polygonLength();
+        bool is_outline = area >= 0;
+
+        if (is_outline)
+        {
+            if (circumference >= min_circumference_size && area >= min_area_size)
+            {
+                new_polygon.add(poly);
+                outline_is_removed = false;
+            }
+            else
+            {
+                outline_is_removed = true;
+            }
+        }
+        else if (outline_is_removed)
+        {
+            // containing parent outline is removed; hole should be removed as well
+        }
+        else if (!remove_holes || (circumference >= min_circumference_size && area >= min_area_size))
+        {
+            // keep hole-polygon if we do not remove holes, or if its
+            // circumference is bigger then the minimum circumference size
+            new_polygon.add(poly);
+        }
+    }
+
+    *this = new_polygon;
+}
+
 void Polygons::removeDegenerateVerts()
 {
     _removeDegenerateVerts(false);
