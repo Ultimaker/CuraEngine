@@ -68,9 +68,8 @@ public:
      */
     std::vector<OrderablePath> paths;
 
-
     /*!
-     * Maps the path implementation to it's container
+     * Maps the path implementation to it's orderable path container
      */
     std::unordered_map<Path, OrderablePath> vertices_to_paths;
 
