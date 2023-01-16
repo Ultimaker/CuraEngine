@@ -1,5 +1,5 @@
-//Copyright (c) 2022 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2023 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef PATHORDEROPTIMIZER_H
 #define PATHORDEROPTIMIZER_H
@@ -611,7 +611,7 @@ protected:
             }
 
             constexpr float EPSILON = 25.0;
-            if(fabs(best_score - score) <= EPSILON)
+            if(std::abs(best_score - score) <= EPSILON)
             {
                 // add breaker for two candidate starting location with similar score
                 // if we don't do this then we (can) get an un-even seam
@@ -619,7 +619,7 @@ protected:
                 // if x-coord for both points are equal then break ties by
                 // favouring points with lower y-coord
                 const Point& best_point = (*path.converted)[best_i];
-                if(fabs(here.Y - best_point.Y) <= EPSILON ? best_point.X < here.X : best_point.Y < here.Y)
+                if(std::abs(here.Y - best_point.Y) <= EPSILON ? best_point.X < here.X : best_point.Y < here.Y)
                 {
                     best_score = std::min(best_score, score);
                     best_i = i;
