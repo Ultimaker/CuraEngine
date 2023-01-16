@@ -674,6 +674,12 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     {
         Polygons& support_areas = global_support_areas_per_layer[layer_idx];
         support_areas = support_areas.unionPolygons();
+
+//        AABB aabb(support_areas);
+//        aabb.expand(1000);
+//        std::string name = std::string("tmp/global_support_area") + std::to_string(layer_idx) + std::string(".svg");
+//        SVG svg(name, aabb);
+//        svg.writePolygons(support_areas, SVG::Color::ORANGE, 3.0);
     }
 
     // handle support interface
@@ -892,9 +898,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                            if (layer_idx > 1)
                                            {
                                                // shrink a little so that areas that only protrude very slightly are ignored
-                                               larger_area_below = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines()).offset(-layer_thickness / 10);
+                                               larger_area_below = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines());
 
-                                               if (larger_area_below.size())
+                                               if (!larger_area_below.empty())
                                                {
                                                    // if the layer below protrudes sufficiently such that a normal support at xy_distance could be placed there,
                                                    // we don't want to use the min XY distance in that area and so we remove the wide area from larger_area_below
@@ -906,13 +912,29 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                                    // area_beyond_limit is the portion of the layer below's outline that lies further away from the current layer's outline than limit_distance
                                                    Polygons area_beyond_limit = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines().offset(limit_distance));
 
-                                                   if (area_beyond_limit.size())
+                                                   if (!area_beyond_limit.empty())
                                                    {
                                                        // expand area_beyond_limit so that the inner hole fills in all the way back to the current layer's outline
                                                        // and use that to remove the regions in larger_area_below that should not use min XY because the regions are
                                                        // wide enough for a normal support to be placed there
                                                        larger_area_below = larger_area_below.difference(area_beyond_limit.offset(limit_distance + 10));
                                                    }
+                                               }
+
+                                               {
+                                                   // Remove tiny "specs" in the `larger_area_below` polygon. As the polygon is a difference between the outline of
+                                                   // the current layer and the layer below this area is _usually_ a very narrow right surrounding the model (these
+                                                   // areas are desired). However, sometimes these areas become so narrow that only tiny dots are present. As the area
+                                                   // of both the rings and the specs are very small we cannot use the `removeSmallAreas` utility function. Instead, we
+                                                   // use the `removeSmallAreaCircumference` which removes polygons if both the area and circumference exceed a certain
+                                                   // threshold; we want a small circumference to differentiate between "rings" and "specs" (both have small area but
+                                                   // specs also have small circumference) and we want a small area to differentiate between larger blobs and "specs" in
+                                                   // polygon (both have a circumference but only "specs" have a "larger blobs" both have a small circumference but only
+                                                   // "specs" has a small area).
+                                                   constexpr size_t min_circumference_size = 500;
+                                                   constexpr double min_area = 1.0;
+                                                   constexpr bool remove_holes = true;
+                                                   larger_area_below.removeSmallAreaCircumference(min_area, min_circumference_size, remove_holes);
                                                }
                                            }
 
@@ -1268,7 +1290,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-    if (support_layer.anti_overhang.size())
+    if (!support_layer.anti_overhang.empty())
     {
         // Merge anti overhang into one polygon, otherwise overlapping polygons
         // will create opposite effect.
@@ -1284,8 +1306,16 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     //     Polygons overhang =  basic_overhang.unionPolygons(support_extension);
     //         presumably the computation above is slower than the one below
 
-    Polygons overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
-    Polygons full_overhang = overhang_extented.intersection(supportLayer_supportee);
+    {
+        constexpr size_t min_circumference_size = 500;
+        constexpr double min_area_size = 1.0;
+        constexpr bool remove_holes = true;
+        basic_overhang.removeSmallAreaCircumference(min_area_size, min_circumference_size, remove_holes);
+    }
+
+    Polygons overhang_extended = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
+    Polygons full_overhang = overhang_extended.intersection(supportLayer_supportee);
+
     return std::make_pair(basic_overhang, full_overhang);
 }
 
