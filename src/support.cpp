@@ -924,8 +924,9 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                                    // specs also have small circumference) and we want a small area to differentiate between larger blobs and "specs" in
                                                    // polygon (both have a circumference but only "specs" have a "larger blobs" both have a small circumference but only
                                                    // "specs" has a small area).
-                                                   constexpr size_t min_circumference = 500;
-                                                   constexpr double min_area = 0.1;
+                                                   const auto nozzle_diameter = mesh_group_settings.get<coord_t>("machine_nozzle_size");
+                                                   const coord_t min_circumference = nozzle_diameter * M_PI;
+                                                   const double min_area = INT2MM2(10 * (nozzle_diameter * nozzle_diameter) / (4 * M_PI));
                                                    constexpr bool remove_holes = true;
                                                    larger_area_below.removeSmallAreaCircumference(min_area, min_circumference, remove_holes);
                                                }
@@ -1300,10 +1301,11 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     //         presumably the computation above is slower than the one below
 
     {
-        constexpr size_t min_circumference = 500;
-        constexpr double min_area_size = 0.1;
+        const auto nozzle_diameter = mesh.settings.get<coord_t>("machine_nozzle_size");
+        const coord_t min_circumference = nozzle_diameter * M_PI;
+        const double min_area = INT2MM2(10 * (nozzle_diameter * nozzle_diameter) / (4 * M_PI));
         constexpr bool remove_holes = true;
-        basic_overhang.removeSmallAreaCircumference(min_area_size, min_circumference, remove_holes);
+        basic_overhang.removeSmallAreaCircumference(min_area, min_circumference, remove_holes);
     }
 
     Polygons overhang_extended = basic_overhang.offset(max_dist_from_lower_layer + MM2INT(0.1)); // +0.1mm for easier joining with support from layer above
