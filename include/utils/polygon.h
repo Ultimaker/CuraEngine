@@ -1263,7 +1263,7 @@ public:
      * Unless \p remove_holes is true, holes are not removed even if their circumference is below \p min_circumference_size.
      * However, holes that are contained within outlines whose circumference is below the threshold are removed though.
      */
-    void removeSmallCircumference(const coord_t min_circumference_size, const bool remove_holes = false);
+    [[maybe_unused]] void removeSmallCircumference(const coord_t min_circumference_size, const bool remove_holes = false);
 
     /*!
      * Removes polygons with circumference smaller than \p min_circumference_size (in micron) _and_
