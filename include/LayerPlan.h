@@ -164,6 +164,8 @@ protected:
 
     double fan_speed; //!< The fan speed to be used during this extruder plan
 
+    double temperatureFactor; //!< Temperature reduction factor for small layers
+
     /*!
      * Set the fan speed to be used while printing this extruder plan
      * 
