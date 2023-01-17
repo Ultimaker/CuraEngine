@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_DFS_SORT_H
@@ -22,14 +22,16 @@ namespace cura::actions
  * \param parent_node the node in the graph that triggered the call to dfs on current_node.
  */
 
-template <typename Node, typename State, isGraph Graph>
+template<nodeable Node, stateable State, graphable Graph>
 constexpr void dfs(
     const Node& current_node,
     const Graph& graph,
     std::function<State(const Node, const State)> handle_node,
     const State& state = nullptr,
     std::unordered_set<Node> visited = std::unordered_set<Node>(),
-    std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](const Node current_node, const Graph& graph){
+    std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours =
+        [](const Node current_node, const Graph& graph)
+    {
         const auto& [neighbour_begin, neighbour_end] = graph.equal_range(current_node);
         auto neighbours_iterator = ranges::make_subrange(neighbour_begin, neighbour_end);
         std::vector<Node> neighbours;
@@ -38,8 +40,7 @@ constexpr void dfs(
             neighbours.push_back(neighbour);
         }
         return neighbours;
-    }
-)
+    })
 {
     if (visited.contains(current_node))
     {
@@ -51,25 +52,14 @@ constexpr void dfs(
 
     for (const auto& neighbour : get_neighbours(current_node, graph))
     {
-        dfs(
-            neighbour,
-            graph,
-            handle_node,
-            current_state,
-            visited,
-            get_neighbours
-        );
+        dfs(neighbour, graph, handle_node, current_state, visited, get_neighbours);
     }
 }
 
-template <typename Node>
-constexpr void dfs_parent_view(
-    const Node& current_node,
-    const isGraph auto& graph,
-    std::function<void(const Node, const Node)> handle_node)
+template<nodeable Node, graphable Graph>
+constexpr void dfs_parent_view(const Node& current_node, const Graph& graph, std::function<void(const Node, const Node)> handle_node)
 {
-    const std::function<Node(const Node, const Node)> parent_view =
-        [handle_node](auto current_node, auto parent_node)
+    const std::function<Node(const Node, const Node)> parent_view = [handle_node](auto current_node, auto parent_node)
     {
         handle_node(current_node, parent_node);
         return current_node;
@@ -78,14 +68,10 @@ constexpr void dfs_parent_view(
     dfs(current_node, graph, parent_view);
 }
 
-template <typename Node>
-constexpr void dfs_depth_view(
-    const Node& current_node,
-    const isGraph auto& graph,
-    std::function<void(const Node, const unsigned int)> handle_node)
+template<nodeable Node, graphable Graph>
+constexpr void dfs_depth_view(const Node& current_node, const Graph& graph, std::function<void(const Node, const unsigned int)> handle_node)
 {
-    const std::function<unsigned int(const Node, const unsigned int)> depth_view =
-        [handle_node](auto current_node, auto depth)
+    const std::function<unsigned int(const Node, const unsigned int)> depth_view = [handle_node](auto current_node, auto depth)
     {
         handle_node(current_node, depth);
         return depth + 1;
@@ -94,16 +80,11 @@ constexpr void dfs_depth_view(
     dfs(current_node, graph, depth_view, 0u);
 }
 
-template <typename Node, isGraph Graph>
-constexpr void dfs_conditional_neighbour_view(
-    const Node& current_node,
-    const Graph graph,
-    std::function<void(const Node)> handle_node,
-    std::unordered_set<Node> visited,
-    std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours)
+template<nodeable Node, graphable Graph>
+constexpr void
+    dfs_conditional_neighbour_view(const Node& current_node, const Graph graph, std::function<void(const Node)> handle_node, std::unordered_set<Node> visited, std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours)
 {
-    const std::function<std::nullptr_t(const Node, const std::nullptr_t)> wrapped_handle_node =
-        [handle_node](auto current_node, auto)
+    const std::function<std::nullptr_t(const Node, const std::nullptr_t)> wrapped_handle_node = [handle_node](auto current_node, auto)
     {
         handle_node(current_node);
         return nullptr;
