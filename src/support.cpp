@@ -891,7 +891,6 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                            Polygons larger_area_below; // the areas in the layer below that protrude beyond the area of the current layer
                                            if (layer_idx > 1)
                                            {
-                                               // shrink a little so that areas that only protrude very slightly are ignored
                                                larger_area_below = mesh.layers[layer_idx - 1].getOutlines().difference(mesh.layers[layer_idx].getOutlines());
 
                                                if (!larger_area_below.empty())
