@@ -926,7 +926,7 @@ void AreaSupport::generateSupportAreasForMesh(SliceDataStorage& storage,
                                                    // "specs" has a small area).
                                                    const auto nozzle_diameter = mesh_group_settings.get<coord_t>("machine_nozzle_size");
                                                    const coord_t min_circumference = nozzle_diameter * M_PI;
-                                                   const double min_area = INT2MM2(10 * (nozzle_diameter * nozzle_diameter) / (4 * M_PI));
+                                                   const double min_area = INT2MM2((nozzle_diameter * nozzle_diameter) / 4 * M_PI);
                                                    constexpr bool remove_holes = true;
                                                    larger_area_below.removeSmallAreaCircumference(min_area, min_circumference, remove_holes);
                                                }
@@ -1303,7 +1303,7 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     {
         const auto nozzle_diameter = mesh.settings.get<coord_t>("machine_nozzle_size");
         const coord_t min_circumference = nozzle_diameter * M_PI;
-        const double min_area = INT2MM2(10 * (nozzle_diameter * nozzle_diameter) / (4 * M_PI));
+        const double min_area = INT2MM2((nozzle_diameter * nozzle_diameter) / 4 * M_PI);
         constexpr bool remove_holes = true;
         basic_overhang.removeSmallAreaCircumference(min_area, min_circumference, remove_holes);
     }
