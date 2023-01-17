@@ -599,39 +599,7 @@ void Polygons::removeSmallAreas(const double min_area_size, const bool remove_ho
 
 void Polygons::removeSmallCircumference(const coord_t min_circumference_size, const bool remove_holes)
 {
-    Polygons new_polygon;
-
-    bool outline_is_removed = false;
-    for (ConstPolygonRef poly : paths)
-    {
-        bool is_outline = poly.area() >= 0;
-        auto circumference = poly.polygonLength();
-
-        if (is_outline)
-        {
-            if (circumference >= min_circumference_size)
-            {
-                new_polygon.add(poly);
-                outline_is_removed = false;
-            }
-            else
-            {
-                outline_is_removed = true;
-            }
-        }
-        else if (outline_is_removed)
-        {
-            // containing parent outline is removed; hole should be removed as well
-        }
-        else if (!remove_holes || circumference >= min_circumference_size)
-        {
-            // keep hole-polygon if we do not remove holes, or if its
-            // circumference is bigger then the minimum circumference size
-            new_polygon.add(poly);
-        }
-    }
-
-    *this = new_polygon;
+    removeSmallAreaCircumference(0.0, min_circumference_size, remove_holes);
 }
 
 void Polygons::removeSmallAreaCircumference(const double min_area_size, const coord_t min_circumference_size, const bool remove_holes)
@@ -647,7 +615,7 @@ void Polygons::removeSmallAreaCircumference(const double min_area_size, const co
 
         if (is_outline)
         {
-            if (circumference >= min_circumference_size && area >= min_area_size)
+            if (circumference >= min_circumference_size && std::abs(area) >= min_area_size)
             {
                 new_polygon.add(poly);
                 outline_is_removed = false;
@@ -661,7 +629,7 @@ void Polygons::removeSmallAreaCircumference(const double min_area_size, const co
         {
             // containing parent outline is removed; hole should be removed as well
         }
-        else if (!remove_holes || (circumference >= min_circumference_size && area >= min_area_size))
+        else if (!remove_holes || (circumference >= min_circumference_size && std::abs(area) >= min_area_size))
         {
             // keep hole-polygon if we do not remove holes, or if its
             // circumference is bigger then the minimum circumference size
