@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifdef ARCUS
@@ -11,6 +11,7 @@
 #include "communication/ArcusCommunicationPrivate.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/FMatrix4x3.h" //To convert vertices to integer-points.
+#include "utils/debug/logger.h"
 #include "utils/floatpoint.h" //To accept vertices (which are provided in floating point).
 
 namespace cura
@@ -46,7 +47,7 @@ void ArcusCommunication::Private::readGlobalSettingsMessage(const proto::Setting
     {
         slice->scene.settings.add(setting_message.name(), setting_message.value());
     }
-    Application::getInstance().registerSettings(std::make_shared<Settings>(slice->scene.settings));
+    debug::Loggers::get_mutable_instance().setGlobal(std::make_shared<Settings>(slice->scene.settings));
 }
 
 void ArcusCommunication::Private::readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages)
@@ -78,7 +79,6 @@ void ArcusCommunication::Private::readExtruderSettingsMessage(const google::prot
 
 void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& mesh_group_message)
 {
-    auto vlogger = Application::getInstance().getLogger("mesh");
     if (mesh_group_message.objects_size() <= 0)
     {
         return; // Don't slice empty mesh groups.
@@ -93,6 +93,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         mesh_group.settings.add(setting.name(), setting.value());
     }
 
+    auto vlogger = debug::make_logger("mesh");
     FMatrix4x3 matrix;
     for (const cura::proto::Object& object : mesh_group_message.objects())
     {

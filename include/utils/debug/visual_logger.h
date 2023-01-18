@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef UTILS_DEBUG_VISUAL_LOGGER_H
@@ -15,14 +15,26 @@
 
 #include "Application.h"
 #include "settings/Settings.h"
-#include "utils/concepts/geometry.h"
 #include "utils/concepts/arachne.h"
+#include "utils/concepts/geometry.h"
 
 namespace cura::debug
 {
+using layer_map_t = std::unordered_map<int, coord_t>;
+
 class VisualLogger
 {
 public:
+#ifndef VISUAL_DEBUG
+    template<typename... Args>
+    constexpr VisualLogger(Args... args){};
+
+    template<typename... Args>
+    constexpr void log(Args... args){};
+
+    template<typename... Args>
+    constexpr void setValue(Args... args){};
+#else
     VisualLogger() : vtu_dir_{}, dataset_info_{} {};
 
     explicit VisualLogger(const std::string& id) : id_{ id }, vtu_dir_{}, dataset_info_{}
@@ -67,28 +79,22 @@ public:
         return id_;
     }
 
-    void setSettings(std::shared_ptr<Settings> settings)
+    void setValue(std::shared_ptr<Settings> settings)
     {
         settings_ = settings;
     }
 
-    void setLayers(std::shared_ptr<std::unordered_map<int, coord_t>> layer_heights)
+    void setValue(std::shared_ptr<layer_map_t> layer_heights)
     {
-        layer_height_ = layer_heights;
+        layer_map_ = layer_heights;
     }
 
-#ifndef VISUAL_DEBUG
-    template<typename... Args>
-    constexpr void log(Args... args){};
-#else
     void log(const isMesh auto& mesh, const std::experimental::source_location location = std::experimental::source_location::current())
     {
         spdlog::info("Visual Debugger: logging <{}> {} - {} - L{}: {}", id_, location.file_name(), location.function_name(), location.line(), mesh.mesh_name);
         using float_type = double;
         std::vector<float_type> points{};
-        std::vector<double> pointData{};
-        std::vector<double> cellData{};
-        for (const auto& [face_idx, face] : mesh.faces | ranges::views::enumerate)
+        for (const auto& face : mesh.faces)
         {
             for (const auto& vertex_idx : face.vertex_index)
             {
@@ -96,18 +102,14 @@ public:
                 points.emplace_back(static_cast<float_type>(vertex.p.x));
                 points.emplace_back(static_cast<float_type>(vertex.p.y));
                 points.emplace_back(static_cast<float_type>(vertex.p.z));
-                pointData.push_back(vertex_idx);
             }
-            cellData.push_back(face_idx);
         }
         auto connectivity = ranges::views::iota(0) | ranges::views::take(mesh.faces.size() * 3) | ranges::to<std::vector<vtu11::VtkIndexType>>;
         auto offsets = ranges::views::iota(0) | ranges::views::take(connectivity.size()) | ranges::views::stride(3) | ranges::to<std::vector<vtu11::VtkIndexType>>;
         auto types = ranges::views::repeat(5) | ranges::views::take(offsets.size()) | ranges::to<std::vector<vtu11::VtkCellType>>;
 
         vtu11::Vtu11UnstructuredMesh meshPartition{ points, connectivity, offsets, types };
-        std::vector<vtu11::DataSetData> dataSetData{ pointData, cellData };
-
-        writePartition(meshPartition, dataSetData);
+        writePartition(meshPartition, {});
     }
 
     void log(const isLayers auto& layers, const std::experimental::source_location location = std::experimental::source_location::current())
@@ -189,7 +191,7 @@ public:
             const auto& to = edge.to;
             points.emplace_back(static_cast<float_type>(from->p.X));
             points.emplace_back(static_cast<float_type>(from->p.Y));
-            points.emplace_back(static_cast<float_type>(layer_height_->at(layer_nr)));
+            points.emplace_back(static_cast<float_type>(layer_map_->at(layer_nr)));
             point_layer_idx.push_back(static_cast<double>(layer_nr));
             point_distance_to_boundary.push_back(static_cast<double>(from->data.distance_to_boundary));
             point_bead_count.push_back(static_cast<double>(from->data.bead_count));
@@ -197,7 +199,7 @@ public:
 
             points.emplace_back(static_cast<float_type>(to->p.X));
             points.emplace_back(static_cast<float_type>(to->p.Y));
-            points.emplace_back(static_cast<float_type>(layer_height_->at(layer_nr)));
+            points.emplace_back(static_cast<float_type>(layer_map_->at(layer_nr)));
 
             point_layer_idx.push_back(static_cast<double>(layer_nr));
             point_distance_to_boundary.push_back(static_cast<double>(to->data.distance_to_boundary));
@@ -210,9 +212,9 @@ public:
         auto offsets = ranges::views::iota(0) | ranges::views::take(connectivity.size()) | ranges::views::stride(3) | ranges::to<std::vector<vtu11::VtkIndexType>>;
         auto types = ranges::views::repeat(3) | ranges::views::take(offsets.size()) | ranges::to<std::vector<vtu11::VtkCellType>>;
         vtu11::Vtu11UnstructuredMesh meshPartition{ points, connectivity, offsets, types };
-        std::vector<vtu11::DataSetData> dataSetData { point_layer_idx, point_distance_to_boundary, point_bead_count, point_transition_ratio };
+        std::vector<vtu11::DataSetData> dataSetData{ point_layer_idx, point_distance_to_boundary, point_bead_count, point_transition_ratio };
 
-        writePartition(meshPartition, {point_layer_idx, point_distance_to_boundary});
+        writePartition(meshPartition, { point_layer_idx, point_distance_to_boundary });
     }
 #endif
 
@@ -223,7 +225,7 @@ private:
     std::vector<vtu11::DataSetInfo> dataset_info_;
     std::string id_{};
     std::shared_ptr<Settings> settings_;
-    std::shared_ptr<std::unordered_map<int, coord_t>> layer_height_;
+    std::shared_ptr<layer_map_t> layer_map_;
 
     void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data)
     {

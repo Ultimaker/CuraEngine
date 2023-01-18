@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef APPLICATION_H
@@ -10,7 +10,6 @@
 #include <unordered_map>
 
 #include "utils/NoCopy.h"
-#include "utils/debug/visual_logger.h"
 
 
 namespace cura
@@ -92,34 +91,6 @@ public:
      */
     void startThreadPool(int nworkers = 0);
 
-    [[nodiscard]] auto getLogger(std::string_view id)
-    {
-        return loggers_[id];
-    }
-
-    void registerLogger(debug::shared_visual_logger&& logger)
-    {
-        loggers_.insert_or_assign(logger->getId(), logger);
-    }
-
-    void registerSettings(std::shared_ptr<Settings>&& settings)
-    {
-        auto settings_ = settings;
-        for (auto& [id, logger] : loggers_)
-        {
-            logger->setSettings(settings_);
-        }
-    }
-
-    void registerLayers(std::shared_ptr<std::unordered_map<int, coord_t>>&& layer_heights)
-    {
-        auto layer_heights_ = layer_heights;
-        for (auto& [id, logger] : loggers_)
-        {
-            logger->setLayers(layer_heights_);
-        }
-    }
-
 protected:
 #ifdef ARCUS
     /*!
@@ -167,8 +138,6 @@ private:
      * This destroys the Communication instance along with it.
      */
     ~Application();
-
-    std::unordered_map<std::string_view, debug::shared_visual_logger> loggers_;
 };
 
 } // namespace cura

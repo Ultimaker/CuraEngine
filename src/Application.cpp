@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Application.h"
@@ -7,14 +7,10 @@
 #include <filesystem>
 #include <string>
 
-#include <fmt/chrono.h>
 #include <fmt/format.h>
-#include <fmt/ranges.h>
 #include <spdlog/cfg/helpers.h>
 #include <spdlog/details/os.h>
-#include <spdlog/details/registry.h>
 #include <spdlog/sinks/dup_filter_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
 #include "FffProcessor.h"
@@ -22,7 +18,6 @@
 #include "communication/CommandLine.h" //To use the command line to slice stuff.
 #include "progress/Progress.h"
 #include "utils/ThreadPool.h"
-#include "utils/debug/visual_logger.h"
 #include "utils/string.h" //For stringcasecompare.
 
 namespace cura
@@ -37,45 +32,7 @@ Application::Application()
         spdlog::cfg::helpers::load_levels(spdlog_val);
     }
 
-    isString auto visual_debug = toLower(spdlog::details::os::getenv("CURAENGINE_VISUALDEBUG"));
-    if (visual_debug == "1" || visual_debug == "on" || visual_debug == "true")
-    {
-        namespace fs = std::filesystem;
-        auto now = std::chrono::system_clock::now();
-        auto current_dir_name = fmt::format("{:%Y%m%d_%H_%M}", now);
 
-        auto vtu_dir = spdlog::details::os::getenv("CURAENGINE_VTU_DIR");
-        auto vtu_path = vtu_dir.empty() ? fs::current_path().append(fmt::format("visual_debug/{}", current_dir_name)) : fs::path(vtu_dir).append(current_dir_name);
-        if (! fs::is_directory(vtu_path))
-        {
-            spdlog::error("CURAENGINE_VTU_DIR should be a directory");
-        }
-        if (! fs::exists(vtu_path))
-        {
-            fs::create_directories(vtu_path);
-        }
-        std::vector<vtu11::DataSetInfo> mesh_dataset
-            {
-                { "vertex_idx", vtu11::DataSetType::PointData, 1 },
-                { "face_idx", vtu11::DataSetType::CellData, 1 },
-            };
-        registerLogger(std::make_shared<debug::VisualLogger>("mesh", vtu_path, mesh_dataset));
-        std::vector<vtu11::DataSetInfo> layer_dataset
-            {
-                { "layer_idx", vtu11::DataSetType::CellData, 1 },
-            };
-        registerLogger(std::make_shared<debug::VisualLogger>("layers", vtu_path, layer_dataset));
-        std::vector<vtu11::DataSetInfo> poly_dataset
-            {
-            };
-        registerLogger(std::make_shared<debug::VisualLogger>("slicer_polygons", vtu_path, poly_dataset));
-    }
-    else
-    {
-        registerLogger(std::make_shared<debug::VisualLogger>("mesh"));
-        registerLogger(std::make_shared<debug::VisualLogger>("layers"));
-        registerLogger(std::make_shared<debug::VisualLogger>("slicer_polygons"));
-    }
 }
 
 Application::~Application()
