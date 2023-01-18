@@ -16,6 +16,7 @@
 #include "Application.h"
 #include "settings/Settings.h"
 #include "utils/concepts/geometry.h"
+#include "utils/concepts/arachne.h"
 
 namespace cura::debug
 {
@@ -169,6 +170,49 @@ public:
         std::vector<vtu11::DataSetData> dataSetData{ cellData };
 
         writePartition(meshPartition, dataSetData);
+    }
+
+    void log(const isSTGraph auto& graph, const int layer_nr, const std::experimental::source_location location = std::experimental::source_location::current())
+    {
+        spdlog::info("Visual Debugger: logging <{}> {} - {} - L{}", id_, location.file_name(), location.function_name(), location.line());
+
+        using float_type = double;
+        std::vector<float_type> points{};
+        vtu11::DataSetData cell_layer_idx{};
+        vtu11::DataSetData point_layer_idx{};
+        vtu11::DataSetData point_distance_to_boundary{};
+        vtu11::DataSetData point_bead_count{};
+        vtu11::DataSetData point_transition_ratio{};
+        for (const auto& [idx, edge] : graph.edges | ranges::views::enumerate)
+        {
+            const auto& from = edge.from;
+            const auto& to = edge.to;
+            points.emplace_back(static_cast<float_type>(from->p.X));
+            points.emplace_back(static_cast<float_type>(from->p.Y));
+            points.emplace_back(static_cast<float_type>(layer_height_->at(layer_nr)));
+            point_layer_idx.push_back(static_cast<double>(layer_nr));
+            point_distance_to_boundary.push_back(static_cast<double>(from->data.distance_to_boundary));
+            point_bead_count.push_back(static_cast<double>(from->data.bead_count));
+            point_transition_ratio.push_back(static_cast<double>(from->data.transition_ratio));
+
+            points.emplace_back(static_cast<float_type>(to->p.X));
+            points.emplace_back(static_cast<float_type>(to->p.Y));
+            points.emplace_back(static_cast<float_type>(layer_height_->at(layer_nr)));
+
+            point_layer_idx.push_back(static_cast<double>(layer_nr));
+            point_distance_to_boundary.push_back(static_cast<double>(to->data.distance_to_boundary));
+            point_bead_count.push_back(static_cast<double>(to->data.bead_count));
+            point_transition_ratio.push_back(static_cast<double>(to->data.transition_ratio));
+
+            cell_layer_idx.push_back(static_cast<double>(layer_nr));
+        }
+        auto connectivity = ranges::views::iota(0) | ranges::views::take(points.size() / 3) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+        auto offsets = ranges::views::iota(0) | ranges::views::take(connectivity.size()) | ranges::views::stride(3) | ranges::to<std::vector<vtu11::VtkIndexType>>;
+        auto types = ranges::views::repeat(3) | ranges::views::take(offsets.size()) | ranges::to<std::vector<vtu11::VtkCellType>>;
+        vtu11::Vtu11UnstructuredMesh meshPartition{ points, connectivity, offsets, types };
+        std::vector<vtu11::DataSetData> dataSetData { point_layer_idx, point_distance_to_boundary, point_bead_count, point_transition_ratio };
+
+        writePartition(meshPartition, {point_layer_idx, point_distance_to_boundary});
     }
 #endif
 
