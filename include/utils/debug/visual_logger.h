@@ -66,9 +66,14 @@ public:
         return id_;
     }
 
-    void setSettings(std::shared_ptr<Settings>&& settings)
+    void setSettings(std::shared_ptr<Settings> settings)
     {
         settings_ = settings;
+    }
+
+    void setLayers(std::shared_ptr<std::unordered_map<int, coord_t>> layer_heights)
+    {
+        layer_height_ = layer_heights;
     }
 
 #ifndef VISUAL_DEBUG
@@ -174,6 +179,7 @@ private:
     std::vector<vtu11::DataSetInfo> dataset_info_;
     std::string id_{};
     std::shared_ptr<Settings> settings_;
+    std::shared_ptr<std::unordered_map<int, coord_t>> layer_height_;
 
     void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data)
     {

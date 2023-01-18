@@ -104,9 +104,19 @@ public:
 
     void registerSettings(std::shared_ptr<Settings>&& settings)
     {
+        auto settings_ = settings;
         for (auto& [id, logger] : loggers_)
         {
-            logger->setSettings(std::forward<std::shared_ptr<Settings>>(settings));
+            logger->setSettings(settings_);
+        }
+    }
+
+    void registerLayers(std::shared_ptr<std::unordered_map<int, coord_t>>&& layer_heights)
+    {
+        auto layer_heights_ = layer_heights;
+        for (auto& [id, logger] : loggers_)
+        {
+            logger->setLayers(layer_heights_);
         }
     }
 

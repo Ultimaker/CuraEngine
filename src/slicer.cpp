@@ -5,6 +5,8 @@
 #include <stdio.h>
 
 #include <spdlog/spdlog.h>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/to_container.hpp>
 
 #include "Application.h"
 #include "Slice.h"
@@ -16,6 +18,7 @@
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
+#include "utils/views/get.h"
 
 
 namespace cura
@@ -792,6 +795,11 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
 
     layers = buildLayersWithHeight(slice_layer_count, slicing_tolerance, initial_layer_thickness, thickness, use_variable_layer_heights, adaptive_layers);
     Application::getInstance().getLogger("layers")->log(layers);
+    Application::getInstance().registerLayers(
+        std::make_shared<std::unordered_map<int, coord_t>>(layers
+                                                           | views::get(&SlicerLayer::z)
+                                                           | ranges::views::enumerate
+                                                           | ranges::to<std::unordered_map<int, coord_t>>));
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
 
