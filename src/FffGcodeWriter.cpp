@@ -1268,11 +1268,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             }
             if ((nearby.inset_idx < here.inset_idx) == inner_to_outer)
             {
-                order_requirements.insert(std::make_pair(nearby.poly, here.poly));
+                order_requirements.insert({nearby.poly, here.poly });
             }
             else
             {
-                order_requirements.insert(std::make_pair(here.poly, nearby.poly));
+                order_requirements.insert({ here.poly, nearby.poly });
             }
         }
     }

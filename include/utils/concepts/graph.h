@@ -18,12 +18,6 @@ namespace cura
 template<class T>
 concept nodeable = hashable<T>;
 
-/* # stateable
- * Describing the basic requirement for a state in a graph.
- */
-template<class T>
-concept stateable = true;  // TODO: describe a proper concept for this
-
 /* # graphable
  * Describing the basic requirement for a directed graph, namely that it is a map, where the `key_type` and the `mapped_type`
  * exist and are of the same type.

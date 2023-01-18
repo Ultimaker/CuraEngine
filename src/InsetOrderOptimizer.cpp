@@ -230,7 +230,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                     }
                 };
 
-            actions::dfs_depth_view(root, graph, initialize_nodes);
+            actions::dfs_depth_state(root, graph, initialize_nodes);
         };
 
         // For each hole root perform a dfs, and keep track of depth from hole root
@@ -250,7 +250,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                         }
                     };
 
-                actions::dfs_depth_view(hole_root, graph, update_nodes);
+                actions::dfs_depth_state(hole_root, graph, update_nodes);
             }
         };
 
@@ -275,12 +275,12 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const auto& 
                    }
                 };
 
-            actions::dfs_parent_view(root, graph, set_order_constraints);
+            actions::dfs_parent_state(root, graph, set_order_constraints);
 
             for (auto& hole_root : hole_roots)
             {
                 root_ = hole_root;
-                actions::dfs_parent_view(hole_root, graph, set_order_constraints);
+                actions::dfs_parent_state(hole_root, graph, set_order_constraints);
             }
         }
     }

@@ -387,36 +387,41 @@ protected:
             return order;
         };
 
-        std::function<void(const Path)> handle_node = [&current_position, &optimized_order, this, &visited](const Path current_node)
-        {
-            // We should make map from node <-> path for this stuff
-            for (auto& path : paths)
+        const std::function<std::nullptr_t(const Path, const std::nullptr_t)> handle_node =
+            [&current_position, &optimized_order, this, &visited]
+            (const Path current_node, const std::nullptr_t _state)
             {
-                if (path.vertices == current_node)
+                // We should make map from node <-> path for this stuff
+                for (auto& path : paths)
                 {
-                    if(path.is_closed)
+                    if (path.vertices == current_node)
                     {
-                        current_position = (*path.converted)[path.start_vertex]; //We end where we started.
-                    }
-                    else
-                    {
-                        //Pick the other end from where we started.
-                        current_position = path.start_vertex == 0 ? path.converted->back() : path.converted->front();
-                    }
+                        if(path.is_closed)
+                        {
+                            current_position = (*path.converted)[path.start_vertex]; //We end where we started.
+                        }
+                        else
+                        {
+                            //Pick the other end from where we started.
+                            current_position = path.start_vertex == 0 ? path.converted->back() : path.converted->front();
+                        }
 
-                    // Add to optimized order
-                    optimized_order.push_back(path);
+                        // Add to optimized order
+                        optimized_order.push_back(path);
 
-                    break;
+                        break;
+                    }
                 }
-            }
-        };
+
+                return nullptr;
+            };
 
         while (roots.size() != 0)
         {
             Path root = findClosestPathVertices(current_position, roots);
             roots.erase(root);
-            actions::dfs_conditional_neighbour_view(root, order_requirements, handle_node, visited, get_neighbours);
+
+            actions::dfs(root, order_requirements, handle_node, nullptr, visited, get_neighbours);
         }
 
         return optimized_order;

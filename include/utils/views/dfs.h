@@ -22,26 +22,31 @@ namespace cura::actions
  * \param parent_node the node in the graph that triggered the call to dfs on current_node.
  */
 
-template<nodeable Node, stateable State, graphable Graph>
+namespace details
+{
+template<nodeable Node, graphable Graph>
+std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](const Node current_node, const Graph& graph)
+{
+    const auto& [neighbour_begin, neighbour_end] = graph.equal_range(current_node);
+    auto neighbours_iterator = ranges::make_subrange(neighbour_begin, neighbour_end);
+    std::vector<Node> neighbours;
+    for (const auto& [_, neighbour] : neighbours_iterator)
+    {
+        neighbours.push_back(neighbour);
+    }
+    return neighbours;
+};
+};
+
+template<nodeable Node, typename State, graphable Graph>
 constexpr void dfs(
     const Node& current_node,
     const Graph& graph,
     std::function<State(const Node, const State)> handle_node,
     const State& state = nullptr,
     std::unordered_set<Node> visited = std::unordered_set<Node>(),
-    std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours =
-        [](const Node current_node, const Graph& graph)
-    {
-        const auto& [neighbour_begin, neighbour_end] = graph.equal_range(current_node);
-        auto neighbours_iterator = ranges::make_subrange(neighbour_begin, neighbour_end);
-        std::vector<Node> neighbours;
-        for (const auto& [_, neighbour] : neighbours_iterator)
-        {
-            neighbours.push_back(neighbour);
-        }
-        return neighbours;
-    })
-{
+    std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = details::get_neighbours<Node, Graph>
+) {
     if (visited.contains(current_node))
     {
         return;
@@ -57,7 +62,7 @@ constexpr void dfs(
 }
 
 template<nodeable Node, graphable Graph>
-constexpr void dfs_parent_view(const Node& current_node, const Graph& graph, std::function<void(const Node, const Node)> handle_node)
+constexpr void dfs_parent_state(const Node& current_node, const Graph& graph, std::function<void(const Node, const Node)> handle_node)
 {
     const std::function<Node(const Node, const Node)> parent_view = [handle_node](auto current_node, auto parent_node)
     {
@@ -69,7 +74,7 @@ constexpr void dfs_parent_view(const Node& current_node, const Graph& graph, std
 }
 
 template<nodeable Node, graphable Graph>
-constexpr void dfs_depth_view(const Node& current_node, const Graph& graph, std::function<void(const Node, const unsigned int)> handle_node)
+constexpr void dfs_depth_state(const Node& current_node, const Graph& graph, std::function<void(const Node, const unsigned int)> handle_node)
 {
     const std::function<unsigned int(const Node, const unsigned int)> depth_view = [handle_node](auto current_node, auto depth)
     {
@@ -80,18 +85,6 @@ constexpr void dfs_depth_view(const Node& current_node, const Graph& graph, std:
     dfs(current_node, graph, depth_view, 0u);
 }
 
-template<nodeable Node, graphable Graph>
-constexpr void
-    dfs_conditional_neighbour_view(const Node& current_node, const Graph graph, std::function<void(const Node)> handle_node, std::unordered_set<Node> visited, std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours)
-{
-    const std::function<std::nullptr_t(const Node, const std::nullptr_t)> wrapped_handle_node = [handle_node](auto current_node, auto)
-    {
-        handle_node(current_node);
-        return nullptr;
-    };
-
-    dfs(current_node, graph, wrapped_handle_node, nullptr, visited, get_neighbours);
-}
 } // namespace cura::actions
 
 #endif // CURAENGINE_DFS_SORT_H
