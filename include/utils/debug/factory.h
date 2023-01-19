@@ -7,6 +7,7 @@
 #include <memory>
 
 #include <fmt/format.h>
+#include <fmt/chrono.h>
 #include <spdlog/cfg/helpers.h>
 #include <spdlog/details/os.h>
 
