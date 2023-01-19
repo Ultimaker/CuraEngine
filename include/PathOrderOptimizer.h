@@ -20,8 +20,6 @@
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/reverse.hpp>
 
-namespace rv = ranges::views;
-
 namespace cura
 {
 
@@ -164,7 +162,7 @@ public:
         //Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
         const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
         SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
-        for(const auto& [i, path]: paths | rv::enumerate)
+        for(const auto& [i, path]: paths | ranges::views::enumerate)
         {
             if (path.converted->empty())
             {
@@ -285,14 +283,14 @@ protected:
 
             std::vector<OrderablePath> available_candidates;
             available_candidates.reserve(nearby_candidates.size());
-            for(auto& candidate : nearby_candidates | rv::filter(isPicked))
+            for(auto& candidate : nearby_candidates | ranges::views::filter(isPicked))
             {
                 available_candidates.push_back(candidate);
             }
 
             if(available_candidates.empty()) // We need to broaden our search through all candidates
             {
-                for(auto& path : paths | rv::filter(notPicked))
+                for(auto& path : paths | ranges::views::filter(notPicked))
                 {
                     available_candidates.push_back(path);
                 }
@@ -432,7 +430,7 @@ protected:
         std::vector<OrderablePath> reversed;
         //Don't replace with swap, assign or insert. They require functions that we can't implement for all template arguments for Path.
         reversed.reserve(pathsOrderPaths.size());
-        for(auto& path: pathsOrderPaths | rv::reverse)
+        for(auto& path: pathsOrderPaths | ranges::views::reverse)
         {
             reversed.push_back(path);
             reversed.back().backwards = !reversed.back().backwards;
@@ -553,7 +551,7 @@ protected:
 
         size_t best_i;
         float best_score = std::numeric_limits<float>::infinity();
-        for(const auto& [i, here]: **path.converted | rv::enumerate)
+        for(const auto& [i, here]: **path.converted | ranges::views::enumerate)
         {
             //For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             //For SHARPEST_CORNER, use a fixed starting score of 0.
