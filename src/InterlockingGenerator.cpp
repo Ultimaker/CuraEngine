@@ -194,9 +194,9 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     // Every `beam_layer_count` number of layers are combined to an interlocking beam layer
     // to store these we need ceil(max_layer_count / beam_layer_count) of these layers
     // the formula is rewritten as (max_layer_count + beam_layer_count - 1) / beam_layer_count, so it works for integer division
-    size_t num_interlocking_beams = (max_layer_count + beam_layer_count - 1) / beam_layer_count;
-    structure_per_layer[0].resize(num_interlocking_beams);
-    structure_per_layer[1].resize(num_interlocking_beams);
+    size_t num_interlocking_layers = (max_layer_count + beam_layer_count - 1) / beam_layer_count;
+    structure_per_layer[0].resize(num_interlocking_layers);
+    structure_per_layer[1].resize(num_interlocking_layers);
 
     // Only compute cell structure for half the layers, because since our beams are two layers high, every odd layer of the structure will be the same as the layer below.
     for (const GridPoint3& grid_loc : cells)
