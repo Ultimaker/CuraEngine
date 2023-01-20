@@ -151,7 +151,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     {
         all_paths.emplace_back(line);
     }
-    std::unordered_set<std::pair<const ExtrusionLine*, const ExtrusionLine*>> order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
+    auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner);
 
     // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
