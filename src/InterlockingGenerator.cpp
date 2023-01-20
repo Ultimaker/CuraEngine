@@ -1,8 +1,6 @@
 //Copyright (c) 2023 UltiMaker
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include <spdlog/spdlog.h>
-
 #include "InterlockingGenerator.h"
 
 #include <algorithm> // max
