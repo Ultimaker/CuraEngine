@@ -48,7 +48,7 @@ public:
             spdlog::debug( "Visual Debugger: logging: {}", visual_data_ | views::get( & VisualDataInfo::name ));
         }
 
-        vtu11::writePVtu( vtu_path_.string(), id_, getDataset_infos(), idx_ );
+        vtu11::writePVtu( vtu_path_.string(), id_, getDatasetInfos(), idx_ );
     };
 
     VisualLogger(const VisualLogger& other) noexcept = default;
@@ -63,7 +63,7 @@ public:
     {
         const auto idx = idx_++;
         spdlog::info( "Visual Debugger: Finalizing vtu <{}> with a total of {} parallel vtu(s) files", id_, idx );
-        vtu11::writePVtu( vtu_path_.string(), id_, getDataset_infos(), idx ); // Need to write this again since we now know the exact number of vtu files
+        vtu11::writePVtu( vtu_path_.string(), id_, getDatasetInfos(), idx ); // Need to write this again since we now know the exact number of vtu files
     };
 
     constexpr void log(const polygon auto& poly, const int layer_idx) { };
@@ -81,7 +81,7 @@ private:
     shared_layer_map_t layer_map_ { };
     std::vector<VisualDataInfo> visual_data_ { };
 
-    constexpr std::vector<vtu11::DataSetInfo> getDataset_infos()
+    constexpr std::vector<vtu11::DataSetInfo> getDatasetInfos()
     {
         return visual_data_ | ranges::views::transform( [](auto& val) { return val.getDataSetInfo(); } ) | ranges::to<std::vector<vtu11::DataSetInfo>>;
     }
@@ -90,7 +90,7 @@ private:
     {
         const auto idx = idx_++;
         spdlog::info( "Visual Debugger: writing <{}> partition {}", id_, idx );
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, getDataset_infos(), dataset_data, idx, "RawBinary" );
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, getDatasetInfos(), dataset_data, idx, "RawBinary" );
     }
 };
 } // namespace enabled
