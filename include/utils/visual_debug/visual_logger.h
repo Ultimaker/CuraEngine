@@ -10,6 +10,8 @@
 #include <mutex>
 #include <tuple>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
@@ -17,6 +19,7 @@
 
 #include "utils/concepts/arachne.h"
 #include "utils/concepts/geometry.h"
+#include "utils/views/get.h"
 #include "utils/visual_debug/visual_data_info.h"
 
 namespace cura::debug
@@ -37,7 +40,12 @@ public:
     constexpr VisualLogger(const std::string& id, const std::filesystem::path& vtu_path, Args&& ... args) : id_ { id }, vtu_path_ { vtu_path }
     {
         spdlog::info( "Visual Debugger: Initializing vtu <{}> file(s) in {}", id_, vtu_path_.string());
-        visual_data_.emplace_back( args... );
+        visual_data_.reserve(sizeof...(Args));
+        (visual_data_.emplace_back(args), ...);
+        if (! visual_data_.empty())
+        {
+            spdlog::debug( "Visual Debugger: logging: {}", visual_data_ | views::get( & VisualDataInfo::name ));
+        }
 
         vtu11::writePVtu( vtu_path_.string(), id_, getDataset_infos(), idx_ );
     };

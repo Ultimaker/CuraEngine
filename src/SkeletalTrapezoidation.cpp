@@ -455,8 +455,14 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     graph.collapseSmallEdges();
 
     auto vlogger_st_graph = debug::Loggers::get_mutable_instance().Logger( "ST_graph_edges",
-                                                                           debug::VisualDataInfo { "isCentral", vtu11::DataSetType::CellData, 1UL, [](const auto& val) { return val.data.isCentral(); }},
-                                                                           debug::VisualDataInfo { "distance_to_boundary", vtu11::DataSetType::PointData, 1UL, [](const auto& val) { return val.data.distance_to_boundary; }} );
+                                                                           debug::VisualDataInfo { .name = "isCentral",
+                                                                                                   .dataset_type = vtu11::DataSetType::CellData,
+                                                                                                   .components = 1UL,
+                                                                                                   .projection = [](const auto& val) { return val.data.isCentral(); }},
+                                                                           debug::VisualDataInfo { .name = "distance_to_boundary",
+                                                                                                   .dataset_type = vtu11::DataSetType::PointData,
+                                                                                                   .components = 1UL,
+                                                                                                   .projection = [](const auto& val) { return val.data.distance_to_boundary; }} );
     vlogger_st_graph->log( graph.edges, layer_idx );
 
     // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,
