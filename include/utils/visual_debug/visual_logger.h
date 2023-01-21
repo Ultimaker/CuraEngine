@@ -10,19 +10,19 @@
 #include <mutex>
 #include <tuple>
 
-#include "spdlog/spdlog.h"
+#include <range/v3/to_container.hpp>
+#include <range/v3/view/transform.hpp>
+#include <spdlog/spdlog.h>
 #include <vtu11/vtu11.hpp>
 
 #include "utils/concepts/arachne.h"
 #include "utils/concepts/geometry.h"
+#include "utils/visual_debug/visual_data_info.h"
 
 namespace cura::debug
 {
 using layer_map_t = std::unordered_map<int, unsigned long long>;
 using shared_layer_map_t = std::shared_ptr<layer_map_t>;
-using dataset_info_t = std::vector<vtu11::DataSetInfo>;
-
-using visual_data_t = std::tuple<std::string, vtu11::DataSetType, std::any>;
 
 #ifdef VISUAL_DEBUG
 inline namespace enabled
@@ -37,8 +37,9 @@ public:
     constexpr VisualLogger(const std::string& id, const std::filesystem::path& vtu_path, Args&& ... args) : id_ { id }, vtu_path_ { vtu_path }
     {
         spdlog::info( "Visual Debugger: Initializing vtu <{}> file(s) in {}", id_, vtu_path_.string());
+        visual_data_.emplace_back( args... );
 
-        vtu11::writePVtu( vtu_path_.string(), id_, dataset_info_, idx_ );
+        vtu11::writePVtu( vtu_path_.string(), id_, getDataset_infos(), idx_ );
     };
 
     VisualLogger(const VisualLogger& other) noexcept = default;
@@ -55,7 +56,7 @@ public:
     {
         const auto idx = idx_++;
         spdlog::info( "Visual Debugger: Finalizing vtu <{}> with a total of {} parallel vtu(s) files", id_, idx );
-        vtu11::writePVtu( vtu_path_.string(), id_, dataset_info_, idx ); // Need to write this again since we now know the exact number of vtu files
+        vtu11::writePVtu( vtu_path_.string(), id_, getDataset_infos(), idx ); // Need to write this again since we now know the exact number of vtu files
     };
 
     constexpr void Log(const polygon auto& poly, const int layer_idx) { };
@@ -71,13 +72,18 @@ private:
     std::string id_ { };
     std::filesystem::path vtu_path_ { };
     shared_layer_map_t layer_map_ { };
-    dataset_info_t dataset_info_ { };
+    std::vector<VisualDataInfo> visual_data_ { };
 
-    void WritePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data)
+    constexpr std::vector<vtu11::DataSetInfo> getDataset_infos()
+    {
+        return visual_data_ | ranges::views::transform( [](auto& val) { return val.getDataSetInfo(); } ) | ranges::to<std::vector<vtu11::DataSetInfo>>;
+    }
+
+    void writePartition(vtu11::Vtu11UnstructuredMesh& mesh_partition, const std::vector<vtu11::DataSetData>& dataset_data)
     {
         const auto idx = idx_++;
-        spdlog::info( "Visual Debugger: writing <{}> parition {}", id_, idx );
-        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, dataset_info_, dataset_data, idx, "RawBinary" );
+        spdlog::info( "Visual Debugger: writing <{}> partition {}", id_, idx );
+        vtu11::writePartition( vtu_path_.string(), id_, mesh_partition, getDataset_infos(), dataset_data, idx, "RawBinary" );
     }
 };
 } // namespace enabled
