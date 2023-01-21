@@ -11,8 +11,8 @@
 #include "communication/ArcusCommunicationPrivate.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/FMatrix4x3.h" //To convert vertices to integer-points.
-#include "utils/debug/logger.h"
 #include "utils/floatpoint.h" //To accept vertices (which are provided in floating point).
+#include "utils/visual_debug/logger.h"
 
 namespace cura
 {
@@ -47,7 +47,6 @@ void ArcusCommunication::Private::readGlobalSettingsMessage(const proto::Setting
     {
         slice->scene.settings.add(setting_message.name(), setting_message.value());
     }
-    debug::Loggers::get_mutable_instance().setGlobal(std::make_shared<Settings>(slice->scene.settings));
 }
 
 void ArcusCommunication::Private::readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages)
@@ -93,7 +92,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         mesh_group.settings.add(setting.name(), setting.value());
     }
 
-    auto vlogger = debug::make_logger("mesh");
+    auto vlogger = debug::Loggers::get_mutable_instance().MakeLogger( "mesh" );
     FMatrix4x3 matrix;
     for (const cura::proto::Object& object : mesh_group_message.objects())
     {
@@ -131,7 +130,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
 
         mesh.mesh_name = object.name();
         mesh.finish();
-        vlogger->log(mesh);
+        vlogger->Log(mesh);
     }
     object_count++;
     mesh_group.finalize();

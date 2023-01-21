@@ -1,24 +1,23 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "SkeletalTrapezoidation.h"
 
-#include <spdlog/spdlog.h>
-
-#include "settings/types/Ratio.h"
 #include <functional>
 #include <queue>
 #include <sstream>
 #include <stack>
 #include <unordered_set>
 
+#include <spdlog/spdlog.h>
+
+#include "settings/types/Ratio.h"
 #include "BoostInterface.hpp"
-
 #include "utils/VoronoiUtils.h"
-
 #include "utils/linearAlg2D.h"
-
 #include "utils/macros.h"
+#include "utils/visual_debug/logger.h"
+
 
 #define SKELETAL_TRAPEZOIDATION_BEAD_SEARCH_MAX 1000 // A limit to how long it'll keep searching for adjacent beads. Increasing will re-use beadings more often (saving performance), but search longer for beading (costing performance).
 
@@ -378,6 +377,9 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(const Polygons& polys,
 
 void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 {
+    constexpr auto layer_idx = 1;  // TODO: get it from the actual layer
+    auto vlogger_polys = debug::Loggers::get_mutable_instance().Logger( "ST_polys" );
+    vlogger_polys->Log( polys, layer_idx );
     vd_edge_to_he_edge.clear();
     vd_node_to_he_node.clear();
 
@@ -450,8 +452,12 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     }
 
     separatePointyQuadEndNodes();
-
     graph.collapseSmallEdges();
+
+    auto vlogger_st_graph = debug::Loggers::get_mutable_instance().Logger( "ST_graph_edges",
+                                                                           debug::visual_data_t { "isCentral", vtu11::DataSetType::CellData, [](const auto& val) { return val.data.isCentral(); } },
+                                                                           debug::visual_data_t { "distance_to_boundary", vtu11::DataSetType::PointData, [](const auto& val) { return val.data.distance_to_boundary; } });
+    vlogger_st_graph->Log( graph.edges, layer_idx );
 
     // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,
     // without needing to iterate backward

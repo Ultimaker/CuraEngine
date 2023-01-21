@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Ultimaker B.V.
+// Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <concepts>
@@ -11,13 +11,21 @@ namespace cura
 {
 
 template<class T>
-concept isSTGraph = requires(T graph)
+concept storable_data =requires(T val) { val.data; };
+
+template<class T>
+concept st_edges_viewable = std::ranges::range<T> && storable_data<typename T::value_type>;
+
+template<class T>
+concept st_nodes_viewable = std::ranges::range<T> && storable_data<typename T::value_type>;
+
+template<class T>
+concept st_graph =
+requires(T graph)
 {
-    { graph.edges } -> std::ranges::range;
-    { graph.nodes } -> std::ranges::range;
+    { graph.edges } -> st_edges_viewable;
+    { graph.nodes } -> st_nodes_viewable;
 };
-;
+}// namespace cura
 
-} // namespace cura
-
-#endif // CURAENGINE_ARACHNE_H
+#endif// CURAENGINE_ARACHNE_H

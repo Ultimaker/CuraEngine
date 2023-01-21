@@ -17,7 +17,6 @@
 #include "utils/Simplify.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/ThreadPool.h"
-#include "utils/debug/logger.h"
 #include "utils/gettime.h"
 #include "utils/views/get.h"
 
@@ -773,7 +772,6 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     polygons.erase(it, polygons.end());
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
-    Application::getInstance().getLogger("slicer_polygons")->log(polygons, z);
     polygons = Simplify(mesh->settings).polygon(polygons);
 
     polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
@@ -796,10 +794,10 @@ Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_c
 
     layers = buildLayersWithHeight(slice_layer_count, slicing_tolerance, initial_layer_thickness, thickness, use_variable_layer_heights, adaptive_layers);
 
-#ifdef VISUAL_DEBUG
-    spdlog::debug("Visual Debugger: Initializing layer_idx <-> layer_height");
-    debug::set_all(layers | views::get(&SlicerLayer::z) | ranges::views::enumerate | ranges::to<debug::layer_map_t>);
-#endif
+//#ifdef VISUAL_DEBUG
+//    spdlog::debug("Visual Debugger: Initializing layer_idx <-> layer_height");
+//    debug::set_all(layers | views::get(&SlicerLayer::z) | ranges::views::enumerate | ranges::to<debug::layer_map_t>);
+//#endif
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
 
