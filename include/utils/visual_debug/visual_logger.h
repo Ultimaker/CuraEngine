@@ -9,6 +9,7 @@
 #include <memory>
 #include <mutex>
 #include <tuple>
+#include <utility>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -40,9 +41,9 @@ public:
     constexpr VisualLogger(const std::string& id, const std::filesystem::path& vtu_path, Args&& ... args) : id_ { id }, vtu_path_ { vtu_path }
     {
         spdlog::info( "Visual Debugger: Initializing vtu <{}> file(s) in {}", id_, vtu_path_.string());
-        visual_data_.reserve(sizeof...(Args));
-        (visual_data_.emplace_back(args), ...);
-        if (! visual_data_.empty())
+        visual_data_.reserve( sizeof...( Args ));
+        (visual_data_.emplace_back( args ), ...);
+        if ( !visual_data_.empty())
         {
             spdlog::debug( "Visual Debugger: logging: {}", visual_data_ | views::get( & VisualDataInfo::name ));
         }
@@ -54,11 +55,9 @@ public:
 
     VisualLogger(VisualLogger&& other) noexcept = default;
 
-    VisualLogger operator=(const VisualLogger& other) noexcept
-    {
+    VisualLogger& operator=(const VisualLogger& other) = default;
 
-        return { };
-    }
+    VisualLogger& operator=(VisualLogger&& other) noexcept = default;
 
     ~VisualLogger()
     {
@@ -76,8 +75,8 @@ public:
     constexpr void log(const st_edges_viewable auto& polys, const int layer_idx) { };
 
 private:
-    size_t idx_ { 1UL };
     std::string id_ { };
+    size_t idx_ { 1UL };
     std::filesystem::path vtu_path_ { };
     shared_layer_map_t layer_map_ { };
     std::vector<VisualDataInfo> visual_data_ { };
