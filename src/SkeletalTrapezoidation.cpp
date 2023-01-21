@@ -379,7 +379,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
 {
     constexpr auto layer_idx = 1;  // TODO: get it from the actual layer
     auto vlogger_polys = debug::Loggers::get_mutable_instance().Logger( "ST_polys" );
-    vlogger_polys->Log( polys, layer_idx );
+    vlogger_polys->log( polys, layer_idx );
     vd_edge_to_he_edge.clear();
     vd_node_to_he_node.clear();
 
@@ -457,7 +457,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
     auto vlogger_st_graph = debug::Loggers::get_mutable_instance().Logger( "ST_graph_edges",
                                                                            debug::VisualDataInfo { "isCentral", vtu11::DataSetType::CellData, 1UL, [](const auto& val) { return val.data.isCentral(); }},
                                                                            debug::VisualDataInfo { "distance_to_boundary", vtu11::DataSetType::PointData, 1UL, [](const auto& val) { return val.data.distance_to_boundary; }} );
-    vlogger_st_graph->Log( graph.edges, layer_idx );
+    vlogger_st_graph->log( graph.edges, layer_idx );
 
     // Set [incident_edge] the the first possible edge that way we can iterate over all reachable edges from node.incident_edge,
     // without needing to iterate backward

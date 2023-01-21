@@ -59,13 +59,13 @@ public:
         vtu11::writePVtu( vtu_path_.string(), id_, getDataset_infos(), idx ); // Need to write this again since we now know the exact number of vtu files
     };
 
-    constexpr void Log(const polygon auto& poly, const int layer_idx) { };
+    constexpr void log(const polygon auto& poly, const int layer_idx) { };
 
-    constexpr void Log(const polygons auto& polys, const int layer_idx) { };
+    constexpr void log(const polygons auto& polys, const int layer_idx) { };
 
-    constexpr void Log(const mesh auto& mesh) { };
+    constexpr void log(const mesh auto& mesh) { };
 
-    constexpr void Log(const st_edges_viewable auto& polys, const int layer_idx) { };
+    constexpr void log(const st_edges_viewable auto& polys, const int layer_idx) { };
 
 private:
     size_t idx_ { 1UL };
@@ -101,10 +101,10 @@ public:
     constexpr VisualLogger(Args... args) { };
 
     template<typename... Args>
-    constexpr void Log(Args... args) { };
+    constexpr void log(Args... args) { };
 
     template<typename... Args>
-    constexpr void SetValue(Args... args) { };
+    constexpr void setValue(Args... args) { };
 };
 } // namespace disabled
 

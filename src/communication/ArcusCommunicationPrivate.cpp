@@ -130,7 +130,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
 
         mesh.mesh_name = object.name();
         mesh.finish();
-        vlogger->Log(mesh);
+        vlogger->log(mesh);
     }
     object_count++;
     mesh_group.finalize();
