@@ -4,62 +4,31 @@
 #ifndef INCLUDE_UTILS_VIEWS_COORD_H
 #define INCLUDE_UTILS_VIEWS_COORD_H
 
-#include <coroutine>
+#include <array>
 
-#include <range/v3/view/for_each.hpp>
 #include <range/v3/view/subrange.hpp>
 #include <range/v3/view/view.hpp>
 
-#include "utils/Coord_t.h"
 #include "utils/concepts/geometry.h"
-#include <utils/views/generator.h>
 
 namespace cura::views
 {
-namespace details
-{
 
-// TODO: use actual type of coordinates in point for generator template arguments
-
-[[maybe_unused]] generator<coord_t>
-coord_view_fn(const point3d_named auto& point)
+[[nodiscard]] constexpr auto coord_view(const point_ranged auto& point)
 {
-    co_yield point.x;
-    co_yield point.y;
-    co_yield point.z;
+    return ranges::make_view_closure( ranges::make_subrange( point.begin(), point.end()));
 }
 
-[[maybe_unused]] generator<coord_t>
-coord_view_fn(const point2d_named auto& point)
+[[nodiscard]] constexpr auto coord_view(const point2d_named auto& point)
 {
-    co_yield point.X;
-    co_yield point.Y;
+    std::array<decltype( point.X ), 2> point_rng { point.X, point.Y };
+    return ranges::make_view_closure( ranges::make_subrange( point_rng.begin(), point_rng.end()));
 }
 
-[[maybe_unused]] generator<coord_t>
-coord_view_fn(const point auto& point)
+[[nodiscard]] constexpr auto coord_view(const point3d_named auto& point)
 {
-    if constexpr ( point_named<decltype( point )> )
-    {
-        for ( auto coord : coord_view_fn( point ))
-        {
-            co_yield coord;
-        }
-    }
-    else
-    {
-        for ( auto coord : point )
-        {
-            co_yield coord;
-        }
-    }
-}
-} // namespace details
-
-[[nodiscard]] constexpr auto coord_view(const point auto& point)
-{
-    auto coords = details::coord_view_fn( point );
-    return ranges::make_view_closure( ranges::make_subrange( coords.begin(), coords.end()));
+    std::array<decltype( point.x ), 3> point_rng { point.x, point.y, point.z };
+    return ranges::make_view_closure( ranges::make_subrange( point_rng.begin(), point_rng.end()));
 }
 } // namespace cura::views
 
